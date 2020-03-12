@@ -1,0 +1,47 @@
+@startuml component
+
+actor developer as "Developer"
+participant device as "NAIS Device"
+participant nda as "NAIS Device Agent"
+participant aad as "Azure Active Directory"
+participant kolide as "Kolide"
+participant nds as "NAIS Device Server"
+database ndsdb as "NDS database"
+participant bastion as "Bastion"
+
+==Enroll==
+developer -> nda: enroll device
+nda -> device: install kolide-agent
+device -> kolide: register
+nda -> aad: login
+aad -> nda: token
+nda -> device: get serial
+device -> nda: serial
+nda -> nds: HTTP POST /register (w/token + serial)
+nds -> aad: validate token
+nds -> ndsdb: add db entry (serial + email)
+nds -> nda: response
+
+==Kolide==
+loop
+    device -> kolide: fetch queries
+    kolide -> device: queries
+    device -> device: run queries
+    device -> kolide: results
+end
+
+==Monitor device statuses==
+loop every x minutes
+   nds -> kolide: get device statuses
+   kolide -> nds: device statuses
+   nds -> nds: update database entries with status
+end
+
+==Issue certificate==
+nda -> nds: HTTP GET /issuecert (w/token + serial)
+nds -> aad: validate token
+nds -> ndsdb: is device ok?
+nds -> nda: issue certificate
+nda -> bastion: connect
+
+@enduml
