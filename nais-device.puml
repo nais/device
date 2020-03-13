@@ -42,6 +42,5 @@ nda -> nds: HTTP GET /issuecert (w/token + serial)
 nds -> aad: validate token
 nds -> ndsdb: is device ok?
 nds -> nda: issue certificate
-nda -> bastion: connect
 
 @enduml
