@@ -5,7 +5,7 @@ devicecode_url="https://login.microsoftonline.com/62366534-1ec3-4962-8869-9b5535
 client_id="5d69cfe1-b300-4a1a-95ec-4752d07ccab1"
 form_header="Content-Type: application/x-www-form-urlencoded"
 
-devicecode_resp=$(curl -s -H "$form_header" -d "scope=user.read openid&client_id=$client_id" "$devicecode_url")
+devicecode_resp=$(curl -s -H "$form_header" -d "scope=$client_id/.default openid&client_id=$client_id" "$devicecode_url")
 
 # jq . <<< "$devicecode_resp"
 
