@@ -2,25 +2,26 @@
 
 actor developer as "Developer"
 participant device as "NAIS Device"
-participant nda as "NAIS Device Agent"
+participant dnca as "NAIS Device Client Agent"
 participant aad as "Azure Active Directory"
 participant kolide as "Kolide"
 participant nds as "NAIS Device Server"
 database ndsdb as "NDS database"
-participant bastion as "Bastion"
+collections vpnserver as "VPN Server"
+collections ndga as "NAIS Device Gateway Agent"
 
 ==Enroll==
-developer -> nda: enroll device
-nda -> device: install kolide-agent
+developer -> dnca: enroll device
+dnca -> device: install kolide-agent
 device -> kolide: register
-nda -> aad: login
-aad -> nda: token
-nda -> device: get serial
-device -> nda: serial
-nda -> nds: HTTP POST /register (w/token + serial)
+dnca -> aad: login
+aad -> dnca: token
+dnca -> device: get serial
+device -> dnca: serial
+dnca -> nds: HTTP POST /register {token, serial}
 nds -> aad: validate token
-nds -> ndsdb: add db entry (serial + email)
-nds -> nda: response
+nds -> ndsdb: add db entry {serial, email}
+nds -> dnca: response
 
 ==Kolide==
 loop
@@ -37,10 +38,45 @@ loop every x minutes
    nds -> nds: update database entries with status
 end
 
-==Issue certificate==
-nda -> nds: HTTP GET /issuecert (w/token + serial)
-nds -> aad: validate token
+==Connect to VPN==
+dnca -> nds: HTTP GET /psk {token, public key, serial}
+nds -> nds: validate token
 nds -> ndsdb: is device ok?
-nds -> nda: issue certificate
+
+nds -> ndsdb: get {psk, ip, routes, server-configs}
+nds -> dnca: {psk, ip, routes, server-configs}
+
+dnca -> device: ip dev add / ifconfig add / netsh add device
+dnca -> device: wg set psk, private key, ip
+dnca -> device: route add
+
+==Enroll VPN Server==
+ndga -> aad: login
+aad -> ndga: token
+ndga -> nds: HTTP POST /gateway/register {token, server-id, public ip}
+nds -> nds: validate token
+nds -> ndsdb: write server config
+nds -> ndga: response
+
+==Rotate psks==
+loop every x minutes:
+    nds -> nds: generate new psks
+    nds -> ndsdb: write new psks
+end
+
+==Configure VPN Server (runs every minute or more)==
+loop every minute
+    ndga -> aad: login
+    aad -> ndga: token
+    ndga -> nds: HTTP GET /peers {token, server-id}
+    nds -> nds: validate token
+    nds -> ndsdb: get peers
+    nds -> ndga: {peers}
+end
+
+loop every peer
+    ndga -> ndga: configure peer {public key, ip, psk}
+    ndga -> ndga: configure route {peer ip}
+end
 
 @enduml
