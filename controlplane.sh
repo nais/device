@@ -16,9 +16,8 @@ case "$1" in
 
     sudo mkdir -p /etc/wireguard
 
-    if ! sudo test -f "/etc/wireguard/controlplane.conf"; then
-      sudo test -f "/etc/wireguard/private.key" || wg genkey | sudo tee "/etc/wireguard/private.key" > /dev/null
-      cat << EOF | sudo tee /etc/wireguard/controlplane.conf
+    sudo test -f "/etc/wireguard/private.key" || wg genkey | sudo tee "/etc/wireguard/private.key" > /dev/null
+    cat << EOF | sudo tee /etc/wireguard/controlplane.conf
 [Interface]
 PrivateKey = $(cat /etc/wireguard/private.key)
 
@@ -27,8 +26,7 @@ PublicKey = $gw_public
 AllowedIPs = $gw_ip
 Endpoint = $gw_endpoint
 EOF
-      sudo chmod 600 /etc/wireguard/controlplane.conf
-    fi
+    sudo chmod 600 /etc/wireguard/controlplane.conf
 
     sudo wireguard-go "$dev"
     sudo wg setconf "$dev" /etc/wireguard/controlplane.conf
@@ -37,7 +35,6 @@ EOF
     sudo ifconfig "$dev" up
     sudo route -q -n add -inet "$network" -interface "$dev"
     sudo wg
-    echo -e "done! your public key:\n$(sudo cat /etc/wireguard/private.key | wg pubkey)"
     ;;
 
   "down")
