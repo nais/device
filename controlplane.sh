@@ -9,10 +9,10 @@ case "$1" in
     [ $# -ne 5 ] && usage && exit 1
     dev="$5"
     ip="$2"
-    network="192.168.2.0/24"
+    network="10.255.240.0/21"
     gw_public="$4"
     gw_endpoint="${3}:51820"
-    gw_ip="192.168.2.1/32"
+    gw_ip="10.255.240.1/32"
 
     sudo mkdir -p /etc/wireguard
 
