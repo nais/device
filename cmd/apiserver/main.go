@@ -6,8 +6,28 @@ import (
 	"fmt"
 	"net/http"
 
+	log "github.com/sirupsen/logrus"
+	flag "github.com/spf13/pflag"
+
 	_ "github.com/lib/pq"
 )
+
+var (
+	dbUser     string
+	dbPassword string
+	dbHost     string
+	dbName     string
+)
+
+func init() {
+	log.SetFormatter(&log.JSONFormatter{})
+
+	flag.StringVar(&dbName, "db-name", getEnv("DB_NAME", "postgres"), "database name")
+	flag.StringVar(&dbUser, "db-user", getEnv("DB_USER", "postgres"), "database username")
+	flag.StringVar(&dbPassword, "db-password", os.Getenv("DB_PASSWORD"), "database password")
+	flag.StringVar(&dbHost, "db-hostname", getEnv("DB_HOST", "localhost"), "database hostname")
+	flag.Parse()
+}
 
 type Client struct {
 	PSK string `json:"psk"`
@@ -24,12 +44,20 @@ type GatewayResponse struct {
 }
 
 func main() {
-	http.HandleFunc("/gateways/gw0", func(w http.ResponseWriter, _ *http.Request) {
+	http.HandleFunc("/gateways/gw0", gatewayConfigHandler())
+
+	bindAddr := fmt.Sprintf("%s:%d", "127.0.0.1", 6969)
+	fmt.Println("running @", bindAddr)
+	fmt.Println((&http.Server{Addr: bindAddr}).ListenAndServe())
+}
+
+func gatewayConfigHandler() func(w http.ResponseWriter, _ *http.Request) {
+	return func(w http.ResponseWriter, _ *http.Request) {
 		postgresConnection := fmt.Sprintf("user=%s password=%s dbname=%s host=%s sslmode=disable",
-			"postgres",
-			"asdf",
-			"postgres",
-			"localhost")
+			dbUser,
+			dbPassword,
+			dbName,
+			dbHost)
 
 		db, err := sql.Open("postgres", postgresConnection)
 		if err != nil {
@@ -62,9 +90,13 @@ func main() {
 
 		w.WriteHeader(http.StatusOK)
 		json.NewEncoder(w).Encode(resp)
-	})
+	}
+}
 
-	bindAddr := fmt.Sprintf("%s:%d", "127.0.0.1", 6969)
-	fmt.Println("running @", bindAddr)
-	fmt.Println((&http.Server{Addr: bindAddr}).ListenAndServe())
+func getEnv(key, fallback string) string {
+	if value, ok := os.LookupEnv(key); ok {
+		return value
+	}
+
+	return fallback
 }
