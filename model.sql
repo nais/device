@@ -1,7 +1,7 @@
 CREATE TABLE peer (
   id serial PRIMARY KEY,
   public_key varchar(44) NOT NULL UNIQUE,
-  kind integer NOT NULL
+  kind varchar(7) NOT NULL
 );
 
 CREATE TABLE client (
