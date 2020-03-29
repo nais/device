@@ -1,0 +1,17 @@
+name: build and push
+on: [push]
+jobs:
+  build:
+    name: build
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@master      
+    - name: build + push
+      run: |
+          version=$(date "+%Y-%m-%d")-$(git --no-pager log -1 --pretty=%h)
+          gpr_image_prefix=docker.pkg.github.com/nais/device/apiserver
+          docker build -t ${gpr_image_prefix}:latest -t ${gpr_image_prefix}:${version} .
+          echo ${{ secrets.GITHUB_TOKEN }} | docker login docker.pkg.github.com --username x-access-token --password-stdin
+          docker push ${gpr_image_prefix}:latest
+          docker push ${gpr_image_prefix}:${version}
+
