@@ -5,7 +5,6 @@ import (
 	"net/http"
 
 	"github.com/go-chi/chi"
-	"github.com/nais/device/apiserver/api/middleware"
 	"github.com/nais/device/apiserver/database"
 )
 
@@ -21,23 +20,24 @@ func New(cfg Config) chi.Router {
 	api := api{db: cfg.DB}
 
 	r := chi.NewRouter()
-	r.With(middleware.RequestLogger())
-
-	r.Get("/gateways/gw0", api.gatewayConfig())
+	r.Get("/gateways/{gateway}", api.gatewayConfig)
 
 	return r
 }
 
-func (a *api) gatewayConfig() func(w http.ResponseWriter, _ *http.Request) {
-	return func(w http.ResponseWriter, _ *http.Request) {
-		clients, err := a.db.ReadClients()
+// TODO(jhrv): do actual filtering of the clients.
+// TODO(jhrv): keep cache of gateway access group members to remove AAD runtime dependency
+// gatewayConfig returns the clients for the gateway that has the group membership required
+func (a *api) gatewayConfig(w http.ResponseWriter, r *http.Request) {
+	//gateway := chi.URLParam(r, "gateway")
 
-		if err != nil {
-			w.WriteHeader(http.StatusInternalServerError)
-			return
-		}
+	clients, err := a.db.ReadClients()
 
-		w.WriteHeader(http.StatusOK)
-		json.NewEncoder(w).Encode(clients)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
 	}
+
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(clients)
 }
