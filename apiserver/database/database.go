@@ -3,6 +3,7 @@ package database
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/jackc/pgx/v4/pgxpool"
 )
@@ -12,7 +13,10 @@ type APIServerDB interface {
 }
 
 type Client struct {
-	PSK string `json:"psk"`
+	Serial    string    `json:"serial"`
+	PSK       string    `json:"psk"`
+	LastCheck time.Time `json:"last_check"`
+	Healthy   bool      `json:"is_healthy"`
 	Peer
 }
 
@@ -39,7 +43,7 @@ func (d *database) ReadClients() (clients []Client, err error) {
 	ctx := context.Background()
 
 	query := `
-            SELECT public_key, ip, psk from peer
+            SELECT public_key, ip, psk, serial, healthy, last_check from peer
               JOIN client c on peer.id = c.peer_id
               JOIN ip i on peer.id = i.peer_id
 	`
@@ -53,7 +57,7 @@ func (d *database) ReadClients() (clients []Client, err error) {
 	for rows.Next() {
 		var client Client
 
-		err := rows.Scan(&client.PublicKey, &client.IP, &client.PSK)
+		err := rows.Scan(&client.PublicKey, &client.IP, &client.PSK, &client.Serial, &client.Healthy, &client.LastCheck)
 
 		if err != nil {
 			return nil, fmt.Errorf("scanning row: %s", err)

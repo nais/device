@@ -21,6 +21,7 @@ func New(cfg Config) chi.Router {
 
 	r := chi.NewRouter()
 	r.Get("/gateways/{gateway}", api.gatewayConfig)
+	r.Get("/clients", api.clients)
 
 	return r
 }
@@ -31,6 +32,18 @@ func New(cfg Config) chi.Router {
 func (a *api) gatewayConfig(w http.ResponseWriter, r *http.Request) {
 	//gateway := chi.URLParam(r, "gateway")
 
+	clients, err := a.db.ReadClients()
+
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(clients)
+}
+
+func (a *api) clients(w http.ResponseWriter, r *http.Request) {
 	clients, err := a.db.ReadClients()
 
 	if err != nil {
