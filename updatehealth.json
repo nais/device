@@ -1,0 +1,10 @@
+[
+  {
+    "serial": "serial1",
+    "is_healthy": true
+  },
+  {
+    "serial": "serial2",
+    "is_healthy": false
+  }
+]

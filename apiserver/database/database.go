@@ -10,13 +10,14 @@ import (
 
 type APIServerDB interface {
 	ReadClients() ([]Client, error)
+	UpdateClientStatus([]Client) error
 }
 
 type Client struct {
 	Serial    string    `json:"serial"`
 	PSK       string    `json:"psk"`
 	LastCheck time.Time `json:"last_check"`
-	Healthy   bool      `json:"is_healthy"`
+	Healthy   *bool     `json:"is_healthy"`
 	Peer
 }
 
@@ -67,4 +68,30 @@ func (d *database) ReadClients() (clients []Client, err error) {
 	}
 
 	return
+}
+
+func (d *database) UpdateClientStatus(clients []Client) error {
+	ctx := context.Background()
+
+	tx, err := d.conn.Begin(ctx)
+	if err != nil {
+		return fmt.Errorf("start transaction: %s", err)
+	}
+
+	defer tx.Rollback(ctx)
+
+	query := `
+		UPDATE client
+           SET healthy = $1, last_check = NOW()
+         WHERE serial = $2;
+    `
+
+	for _, client := range clients {
+		_, err = tx.Exec(ctx, query, client.Healthy, client.Serial)
+		if err != nil {
+			return err
+		}
+	}
+
+	return tx.Commit(ctx)
 }

@@ -1,0 +1,6 @@
+{
+  "clients": 
+	{ "seria: "abc", "is_healthy": true },
+	{ "serial": "123", "is_healthy": false }
+  ]
+}

@@ -1,7 +1,6 @@
 CREATE TABLE peer (
   id serial PRIMARY KEY,
-  public_key varchar(44) NOT NULL UNIQUE,
-  kind varchar(7) NOT NULL
+  public_key varchar(44) NOT NULL UNIQUE
 );
 
 CREATE TABLE client (
@@ -28,5 +27,3 @@ CREATE TABLE ip (
   peer_id INTEGER REFERENCES peer(id),
   ip varchar(15) UNIQUE
 );
-
-
