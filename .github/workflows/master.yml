@@ -6,12 +6,30 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@master      
-    - name: build + push
+    - name: build
       run: |
-          version=$(date "+%Y-%m-%d")-$(git --no-pager log -1 --pretty=%h)
-          gpr_image_prefix=docker.pkg.github.com/nais/device/apiserver
-          docker build -t ${gpr_image_prefix}:latest -t ${gpr_image_prefix}:${version} .
-          echo ${{ secrets.GITHUB_TOKEN }} | docker login docker.pkg.github.com --username x-access-token --password-stdin
-          docker push ${gpr_image_prefix}:latest
-          docker push ${gpr_image_prefix}:${version}
-
+          make linux
+    - name: set version
+      id: set_version
+      run: |
+          echo ::set-output name=version::$(date "+%Y-%m-%d")-$(git --no-pager log -1 --pretty=%h)
+    - name: create release
+      id: create_release
+      uses: actions/create-release@v1.0.1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        tag_name: ${{ steps.set_version.outputs.version }}
+        release_name: Release ${{ steps.set_version.outputs.version }}
+        draft: false
+        prerelease: true
+    - name: upload binary
+      id: upload-release
+      uses: actions/upload-release-asset@v1.0.2
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: ./bin/apiserver
+        asset_name: apiserver-${{ steps.set_version.outputs.version }}
+        asset_content_type: application/octet-stream

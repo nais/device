@@ -5,6 +5,9 @@ all: test alpine
 alpine:
 	go build -a -installsuffix cgo -o bin/apiserver cmd/apiserver/main.go
 
+linux:
+	GOOS=linux GOARCH=amd64 go build -o bin/apiserver cmd/apiserver/main.go
+
 local-apiserver:
 	go run ./cmd/apiserver/main.go --db-connection-uri=${DB_CONNECTION_URI} || echo "forget to export DB_CONNECTION_URL=<DSN> ?"
 
