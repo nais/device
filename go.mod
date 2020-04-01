@@ -7,5 +7,5 @@ require (
 	github.com/jackc/pgx/v4 v4.5.0
 	github.com/lib/pq v1.3.0
 	github.com/sirupsen/logrus v1.4.2
-	github.com/spf13/pflag v1.0.5 // indirect
+	github.com/spf13/pflag v1.0.5
 )

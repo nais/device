@@ -27,6 +27,7 @@ func (a *api) gatewayConfig(w http.ResponseWriter, r *http.Request) {
 	clients, err := a.db.ReadClients()
 
 	if err != nil {
+		log.Errorf("reading clients from database: %v", err)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}

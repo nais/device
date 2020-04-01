@@ -52,7 +52,13 @@ func (d *database) ReadClients() (clients []Client, err error) {
 	rows, err := d.conn.Query(ctx, query)
 
 	if err != nil {
-		return nil, fmt.Errorf("querying for clients: %s", err)
+		return nil, fmt.Errorf("querying for clients: %v", err)
+	}
+
+	defer rows.Close()
+
+	if rows.Err() != nil {
+		return nil, fmt.Errorf("querying for clients: %v", rows.Err())
 	}
 
 	for rows.Next() {
