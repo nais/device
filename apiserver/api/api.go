@@ -13,6 +13,11 @@ type api struct {
 	db database.APIServerDB
 }
 
+type Peer struct {
+	PublicKey string
+	IP        string
+}
+
 // TODO(jhrv): do actual filtering of the clients.
 // TODO(jhrv): keep cache of gateway access group members to remove AAD runtime dependency
 // gatewayConfig returns the clients for the gateway that has the group membership required
@@ -26,8 +31,13 @@ func (a *api) gatewayConfig(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	peers := make([]Peer, 0)
+	for _, client := range clients {
+		peers = append(peers, Peer{PublicKey: client.PublicKey, IP: client.IP})
+	}
+
 	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(clients)
+	json.NewEncoder(w).Encode(peers)
 }
 
 func (a *api) clients(w http.ResponseWriter, r *http.Request) {
@@ -65,7 +75,7 @@ func (a *api) updateHealth(w http.ResponseWriter, r *http.Request) {
 	if err := a.db.UpdateClientStatus(healthUpdates); err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		log.Error(err)
-		w.Write([]byte("unable to persist client statuses"))
+		w.Write([]byte("unable to persist client statuses\n"))
 		return
 	}
 }
