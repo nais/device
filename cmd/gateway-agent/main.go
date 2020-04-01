@@ -73,16 +73,16 @@ func main() {
 }
 
 func readPrivateKey() (string, error) {
-	privateKeyPath := filepath.Join(cfg.TunnelConfigDir, cfg.TunnelInterfaceName+".conf")
-	b, err := ioutil.ReadFile(privateKeyPath)
+	b, err := ioutil.ReadFile(cfg.PrivateKey)
 	return string(b), err
 }
 
 func configureWireguard(peers []api.Peer, privateKey string) error {
 	// transform peers into wg0.conf
-	wg0conf := generateWGConfig(peers, privateKey)
-	fmt.Println(string(wg0conf))
-	ioutil.WriteFile("/etc/wireguard/wg0.conf", wg0conf, 0600)
+	wgConfigContent := generateWGConfig(peers, privateKey)
+	fmt.Println(string(wgConfigContent))
+	wgConfigFilePath := filepath.Join(cfg.TunnelConfigDir, cfg.TunnelInterfaceName+".conf")
+	ioutil.WriteFile(wgConfigFilePath, wgConfigContent, 0600)
 
 	//exec.Command("wg", "syncconf", "wg0", "/etc/wireguard/wg0.conf")
 
@@ -92,6 +92,7 @@ func configureWireguard(peers []api.Peer, privateKey string) error {
 func generateWGConfig(peers []api.Peer, privateKey string) []byte {
 	wgConfig := "[Interface]\n"
 	wgConfig += fmt.Sprintf("PrivateKey = %s\n", privateKey)
+	wgConfig += "ListenPort = 51820\n"
 	for _, peer := range peers {
 		wgConfig += "[Peer]\n"
 		wgConfig += fmt.Sprintf("PublicKey = %s\n", peer.PublicKey)
