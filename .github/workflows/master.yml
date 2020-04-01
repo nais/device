@@ -1,5 +1,9 @@
 name: build and push
-on: [push]
+on:
+  push:
+    paths:
+      - 'go.mod'
+      - '**.go'
 jobs:
   build:
     name: build
