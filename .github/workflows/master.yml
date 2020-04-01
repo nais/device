@@ -23,8 +23,7 @@ jobs:
         release_name: Release ${{ steps.set_version.outputs.version }}
         draft: false
         prerelease: true
-    - name: upload binary
-      id: upload-release
+    - name: upload apiserver binary
       uses: actions/upload-release-asset@v1.0.2
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -32,4 +31,13 @@ jobs:
         upload_url: ${{ steps.create_release.outputs.upload_url }}
         asset_path: ./bin/apiserver
         asset_name: apiserver-${{ steps.set_version.outputs.version }}
+        asset_content_type: application/octet-stream
+    - name: upload gateway-agent binary
+      uses: actions/upload-release-asset@v1.0.2
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: ./bin/gateway-agent
+        asset_name: gateway-agent-${{ steps.set_version.outputs.version }}
         asset_content_type: application/octet-stream
