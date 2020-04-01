@@ -22,7 +22,7 @@ jobs:
         tag_name: ${{ steps.set_version.outputs.version }}
         release_name: Release ${{ steps.set_version.outputs.version }}
         draft: false
-        prerelease: true
+        prerelease: false
     - name: upload apiserver binary
       uses: actions/upload-release-asset@v1.0.2
       env:
