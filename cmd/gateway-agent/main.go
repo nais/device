@@ -61,6 +61,7 @@ func main() {
 		if err != nil {
 			log.Error(err)
 			// inc metric
+			continue
 		}
 
 		fmt.Printf("%+v\n", peers)

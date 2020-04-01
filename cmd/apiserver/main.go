@@ -32,7 +32,7 @@ func main() {
 
 	router := api.New(api.Config{DB: db})
 
-	bindAddr := fmt.Sprintf("%s:%d", "127.0.0.1", 8080)
+	bindAddr := fmt.Sprintf("%s:%d", "10.255.240.1", 80)
 	fmt.Println("running @", bindAddr)
 	fmt.Println(http.ListenAndServe(bindAddr, router))
 }
