@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/nais/device/apiserver/api"
@@ -92,7 +93,7 @@ func configureWireguard(peers []api.Peer, privateKey string) error {
 
 func generateWGConfig(peers []api.Peer, privateKey string) []byte {
 	wgConfig := "[Interface]\n"
-	wgConfig += fmt.Sprintf("PrivateKey = %s\n", privateKey)
+	wgConfig += fmt.Sprintf("PrivateKey = %s\n", strings.Trim(privateKey, "\n"))
 	wgConfig += "ListenPort = 51820\n"
 	for _, peer := range peers {
 		wgConfig += "[Peer]\n"
