@@ -34,7 +34,6 @@ apt-get install --yes wireguard
 
 # Setup wgctrl
 wgctrl_private_key=$(wg genkey)
-wg pubkey <<< "$wgctrl_private_key" > /root/wgctrl-public.key
 
 mkdir -p /etc/wireguard
 cat << EOF > /etc/wireguard/wgctrl.conf

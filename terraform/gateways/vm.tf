@@ -44,7 +44,6 @@ apt-get install --yes wireguard
 
 # Setup wgctrl
 wgctrl_private_key=$(wg genkey)
-wg pubkey <<< "$wgctrl_private_key" > /root/wgctrl-public.key
 
 mkdir -p /etc/wireguard
 cat << EOF > /etc/wireguard/wgctrl.conf
@@ -68,7 +67,7 @@ sed -i -e 's/#net.ipv4.ip_forward=1/net.ipv4.ip_forward=1/' /etc/sysctl.conf
 sysctl -p
 
 # Setup wgdata (interface only)
-wg genkey | tee /etc/wireguard/private.key | wg pubkey > /etc/wireguard/public.key
+wg genkey > /etc/wireguard/wgdata-private.key
 
 ip link add dev wgdata type wireguard
 ip link set wgdata mtu 1380
