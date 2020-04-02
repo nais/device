@@ -34,7 +34,11 @@ func (a *api) gatewayConfig(w http.ResponseWriter, r *http.Request) {
 
 	peers := make([]Peer, 0)
 	for _, client := range clients {
-		peers = append(peers, Peer{PublicKey: client.PublicKey, IP: client.IP})
+		if *client.Healthy {
+			peers = append(peers, Peer{PublicKey: client.PublicKey, IP: client.IP})
+		} else {
+			log.Tracef("Skipping unhealthy client: %s", client.Serial)
+		}
 	}
 
 	w.WriteHeader(http.StatusOK)
