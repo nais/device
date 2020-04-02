@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"os/exec"
 	"path/filepath"
 	"strings"
 	"time"
@@ -80,13 +81,17 @@ func readPrivateKey() (string, error) {
 }
 
 func configureWireguard(peers []api.Peer, privateKey string) error {
-	// transform peers into wg0.conf
 	wgConfigContent := generateWGConfig(peers, privateKey)
 	fmt.Println(string(wgConfigContent))
 	wgConfigFilePath := filepath.Join(cfg.TunnelConfigDir, cfg.TunnelInterfaceName+".conf")
-	ioutil.WriteFile(wgConfigFilePath, wgConfigContent, 0600)
+	if err := ioutil.WriteFile(wgConfigFilePath, wgConfigContent, 0600); err != nil {
+		return fmt.Errorf("writing wireguard config to disk: %s", err)
+	}
 
-	//exec.Command("wg", "syncconf", "wg0", "/etc/wireguard/wg0.conf")
+	cmd := exec.Command("/usr/bin/wg", "syncconf", "wgdata", "/etc/wireguard/wgdata.conf")
+	if stdout, err := cmd.Output(); err != nil {
+		return fmt.Errorf("executing %s: %s: %s", cmd, err, string(stdout))
+	}
 
 	return nil
 }
