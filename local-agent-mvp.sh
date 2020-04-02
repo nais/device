@@ -53,6 +53,7 @@ EOF
     sudo ifconfig "$wgctrl_device" inet "${wgctrl_tunnel_ip}/21" "${wgctrl_tunnel_ip}" add
     sudo ifconfig "$wgctrl_device" mtu 1380
     sudo ifconfig "$wgctrl_device" up
+    sudo route -q -n add -inet "${wgctrl_tunnel_ip}/21" -interface "$wgctrl_device"
 
     sudo wireguard-go "$wgdata_device"
     sudo wg setconf "$wgdata_device" /etc/wireguard/wgdata.conf
@@ -60,8 +61,8 @@ EOF
     sudo ifconfig "$wgdata_device" inet "${wgdata_tunnel_ip}/21" "${wgdata_tunnel_ip}" add
     sudo ifconfig "$wgdata_device" mtu 1380
     sudo ifconfig "$wgdata_device" up
+    sudo route -q -n add -inet "${wgdata_tunnel_ip}/21" -interface "$wgdata_device"
 
-    #sudo route -q -n add -inet "$network" -interface "$dev"
     sudo wg
 
     ;;
