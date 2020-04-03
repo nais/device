@@ -22,7 +22,7 @@ var (
 func init() {
 	log.SetFormatter(&log.JSONFormatter{})
 	flag.StringVar(&cfg.Apiserver, "apiserver", cfg.Apiserver, "hostname to apiserver")
-	flag.StringVar(&cfg.Name, "name", cfg.Name, "hostname to apiserver")
+	flag.StringVar(&cfg.Name, "name", cfg.Name, "gateway name")
 	flag.StringVar(&cfg.PublicKey, "public-key", cfg.PublicKey, "path to wireguard public key")
 	flag.StringVar(&cfg.PrivateKey, "private-key", cfg.PrivateKey, "path to wireguard private key")
 	flag.StringVar(&cfg.TunnelInterfaceName, "interface", cfg.TunnelInterfaceName, "name of tunnel interface")
@@ -35,7 +35,7 @@ func init() {
 // is synchronized and enforced by the local wireguard process on the gateway.
 //
 // Prerequisites:
-// - controlplane tunnel is set up/apiserver is reachable at `Config.Apiserver`
+// - controlplane tunnel is set up/apiserver is reachable at `Config.APIServer`
 //
 // Prereqs for MVP (at least):
 //
@@ -85,12 +85,12 @@ func configureWireguard(peers []api.Peer, privateKey string) error {
 	fmt.Println(string(wgConfigContent))
 	wgConfigFilePath := filepath.Join(cfg.TunnelConfigDir, cfg.TunnelInterfaceName+".conf")
 	if err := ioutil.WriteFile(wgConfigFilePath, wgConfigContent, 0600); err != nil {
-		return fmt.Errorf("writing wireguard config to disk: %s", err)
+		return fmt.Errorf("writing wireguard config to disk: %w", err)
 	}
 
 	cmd := exec.Command("/usr/bin/wg", "syncconf", "wgdata", "/etc/wireguard/wgdata.conf")
 	if stdout, err := cmd.Output(); err != nil {
-		return fmt.Errorf("executing %s: %s: %s", cmd, err, string(stdout))
+		return fmt.Errorf("executing %w: %v", err, string(stdout))
 	}
 
 	return nil
@@ -112,7 +112,7 @@ func generateWGConfig(peers []api.Peer, privateKey string) []byte {
 func getPeers(apiserverURL string) (peers []api.Peer, err error) {
 	resp, err := http.Get(apiserverURL)
 	if err != nil {
-		return nil, fmt.Errorf("getting peer config from apiserver: %s", err)
+		return nil, fmt.Errorf("getting peer config from apiserver: %w", err)
 	}
 
 	defer resp.Body.Close()
@@ -120,7 +120,7 @@ func getPeers(apiserverURL string) (peers []api.Peer, err error) {
 	err = json.NewDecoder(resp.Body).Decode(&peers)
 
 	if err != nil {
-		return nil, fmt.Errorf("unmarshal json from apiserver: %s", err)
+		return nil, fmt.Errorf("unmarshal json from apiserver: %w", err)
 	}
 
 	return
