@@ -4,14 +4,13 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	log "github.com/sirupsen/logrus"
+	flag "github.com/spf13/pflag"
 	"io/ioutil"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"time"
-
-	log "github.com/sirupsen/logrus"
-	flag "github.com/spf13/pflag"
 )
 
 var (
@@ -22,6 +21,7 @@ var (
 	ControlPlaneWGConfigPath   string
 	DataPlanePrivateKeyPath    string
 	DataPlaneWGConfigPath      string
+	EnrollmentTokenPath        string
 )
 
 func init() {
@@ -41,16 +41,23 @@ func init() {
 	ControlPlaneWGConfigPath = filepath.Join(cfg.ConfigDir, "wgctrl.conf")
 	DataPlanePrivateKeyPath = filepath.Join(cfg.ConfigDir, "wgdata-private.key")
 	DataPlaneWGConfigPath = filepath.Join(cfg.ConfigDir, "wgdata.conf")
+	EnrollmentTokenPath = filepath.Join(cfg.ConfigDir, "enrollment.token")
 }
 
 // client-agent is responsible for enabling the end-user to connect to it's permitted gateways.
 // To be able to connect, a series of prerequisites must be in place. These will be helped/ensured by client-agent.
 //
+
 // 1. A information exchange between end-user and naisdevice administrator/slackbot:
+// If neither EnrollmentTokenPath nor EnrollmentToken is present, user will be prompted to enroll using public key, and the agent will exit.
+// If EnrollmentToken command line option is provided, the agent will store it as EnrollmentTokenPath.
+// If EnrollmentTokenPath is present the agent will generate `wgctrl.conf` and continue.
+
 // - The end-user will provide it's generated public key ($(wg pubkey < `ControlPlanePrivateKeyPath`))
-// - The end-user will receive the control plane tunnel endpoint and public key.
-// The received information will be persisted as `ControlPlaneInfoFile`.
-// When client-agent detects `ControlPlaneInfoFile` is present,
+// - The end-user will receive the control plane tunnel endpoint, public key, apiserver tunnel ip, and it's own tunnel
+//   ip encoded as a base64 string.
+// The received information will be persisted as `EnrollmentTokenPath`.
+// When client-agent detects `EnrollmentTokenPath` is present,
 // it will generate a WireGuard config file called wgctrl.conf placed in `cfg.ConfigDir`
 //
 // 2. (When) A valid control plane WireGuard config is present, ensure control plane tunnel is configured and connected:
@@ -73,7 +80,7 @@ func init() {
 //TODO: (authenticate user, not part of MVP)
 //TODO: get config from apiserver
 //TODO: establish data plane (continously monitored, will trigger ^ if it goes down and user wants to connect)
-// $$$$$$
+// $$$$$$$$$
 func main() {
 	log.Infof("starting client-agent with config:\n%+v", cfg)
 
@@ -85,13 +92,35 @@ func main() {
 		log.Fatalf("ensuring directory exists: %w", err)
 	}
 
-	if err := filesExist(ControlPlaneWGConfigPath); err != nil {
-		// no wgctrl.conf
+	if err := ensureKey(ControlPlanePrivateKeyPath); err != nil {
+		log.Fatalf("ensuring private key for control plane exists: %v", err)
+	}
 
-		if err := enroll(); err != nil {
-			log.Fatalf("enrolling device: %v", err)
+	if len(cfg.EnrollmentToken) == 0 {
+		if err := filesExist(EnrollmentTokenPath); err != nil {
+			pubkey, err := generatePublicKey(ControlPlanePrivateKeyPath)
+			if err != nil {
+				log.Fatalf("generate public key during enroll: %v", err)
+			}
+
+			fmt.Printf("no enrollment token present. Send 'Nais Device' this message on slack: 'enroll %v'", string(pubkey))
+			os.Exit(0)
 		}
 
+		enrollmentToken, err := ioutil.ReadFile(EnrollmentTokenPath)
+		if err != nil {
+			log.Fatalf("reading enrollment token: %v", err)
+		}
+
+		cfg.EnrollmentToken = string(enrollmentToken)
+	} else {
+		if err := ioutil.WriteFile(EnrollmentTokenPath, []byte(cfg.EnrollmentToken), 0600); err != nil {
+			log.Fatalf("writing enrollment token to disk: %v", err)
+		}
+	}
+
+	if err := setupControlPlane(cfg.EnrollmentToken); err != nil {
+		log.Fatalf("setting up control plane: %v", err)
 	}
 
 	for range time.NewTicker(10 * time.Second).C {
@@ -99,25 +128,10 @@ func main() {
 	}
 }
 
-type EnrollmentConfig struct {
-	ClientIP    string `json:"clientIP"`
-	PublicKey   string `json:"publicKey"`
-	Endpoint    string `json:"endpoint"`
-	APIServerIP string `json:"apiServerIP"`
-}
-
-func enroll() error {
-	if err := ensureKey(ControlPlanePrivateKeyPath); err != nil {
-		return fmt.Errorf("ensuring private key for control plane exists: %v", err)
-	}
-
-	if len(cfg.EnrollmentToken) == 0 {
-		pubkey, err := generatePublicKey(ControlPlanePrivateKeyPath)
-		if err != nil {
-			return fmt.Errorf("generate public key during enroll: %v", err)
-		}
-
-		return fmt.Errorf("no enrollment token present. Send 'Nais Device' this message on slack: 'enroll %v'", string(pubkey))
+func setupControlPlane(enrollmentToken string) error {
+	enrollmentConfig, err := ParseEnrollmentToken(enrollmentToken)
+	if err != nil {
+		return fmt.Errorf("parsing enrollment config key: %w", err)
 	}
 
 	privateKey, err := ioutil.ReadFile(ControlPlanePrivateKeyPath)
@@ -125,31 +139,51 @@ func enroll() error {
 		return fmt.Errorf("reading private key: %w", err)
 	}
 
-	enrollmentConfig, err := ParseEnrollmentToken(cfg.EnrollmentToken)
-	if err != nil {
-		return fmt.Errorf("parsing enrollment token: %w", err)
-	}
-
 	wgConfigContent := GenerateWGConfig(enrollmentConfig, privateKey)
-	fmt.Println(wgConfigContent)
+	fmt.Println(string(wgConfigContent))
 
 	if err := ioutil.WriteFile(ControlPlaneWGConfigPath, wgConfigContent, 0600); err != nil {
 		return fmt.Errorf("writing control plane wireguard config to disk: %w", err)
 	}
 
-	/*
-	   	cmd := exec.Command("/usr/bin/wg", "syncconf", "wgdata", "/etc/wireguard/wgdata.conf")
-	   	if stdout, err := cmd.Output(); err != nil {
-	   		return fmt.Errorf("executing %w: %v", err, string(stdout))
-	   	}
-
-	   	return nil
-	   }
-	*/
-
-	// create config file
+	if err := setupInterface(cfg.ControlPlaneInterface, enrollmentConfig.ClientIP, ControlPlaneWGConfigPath); err != nil {
+		return fmt.Errorf("setting up control plane interface: %w", err)
+	}
 
 	return nil
+}
+
+func setupInterface(interfaceName string, ip string, configPath string) error {
+	run := func(commands [][]string) error {
+		for _, s := range commands {
+			cmd := exec.Command(s[0], s[1:]...)
+
+			if out, err := cmd.Output(); err != nil {
+				return fmt.Errorf("running %v: %w", cmd, err)
+			} else {
+				fmt.Printf("%v: %v\n", cmd, string(out))
+			}
+		}
+		return nil
+	}
+
+	commands := [][]string{
+		{WireguardGoBinary, interfaceName},
+		{"ifconfig", interfaceName, "inet", ip + "/21", ip, "add"},
+		{"ifconfig", interfaceName, "mtu", "1380"},
+		{"ifconfig", interfaceName, "up"},
+		{"route", "-q", "-n", "add", "-inet", ip + "/21", "-interface", interfaceName},
+		{WGBinary, "syncconf", interfaceName, configPath},
+	}
+
+	return run(commands)
+}
+
+type EnrollmentConfig struct {
+	ClientIP    string `json:"clientIP"`
+	PublicKey   string `json:"publicKey"`
+	Endpoint    string `json:"endpoint"`
+	APIServerIP string `json:"apiServerIP"`
 }
 
 func ParseEnrollmentToken(enrollmentToken string) (enrollmentConfig *EnrollmentConfig, err error) {
