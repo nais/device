@@ -20,15 +20,23 @@ import (
 //	fmt.Println(next)
 //}
 
-func FindAvailableIP(cidr string, allocated map[string]struct{}) (string, error) {
+func FindAvailableIP(cidr string, allocated []string) (string, error) {
+	allocatedMap := toMap(allocated)
 	ips, _ := cidrIPs(cidr)
 	for _, ip := range ips {
 		fmt.Println(ip)
-		if _, found := allocated[ip]; !found {
+		if _, found := allocatedMap[ip]; !found {
 			return ip, nil
 		}
 	}
 	return "", fmt.Errorf("no available IPs in range %v", cidr)
+}
+
+func toMap(strings []string) (m map[string]struct{}) {
+	for _, s := range strings {
+		m[s] = struct{}{}
+	}
+	return
 }
 
 func cidrIPs(cidr string) ([]string, error) {
