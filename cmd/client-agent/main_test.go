@@ -16,7 +16,7 @@ func TestParseEnrollmentToken(t *testing.T) {
 		  "apiServerIP": "10.1.1.2"
 		}
 	*/
-	enrollmentToken := "ewogICJpcCI6ICIxMC4xLjEuMSIsCiAgInB1YmxpY0tleSI6ICJQUUttcmFQT1B5ZTVDSnExeDduanBsOHJSdTVSU3JJS3lIdlpYdEx2UzBFPSIsCiAgImVuZHBvaW50IjogIjY5LjEuMS4xOjUxODIwIiwKICAiYXBpU2VydmVySVAiOiAiMTAuMS4xLjIiCn0K"
+	enrollmentToken := "ewogICJjbGllbnRJUCI6ICIxMC4xLjEuMSIsCiAgInB1YmxpY0tleSI6ICJQUUttcmFQT1B5ZTVDSnExeDduanBsOHJSdTVSU3JJS3lIdlpYdEx2UzBFPSIsCiAgImVuZHBvaW50IjogIjY5LjEuMS4xOjUxODIwIiwKICAiYXBpU2VydmVySVAiOiAiMTAuMS4xLjIiCn0K"
 	enrollmentConfig, err := main.ParseEnrollmentToken(enrollmentToken)
 	assert.NoError(t, err)
 	assert.Equal(t, "10.1.1.1", enrollmentConfig.ClientIP)
