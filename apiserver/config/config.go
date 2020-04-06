@@ -1,7 +1,9 @@
 package config
 
 type Config struct {
-	DbConnURI string
+	DbConnURI   string
+	SlackToken  string
+	BindAddress string
 }
 
 func DefaultConfig() Config {
