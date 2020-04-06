@@ -24,7 +24,6 @@ func FindAvailableIP(cidr string, allocated []string) (string, error) {
 	allocatedMap := toMap(allocated)
 	ips, _ := cidrIPs(cidr)
 	for _, ip := range ips {
-		fmt.Println(ip)
 		if _, found := allocatedMap[ip]; !found {
 			return ip, nil
 		}
@@ -61,7 +60,6 @@ func cidrIPs(cidr string) ([]string, error) {
 }
 
 func inc(ip net.IP) {
-	fmt.Println([]byte(ip))
 	for j := len(ip) - 1; j >= 0; j-- {
 		ip[j]++
 		if ip[j] > 0 {
