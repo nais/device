@@ -67,7 +67,13 @@ func (s *slackbot) registrationSlackHandler() {
 func parseRegisterMessage(text string) (string, string, error) {
 	// "register publicKey serial"
 	parts := strings.Split(text, " ")
-	publicKey, serial := parts[1], parts[2]
+	if len(parts) != 3 {
+		return "", "", fmt.Errorf("parsing register command: not enough params: \"%v\"", text)
+	}
+	command, publicKey, serial := parts[0], parts[1], parts[2]
+	if command != "register" {
+		return "", "", fmt.Errorf("parsing register command: invalid command: \"%v\"", command)
+	}
 	return publicKey, serial, nil
 }
 
