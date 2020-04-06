@@ -1,7 +1,12 @@
 variable "apiserver_tunnel_ip" {
   type = string
 }
+
 variable "db_connection_uri" {
+  type = string
+}
+
+variable "slack_token" {
   type = string
 }
 
@@ -59,7 +64,8 @@ ExecStartPre=/bin/chmod 700 gateway-agent
 ExecStartPre=/bin/mkdir -p /opt/nais-device/bin/
 ExecStartPre=/bin/mv gateway-agent /opt/nais-device/bin/
 ExecStart=/opt/nais-device/bin/apiserver \
-      --db-connection-uri "${var.db_connection_uri}"
+      --db-connection-uri "${var.db_connection_uri}" \
+      --slack-token "${var.slack_token}"
 
 [Install]
 WantedBy=multi-user.target
