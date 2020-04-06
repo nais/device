@@ -150,27 +150,31 @@ INSERT
 `
 	_, err = tx.Exec(ctx, statement, serial, publicKey, ip)
 
+
 	if err != nil {
 		return fmt.Errorf("inserting new client: %w", err)
 	}
 
-	return nil
+	return tx.Commit(ctx)
 }
 
-func ips(tx pgx.Tx, ctx context.Context) (ips []string, err error) {
+func ips(tx pgx.Tx, ctx context.Context) ([]string, error) {
 	rows, err := tx.Query(ctx, "SELECT ip FROM peer;")
 	if err != nil {
 		return nil, fmt.Errorf("get peers: %w", err)
 	}
 
-	if rows.Err() != nil {
-		return nil, fmt.Errorf("get peers: %w", err)
+	var ips []string
+	for rows.Next() {
+		var ip string
+		err = rows.Scan(&ip)
+
+		if err != nil {
+			return nil, fmt.Errorf("scan peers: %w", err)
+		}
+
+		ips = append(ips, ip)
 	}
 
-	err = rows.Scan(ips)
-	if err != nil {
-		return nil, fmt.Errorf("scan peers: %w", err)
-	}
-
-	return
+	return ips, rows.Err()
 }
