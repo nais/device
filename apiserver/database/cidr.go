@@ -32,11 +32,12 @@ func FindAvailableIP(cidr string, allocated []string) (string, error) {
 	return "", fmt.Errorf("no available IPs in range %v", cidr)
 }
 
-func toMap(strings []string) (m map[string]struct{}) {
+func toMap(strings []string) map[string]struct{} {
+	m := make(map[string]struct{})
 	for _, s := range strings {
 		m[s] = struct{}{}
 	}
-	return
+	return m
 }
 
 func cidrIPs(cidr string) ([]string, error) {
