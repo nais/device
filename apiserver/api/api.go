@@ -55,6 +55,7 @@ func (a *api) clients(w http.ResponseWriter, r *http.Request) {
 	clients, err := a.db.ReadClients()
 
 	if err != nil {
+		log.Errorf("Reading clients from database: %s", err)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}

@@ -20,10 +20,10 @@ type APIServerDB struct {
 }
 
 type Client struct {
-	Serial    string    `json:"serial"`
-	PSK       string    `json:"psk"`
-	LastCheck time.Time `json:"last_check"`
-	Healthy   *bool     `json:"is_healthy"`
+	Serial    string     `json:"serial"`
+	PSK       string     `json:"psk"`
+	LastCheck *time.Time `json:"last_check"`
+	Healthy   *bool      `json:"is_healthy"`
 	Peer
 }
 
@@ -46,9 +46,11 @@ func (d *APIServerDB) ReadClients() (clients []Client, err error) {
 	ctx := context.Background()
 
 	query := `
-            SELECT public_key, ip, psk, serial, healthy, last_check from peer
-              JOIN client c on peer.id = c.peer_id
-              JOIN ip i on peer.id = i.peer_id
+SELECT public_key, ip, psk, serial, healthy, last_check
+FROM client
+         JOIN client_peer cp on client.id = cp.client_id
+         JOIN peer p on cp.peer_id = p.id
+WHERE p.type = 'data';
 	`
 
 	rows, err := d.conn.Query(ctx, query)
