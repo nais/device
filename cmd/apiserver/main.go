@@ -3,7 +3,6 @@ package main
 import (
 	"fmt"
 	"net/http"
-	"os"
 
 	"github.com/nais/device/apiserver/api"
 	"github.com/nais/device/apiserver/config"
@@ -18,7 +17,8 @@ var (
 
 func init() {
 	log.SetFormatter(&log.JSONFormatter{})
-	flag.StringVar(&cfg.DbConnURI, "db-connection-uri", os.Getenv("DB_CONNECTION_URI"), "database connection URI (DSN)")
+	flag.StringVar(&cfg.DbConnURI, "db-connection-uri", cfg.DbConnURI, "database connection URI (DSN)")
+	flag.StringVar(&cfg.BindAddress, "bind-address", cfg.BindAddress, "database connection URI (DSN)")
 
 	flag.Parse()
 }
@@ -32,7 +32,6 @@ func main() {
 
 	router := api.New(api.Config{DB: db})
 
-	bindAddr := fmt.Sprintf("%s:%d", "10.255.240.1", 80)
-	fmt.Println("running @", bindAddr)
-	fmt.Println(http.ListenAndServe(bindAddr, router))
+	fmt.Println("running @", cfg.BindAddress)
+	fmt.Println(http.ListenAndServe(cfg.BindAddress, router))
 }
