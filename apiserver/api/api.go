@@ -10,7 +10,7 @@ import (
 )
 
 type api struct {
-	db database.APIServerDB
+	db *database.APIServerDB
 }
 
 type Peer struct {

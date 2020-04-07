@@ -6,7 +6,7 @@ import (
 )
 
 type Config struct {
-	DB database.APIServerDB
+	DB *database.APIServerDB
 }
 
 func New(cfg Config) chi.Router {

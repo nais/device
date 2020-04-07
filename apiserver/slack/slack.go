@@ -11,10 +11,10 @@ import (
 
 type slackbot struct {
 	api      *slack.Client
-	database database.APIServerDB
+	database *database.APIServerDB
 }
 
-func New(token string, database database.APIServerDB) *slackbot {
+func New(token string, database *database.APIServerDB) *slackbot {
 	return &slackbot{
 		api:      slack.New(token),
 		database: database,

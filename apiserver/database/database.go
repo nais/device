@@ -12,13 +12,11 @@ import (
 
 const (
 	ControlPlaneCidr = "10.255.240.0/21"
-	DataPlaneCidr    = "10.255.248.0/21"
+	//DataPlaneCidr    = "10.255.248.0/21"
 )
 
-type APIServerDB interface {
-	ReadClients() ([]Client, error)
-	UpdateClientStatus([]Client) error
-	AddClient(username, publicKey, serial string) error
+type APIServerDB struct {
+	conn *pgxpool.Pool
 }
 
 type Client struct {
@@ -34,21 +32,17 @@ type Peer struct {
 	IP        string `json:"ip"`
 }
 
-type database struct {
-	conn *pgxpool.Pool
-}
-
-func New(dsn string) (APIServerDB, error) {
+func New(dsn string) (*APIServerDB, error) {
 	ctx := context.Background()
 	conn, err := pgxpool.Connect(ctx, dsn)
 	if err != nil {
 		return nil, fmt.Errorf("connecting to database: %s", err)
 	}
 
-	return &database{conn: conn}, nil
+	return &APIServerDB{conn: conn}, nil
 }
 
-func (d *database) ReadClients() (clients []Client, err error) {
+func (d *APIServerDB) ReadClients() (clients []Client, err error) {
 	ctx := context.Background()
 
 	query := `
@@ -84,7 +78,7 @@ func (d *database) ReadClients() (clients []Client, err error) {
 	return
 }
 
-func (d *database) UpdateClientStatus(clients []Client) error {
+func (d *APIServerDB) UpdateClientStatus(clients []Client) error {
 	ctx := context.Background()
 
 	tx, err := d.conn.Begin(ctx)
@@ -112,7 +106,7 @@ func (d *database) UpdateClientStatus(clients []Client) error {
 
 var mux sync.Mutex
 
-func (d *database) AddClient(username, publicKey, serial string) error {
+func (d *APIServerDB) AddClient(username, publicKey, serial string) error {
 	mux.Lock()
 	defer mux.Unlock()
 
