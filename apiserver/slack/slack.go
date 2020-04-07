@@ -28,8 +28,14 @@ func (s *slackbot) registrationSlackHandler() {
 	go rtm.ManageConnection()
 
 	for message := range rtm.IncomingEvents {
-		log.Debugf("received rtm msg: %v", message)
 		switch ev := message.Data.(type) {
+
+		case *slack.ConnectedEvent:
+			log.Infof("Connected to %v as %v via %s", ev.Info.Team.Name, ev.Info.User.Name, ev.Info.URL)
+
+		case *slack.RTMError:
+			log.Errorf("Error: %s\n", ev.Error())
+
 		case *slack.MessageEvent:
 			msg := ev.Msg
 
