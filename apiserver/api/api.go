@@ -83,7 +83,7 @@ func (a *api) updateHealth(w http.ResponseWriter, r *http.Request) {
 
 	if err := a.db.UpdateClientStatus(healthUpdates); err != nil {
 		log.Error(err)
-		respondf(w, http.StatusInternalServerError,"unable to persist client statuses\n")
+		respondf(w, http.StatusInternalServerError, "unable to persist client statuses\n")
 		return
 	}
 }
@@ -99,7 +99,7 @@ func (a *api) registerClient(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func respondf(w http.ResponseWriter, statusCode int, format string, args... interface{}) {
+func respondf(w http.ResponseWriter, statusCode int, format string, args ...interface{}) {
 	w.WriteHeader(statusCode)
 
 	if _, wErr := w.Write([]byte(fmt.Sprintf(format, args...))); wErr != nil {

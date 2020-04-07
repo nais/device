@@ -150,7 +150,6 @@ INSERT
 `
 	_, err = tx.Exec(ctx, statement, serial, publicKey, ip)
 
-
 	if err != nil {
 		return fmt.Errorf("inserting new client: %w", err)
 	}

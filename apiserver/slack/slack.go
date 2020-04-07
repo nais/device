@@ -57,7 +57,6 @@ func (s *slackbot) registrationSlackHandler() {
 				rtm.SendMessage(rtm.NewOutgoingMessage("Successfully registered :partyparrot:", msg.Channel))
 			}
 
-
 		case *slack.InvalidAuthEvent:
 			log.Fatalf("slack auth failed: %v", message)
 		}

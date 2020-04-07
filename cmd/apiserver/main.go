@@ -33,8 +33,7 @@ func main() {
 		panic(fmt.Sprintf("instantiating database: %s", err))
 	}
 
-
-	slack:= slack.New(cfg.SlackToken, db)
+	slack := slack.New(cfg.SlackToken, db)
 	slack.Run()
 
 	router := api.New(api.Config{DB: db})
