@@ -18,6 +18,12 @@ type Peer struct {
 	IP        string
 }
 
+type ClientRegistrationRequest struct {
+	Username  string
+	PublicKey string
+	Serial    string
+}
+
 // TODO(jhrv): do actual filtering of the clients.
 // TODO(jhrv): keep cache of gateway access group members to remove AAD runtime dependency
 // gatewayConfig returns the clients for the gateway that has the group membership required
@@ -62,8 +68,7 @@ func (a *api) updateHealth(w http.ResponseWriter, r *http.Request) {
 	if err := json.NewDecoder(r.Body).Decode(&healthUpdates); err != nil {
 		defer r.Body.Close()
 
-		w.WriteHeader(http.StatusBadRequest)
-		w.Write([]byte(fmt.Sprintf("error during JSON unmarshal: %s\n", err)))
+		respondf(w, http.StatusBadRequest, "error during JSON unmarshal: %s\n", err)
 		return
 	}
 
@@ -71,16 +76,33 @@ func (a *api) updateHealth(w http.ResponseWriter, r *http.Request) {
 	// is_healthy and serial is required
 	for _, s := range healthUpdates {
 		if s.Healthy == nil || len(s.Serial) == 0 {
-			w.WriteHeader(http.StatusBadRequest)
-			w.Write([]byte("missing required field\n"))
+			respondf(w, http.StatusBadRequest, "missing required field\n")
 			return
 		}
 	}
 
 	if err := a.db.UpdateClientStatus(healthUpdates); err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
 		log.Error(err)
-		w.Write([]byte("unable to persist client statuses\n"))
+		respondf(w, http.StatusInternalServerError,"unable to persist client statuses\n")
 		return
+	}
+}
+
+func (a *api) registerClient(w http.ResponseWriter, r *http.Request) {
+	var reg ClientRegistrationRequest
+	if err := json.NewDecoder(r.Body).Decode(&reg); err != nil {
+		respondf(w, http.StatusBadRequest, "error during JSON unmarshal: %s\n", err)
+	}
+
+	if err := a.db.AddClient(reg.Username, reg.PublicKey, reg.Serial); err != nil {
+		respondf(w, http.StatusInternalServerError, "unable to add new peer: %s\n", err)
+	}
+}
+
+func respondf(w http.ResponseWriter, statusCode int, format string, args... interface{}) {
+	w.WriteHeader(statusCode)
+
+	if _, wErr := w.Write([]byte(fmt.Sprintf(format, args...))); wErr != nil {
+		log.Errorf("unable to write client response: %v", wErr)
 	}
 }

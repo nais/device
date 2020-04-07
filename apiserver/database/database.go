@@ -3,14 +3,22 @@ package database
 import (
 	"context"
 	"fmt"
+	"github.com/jackc/pgx/v4"
+	"sync"
 	"time"
 
 	"github.com/jackc/pgx/v4/pgxpool"
 )
 
+const (
+	ControlPlaneCidr = "10.255.240.0/21"
+	DataPlaneCidr    = "10.255.248.0/21"
+)
+
 type APIServerDB interface {
 	ReadClients() ([]Client, error)
 	UpdateClientStatus([]Client) error
+	AddClient(username, publicKey, serial string) error
 }
 
 type Client struct {
@@ -100,4 +108,73 @@ func (d *database) UpdateClientStatus(clients []Client) error {
 	}
 
 	return tx.Commit(ctx)
+}
+
+var mux sync.Mutex
+
+func (d *database) AddClient(username, publicKey, serial string) error {
+	mux.Lock()
+	defer mux.Unlock()
+
+	ctx := context.Background()
+
+	tx, err := d.conn.Begin(ctx)
+	if err != nil {
+		return fmt.Errorf("start transaction: %w", err)
+	}
+
+	defer tx.Rollback(ctx)
+
+	ips, err := ips(tx, ctx)
+	if err != nil {
+		return fmt.Errorf("fetch ips: %w", err)
+	}
+
+	ip, err := FindAvailableIP(ControlPlaneCidr, ips)
+	if err != nil {
+		return fmt.Errorf("finding available ip: %w", err)
+	}
+
+	statement := `
+WITH
+  client_key AS
+    (INSERT INTO client (serial, healthy) VALUES ($1, false) RETURNING id),
+  peer_control_key AS
+    (INSERT INTO peer (public_key, ip, type) VALUES ($2, $3, 'control') RETURNING id)
+INSERT
+  INTO client_peer(client_id, peer_id)
+  (
+    SELECT client_key.id, peer_control_key.id
+    FROM client_key, peer_control_key
+  );
+`
+	_, err = tx.Exec(ctx, statement, serial, publicKey, ip)
+
+
+	if err != nil {
+		return fmt.Errorf("inserting new client: %w", err)
+	}
+
+	return tx.Commit(ctx)
+}
+
+func ips(tx pgx.Tx, ctx context.Context) ([]string, error) {
+	rows, err := tx.Query(ctx, "SELECT ip FROM peer;")
+	if err != nil {
+		return nil, fmt.Errorf("get peers: %w", err)
+	}
+
+	var ips []string
+	for rows.Next() {
+		var ip string
+		err = rows.Scan(&ip)
+
+		if err != nil {
+			return nil, fmt.Errorf("scan peers: %w", err)
+		}
+
+		ips = append(ips, ip)
+	}
+
+	return ips, rows.Err()
 }
