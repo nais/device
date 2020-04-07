@@ -2,10 +2,11 @@ package slack
 
 import (
 	"fmt"
+	"strings"
+
 	"github.com/nais/device/apiserver/database"
 	log "github.com/sirupsen/logrus"
 	"github.com/slack-go/slack"
-	"strings"
 )
 
 type slackbot struct {
