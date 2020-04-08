@@ -32,11 +32,9 @@ func (s *slackbot) registrationSlackHandler() {
 
 		case *slack.ConnectedEvent:
 			log.Infof("Connected to %v as %v via %s", ev.Info.Team.Name, ev.Info.User.Name, ev.Info.URL)
-			break
 
 		case *slack.RTMError:
 			log.Errorf("Error: %s\n", ev.Error())
-			break
 
 		case *slack.MessageEvent:
 			msg := ev.Msg
@@ -45,15 +43,18 @@ func (s *slackbot) registrationSlackHandler() {
 				break
 			}
 
-			log.Debugf("%v", msg.User)
+			log.Debugf("MessageEvent msg: %v", msg)
+
 			publicKey, serial, err := parseRegisterMessage(msg.Text)
 			if err != nil {
 				log.Errorf("parsing message: %v", err)
+				break
 			}
 
 			email, err := s.getUserEmail(msg.User)
 			if err != nil {
 				log.Errorf("getting user email: %v", err)
+				break
 			}
 
 			log.Infof("email: %v, publicKey: %v, serial: %v", email, publicKey, serial)
