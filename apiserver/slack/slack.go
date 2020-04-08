@@ -32,9 +32,11 @@ func (s *slackbot) registrationSlackHandler() {
 
 		case *slack.ConnectedEvent:
 			log.Infof("Connected to %v as %v via %s", ev.Info.Team.Name, ev.Info.User.Name, ev.Info.URL)
+			break
 
 		case *slack.RTMError:
 			log.Errorf("Error: %s\n", ev.Error())
+			break
 
 		case *slack.MessageEvent:
 			msg := ev.Msg
