@@ -77,7 +77,7 @@ func parseRegisterMessage(text string) (string, string, error) {
 	// "register publicKey serial"
 	parts := strings.Split(text, " ")
 	if len(parts) != 3 {
-		return "", "", fmt.Errorf("parsing register command: not enough params: \"%v\"", text)
+		return "", "", fmt.Errorf("parsing register command: must be exactly 3 params: \"%v\"", text)
 	}
 	command, publicKey, serial := parts[0], parts[1], parts[2]
 	if command != "register" {
