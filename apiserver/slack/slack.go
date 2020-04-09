@@ -9,6 +9,8 @@ import (
 	"github.com/slack-go/slack"
 )
 
+const Usage = `register publicKey serialNumber`
+
 type slackbot struct {
 	api      *slack.Client
 	database *database.APIServerDB
@@ -21,7 +23,43 @@ func New(token string, database *database.APIServerDB) *slackbot {
 	}
 }
 
-func (s *slackbot) registrationSlackHandler() {
+func (s *slackbot) handleRegister(msg slack.Msg) string {
+	parts := strings.Split(msg.Text, " ")
+	if len(parts) != 3 {
+		return fmt.Sprintf("invalid command format, usage:\n%v", Usage)
+	}
+
+	publicKey, serial := parts[1], parts[2]
+	email, err := s.getUserEmail(msg.User)
+	if err != nil {
+		log.Errorf("getting user email: %v", err)
+		return "unable to find email for your slack user :confused:, I've notified the nais device team for you."
+	}
+
+	err = s.database.AddClient(email, publicKey, serial)
+	if err != nil {
+		log.Errorf("adding client to database: %v", err)
+		return "Something went wrong during registration :sweat_smile:, I've notified the nais device team for you."
+	} else {
+		return "Successfully registered :partyparrot:"
+	}
+}
+
+func (s *slackbot) handleMsg(msg slack.Msg) string {
+	parts := strings.SplitN(msg.Text, " ", 1)
+	if len(parts) == 0 {
+		return fmt.Sprintf("unable to parse input, usage:\n%v", Usage)
+	}
+
+	switch parts[0] {
+	case "register":
+		return s.handleRegister(msg)
+	default:
+		return fmt.Sprintf("unrecognized command, usage:\n%v", Usage)
+	}
+}
+
+func (s *slackbot) slackHandler() {
 	log.SetLevel(log.DebugLevel)
 	rtm := s.api.NewRTM()
 
@@ -44,46 +82,13 @@ func (s *slackbot) registrationSlackHandler() {
 			}
 
 			log.Debugf("MessageEvent msg: %v", msg)
-
-			publicKey, serial, err := parseRegisterMessage(msg.Text)
-			if err != nil {
-				log.Errorf("parsing message: %v", err)
-				break
-			}
-
-			email, err := s.getUserEmail(msg.User)
-			if err != nil {
-				log.Errorf("getting user email: %v", err)
-				break
-			}
-
-			log.Infof("email: %v, publicKey: %v, serial: %v", email, publicKey, serial)
-
-			err = s.database.AddClient(msg.Username, publicKey, serial)
-			if err != nil {
-				log.Errorf("adding client to database: %v", err)
-				rtm.SendMessage(rtm.NewOutgoingMessage("Something went wrong during registration :sweat_smile:, I've notified the nais device team for you.", msg.Channel))
-			} else {
-				rtm.SendMessage(rtm.NewOutgoingMessage("Successfully registered :partyparrot:", msg.Channel))
-			}
+			response := s.handleMsg(msg)
+			rtm.SendMessage(rtm.NewOutgoingMessage(response, msg.Channel))
 
 		case *slack.InvalidAuthEvent:
 			log.Fatalf("slack auth failed: %v", message)
 		}
 	}
-}
-
-func parseRegisterMessage(text string) (string, string, error) {
-	// "register publicKey serial"
-	parts := strings.Split(text, " ")
-	if len(parts) != 3 {
-		return "", "", fmt.Errorf("parsing register command: must be exactly 3 params: \"%v\"", text)
-	}
-	command, publicKey, serial := parts[0], parts[1], parts[2]
-	if command != "register" {
-		return "", "", fmt.Errorf("parsing register command: invalid command: \"%v\"", command)
-	}
-	return publicKey, serial, nil
 }
 
 func (s *slackbot) getUserEmail(userID string) (string, error) {
@@ -95,5 +100,5 @@ func (s *slackbot) getUserEmail(userID string) (string, error) {
 }
 
 func (s *slackbot) Run() {
-	go s.registrationSlackHandler()
+	go s.slackHandler()
 }
