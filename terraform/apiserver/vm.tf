@@ -39,7 +39,7 @@ apt-get install --yes wireguard
 
 # Generate wg private key
 mkdir -p "/usr/local/etc/nais-device"
-wg genkey > /usr/local/etc/nais-device/private.key
+wg genkey > "/usr/local/etc/nais-device/wgctrl-private.key"
 
 # Setup systemd service
 cat << EOF > /etc/systemd/system/apiserver.service
