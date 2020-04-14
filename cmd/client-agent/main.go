@@ -10,6 +10,8 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
+	"strings"
 	"time"
 )
 
@@ -103,7 +105,12 @@ func main() {
 				log.Fatalf("generate public key during enroll: %v", err)
 			}
 
-			fmt.Printf("no enrollment token present. Send 'Nais Device' this message on slack: 'enroll %v'", string(pubkey))
+			serial, err := getDeviceSerial()
+			if err != nil {
+				log.Fatalf("getting device serial: %v", err)
+			}
+
+			fmt.Printf("no enrollment token present. Send 'Nais Device' this message on slack: 'enroll %v %v'", serial, pubkey)
 			os.Exit(0)
 		}
 
@@ -126,6 +133,24 @@ func main() {
 	for range time.NewTicker(10 * time.Second).C {
 		log.Info("titei")
 	}
+}
+
+// TODO(jhrv): extract this as a separate interface, with platform specific implmentations
+func getDeviceSerial() (string, error) {
+	cmd := exec.Command("/usr/sbin/ioreg", "-rd1", "-c", "IOPlatformExpertDevice")
+	b, err := cmd.Output()
+	if err != nil {
+		return "", fmt.Errorf("getting serial with ioreg: %w", err)
+	}
+
+	re := regexp.MustCompile("\"IOPlatformSerialNumber\" = \"([^\"]+)\"")
+	matches := re.FindSubmatch(b)
+
+	if len(matches) != 2 {
+		return "", fmt.Errorf("unable to extract serial from output: %v", string(b))
+	}
+
+	return string(matches[1]), nil
 }
 
 func setupControlPlane(enrollmentToken string) error {
@@ -212,24 +237,30 @@ Endpoint = %s
 	return []byte(fmt.Sprintf(template, privateKey, enrollmentConfig.PublicKey, enrollmentConfig.APIServerIP, enrollmentConfig.Endpoint))
 }
 
-func generatePublicKey(privateKeyPath string) ([]byte, error) {
+func generatePublicKey(privateKeyPath string) (string, error) {
 	cmd := exec.Command(WGBinary, "pubkey")
 
 	stdin, err := cmd.StdinPipe()
 	if err != nil {
-		return nil, fmt.Errorf("creating stdin pipe on 'wg pubkey': %w", err)
+		return "", fmt.Errorf("creating stdin pipe on 'wg pubkey': %w", err)
 	}
 
 	b, err := ioutil.ReadFile(privateKeyPath)
 	if err != nil {
-		return nil, fmt.Errorf("reading private key: %w", err)
+		return "", fmt.Errorf("reading private key: %w", err)
 	}
 
 	if _, err := stdin.Write(b); err != nil {
-		return nil, fmt.Errorf("piping private key to 'wg genkey': %w", err)
+		return "", fmt.Errorf("piping private key to 'wg genkey': %w", err)
 	}
 
-	return cmd.Output()
+	if err := stdin.Close(); err != nil {
+		return "", fmt.Errorf("closing stdin: %w", err)
+	}
+
+	b, err = cmd.Output()
+	pubkey := strings.TrimSuffix(string(b), "\n")
+	return pubkey, err
 }
 
 func filesExist(files ...string) error {
