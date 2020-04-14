@@ -30,6 +30,7 @@ type Client struct {
 type Peer struct {
 	PublicKey string `json:"public_key"`
 	IP        string `json:"ip"`
+	Type      string `json:"type"`
 }
 
 func New(dsn string) (*APIServerDB, error) {
@@ -40,6 +41,42 @@ func New(dsn string) (*APIServerDB, error) {
 	}
 
 	return &APIServerDB{conn: conn}, nil
+}
+
+func (d *APIServerDB) ReadPeers(peerType string) (peers []Peer, err error) {
+	ctx := context.Background()
+
+	query := `
+SELECT public_key, ip
+FROM peer
+WHERE type = $1;
+	`
+
+	rows, err := d.conn.Query(ctx, query, peerType)
+
+	if err != nil {
+		return nil, fmt.Errorf("querying for peers: %v", err)
+	}
+
+	defer rows.Close()
+
+	if rows.Err() != nil {
+		return nil, fmt.Errorf("querying for peers: %v", rows.Err())
+	}
+
+	for rows.Next() {
+		var peer Peer
+
+		err := rows.Scan(&peer.PublicKey, &peer.IP)
+
+		if err != nil {
+			return nil, fmt.Errorf("scanning row: %s", err)
+		}
+
+		peers = append(peers, peer)
+	}
+
+	return
 }
 
 func (d *APIServerDB) ReadClients() (clients []Client, err error) {

@@ -59,7 +59,7 @@ func (s *slackbot) handleMsg(msg slack.Msg) string {
 	}
 }
 
-func (s *slackbot) slackHandler() {
+func (s *slackbot) Handler() {
 	log.SetLevel(log.DebugLevel)
 	rtm := s.api.NewRTM()
 
@@ -97,8 +97,4 @@ func (s *slackbot) getUserEmail(userID string) (string, error) {
 	} else {
 		return info.Profile.Email, nil
 	}
-}
-
-func (s *slackbot) Run() {
-	go s.slackHandler()
 }
