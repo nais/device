@@ -37,21 +37,9 @@ add-apt-repository --yes ppa:wireguard/wireguard
 apt-get update --yes
 apt-get install --yes wireguard
 
-# Setup wgctrl
-wgctrl_private_key=$(wg genkey)
-
-mkdir -p /etc/wireguard
-cat << EOF > /etc/wireguard/wgctrl.conf
-[Interface]
-ListenPort = 51820
-PrivateKey = $wgctrl_private_key
-EOF
-
-ip link add dev wgctrl type wireguard
-ip link set wgctrl mtu 1380
-ip address add dev wgctrl ${var.apiserver_tunnel_ip}/21
-wg setconf wgctrl /etc/wireguard/wgctrl.conf
-ip link set wgctrl up
+# Generate wg private key
+mkdir -p "/usr/local/etc/nais-device"
+wg genkey > /usr/local/etc/nais-device/private.key
 
 # Setup systemd service
 cat << EOF > /etc/systemd/system/apiserver.service
