@@ -8,6 +8,7 @@ type Config struct {
 	PrivateKeyPath           string
 	ControlPlaneWGConfigPath string
 	SkipSetupInterface       bool
+	ControlPlaneEndpoint     string
 }
 
 func DefaultConfig() Config {

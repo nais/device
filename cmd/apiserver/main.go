@@ -27,6 +27,7 @@ func init() {
 	flag.StringVar(&cfg.SlackToken, "slack-token", os.Getenv("SLACK_TOKEN"), "Slack token")
 	flag.StringVar(&cfg.BindAddress, "bind-address", cfg.BindAddress, "Bind address")
 	flag.StringVar(&cfg.ConfigDir, "config-dir", cfg.ConfigDir, "Path to configuration directory")
+	flag.StringVar(&cfg.ControlPlaneEndpoint, "control-plane-endpoint", cfg.ControlPlaneEndpoint, "Control Plane public endpoint (ip:port)")
 	flag.BoolVar(&cfg.SkipSetupInterface, "skip-setup-interface", cfg.SkipSetupInterface, "Skip setting up WireGuard control plane interface")
 
 	flag.Parse()

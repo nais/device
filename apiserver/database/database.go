@@ -190,6 +190,30 @@ INSERT
 	return tx.Commit(ctx)
 }
 
+func (d *APIServerDB) ReadControlPlanePeer(serial string) (*Peer, error) {
+	ctx := context.Background()
+
+	query := `
+SELECT public_key, ip
+  FROM client_peer
+         JOIN client on id = client_id
+         JOIN peer on id = peer_id
+ WHERE c.serial = $1
+   AND p.type = 'control'
+ LIMIT 1;`
+
+	row := d.conn.QueryRow(ctx, query)
+
+	var peer Peer
+	err := row.Scan(&peer.PublicKey, &peer.IP)
+
+	if err != nil {
+		return nil, fmt.Errorf("scanning row: %s", err)
+	}
+
+	return &peer, nil
+}
+
 func ips(tx pgx.Tx, ctx context.Context) ([]string, error) {
 	rows, err := tx.Query(ctx, "SELECT ip FROM peer;")
 	if err != nil {

@@ -1,6 +1,8 @@
 package slack
 
 import (
+	"encoding/base64"
+	"encoding/json"
 	"fmt"
 	"strings"
 
@@ -12,8 +14,16 @@ import (
 const Usage = `register publicKey serialNumber`
 
 type slackbot struct {
-	api      *slack.Client
-	database *database.APIServerDB
+	api                  *slack.Client
+	database             *database.APIServerDB
+	controlPlaneEndpoint string
+}
+
+type EnrollmentConfig struct {
+	ClientIP    string `json:"clientIP"`
+	PublicKey   string `json:"publicKey"`
+	Endpoint    string `json:"endpoint"`
+	APIServerIP string `json:"apiServerIP"`
 }
 
 func New(token string, database *database.APIServerDB) *slackbot {
@@ -39,9 +49,27 @@ func (s *slackbot) handleRegister(msg slack.Msg) string {
 	err = s.database.AddClient(email, publicKey, serial)
 	if err != nil {
 		log.Errorf("adding client to database: %v", err)
-		return "Something went wrong during registration :sweat_smile:, I've notified the nais device team for you."
+		return "Something went wrong during registration :sweat_smile:, I've notified the nais device team for you. (1)"
 	} else {
-		return "Successfully registered :partyparrot:"
+		c, err := s.database.ReadControlPlanePeer(serial)
+		if err != nil {
+			return "Something went wrong during registration :sweat_smile:, I've notified the nais device team for you. (2)"
+		}
+
+		ec := EnrollmentConfig{
+			ClientIP:    c.IP,
+			PublicKey:   c.PublicKey,
+			Endpoint:    s.controlPlaneEndpoint,
+			APIServerIP: "10.255.240.1",
+		}
+
+		b, err := json.Marshal(&ec)
+		if err != nil {
+			return "Something went wrong during registration :sweat_smile:, I've notified the nais device team for you. (3)"
+		}
+
+		token := base64.StdEncoding.EncodeToString(b)
+		return fmt.Sprintf("Successfully registered :partyparrot:, copy and paste this command on your command line: `sudo tee /usr/local/etc/nais-device/enrollment.token <<< '%s'`", token)
 	}
 }
 
