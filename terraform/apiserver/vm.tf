@@ -53,7 +53,8 @@ ExecStartPre=/bin/mkdir -p /opt/nais-device/bin/
 ExecStartPre=/bin/mv gateway-agent /opt/nais-device/bin/
 ExecStart=/opt/nais-device/bin/apiserver \
       --db-connection-uri "${var.db_connection_uri}" \
-      --slack-token "${var.slack_token}"
+      --slack-token "${var.slack_token}" \
+      --control-plane-endpoint "${google_compute_address.apiserver.address}:51820"
 
 [Install]
 WantedBy=multi-user.target
