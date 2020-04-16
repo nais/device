@@ -128,7 +128,7 @@ func syncWireguardConfig() {
 
 func GenerateWGConfig(devices []database.Device, gateways []database.Gateway, privateKey []byte) []byte {
 	interfaceTemplate := `[Interface]
-PrivateKey = %s
+PrivateKeyPath = %s
 ListenPort = 51820`
 
 	wgConfig := fmt.Sprintf(interfaceTemplate, strings.TrimSuffix(string(privateKey), "\n"))

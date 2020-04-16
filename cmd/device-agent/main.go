@@ -82,7 +82,12 @@ func main() {
 			log.Fatalf("getting device serial: %v", err)
 		}
 
-		fmt.Printf("no bootstrap token present. Send 'Nais Device' this message on slack: 'enroll %v %v'", serial, pubkey)
+		enrollmentToken, err := generateEnrollmentToken(serial, pubkey)
+		if err != nil {
+			log.Fatalf("generating enrollment token: %v", err)
+		}
+
+		fmt.Printf("no bootstrap token present. Send 'Nais Device' this message on slack: 'enroll %v'", enrollmentToken)
 		os.Exit(0)
 	}
 
@@ -108,6 +113,23 @@ func main() {
 		if err := setupWireGuard(cfg.BootstrapToken); err != nil {
 			log.Errorf("setting up WireGuard: %v", err)
 		}
+	}
+}
+
+func generateEnrollmentToken(serial, publicKey string) (string, error) {
+	type enrollmentConfig struct {
+		Serial string `json:"serial"`
+		PublicKey string `json:"public_key"`
+	}
+
+	ec := enrollmentConfig{
+		Serial: serial,
+		PublicKey: publicKey,
+	}
+	if b, err := json.Marshal(ec); err != nil {
+		return "", fmt.Errorf("marshalling enrollment config: %w", err)
+	} else {
+		return base64.StdEncoding.EncodeToString(b), nil
 	}
 }
 
@@ -208,7 +230,7 @@ type Gateway struct {
 func GenerateWireGuardConfig(bootstrapConfig *BootstrapConfig, privateKey []byte) []byte {
 	template := `
 [Interface]
-PrivateKey = %s
+PrivateKeyPath = %s
 
 [Peer]
 PublicKey = %s

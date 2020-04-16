@@ -155,7 +155,7 @@ func DefaultConfig() Config {
 		Apiserver:       "http://apiserver.device.nais.io",
 		PublicKey:       "/etc/wireguard/public.key",
 		PrivateKeyPath:  "/etc/wireguard/private.key",
-		Interface:       "wgdata",
+		Interface:       "wg0",
 		TunnelConfigDir: "/etc/wireguard/",
 	}
 }

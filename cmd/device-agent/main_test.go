@@ -37,7 +37,7 @@ func TestGenerateWGConfig(t *testing.T) {
 
 	expected := `
 [Interface]
-PrivateKey = wFTAVe1stJPp0xQ+FE9so56uKh0jaHkPxJ4d2x9jPmU=
+PrivateKeyPath = wFTAVe1stJPp0xQ+FE9so56uKh0jaHkPxJ4d2x9jPmU=
 
 [Peer]
 PublicKey = PQKmraPOPye5CJq1x7njpl8rRu5RSrIKyHvZXtLvS0E=
