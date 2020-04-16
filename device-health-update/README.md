@@ -1,6 +1,6 @@
 # Update health status of Nais devices
 
-Script that will update health status of all Nais devices based on checks from the Kolide.
+Script that will update health status of all Nais devices based on checks from the Kolide API.
 
 ## Installation
 
