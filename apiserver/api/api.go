@@ -89,6 +89,22 @@ func (a *api) updateHealth(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func (a *api) clientConfig(w http.ResponseWriter, r *http.Request) {
+	//serial := chi.URLParam(r, "serial")
+	gateways, err := a.db.ReadGateways()
+	if err != nil {
+		log.Errorf("reading gateways: %v", err)
+		respondf(w, http.StatusInternalServerError, "unable to get gateways\n")
+	}
+
+	w.WriteHeader(http.StatusOK)
+	err = json.NewEncoder(w).Encode(gateways)
+	if err != nil {
+		log.Errorf("encoding gateways response")
+		respondf(w, http.StatusInternalServerError, "unable to marshal gateways")
+	}
+}
+
 func respondf(w http.ResponseWriter, statusCode int, format string, args ...interface{}) {
 	w.WriteHeader(statusCode)
 

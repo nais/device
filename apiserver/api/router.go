@@ -16,6 +16,7 @@ func New(cfg Config) chi.Router {
 	r.Get("/gateways/{gateway}", api.gatewayConfig)
 	r.Get("/clients", api.clients)
 	r.Put("/clients/health", api.updateHealth)
+	r.Get("/clients/config/{serial}", api.clientConfig)
 
 	return r
 }

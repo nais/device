@@ -33,6 +33,11 @@ type Peer struct {
 	Type      string `json:"type"`
 }
 
+type Gateway struct {
+	PublicKey string `json:"public_key"`
+	Endpoint string `json:"endpoint"`
+}
+
 func New(dsn string) (*APIServerDB, error) {
 	ctx := context.Background()
 	conn, err := pgxpool.Connect(ctx, dsn)
@@ -208,6 +213,39 @@ SELECT public_key, ip
 	}
 
 	return &peer, nil
+}
+
+func (d *APIServerDB) ReadGateways() ([]Gateway, error) {
+	ctx := context.Background()
+
+	query := `
+SELECT public_key, endpoint
+  FROM gateway_peer
+  JOIN gateway ON gateway.id = gateway_id
+  JOIN peer ON peer.id = peer_id
+ WHERE type = 'data'`
+
+	rows, err := d.conn.Query(ctx, query)
+	if err != nil {
+		return nil, fmt.Errorf("querying for gateways %w", err)
+	}
+
+	var gateways []Gateway
+	for rows.Next() {
+		var gateway Gateway
+		err := rows.Scan(&gateway.PublicKey, &gateway.Endpoint)
+		if err != nil {
+			return nil, fmt.Errorf("scanning gateway: %w", err)
+		}
+
+		gateways = append(gateways, gateway)
+	}
+
+	if rows.Err() != nil {
+		return nil, fmt.Errorf("iterating over rows: %w", rows.Err())
+	}
+
+	return gateways, nil
 }
 
 func ips(tx pgx.Tx, ctx context.Context) ([]string, error) {
