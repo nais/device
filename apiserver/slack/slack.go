@@ -19,7 +19,7 @@ type slackbot struct {
 	tunnelEndpoint string
 }
 
-type EnrollmentConfig struct {
+type BootstrapConfig struct {
 	DeviceIP       string `json:"deviceIP"`
 	PublicKey      string `json:"publicKey"`
 	TunnelEndpoint string `json:"tunnelEndpoint"`
@@ -36,28 +36,33 @@ func New(token, tunnelEndpoint string, database *database.APIServerDB) *slackbot
 
 func (s *slackbot) handleEnroll(msg slack.Msg) string {
 	parts := strings.Split(msg.Text, " ")
-	if len(parts) != 3 {
+	if len(parts) != 2 {
 		return fmt.Sprintf("invalid command format, usage:\n%v", Usage)
 	}
 
-	publicKey, serial := parts[1], parts[2]
+	token := parts[1]
+	enrollemntConfig, err := parseEnrollmentToken(token)
+	if err != nil {
+		log.Errorf("unable to parse enrollment token: *w", err)
+		return "Unable to parse enrollment token, make sure you copied the token correctly."
+	}
 	email, err := s.getUserEmail(msg.User)
 	if err != nil {
 		log.Errorf("getting user email: %v", err)
 		return "unable to find email for your slack user :confused:, I've notified the nais device team for you."
 	}
 
-	err = s.database.AddDevice(email, publicKey, serial)
+	err = s.database.AddDevice(email, enrollemntConfig.PublicKey, enrollemntConfig.Serial)
 	if err != nil {
 		log.Errorf("adding device to database: %v", err)
 		return "Something went wrong during enrollment :sweat_smile:, I've notified the nais device team for you. (1)"
 	} else {
-		c, err := s.database.ReadDevice(publicKey)
+		c, err := s.database.ReadDevice(enrollemntConfig.PublicKey)
 		if err != nil {
 			return "Something went wrong during enrollment :sweat_smile:, I've notified the nais device team for you. (2)"
 		}
 
-		ec := EnrollmentConfig{
+		ec := BootstrapConfig{
 			DeviceIP:       c.IP,
 			PublicKey:      c.PublicKey,
 			TunnelEndpoint: s.tunnelEndpoint,
@@ -127,4 +132,24 @@ func (s *slackbot) getUserEmail(userID string) (string, error) {
 	} else {
 		return info.Profile.Email, nil
 	}
+}
+
+type EnrollmentConfig struct {
+	Serial string `json:"serial"`
+	PublicKey string `json:"publicKey"`
+}
+
+func parseEnrollmentToken(enrollmentToken string) (*EnrollmentConfig, error) {
+	b, err := base64.StdEncoding.DecodeString(enrollmentToken)
+	if err != nil {
+		return nil, fmt.Errorf("decoding base64: %w", err)
+	}
+
+	var enrollmentConfig EnrollmentConfig
+	err = json.Unmarshal(b, &enrollmentConfig)
+	if err != nil {
+		return nil, fmt.Errorf("decoding base64: %w", err)
+	}
+
+	return &enrollmentConfig, nil
 }
