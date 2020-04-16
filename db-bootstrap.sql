@@ -16,7 +16,7 @@ CREATE TABLE gateway
     access_group_id varchar(255),
     endpoint        varchar(21),
     public_key      varchar(44) NOT NULL UNIQUE,
-    ip              varchar(15) UNIQUE,
+    ip              varchar(15) UNIQUE
 );
 
 CREATE TABLE routes
