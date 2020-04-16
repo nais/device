@@ -95,7 +95,7 @@ func (a *api) deviceConfig(w http.ResponseWriter, r *http.Request) {
 	err = json.NewEncoder(w).Encode(gateways)
 
 	if err != nil {
-		log.Errorf("encoding gateways response: %w", err)
+		log.Errorf("encoding gateways response: %v", err)
 		respondf(w, http.StatusInternalServerError, "unable to get device config\n")
 		return
 	}
