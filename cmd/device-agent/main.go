@@ -64,7 +64,7 @@ func main() {
 	}
 
 	if err := ensureDirectories(cfg.ConfigDir, cfg.BinaryDir); err != nil {
-		log.Fatalf("ensuring directory exists: %w", err)
+		log.Fatalf("ensuring directory exists: %v", err)
 	}
 
 	if err := ensureKey(cfg.PrivateKeyPath, cfg.WireGuardPath); err != nil {
@@ -230,7 +230,7 @@ type Gateway struct {
 func GenerateWireGuardConfig(bootstrapConfig *BootstrapConfig, privateKey []byte) []byte {
 	template := `
 [Interface]
-PrivateKeyPath = %s
+PrivateKey = %s
 
 [Peer]
 PublicKey = %s
