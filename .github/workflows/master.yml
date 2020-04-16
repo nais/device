@@ -10,9 +10,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@master      
+    - name: test
+      run: |
+        make test
     - name: build
       run: |
-          make linux
+        make linux
     - name: set version
       id: set_version
       run: |
