@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/jackc/pgx/v4/pgxpool"
+	log "github.com/sirupsen/logrus"
 )
 
 const (
@@ -99,7 +100,13 @@ func (d *APIServerDB) UpdateDeviceStatus(devices []Device) error {
 		}
 	}
 
-	return tx.Commit(ctx)
+	if err := tx.Commit(ctx); err != nil {
+		return fmt.Errorf("commiting transaction: %w", err)
+	}
+
+	log.Infof("Successfully updated device statuses")
+
+	return nil
 }
 
 var mux sync.Mutex
@@ -136,7 +143,13 @@ VALUES ($1, $2, $3, $4, false, '');`
 		return fmt.Errorf("inserting new device: %w", err)
 	}
 
-	return tx.Commit(ctx)
+	if err := tx.Commit(ctx); err != nil {
+		return fmt.Errorf("commiting transaction: %w", err)
+	}
+
+	log.Infof("Added new device with serial %v for user %v with public key %v to database.", serial, username, publicKey)
+
+	return nil
 }
 
 func (d *APIServerDB) ReadDevice(publicKey string) (*Device, error) {

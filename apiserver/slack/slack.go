@@ -11,7 +11,10 @@ import (
 	"github.com/slack-go/slack"
 )
 
-const Usage = `enroll <token>`
+const (
+	Usage            = `enroll <token>`
+	InternalErrorMsg = "Ahhh, we've messed up something here on our side :meow-disappointed: I've notified my team with the error details."
+)
 
 type slackbot struct {
 	api            *slack.Client
@@ -19,11 +22,18 @@ type slackbot struct {
 	tunnelEndpoint string
 }
 
+// BootstrapConfig is the information the device needs to bootstrap it's connection to the APIServer
 type BootstrapConfig struct {
 	DeviceIP       string `json:"deviceIP"`
 	PublicKey      string `json:"publicKey"`
 	TunnelEndpoint string `json:"tunnelEndpoint"`
 	APIServerIP    string `json:"apiServerIP"`
+}
+
+// EnrollmentConfig is the information sent by the device during enrollment
+type EnrollmentConfig struct {
+	Serial    string `json:"serial"`
+	PublicKey string `json:"publicKey"`
 }
 
 func New(token, tunnelEndpoint string, database *database.APIServerDB) *slackbot {
@@ -41,37 +51,38 @@ func (s *slackbot) handleEnroll(msg slack.Msg) string {
 	}
 
 	token := parts[1]
-	enrollemntConfig, err := parseEnrollmentToken(token)
+	enrollmentConfig, err := parseEnrollmentToken(token)
 	if err != nil {
-		log.Errorf("unable to parse enrollment token: *w", err)
-		return "Unable to parse enrollment token, make sure you copied the token correctly."
+		log.Errorf("Unable to parse enrollment token: *w", err)
+		return "There is something wrong with your token :sadkek: Make sure you copied it correctly. If it still doesn't work, get help in #nais-device channel."
 	}
 	email, err := s.getUserEmail(msg.User)
 	if err != nil {
-		log.Errorf("getting user email: %v", err)
-		return "unable to find email for your slack user :confused:, I've notified the nais device team for you."
+		log.Errorf("Getting user email: %v", err)
+		return "Unable to find e-mail for your slack user :confused:, I've notified the nais device team for you."
 	}
 
-	err = s.database.AddDevice(email, enrollemntConfig.PublicKey, enrollemntConfig.Serial)
+	err = s.database.AddDevice(email, enrollmentConfig.PublicKey, enrollmentConfig.Serial)
 	if err != nil {
-		log.Errorf("adding device to database: %v", err)
-		return "Something went wrong during enrollment :sweat_smile:, I've notified the nais device team for you. (1)"
+		log.Errorf("Adding device to database: %v", err)
+		return InternalErrorMsg
 	} else {
-		c, err := s.database.ReadDevice(enrollemntConfig.PublicKey)
+		c, err := s.database.ReadDevice(enrollmentConfig.PublicKey)
 		if err != nil {
-			return "Something went wrong during enrollment :sweat_smile:, I've notified the nais device team for you. (2)"
+			log.Errorf("Reading device info from database: %v", err)
+			return InternalErrorMsg
 		}
 
-		ec := BootstrapConfig{
+		bc := BootstrapConfig{
 			DeviceIP:       c.IP,
 			PublicKey:      c.PublicKey,
 			TunnelEndpoint: s.tunnelEndpoint,
 			APIServerIP:    "10.255.240.1",
 		}
 
-		b, err := json.Marshal(&ec)
+		b, err := json.Marshal(&bc)
 		if err != nil {
-			return "Something went wrong during enrollment :sweat_smile:, I've notified the nais device team for you. (3)"
+			return InternalErrorMsg
 		}
 
 		token := base64.StdEncoding.EncodeToString(b)
@@ -128,15 +139,10 @@ func (s *slackbot) Handler() {
 
 func (s *slackbot) getUserEmail(userID string) (string, error) {
 	if info, err := s.api.GetUserInfo(userID); err != nil {
-		return "", fmt.Errorf("getting user info: %w", err)
+		return "", fmt.Errorf("getting user info for %v: %w", userID, err)
 	} else {
 		return info.Profile.Email, nil
 	}
-}
-
-type EnrollmentConfig struct {
-	Serial string `json:"serial"`
-	PublicKey string `json:"publicKey"`
 }
 
 func parseEnrollmentToken(enrollmentToken string) (*EnrollmentConfig, error) {

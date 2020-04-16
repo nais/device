@@ -118,14 +118,15 @@ func main() {
 
 func generateEnrollmentToken(serial, publicKey string) (string, error) {
 	type enrollmentConfig struct {
-		Serial string `json:"serial"`
-		PublicKey string `json:"public_key"`
+		Serial    string `json:"serial"`
+		PublicKey string `json:"publicKey"`
 	}
 
 	ec := enrollmentConfig{
-		Serial: serial,
+		Serial:    serial,
 		PublicKey: publicKey,
 	}
+
 	if b, err := json.Marshal(ec); err != nil {
 		return "", fmt.Errorf("marshalling enrollment config: %w", err)
 	} else {
