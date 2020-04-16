@@ -9,12 +9,12 @@ alpine:
 linux:
 	GOOS=linux GOARCH=amd64 go build -o bin/apiserver cmd/apiserver/main.go
 	GOOS=linux GOARCH=amd64 go build -o bin/gateway-agent cmd/gateway-agent/main.go
-	GOOS=linux GOARCH=amd64 go build -o bin/client-agent cmd/client-agent/main.go
+	GOOS=linux GOARCH=amd64 go build -o bin/device-agent cmd/device-agent/main.go
 
 local:
 	go build -o bin/apiserver cmd/apiserver/main.go
 	go build -o bin/gateway-agent cmd/gateway-agent/main.go
-	go build -o bin/client-agent cmd/client-agent/main.go
+	go build -o bin/device-agent cmd/device-agent/main.go
 
 local-postgres:
 	docker rm -f postgres || echo "okidoki"
