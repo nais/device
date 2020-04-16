@@ -4,27 +4,50 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
-	log "github.com/sirupsen/logrus"
-	flag "github.com/spf13/pflag"
 	"io/ioutil"
+	"net/http"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"regexp"
 	"strings"
 	"time"
+
+	log "github.com/sirupsen/logrus"
+	flag "github.com/spf13/pflag"
 )
 
 var (
 	cfg = DefaultConfig()
 )
 
+type Config struct {
+	APIServer           string
+	Interface           string
+	ConfigDir           string
+	BinaryDir           string
+	BootstrapToken      string
+	WireGuardPath       string
+	WireGuardGoBinary   string
+	PrivateKeyPath      string
+	WireGuardConfigPath string
+	BootstrapTokenPath  string
+	BootstrapConfig     *BootstrapConfig
+	LogLevel            string
+}
+
+type Gateway struct {
+	PublicKey string `json:"publicKey"`
+	Endpoint  string `json:"endpoint"`
+	IP        string `json:"ip"`
+}
+
 func init() {
-	log.SetFormatter(&log.JSONFormatter{})
-	flag.StringVar(&cfg.APIServer, "apiserver", cfg.APIServer, "hostname to apiserver")
+	flag.StringVar(&cfg.APIServer, "apiserver", cfg.APIServer, "base url to apiserver")
 	flag.StringVar(&cfg.ConfigDir, "config-dir", cfg.ConfigDir, "path to agent config directory")
 	flag.StringVar(&cfg.BinaryDir, "binary-dir", cfg.BinaryDir, "path to binary directory")
 	flag.StringVar(&cfg.Interface, "interface", cfg.Interface, "name of tunnel interface")
+	flag.StringVar(&cfg.LogLevel, "log-level", cfg.LogLevel, "which log level to output")
 
 	flag.Parse()
 
@@ -33,6 +56,13 @@ func init() {
 	cfg.PrivateKeyPath = filepath.Join(cfg.ConfigDir, "private.key")
 	cfg.WireGuardConfigPath = filepath.Join(cfg.ConfigDir, "wg0.conf")
 	cfg.BootstrapTokenPath = filepath.Join(cfg.ConfigDir, "bootstrap.token")
+
+	log.SetFormatter(&log.JSONFormatter{})
+	level, err := log.ParseLevel(cfg.LogLevel)
+	if err != nil {
+		log.Fatal(err)
+	}
+	log.SetLevel(level)
 }
 
 // device-agent is responsible for enabling the end-user to connect to it's permitted gateways.
@@ -71,15 +101,15 @@ func main() {
 		log.Fatalf("ensuring private key exists: %v", err)
 	}
 
+	serial, err := getDeviceSerial()
+	if err != nil {
+		log.Fatalf("getting device serial: %v", err)
+	}
+
 	if err := filesExist(cfg.BootstrapTokenPath); err != nil {
 		pubkey, err := generatePublicKey(cfg.PrivateKeyPath, cfg.WireGuardPath)
 		if err != nil {
 			log.Fatalf("generate public key during bootstrap: %v", err)
-		}
-
-		serial, err := getDeviceSerial()
-		if err != nil {
-			log.Fatalf("getting device serial: %v", err)
 		}
 
 		enrollmentToken, err := generateEnrollmentToken(serial, pubkey)
@@ -105,15 +135,76 @@ func main() {
 		log.Fatalf("setting up interface: %v", err)
 	}
 
-	if err := setupWireGuard(cfg.BootstrapToken); err != nil {
-		log.Fatalf("setting up WireGuard: %v", err)
+	privateKey, err := ioutil.ReadFile(cfg.PrivateKeyPath)
+	if err != nil {
+		log.Fatalf("Reading private key: %v", err)
+	}
+
+	baseConfig := GenerateBaseConfig(cfg.BootstrapConfig, privateKey)
+	if err := actuateWireGuardConfig(baseConfig, cfg); err != nil {
+		log.Fatalf("Actuating WireGuard config: %v", err)
 	}
 
 	for range time.NewTicker(10 * time.Second).C {
-		if err := setupWireGuard(cfg.BootstrapToken); err != nil {
-			log.Errorf("setting up WireGuard: %v", err)
+		gateways, err := getGatewayConfig(cfg.APIServer, serial)
+		if err != nil {
+			log.Errorf("Unable to get gateway config: %v", err)
+		}
+
+		wireGuardConfig := fmt.Sprintf("%s%s", baseConfig, gateways)
+
+		if err := actuateWireGuardConfig(wireGuardConfig, cfg); err != nil {
+			log.Errorf("Actuating WireGuard config: %v", err)
 		}
 	}
+}
+
+func getGatewayConfig(apiServerURL, serial string) (string, error) {
+	deviceConfigAPI := fmt.Sprintf("%s/devices/config/%s", apiServerURL, serial)
+	r, err := http.Get(deviceConfigAPI)
+	if err != nil {
+		return "", fmt.Errorf("getting device config: %w", err)
+	}
+	defer r.Body.Close()
+
+	var gateways []Gateway
+	if err := json.NewDecoder(r.Body).Decode(&gateways); err != nil {
+		return "", fmt.Errorf("unmarshalling response body into gateways: %w", err)
+	}
+
+	return GenerateWireGuardPeers(gateways), nil
+}
+
+func GenerateWireGuardPeers(gateways []Gateway) string {
+	peerTemplate := `
+[Peer]
+PublicKey = %s
+AllowedIPs = %s
+Endpoint = %s
+`
+	var peers string
+
+	for _, gateway := range gateways {
+		peers += fmt.Sprintf(peerTemplate, gateway.PublicKey, gateway.IP, gateway.Endpoint)
+	}
+
+	return peers
+}
+
+// actuateWireGuardConfig runs syncconfig with the provided WireGuard config
+func actuateWireGuardConfig(wireGuardConfig string, config Config) error {
+	if err := ioutil.WriteFile(cfg.WireGuardConfigPath, []byte(wireGuardConfig), 0600); err != nil {
+		return fmt.Errorf("writing WireGuard config to disk: %w", err)
+	}
+
+	cmd := exec.Command(cfg.WireGuardPath, "syncconf", cfg.Interface, cfg.WireGuardConfigPath)
+	if err := cmd.Run(); err != nil {
+		return fmt.Errorf("running syncconf: %w", err)
+	}
+
+	log.Debugf("Actuated WireGuard config: %v", cfg.WireGuardConfigPath)
+
+	return nil
 }
 
 func generateEnrollmentToken(serial, publicKey string) (string, error) {
@@ -152,27 +243,6 @@ func getDeviceSerial() (string, error) {
 	return string(matches[1]), nil
 }
 
-func setupWireGuard(bootstrapToken string) error {
-	bootstrapConfig, err := ParseBootstrapToken(bootstrapToken)
-	if err != nil {
-		return fmt.Errorf("parsing bootstrap config key: %w", err)
-	}
-
-	privateKey, err := ioutil.ReadFile(cfg.PrivateKeyPath)
-	if err != nil {
-		return fmt.Errorf("reading private key: %w", err)
-	}
-
-	wgConfigContent := GenerateWireGuardConfig(bootstrapConfig, privateKey)
-	fmt.Println(string(wgConfigContent))
-
-	if err := ioutil.WriteFile(cfg.WireGuardConfigPath, wgConfigContent, 0600); err != nil {
-		return fmt.Errorf("writing WireGuard config to disk: %w", err)
-	}
-
-	return nil
-}
-
 func setupInterface(cfg Config) error {
 	run := func(commands [][]string) error {
 		for _, s := range commands {
@@ -194,7 +264,6 @@ func setupInterface(cfg Config) error {
 		{"ifconfig", cfg.Interface, "mtu", "1380"},
 		{"ifconfig", cfg.Interface, "up"},
 		{"route", "-q", "-n", "add", "-inet", ip + "/21", "-interface", cfg.Interface},
-		{cfg.WireGuardPath, "syncconf", cfg.Interface, cfg.WireGuardConfigPath},
 	}
 
 	return run(commands)
@@ -203,12 +272,11 @@ func setupInterface(cfg Config) error {
 type BootstrapConfig struct {
 	DeviceIP    string `json:"deviceIP"`
 	PublicKey   string `json:"publicKey"`
-	Endpoint    string `json:"endpoint"`
+	Endpoint    string `json:"tunnelEndpoint"`
 	APIServerIP string `json:"apiServerIP"`
 }
 
 func ParseBootstrapToken(bootstrapToken string) (*BootstrapConfig, error) {
-
 	b, err := base64.StdEncoding.DecodeString(bootstrapToken)
 	if err != nil {
 		return nil, fmt.Errorf("base64 decoding bootstrap token: %w", err)
@@ -222,13 +290,7 @@ func ParseBootstrapToken(bootstrapToken string) (*BootstrapConfig, error) {
 	return &bootstrapConfig, nil
 }
 
-type Gateway struct {
-	PublicKey string `json:"publicKey"`
-	Endpoint  string `json:"endpoint"`
-	IP        string `json:"ip"`
-}
-
-func GenerateWireGuardConfig(bootstrapConfig *BootstrapConfig, privateKey []byte) []byte {
+func GenerateBaseConfig(bootstrapConfig *BootstrapConfig, privateKey []byte) string {
 	template := `
 [Interface]
 PrivateKey = %s
@@ -236,9 +298,9 @@ PrivateKey = %s
 [Peer]
 PublicKey = %s
 AllowedIPs = %s
-TunnelEndpoint = %s
+Endpoint = %s
 `
-	return []byte(fmt.Sprintf(template, privateKey, bootstrapConfig.PublicKey, bootstrapConfig.APIServerIP, bootstrapConfig.Endpoint))
+	return fmt.Sprintf(template, privateKey, bootstrapConfig.PublicKey, bootstrapConfig.APIServerIP, bootstrapConfig.Endpoint)
 }
 
 func generatePublicKey(privateKeyPath string, wireguardPath string) (string, error) {
@@ -319,26 +381,13 @@ func ensureKey(keyPath string, wireGuardPath string) error {
 	return nil
 }
 
-type Config struct {
-	APIServer           string
-	Interface           string
-	ConfigDir           string
-	BinaryDir           string
-	BootstrapToken      string
-	WireGuardPath       string
-	WireGuardGoBinary   string
-	PrivateKeyPath      string
-	WireGuardConfigPath string
-	BootstrapTokenPath  string
-	BootstrapConfig     *BootstrapConfig
-}
-
 func DefaultConfig() Config {
 	return Config{
 		APIServer: "http://apiserver.device.nais.io",
 		Interface: "utun69",
 		ConfigDir: "/usr/local/etc/nais-device",
 		BinaryDir: "/usr/local/bin",
+		LogLevel:  "info",
 	}
 }
 

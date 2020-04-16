@@ -33,7 +33,6 @@ func init() {
 	cfg.WireGuardConfigPath = path.Join("/etc/wireguard/", fmt.Sprintf("%s.connf", cfg.Interface))
 }
 
-
 // Gateway agent ensures desired configuration as defined by the apiserver
 // is synchronized and enforced by the local wireguard process on the gateway.
 //

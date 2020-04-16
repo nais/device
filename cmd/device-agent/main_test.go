@@ -33,7 +33,7 @@ func TestGenerateWGConfig(t *testing.T) {
 		APIServerIP: "10.1.1.2",
 	}
 	privateKey := []byte("wFTAVe1stJPp0xQ+FE9so56uKh0jaHkPxJ4d2x9jPmU=")
-	wgConfig := main.GenerateWireGuardConfig(bootstrapConfig, privateKey)
+	wgConfig := main.GenerateBaseConfig(bootstrapConfig, privateKey)
 
 	expected := `
 [Interface]
