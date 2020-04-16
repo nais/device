@@ -1,0 +1,59 @@
+<?php declare(strict_types=1);
+namespace Nais;
+
+use GuzzleHttp\Client as HttpClient;
+
+class KolideApiClient {
+    private $client;
+
+    public function __construct(string $token, HttpClient $client = null) {
+        $this->client = $client ?: new HttpClient([
+            'base_uri' => 'https://k2.kolide.com/api/v0/',
+            'headers' => [
+                'Authorization' => sprintf('Bearer %s', $token),
+                'Accept' => 'application/json',
+            ],
+        ]);
+    }
+
+    private function getPaginatedResults(string $endpoint) : array {
+        $page = 0;
+        $lastPage = false;
+        $entries = [];
+
+        while (!$lastPage) {
+            $response = json_decode($this->client->get($endpoint, [
+                'query' => [
+                    'page' => $page++,
+                ],
+            ])->getBody()->getContents(), true);
+
+            $lastPage = $response['page'] === $response['last_page'];
+            $entries = array_merge($entries, $response['data']);
+        }
+
+        return $entries;
+    }
+
+    public function getAllChecks() : array {
+        return $this->getPaginatedResults('checks');
+    }
+
+    public function getFailingChecks(array $blacklist = []) : array {
+        return array_filter($this->getAllChecks(), function(array $check) use ($blacklist) : bool {
+            return !in_array($check['id'], $blacklist) && 0 !== $check['failing_device_count'];
+        });
+    }
+
+    public function getFailingDevices(array $blacklistedChecks = []) : array {
+        $devices = [];
+
+        foreach ($this->getFailingChecks($blacklistedChecks) as $check) {
+            foreach ($this->getPaginatedResults(sprintf('checks/%d/failing_devices', $check['id'])) as $device) {
+                $devices[$device['id']] = $device;
+            }
+        }
+
+        return array_values($devices);
+    }
+}
