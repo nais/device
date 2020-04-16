@@ -190,19 +190,15 @@ INSERT
 	return tx.Commit(ctx)
 }
 
-func (d *APIServerDB) ReadControlPlanePeer(serial string) (*Peer, error) {
+func (d *APIServerDB) ReadControlPlanePeer(publicKey string) (*Peer, error) {
 	ctx := context.Background()
 
 	query := `
 SELECT public_key, ip
-  FROM client_peer
-         JOIN client c on c.id = client_id
-         JOIN peer p on p.id = peer_id
- WHERE c.serial = $1
-   AND p.type = 'control'
- LIMIT 1;`
+  FROM peer
+ WHERE public_key = $1;`
 
-	row := d.conn.QueryRow(ctx, query, serial)
+	row := d.conn.QueryRow(ctx, query, publicKey)
 
 	var peer Peer
 	err := row.Scan(&peer.PublicKey, &peer.IP)

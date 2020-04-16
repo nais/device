@@ -52,7 +52,7 @@ func (s *slackbot) handleRegister(msg slack.Msg) string {
 		log.Errorf("adding client to database: %v", err)
 		return "Something went wrong during registration :sweat_smile:, I've notified the nais device team for you. (1)"
 	} else {
-		c, err := s.database.ReadControlPlanePeer(serial)
+		c, err := s.database.ReadControlPlanePeer(publicKey)
 		if err != nil {
 			return "Something went wrong during registration :sweat_smile:, I've notified the nais device team for you. (2)"
 		}

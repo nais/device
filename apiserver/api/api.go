@@ -89,17 +89,6 @@ func (a *api) updateHealth(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (a *api) registerClient(w http.ResponseWriter, r *http.Request) {
-	var reg ClientRegistrationRequest
-	if err := json.NewDecoder(r.Body).Decode(&reg); err != nil {
-		respondf(w, http.StatusBadRequest, "error during JSON unmarshal: %s\n", err)
-	}
-
-	if err := a.db.AddClient(reg.Username, reg.PublicKey, reg.Serial); err != nil {
-		respondf(w, http.StatusInternalServerError, "unable to add new peer: %s\n", err)
-	}
-}
-
 func respondf(w http.ResponseWriter, statusCode int, format string, args ...interface{}) {
 	w.WriteHeader(statusCode)
 
