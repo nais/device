@@ -7,6 +7,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/nais/device/apiserver/api"
@@ -50,11 +51,13 @@ func main() {
 	}
 
 	if len(cfg.SlackToken) > 0 {
-		slack := slack.New(cfg.SlackToken, db)
+		slack := slack.New(cfg.SlackToken, cfg.ControlPlaneEndpoint, db)
 		go slack.Handler()
 	}
 
-	go syncWireguardConfig()
+	if !cfg.SkipSetupInterface {
+		go syncWireguardConfig()
+	}
 
 	router := api.New(api.Config{DB: db})
 
@@ -124,7 +127,7 @@ func GenerateWGConfig(peers []database.Peer, privateKey []byte) []byte {
 PrivateKey = %s
 ListenPort = 51820`
 
-	wgConfig := fmt.Sprintf(interfaceTemplate, privateKey)
+	wgConfig := fmt.Sprintf(interfaceTemplate, strings.TrimSuffix(string(privateKey), "\n"))
 
 	peerTemplate := `
 [Peer]

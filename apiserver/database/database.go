@@ -196,13 +196,13 @@ func (d *APIServerDB) ReadControlPlanePeer(serial string) (*Peer, error) {
 	query := `
 SELECT public_key, ip
   FROM client_peer
-         JOIN client on id = client_id
-         JOIN peer on id = peer_id
+         JOIN client c on c.id = client_id
+         JOIN peer p on p.id = peer_id
  WHERE c.serial = $1
    AND p.type = 'control'
  LIMIT 1;`
 
-	row := d.conn.QueryRow(ctx, query)
+	row := d.conn.QueryRow(ctx, query, serial)
 
 	var peer Peer
 	err := row.Scan(&peer.PublicKey, &peer.IP)

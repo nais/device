@@ -49,40 +49,26 @@ func init() {
 // client-agent is responsible for enabling the end-user to connect to it's permitted gateways.
 // To be able to connect, a series of prerequisites must be in place. These will be helped/ensured by client-agent.
 //
-
 // 1. A information exchange between end-user and naisdevice administrator/slackbot:
 // If neither EnrollmentTokenPath nor EnrollmentToken is present, user will be prompted to enroll using public key, and the agent will exit.
 // If EnrollmentToken command line option is provided, the agent will store it as EnrollmentTokenPath.
 // If EnrollmentTokenPath is present the agent will generate `wgctrl.conf` and continue.
-
-// - The end-user will provide it's generated public key ($(wg pubkey < `ControlPlanePrivateKeyPath`))
-// - The end-user will receive the control plane tunnel endpoint, public key, apiserver tunnel ip, and it's own tunnel
-//   ip encoded as a base64 string.
-// The received information will be persisted as `EnrollmentTokenPath`.
 // When client-agent detects `EnrollmentTokenPath` is present,
 // it will generate a WireGuard config file called wgctrl.conf placed in `cfg.ConfigDir`
 //
 // 2. (When) A valid control plane WireGuard config is present, ensure control plane tunnel is configured and connected:
-// - launch wireguard-go with the provided `cfg.ControlPlaneInterface`, and run the following commands:
-// - sudo wg setconf "$wgctrl_device" /etc/wireguard/wgctrl.conf
-// - sudo ifconfig `cfg.ControlPlaneInterface` inet "`ControlPlaneInfoFile.TunnelIP`/21" "`ControlPlaneInfoFile.TunnelIP`" add
-// - sudo ifconfig `cfg.ControlPlaneInterface` mtu 1380
-// - sudo ifconfig `cfg.ControlPlaneInterface` up
-// - sudo route -q -n add -inet "`ControlPlaneInfoFile.TunnelIP`/21" -interface "$wgctrl_device"
+// - launch wireguard-go with the provided `cfg.ControlPlaneInterface`, and run the following commands as root:
+// - wg setconf "$wgctrl_device" /etc/wireguard/wgctrl.conf
+// - ifconfig `cfg.ControlPlaneInterface` inet "`ControlPlaneInfoFile.TunnelIP`/21" "`ControlPlaneInfoFile.TunnelIP`" add
+// - ifconfig `cfg.ControlPlaneInterface` mtu 1380
+// - ifconfig `cfg.ControlPlaneInterface` up
+// - route -q -n add -inet "`ControlPlaneInfoFile.TunnelIP`/21" -interface "$wgctrl_device"
 //
-// 3.
-//
-// 'client-agent' binary is packaged as 'naisdevice-agent'
-// alongside naisdevice-wg and naisdevice-wireguard-go (for MacOS and Windows)
-// Binaries will be reside in /usr/local/bin
-// runs as root
-//TODO: detect cfg.ConfigDir/wgctrl.conf
-//TODO: if missing, notify user ^
-//TODO: establish ctrl plane
-//TODO: (authenticate user, not part of MVP)
-//TODO: get config from apiserver
-//TODO: establish data plane (continously monitored, will trigger ^ if it goes down and user wants to connect)
-// $$$$$$$$$
+// 3. When connection to control plane is established:
+// loop:
+// Fetch client config from APIServer and configure gateways/generate WireGuard config
+// loop:
+// Monitor all connections, if one starts failing, re-fetch config and reset timer
 func main() {
 	log.Infof("starting client-agent with config:\n%+v", cfg)
 

@@ -26,10 +26,11 @@ type EnrollmentConfig struct {
 	APIServerIP string `json:"apiServerIP"`
 }
 
-func New(token string, database *database.APIServerDB) *slackbot {
+func New(token, controlPlaneEndpoint string, database *database.APIServerDB) *slackbot {
 	return &slackbot{
-		api:      slack.New(token),
-		database: database,
+		api:                  slack.New(token),
+		controlPlaneEndpoint: controlPlaneEndpoint,
+		database:             database,
 	}
 }
 
@@ -74,7 +75,7 @@ func (s *slackbot) handleRegister(msg slack.Msg) string {
 }
 
 func (s *slackbot) handleMsg(msg slack.Msg) string {
-	parts := strings.SplitN(msg.Text, " ", 1)
+	parts := strings.Split(msg.Text, " ")
 	if len(parts) == 0 {
 		return fmt.Sprintf("unable to parse input, usage:\n%v", Usage)
 	}
@@ -83,6 +84,7 @@ func (s *slackbot) handleMsg(msg slack.Msg) string {
 	case "register":
 		return s.handleRegister(msg)
 	default:
+		log.Debugf("Unrecognized command: %v", msg.Text)
 		return fmt.Sprintf("unrecognized command, usage:\n%v", Usage)
 	}
 }
