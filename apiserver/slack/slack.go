@@ -53,7 +53,7 @@ func (s *slackbot) handleEnroll(msg slack.Msg) string {
 	token := parts[1]
 	enrollmentConfig, err := parseEnrollmentToken(token)
 	if err != nil {
-		log.Errorf("Unable to parse enrollment token: *w", err)
+		log.Errorf("Unable to parse enrollment token: %v", err)
 		return "There is something wrong with your token :sadkek: Make sure you copied it correctly. If it still doesn't work, get help in #nais-device channel."
 	}
 	email, err := s.getUserEmail(msg.User)

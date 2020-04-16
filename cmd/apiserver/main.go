@@ -99,7 +99,7 @@ func syncWireguardConfig() {
 	}
 	privateKey, err := ioutil.ReadFile(cfg.PrivateKeyPath)
 	if err != nil {
-		log.Fatalf("reading private key: %w", err)
+		log.Fatalf("reading private key: %v", err)
 	}
 
 	for c := time.Tick(10 * time.Second); ; <-c {
