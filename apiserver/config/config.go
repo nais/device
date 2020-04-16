@@ -1,14 +1,14 @@
 package config
 
 type Config struct {
-	DbConnURI                string
-	SlackToken               string
-	BindAddress              string
-	ConfigDir                string
-	PrivateKeyPath           string
-	ControlPlaneWGConfigPath string
-	SkipSetupInterface       bool
-	ControlPlaneEndpoint     string
+	DbConnURI           string
+	SlackToken          string
+	BindAddress         string
+	ConfigDir           string
+	PrivateKeyPath      string
+	WireGuardConfigPath string
+	SkipSetupInterface  bool
+	Endpoint            string
 }
 
 func DefaultConfig() Config {

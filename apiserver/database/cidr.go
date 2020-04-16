@@ -7,9 +7,9 @@ import (
 )
 
 //func main() {
-//	ips := []string{"10.255.248.1", "10.255.248.3", "10.255.248.2"}
+//	readExistingIPs := []string{"10.255.248.1", "10.255.248.3", "10.255.248.2"}
 //	allocated := make(map[string]struct{})
-//	for _, allocatedIP := range ips {
+//	for _, allocatedIP := range readExistingIPs {
 //		allocated[allocatedIP] = struct{}{}
 //	}
 //

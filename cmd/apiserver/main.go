@@ -28,13 +28,13 @@ func init() {
 	flag.StringVar(&cfg.SlackToken, "slack-token", os.Getenv("SLACK_TOKEN"), "Slack token")
 	flag.StringVar(&cfg.BindAddress, "bind-address", cfg.BindAddress, "Bind address")
 	flag.StringVar(&cfg.ConfigDir, "config-dir", cfg.ConfigDir, "Path to configuration directory")
-	flag.StringVar(&cfg.ControlPlaneEndpoint, "control-plane-endpoint", cfg.ControlPlaneEndpoint, "Control Plane public endpoint (ip:port)")
-	flag.BoolVar(&cfg.SkipSetupInterface, "skip-setup-interface", cfg.SkipSetupInterface, "Skip setting up WireGuard control plane interface")
+	flag.StringVar(&cfg.Endpoint, "endpoint", cfg.Endpoint, "public endpoint (ip:port)")
+	flag.BoolVar(&cfg.SkipSetupInterface, "skip-setup-interface", cfg.SkipSetupInterface, "Skip setting up WireGuard interface")
 
 	flag.Parse()
 
-	cfg.PrivateKeyPath = filepath.Join(cfg.ConfigDir, "wgctrl-private.key")
-	cfg.ControlPlaneWGConfigPath = filepath.Join(cfg.ConfigDir, "wgctrl.conf")
+	cfg.PrivateKeyPath = filepath.Join(cfg.ConfigDir, "private.key")
+	cfg.WireGuardConfigPath = filepath.Join(cfg.ConfigDir, "wg0.conf")
 }
 
 func main() {
@@ -45,14 +45,13 @@ func main() {
 	}
 
 	db, err := database.New(cfg.DbConnURI)
-
 	if err != nil {
 		log.Fatalf("instantiating database: %s", err)
 	}
 
 	if len(cfg.SlackToken) > 0 {
-		slack := slack.New(cfg.SlackToken, cfg.ControlPlaneEndpoint, db)
-		go slack.Handler()
+		slackBot := slack.New(cfg.SlackToken, cfg.Endpoint, db)
+		go slackBot.Handler()
 	}
 
 	if !cfg.SkipSetupInterface {
@@ -66,8 +65,8 @@ func main() {
 }
 
 func setupInterface() error {
-	if err := exec.Command("ip", "link", "del", "wgctrl").Run(); err != nil {
-		log.Infof("pre-deleting control plane interface (ok if this fails): %v", err)
+	if err := exec.Command("ip", "link", "del", "wg0").Run(); err != nil {
+		log.Infof("pre-deleting WireGuard interface (ok if this fails): %v", err)
 	}
 
 	run := func(commands [][]string) error {
@@ -84,10 +83,10 @@ func setupInterface() error {
 	}
 
 	commands := [][]string{
-		{"ip", "link", "add", "dev", "wgctrl", "type", "wireguard"},
-		{"ip", "link", "set", "wgctrl", "mtu", "1380"},
-		{"ip", "address", "add", "dev", "wgctrl", "10.255.240.1/21"},
-		{"ip", "link", "set", "wgctrl", "up"},
+		{"ip", "link", "add", "dev", "wg0", "type", "wireguard"},
+		{"ip", "link", "set", "wg0", "mtu", "1380"},
+		{"ip", "address", "add", "dev", "wg0", "10.255.240.1/21"},
+		{"ip", "link", "set", "wg0", "up"},
 	}
 
 	return run(commands)
@@ -105,24 +104,29 @@ func syncWireguardConfig() {
 
 	for c := time.Tick(10 * time.Second); ; <-c {
 		log.Info("syncing config")
-		peers, err := db.ReadPeers("control")
+		devices, err := db.ReadDevices()
 		if err != nil {
-			log.Errorf("reading peers from database: %v", err)
+			log.Errorf("reading devices from database: %v", err)
 		}
 
-		wgConfigContent := GenerateWGConfig(peers, privateKey)
-
-		if err := ioutil.WriteFile(cfg.ControlPlaneWGConfigPath, wgConfigContent, 0600); err != nil {
-			log.Errorf("writing control plane wireguard config to disk: %v", err)
+		gateways, err := db.ReadGateways()
+		if err != nil {
+			log.Errorf("reading gateways from database: %v", err)
 		}
 
-		if b, err := exec.Command("wg", "syncconf", "wgctrl", cfg.ControlPlaneWGConfigPath).Output(); err != nil {
-			log.Errorf("synchronizing control plane WireGuard config: %v: %v", err, string(b))
+		wgConfigContent := GenerateWGConfig(devices, gateways, privateKey)
+
+		if err := ioutil.WriteFile(cfg.WireGuardConfigPath, wgConfigContent, 0600); err != nil {
+			log.Errorf("writing WireGuard config to disk: %v", err)
+		}
+
+		if b, err := exec.Command("wg", "syncconf", "wg0", cfg.WireGuardConfigPath).Output(); err != nil {
+			log.Errorf("synchronizing WireGuard config: %v: %v", err, string(b))
 		}
 	}
 }
 
-func GenerateWGConfig(peers []database.Peer, privateKey []byte) []byte {
+func GenerateWGConfig(devices []database.Device, gateways []database.Gateway, privateKey []byte) []byte {
 	interfaceTemplate := `[Interface]
 PrivateKey = %s
 ListenPort = 51820`
@@ -134,8 +138,12 @@ ListenPort = 51820`
 AllowedIPs = %s/32
 PublicKey = %s`
 
-	for _, peer := range peers {
-		wgConfig += fmt.Sprintf(peerTemplate, peer.IP, peer.PublicKey)
+	for _, device := range devices {
+		wgConfig += fmt.Sprintf(peerTemplate, device.IP, device.PublicKey)
+	}
+
+	for _, gateway := range gateways {
+		wgConfig += fmt.Sprintf(peerTemplate, gateway.IP, gateway.PublicKey)
 	}
 
 	return []byte(wgConfig)

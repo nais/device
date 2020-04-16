@@ -13,59 +13,52 @@ type api struct {
 	db *database.APIServerDB
 }
 
-type Peer struct {
-	PublicKey string
-	IP        string
-}
-
-type ClientRegistrationRequest struct {
-	Username  string
-	PublicKey string
-	Serial    string
-}
-
-// TODO(jhrv): do actual filtering of the clients.
+// TODO(jhrv): do actual filtering of the devices.
 // TODO(jhrv): keep cache of gateway access group members to remove AAD runtime dependency
-// gatewayConfig returns the clients for the gateway that has the group membership required
+// gatewayConfig returns the devices for the gateway that has the group membership required
 func (a *api) gatewayConfig(w http.ResponseWriter, r *http.Request) {
 	//gateway := chi.URLParam(r, "gateway")
 
-	clients, err := a.db.ReadClients()
+	devices, err := a.db.ReadDevices()
 
 	if err != nil {
-		log.Errorf("reading clients from database: %v", err)
+		log.Errorf("reading devices from database: %v", err)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 
-	peers := make([]Peer, 0)
-	for _, client := range clients {
-		if *client.Healthy {
-			peers = append(peers, Peer{PublicKey: client.PublicKey, IP: client.IP})
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(healthy(devices))
+}
+
+func healthy(devices []database.Device) []database.Device {
+	var healthyDevices []database.Device
+	for _, device := range devices {
+		if *device.Healthy {
+			healthyDevices = append(healthyDevices, device)
 		} else {
-			log.Tracef("Skipping unhealthy client: %s", client.Serial)
+			log.Tracef("Skipping unhealthy device: %s", device.Serial)
 		}
 	}
 
-	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(peers)
+	return healthyDevices
 }
 
-func (a *api) clients(w http.ResponseWriter, r *http.Request) {
-	clients, err := a.db.ReadClients()
+func (a *api) devices(w http.ResponseWriter, r *http.Request) {
+	devices, err := a.db.ReadDevices()
 
 	if err != nil {
-		log.Errorf("Reading clients from database: %s", err)
+		log.Errorf("Reading devices from database: %s", err)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 
 	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(clients)
+	json.NewEncoder(w).Encode(devices)
 }
 
 func (a *api) updateHealth(w http.ResponseWriter, r *http.Request) {
-	var healthUpdates []database.Client
+	var healthUpdates []database.Device
 	if err := json.NewDecoder(r.Body).Decode(&healthUpdates); err != nil {
 		defer r.Body.Close()
 
@@ -82,26 +75,29 @@ func (a *api) updateHealth(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	if err := a.db.UpdateClientStatus(healthUpdates); err != nil {
+	if err := a.db.UpdateDeviceStatus(healthUpdates); err != nil {
 		log.Error(err)
-		respondf(w, http.StatusInternalServerError, "unable to persist client statuses\n")
+		respondf(w, http.StatusInternalServerError, "unable to persist device statuses\n")
 		return
 	}
 }
 
-func (a *api) clientConfig(w http.ResponseWriter, r *http.Request) {
+func (a *api) deviceConfig(w http.ResponseWriter, r *http.Request) {
 	//serial := chi.URLParam(r, "serial")
 	gateways, err := a.db.ReadGateways()
 	if err != nil {
 		log.Errorf("reading gateways: %v", err)
-		respondf(w, http.StatusInternalServerError, "unable to get gateways\n")
+		respondf(w, http.StatusInternalServerError, "unable to get device config\n")
+		return
 	}
 
 	w.WriteHeader(http.StatusOK)
 	err = json.NewEncoder(w).Encode(gateways)
+
 	if err != nil {
-		log.Errorf("encoding gateways response")
-		respondf(w, http.StatusInternalServerError, "unable to marshal gateways")
+		log.Errorf("encoding gateways response: %w", err)
+		respondf(w, http.StatusInternalServerError, "unable to get device config\n")
+		return
 	}
 }
 
@@ -109,6 +105,6 @@ func respondf(w http.ResponseWriter, statusCode int, format string, args ...inte
 	w.WriteHeader(statusCode)
 
 	if _, wErr := w.Write([]byte(fmt.Sprintf(format, args...))); wErr != nil {
-		log.Errorf("unable to write client response: %v", wErr)
+		log.Errorf("unable to write response: %v", wErr)
 	}
 }

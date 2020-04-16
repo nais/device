@@ -11,30 +11,30 @@ import (
 	"github.com/slack-go/slack"
 )
 
-const Usage = `register publicKey serialNumber`
+const Usage = `enroll <token>`
 
 type slackbot struct {
-	api                  *slack.Client
-	database             *database.APIServerDB
-	controlPlaneEndpoint string
+	api            *slack.Client
+	database       *database.APIServerDB
+	tunnelEndpoint string
 }
 
 type EnrollmentConfig struct {
-	ClientIP    string `json:"clientIP"`
-	PublicKey   string `json:"publicKey"`
-	Endpoint    string `json:"endpoint"`
-	APIServerIP string `json:"apiServerIP"`
+	DeviceIP       string `json:"deviceIP"`
+	PublicKey      string `json:"publicKey"`
+	TunnelEndpoint string `json:"tunnelEndpoint"`
+	APIServerIP    string `json:"apiServerIP"`
 }
 
-func New(token, controlPlaneEndpoint string, database *database.APIServerDB) *slackbot {
+func New(token, tunnelEndpoint string, database *database.APIServerDB) *slackbot {
 	return &slackbot{
-		api:                  slack.New(token),
-		controlPlaneEndpoint: controlPlaneEndpoint,
-		database:             database,
+		api:            slack.New(token),
+		tunnelEndpoint: tunnelEndpoint,
+		database:       database,
 	}
 }
 
-func (s *slackbot) handleRegister(msg slack.Msg) string {
+func (s *slackbot) handleEnroll(msg slack.Msg) string {
 	parts := strings.Split(msg.Text, " ")
 	if len(parts) != 3 {
 		return fmt.Sprintf("invalid command format, usage:\n%v", Usage)
@@ -47,30 +47,30 @@ func (s *slackbot) handleRegister(msg slack.Msg) string {
 		return "unable to find email for your slack user :confused:, I've notified the nais device team for you."
 	}
 
-	err = s.database.AddClient(email, publicKey, serial)
+	err = s.database.AddDevice(email, publicKey, serial)
 	if err != nil {
-		log.Errorf("adding client to database: %v", err)
-		return "Something went wrong during registration :sweat_smile:, I've notified the nais device team for you. (1)"
+		log.Errorf("adding device to database: %v", err)
+		return "Something went wrong during enrollment :sweat_smile:, I've notified the nais device team for you. (1)"
 	} else {
-		c, err := s.database.ReadControlPlanePeer(publicKey)
+		c, err := s.database.ReadDevice(publicKey)
 		if err != nil {
-			return "Something went wrong during registration :sweat_smile:, I've notified the nais device team for you. (2)"
+			return "Something went wrong during enrollment :sweat_smile:, I've notified the nais device team for you. (2)"
 		}
 
 		ec := EnrollmentConfig{
-			ClientIP:    c.IP,
-			PublicKey:   c.PublicKey,
-			Endpoint:    s.controlPlaneEndpoint,
-			APIServerIP: "10.255.240.1",
+			DeviceIP:       c.IP,
+			PublicKey:      c.PublicKey,
+			TunnelEndpoint: s.tunnelEndpoint,
+			APIServerIP:    "10.255.240.1",
 		}
 
 		b, err := json.Marshal(&ec)
 		if err != nil {
-			return "Something went wrong during registration :sweat_smile:, I've notified the nais device team for you. (3)"
+			return "Something went wrong during enrollment :sweat_smile:, I've notified the nais device team for you. (3)"
 		}
 
 		token := base64.StdEncoding.EncodeToString(b)
-		return fmt.Sprintf("Successfully registered :partyparrot:, copy and paste this command on your command line: `sudo tee /usr/local/etc/nais-device/enrollment.token <<< '%s'`", token)
+		return fmt.Sprintf("Successfully enrolled :partyparrot:, copy and paste this command on your command line: `sudo tee /usr/local/etc/nais-device/enrollment.token <<< '%s'`", token)
 	}
 }
 
@@ -81,8 +81,8 @@ func (s *slackbot) handleMsg(msg slack.Msg) string {
 	}
 
 	switch parts[0] {
-	case "register":
-		return s.handleRegister(msg)
+	case "enroll":
+		return s.handleEnroll(msg)
 	default:
 		log.Debugf("Unrecognized command: %v", msg.Text)
 		return fmt.Sprintf("unrecognized command, usage:\n%v", Usage)
