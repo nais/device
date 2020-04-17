@@ -1,6 +1,7 @@
 <?php declare(strict_types=1);
 namespace Nais;
 
+use DateTime;
 use GuzzleHttp\Client as HttpClient;
 use RuntimeException;
 use Throwable;
@@ -18,8 +19,8 @@ foreach (['KOLIDE_API_TOKEN'] as $requiredEnvVar) {
     }
 }
 
-$kolideChecksBlacklist = !empty($_SERVER['KOLIDE_CHECKS_BLACKLIST'])
-    ? array_map(function(string $id) : int { return (int) trim($id); }, explode(',', $_SERVER['KOLIDE_CHECKS_BLACKLIST']))
+$kolideChecksIgnored = !empty($_SERVER['KOLIDE_CHECKS_IGNORED'])
+    ? array_map(function(string $id) : int { return (int) trim($id); }, explode(',', $_SERVER['KOLIDE_CHECKS_IGNORED']))
     : [];
 
 $schema = 'http';
@@ -34,16 +35,56 @@ if (443 == $port) {
 $naisDeviceApiClient = new HttpClient(['base_uri' => trim(sprintf('%s://%s:%s', $schema, $host, $port), ':')]);
 $kolideApiClient = new KolideApiClient($_SERVER['KOLIDE_API_TOKEN']);
 
-// Fetch serials for all devices that is currently failing according to Kolide (ignoring all
-// blacklisted checks).
-$failingKolideDevices = array_column($kolideApiClient->getFailingDevices($kolideChecksBlacklist), 'serial');
+// Fetch all failing checks from the Kolide API
+$failingChecks = $kolideApiClient->getFailingChecks($kolideChecksIgnored);
+
+// Devices serials that will be marked as unhealthy
+$failingDeviceSerials = [];
+
+// Can be removed once Kolide includes criticality in the API
+$checksConfig = require 'checks-config.php';
+
+// When check is missing from the config fetched above (can occur if Kolide introduces a new
+// check). Can also be removed once Kolide gets criticality in the API response.
+$defaultCriticality = Criticality::MED;
+
+// Get current timestamp that will be used to check against the criticality of the failing check
+$now = (new DateTime('now'))->getTimestamp();
+
+foreach ($failingChecks as $check) {
+    $criticality = $checksConfig[$check['id']] ?? $defaultCriticality;
+    $failures = $kolideApiClient->getCheckFailures($check['id']);
+
+    foreach ($failures as $failure) {
+        // Ignore the device if Kolide does not have the serial
+        if ('-1' === $failure['device']['serial']) {
+            continue;
+        }
+
+        // Failure has been resolved, skip this one
+        if (null !== $failure['resolved_at']) {
+            continue;
+        }
+
+        $occurredAt = (new DateTime($failure['timestamp']))->getTimestamp();
+
+        // If the diff in seconds is above the current criticality level the device will be marked
+        // as unhealthy
+        if (($now - $occurredAt) > $criticality) {
+            $failingDeviceSerials[] = $failure['device']['serial'];
+        }
+    }
+}
+
+// Remove duplicates
+$failingDeviceSerials = array_unique($failingDeviceSerials);
 
 // Fetch all current Nais devices, and make sure to set the isHealthy flag to false if the device
 // seems to be failing according to Kolide. All other devices will be set to healthy.
-$updatedNaisDevices = array_map(function(array $naisDevice) use ($failingKolideDevices) : array {
+$updatedNaisDevices = array_map(function(array $naisDevice) use ($failingDeviceSerials) : array {
     return [
         'serial' => $naisDevice['serial'],
-        'isHealthy' => !in_array($naisDevice['serial'], $failingKolideDevices),
+        'isHealthy' => !in_array($naisDevice['serial'], $failingDeviceSerials),
     ];
 }, json_decode($naisDeviceApiClient->get('/devices')->getBody()->getContents(), true));
 

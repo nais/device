@@ -69,31 +69,25 @@ class KolideApiClientTest extends TestCase {
 
     /**
      * @covers ::__construct
-     * @covers ::getFailingDevices
+     * @covers ::getCheckFailures
+     * @covers ::getPaginatedResults
      */
-    public function testCanGetFailingDevices() : void {
+    public function testCanGetCheckFailures() : void {
         $clientHistory = [];
         $httpClient = $this->getMockClient(
             [
-                new Response(200, [], json_encode(['page' => 0, 'last_page' => 1, 'data' => [['id' => 1, 'failing_device_count' => 1], ['id' => 2, 'failing_device_count' => 3]]])),
-                new Response(200, [], json_encode(['page' => 1, 'last_page' => 1, 'data' => [['id' => 3, 'failing_device_count' => 2], ['id' => 4, 'failing_device_count' => 0]]])),
-                new Response(200, [], json_encode(['page' => 0, 'last_page' => 1, 'data' => [['id' => 1], ['id' => 3]]])),
-                new Response(200, [], json_encode(['page' => 1, 'last_page' => 1, 'data' => [['id' => 1], ['id' => 2]]])),
+                new Response(200, [], json_encode(['page' => 0, 'last_page' => 1, 'data' => [['id' => 1], ['id' => 2]]])),
+                new Response(200, [], json_encode(['page' => 1, 'last_page' => 1, 'data' => [['id' => 3], ['id' => 4]]])),
             ],
             $clientHistory
         );
 
-        $devices = (new KolideApiClient('secret', $httpClient))->getFailingDevices([2, 3]);
+        $failures = (new KolideApiClient('secret', $httpClient))->getCheckFailures(1);
 
-        $this->assertCount(3, $devices, 'Expected 3 devices');
-        $this->assertSame(['id' => 1], $devices[0]);
-        $this->assertSame(['id' => 3], $devices[1]);
-        $this->assertSame(['id' => 2], $devices[2]);
+        $this->assertCount(4, $failures, 'Expected 4 failures');
 
-        $this->assertCount(4, $clientHistory, 'Expected 4 requests');
-        $this->assertStringEndsWith('checks?page=0', (string) $clientHistory[0]['request']->getUri());
-        $this->assertStringEndsWith('checks?page=1', (string) $clientHistory[1]['request']->getUri());
-        $this->assertStringEndsWith('checks/1/failing_devices?page=0', (string) $clientHistory[2]['request']->getUri());
-        $this->assertStringEndsWith('checks/1/failing_devices?page=1', (string) $clientHistory[3]['request']->getUri());
+        $this->assertCount(2, $clientHistory, 'Expected 2 requests');
+        $this->assertStringEndsWith('checks/1/failures?page=0', (string) $clientHistory[0]['request']->getUri());
+        $this->assertStringEndsWith('checks/1/failures?page=1', (string) $clientHistory[1]['request']->getUri());
     }
 }

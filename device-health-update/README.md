@@ -18,7 +18,7 @@ If you wish to install development dependencies as well (to for instance run the
 
 Used for authentication with the Kolide API.
 
-### `KOLIDE_CHECKS_BLACKLIST` (optional, default: `''`)
+### `KOLIDE_CHECKS_IGNORED` (optional, default: `''`)
 
 Comma-separated list of Kolide check IDs to ignore when checking device status. For a complete list of checks used with our account run the following script:
 

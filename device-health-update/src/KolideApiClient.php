@@ -39,21 +39,13 @@ class KolideApiClient {
         return $this->getPaginatedResults('checks');
     }
 
-    public function getFailingChecks(array $blacklist = []) : array {
-        return array_filter($this->getAllChecks(), function(array $check) use ($blacklist) : bool {
-            return !in_array($check['id'], $blacklist) && 0 !== $check['failing_device_count'];
+    public function getFailingChecks(array $ignoredChecks = []) : array {
+        return array_filter($this->getAllChecks(), function(array $check) use ($ignoredChecks) : bool {
+            return !in_array($check['id'], $ignoredChecks) && 0 !== $check['failing_device_count'];
         });
     }
 
-    public function getFailingDevices(array $blacklistedChecks = []) : array {
-        $devices = [];
-
-        foreach ($this->getFailingChecks($blacklistedChecks) as $check) {
-            foreach ($this->getPaginatedResults(sprintf('checks/%d/failing_devices', $check['id'])) as $device) {
-                $devices[$device['id']] = $device;
-            }
-        }
-
-        return array_values($devices);
+    public function getCheckFailures(int $checkId) : array {
+        return $this->getPaginatedResults(sprintf('checks/%d/failures', $checkId));
     }
 }
