@@ -41,7 +41,7 @@ PrivateKey = wFTAVe1stJPp0xQ+FE9so56uKh0jaHkPxJ4d2x9jPmU=
 
 [Peer]
 PublicKey = PQKmraPOPye5CJq1x7njpl8rRu5RSrIKyHvZXtLvS0E=
-AllowedIPs = 10.1.1.2
+AllowedIPs = 10.1.1.2/32
 Endpoint = 69.1.1.1:51820
 `
 	assert.Equal(t, expected, wgConfig)
