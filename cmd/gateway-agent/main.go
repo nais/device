@@ -163,8 +163,7 @@ func setupInterface(tunnelIP string) error {
 }
 
 func GenerateBaseConfig(cfg Config, privateKey string) string {
-	template := `
-[Interface]
+	template := `[Interface]
 PrivateKey = %s
 
 [Peer]
@@ -172,12 +171,12 @@ PublicKey = %s
 AllowedIPs = %s/32
 Endpoint = %s
 `
-	return fmt.Sprintf(template, privateKey, cfg.APIServerPublicKey, cfg.APIServerTunnelIP, cfg.WireGuardConfigPath)
+
+	return fmt.Sprintf(template, privateKey, cfg.APIServerPublicKey, cfg.APIServerTunnelIP, cfg.APIServerWireGuardEndpoint)
 }
 
 func GenerateWireGuardPeers(devices []Device) string {
-	peerTemplate := `
-[Peer]
+	peerTemplate := `[Peer]
 PublicKey = %s
 AllowedIPs = %s
 `
