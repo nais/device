@@ -108,13 +108,21 @@ func configureWireguard(devices []Device, cfg Config, privateKey string) error {
 }
 
 func generateWGConfig(devices []Device, privateKey string) []byte {
-	wgConfig := "[Interface]\n"
-	wgConfig += fmt.Sprintf("PrivateKeyPath = %s\n", strings.Trim(privateKey, "\n"))
-	wgConfig += "ListenPort = 51820\n"
-	for _, peer := range devices {
-		wgConfig += "[Peer]\n"
-		wgConfig += fmt.Sprintf("PublicKey = %s\n", peer.PublicKey)
-		wgConfig += fmt.Sprintf("AllowedIPs = %s\n\n", peer.IP)
+	interfaceTemplate := `[Interface]
+PrivateKey = %s
+ListenPort = 51820
+
+`
+
+	wgConfig := fmt.Sprintf(interfaceTemplate, strings.TrimSuffix(privateKey, "\n"))
+
+	peerTemplate := `[Peer]
+AllowedIPs = %s/32
+PublicKey = %s
+`
+
+	for _, device := range devices {
+		wgConfig += fmt.Sprintf(peerTemplate, device.IP, device.PublicKey)
 	}
 
 	return []byte(wgConfig)
