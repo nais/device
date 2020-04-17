@@ -42,25 +42,8 @@ add-apt-repository --yes ppa:wireguard/wireguard
 apt-get update --yes
 apt-get install --yes wireguard
 
-# Setup wg0
-wg0_private_key=$(wg genkey)
-
-mkdir -p /etc/wireguard
-cat << EOF > /etc/wireguard/wg0.conf
-[Interface]
-PrivateKey = $wg0_private_key
-
-[Peer]
-Endpoint = ${var.apiserver_endpoint}
-PublicKey = ${var.apiserver_public_key}
-AllowedIPs = ${var.apiserver_tunnel_ip}
-EOF
-
-ip link add dev wg0 type wireguard
-ip link set wg0 mtu 1380
-ip address add dev wg0 ${var.gateways[count.index].ctrl_tunnel_ip}/21
-wg setconf wg0 /etc/wireguard/wg0.conf
-ip link set wg0 up
+mkdir -p /usr/local/etc/nais-device
+wg genkey > /usr/local/etc/nais-device/private.key
 
 # Enable ip forward
 sed -i -e 's/#net.ipv4.ip_forward=1/net.ipv4.ip_forward=1/' /etc/sysctl.conf
