@@ -297,7 +297,7 @@ PrivateKey = %s
 
 [Peer]
 PublicKey = %s
-AllowedIPs = %s
+AllowedIPs = %s/32
 Endpoint = %s
 `
 	return fmt.Sprintf(template, privateKey, bootstrapConfig.PublicKey, bootstrapConfig.APIServerIP, bootstrapConfig.Endpoint)

@@ -75,7 +75,7 @@ func main() {
 }
 
 func generatePublicKey(privateKey []byte, wireGuardPath string) ([]byte, error) {
-	cmd := exec.Command(wireGuardPath, "genkey")
+	cmd := exec.Command(wireGuardPath, "pubkey")
 	stdin, err := cmd.StdinPipe()
 	if err != nil {
 		return nil, fmt.Errorf("opening stdin pipe to wg genkey: %w", err)
