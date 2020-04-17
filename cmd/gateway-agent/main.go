@@ -165,6 +165,7 @@ func setupInterface(tunnelIP string) error {
 func GenerateBaseConfig(cfg Config, privateKey string) string {
 	template := `[Interface]
 PrivateKey = %s
+ListenPort = 51820
 
 [Peer]
 PublicKey = %s
