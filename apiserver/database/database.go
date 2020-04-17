@@ -25,6 +25,7 @@ type Device struct {
 	Healthy   *bool      `json:"isHealthy"`
 	PublicKey string     `json:"publicKey"`
 	IP        string     `json:"ip"`
+	Username  string     `json:"username"`
 }
 
 type Gateway struct {
@@ -156,14 +157,14 @@ func (d *APIServerDB) ReadDevice(publicKey string) (*Device, error) {
 	ctx := context.Background()
 
 	query := `
-SELECT serial, psk, last_check, healthy, public_key, ip
+SELECT serial, username, psk, last_check, healthy, public_key, ip
   FROM device
  WHERE public_key = $1;`
 
 	row := d.conn.QueryRow(ctx, query, publicKey)
 
 	var device Device
-	err := row.Scan(&device.Serial, &device.PSK, &device.LastCheck, &device.Healthy, &device.PublicKey, &device.IP)
+	err := row.Scan(&device.Serial, &device.Username, &device.PSK, &device.LastCheck, &device.Healthy, &device.PublicKey, &device.IP)
 
 	if err != nil {
 		return nil, fmt.Errorf("scanning row: %s", err)
