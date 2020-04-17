@@ -47,10 +47,10 @@ cat << EOF > /etc/systemd/system/apiserver.service
 Description=Gateway Agent
 
 [Service]
-ExecStartPre=/bin/bash -c '/usr/bin/curl -LO https://github.com/nais/device/releases/download/\$(curl --silent "https://api.github.com/repos/nais/device/releases/latest" | grep \'"tag_name":\' | sed -E \'s/.*"([^"]+)".*/\1/\')/gateway-agent'
-ExecStartPre=/bin/chmod 700 gateway-agent
+ExecStartPre=/bin/bash -c '/usr/bin/curl -LO https://github.com/nais/device/releases/download/\$(curl --silent "https://api.github.com/repos/nais/device/releases/latest" | grep \'"tag_name":\' | sed -E \'s/.*"([^"]+)".*/\1/\')/apiserver'
+ExecStartPre=/bin/chmod 700 apiserver
 ExecStartPre=/bin/mkdir -p /opt/nais-device/bin/
-ExecStartPre=/bin/mv gateway-agent /opt/nais-device/bin/
+ExecStartPre=/bin/mv apiserver /opt/nais-device/bin/
 ExecStart=/opt/nais-device/bin/apiserver \
       --db-connection-uri "${var.db_connection_uri}" \
       --slack-token "${var.slack_token}" \
