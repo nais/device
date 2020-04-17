@@ -12,11 +12,11 @@ func TestParseBootstrapToken(t *testing.T) {
 		{
 		  "deviceIP": "10.1.1.1",
 		  "publicKey": "PQKmraPOPye5CJq1x7njpl8rRu5RSrIKyHvZXtLvS0E=",
-		  "endpoint": "69.1.1.1:51820",
+		  "tunnelEndpoint": "69.1.1.1:51820",
 		  "apiServerIP": "10.1.1.2"
 		}
 	*/
-	bootstrapToken := "ewogICJkZXZpY2VJUCI6ICIxMC4xLjEuMSIsCiAgInB1YmxpY0tleSI6ICJQUUttcmFQT1B5ZTVDSnExeDduanBsOHJSdTVSU3JJS3lIdlpYdEx2UzBFPSIsCiAgImVuZHBvaW50IjogIjY5LjEuMS4xOjUxODIwIiwKICAiYXBpU2VydmVySVAiOiAiMTAuMS4xLjIiCn0K"
+	bootstrapToken := "ewogICJkZXZpY2VJUCI6ICIxMC4xLjEuMSIsCiAgInB1YmxpY0tleSI6ICJQUUttcmFQT1B5ZTVDSnExeDduanBsOHJSdTVSU3JJS3lIdlpYdEx2UzBFPSIsCiAgInR1bm5lbEVuZHBvaW50IjogIjY5LjEuMS4xOjUxODIwIiwKICAiYXBpU2VydmVySVAiOiAiMTAuMS4xLjIiCn0K"
 	bootstrapConfig, err := main.ParseBootstrapToken(bootstrapToken)
 	assert.NoError(t, err)
 	assert.Equal(t, "10.1.1.1", bootstrapConfig.DeviceIP)
@@ -42,8 +42,7 @@ PrivateKey = wFTAVe1stJPp0xQ+FE9so56uKh0jaHkPxJ4d2x9jPmU=
 [Peer]
 PublicKey = PQKmraPOPye5CJq1x7njpl8rRu5RSrIKyHvZXtLvS0E=
 AllowedIPs = 10.1.1.2
-TunnelEndpoint = 69.1.1.1:51820
+Endpoint = 69.1.1.1:51820
 `
-	assert.Equal(t, expected, string(wgConfig))
-
+	assert.Equal(t, expected, wgConfig)
 }
