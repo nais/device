@@ -35,9 +35,6 @@ if (443 == $port) {
 $naisDeviceApiClient = new HttpClient(['base_uri' => trim(sprintf('%s://%s:%s', $schema, $host, $port), ':')]);
 $kolideApiClient = new KolideApiClient($_SERVER['KOLIDE_API_TOKEN']);
 
-// Fetch all failing checks from the Kolide API
-$failingChecks = $kolideApiClient->getFailingChecks($kolideChecksIgnored);
-
 // Devices serials that will be marked as unhealthy
 $failingDeviceSerials = [];
 
@@ -47,6 +44,9 @@ $checksConfig = require 'checks-config.php';
 // When check is missing from the config fetched above (can occur if Kolide introduces a new
 // check). Can also be removed once Kolide gets criticality in the API response.
 $defaultCriticality = Criticality::MED;
+
+// Fetch all failing checks from the Kolide API
+$failingChecks = $kolideApiClient->getFailingChecks($kolideChecksIgnored);
 
 // Get current timestamp that will be used to check against the criticality of the failing check
 $now = (new DateTime('now'))->getTimestamp();
