@@ -48,7 +48,7 @@ func (d *APIServerDB) ReadDevices() (devices []Device, err error) {
 	ctx := context.Background()
 
 	query := `
-SELECT public_key, ip, psk, serial, healthy, last_check
+SELECT public_key, username, ip, psk, serial, healthy, last_check
 FROM device;`
 
 	rows, err := d.conn.Query(ctx, query)
@@ -66,7 +66,7 @@ FROM device;`
 	for rows.Next() {
 		var device Device
 
-		err := rows.Scan(&device.PublicKey, &device.IP, &device.PSK, &device.Serial, &device.Healthy, &device.LastCheck)
+		err := rows.Scan(&device.PublicKey, &device.Username, &device.IP, &device.PSK, &device.Serial, &device.Healthy, &device.LastCheck)
 
 		if err != nil {
 			return nil, fmt.Errorf("scanning row: %s", err)
