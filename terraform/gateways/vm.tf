@@ -1,12 +1,8 @@
-variable "apiserver_tunnel_ip" {
+variable "api_server_public_key" {
   type = string
 }
 
-variable "apiserver_public_key" {
-  type = string
-}
-
-variable "apiserver_endpoint" {
+variable "api_server_wireguard_endpoint" {
   type = string
 }
 
@@ -14,22 +10,20 @@ variable "gateways" {
   type = list
 }
 
-data "google_compute_network" "default" {
-  name = "default"
-}
-
 resource "google_compute_address" "gateway" {
-  count = length(var.gateways)
-  name  = "gateway-${count.index}"
+  count   = length(var.gateways)
+  name    = var.gateways[count.index].name
+  project = var.gateways[count.index].project
 }
 
 resource "google_compute_instance" "gateway" {
   count        = length(var.gateways)
+  project      = var.gateways[count.index].project
   name         = var.gateways[count.index].name
   machine_type = "f1-micro"
   zone         = "europe-north1-a"
 
-  tags = ["wireguard"]
+  tags = ["wireguard", "local-internet-gateway", "allow-ssh"]
 
   boot_disk {
     initialize_params {
@@ -60,7 +54,10 @@ ExecStartPre=/bin/chmod 700 gateway-agent
 ExecStartPre=/bin/mkdir -p /opt/nais-device/bin/
 ExecStartPre=/bin/mv gateway-agent /opt/nais-device/bin/
 ExecStart=/opt/nais-device/bin/gateway-agent \
-    --name ${var.gateways[count.index].name}
+    --name ${var.gateways[count.index].name} \
+    --tunnel-ip ${var.gateways[count.index].tunnel_ip} \
+    --api-server-wireguard-endpoint ${var.api_server_wireguard_endpoint} \
+    --api-server-public-key ${var.api_server_public_key}
 
 [Install]
 WantedBy=multi-user.target
@@ -68,10 +65,11 @@ EOF
 
 systemctl daemon-reload
 systemctl enable gateway-agent
+systemctl start gateway-agent
 EOS
 
   network_interface {
-    network = "default"
+    subnetwork = var.gateways[count.index].subnetwork
 
     access_config {
       nat_ip = google_compute_address.gateway[count.index].address
