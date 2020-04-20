@@ -174,8 +174,7 @@ func getGatewayConfig(apiServerURL, serial string) (string, error) {
 }
 
 func GenerateWireGuardPeers(gateways []Gateway) string {
-	peerTemplate := `
-[Peer]
+	peerTemplate := `[Peer]
 PublicKey = %s
 AllowedIPs = %s
 Endpoint = %s
@@ -289,8 +288,7 @@ func ParseBootstrapToken(bootstrapToken string) (*BootstrapConfig, error) {
 }
 
 func GenerateBaseConfig(bootstrapConfig *BootstrapConfig, privateKey []byte) string {
-	template := `
-[Interface]
+	template := `[Interface]
 PrivateKey = %s
 
 [Peer]

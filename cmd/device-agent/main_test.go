@@ -35,8 +35,7 @@ func TestGenerateWGConfig(t *testing.T) {
 	privateKey := []byte("wFTAVe1stJPp0xQ+FE9so56uKh0jaHkPxJ4d2x9jPmU=")
 	wgConfig := main.GenerateBaseConfig(bootstrapConfig, privateKey)
 
-	expected := `
-[Interface]
+	expected := `[Interface]
 PrivateKey = wFTAVe1stJPp0xQ+FE9so56uKh0jaHkPxJ4d2x9jPmU=
 
 [Peer]
