@@ -8,16 +8,16 @@ use Throwable;
 
 require 'vendor/autoload.php';
 
-function log(string $serial, string $username, string $message) : void {
-    echo json_encode([
+function log(string $message, string $serial = null, string $username = null) : void {
+    echo json_encode(array_filter([
         'component' => 'update-device-health',
         'system'    => 'nais-device',
+        'message'   => $message,
         'serial'    => $serial,
         'username'  => $username,
-        'message'   => $message,
         'level'     => 'info',
         'timestamp' => time(),
-    ]) . PHP_EOL;
+    ])) . PHP_EOL;
 }
 
 set_exception_handler(function(Throwable $e) : void {
@@ -106,12 +106,12 @@ $updatedNaisDevices = array_map(function(array $naisDevice) use ($failingDevices
     $healthy        = !array_key_exists($serial, $failingDevices);
 
     if ($healthy && !$alreadyHealthy) {
-        log($serial, $username, 'No failing checks anymore, device is now healthy');
+        log('No failing checks anymore, device is now healthy', $serial, $username);
     } else if ($alreadyHealthy && !$healthy) {
         $failingChecks = array_map(function(array $failure) : string {
             return $failure['title'];
         }, $failingDevices[$serial]['failures']);
-        log($serial, $username, sprintf('Device is no longer healthy because of the following failing checks: %s', join(', ', $failingChecks)));
+        log(sprintf('Device is no longer healthy because of the following failing checks: %s', join(', ', $failingChecks)), $serial, $username);
     }
 
     return [
@@ -122,3 +122,4 @@ $updatedNaisDevices = array_map(function(array $naisDevice) use ($failingDevices
 
 // Trigger the actual update of the devices.
 $naisDeviceApiClient->put('/devices/health', ['json' => $updatedNaisDevices]);
+log('Sent updated Nais device configuration to API server');

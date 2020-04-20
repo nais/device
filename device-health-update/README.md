@@ -40,4 +40,18 @@ The script that updates device statuses is executed in the following way:
 
     php update.php
 
-On failure it will output an error message and the exit code will be non-zero.
+On failure it will output an error message and the exit code will be non-zero. During the execution it will output log message in the following format:
+
+```json
+{
+    "component": "update-device-health",
+    "system": "nais-device",
+    "message": "<log message>",
+    "serial": "<device serial>",
+    "username": "<nav email address>",
+    "level": "info",
+    "timestamp": 1587368677
+}
+```
+
+For generic log messages the `serial` and `username` keys will be omitted. The value of the `timestamp` key is a [Unix timestamp](https://en.wikipedia.org/wiki/Unix_time).
