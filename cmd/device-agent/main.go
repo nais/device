@@ -117,7 +117,7 @@ func main() {
 			log.Fatalf("generating enrollment token: %v", err)
 		}
 
-		fmt.Printf("no bootstrap token present. Send 'Nais Device' this message on slack: 'enroll %v'", enrollmentToken)
+		fmt.Printf("\n---\nno bootstrap token present. Send 'Nais Device' your enrollment token on slack by copying and pasting this:\n/msg @Nais Device enroll %v\n\n", enrollmentToken)
 		os.Exit(0)
 	}
 
