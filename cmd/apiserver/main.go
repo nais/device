@@ -49,19 +49,53 @@ func main() {
 		log.Fatalf("instantiating database: %s", err)
 	}
 
+	privateKey, err := ioutil.ReadFile(cfg.PrivateKeyPath)
+	if err != nil {
+		log.Fatalf("reading private key: %v", err)
+	}
+
+	publicKey, err := generatePublicKey(privateKey, "wg")
+	if err != nil {
+		log.Fatalf("generating public key: %v", err)
+	}
+
 	if len(cfg.SlackToken) > 0 {
-		slackBot := slack.New(cfg.SlackToken, cfg.Endpoint, db)
+		slackBot := slack.New(cfg.SlackToken, cfg.Endpoint, db, string(publicKey))
 		go slackBot.Handler()
 	}
 
 	if !cfg.SkipSetupInterface {
-		go syncWireguardConfig()
+		go syncWireguardConfig(cfg.DbConnURI, string(privateKey), cfg.WireGuardConfigPath)
 	}
 
 	router := api.New(api.Config{DB: db})
 
 	fmt.Println("running @", cfg.BindAddress)
 	fmt.Println(http.ListenAndServe(cfg.BindAddress, router))
+}
+
+func generatePublicKey(privateKey []byte, wireGuardPath string) ([]byte, error) {
+	cmd := exec.Command(wireGuardPath, "pubkey")
+	stdin, err := cmd.StdinPipe()
+	if err != nil {
+		return nil, fmt.Errorf("opening stdin pipe to wg genkey: %w", err)
+	}
+
+	_, err = stdin.Write(privateKey)
+	if err != nil {
+		return nil, fmt.Errorf("writing to wg genkey stdin pipe: %w", err)
+	}
+
+	if err = stdin.Close(); err != nil {
+		return nil, fmt.Errorf("closing stdin %w", err)
+	}
+
+	out, err := cmd.Output()
+	if err != nil {
+		return nil, fmt.Errorf("executing command: %v: %w", cmd, err)
+	}
+
+	return out, nil
 }
 
 func setupInterface() error {
@@ -92,14 +126,10 @@ func setupInterface() error {
 	return run(commands)
 }
 
-func syncWireguardConfig() {
-	db, err := database.New(cfg.DbConnURI)
+func syncWireguardConfig(dbConnURI, privateKey, wireGuardConfigPath string) {
+	db, err := database.New(dbConnURI)
 	if err != nil {
 		log.Fatalf("instantiating database: %v", err)
-	}
-	privateKey, err := ioutil.ReadFile(cfg.PrivateKeyPath)
-	if err != nil {
-		log.Fatalf("reading private key: %v", err)
 	}
 
 	for c := time.Tick(10 * time.Second); ; <-c {
@@ -116,27 +146,29 @@ func syncWireguardConfig() {
 
 		wgConfigContent := GenerateWGConfig(devices, gateways, privateKey)
 
-		if err := ioutil.WriteFile(cfg.WireGuardConfigPath, wgConfigContent, 0600); err != nil {
+		if err := ioutil.WriteFile(wireGuardConfigPath, wgConfigContent, 0600); err != nil {
 			log.Errorf("writing WireGuard config to disk: %v", err)
 		}
 
-		if b, err := exec.Command("wg", "syncconf", "wg0", cfg.WireGuardConfigPath).Output(); err != nil {
+		if b, err := exec.Command("wg", "syncconf", "wg0", wireGuardConfigPath).Output(); err != nil {
 			log.Errorf("synchronizing WireGuard config: %v: %v", err, string(b))
 		}
 	}
 }
 
-func GenerateWGConfig(devices []database.Device, gateways []database.Gateway, privateKey []byte) []byte {
+func GenerateWGConfig(devices []database.Device, gateways []database.Gateway, privateKey string) []byte {
 	interfaceTemplate := `[Interface]
-PrivateKeyPath = %s
-ListenPort = 51820`
+PrivateKey = %s
+ListenPort = 51820
 
-	wgConfig := fmt.Sprintf(interfaceTemplate, strings.TrimSuffix(string(privateKey), "\n"))
+`
 
-	peerTemplate := `
-[Peer]
+	wgConfig := fmt.Sprintf(interfaceTemplate, strings.TrimSuffix(privateKey, "\n"))
+
+	peerTemplate := `[Peer]
 AllowedIPs = %s/32
-PublicKey = %s`
+PublicKey = %s
+`
 
 	for _, device := range devices {
 		wgConfig += fmt.Sprintf(peerTemplate, device.IP, device.PublicKey)

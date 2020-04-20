@@ -17,9 +17,10 @@ const (
 )
 
 type slackbot struct {
-	api            *slack.Client
-	database       *database.APIServerDB
-	tunnelEndpoint string
+	api                *slack.Client
+	database           *database.APIServerDB
+	tunnelEndpoint     string
+	apiServerPublicKey string
 }
 
 // BootstrapConfig is the information the device needs to bootstrap it's connection to the APIServer
@@ -36,11 +37,12 @@ type EnrollmentConfig struct {
 	PublicKey string `json:"publicKey"`
 }
 
-func New(token, tunnelEndpoint string, database *database.APIServerDB) *slackbot {
+func New(token, tunnelEndpoint string, database *database.APIServerDB, apiServerPublicKey string) *slackbot {
 	return &slackbot{
-		api:            slack.New(token),
-		tunnelEndpoint: tunnelEndpoint,
-		database:       database,
+		api:                slack.New(token),
+		tunnelEndpoint:     tunnelEndpoint,
+		database:           database,
+		apiServerPublicKey: apiServerPublicKey,
 	}
 }
 
@@ -75,7 +77,7 @@ func (s *slackbot) handleEnroll(msg slack.Msg) string {
 
 		bc := BootstrapConfig{
 			DeviceIP:       c.IP,
-			PublicKey:      c.PublicKey,
+			PublicKey:      s.apiServerPublicKey,
 			TunnelEndpoint: s.tunnelEndpoint,
 			APIServerIP:    "10.255.240.1",
 		}

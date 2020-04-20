@@ -7,8 +7,6 @@ import (
 	"net/http"
 	"os/exec"
 	"path"
-	"path/filepath"
-	"strings"
 	"time"
 
 	log "github.com/sirupsen/logrus"
@@ -21,23 +19,23 @@ var (
 
 func init() {
 	log.SetFormatter(&log.JSONFormatter{})
-	flag.StringVar(&cfg.Apiserver, "apiserver", cfg.Apiserver, "hostname to apiserver")
 	flag.StringVar(&cfg.Name, "name", cfg.Name, "gateway name")
-	flag.StringVar(&cfg.PublicKey, "public-key", cfg.PublicKey, "path to wireguard public key")
-	flag.StringVar(&cfg.PrivateKeyPath, "private-key", cfg.PrivateKeyPath, "path to wireguard private key")
-	flag.StringVar(&cfg.Interface, "interface", cfg.Interface, "name of tunnel interface")
-	flag.StringVar(&cfg.TunnelConfigDir, "tunnel-config-dir", cfg.TunnelConfigDir, "path to tunnel interface config directory")
+	flag.StringVar(&cfg.TunnelIP, "tunnel-ip", cfg.TunnelIP, "gateway tunnel ip")
+	flag.StringVar(&cfg.APIServerURL, "api-server-url", cfg.APIServerURL, "api server URL")
+	flag.StringVar(&cfg.APIServerPublicKey, "api-server-public-key", cfg.APIServerPublicKey, "api server public key")
+	flag.StringVar(&cfg.APIServerWireGuardEndpoint, "api-server-wireguard-endpoint", cfg.APIServerWireGuardEndpoint, "api server WireGuard endpoint")
 
 	flag.Parse()
 
-	cfg.WireGuardConfigPath = path.Join("/etc/wireguard/", fmt.Sprintf("%s.connf", cfg.Interface))
+	cfg.WireGuardConfigPath = path.Join(cfg.ConfigDir, "wg0.conf")
+	cfg.PrivateKeyPath = path.Join(cfg.ConfigDir, "private.key")
 }
 
 // Gateway agent ensures desired configuration as defined by the apiserver
 // is synchronized and enforced by the local wireguard process on the gateway.
 //
 // Prerequisites:
-// - controlplane tunnel is set up/apiserver is reachable at `Config.APIServer`
+// - controlplane tunnel is set up/apiserver is reachable at `Config.APIServerURL`
 //
 // Prereqs for MVP (at least):
 //
@@ -60,28 +58,34 @@ type Device struct {
 func main() {
 	log.Info("starting gateway-agent")
 	log.Infof("with config:\n%+v", cfg)
+	if err := setupInterface(cfg.TunnelIP); err != nil {
+		log.Fatalf("setting up interface: %v", err)
+	}
 
 	privateKey, err := readPrivateKey(cfg.PrivateKeyPath)
-
 	if err != nil {
 		log.Fatalf("reading private key: %s", err)
 	}
 
+	baseConfig := GenerateBaseConfig(cfg, privateKey)
+	if err := actuateWireGuardConfig(baseConfig, cfg.WireGuardConfigPath); err != nil {
+		log.Fatalf("actuating base config: %v", err)
+	}
+
 	for range time.NewTicker(10 * time.Second).C {
 		log.Infof("getting config")
-		apiserver := fmt.Sprintf("%s/gateways/%s", cfg.Apiserver, cfg.Name)
-		devices, err := getDevices(apiserver)
+		devices, err := getDevices(cfg.APIServerURL, cfg.Name)
 		if err != nil {
 			log.Error(err)
 			// inc metric
 			continue
 		}
 
-		fmt.Printf("%+v\n", devices)
+		log.Debugf("%+v\n", devices)
 
-		if err := configureWireguard(devices, cfg, privateKey); err != nil {
-			log.Error(err)
-			// inc metric
+		peerConfig := GenerateWireGuardPeers(devices)
+		if err := actuateWireGuardConfig(baseConfig+peerConfig, cfg.WireGuardConfigPath); err != nil {
+			log.Errorf("actuating WireGuard config: %v", err)
 		}
 	}
 }
@@ -91,37 +95,9 @@ func readPrivateKey(privateKeyPath string) (string, error) {
 	return string(b), err
 }
 
-func configureWireguard(devices []Device, cfg Config, privateKey string) error {
-	wgConfigContent := generateWGConfig(devices, privateKey)
-	fmt.Println(string(wgConfigContent))
-	wgConfigFilePath := filepath.Join(cfg.TunnelConfigDir, cfg.Interface+".conf")
-	if err := ioutil.WriteFile(wgConfigFilePath, wgConfigContent, 0600); err != nil {
-		return fmt.Errorf("writing wireguard config to disk: %w", err)
-	}
-
-	cmd := exec.Command("/usr/bin/wg", "syncconf", cfg.Interface, cfg.WireGuardConfigPath)
-	if stdout, err := cmd.Output(); err != nil {
-		return fmt.Errorf("executing %w: %v", err, string(stdout))
-	}
-
-	return nil
-}
-
-func generateWGConfig(devices []Device, privateKey string) []byte {
-	wgConfig := "[Interface]\n"
-	wgConfig += fmt.Sprintf("PrivateKeyPath = %s\n", strings.Trim(privateKey, "\n"))
-	wgConfig += "ListenPort = 51820\n"
-	for _, peer := range devices {
-		wgConfig += "[Peer]\n"
-		wgConfig += fmt.Sprintf("PublicKey = %s\n", peer.PublicKey)
-		wgConfig += fmt.Sprintf("AllowedIPs = %s\n\n", peer.IP)
-	}
-
-	return []byte(wgConfig)
-}
-
-func getDevices(apiServerURL string) ([]Device, error) {
-	resp, err := http.Get(apiServerURL)
+func getDevices(apiServerURL, name string) ([]Device, error) {
+	gatewayConfigURL := fmt.Sprintf("%s/gateways/%s", apiServerURL, name)
+	resp, err := http.Get(gatewayConfigURL)
 	if err != nil {
 		return nil, fmt.Errorf("getting peer config from apiserver: %w", err)
 	}
@@ -139,22 +115,93 @@ func getDevices(apiServerURL string) ([]Device, error) {
 }
 
 type Config struct {
-	Apiserver           string
-	Name                string
-	PublicKey           string
-	PrivateKeyPath      string
-	TunnelIP            string
-	TunnelConfigDir     string
-	Interface           string
-	WireGuardConfigPath string
+	APIServerURL               string
+	Name                       string
+	TunnelIP                   string
+	ConfigDir                  string
+	WireGuardConfigPath        string
+	APIServerPublicKey         string
+	APIServerWireGuardEndpoint string
+	PrivateKeyPath             string
+	APIServerTunnelIP          string
 }
 
 func DefaultConfig() Config {
 	return Config{
-		Apiserver:       "http://apiserver.device.nais.io",
-		PublicKey:       "/etc/wireguard/public.key",
-		PrivateKeyPath:  "/etc/wireguard/private.key",
-		Interface:       "wg0",
-		TunnelConfigDir: "/etc/wireguard/",
+		APIServerURL:      "http://apiserver.device.nais.io",
+		APIServerTunnelIP: "10.255.240.1",
+		ConfigDir:         "/usr/local/etc/nais-device",
 	}
+}
+
+func setupInterface(tunnelIP string) error {
+	if err := exec.Command("ip", "link", "del", "wg0").Run(); err != nil {
+		log.Infof("pre-deleting WireGuard interface (ok if this fails): %v", err)
+	}
+
+	run := func(commands [][]string) error {
+		for _, s := range commands {
+			cmd := exec.Command(s[0], s[1:]...)
+
+			if out, err := cmd.Output(); err != nil {
+				return fmt.Errorf("running %v: %w", cmd, err)
+			} else {
+				fmt.Printf("%v: %v\n", cmd, string(out))
+			}
+		}
+		return nil
+	}
+
+	commands := [][]string{
+		{"ip", "link", "add", "dev", "wg0", "type", "wireguard"},
+		{"ip", "link", "set", "wg0", "mtu", "1380"},
+		{"ip", "address", "add", "dev", "wg0", tunnelIP + "/21"},
+		{"ip", "link", "set", "wg0", "up"},
+	}
+
+	return run(commands)
+}
+
+func GenerateBaseConfig(cfg Config, privateKey string) string {
+	template := `[Interface]
+PrivateKey = %s
+ListenPort = 51820
+
+[Peer]
+PublicKey = %s
+AllowedIPs = %s/32
+Endpoint = %s
+`
+
+	return fmt.Sprintf(template, privateKey, cfg.APIServerPublicKey, cfg.APIServerTunnelIP, cfg.APIServerWireGuardEndpoint)
+}
+
+func GenerateWireGuardPeers(devices []Device) string {
+	peerTemplate := `[Peer]
+PublicKey = %s
+AllowedIPs = %s
+`
+	var peers string
+
+	for _, device := range devices {
+		peers += fmt.Sprintf(peerTemplate, device.PublicKey, device.IP)
+	}
+
+	return peers
+}
+
+// actuateWireGuardConfig runs syncconfig with the provided WireGuard config
+func actuateWireGuardConfig(wireGuardConfig, wireGuardConfigPath string) error {
+	if err := ioutil.WriteFile(wireGuardConfigPath, []byte(wireGuardConfig), 0600); err != nil {
+		return fmt.Errorf("writing WireGuard config to disk: %w", err)
+	}
+
+	cmd := exec.Command("wg", "syncconf", "wg0", wireGuardConfigPath)
+	if err := cmd.Run(); err != nil {
+		return fmt.Errorf("running syncconf: %w", err)
+	}
+
+	log.Debugf("Actuated WireGuard config: %v", wireGuardConfigPath)
+
+	return nil
 }
