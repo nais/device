@@ -8,6 +8,18 @@ use Throwable;
 
 require 'vendor/autoload.php';
 
+function log(string $serial, string $username, string $message) : void {
+    echo json_encode([
+        'component' => 'update-device-health',
+        'system'    => 'nais-device',
+        'serial'    => $serial,
+        'username'  => $username,
+        'message'   => $message,
+        'level'     => 'info',
+        'timestamp' => time(),
+    ]) . PHP_EOL;
+}
+
 set_exception_handler(function(Throwable $e) : void {
     echo trim($e->getMessage()) . PHP_EOL;
     exit($e->getCode());
@@ -35,8 +47,8 @@ if (443 == $port) {
 $naisDeviceApiClient = new HttpClient(['base_uri' => trim(sprintf('%s://%s:%s', $schema, $host, $port), ':')]);
 $kolideApiClient = new KolideApiClient($_SERVER['KOLIDE_API_TOKEN']);
 
-// Devices serials that will be marked as unhealthy
-$failingDeviceSerials = [];
+// Failing devices that will be marked as unhealthy
+$failingDevices = [];
 
 // Can be removed once Kolide includes criticality in the API
 $checksConfig = require 'checks-config.php';
@@ -56,8 +68,10 @@ foreach ($failingChecks as $check) {
     $failures = $kolideApiClient->getCheckFailures($check['id']);
 
     foreach ($failures as $failure) {
+        $serial = $failure['device']['serial'];
+
         // Ignore the device if Kolide does not have the serial
-        if ('-1' === $failure['device']['serial']) {
+        if ('-1' === $serial) {
             continue;
         }
 
@@ -71,20 +85,38 @@ foreach ($failingChecks as $check) {
         // If the diff in seconds is above the current criticality level the device will be marked
         // as unhealthy
         if (($now - $occurredAt) > $criticality) {
-            $failingDeviceSerials[] = $failure['device']['serial'];
+            if (!isset($failingDevices[$serial])) {
+                $failingDevices[$serial] = [
+                    'username' => $failure['device']['assigned_owner']['email'],
+                    'failures' => [],
+                ];
+            }
+
+            $failingDevices[$serial]['failures'][] = $failure;
         }
     }
 }
 
-// Remove duplicates
-$failingDeviceSerials = array_unique($failingDeviceSerials);
-
 // Fetch all current Nais devices, and make sure to set the isHealthy flag to false if the device
 // seems to be failing according to Kolide. All other devices will be set to healthy.
-$updatedNaisDevices = array_map(function(array $naisDevice) use ($failingDeviceSerials) : array {
+$updatedNaisDevices = array_map(function(array $naisDevice) use ($failingDevices) : array {
+    $serial         = $naisDevice['serial'];
+    $alreadyHealthy = $naisDevice['isHealthy'];
+    $username       = $naisDevice['username'];
+    $healthy        = !array_key_exists($serial, $failingDevices);
+
+    if ($healthy && !$alreadyHealthy) {
+        log($serial, $username, 'No failing checks anymore, device is now healthy');
+    } else if ($alreadyHealthy && !$healthy) {
+        $failingChecks = array_map(function(array $failure) : string {
+            return $failure['title'];
+        }, $failingDevices[$serial]['failures']);
+        log($serial, $username, sprintf('Device is no longer healthy because of the following failing checks: %s', join(', ', $failingChecks)));
+    }
+
     return [
         'serial' => $naisDevice['serial'],
-        'isHealthy' => !in_array($naisDevice['serial'], $failingDeviceSerials),
+        'isHealthy' => $healthy,
     ];
 }, json_decode($naisDeviceApiClient->get('/devices')->getBody()->getContents(), true));
 
