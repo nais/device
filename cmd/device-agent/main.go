@@ -151,9 +151,7 @@ func main() {
 			log.Errorf("Unable to get gateway config: %v", err)
 		}
 
-		wireGuardConfig := fmt.Sprintf("%s%s", baseConfig, gateways)
-
-		if err := actuateWireGuardConfig(wireGuardConfig, cfg); err != nil {
+		if err := actuateWireGuardConfig(baseConfig+gateways, cfg); err != nil {
 			log.Errorf("Actuating WireGuard config: %v", err)
 		}
 	}
