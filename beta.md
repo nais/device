@@ -5,3 +5,6 @@
   4. make local
   5. `./bin/device-agent`
   6. follow instructions given by agent
+
+# Kubeconfig
+In kubeconfigs repo: `git checkout naisdevice`
