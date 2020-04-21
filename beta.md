@@ -1,8 +1,8 @@
 # How to beta
-  1. /msg @Kolide installers
+  1. Slack: `/msg @Kolide installers`
   2. `brew install wireguard-tools`
   3. `ln -s /usr/local/bin/{wg,naisdevice-wg} && ln -s /usr/local/bin/{wireguard-go,naisdevice-wireguard-go}`
-  4. make local
+  4. `make local`
   5. `./bin/device-agent`
   6. follow instructions given by agent
 
