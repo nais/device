@@ -379,7 +379,7 @@ func ensureKey(keyPath string, wireGuardPath string) error {
 
 func DefaultConfig() Config {
 	return Config{
-		APIServer: "http://apiserver.device.nais.io",
+		APIServer: "http://10.255.240.1",
 		Interface: "utun69",
 		ConfigDir: "/usr/local/etc/nais-device",
 		BinaryDir: "/usr/local/bin",
