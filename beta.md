@@ -3,7 +3,7 @@
   2. `brew install wireguard-tools`
   3. `ln -s /usr/local/bin/{wg,naisdevice-wg} && ln -s /usr/local/bin/{wireguard-go,naisdevice-wireguard-go}`
   4. `make local`
-  5. `./bin/device-agent`
+  5. `sudo ./bin/device-agent`
   6. follow instructions given by agent
 
 # Kubeconfig
