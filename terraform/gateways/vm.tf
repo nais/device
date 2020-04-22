@@ -17,9 +17,12 @@ resource "google_compute_address" "gateway" {
 }
 
 resource "google_compute_instance" "gateway" {
-  count        = length(var.gateways)
-  project      = var.gateways[count.index].project
-  name         = var.gateways[count.index].name
+  count   = length(var.gateways)
+  project = var.gateways[count.index].project
+  name    = var.gateways[count.index].name
+  labels = {
+    "usage" : "nais-device"
+  }
   machine_type = "f1-micro"
   zone         = "europe-north1-a"
 
@@ -31,7 +34,8 @@ resource "google_compute_instance" "gateway" {
     }
   }
 
-  metadata_startup_script = <<EOS
+  metadata = {
+    startup-script = <<EOS
 add-apt-repository --yes ppa:wireguard/wireguard
 apt-get update --yes
 apt-get install --yes wireguard
@@ -67,6 +71,7 @@ systemctl daemon-reload
 systemctl enable gateway-agent
 systemctl start gateway-agent
 EOS
+  }
 
   network_interface {
     subnetwork = var.gateways[count.index].subnetwork

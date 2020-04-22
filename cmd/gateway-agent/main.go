@@ -128,7 +128,7 @@ type Config struct {
 
 func DefaultConfig() Config {
 	return Config{
-		APIServerURL:      "http://apiserver.device.nais.io",
+		APIServerURL:      "http://10.255.240.1",
 		APIServerTunnelIP: "10.255.240.1",
 		ConfigDir:         "/usr/local/etc/nais-device",
 	}

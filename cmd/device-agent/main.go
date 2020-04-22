@@ -117,7 +117,7 @@ func main() {
 			log.Fatalf("generating enrollment token: %v", err)
 		}
 
-		fmt.Printf("\n---\nno bootstrap token present. Send 'Nais Device' your enrollment token on slack by copying and pasting this:\n/msg @Nais Device enroll %v\n\n", enrollmentToken)
+		fmt.Printf("\n---\nno bootstrap token present. Send 'naisdevice' your enrollment token on slack by copying and pasting this:\n/msg @naisdevice enroll %v\n\n", enrollmentToken)
 		os.Exit(0)
 	}
 
@@ -379,7 +379,7 @@ func ensureKey(keyPath string, wireGuardPath string) error {
 
 func DefaultConfig() Config {
 	return Config{
-		APIServer: "http://apiserver.device.nais.io",
+		APIServer: "http://10.255.240.1",
 		Interface: "utun69",
 		ConfigDir: "/usr/local/etc/nais-device",
 		BinaryDir: "/usr/local/bin",
