@@ -26,7 +26,7 @@ Comma-separated list of Kolide check IDs to ignore when checking device status. 
 
 The above command requires the `KOLIDE_API_TOKEN` environment variable to be able to communicate with the Kolide API.
 
-### `APISERVER_HOST` (optional, default: `'apiserver.device.nais.io'`)
+### `APISERVER_HOST` (optional, default: `'10.255.240.1'`)
 
 Can be specified to override the default host when communicating with the Nais device API server.
 

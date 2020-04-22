@@ -36,7 +36,7 @@ $kolideChecksIgnored = !empty($_SERVER['KOLIDE_CHECKS_IGNORED'])
     : [];
 
 $schema = 'http';
-$host   = $_SERVER['APISERVER_HOST'] ?? 'apiserver.device.nais.io';
+$host   = $_SERVER['APISERVER_HOST'] ?? '10.255.240.1';
 $port   = $_SERVER['APISERVER_PORT'] ?? '';
 
 if (443 == $port) {
