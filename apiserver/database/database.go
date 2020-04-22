@@ -3,6 +3,7 @@ package database
 import (
 	"context"
 	"fmt"
+	"strings"
 	"sync"
 	"time"
 
@@ -29,9 +30,10 @@ type Device struct {
 }
 
 type Gateway struct {
-	Endpoint  string `json:"endpoint"`
-	PublicKey string `json:"publicKey"`
-	IP        string `json:"ip"`
+	Endpoint  string   `json:"endpoint"`
+	PublicKey string   `json:"publicKey"`
+	IP        string   `json:"ip"`
+	Routes    []string `json:"routes"`
 }
 
 func New(dsn string) (*APIServerDB, error) {
@@ -177,7 +179,7 @@ func (d *APIServerDB) ReadGateways() ([]Gateway, error) {
 	ctx := context.Background()
 
 	query := `
-SELECT public_key, endpoint, ip
+SELECT public_key, endpoint, ip, routes
   FROM gateway;`
 
 	rows, err := d.conn.Query(ctx, query)
@@ -188,11 +190,13 @@ SELECT public_key, endpoint, ip
 	var gateways []Gateway
 	for rows.Next() {
 		var gateway Gateway
-		err := rows.Scan(&gateway.PublicKey, &gateway.Endpoint, &gateway.IP)
+		var routes string
+		err := rows.Scan(&gateway.PublicKey, &gateway.Endpoint, &gateway.IP, &routes)
 		if err != nil {
 			return nil, fmt.Errorf("scanning gateway: %w", err)
 		}
 
+		gateway.Routes = strings.Split(routes, ",")
 		gateways = append(gateways, gateway)
 	}
 

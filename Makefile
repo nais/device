@@ -23,7 +23,10 @@ local-postgres:
 	PGPASSWORD=postgres psql -h localhost -U postgres -f db-bootstrap.sql
 
 local-apiserver:
-	go run ./cmd/apiserver/main.go --db-connection-uri=postgresql://postgres:postgres@localhost/postgres --bind-address=127.0.0.1:8080 --slack-token=${APISERVER_SLACK_TOKEN} --skip-setup-interface=true
+	$(eval confdir := $(shell mktemp -d))
+	wg genkey > ${confdir}/private.key
+	go run ./cmd/apiserver/main.go --db-connection-uri=postgresql://postgres:postgres@localhost/postgres --bind-address=127.0.0.1:8080 --slack-token=${APISERVER_SLACK_TOKEN} --skip-setup-interface=true --config-dir=${confdir}
+	echo ${confdir}
 
 test:
 	go test ./... -count=1
