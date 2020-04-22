@@ -37,9 +37,10 @@ type Config struct {
 }
 
 type Gateway struct {
-	PublicKey string `json:"publicKey"`
-	Endpoint  string `json:"endpoint"`
-	IP        string `json:"ip"`
+	PublicKey string   `json:"publicKey"`
+	Endpoint  string   `json:"endpoint"`
+	IP        string   `json:"ip"`
+	Routes    []string `json:"routes"`
 }
 
 func init() {
@@ -87,34 +88,34 @@ func init() {
 // loop:
 // Monitor all connections, if one starts failing, re-fetch config and reset timer
 func main() {
-	log.Infof("starting device-agent with config:\n%+v", cfg)
+	log.Infof("Starting device-agent with config:\n%+v", cfg)
 
 	if err := filesExist(cfg.WireGuardPath, cfg.WireGuardGoBinary); err != nil {
-		log.Fatalf("verifying if file exists: %v", err)
+		log.Fatalf("Verifying if file exists: %v", err)
 	}
 
 	if err := ensureDirectories(cfg.ConfigDir, cfg.BinaryDir); err != nil {
-		log.Fatalf("ensuring directory exists: %v", err)
+		log.Fatalf("Ensuring directory exists: %v", err)
 	}
 
 	if err := ensureKey(cfg.PrivateKeyPath, cfg.WireGuardPath); err != nil {
-		log.Fatalf("ensuring private key exists: %v", err)
+		log.Fatalf("Ensuring private key exists: %v", err)
 	}
 
 	serial, err := getDeviceSerial()
 	if err != nil {
-		log.Fatalf("getting device serial: %v", err)
+		log.Fatalf("Getting device serial: %v", err)
 	}
 
 	if err := filesExist(cfg.BootstrapTokenPath); err != nil {
 		pubkey, err := generatePublicKey(cfg.PrivateKeyPath, cfg.WireGuardPath)
 		if err != nil {
-			log.Fatalf("generate public key during bootstrap: %v", err)
+			log.Fatalf("Generate public key during bootstrap: %v", err)
 		}
 
 		enrollmentToken, err := generateEnrollmentToken(serial, pubkey)
 		if err != nil {
-			log.Fatalf("generating enrollment token: %v", err)
+			log.Fatalf("Generating enrollment token: %v", err)
 		}
 
 		fmt.Printf("\n---\nno bootstrap token present. Send 'naisdevice' your enrollment token on slack by copying and pasting this:\n/msg @naisdevice enroll %v\n\n", enrollmentToken)
@@ -123,16 +124,16 @@ func main() {
 
 	bootstrapToken, err := ioutil.ReadFile(cfg.BootstrapTokenPath)
 	if err != nil {
-		log.Fatalf("reading bootstrap token: %v", err)
+		log.Fatalf("Reading bootstrap token: %v", err)
 	}
 
 	cfg.BootstrapConfig, err = ParseBootstrapToken(string(bootstrapToken))
 	if err != nil {
-		log.Fatalf("parsing bootstrap config: %v", err)
+		log.Fatalf("Parsing bootstrap config: %v", err)
 	}
 
 	if err := setupInterface(cfg); err != nil {
-		log.Fatalf("setting up interface: %v", err)
+		log.Fatalf("Setting up interface: %v", err)
 	}
 
 	privateKey, err := ioutil.ReadFile(cfg.PrivateKeyPath)
@@ -146,31 +147,53 @@ func main() {
 	}
 
 	for range time.NewTicker(10 * time.Second).C {
-		gateways, err := getGatewayConfig(cfg.APIServer, serial)
+		gateways, err := getGateways(cfg.APIServer, serial)
 		if err != nil {
 			log.Errorf("Unable to get gateway config: %v", err)
 		}
 
-		if err := actuateWireGuardConfig(baseConfig+gateways, cfg); err != nil {
+		wireGuardPeers := GenerateWireGuardPeers(gateways)
+
+		if err := actuateWireGuardConfig(baseConfig+wireGuardPeers, cfg); err != nil {
 			log.Errorf("Actuating WireGuard config: %v", err)
+		}
+
+		if err := setupRoutes(gateways, cfg.Interface); err != nil {
+			log.Errorf("Setting up routes: %v", err)
 		}
 	}
 }
 
-func getGatewayConfig(apiServerURL, serial string) (string, error) {
+func getGateways(apiServerURL, serial string) ([]Gateway, error) {
 	deviceConfigAPI := fmt.Sprintf("%s/devices/config/%s", apiServerURL, serial)
 	r, err := http.Get(deviceConfigAPI)
 	if err != nil {
-		return "", fmt.Errorf("getting device config: %w", err)
+		return nil, fmt.Errorf("getting device config: %w", err)
 	}
 	defer r.Body.Close()
 
 	var gateways []Gateway
 	if err := json.NewDecoder(r.Body).Decode(&gateways); err != nil {
-		return "", fmt.Errorf("unmarshalling response body into gateways: %w", err)
+		return nil, fmt.Errorf("unmarshalling response body into gateways: %w", err)
 	}
 
-	return GenerateWireGuardPeers(gateways), nil
+	return gateways, nil
+}
+
+func setupRoutes(gateways []Gateway, interfaceName string) error {
+	for _, gateway := range gateways {
+		for _, route := range gateway.Routes {
+			cmd := exec.Command("route", "-q", "-n", "add", "-inet", route, "-interface", interfaceName)
+			output, err := cmd.CombinedOutput()
+			if err != nil {
+				log.Errorf("%v: %v", cmd, string(output))
+				return nil
+			}
+			log.Infof("%v: %v", cmd, string(output))
+			return nil
+		}
+	}
+	return nil
 }
 
 func GenerateWireGuardPeers(gateways []Gateway) string {
@@ -182,7 +205,8 @@ Endpoint = %s
 	var peers string
 
 	for _, gateway := range gateways {
-		peers += fmt.Sprintf(peerTemplate, gateway.PublicKey, gateway.IP, gateway.Endpoint)
+		allowedIPs := strings.Join(append(gateway.Routes, gateway.IP+"/32"), ",")
+		peers += fmt.Sprintf(peerTemplate, gateway.PublicKey, allowedIPs, gateway.Endpoint)
 	}
 
 	return peers
