@@ -90,9 +90,9 @@ func generatePublicKey(privateKey []byte, wireGuardPath string) ([]byte, error) 
 		return nil, fmt.Errorf("closing stdin %w", err)
 	}
 
-	out, err := cmd.Output()
+	out, err := cmd.CombinedOutput()
 	if err != nil {
-		return nil, fmt.Errorf("executing command: %v: %w", cmd, err)
+		return nil, fmt.Errorf("executing command: %v: %w: %v", cmd, err, string(out))
 	}
 
 	return out, nil
@@ -107,8 +107,8 @@ func setupInterface() error {
 		for _, s := range commands {
 			cmd := exec.Command(s[0], s[1:]...)
 
-			if out, err := cmd.Output(); err != nil {
-				return fmt.Errorf("running %v: %w", cmd, err)
+			if out, err := cmd.CombinedOutput(); err != nil {
+				return fmt.Errorf("running %v: %w: %v", cmd, err, string(out))
 			} else {
 				fmt.Printf("%v: %v\n", cmd, string(out))
 			}

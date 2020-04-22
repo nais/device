@@ -195,8 +195,8 @@ func actuateWireGuardConfig(wireGuardConfig string, config Config) error {
 	}
 
 	cmd := exec.Command(cfg.WireGuardPath, "syncconf", cfg.Interface, cfg.WireGuardConfigPath)
-	if err := cmd.Run(); err != nil {
-		return fmt.Errorf("running syncconf: %w", err)
+	if b, err := cmd.CombinedOutput(); err != nil {
+		return fmt.Errorf("running syncconf: %w: %v", err, string(b))
 	}
 
 	log.Debugf("Actuated WireGuard config: %v", cfg.WireGuardConfigPath)
@@ -225,9 +225,9 @@ func generateEnrollmentToken(serial, publicKey string) (string, error) {
 // TODO(jhrv): extract this as a separate interface, with platform specific implmentations
 func getDeviceSerial() (string, error) {
 	cmd := exec.Command("/usr/sbin/ioreg", "-rd1", "-c", "IOPlatformExpertDevice")
-	b, err := cmd.Output()
+	b, err := cmd.CombinedOutput()
 	if err != nil {
-		return "", fmt.Errorf("getting serial with ioreg: %w", err)
+		return "", fmt.Errorf("getting serial with ioreg: %w: %v", err, string(b))
 	}
 
 	re := regexp.MustCompile("\"IOPlatformSerialNumber\" = \"([^\"]+)\"")
@@ -245,8 +245,8 @@ func setupInterface(cfg Config) error {
 		for _, s := range commands {
 			cmd := exec.Command(s[0], s[1:]...)
 
-			if out, err := cmd.Output(); err != nil {
-				return fmt.Errorf("running %v: %w", cmd, err)
+			if out, err := cmd.CombinedOutput(); err != nil {
+				return fmt.Errorf("running %v: %w: %v", cmd, err, string(out))
 			} else {
 				fmt.Printf("%v: %v\n", cmd, string(out))
 			}
@@ -364,9 +364,9 @@ func ensureDirectory(dir string) error {
 func ensureKey(keyPath string, wireGuardPath string) error {
 	if err := FileMustExist(keyPath); os.IsNotExist(err) {
 		cmd := exec.Command(wireGuardPath, "genkey")
-		stdout, err := cmd.Output()
+		stdout, err := cmd.CombinedOutput()
 		if err != nil {
-			return fmt.Errorf("executing %w: %v", err, string(stdout))
+			return fmt.Errorf("executing command: %v, %w: %v", cmd, err, string(stdout))
 		}
 
 		return ioutil.WriteFile(keyPath, stdout, 0600)

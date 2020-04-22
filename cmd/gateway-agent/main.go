@@ -143,8 +143,8 @@ func setupInterface(tunnelIP string) error {
 		for _, s := range commands {
 			cmd := exec.Command(s[0], s[1:]...)
 
-			if out, err := cmd.Output(); err != nil {
-				return fmt.Errorf("running %v: %w", cmd, err)
+			if out, err := cmd.CombinedOutput(); err != nil {
+				return fmt.Errorf("running %v: %w: %v", cmd, err, string(out))
 			} else {
 				fmt.Printf("%v: %v\n", cmd, string(out))
 			}
