@@ -1,7 +1,8 @@
 .PHONY: test alpine
 
 all: test alpine
-dev-apiserver: local-postgres local-apiserver
+dev-apiserver: teardown-postgres run-postgres local-apiserver
+integration-test: teardown-postgres-test run-postgres-test run-integration-test teardown-postgres-test
 
 alpine:
 	go build -a -installsuffix cgo -o bin/apiserver cmd/apiserver/main.go
@@ -16,11 +17,22 @@ local:
 	go build -o bin/gateway-agent cmd/gateway-agent/main.go
 	go build -o bin/device-agent cmd/device-agent/main.go
 
-local-postgres:
-	docker rm -f postgres || echo "okidoki"
+run-postgres:
 	docker run -e POSTGRES_PASSWORD=postgres --rm --name postgres -p 5432:5432 postgres &
-	sleep 5
-	PGPASSWORD=postgres psql -h localhost -U postgres -f db-bootstrap.sql
+	for attempt in {0..5}; do \
+ 		sleep 2;\
+		PGPASSWORD=postgres psql -h localhost -U postgres -f apiserver/database/schema/schema.sql && break;\
+    done
+
+run-postgres-test:
+	docker run -e POSTGRES_PASSWORD=postgres --rm --name postgres-test -p 5433:5432 postgres &
+	for attempt in {0..5}; do \
+ 		sleep 2;\
+		PGPASSWORD=postgres psql -h localhost -p 5433 -U postgres -l && break;\
+    done
+
+teardown-postgres-test:
+	docker rm -f postgres-test || echo "okidoki"
 
 local-apiserver:
 	$(eval confdir := $(shell mktemp -d))
@@ -30,3 +42,6 @@ local-apiserver:
 
 test:
 	go test ./... -count=1
+
+run-integration-test:
+	RUN_INTEGRATION_TESTS="true" go test ./... -count=1

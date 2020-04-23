@@ -3,11 +3,13 @@ package database
 import (
 	"context"
 	"fmt"
+	"io/ioutil"
 	"strings"
 	"sync"
 	"time"
 
 	"github.com/jackc/pgx/v4/pgxpool"
+	"github.com/nais/device/apiserver/cidr"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -34,6 +36,41 @@ type Gateway struct {
 	PublicKey string   `json:"publicKey"`
 	IP        string   `json:"ip"`
 	Routes    []string `json:"routes"`
+}
+
+// NewTestDatabase creates and returns a new nais device database within the provided database instance
+func NewTestDatabase(dsn, schema string) (*APIServerDB, error) {
+	ctx := context.Background()
+	initialConn, err := pgxpool.Connect(ctx, dsn)
+	if err != nil {
+		return nil, fmt.Errorf("connecting to database: %v", err)
+	}
+
+	defer initialConn.Close()
+
+	databaseName := RandomString(5, "abcdefghijklmnopqrstuvwxyz")
+
+	_, err = initialConn.Exec(ctx, fmt.Sprintf("CREATE DATABASE %v", databaseName))
+	if err != nil {
+		return nil, fmt.Errorf("creating database: %v", err)
+	}
+
+	conn, err := pgxpool.Connect(ctx, fmt.Sprintf("%s/%s", dsn, databaseName))
+	if err != nil {
+		return nil, fmt.Errorf("connecting to database: %v", err)
+	}
+
+	b, err := ioutil.ReadFile(schema)
+	if err != nil {
+		return nil, fmt.Errorf("reading schema file from disk: %w", err)
+	}
+
+	_, err = conn.Exec(ctx, string(b))
+	if err != nil {
+		return nil, fmt.Errorf("executing schema: %v", err)
+	}
+
+	return &APIServerDB{conn: conn}, nil
 }
 
 func New(dsn string) (*APIServerDB, error) {
@@ -132,7 +169,7 @@ func (d *APIServerDB) AddDevice(username, publicKey, serial string) error {
 		return fmt.Errorf("reading existing ips: %w", err)
 	}
 
-	ip, err := FindAvailableIP(TunnelCidr, ips)
+	ip, err := cidr.FindAvailableIP(TunnelCidr, ips)
 	if err != nil {
 		return fmt.Errorf("finding available ip: %w", err)
 	}

@@ -1,24 +1,10 @@
-package database
+package cidr
 
 import (
 	"fmt"
 	"net"
 	"strings"
 )
-
-//func main() {
-//	readExistingIPs := []string{"10.255.248.1", "10.255.248.3", "10.255.248.2"}
-//	allocated := make(map[string]struct{})
-//	for _, allocatedIP := range readExistingIPs {
-//		allocated[allocatedIP] = struct{}{}
-//	}
-//
-//	next, err := FindAvailableIP("10.255.248.0/31", allocated)
-//	if err != nil {
-//		panic(err)
-//	}
-//	fmt.Println(next)
-//}
 
 func FindAvailableIP(cidr string, allocated []string) (string, error) {
 	allocatedMap := toMap(allocated)
