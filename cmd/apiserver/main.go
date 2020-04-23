@@ -118,7 +118,7 @@ func setupInterface() error {
 
 	commands := [][]string{
 		{"ip", "link", "add", "dev", "wg0", "type", "wireguard"},
-		{"ip", "link", "set", "wg0", "mtu", "1360"},
+		{"ip", "link", "set", "wg0", "mtu", "1300"},
 		{"ip", "address", "add", "dev", "wg0", "10.255.240.1/21"},
 		{"ip", "link", "set", "wg0", "up"},
 	}
