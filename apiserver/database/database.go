@@ -196,7 +196,10 @@ SELECT public_key, endpoint, ip, routes
 			return nil, fmt.Errorf("scanning gateway: %w", err)
 		}
 
-		gateway.Routes = strings.Split(routes, ",")
+		if len(routes) != 0 {
+			gateway.Routes = strings.Split(routes, ",")
+		}
+
 		gateways = append(gateways, gateway)
 	}
 
@@ -212,16 +215,21 @@ func (d *APIServerDB) ReadGateway(publicKey string) (*Gateway, error) {
 	ctx := context.Background()
 
 	query := `
-SELECT public_key, endpoint, ip
+SELECT public_key, endpoint, ip, routes
   FROM gateway
  WHERE public_key = $1;`
 
 	row := d.conn.QueryRow(ctx, query, publicKey)
 
 	var gateway Gateway
-	err := row.Scan(&gateway.PublicKey, &gateway.Endpoint, &gateway.IP)
+	var routes string
+	err := row.Scan(&gateway.PublicKey, &gateway.Endpoint, &gateway.IP, &routes)
 	if err != nil {
 		return nil, fmt.Errorf("scanning gateway: %w", err)
+	}
+
+	if len(routes) != 0 {
+		gateway.Routes = strings.Split(routes, ",")
 	}
 
 	return &gateway, nil
