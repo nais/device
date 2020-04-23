@@ -187,10 +187,9 @@ func setupRoutes(gateways []Gateway, interfaceName string) error {
 			output, err := cmd.CombinedOutput()
 			if err != nil {
 				log.Errorf("%v: %v", cmd, string(output))
-				return nil
+				return fmt.Errorf("executing %v: %w", cmd, err)
 			}
 			log.Infof("%v: %v", cmd, string(output))
-			return nil
 		}
 	}
 	return nil
