@@ -78,7 +78,7 @@ func init() {
 // - launch wireguard-go with the provided `cfg.Interface`, and run the following commands as root:
 // - wg setconf `cfg.Interface` /etc/wireguard/wg0.conf
 // - ifconfig `cfg.Interface` inet "`BootstrapConfig.TunnelIP`/21" "`BootstrapConfig.TunnelIP`" add
-// - ifconfig `cfg.Interface` mtu 1300
+// - ifconfig `cfg.Interface` mtu 1360
 // - ifconfig `cfg.Interface` up
 // - route -q -n add -inet "`BootstrapConfig.TunnelIP`/21" -interface `cfg.Interface`
 //
@@ -281,7 +281,7 @@ func setupInterface(cfg Config) error {
 	commands := [][]string{
 		{cfg.WireGuardGoBinary, cfg.Interface},
 		{"ifconfig", cfg.Interface, "inet", ip + "/21", ip, "add"},
-		{"ifconfig", cfg.Interface, "mtu", "1300"},
+		{"ifconfig", cfg.Interface, "mtu", "1360"},
 		{"ifconfig", cfg.Interface, "up"},
 		{"route", "-q", "-n", "add", "-inet", ip + "/21", "-interface", cfg.Interface},
 	}
