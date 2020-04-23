@@ -154,7 +154,7 @@ func setupInterface(tunnelIP string) error {
 
 	commands := [][]string{
 		{"ip", "link", "add", "dev", "wg0", "type", "wireguard"},
-		{"ip", "link", "set", "wg0", "mtu", "1380"},
+		{"ip", "link", "set", "wg0", "mtu", "1360"},
 		{"ip", "address", "add", "dev", "wg0", tunnelIP + "/21"},
 		{"ip", "link", "set", "wg0", "up"},
 	}
