@@ -2,7 +2,7 @@
 
 all: test alpine
 dev-apiserver: teardown-postgres run-postgres local-apiserver
-integration-test: teardown-postgres-test run-postgres-test run-integration-test teardown-postgres-test
+integration-test: run-postgres-test run-integration-test teardown-postgres-test
 
 alpine:
 	go build -a -installsuffix cgo -o bin/apiserver cmd/apiserver/main.go
@@ -32,7 +32,7 @@ run-postgres-test:
     done
 
 teardown-postgres-test:
-	docker rm -f postgres-test || echo "okidoki"
+	docker rm -f postgres-test || echo "okidoki" 
 
 local-apiserver:
 	$(eval confdir := $(shell mktemp -d))
