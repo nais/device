@@ -1,0 +1,2 @@
+EULA - nais-device
+
