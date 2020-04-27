@@ -1,9 +1,17 @@
-package database
+package random
 
 import (
 	"bytes"
 	"crypto/rand"
 	"encoding/binary"
+)
+
+const (
+	LowerCaseLetters = "abcdefghijklmnopqrstuvwxyz"
+	UpperCaseLetters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+	Letters = LowerCaseLetters + UpperCaseLetters
+	Numbers = "1234567890"
+	LettersAndNumbers = Letters + Numbers
 )
 
 func Bytes(n int) []byte {

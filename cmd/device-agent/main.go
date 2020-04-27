@@ -13,8 +13,12 @@ import (
 	"strings"
 	"time"
 
+	"github.com/nais/device/pkg/random"
+	codeverifier "github.com/nirasan/go-oauth-pkce-code-verifier"
 	log "github.com/sirupsen/logrus"
 	flag "github.com/spf13/pflag"
+	"golang.org/x/oauth2"
+	"golang.org/x/oauth2/endpoints"
 )
 
 var (
@@ -69,82 +73,102 @@ func init() {
 // device-agent is responsible for enabling the end-user to connect to it's permitted gateways.
 // To be able to connect, a series of prerequisites must be in place. These will be helped/ensured by device-agent.
 //
-// 1. A information exchange between end-user and NAIS device administrator/slackbot:
+// A information exchange between end-user and NAIS device administrator/slackbot:
 // If BootstrapTokenPath is not present, user will be prompted to enroll using a generated token, and the agent will exit.
-// When device-agent detects `BootstrapTokenPath` is present,
-// it will generate a WireGuard config file called wg0.conf placed in `cfg.ConfigDir`
+// When device-agent detects a valid bootstrap token, it will generate a WireGuard config file called wg0.conf placed in `cfg.ConfigDir`
+// This file will initially only contain the Interface definition and the APIServer peer.
 //
-// 2. (When) A valid WireGuard config is present, ensure tunnel is configured and connected:
-// - launch wireguard-go with the provided `cfg.Interface`, and run the following commands as root:
-// - wg setconf `cfg.Interface` /etc/wireguard/wg0.conf
-// - ifconfig `cfg.Interface` inet "`BootstrapConfig.TunnelIP`/21" "`BootstrapConfig.TunnelIP`" add
-// - ifconfig `cfg.Interface` mtu 1360
-// - ifconfig `cfg.Interface` up
-// - route -q -n add -inet "`BootstrapConfig.TunnelIP`/21" -interface `cfg.Interface`
+// It will run the device-agent-helper with params....
 //
-// 3. When connection is established:
 // loop:
-// Fetch device config from APIServer and configure gateways/generate WireGuard config
+// Fetch device config from APIServer and configure generate and write WireGuard config to disk
 // loop:
 // Monitor all connections, if one starts failing, re-fetch config and reset timer
 func main() {
 	log.Infof("Starting device-agent with config:\n%+v", cfg)
 
 	if err := filesExist(cfg.WireGuardPath, cfg.WireGuardGoBinary); err != nil {
-		log.Fatalf("Verifying if file exists: %v", err)
+		log.Errorf("Verifying if file exists: %v", err)
+		return
 	}
 
 	if err := ensureDirectories(cfg.ConfigDir, cfg.BinaryDir); err != nil {
-		log.Fatalf("Ensuring directory exists: %v", err)
+		log.Errorf("Ensuring directory exists: %v", err)
+		return
 	}
 
 	if err := ensureKey(cfg.PrivateKeyPath, cfg.WireGuardPath); err != nil {
-		log.Fatalf("Ensuring private key exists: %v", err)
+		log.Errorf("Ensuring private key exists: %v", err)
+		return
 	}
 
 	serial, err := getDeviceSerial()
 	if err != nil {
-		log.Fatalf("Getting device serial: %v", err)
+		log.Errorf("Getting device serial: %v", err)
+		return
 	}
+
+	//ensureAADToken()
 
 	if err := filesExist(cfg.BootstrapTokenPath); err != nil {
 		pubkey, err := generatePublicKey(cfg.PrivateKeyPath, cfg.WireGuardPath)
 		if err != nil {
-			log.Fatalf("Generate public key during bootstrap: %v", err)
+			log.Errorf("Generate public key during bootstrap: %v", err)
+			return
 		}
 
 		enrollmentToken, err := generateEnrollmentToken(serial, pubkey)
 		if err != nil {
-			log.Fatalf("Generating enrollment token: %v", err)
+			log.Errorf("Generating enrollment token: %v", err)
+			return
 		}
 
 		fmt.Printf("\n---\nno bootstrap token present. Send 'naisdevice' your enrollment token on slack by copying and pasting this:\n/msg @naisdevice enroll %v\n\n", enrollmentToken)
-		os.Exit(0)
+		return
 	}
 
 	bootstrapToken, err := ioutil.ReadFile(cfg.BootstrapTokenPath)
 	if err != nil {
-		log.Fatalf("Reading bootstrap token: %v", err)
+		log.Errorf("Reading bootstrap token: %v", err)
+		return
 	}
 
 	cfg.BootstrapConfig, err = ParseBootstrapToken(string(bootstrapToken))
 	if err != nil {
-		log.Fatalf("Parsing bootstrap config: %v", err)
-	}
-
-	if err := setupInterface(cfg); err != nil {
-		log.Fatalf("Setting up interface: %v", err)
+		log.Errorf("Parsing bootstrap config: %v", err)
+		return
 	}
 
 	privateKey, err := ioutil.ReadFile(cfg.PrivateKeyPath)
 	if err != nil {
-		log.Fatalf("Reading private key: %v", err)
+		log.Errorf("Reading private key: %v", err)
+		return
 	}
 
 	baseConfig := GenerateBaseConfig(cfg.BootstrapConfig, privateKey)
-	if err := actuateWireGuardConfig(baseConfig, cfg); err != nil {
-		log.Fatalf("Actuating WireGuard config: %v", err)
+
+	if err := ioutil.WriteFile(cfg.WireGuardConfigPath, []byte(baseConfig), 0600); err != nil {
+		log.Errorf("Writing WireGuard config to disk: %w", err)
+		return
 	}
+
+	log.Debugf("Wrote base WireGuard config to disk")
+
+	fmt.Println("Starting device-agent-helper, you might be prompted for password")
+	// start device-agent-helper
+	cmd := exec.Command("sudo", "./bin/device-agent-helper",
+		"--interface", cfg.Interface,
+		"--tunnel-ip", cfg.BootstrapConfig.TunnelIP,
+		"--wireguard-binary", cfg.WireGuardPath,
+		"--wireguard-go-binary", cfg.WireGuardGoBinary,
+		"--wireguard-config-path", cfg.WireGuardConfigPath)
+
+	if err := cmd.Start(); err != nil {
+		log.Errorf("Starting device-agent-helper: %v", err)
+		return
+	}
+
+	//TODO(VegarM): defer context abort
 
 	for range time.NewTicker(10 * time.Second).C {
 		gateways, err := getGateways(cfg.APIServer, serial)
@@ -154,14 +178,77 @@ func main() {
 
 		wireGuardPeers := GenerateWireGuardPeers(gateways)
 
-		if err := actuateWireGuardConfig(baseConfig+wireGuardPeers, cfg); err != nil {
-			log.Errorf("Actuating WireGuard config: %v", err)
+		if err := ioutil.WriteFile(cfg.WireGuardConfigPath, []byte(baseConfig+wireGuardPeers), 0600); err != nil {
+			log.Errorf("Writing WireGuard config to disk: %w", err)
+			return
 		}
 
-		if err := setupRoutes(gateways, cfg.Interface); err != nil {
-			log.Errorf("Setting up routes: %v", err)
-		}
+		log.Debugf("Wrote WireGuard config to disk")
 	}
+}
+
+func ensureAADToken() {
+	redirectURL := "http://localhost:51800"
+
+	//ctx := context.Background()
+
+	conf := &oauth2.Config{
+		ClientID:    "5d69cfe1-b300-4a1a-95ec-4752d07ccab1",
+		Scopes:      []string{"openid", "5d69cfe1-b300-4a1a-95ec-4752d07ccab1/.default", "offline_access"},
+		Endpoint:    endpoints.AzureAD("62366534-1ec3-4962-8869-9b5535279d0b"),
+		RedirectURL: redirectURL,
+	}
+
+	//server := &http.Server{Addr: ":1337"}
+
+	// Redirect user to consent page to ask for permission
+	// for the scopes specified above.
+
+	// Ignoring impossible error
+	codeVerifier, _ := codeverifier.CreateCodeVerifier()
+
+	method := oauth2.SetAuthURLParam("code_challenge_method", "S256")
+	challenge := oauth2.SetAuthURLParam("code_challenge", codeVerifier.CodeChallengeS256())
+
+	url := conf.AuthCodeURL(random.RandomString(16, random.LettersAndNumbers), oauth2.AccessTypeOffline, method, challenge)
+
+	// macos: $ open $url
+
+	command := exec.Command("open", url)
+	command.Start()
+	fmt.Printf("If the browser didn't open, visit this url to sign in: %v\n", url)
+
+	//// Use the authorization code that is pushed to the redirect
+	//// URL. Exchange will do the handshake to retrieve the
+	//// initial access token. The HTTP Client returned by
+	//// conf.Client will refresh the token as necessary.
+	//
+	//// define a handler that will get the authorization code, call the token endpoint, and close the HTTP server
+	//http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+	//	// get the authorization code
+	//	code := r.URL.Query().Get("code")
+	//	if code == "" {
+	//		fmt.Println("snap: Url Param 'code' is missing")
+	//		io.WriteString(w, "Error: could not find 'code' URL parameter\n")
+	//
+	//		return
+	//	}
+	//
+	//	codeVerifierParam := oauth2.SetAuthURLParam("code_verifier", codeVerifier.String())
+	//	tok, err := conf.Exchange(ctx, code, codeVerifierParam)
+	//	if err != nil {
+	//		log.Fatal(err)
+	//	}
+	//
+	//	io.WriteString(w, "hei\n")
+	//	fmt.Println("Successfully logged in.")
+	//
+	//	client := conf.Client(ctx, tok)
+	//	client.Get("...")
+	//})
+	//
+	//server.ListenAndServe()
+	//defer server.Close()
 }
 
 func getGateways(apiServerURL, serial string) ([]Gateway, error) {
@@ -211,18 +298,11 @@ Endpoint = %s
 	return peers
 }
 
-// actuateWireGuardConfig runs syncconfig with the provided WireGuard config
-func actuateWireGuardConfig(wireGuardConfig string, config Config) error {
+// writeWireGuardConfig runs syncconfig with the provided WireGuard config
+func writeWireGuardConfig(wireGuardConfig string, config Config) error {
 	if err := ioutil.WriteFile(cfg.WireGuardConfigPath, []byte(wireGuardConfig), 0600); err != nil {
 		return fmt.Errorf("writing WireGuard config to disk: %w", err)
 	}
-
-	cmd := exec.Command(cfg.WireGuardPath, "syncconf", cfg.Interface, cfg.WireGuardConfigPath)
-	if b, err := cmd.CombinedOutput(); err != nil {
-		return fmt.Errorf("running syncconf: %w: %v", err, string(b))
-	}
-
-	log.Debugf("Actuated WireGuard config: %v", cfg.WireGuardConfigPath)
 
 	return nil
 }
@@ -263,34 +343,8 @@ func getDeviceSerial() (string, error) {
 	return string(matches[1]), nil
 }
 
-func setupInterface(cfg Config) error {
-	run := func(commands [][]string) error {
-		for _, s := range commands {
-			cmd := exec.Command(s[0], s[1:]...)
-
-			if out, err := cmd.CombinedOutput(); err != nil {
-				return fmt.Errorf("running %v: %w: %v", cmd, err, string(out))
-			} else {
-				fmt.Printf("%v: %v\n", cmd, string(out))
-			}
-		}
-		return nil
-	}
-
-	ip := cfg.BootstrapConfig.DeviceIP
-	commands := [][]string{
-		{cfg.WireGuardGoBinary, cfg.Interface},
-		{"ifconfig", cfg.Interface, "inet", ip + "/21", ip, "add"},
-		{"ifconfig", cfg.Interface, "mtu", "1360"},
-		{"ifconfig", cfg.Interface, "up"},
-		{"route", "-q", "-n", "add", "-inet", ip + "/21", "-interface", cfg.Interface},
-	}
-
-	return run(commands)
-}
-
 type BootstrapConfig struct {
-	DeviceIP    string `json:"deviceIP"`
+	TunnelIP    string `json:"deviceIP"`
 	PublicKey   string `json:"publicKey"`
 	Endpoint    string `json:"tunnelEndpoint"`
 	APIServerIP string `json:"apiServerIP"`
@@ -404,7 +458,7 @@ func DefaultConfig() Config {
 	return Config{
 		APIServer: "http://10.255.240.1",
 		Interface: "utun69",
-		ConfigDir: "/usr/local/etc/nais-device",
+		ConfigDir: "~/.config/nais-device",
 		BinaryDir: "/usr/local/bin",
 		LogLevel:  "info",
 	}

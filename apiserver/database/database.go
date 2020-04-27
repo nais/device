@@ -10,6 +10,7 @@ import (
 
 	"github.com/jackc/pgx/v4/pgxpool"
 	"github.com/nais/device/apiserver/cidr"
+	"github.com/nais/device/pkg/random"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -48,7 +49,7 @@ func NewTestDatabase(dsn, schema string) (*APIServerDB, error) {
 
 	defer initialConn.Close()
 
-	databaseName := RandomString(5, "abcdefghijklmnopqrstuvwxyz")
+	databaseName := random.RandomString(5, random.LowerCaseLetters)
 
 	_, err = initialConn.Exec(ctx, fmt.Sprintf("CREATE DATABASE %v", databaseName))
 	if err != nil {
