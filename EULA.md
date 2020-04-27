@@ -13,6 +13,6 @@ Følgende betingelser gjelder for den som skal benytte nais-device for å utfør
 - Du skal ikke forsøke å flytte $credentials til annen lagringsenhet, arbeidsstasjon eller elektronisk enhet.
 - xyz
 - xyz
-- Du skal ikke akseptere denne avtalen dersom noe i denne listen oppfattes som uklart eller urimelig.
+- Du skal ikke akseptere denne avtalen dersom det finnes momenter i dette dokumentet som framstår som uklare eller urimelige.
 
 Friheten til å fritt velge mellom :apple_inc: :tux: :windows:, og samtidig beholde herredømme over egen arbeidsstasjon kommer under stort ansvar. 
