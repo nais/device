@@ -1,9 +1,11 @@
 package main
 
 import (
+	"context"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"net/http"
 	"os"
@@ -108,7 +110,12 @@ func main() {
 		return
 	}
 
-	//ensureAADToken()
+	client, token, err := ensureAADToken()
+	if err != nil {
+		panic(err)
+	}
+	fmt.Println(client)
+	fmt.Println("token = ", token)
 
 	if err := filesExist(cfg.BootstrapTokenPath); err != nil {
 		pubkey, err := generatePublicKey(cfg.PrivateKeyPath, cfg.WireGuardPath)
@@ -187,10 +194,10 @@ func main() {
 	}
 }
 
-func ensureAADToken() {
+func ensureAADToken() (*http.Client, *oauth2.Token, error) {
 	redirectURL := "http://localhost:51800"
 
-	//ctx := context.Background()
+	ctx := context.Background()
 
 	conf := &oauth2.Config{
 		ClientID:    "5d69cfe1-b300-4a1a-95ec-4752d07ccab1",
@@ -199,10 +206,7 @@ func ensureAADToken() {
 		RedirectURL: redirectURL,
 	}
 
-	//server := &http.Server{Addr: ":1337"}
-
-	// Redirect user to consent page to ask for permission
-	// for the scopes specified above.
+	server := &http.Server{Addr: ":51800"}
 
 	// Ignoring impossible error
 	codeVerifier, _ := codeverifier.CreateCodeVerifier()
@@ -212,43 +216,37 @@ func ensureAADToken() {
 
 	url := conf.AuthCodeURL(random.RandomString(16, random.LettersAndNumbers), oauth2.AccessTypeOffline, method, challenge)
 
-	// macos: $ open $url
-
 	command := exec.Command("open", url)
 	command.Start()
 	fmt.Printf("If the browser didn't open, visit this url to sign in: %v\n", url)
+	var authenticatedClient *http.Client
+	var token *oauth2.Token
+	// define a handler that will get the authorization code, call the token endpoint, and close the HTTP server
+	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		code := r.URL.Query().Get("code")
+		if code == "" {
+			fmt.Println("snap: Url Param 'code' is missing")
+			io.WriteString(w, "Error: could not find 'code' URL parameter\n")
+			return
+		}
 
-	//// Use the authorization code that is pushed to the redirect
-	//// URL. Exchange will do the handshake to retrieve the
-	//// initial access token. The HTTP Client returned by
-	//// conf.Client will refresh the token as necessary.
-	//
-	//// define a handler that will get the authorization code, call the token endpoint, and close the HTTP server
-	//http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-	//	// get the authorization code
-	//	code := r.URL.Query().Get("code")
-	//	if code == "" {
-	//		fmt.Println("snap: Url Param 'code' is missing")
-	//		io.WriteString(w, "Error: could not find 'code' URL parameter\n")
-	//
-	//		return
-	//	}
-	//
-	//	codeVerifierParam := oauth2.SetAuthURLParam("code_verifier", codeVerifier.String())
-	//	tok, err := conf.Exchange(ctx, code, codeVerifierParam)
-	//	if err != nil {
-	//		log.Fatal(err)
-	//	}
-	//
-	//	io.WriteString(w, "hei\n")
-	//	fmt.Println("Successfully logged in.")
-	//
-	//	client := conf.Client(ctx, tok)
-	//	client.Get("...")
-	//})
-	//
-	//server.ListenAndServe()
-	//defer server.Close()
+		codeVerifierParam := oauth2.SetAuthURLParam("code_verifier", codeVerifier.String())
+		tok, err := conf.Exchange(ctx, code, codeVerifierParam)
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		io.WriteString(w, "Successfully authenticated 👌 You can close me.\n")
+		fmt.Println("Successfully logged in.")
+
+		authenticatedClient = conf.Client(ctx, tok)
+		token = tok
+	})
+
+	server.ListenAndServe()
+	defer server.Close()
+
+	return authenticatedClient, token, nil
 }
 
 func getGateways(apiServerURL, serial string) ([]Gateway, error) {
@@ -267,21 +265,6 @@ func getGateways(apiServerURL, serial string) ([]Gateway, error) {
 	return gateways, nil
 }
 
-func setupRoutes(gateways []Gateway, interfaceName string) error {
-	for _, gateway := range gateways {
-		for _, route := range gateway.Routes {
-			cmd := exec.Command("route", "-q", "-n", "add", "-inet", route, "-interface", interfaceName)
-			output, err := cmd.CombinedOutput()
-			if err != nil {
-				log.Errorf("%v: %v", cmd, string(output))
-				return fmt.Errorf("executing %v: %w", cmd, err)
-			}
-			log.Debugf("%v: %v", cmd, string(output))
-		}
-	}
-	return nil
-}
-
 func GenerateWireGuardPeers(gateways []Gateway) string {
 	peerTemplate := `[Peer]
 PublicKey = %s
@@ -296,15 +279,6 @@ Endpoint = %s
 	}
 
 	return peers
-}
-
-// writeWireGuardConfig runs syncconfig with the provided WireGuard config
-func writeWireGuardConfig(wireGuardConfig string, config Config) error {
-	if err := ioutil.WriteFile(cfg.WireGuardConfigPath, []byte(wireGuardConfig), 0600); err != nil {
-		return fmt.Errorf("writing WireGuard config to disk: %w", err)
-	}
-
-	return nil
 }
 
 func generateEnrollmentToken(serial, publicKey string) (string, error) {

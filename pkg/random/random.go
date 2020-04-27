@@ -7,10 +7,10 @@ import (
 )
 
 const (
-	LowerCaseLetters = "abcdefghijklmnopqrstuvwxyz"
-	UpperCaseLetters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
-	Letters = LowerCaseLetters + UpperCaseLetters
-	Numbers = "1234567890"
+	LowerCaseLetters  = "abcdefghijklmnopqrstuvwxyz"
+	UpperCaseLetters  = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+	Letters           = LowerCaseLetters + UpperCaseLetters
+	Numbers           = "1234567890"
 	LettersAndNumbers = Letters + Numbers
 )
 
