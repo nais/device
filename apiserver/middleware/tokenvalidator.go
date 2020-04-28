@@ -24,7 +24,7 @@ func TokenValidatorMiddleware(certificates map[string]discovery.CertificateList,
 				w.WriteHeader(http.StatusForbidden)
 				_, err = fmt.Fprintf(w, "Unauthorized access: %s", err.Error())
 				if err != nil {
-					log.Error("Writing http response: %v", err)
+					log.Errorf("Writing http response: %v", err)
 				}
 				return
 			}
