@@ -40,6 +40,7 @@ type Config struct {
 	BootstrapTokenPath  string
 	BootstrapConfig     *BootstrapConfig
 	LogLevel            string
+	oauth2Config        oauth2.Config
 }
 
 type Gateway struct {
@@ -110,11 +111,12 @@ func main() {
 		return
 	}
 
-	client, token, err := ensureAADToken()
+	token, err := runAuthFlow(cfg.oauth2Config)
 	if err != nil {
-		panic(err)
+		log.Errorf("Unable to get token for user: %v", err)
+		return
 	}
-	fmt.Println(client)
+
 	fmt.Println("token = ", token)
 
 	if err := filesExist(cfg.BootstrapTokenPath); err != nil {
@@ -194,17 +196,8 @@ func main() {
 	}
 }
 
-func ensureAADToken() (*http.Client, *oauth2.Token, error) {
-	redirectURL := "http://localhost:51800"
-
+func runAuthFlow(conf oauth2.Config) (*oauth2.Token, error) {
 	ctx := context.Background()
-
-	conf := &oauth2.Config{
-		ClientID:    "5d69cfe1-b300-4a1a-95ec-4752d07ccab1",
-		Scopes:      []string{"openid", "5d69cfe1-b300-4a1a-95ec-4752d07ccab1/.default", "offline_access"},
-		Endpoint:    endpoints.AzureAD("62366534-1ec3-4962-8869-9b5535279d0b"),
-		RedirectURL: redirectURL,
-	}
 
 	server := &http.Server{Addr: ":51800"}
 
@@ -214,39 +207,43 @@ func ensureAADToken() (*http.Client, *oauth2.Token, error) {
 	method := oauth2.SetAuthURLParam("code_challenge_method", "S256")
 	challenge := oauth2.SetAuthURLParam("code_challenge", codeVerifier.CodeChallengeS256())
 
-	url := conf.AuthCodeURL(random.RandomString(16, random.LettersAndNumbers), oauth2.AccessTypeOffline, method, challenge)
+	//TODO check this in response from Azure
+	randomString := random.RandomString(16, random.LettersAndNumbers)
+	url := conf.AuthCodeURL(randomString, oauth2.AccessTypeOffline, method, challenge)
 
 	command := exec.Command("open", url)
 	command.Start()
 	fmt.Printf("If the browser didn't open, visit this url to sign in: %v\n", url)
-	var authenticatedClient *http.Client
+
 	var token *oauth2.Token
+	var handlerErr error
 	// define a handler that will get the authorization code, call the token endpoint, and close the HTTP server
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		code := r.URL.Query().Get("code")
 		if code == "" {
-			fmt.Println("snap: Url Param 'code' is missing")
-			io.WriteString(w, "Error: could not find 'code' URL parameter\n")
+			io.WriteString(w, "Error: could not find 'code' URL query parameter\n")
+			handlerErr = fmt.Errorf("missing URL query param 'code'")
 			return
 		}
 
 		codeVerifierParam := oauth2.SetAuthURLParam("code_verifier", codeVerifier.String())
-		tok, err := conf.Exchange(ctx, code, codeVerifierParam)
+		t, err := conf.Exchange(ctx, code, codeVerifierParam)
 		if err != nil {
-			log.Fatal(err)
+			handlerErr = fmt.Errorf("exchanging auth code for tokens: %w", err)
+			return
 		}
 
+		// expose token outside scope
+		token = t
 		io.WriteString(w, "Successfully authenticated 👌 You can close me.\n")
-		fmt.Println("Successfully logged in.")
 
-		authenticatedClient = conf.Client(ctx, tok)
-		token = tok
+		server.Close()
 	})
 
 	server.ListenAndServe()
 	defer server.Close()
 
-	return authenticatedClient, token, nil
+	return token, handlerErr
 }
 
 func getGateways(apiServerURL, serial string) ([]Gateway, error) {
@@ -435,6 +432,12 @@ func DefaultConfig() Config {
 		ConfigDir: "~/.config/nais-device",
 		BinaryDir: "/usr/local/bin",
 		LogLevel:  "info",
+		oauth2Config: oauth2.Config{
+			ClientID:    "5d69cfe1-b300-4a1a-95ec-4752d07ccab1",
+			Scopes:      []string{"openid", "5d69cfe1-b300-4a1a-95ec-4752d07ccab1/.default", "offline_access"},
+			Endpoint:    endpoints.AzureAD("62366534-1ec3-4962-8869-9b5535279d0b"),
+			RedirectURL: "http://localhost:51800",
+		},
 	}
 }
 
