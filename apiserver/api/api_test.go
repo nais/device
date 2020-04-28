@@ -2,6 +2,7 @@ package api_test
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
@@ -70,7 +71,8 @@ func setup(t *testing.T) (*database.APIServerDB, chi.Router) {
 		t.Fatalf("Instantiating database: %v", err)
 	}
 	return db, api.New(api.Config{
-		DB: db,
+		DB:                          db,
+		OAuthKeyValidatorMiddleware: TokenValidatorMiddlewareMock([]string{"abc-123", "123-abc"}),
 	})
 }
 
@@ -95,4 +97,14 @@ func executeRequest(req *http.Request, router chi.Router) *httptest.ResponseReco
 
 func boolp(b bool) *bool {
 	return &b
+}
+
+func TokenValidatorMiddlewareMock(groups []string) func(next http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		fn := func(w http.ResponseWriter, r *http.Request) {
+			r = r.WithContext(context.WithValue(r.Context(), "groups", groups))
+			next.ServeHTTP(w, r)
+		}
+		return http.HandlerFunc(fn)
+	}
 }

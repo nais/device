@@ -1,5 +1,7 @@
 package config
 
+import "fmt"
+
 type Config struct {
 	DbConnURI           string
 	SlackToken          string
@@ -9,6 +11,24 @@ type Config struct {
 	WireGuardConfigPath string
 	SkipSetupInterface  bool
 	Endpoint            string
+	Azure               Azure
+}
+
+func (c Config) Valid() error {
+	if len(c.Azure.DiscoveryURL) == 0 {
+		return fmt.Errorf("--azure-discovery-url must be set")
+	}
+
+	if len(c.Azure.ClientID) == 0 {
+		return fmt.Errorf("--azure-client-id must be set")
+	}
+
+	return nil
+}
+
+type Azure struct {
+	ClientID     string
+	DiscoveryURL string
 }
 
 func DefaultConfig() Config {

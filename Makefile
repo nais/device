@@ -38,7 +38,7 @@ teardown-postgres-test:
 local-apiserver:
 	$(eval confdir := $(shell mktemp -d))
 	wg genkey > ${confdir}/private.key
-	go run ./cmd/apiserver/main.go --db-connection-uri=postgresql://postgres:postgres@localhost/postgres --bind-address=127.0.0.1:8080 --slack-token=${APISERVER_SLACK_TOKEN} --skip-setup-interface=true --config-dir=${confdir}
+	go run ./cmd/apiserver/main.go --db-connection-uri=postgresql://postgres:postgres@localhost/postgres --bind-address=127.0.0.1:8080 --slack-token=${APISERVER_SLACK_TOKEN} --skip-setup-interface=true --config-dir=${confdir} --azure-discovery-url https://login.microsoftonline.com/common/discovery/v2.0/keys --azure-client-id 6e45010d-2637-4a40-b91d-d4cbb451fb57
 	echo ${confdir}
 
 test:
