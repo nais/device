@@ -5,7 +5,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
-	"io"
+	"github.com/nais/device/apiserver/kekw"
 	"io/ioutil"
 	"net/http"
 	"os"
@@ -171,6 +171,8 @@ func main() {
 		"--wireguard-go-binary", cfg.WireGuardGoBinary,
 		"--wireguard-config-path", cfg.WireGuardConfigPath)
 
+	cmd.Stderr = os.Stderr
+	cmd.Stdout = os.Stdout
 	if err := cmd.Start(); err != nil {
 		log.Errorf("Starting device-agent-helper: %v", err)
 		return
@@ -210,43 +212,48 @@ func runAuthFlow(conf oauth2.Config) (*oauth2.Token, error) {
 
 	//TODO check this in response from Azure
 	randomString := random.RandomString(16, random.LettersAndNumbers)
-	url := conf.AuthCodeURL(randomString, oauth2.AccessTypeOffline, method, challenge)
 
-	command := exec.Command("open", url)
-	command.Start()
-	fmt.Printf("If the browser didn't open, visit this url to sign in: %v\n", url)
-
-	var token *oauth2.Token
-	var handlerErr error
+	tokenChan := make(chan *oauth2.Token)
 	// define a handler that will get the authorization code, call the token endpoint, and close the HTTP server
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		code := r.URL.Query().Get("code")
 		if code == "" {
-			io.WriteString(w, "Error: could not find 'code' URL query parameter\n")
-			handlerErr = fmt.Errorf("missing URL query param 'code'")
+			log.Errorf("Error: could not find 'code' URL query parameter")
+			failureResponse(w, "Error: could not find 'code' URL query parameter")
+			tokenChan <- nil
 			return
 		}
 
 		codeVerifierParam := oauth2.SetAuthURLParam("code_verifier", codeVerifier.String())
 		t, err := conf.Exchange(ctx, code, codeVerifierParam)
 		if err != nil {
-			io.WriteString(w, "Error: during code exchange\n")
+			failureResponse(w, "Error: during code exchange")
 			log.Errorf("exchanging code for tokens: %v", err)
-			handlerErr = fmt.Errorf("exchanging auth code for tokens: %w", err)
+			tokenChan <- nil
 			return
 		}
 
-		// expose token outside scope
-		token = t
-		io.WriteString(w, "Successfully authenticated 👌 You can close me.\n")
-
-		server.Close()
+		successfulResponse(w, "Successfully authenticated 👌 Close me pls")
+		tokenChan <- t
 	})
 
-	server.ListenAndServe()
-	defer server.Close()
+	go func() {
+		_ = server.ListenAndServe()
+	}()
 
-	return token, handlerErr
+	url := conf.AuthCodeURL(randomString, oauth2.AccessTypeOffline, method, challenge)
+	command := exec.Command("open", url)
+	_ = command.Start()
+	fmt.Printf("If the browser didn't open, visit this url to sign in: %v\n", url)
+
+	token := <-tokenChan
+	_ = server.Close()
+
+	if token == nil {
+		return nil, fmt.Errorf("no token received")
+	}
+
+	return token, nil
 }
 
 func getGateways(client *http.Client, apiServerURL, serial string) ([]Gateway, error) {
@@ -463,4 +470,24 @@ func getHomeDirOrFail() string {
 	}
 
 	return homeDir
+}
+
+func failureResponse(w http.ResponseWriter, msg string) {
+	w.Header().Set("content-type", "text/html;charset=utf8")
+	_, _ = fmt.Fprintf(w, `
+<h2>
+  %s
+</h2>
+<img src="data:image/jpeg;base64,%s"/>
+`, msg, kekw.SadKekW)
+}
+
+func successfulResponse(w http.ResponseWriter, msg string) {
+	w.Header().Set("content-type", "text/html;charset=utf8")
+	_, _ = fmt.Fprintf(w, `
+<h2>
+  %s
+</h2>
+<img src="data:image/jpeg;base64,%s"/>
+`, msg, kekw.HappyKekW)
 }
