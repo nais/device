@@ -202,7 +202,7 @@ func main() {
 func runAuthFlow(conf oauth2.Config) (*oauth2.Token, error) {
 	ctx := context.Background()
 
-	server := &http.Server{Addr: ":51800"}
+	server := &http.Server{Addr: "127.0.0.1:51800"}
 
 	// Ignoring impossible error
 	codeVerifier, _ := codeverifier.CreateCodeVerifier()

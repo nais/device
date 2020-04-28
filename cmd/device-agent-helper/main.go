@@ -64,12 +64,12 @@ func main() {
 	for range time.NewTicker(10 * time.Second).C {
 		cmd := exec.Command(cfg.WireGuardBinary, "syncconf", cfg.Interface, cfg.WireGuardConfigPath)
 		if b, err := cmd.CombinedOutput(); err != nil {
-			log.Errorf("running syncconf: %v: %v", err, string(b))
+			log.Errorf("Running syncconf: %v: %v", err, string(b))
 		}
 
 		configFileBytes, err := ioutil.ReadFile(cfg.WireGuardConfigPath)
 		if err != nil {
-			log.Errorf("reading file: %v", err)
+			log.Errorf("Reading file: %v", err)
 		}
 
 		cidrs, err := ParseConfig(string(configFileBytes))
