@@ -1,28 +1,35 @@
 <?php declare(strict_types=1);
-function usage(string $extra = null) : void {
-    echo sprintf('usage: php -dphar.readonly=off %s <stub-file>', $_SERVER['argv'][0]) . PHP_EOL;
+function usage(string $extra = null, int $exitCode = 1) : void {
+    echo sprintf('usage: php -d phar.readonly=off %s <script> <target-path>', $_SERVER['argv'][0]) . PHP_EOL;
 
     if (null !== $extra) {
-        echo $extra . PHP_EOL;
+        echo PHP_EOL . $extra . PHP_EOL;
     }
+
+    exit($exitCode);
 }
 
-if (empty($_SERVER['argv'][1])) {
-    usage();
-    exit(1);
+if (3 !== $_SERVER['argc']) {
+    usage('Incorrect parameter count');
 }
 
-$stub = realpath($_SERVER['argv'][1]);
+// Path to the script we want to package
+$script = $_SERVER['argv'][1];
 
-if (!is_file($stub)) {
-    usage(sprintf('Stub file does not exist: %s', $_SERVER['argv'][1]));
-    exit(2);
+// Directory to store the archive
+$targetPath = $_SERVER['argv'][2];
+
+if (!is_file($script)) {
+    usage(sprintf('Script file does not exist: %s', $script));
 } else if (ini_get('phar.readonly')) {
-    usage('Remember to set the phar.readonly PHP ini setting to off');
-    exit(3);
+    usage('Set the phar.readonly PHP ini setting to off');
+} else if (is_dir($targetPath) && !is_writable($targetPath)) {
+    usage(sprintf('Target path exists but is not writable: %s', $targetPath));
+} else if (!is_dir($targetPath) && !mkdir($targetPath, 0777, true)) {
+    usage(sprintf('Unable to create target path: %s', $targetPath));
 }
 
-$archiveName = preg_replace('/\.php$/', '.phar', $stub);
+$archiveName = sprintf('%s/%s', $_SERVER['argv'][2], preg_replace('/\.php$/', '.phar', basename($script)));
 
 if (file_exists($archiveName) && !unlink($archiveName)) {
     throw new RuntimeException(sprintf(
@@ -31,10 +38,11 @@ if (file_exists($archiveName) && !unlink($archiveName)) {
     ));
 }
 
+// Files / dirs to add to the archive
 $whitelist = [
     'src',
     'vendor',
-    basename($stub),
+    basename($script),
 ];
 
 $iterator = new RecursiveIteratorIterator(
@@ -58,12 +66,12 @@ $stubContents = <<<STUB
 #!/usr/bin/env php
 <?php
 Phar::mapPhar();
-require "phar://{basename($archiveName)}/{basename($stub)}";
+require "phar://%s/%s";
 __HALT_COMPILER();
 STUB;
 
 $phar = new Phar($archiveName);
 $phar->setAlias(basename($archiveName));
 $phar->buildFromIterator($iterator, __DIR__);
-$phar->setStub($stubContents);
+$phar->setStub(sprintf($stubContents, basename($archiveName), basename($script)));
 $phar->compressFiles(Phar::GZ);
