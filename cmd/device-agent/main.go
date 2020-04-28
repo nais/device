@@ -125,7 +125,7 @@ func main() {
 			return
 		}
 
-		enrollmentToken, err := generateEnrollmentToken(serial, pubkey)
+		enrollmentToken, err := GenerateEnrollmentToken(serial, pubkey, token.AccessToken)
 		if err != nil {
 			log.Errorf("Generating enrollment token: %v", err)
 			return
@@ -288,15 +288,17 @@ Endpoint = %s
 	return peers
 }
 
-func generateEnrollmentToken(serial, publicKey string) (string, error) {
+func GenerateEnrollmentToken(serial, publicKey, accessToken string) (string, error) {
 	type enrollmentConfig struct {
-		Serial    string `json:"serial"`
-		PublicKey string `json:"publicKey"`
+		Serial      string `json:"serial"`
+		PublicKey   string `json:"publicKey"`
+		AccessToken string `json:"accessToken"`
 	}
 
 	ec := enrollmentConfig{
-		Serial:    serial,
-		PublicKey: publicKey,
+		Serial:      serial,
+		PublicKey:   publicKey,
+		AccessToken: accessToken,
 	}
 
 	if b, err := json.Marshal(ec); err != nil {

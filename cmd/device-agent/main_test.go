@@ -62,3 +62,11 @@ Endpoint = 13.37.13.37:51820
 `
 	assert.Equal(t, expected, config)
 }
+
+func TestGenerateEnrollmentToken(t *testing.T) {
+	expected := "eyJzZXJpYWwiOiJzZXJpYWwiLCJwdWJsaWNLZXkiOiJwdWJsaWNfa2V5IiwiYWNjZXNzVG9rZW4iOiJhY2Nlc3NfdG9rZW4ifQ=="
+	enrollmentToken, err := main.GenerateEnrollmentToken("serial", "public_key", "access_token")
+
+	assert.NoError(t, err)
+	assert.Equal(t, expected, enrollmentToken, "interface changed, remember to change the apiserver counterpart")
+}

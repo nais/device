@@ -2,8 +2,6 @@ package main
 
 import (
 	"fmt"
-	"github.com/nais/device/apiserver/azure/discovery"
-	"github.com/nais/device/apiserver/middleware"
 	"io/ioutil"
 	"net/http"
 	"os"
@@ -11,6 +9,10 @@ import (
 	"path/filepath"
 	"strings"
 	"time"
+
+	"github.com/nais/device/apiserver/azure/discovery"
+	"github.com/nais/device/apiserver/azure/validate"
+	"github.com/nais/device/apiserver/middleware"
 
 	"github.com/nais/device/apiserver/api"
 	"github.com/nais/device/apiserver/config"
@@ -72,9 +74,10 @@ func main() {
 	if err != nil {
 		log.Fatalf("Retrieving azure ad certificates for token validation: %v", err)
 	}
+	jwtValidator := validate.JWTValidator(certificates, cfg.Azure.ClientID)
 
 	if len(cfg.SlackToken) > 0 {
-		slackBot := slack.New(cfg.SlackToken, cfg.Endpoint, db, string(publicKey))
+		slackBot := slack.New(cfg.SlackToken, cfg.Endpoint, db, string(publicKey), jwtValidator)
 		go slackBot.Handler()
 	}
 
@@ -84,7 +87,7 @@ func main() {
 
 	router := api.New(api.Config{
 		DB:                          db,
-		OAuthKeyValidatorMiddleware: middleware.TokenValidatorMiddleware(certificates, cfg.Azure.ClientID),
+		OAuthKeyValidatorMiddleware: middleware.TokenValidatorMiddleware(jwtValidator),
 	})
 
 	fmt.Println("running @", cfg.BindAddress)

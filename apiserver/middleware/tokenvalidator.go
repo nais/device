@@ -3,23 +3,22 @@ package middleware
 import (
 	"context"
 	"fmt"
-	"github.com/nais/device/apiserver/azure/discovery"
-	"github.com/nais/device/apiserver/azure/validate"
-	log "github.com/sirupsen/logrus"
 	"net/http"
+
+	log "github.com/sirupsen/logrus"
 
 	"github.com/dgrijalva/jwt-go"
 	"github.com/go-chi/jwtauth"
 )
 
-func TokenValidatorMiddleware(certificates map[string]discovery.CertificateList, audience string) func(next http.Handler) http.Handler {
+func TokenValidatorMiddleware(jwtValidator jwt.Keyfunc) func(next http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		fn := func(w http.ResponseWriter, r *http.Request) {
 			var claims jwt.MapClaims
 
 			token := jwtauth.TokenFromHeader(r)
 
-			_, err := jwt.ParseWithClaims(token, &claims, validate.JWTValidator(certificates, audience))
+			_, err := jwt.ParseWithClaims(token, &claims, jwtValidator)
 			if err != nil {
 				w.WriteHeader(http.StatusForbidden)
 				_, err = fmt.Fprintf(w, "Unauthorized access: %s", err.Error())
@@ -42,4 +41,3 @@ func TokenValidatorMiddleware(certificates map[string]discovery.CertificateList,
 		return http.HandlerFunc(fn)
 	}
 }
-
