@@ -88,7 +88,7 @@ func (s *slackbot) handleEnroll(msg slack.Msg) string {
 		}
 
 		token := base64.StdEncoding.EncodeToString(b)
-		return fmt.Sprintf("Successfully enrolled :kekw: Copy and paste this command on your command line: `echo '%s' > ~/.config/nais-device/bootstrap.token`", token)
+		return fmt.Sprintf("Successfully enrolled :kekw: Copy and paste this command on your command line:\n ```echo '%s' > ~/.config/nais-device/bootstrap.token```", token)
 	}
 }
 
