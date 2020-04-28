@@ -13,6 +13,11 @@ jobs:
     steps:
       - uses: actions/checkout@v2
 
+      - name: Output some debug information
+        run: |
+          php -m
+          php -i
+
       - name: Validate composer files
         run: composer validate
 
@@ -31,3 +36,21 @@ jobs:
 
       - name: Run tests
         run: composer run ci
+
+      - name: Generate version string for the archives
+        id: get-version
+        run: echo ::set-output name=version::$(date "+%Y-%m-%d")-$(git rev-parse --short HEAD)
+
+      - name: Build phar archives
+        run: |
+          composer install --prefer-dist --no-progress --no-suggest --no-ansi -o --no-dev
+          php -d phar.readonly=off create-phar.php get-checks.php bin
+          php -d phar.readonly=off create-phar.php update.php bin
+          chmod +x bin/*.phar
+          mv bin/get-checks.phar bin/get-checks-${{ steps.get-version.outputs.version }}.phar
+          mv bin/update.phar bin/update-${{ steps.get-version.outputs.version }}.phar
+
+      - uses: actions/upload-artifact@v1
+        with:
+          name: Archives
+          path: bin
