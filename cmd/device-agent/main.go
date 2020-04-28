@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"os"
 	"os/exec"
+	"path"
 	"path/filepath"
 	"regexp"
 	"strings"
@@ -117,8 +118,6 @@ func main() {
 		return
 	}
 
-	fmt.Println("token = ", token)
-
 	if err := filesExist(cfg.BootstrapTokenPath); err != nil {
 		pubkey, err := generatePublicKey(cfg.PrivateKeyPath, cfg.WireGuardPath)
 		if err != nil {
@@ -157,7 +156,7 @@ func main() {
 	baseConfig := GenerateBaseConfig(cfg.BootstrapConfig, privateKey)
 
 	if err := ioutil.WriteFile(cfg.WireGuardConfigPath, []byte(baseConfig), 0600); err != nil {
-		log.Errorf("Writing WireGuard config to disk: %w", err)
+		log.Errorf("Writing WireGuard config to disk: %v", err)
 		return
 	}
 
@@ -179,8 +178,10 @@ func main() {
 
 	//TODO(VegarM): defer context abort
 
+	ctx := context.Background()
+	client := cfg.oauth2Config.Client(ctx, token)
 	for range time.NewTicker(10 * time.Second).C {
-		gateways, err := getGateways(cfg.APIServer, serial)
+		gateways, err := getGateways(client, cfg.APIServer, serial)
 		if err != nil {
 			log.Errorf("Unable to get gateway config: %v", err)
 		}
@@ -188,7 +189,7 @@ func main() {
 		wireGuardPeers := GenerateWireGuardPeers(gateways)
 
 		if err := ioutil.WriteFile(cfg.WireGuardConfigPath, []byte(baseConfig+wireGuardPeers), 0600); err != nil {
-			log.Errorf("Writing WireGuard config to disk: %w", err)
+			log.Errorf("Writing WireGuard config to disk: %v", err)
 			return
 		}
 
@@ -229,6 +230,8 @@ func runAuthFlow(conf oauth2.Config) (*oauth2.Token, error) {
 		codeVerifierParam := oauth2.SetAuthURLParam("code_verifier", codeVerifier.String())
 		t, err := conf.Exchange(ctx, code, codeVerifierParam)
 		if err != nil {
+			io.WriteString(w, "Error: during code exchange\n")
+			log.Errorf("exchanging code for tokens: %v", err)
 			handlerErr = fmt.Errorf("exchanging auth code for tokens: %w", err)
 			return
 		}
@@ -246,9 +249,9 @@ func runAuthFlow(conf oauth2.Config) (*oauth2.Token, error) {
 	return token, handlerErr
 }
 
-func getGateways(apiServerURL, serial string) ([]Gateway, error) {
+func getGateways(client *http.Client, apiServerURL, serial string) ([]Gateway, error) {
 	deviceConfigAPI := fmt.Sprintf("%s/devices/config/%s", apiServerURL, serial)
-	r, err := http.Get(deviceConfigAPI)
+	r, err := client.Get(deviceConfigAPI)
 	if err != nil {
 		return nil, fmt.Errorf("getting device config: %w", err)
 	}
@@ -429,12 +432,12 @@ func DefaultConfig() Config {
 	return Config{
 		APIServer: "http://10.255.240.1",
 		Interface: "utun69",
-		ConfigDir: "~/.config/nais-device",
+		ConfigDir: path.Join(getHomeDirOrFail(), ".config", "nais-device"),
 		BinaryDir: "/usr/local/bin",
 		LogLevel:  "info",
 		oauth2Config: oauth2.Config{
-			ClientID:    "5d69cfe1-b300-4a1a-95ec-4752d07ccab1",
-			Scopes:      []string{"openid", "5d69cfe1-b300-4a1a-95ec-4752d07ccab1/.default", "offline_access"},
+			ClientID:    "8086d321-c6d3-4398-87da-0d54e3d93967",
+			Scopes:      []string{"openid", "6e45010d-2637-4a40-b91d-d4cbb451fb57/.default", "offline_access"},
 			Endpoint:    endpoints.AzureAD("62366534-1ec3-4962-8869-9b5535279d0b"),
 			RedirectURL: "http://localhost:51800",
 		},
@@ -451,4 +454,13 @@ func FileMustExist(filepath string) error {
 	}
 
 	return nil
+}
+
+func getHomeDirOrFail() string {
+	homeDir, err := os.UserHomeDir()
+	if err != nil {
+		log.Fatalf("Getting home dir: %v", err)
+	}
+
+	return homeDir
 }
