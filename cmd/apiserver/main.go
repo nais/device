@@ -2,6 +2,8 @@ package main
 
 import (
 	"fmt"
+	"github.com/nais/device/apiserver/azure/discovery"
+	"github.com/nais/device/apiserver/middleware"
 	"io/ioutil"
 	"net/http"
 	"os"
@@ -30,33 +32,45 @@ func init() {
 	flag.StringVar(&cfg.ConfigDir, "config-dir", cfg.ConfigDir, "Path to configuration directory")
 	flag.StringVar(&cfg.Endpoint, "endpoint", cfg.Endpoint, "public endpoint (ip:port)")
 	flag.BoolVar(&cfg.SkipSetupInterface, "skip-setup-interface", cfg.SkipSetupInterface, "Skip setting up WireGuard interface")
+	flag.StringVar(&cfg.Azure.DiscoveryURL, "azure-discovery-url", "", "Azure discovery url")
+	flag.StringVar(&cfg.Azure.ClientID, "azure-client-id", "", "Azure app client id")
 
 	flag.Parse()
 
 	cfg.PrivateKeyPath = filepath.Join(cfg.ConfigDir, "private.key")
 	cfg.WireGuardConfigPath = filepath.Join(cfg.ConfigDir, "wg0.conf")
+
+	if err := cfg.Valid(); err != nil {
+		fmt.Printf("Validating config: %v", err)
+		os.Exit(1)
+	}
 }
 
 func main() {
 	if !cfg.SkipSetupInterface {
 		if err := setupInterface(); err != nil {
-			log.Fatalf("setting up WireGuard interface: %v", err)
+			log.Fatalf("Setting up WireGuard interface: %v", err)
 		}
 	}
 
 	db, err := database.New(cfg.DbConnURI)
 	if err != nil {
-		log.Fatalf("instantiating database: %s", err)
+		log.Fatalf("Instantiating database: %s", err)
 	}
 
 	privateKey, err := ioutil.ReadFile(cfg.PrivateKeyPath)
 	if err != nil {
-		log.Fatalf("reading private key: %v", err)
+		log.Fatalf("Reading private key: %v", err)
 	}
 
 	publicKey, err := generatePublicKey(privateKey, "wg")
 	if err != nil {
-		log.Fatalf("generating public key: %v", err)
+		log.Fatalf("Generating public key: %v", err)
+	}
+
+	certificates, err := discovery.FetchCertificates(cfg.Azure)
+	if err != nil {
+		log.Fatalf("Retrieving azure ad certificates for token validation: %v", err)
 	}
 
 	if len(cfg.SlackToken) > 0 {
@@ -68,7 +82,10 @@ func main() {
 		go syncWireguardConfig(cfg.DbConnURI, string(privateKey), cfg.WireGuardConfigPath)
 	}
 
-	router := api.New(api.Config{DB: db})
+	router := api.New(api.Config{
+		DB:                          db,
+		OAuthKeyValidatorMiddleware: middleware.TokenValidatorMiddleware(certificates, cfg.Azure.ClientID),
+	})
 
 	fmt.Println("running @", cfg.BindAddress)
 	fmt.Println(http.ListenAndServe(cfg.BindAddress, router))
@@ -100,7 +117,7 @@ func generatePublicKey(privateKey []byte, wireGuardPath string) ([]byte, error) 
 
 func setupInterface() error {
 	if err := exec.Command("ip", "link", "del", "wg0").Run(); err != nil {
-		log.Infof("pre-deleting WireGuard interface (ok if this fails): %v", err)
+		log.Infof("Pre-deleting WireGuard interface (ok if this fails): %v", err)
 	}
 
 	run := func(commands [][]string) error {
@@ -129,29 +146,29 @@ func setupInterface() error {
 func syncWireguardConfig(dbConnURI, privateKey, wireGuardConfigPath string) {
 	db, err := database.New(dbConnURI)
 	if err != nil {
-		log.Fatalf("instantiating database: %v", err)
+		log.Fatalf("Instantiating database: %v", err)
 	}
 
 	for c := time.Tick(10 * time.Second); ; <-c {
-		log.Info("syncing config")
+		log.Info("Syncing config")
 		devices, err := db.ReadDevices()
 		if err != nil {
-			log.Errorf("reading devices from database: %v", err)
+			log.Errorf("Reading devices from database: %v", err)
 		}
 
 		gateways, err := db.ReadGateways()
 		if err != nil {
-			log.Errorf("reading gateways from database: %v", err)
+			log.Errorf("Reading gateways from database: %v", err)
 		}
 
 		wgConfigContent := GenerateWGConfig(devices, gateways, privateKey)
 
 		if err := ioutil.WriteFile(wireGuardConfigPath, wgConfigContent, 0600); err != nil {
-			log.Errorf("writing WireGuard config to disk: %v", err)
+			log.Errorf("Writing WireGuard config to disk: %v", err)
 		}
 
 		if b, err := exec.Command("wg", "syncconf", "wg0", wireGuardConfigPath).Output(); err != nil {
-			log.Errorf("synchronizing WireGuard config: %v: %v", err, string(b))
+			log.Errorf("Synchronizing WireGuard config: %v: %v", err, string(b))
 		}
 	}
 }
