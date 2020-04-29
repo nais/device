@@ -1,12 +1,15 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"io/ioutil"
 	"os"
 	"os/exec"
+	"os/signal"
 	"regexp"
 	"strings"
+	"syscall"
 	"time"
 
 	log "github.com/sirupsen/logrus"
@@ -53,32 +56,45 @@ func init() {
 func main() {
 	log.Infof("Starting device-agent-helper with config:\n%+v", cfg)
 
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
 	if err := filesExist(cfg.WireGuardBinary, cfg.WireGuardGoBinary); err != nil {
 		log.Fatalf("Verifying if file exists: %v", err)
 	}
 
-	if err := setupInterface(cfg); err != nil {
+	if err := setupInterface(ctx, cfg); err != nil {
 		log.Fatalf("Setting up interface: %v", err)
 	}
 
-	for range time.NewTicker(10 * time.Second).C {
-		cmd := exec.Command(cfg.WireGuardBinary, "syncconf", cfg.Interface, cfg.WireGuardConfigPath)
-		if b, err := cmd.CombinedOutput(); err != nil {
-			log.Errorf("Running syncconf: %v: %v", err, string(b))
-		}
+	interrupt := make(chan os.Signal)
+	signal.Notify(interrupt, os.Interrupt, syscall.SIGTERM)
 
-		configFileBytes, err := ioutil.ReadFile(cfg.WireGuardConfigPath)
-		if err != nil {
-			log.Errorf("Reading file: %v", err)
-		}
+	for {
+		select {
+		case <-interrupt:
+			log.Info("Received interrupt, shutting down gracefully.")
+			return
 
-		cidrs, err := ParseConfig(string(configFileBytes))
-		if err != nil {
-			log.Errorf("Parsing WireGuard config: %v", err)
-		}
+		case <-time.After(10 * time.Second):
+			cmd := exec.CommandContext(ctx, cfg.WireGuardBinary, "syncconf", cfg.Interface, cfg.WireGuardConfigPath)
+			if b, err := cmd.CombinedOutput(); err != nil {
+				log.Errorf("Running syncconf: %v: %v", err, string(b))
+			}
 
-		if err := setupRoutes(cidrs, cfg.Interface); err != nil {
-			log.Errorf("Setting up routes: %v", err)
+			configFileBytes, err := ioutil.ReadFile(cfg.WireGuardConfigPath)
+			if err != nil {
+				log.Errorf("Reading file: %v", err)
+			}
+
+			cidrs, err := ParseConfig(string(configFileBytes))
+			if err != nil {
+				log.Errorf("Parsing WireGuard config: %v", err)
+			}
+
+			if err := setupRoutes(ctx, cidrs, cfg.Interface); err != nil {
+				log.Errorf("Setting up routes: %v", err)
+			}
 		}
 	}
 }
@@ -96,9 +112,9 @@ func ParseConfig(wireGuardConfig string) ([]string, error) {
 	return cidrs, nil
 }
 
-func setupRoutes(cidrs []string, interfaceName string) error {
+func setupRoutes(ctx context.Context, cidrs []string, interfaceName string) error {
 	for _, cidr := range cidrs {
-		cmd := exec.Command("route", "-q", "-n", "add", "-inet", cidr, "-interface", interfaceName)
+		cmd := exec.CommandContext(ctx, "route", "-q", "-n", "add", "-inet", cidr, "-interface", interfaceName)
 		output, err := cmd.CombinedOutput()
 		if err != nil {
 			log.Errorf("%v: %v", cmd, string(output))
@@ -109,10 +125,10 @@ func setupRoutes(cidrs []string, interfaceName string) error {
 	return nil
 }
 
-func setupInterface(cfg Config) error {
+func setupInterface(ctx context.Context, cfg Config) error {
 	run := func(commands [][]string) error {
 		for _, s := range commands {
-			cmd := exec.Command(s[0], s[1:]...)
+			cmd := exec.CommandContext(ctx, s[0], s[1:]...)
 
 			if out, err := cmd.CombinedOutput(); err != nil {
 				return fmt.Errorf("running %v: %w: %v", cmd, err, string(out))
@@ -125,7 +141,7 @@ func setupInterface(cfg Config) error {
 
 	ip := cfg.TunnelIP
 	commands := [][]string{
-		{cfg.WireGuardGoBinary, cfg.Interface},
+		{cfg.WireGuardGoBinary, "-f", cfg.Interface},
 		{"ifconfig", cfg.Interface, "inet", ip + "/21", ip, "add"},
 		{"ifconfig", cfg.Interface, "mtu", "1360"},
 		{"ifconfig", cfg.Interface, "up"},

@@ -10,10 +10,12 @@ import (
 	"net/http"
 	"os"
 	"os/exec"
+	"os/signal"
 	"path"
 	"path/filepath"
 	"regexp"
 	"strings"
+	"syscall"
 	"time"
 
 	"github.com/nais/device/pkg/random"
@@ -182,30 +184,38 @@ func main() {
 		return
 	}
 
-	ctx, cancel = context.WithDeadline(context.Background(), time.Now().Add(5*time.Minute))
-	defer cancel()
+	ctxAuth, cancelAuth := context.WithDeadline(ctx, time.Now().Add(5*time.Minute))
+	defer cancelAuth()
+	client := cfg.oauth2Config.Client(ctxAuth, token)
 
-	client := cfg.oauth2Config.Client(ctx, token)
-	for range time.NewTicker(10 * time.Second).C {
-		gateways, err := getGateways(client, cfg.APIServer, serial)
-		if err != nil {
-			log.Errorf("Unable to get gateway config: %v", err)
-		}
+	interrupt := make(chan os.Signal)
+	signal.Notify(interrupt, os.Interrupt, syscall.SIGTERM)
 
-		wireGuardPeers := GenerateWireGuardPeers(gateways)
-
-		if err := ioutil.WriteFile(cfg.WireGuardConfigPath, []byte(baseConfig+wireGuardPeers), 0600); err != nil {
-			log.Errorf("Writing WireGuard config to disk: %v", err)
+	for {
+		select {
+		case <-interrupt:
+			log.Info("Received interrupt, shutting down gracefully.")
 			return
-		}
 
-		log.Debugf("Wrote WireGuard config to disk")
+		case <-time.After(10 * time.Second):
+			gateways, err := getGateways(client, cfg.APIServer, serial)
+			if err != nil {
+				log.Errorf("Unable to get gateway config: %v", err)
+			}
+
+			wireGuardPeers := GenerateWireGuardPeers(gateways)
+
+			if err := ioutil.WriteFile(cfg.WireGuardConfigPath, []byte(baseConfig+wireGuardPeers), 0600); err != nil {
+				log.Errorf("Writing WireGuard config to disk: %v", err)
+				return
+			}
+
+			log.Debugf("Wrote WireGuard config to disk")
+		}
 	}
 }
 
-func runAuthFlow(conf oauth2.Config) (*oauth2.Token, error) {
-	ctx := context.Background()
-
+func runAuthFlow(ctx context.Context, conf oauth2.Config) (*oauth2.Token, error) {
 	server := &http.Server{Addr: "127.0.0.1:51800"}
 
 	// Ignoring impossible error
@@ -227,6 +237,9 @@ func runAuthFlow(conf oauth2.Config) (*oauth2.Token, error) {
 			tokenChan <- nil
 			return
 		}
+
+		ctx, cancel := context.WithDeadline(ctx, time.Now().Add(30*time.Second))
+		defer cancel()
 
 		codeVerifierParam := oauth2.SetAuthURLParam("code_verifier", codeVerifier.String())
 		t, err := conf.Exchange(ctx, code, codeVerifierParam)
@@ -498,8 +511,6 @@ func successfulResponse(w http.ResponseWriter, msg string) {
 `, msg, kekw.HappyKekW)
 }
 
-func adminCommandContext(ctx context.Context, command string, args ...string) *exec.Cmd {
-	script := fmt.Sprintf("%s %s", command, strings.Join(args, " "))
-	log.Infof("running '%s' as admin", script)
-	return exec.CommandContext(ctx, "/usr/bin/osascript", "-e", fmt.Sprintf("do shell script \"%s\" with administrator privileges", script))
+func adminCommandContext(ctx context.Context, command string, arg ...string) *exec.Cmd {
+	return exec.CommandContext(ctx, "sudo", append([]string{command}, arg...)...)
 }
