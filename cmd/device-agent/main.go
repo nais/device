@@ -93,6 +93,9 @@ func init() {
 func main() {
 	log.Infof("Starting device-agent with config:\n%+v", cfg)
 
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
 	if err := filesExist(cfg.WireGuardPath, cfg.WireGuardGoBinary); err != nil {
 		log.Errorf("Verifying if file exists: %v", err)
 		return
@@ -114,7 +117,7 @@ func main() {
 		return
 	}
 
-	token, err := runAuthFlow(cfg.oauth2Config)
+	token, err := runAuthFlow(ctx, cfg.oauth2Config)
 	if err != nil {
 		log.Errorf("Unable to get token for user: %v", err)
 		return
@@ -167,9 +170,6 @@ func main() {
 	fmt.Println("Starting device-agent-helper, you might be prompted for password")
 
 	// start device-agent-helper
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-
 	cmd := adminCommandContext(ctx, "./bin/device-agent-helper",
 		"--interface", cfg.Interface,
 		"--tunnel-ip", cfg.BootstrapConfig.TunnelIP,
