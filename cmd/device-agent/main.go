@@ -184,9 +184,7 @@ func main() {
 		return
 	}
 
-	ctxAuth, cancelAuth := context.WithDeadline(ctx, time.Now().Add(5*time.Minute))
-	defer cancelAuth()
-	client := cfg.oauth2Config.Client(ctxAuth, token)
+	client := cfg.oauth2Config.Client(ctx, token)
 
 	interrupt := make(chan os.Signal)
 	signal.Notify(interrupt, os.Interrupt, syscall.SIGTERM)

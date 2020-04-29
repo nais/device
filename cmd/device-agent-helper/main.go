@@ -36,7 +36,7 @@ func init() {
 	flag.StringVar(&cfg.LogLevel, "log-level", "info", "which log level to output")
 	flag.StringVar(&cfg.WireGuardConfigPath, "wireguard-config-path", "", "path to the WireGuard-config the helper will actuate")
 	flag.StringVar(&cfg.WireGuardBinary, "wireguard-binary", "", "path to WireGuard binary")
-	flag.StringVar(&cfg.WireGuardGoBinary, "wireguard-go-binary", "", "path to wireguard-go binary")
+	flag.StringVar(&cfg.WireGuardGoBinary, "wireguard-go-binary", "", "path to WireGuard-go binary")
 
 	flag.Parse()
 
