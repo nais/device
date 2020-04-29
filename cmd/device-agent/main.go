@@ -163,8 +163,12 @@ func main() {
 	log.Debugf("Wrote base WireGuard config to disk")
 
 	fmt.Println("Starting device-agent-helper, you might be prompted for password")
+
 	// start device-agent-helper
-	cmd := exec.Command("sudo", "./bin/device-agent-helper",
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	cmd := adminCommandContext(ctx, "./bin/device-agent-helper",
 		"--interface", cfg.Interface,
 		"--tunnel-ip", cfg.BootstrapConfig.TunnelIP,
 		"--wireguard-binary", cfg.WireGuardPath,
@@ -178,9 +182,9 @@ func main() {
 		return
 	}
 
-	//TODO(VegarM): defer context abort
+	ctx, cancel = context.WithDeadline(context.Background(), time.Now().Add(5*time.Minute))
+	defer cancel()
 
-	ctx := context.Background()
 	client := cfg.oauth2Config.Client(ctx, token)
 	for range time.NewTicker(10 * time.Second).C {
 		gateways, err := getGateways(client, cfg.APIServer, serial)
@@ -492,4 +496,10 @@ func successfulResponse(w http.ResponseWriter, msg string) {
 </h2>
 <img src="data:image/jpeg;base64,%s"/>
 `, msg, kekw.HappyKekW)
+}
+
+func adminCommandContext(ctx context.Context, command string, args ...string) *exec.Cmd {
+	script := fmt.Sprintf("%s %s", command, strings.Join(args, " "))
+	log.Infof("running '%s' as admin", script)
+	return exec.CommandContext(ctx, "/usr/bin/osascript", "-e", fmt.Sprintf("do shell script \"%s\" with administrator privileges", script))
 }
