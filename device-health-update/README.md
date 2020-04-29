@@ -1,46 +1,84 @@
 # Update health status of Nais devices
 
-Script that will update health status of all Nais devices based on checks from the Kolide API.
+Scripts dealing with device health status of all Nais devices based on checks from the Kolide API.
 
 ## Installation
 
-Clone the repository and install required dependencies:
+For development purposes you can clone the repository and install required dependencies:
 
     git clone git@github.com:nais/device.git
     cd device/device-health-update
-    composer install --no-dev
+    composer install
 
-If you wish to install development dependencies as well (to for instance run the test suite locally), skip the `--no-dev` flag above.
+Remember to run tests after making changes:
 
-## Supported environment variables
+    composer run ci
 
-### `KOLIDE_API_TOKEN` (required)
+## Releases
+
+[Phar](https://www.php.net/manual/en/intro.phar.php) archives are built to ease the usage/installation of the scripts in this library. The following archives are generated and [released](https://github.com/nais/device/releases):
+
+- `get-checks.phar`
+- `update.phar`
+
+The archives are also built and uploaded as artifacts to the [Build and test device health update scripts](https://github.com/nais/device/actions?query=workflow%3A%22Build+and+test+device+health+update+scripts%22) workflow.
+
+They can be executed like binaries once they are set as executable.
+
+## Script: `get-checks.phar`
+
+This script is used to display all checks connected to our account on Kolide.
+
+### Supported environment variables
+
+#### `KOLIDE_API_TOKEN` (required)
 
 Used for authentication with the Kolide API.
 
-### `KOLIDE_CHECKS_IGNORED` (optional, default: `''`)
+### Usage
 
-Comma-separated list of Kolide check IDs to ignore when checking device status. For a complete list of checks used with our account run the following script:
+```
+christer_edvartsen@apiserver:~$ ./get-checks.phar
+ID    | Name                                 | URL
+32853 | macOS Secure Keyboard Entry Disabled | https://k2.kolide.com/1401/checks/32853
+32837 | File Extensions Not Visible To User  | https://k2.kolide.com/1401/checks/32837
+32834 | Unencrypted SSH Key                  | https://k2.kolide.com/1401/checks/32834
+32836 | Find My Mac Disabled                 | https://k2.kolide.com/1401/checks/32836
+...
+```
 
-    php get-checks.php
+## Script: `update.phar`
 
-The above command requires the `KOLIDE_API_TOKEN` environment variable to be able to communicate with the Kolide API.
+This script is used to update device health status based on live data from the Kolide API.
 
-### `APISERVER_HOST` (optional, default: `'10.255.240.1'`)
+### Supported environment variables
+
+#### `KOLIDE_API_TOKEN` (required)
+
+Used for authentication with the Kolide API.
+
+#### `KOLIDE_CHECKS_IGNORED` (optional, default: `''`)
+
+Comma-separated list of Kolide check IDs to ignore when checking device status. For a complete list of checks used with our account use the `get-checks.phar` script mentioned above.
+
+#### `APISERVER_HOST` (optional, default: `'10.255.240.1'`)
 
 Can be specified to override the default host when communicating with the Nais device API server.
 
-### `APISERVER_PORT` (optional, default: `''`)
+#### `APISERVER_PORT` (optional, default: `''`)
 
 Can be specified to override the default port when communicating with the Nais device API server. If not specified the API client ends up using port `80`.
 
-## Usage
+### Usage
 
-The script that updates device statuses is executed in the following way:
+Simply trigger the script to make it run:
 
-    php update.php
+```
+christer_edvartsen@apiserver:~$ ./update.phar
+...
+```
 
-On failure it will output an error message and the exit code will be non-zero. During the execution it will output log message in the following format:
+During the execution it will output log message in the following format:
 
 ```json
 {
@@ -55,3 +93,5 @@ On failure it will output an error message and the exit code will be non-zero. D
 ```
 
 For generic log messages the `serial` and `username` keys will be omitted. The value of the `timestamp` key is a [Unix timestamp](https://en.wikipedia.org/wiki/Unix_time).
+
+On failure it will output an error message and the exit code will be non-zero.
