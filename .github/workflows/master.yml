@@ -1,11 +1,12 @@
 name: build and push
 on:
   push:
-    branches: 
+    branches:
       - master
     paths:
       - 'go.mod'
       - '**.go'
+      - '**.php'
 jobs:
   build:
     name: build
@@ -24,10 +25,14 @@ jobs:
           --health-timeout 5s
           --health-retries 5
     steps:
-    - uses: actions/checkout@master      
+    - uses: actions/checkout@master
     - name: run tests
       run: |
         make run-integration-test
+    - name: Prepare device-health-update scripts for packaging
+      working-directory: ./device-health-update
+      run: |
+        composer install --prefer-dist --no-progress --no-suggest --no-ansi --no-dev
     - name: build
       run: |
         make linux
@@ -54,6 +59,7 @@ jobs:
         asset_path: ./bin/apiserver
         asset_name: apiserver
         asset_content_type: application/octet-stream
+
     - name: upload gateway-agent binary
       uses: actions/upload-release-asset@v1.0.2
       env:
@@ -63,6 +69,7 @@ jobs:
         asset_path: ./bin/gateway-agent
         asset_name: gateway-agent
         asset_content_type: application/octet-stream
+
     - name: upload prometheus-agent binary
       uses: actions/upload-release-asset@v1.0.2
       env:
@@ -71,4 +78,24 @@ jobs:
         upload_url: ${{ steps.create_release.outputs.upload_url }}
         asset_path: ./bin/prometheus-agent
         asset_name: prometheus-agent
+        asset_content_type: application/octet-stream
+
+    - name: upload update.phar archive
+      uses: actions/upload-release-asset@v1.0.2
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: ./device-health-update/update.phar
+        asset_name: update.phar
+        asset_content_type: application/octet-stream
+
+    - name: upload get-checks.phar archive
+      uses: actions/upload-release-asset@v1.0.2
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: ./device-health-update/get-checks.phar
+        asset_name: get-checks.phar
         asset_content_type: application/octet-stream
