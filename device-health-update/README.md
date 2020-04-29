@@ -44,7 +44,7 @@ On failure it will output an error message and the exit code will be non-zero. D
 
 ```json
 {
-    "component": "update-device-health",
+    "component": "device-health-update",
     "system": "nais-device",
     "message": "<log message>",
     "serial": "<device serial>",

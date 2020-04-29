@@ -10,7 +10,7 @@ require 'vendor/autoload.php';
 
 function log(string $message, string $serial = null, string $username = null) : void {
     echo json_encode(array_filter([
-        'component' => 'update-device-health',
+        'component' => 'device-health-update',
         'system'    => 'nais-device',
         'message'   => $message,
         'serial'    => $serial,
