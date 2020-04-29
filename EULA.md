@@ -7,12 +7,26 @@ Alle sjekker som gjøres kan inspiseres her (Kolide URL) når din arbeidstasjon 
 
 nais-device påtvinger ikke din maskin innstillinger, men vil veilede med hva som eventuelt må utbedres for å få tilgang, hvorfor det er et problem, og hvordan det skal utbedres.
 
-Følgende betingelser gjelder for den som skal benytte nais-device for å utføre sitt arbeid i NAV.
+##Følgende betingelser gjelder for bruk av nais-device:
 
-- Du skal ikke forsøke å gjøre din nais-device til proxy for en annen arbeidsstasjon eller elektronisk enhet.
-- Du skal ikke forsøke å flytte $credentials til annen lagringsenhet, arbeidsstasjon eller elektronisk enhet.
-- xyz
-- xyz
+- Det er ikke tillatt å gjøre nais-device til proxy for en annen arbeidsstasjon eller elektronisk enhet.
+
+- Du skal ikke flytte identiteter, sertifikater eller "hemmeligheter" til annen lagringsenhet, arbeidsstasjon eller elektronisk enhet.
+
+- Du skal ved oppdagelse av sikkerhetshull eller -svakheter i løsningen rapportere disse omgående til nais-device@nav.no
+
+- Du skal til enhver, tid etter beste evne, selv ivareta sikkerheten på din maskin 
+
 - Du skal ikke akseptere denne avtalen dersom det finnes momenter i dette dokumentet som framstår som uklare eller urimelige.
 
-Friheten til å fritt velge mellom :apple_inc: :tux: :windows:, og samtidig beholde herredømme over egen arbeidsstasjon kommer under stort ansvar. 
+"Og forøvrig må du bare være nais."
+
+Friheten til å fritt velge mellom Apple, Linux eller Windows, og samtidig beholde råderett over egen arbeidsstasjon kommer under stort ansvar. Vær dette bevisst når du handler mot, og i de systemene du nå får tilgang til.
+
+## Det er lov å gå på en smell..
+
+Men bare i de tilfelle der det er uforskyldt. Dersom du beviselig aktivt har gått rundt, over eller gjennom de sikringene vi har i NAV vil du selv (eller din arbeidsgiver) være ansvarlig for de konsekvensene dette måtte medføre.
+
+## Signatur
+
+Disse betingelsene er lest og forstått, og jeg vil med det
