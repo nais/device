@@ -177,7 +177,8 @@ func (d *APIServerDB) AddDevice(username, publicKey, serial string) error {
 
 	statement := `
 INSERT INTO device (serial, username, public_key, ip, healthy, psk)
-VALUES ($1, $2, $3, $4, false, '');`
+VALUES ($1, $2, $3, $4, false, '')
+ON CONFLICT(serial) DO UPDATE SET username = $2, public_key = $3;`
 	_, err = tx.Exec(ctx, statement, serial, username, publicKey, ip)
 
 	if err != nil {
@@ -188,7 +189,7 @@ VALUES ($1, $2, $3, $4, false, '');`
 		return fmt.Errorf("commiting transaction: %w", err)
 	}
 
-	log.Infof("Added new device with serial %v for user %v with public key %v to database.", serial, username, publicKey)
+	log.Infof("Added or updated device with serial %v for user %v with public key %v to database.", serial, username, publicKey)
 
 	return nil
 }
