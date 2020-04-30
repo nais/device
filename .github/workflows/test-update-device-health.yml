@@ -5,41 +5,56 @@ on:
       - 'device-health-update/**'
 jobs:
   test:
+    name: Install and run unit tests on on PHP ${{ matrix.php }}
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        php:
+          - '7.2'
+          - '7.3'
+          - '7.4'
+      fail-fast: true
     defaults:
       run:
         working-directory: ./device-health-update
-    name: Install and run unit tests
-    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
 
-      - name: Output some debug information
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php }}
+
+      - name: Output some debug information about the PHP version
         run: |
-          php -m
+          php -v
           php -i
+          php -m
 
       - name: Validate composer files
-        run: composer validate
+        run: composer validate --strict
 
       - name: Cache Composer packages
         id: composer-cache
         uses: actions/cache@v1
         with:
           path: vendor
-          key: ${{ runner.os }}-node-${{ hashFiles('**/composer.lock') }}
+          key: ${{ runner.os }}-php-${{ matrix.php }}-node-${{ hashFiles('**/composer.lock') }}
           restore-keys: |
-            ${{ runner.os }}-node-
+            ${{ runner.os }}-php-${{ matrix.php }}-node-
 
       - name: Install dependencies
         if: steps.composer-cache.outputs.cache-hit != 'true'
-        run: composer install --prefer-dist --no-progress --no-suggest --no-ansi
+        run: composer install --prefer-dist --no-progress --no-suggest --no-ansi -o
 
       - name: Run tests
         run: composer run ci
 
       - name: Generate version string for the archives
         id: get-version
-        run: echo ::set-output name=version::$(date "+%Y-%m-%d")-$(git rev-parse --short HEAD)
+        run: echo ::set-output name=version::$(date "+%Y-%m-%d")-$(git rev-parse --short HEAD)-php-${PHPVERSION}
+        env:
+          PHPVERSION: ${{ matrix.php }}
 
       - name: Build phar archives
         run: |

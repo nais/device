@@ -1,6 +1,7 @@
 {
   "name": "nais/device-health-update",
   "description": "Update health status of Nais devices",
+  "license": "MIT",
   "authors": [
     {
       "name": "Christer Edvartsen",
