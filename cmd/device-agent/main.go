@@ -495,7 +495,7 @@ func failureResponse(w http.ResponseWriter, msg string) {
 <h2>
   %s
 </h2>
-<img src="data:image/jpeg;base64,%s"/>
+<img width="100" src="data:image/jpeg;base64,%s"/>
 `, msg, kekw.SadKekW)
 }
 
@@ -505,7 +505,7 @@ func successfulResponse(w http.ResponseWriter, msg string) {
 <h2>
   %s
 </h2>
-<img src="data:image/jpeg;base64,%s"/>
+<img width="100" src="data:image/jpeg;base64,%s"/>
 `, msg, kekw.HappyKekW)
 }
 

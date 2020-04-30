@@ -141,7 +141,7 @@ func setupInterface(ctx context.Context, cfg Config) error {
 
 	ip := cfg.TunnelIP
 	commands := [][]string{
-		{cfg.WireGuardGoBinary, "-f", cfg.Interface},
+		{cfg.WireGuardGoBinary, cfg.Interface},
 		{"ifconfig", cfg.Interface, "inet", ip + "/21", ip, "add"},
 		{"ifconfig", cfg.Interface, "mtu", "1360"},
 		{"ifconfig", cfg.Interface, "up"},
