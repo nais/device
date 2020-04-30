@@ -1,6 +1,6 @@
 # Update health status of Nais devices
 
-![Build and test](https://github.com/nais/device/workflows/Build%20and%20test/badge.svg)
+![Build and test device health update](https://github.com/nais/device/workflows/Build%20and%20test%20device%20health%20update/badge.svg)
 
 Scripts dealing with device health status of all Nais devices based on checks from the Kolide API.
 
@@ -23,7 +23,7 @@ Remember to run tests after making changes:
 - `get-checks.phar`
 - `update.phar`
 
-The archives are also built and uploaded as artifacts to the [Build and test](https://github.com/nais/device/actions?query=workflow%3A%22Build+and+test%22) workflow.
+The archives are also built and uploaded as artifacts to the [Build and test device health update](https://github.com/nais/device/actions?query=workflow%3A%22Build+and+test+device+health+update%22) workflow.
 
 They can be executed like binaries once they are set as executable.
 
