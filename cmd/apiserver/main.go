@@ -32,6 +32,8 @@ func init() {
 	flag.StringVar(&cfg.DbConnURI, "db-connection-uri", os.Getenv("DB_CONNECTION_URI"), "database connection URI (DSN)")
 	flag.StringVar(&cfg.SlackToken, "slack-token", os.Getenv("SLACK_TOKEN"), "Slack token")
 	flag.StringVar(&cfg.PrometheusAddr, "prometheus-address", cfg.PrometheusAddr, "prometheus listen address")
+	flag.StringVar(&cfg.PrometheusPublicKey, "prometheus-public-key", cfg.PrometheusPublicKey, "prometheus public key")
+	flag.StringVar(&cfg.PrometheusTunnelIP, "prometheus-tunnel-ip", cfg.PrometheusTunnelIP, "prometheus tunnel ip")
 	flag.StringVar(&cfg.BindAddress, "bind-address", cfg.BindAddress, "Bind address")
 	flag.StringVar(&cfg.ConfigDir, "config-dir", cfg.ConfigDir, "Path to configuration directory")
 	flag.StringVar(&cfg.Endpoint, "endpoint", cfg.Endpoint, "public endpoint (ip:port)")
@@ -92,7 +94,7 @@ func main() {
 	}
 
 	if !cfg.DevMode {
-		go syncWireguardConfig(cfg.DbConnURI, string(privateKey), cfg.WireGuardConfigPath)
+		go syncWireguardConfig(cfg.DbConnURI, string(privateKey), cfg)
 	}
 
 	apiConfig := api.Config{
@@ -161,7 +163,7 @@ func setupInterface() error {
 	return run(commands)
 }
 
-func syncWireguardConfig(dbConnURI, privateKey, wireGuardConfigPath string) {
+func syncWireguardConfig(dbConnURI, privateKey string, conf config.Config) {
 	db, err := database.New(dbConnURI)
 	if err != nil {
 		log.Fatalf("Instantiating database: %v", err)
@@ -179,19 +181,19 @@ func syncWireguardConfig(dbConnURI, privateKey, wireGuardConfigPath string) {
 			log.Errorf("Reading gateways from database: %v", err)
 		}
 
-		wgConfigContent := GenerateWGConfig(devices, gateways, privateKey)
+		wgConfigContent := GenerateWGConfig(devices, gateways, privateKey, cfg)
 
-		if err := ioutil.WriteFile(wireGuardConfigPath, wgConfigContent, 0600); err != nil {
+		if err := ioutil.WriteFile(conf.WireGuardConfigPath, wgConfigContent, 0600); err != nil {
 			log.Errorf("Writing WireGuard config to disk: %v", err)
 		}
 
-		if b, err := exec.Command("wg", "syncconf", "wg0", wireGuardConfigPath).Output(); err != nil {
+		if b, err := exec.Command("wg", "syncconf", "wg0", conf.WireGuardConfigPath).Output(); err != nil {
 			log.Errorf("Synchronizing WireGuard config: %v: %v", err, string(b))
 		}
 	}
 }
 
-func GenerateWGConfig(devices []database.Device, gateways []database.Gateway, privateKey string) []byte {
+func GenerateWGConfig(devices []database.Device, gateways []database.Gateway, privateKey string, conf config.Config) []byte {
 	interfaceTemplate := `[Interface]
 PrivateKey = %s
 ListenPort = 51820
@@ -204,6 +206,7 @@ ListenPort = 51820
 AllowedIPs = %s/32
 PublicKey = %s
 `
+	wgConfig += fmt.Sprintf(peerTemplate, conf.PrometheusTunnelIP, conf.PrometheusPublicKey)
 
 	for _, device := range devices {
 		wgConfig += fmt.Sprintf(peerTemplate, device.IP, device.PublicKey)

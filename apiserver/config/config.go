@@ -13,6 +13,8 @@ type Config struct {
 	Endpoint            string
 	Azure               Azure
 	PrometheusAddr      string
+	PrometheusPublicKey string
+	PrometheusTunnelIP  string
 }
 
 func (c Config) Valid() error {

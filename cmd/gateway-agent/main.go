@@ -39,6 +39,8 @@ func init() {
 	flag.StringVar(&cfg.APIServerURL, "api-server-url", cfg.APIServerURL, "api server URL")
 	flag.StringVar(&cfg.APIServerPublicKey, "api-server-public-key", cfg.APIServerPublicKey, "api server public key")
 	flag.StringVar(&cfg.APIServerWireGuardEndpoint, "api-server-wireguard-endpoint", cfg.APIServerWireGuardEndpoint, "api server WireGuard endpoint")
+	flag.StringVar(&cfg.PrometheusPublicKey, "prometheus-public-key", cfg.PrometheusPublicKey, "prometheus public key")
+	flag.StringVar(&cfg.PrometheusTunnelIP, "prometheus-tunnel-ip", cfg.PrometheusTunnelIP, "prometheus tunnel ip")
 	flag.BoolVar(&cfg.DevMode, "development-mode", cfg.DevMode, "development mode avoids setting up interface and configuring WireGuard")
 
 	flag.Parse()
@@ -156,6 +158,8 @@ type Config struct {
 	APIServerTunnelIP          string
 	DevMode                    bool
 	PrometheusAddr             string
+	PrometheusPublicKey        string
+	PrometheusTunnelIP         string
 }
 
 func DefaultConfig() Config {
@@ -200,13 +204,17 @@ func GenerateBaseConfig(cfg Config, privateKey string) string {
 PrivateKey = %s
 ListenPort = 51820
 
-[Peer]
+[Peer] # apiserver
 PublicKey = %s
 AllowedIPs = %s/32
 Endpoint = %s
+
+[Peer] # prometheus
+PublicKey = %s
+AllowedIPs = %s/32
 `
 
-	return fmt.Sprintf(template, privateKey, cfg.APIServerPublicKey, cfg.APIServerTunnelIP, cfg.APIServerWireGuardEndpoint)
+	return fmt.Sprintf(template, privateKey, cfg.APIServerPublicKey, cfg.APIServerTunnelIP, cfg.APIServerWireGuardEndpoint, cfg.PrometheusPublicKey, cfg.PrometheusTunnelIP)
 }
 
 func GenerateWireGuardPeers(devices []Device) string {
