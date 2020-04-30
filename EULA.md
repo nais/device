@@ -3,7 +3,7 @@
 NAV IT ved Plattformområdet gir deg, ved akseptanse av de følgende betingelser, programvare og anledning til å opprette koblinger mellom din arbeidsstasjon og utvalgte tjenester ved at den rulles inn og blir en "nais-device".
 Denne arbeidsstasjonen vil være under din kontroll, men vil ved oppkobling bli kontrollert. Kontrollene er ikke av an art som kan defineres som krenkelser av ditt personvern.
 
-Alle sjekker som gjøres kan inspiseres her (Kolide URL) når din arbeidstasjon er rullet inn. Du kan også til enhver tid laste ned alle data som er registrert for gjennomgang.
+Alle sjekker som gjøres kan inspiseres når din arbeidstasjon er rullet inn. Du kan også til enhver tid laste ned alle data som er registrert for gjennomgang.
 
 nais-device påtvinger ikke din maskin innstillinger, men vil veilede med hva som eventuelt må utbedres for å få tilgang, hvorfor det er et problem, og hvordan det skal utbedres.
 
@@ -16,6 +16,8 @@ nais-device påtvinger ikke din maskin innstillinger, men vil veilede med hva so
 - Du skal ved oppdagelse av sikkerhetshull eller -svakheter i løsningen rapportere disse omgående til nais-device@nav.no
 
 - Du skal til enhver, tid etter beste evne, selv ivareta sikkerheten på din maskin 
+
+- Du skal ikke installere noe du ikke har gyldig lisens på. Ulisensiert software som utløser krav mot NAV vil rettes til den som har utløst det.
 
 - Du skal ikke akseptere denne avtalen dersom det finnes momenter i dette dokumentet som framstår som uklare eller urimelige.
 
