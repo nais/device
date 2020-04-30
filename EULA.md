@@ -29,4 +29,6 @@ Men bare i de tilfelle der det er uforskyldt. Dersom du beviselig aktivt har gå
 
 ## Signatur
 
-Disse betingelsene er lest og forstått, og jeg vil med det
+Disse betingelsene er lest, forstått og akseptert
+
+[ Jeg aksepterer]									    [ Nei takk]
