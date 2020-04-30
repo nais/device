@@ -107,7 +107,7 @@ func readPrivateKey(privateKeyPath string) (string, error) {
 }
 
 func getGateways(apiServerURL string) ([]Gateway, error) {
-	PrometheusConfigURL := fmt.Sprintf("%s/prometheus/config", apiServerURL)
+	PrometheusConfigURL := fmt.Sprintf("%s/gateways", apiServerURL)
 	resp, err := http.Get(PrometheusConfigURL)
 	if err != nil {
 		return nil, fmt.Errorf("getting peer config from apiserver: %w", err)
