@@ -7,7 +7,7 @@ Alle sjekker som gjøres kan inspiseres når din arbeidstasjon er rullet inn. Du
 
 nais-device påtvinger ikke din maskin innstillinger, men vil veilede med hva som eventuelt må utbedres for å få tilgang, hvorfor det er et problem, og hvordan det skal utbedres.
 
-##Følgende betingelser gjelder for bruk av nais-device:
+## Følgende betingelser gjelder for bruk av nais-device:
 
 - Det er ikke tillatt å gjøre nais-device til proxy for en annen arbeidsstasjon eller elektronisk enhet.
 
