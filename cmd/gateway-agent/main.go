@@ -9,19 +9,33 @@ import (
 	"path"
 	"time"
 
+	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	log "github.com/sirupsen/logrus"
 	flag "github.com/spf13/pflag"
 )
 
 var (
-	cfg = DefaultConfig()
+	cfg                 = DefaultConfig()
+	failedConfigFetches = prometheus.NewCounter(prometheus.CounterOpts{
+		Name:      "failed_config_fetches",
+		Help:      "count of failed config fetches",
+		Namespace: "naisdevice",
+		Subsystem: "gateway_agent",
+	})
+	lastSuccessfulConfigFetch = prometheus.NewGauge(prometheus.GaugeOpts{
+		Name:      "last_successful_config_fetch",
+		Help:      "time since last successful config fetch",
+		Namespace: "naisdevice",
+		Subsystem: "gateway_agent",
+	})
 )
 
 func init() {
 	log.SetFormatter(&log.JSONFormatter{})
 	flag.StringVar(&cfg.Name, "name", cfg.Name, "gateway name")
 	flag.StringVar(&cfg.TunnelIP, "tunnel-ip", cfg.TunnelIP, "gateway tunnel ip")
+	flag.StringVar(&cfg.PrometheusAddr, "prometheus-address", cfg.PrometheusAddr, "prometheus listen address")
 	flag.StringVar(&cfg.APIServerURL, "api-server-url", cfg.APIServerURL, "api server URL")
 	flag.StringVar(&cfg.APIServerPublicKey, "api-server-public-key", cfg.APIServerPublicKey, "api server public key")
 	flag.StringVar(&cfg.APIServerWireGuardEndpoint, "api-server-wireguard-endpoint", cfg.APIServerWireGuardEndpoint, "api server WireGuard endpoint")
@@ -31,6 +45,8 @@ func init() {
 
 	cfg.WireGuardConfigPath = path.Join(cfg.ConfigDir, "wg0.conf")
 	cfg.PrivateKeyPath = path.Join(cfg.ConfigDir, "private.key")
+	prometheus.MustRegister(failedConfigFetches)
+	prometheus.MustRegister(lastSuccessfulConfigFetch)
 }
 
 // Gateway agent ensures desired configuration as defined by the apiserver
@@ -59,7 +75,7 @@ type Device struct {
 
 func main() {
 	go func() {
-		_ = http.ListenAndServe(":3000", promhttp.Handler())
+		_ = http.ListenAndServe(cfg.PrometheusAddr, promhttp.Handler())
 	}()
 
 	log.Info("starting gateway-agent")
@@ -88,9 +104,11 @@ func main() {
 		devices, err := getDevices(cfg.APIServerURL, cfg.Name)
 		if err != nil {
 			log.Error(err)
-			// inc metric
+			failedConfigFetches.Inc()
 			continue
 		}
+
+		lastSuccessfulConfigFetch.SetToCurrentTime()
 
 		log.Debugf("%+v\n", devices)
 
@@ -136,6 +154,7 @@ type Config struct {
 	PrivateKeyPath             string
 	APIServerTunnelIP          string
 	DevMode                    bool
+	PrometheusAddr             string
 }
 
 func DefaultConfig() Config {
@@ -143,6 +162,7 @@ func DefaultConfig() Config {
 		APIServerURL:      "http://10.255.240.1",
 		APIServerTunnelIP: "10.255.240.1",
 		ConfigDir:         "/usr/local/etc/nais-device",
+		PrometheusAddr:    ":3000",
 	}
 }
 

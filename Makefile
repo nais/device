@@ -35,6 +35,9 @@ run-postgres-test:
 teardown-postgres-test:
 	docker rm -f postgres-test || echo "okidoki" 
 
+local-gateway-agent:
+	go run ./cmd/gateway-agent/main.go --api-server-url=http://localhost:8080 --name=gw0 --prometheus-address=127.0.0.1:3000 --development-mode=true
+
 local-apiserver:
 	$(eval confdir := $(shell mktemp -d))
 	wg genkey > ${confdir}/private.key
