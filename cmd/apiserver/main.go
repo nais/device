@@ -13,6 +13,7 @@ import (
 	"github.com/nais/device/apiserver/azure/discovery"
 	"github.com/nais/device/apiserver/azure/validate"
 	"github.com/nais/device/apiserver/middleware"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 
 	"github.com/nais/device/apiserver/api"
 	"github.com/nais/device/apiserver/config"
@@ -30,6 +31,7 @@ func init() {
 	log.SetFormatter(&log.JSONFormatter{})
 	flag.StringVar(&cfg.DbConnURI, "db-connection-uri", os.Getenv("DB_CONNECTION_URI"), "database connection URI (DSN)")
 	flag.StringVar(&cfg.SlackToken, "slack-token", os.Getenv("SLACK_TOKEN"), "Slack token")
+	flag.StringVar(&cfg.PrometheusAddr, "prometheus-address", cfg.PrometheusAddr, "prometheus listen address")
 	flag.StringVar(&cfg.BindAddress, "bind-address", cfg.BindAddress, "Bind address")
 	flag.StringVar(&cfg.ConfigDir, "config-dir", cfg.ConfigDir, "Path to configuration directory")
 	flag.StringVar(&cfg.Endpoint, "endpoint", cfg.Endpoint, "public endpoint (ip:port)")
@@ -49,6 +51,11 @@ func init() {
 }
 
 func main() {
+	go func() {
+		log.Infof("Prometheus serving metrics at %v", cfg.PrometheusAddr)
+		_ = http.ListenAndServe(cfg.PrometheusAddr, promhttp.Handler())
+	}()
+
 	if !cfg.DevMode {
 		if err := setupInterface(); err != nil {
 			log.Fatalf("Setting up WireGuard interface: %v", err)

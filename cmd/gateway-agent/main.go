@@ -75,6 +75,7 @@ type Device struct {
 
 func main() {
 	go func() {
+		log.Infof("Prometheus serving metrics at %v", cfg.PrometheusAddr)
 		_ = http.ListenAndServe(cfg.PrometheusAddr, promhttp.Handler())
 	}()
 

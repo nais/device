@@ -12,6 +12,7 @@ type Config struct {
 	DevMode             bool
 	Endpoint            string
 	Azure               Azure
+	PrometheusAddr      string
 }
 
 func (c Config) Valid() error {
@@ -33,7 +34,8 @@ type Azure struct {
 
 func DefaultConfig() Config {
 	return Config{
-		BindAddress: "10.255.240.1:80",
-		ConfigDir:   "/usr/local/etc/nais-device/",
+		BindAddress:    "10.255.240.1:80",
+		ConfigDir:      "/usr/local/etc/nais-device/",
+		PrometheusAddr: ":3000",
 	}
 }
