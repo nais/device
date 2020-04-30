@@ -82,6 +82,25 @@ func (a *api) updateHealth(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func (a *api) gateways(w http.ResponseWriter, r *http.Request) {
+	//serial := chi.URLParam(r, "serial")
+	gateways, err := a.db.ReadGateways()
+	if err != nil {
+		log.Errorf("reading gateways: %v", err)
+		respondf(w, http.StatusInternalServerError, "unable to get device config\n")
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+	err = json.NewEncoder(w).Encode(gateways)
+
+	if err != nil {
+		log.Errorf("encoding gateways response: %v", err)
+		respondf(w, http.StatusInternalServerError, "unable to get device config\n")
+		return
+	}
+}
+
 func (a *api) deviceConfig(w http.ResponseWriter, r *http.Request) {
 	//serial := chi.URLParam(r, "serial")
 	gateways, err := a.db.ReadGateways()

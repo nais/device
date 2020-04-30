@@ -11,12 +11,14 @@ linux:
 	GOOS=linux GOARCH=amd64 go build -o bin/apiserver cmd/apiserver/main.go
 	GOOS=linux GOARCH=amd64 go build -o bin/gateway-agent cmd/gateway-agent/main.go
 	GOOS=linux GOARCH=amd64 go build -o bin/device-agent cmd/device-agent/main.go
+	GOOS=linux GOARCH=amd64 go build -o bin/prometheus-agent cmd/prometheus-agent/main.go
 
 local:
 	go build -o bin/apiserver cmd/apiserver/main.go
 	go build -o bin/gateway-agent cmd/gateway-agent/main.go
 	go build -o bin/device-agent cmd/device-agent/main.go
 	go build -o bin/device-agent-helper cmd/device-agent-helper/main.go
+	go build -o bin/prometheus-agent cmd/prometheus-agent/main.go
 
 run-postgres:
 	docker run -e POSTGRES_PASSWORD=postgres --rm --name postgres -p 5432:5432 postgres &

@@ -25,6 +25,7 @@ func New(cfg Config) chi.Router {
 	r.Use(promMiddleware.Handler())
 
 	r.Get("/gateways/{gateway}", api.gatewayConfig)
+	r.Get("/gateways", api.gateways)
 	r.Get("/devices", api.devices)
 	r.Put("/devices/health", api.updateHealth)
 	r.Route("/devices/config/{serial}", func(r chi.Router) {
