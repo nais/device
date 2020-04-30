@@ -33,7 +33,7 @@ func init() {
 	flag.StringVar(&cfg.BindAddress, "bind-address", cfg.BindAddress, "Bind address")
 	flag.StringVar(&cfg.ConfigDir, "config-dir", cfg.ConfigDir, "Path to configuration directory")
 	flag.StringVar(&cfg.Endpoint, "endpoint", cfg.Endpoint, "public endpoint (ip:port)")
-	flag.BoolVar(&cfg.SkipSetupInterface, "skip-setup-interface", cfg.SkipSetupInterface, "Skip setting up WireGuard interface")
+	flag.BoolVar(&cfg.DevMode, "development-mode", cfg.DevMode, "Development mode avoids setting up wireguard and fetching and validating AAD certificates")
 	flag.StringVar(&cfg.Azure.DiscoveryURL, "azure-discovery-url", "", "Azure discovery url")
 	flag.StringVar(&cfg.Azure.ClientID, "azure-client-id", "", "Azure app client id")
 
@@ -42,17 +42,19 @@ func init() {
 	cfg.PrivateKeyPath = filepath.Join(cfg.ConfigDir, "private.key")
 	cfg.WireGuardConfigPath = filepath.Join(cfg.ConfigDir, "wg0.conf")
 
-	if err := cfg.Valid(); err != nil {
+	if err := cfg.Valid(); err != nil && !cfg.DevMode {
 		fmt.Printf("Validating config: %v", err)
 		os.Exit(1)
 	}
 }
 
 func main() {
-	if !cfg.SkipSetupInterface {
+	if !cfg.DevMode {
 		if err := setupInterface(); err != nil {
 			log.Fatalf("Setting up WireGuard interface: %v", err)
 		}
+	} else {
+		log.Infof("DevMode: skipping interface setup")
 	}
 
 	db, err := database.New(cfg.DbConnURI)
@@ -71,9 +73,10 @@ func main() {
 	}
 
 	certificates, err := discovery.FetchCertificates(cfg.Azure)
-	if err != nil {
+	if err != nil && !cfg.DevMode {
 		log.Fatalf("Retrieving azure ad certificates for token validation: %v", err)
 	}
+
 	jwtValidator := validate.JWTValidator(certificates, cfg.Azure.ClientID)
 
 	if len(cfg.SlackToken) > 0 {
@@ -81,14 +84,19 @@ func main() {
 		go slackBot.Handler()
 	}
 
-	if !cfg.SkipSetupInterface {
+	if !cfg.DevMode {
 		go syncWireguardConfig(cfg.DbConnURI, string(privateKey), cfg.WireGuardConfigPath)
 	}
 
-	router := api.New(api.Config{
-		DB:                          db,
-		OAuthKeyValidatorMiddleware: middleware.TokenValidatorMiddleware(jwtValidator),
-	})
+	apiConfig := api.Config{
+		DB: db,
+	}
+
+	if !cfg.DevMode {
+		apiConfig.OAuthKeyValidatorMiddleware = middleware.TokenValidatorMiddleware(jwtValidator)
+	}
+
+	router := api.New(apiConfig)
 
 	fmt.Println("running @", cfg.BindAddress)
 	fmt.Println(http.ListenAndServe(cfg.BindAddress, router))

@@ -9,6 +9,7 @@ import (
 	"path"
 	"time"
 
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	log "github.com/sirupsen/logrus"
 	flag "github.com/spf13/pflag"
 )
@@ -24,6 +25,7 @@ func init() {
 	flag.StringVar(&cfg.APIServerURL, "api-server-url", cfg.APIServerURL, "api server URL")
 	flag.StringVar(&cfg.APIServerPublicKey, "api-server-public-key", cfg.APIServerPublicKey, "api server public key")
 	flag.StringVar(&cfg.APIServerWireGuardEndpoint, "api-server-wireguard-endpoint", cfg.APIServerWireGuardEndpoint, "api server WireGuard endpoint")
+	flag.BoolVar(&cfg.DevMode, "development-mode", cfg.DevMode, "development mode avoids setting up interface and configuring WireGuard")
 
 	flag.Parse()
 
@@ -56,10 +58,19 @@ type Device struct {
 }
 
 func main() {
+	go func() {
+		_ = http.ListenAndServe(":3000", promhttp.Handler())
+	}()
+
 	log.Info("starting gateway-agent")
 	log.Infof("with config:\n%+v", cfg)
-	if err := setupInterface(cfg.TunnelIP); err != nil {
-		log.Fatalf("setting up interface: %v", err)
+
+	if !cfg.DevMode {
+		if err := setupInterface(cfg.TunnelIP); err != nil {
+			log.Fatalf("setting up interface: %v", err)
+		}
+	} else {
+		log.Infof("Skipping interface setup")
 	}
 
 	privateKey, err := readPrivateKey(cfg.PrivateKeyPath)
@@ -68,7 +79,7 @@ func main() {
 	}
 
 	baseConfig := GenerateBaseConfig(cfg, privateKey)
-	if err := actuateWireGuardConfig(baseConfig, cfg.WireGuardConfigPath); err != nil {
+	if err := actuateWireGuardConfig(baseConfig, cfg.WireGuardConfigPath, cfg.DevMode); err != nil {
 		log.Fatalf("actuating base config: %v", err)
 	}
 
@@ -84,7 +95,7 @@ func main() {
 		log.Debugf("%+v\n", devices)
 
 		peerConfig := GenerateWireGuardPeers(devices)
-		if err := actuateWireGuardConfig(baseConfig+peerConfig, cfg.WireGuardConfigPath); err != nil {
+		if err := actuateWireGuardConfig(baseConfig+peerConfig, cfg.WireGuardConfigPath, cfg.DevMode); err != nil {
 			log.Errorf("actuating WireGuard config: %v", err)
 		}
 	}
@@ -124,6 +135,7 @@ type Config struct {
 	APIServerWireGuardEndpoint string
 	PrivateKeyPath             string
 	APIServerTunnelIP          string
+	DevMode                    bool
 }
 
 func DefaultConfig() Config {
@@ -191,14 +203,19 @@ AllowedIPs = %s
 }
 
 // actuateWireGuardConfig runs syncconfig with the provided WireGuard config
-func actuateWireGuardConfig(wireGuardConfig, wireGuardConfigPath string) error {
+func actuateWireGuardConfig(wireGuardConfig, wireGuardConfigPath string, devMode bool) error {
 	if err := ioutil.WriteFile(wireGuardConfigPath, []byte(wireGuardConfig), 0600); err != nil {
 		return fmt.Errorf("writing WireGuard config to disk: %w", err)
 	}
 
 	cmd := exec.Command("wg", "syncconf", "wg0", wireGuardConfigPath)
-	if err := cmd.Run(); err != nil {
-		return fmt.Errorf("running syncconf: %w", err)
+
+	if !devMode {
+		if err := cmd.Run(); err != nil {
+			return fmt.Errorf("running syncconf: %w", err)
+		}
+	} else {
+		log.Infof("DevMode: would run %v here", cmd)
 	}
 
 	log.Debugf("Actuated WireGuard config: %v", wireGuardConfigPath)

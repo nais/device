@@ -9,7 +9,7 @@ type Config struct {
 	ConfigDir           string
 	PrivateKeyPath      string
 	WireGuardConfigPath string
-	SkipSetupInterface  bool
+	DevMode             bool
 	Endpoint            string
 	Azure               Azure
 }
