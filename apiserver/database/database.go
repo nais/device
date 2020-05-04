@@ -84,7 +84,7 @@ func New(dsn string) (*APIServerDB, error) {
 	return &APIServerDB{conn: conn}, nil
 }
 
-func (d *APIServerDB) ReadDevices() (devices []Device, err error) {
+func (d *APIServerDB) ReadDevices() ([]Device, error) {
 	ctx := context.Background()
 
 	query := `
@@ -103,6 +103,7 @@ FROM device;`
 		return nil, fmt.Errorf("querying for devices: %v", rows.Err())
 	}
 
+	devices := []Device{} // don't want nil declaration here as this JSON encodes to 'null' instead of '[]'
 	for rows.Next() {
 		var device Device
 
@@ -115,7 +116,7 @@ FROM device;`
 		devices = append(devices, device)
 	}
 
-	return
+	return devices, nil
 }
 
 func (d *APIServerDB) UpdateDeviceStatus(devices []Device) error {
