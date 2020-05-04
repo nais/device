@@ -272,7 +272,7 @@ func runAuthFlow(ctx context.Context, conf oauth2.Config) (*oauth2.Token, error)
 }
 
 func getGateways(client *http.Client, apiServerURL, serial string) ([]Gateway, error) {
-	deviceConfigAPI := fmt.Sprintf("%s/devices/config/%s", apiServerURL, serial)
+	deviceConfigAPI := fmt.Sprintf("%s/devices/%s/gateways", apiServerURL, serial)
 	r, err := client.Get(deviceConfigAPI)
 	if err != nil {
 		return nil, fmt.Errorf("getting device config: %w", err)

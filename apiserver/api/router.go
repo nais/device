@@ -26,19 +26,22 @@ func New(cfg Config) chi.Router {
 
 	r.Use(prometheusMiddleware.Handler())
 
-	r.Get("/gateways/{gateway}", api.gatewayConfig)
-	r.Route("/gateways", func(r chi.Router) {
+	r.Route("/", func(r chi.Router) {
 		if cfg.APIKeys != nil {
 			r.Use(chi_middleware.BasicAuth("naisdevice", cfg.APIKeys))
 		}
-		r.Get("/", api.gateways)
+
+		r.Get("/gateways", api.gateways)
+		r.Get("/gateways/{gateway}/devices", api.gatewayConfig)
+		r.Get("/devices", api.devices)
+		r.Put("/devices/health", api.updateHealth)
 	})
-	r.Get("/devices", api.devices)
-	r.Put("/devices/health", api.updateHealth)
-	r.Route("/devices/config/{serial}", func(r chi.Router) {
+
+	r.Route("/devices/{serial}/gateways", func(r chi.Router) {
 		if cfg.OAuthKeyValidatorMiddleware != nil {
 			r.Use(cfg.OAuthKeyValidatorMiddleware)
 		}
+
 		r.Get("/", api.deviceConfig)
 	})
 

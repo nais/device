@@ -39,6 +39,8 @@ func init() {
 	flag.StringVar(&cfg.APIServerPublicKey, "api-server-public-key", cfg.APIServerPublicKey, "api server public key")
 	flag.StringVar(&cfg.APIServerWireGuardEndpoint, "api-server-wireguard-endpoint", cfg.APIServerWireGuardEndpoint, "api server WireGuard endpoint")
 	flag.BoolVar(&cfg.DevMode, "development-mode", cfg.DevMode, "development mode avoids setting up interface and configuring WireGuard")
+	flag.StringVar(&cfg.APIServerUsername, "apiserver-username", cfg.APIServerUsername, "apiserver username")
+	flag.StringVar(&cfg.APIServerPassword, "apiserver-password", cfg.APIServerPassword, "apiserver password")
 
 	flag.Parse()
 
@@ -83,7 +85,7 @@ func main() {
 
 	for range time.NewTicker(10 * time.Second).C {
 		log.Infof("getting config")
-		gateways, err := getGateways(cfg.APIServerURL)
+		gateways, err := getGateways(cfg)
 		if err != nil {
 			log.Error(err)
 			failedConfigFetches.Inc()
@@ -106,14 +108,25 @@ func readPrivateKey(privateKeyPath string) (string, error) {
 	return string(b), err
 }
 
-func getGateways(apiServerURL string) ([]Gateway, error) {
-	PrometheusConfigURL := fmt.Sprintf("%s/gateways", apiServerURL)
-	resp, err := http.Get(PrometheusConfigURL)
+func getGateways(config Config) ([]Gateway, error) {
+	prometheusConfigURL := fmt.Sprintf("%s/gateways", config.APIServerURL)
+	req, err := http.NewRequest(http.MethodGet, prometheusConfigURL, nil)
 	if err != nil {
-		return nil, fmt.Errorf("getting peer config from apiserver: %w", err)
+		return nil, fmt.Errorf("creating http request: %w", err)
 	}
 
-	defer resp.Body.Close()
+	req.SetBasicAuth(config.APIServerUsername, config.APIServerPassword)
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("getting gateways from apiserver: %w", err)
+	}
+
+	defer func() {
+		if err := resp.Body.Close(); err != nil {
+			log.Errorf("closing get response body, %v", err)
+		}
+	}()
 
 	var gateways []Gateway
 	err = json.NewDecoder(resp.Body).Decode(&gateways)
@@ -127,6 +140,8 @@ func getGateways(apiServerURL string) ([]Gateway, error) {
 
 type Config struct {
 	APIServerURL               string
+	APIServerUsername          string
+	APIServerPassword          string
 	TunnelIP                   string
 	ConfigDir                  string
 	WireGuardConfigPath        string
@@ -206,7 +221,7 @@ Endpoint = %s
 	return peers
 }
 
-// actuateWireGuardConfig runs syncconfig with the provided WireGuard config
+// actuateWireGuardConfig runs syncconf with the provided WireGuard config
 func actuateWireGuardConfig(wireGuardConfig, wireGuardConfigPath string, devMode bool) error {
 	if err := ioutil.WriteFile(wireGuardConfigPath, []byte(wireGuardConfig), 0600); err != nil {
 		return fmt.Errorf("writing WireGuard config to disk: %w", err)
