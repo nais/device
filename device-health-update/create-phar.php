@@ -42,6 +42,7 @@ if (file_exists($archiveName) && !unlink($archiveName)) {
 $whitelist = [
     'src',
     'vendor',
+    'checks-config.php',
     basename($script),
 ];
 
