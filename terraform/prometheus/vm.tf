@@ -23,19 +23,6 @@ resource "google_compute_instance" "prometheus" {
     }
   }
 
-  metadata = {
-    startup-script = <<EOS
-add-apt-repository --yes ppa:wireguard/wireguard
-apt-get update --yes
-apt-get install --yes wireguard
-
-# Generate wg private key
-mkdir -p "/usr/local/etc/nais-device"
-wg genkey > "/usr/local/etc/nais-device/private.key"
-
-EOS
-  }
-
   network_interface {
     network = data.google_compute_network.default.self_link
 

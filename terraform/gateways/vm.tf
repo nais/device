@@ -34,45 +34,6 @@ resource "google_compute_instance" "gateway" {
     }
   }
 
-  metadata = {
-    startup-script = <<EOS
-add-apt-repository --yes ppa:wireguard/wireguard
-apt-get update --yes
-apt-get install --yes wireguard
-
-mkdir -p /usr/local/etc/nais-device
-wg genkey > /usr/local/etc/nais-device/private.key
-
-# Enable ip forward
-sed -i -e 's/#net.ipv4.ip_forward=1/net.ipv4.ip_forward=1/' /etc/sysctl.conf
-sysctl -p
-
-# Setup systemd service
-cat << EOF > /etc/systemd/system/gateway-agent.service
-[Unit]
-Description=Gateway Agent
-
-[Service]
-ExecStartPre=/bin/bash -c '/usr/bin/curl -LO https://github.com/nais/device/releases/download/\$(curl --silent "https://api.github.com/repos/nais/device/releases/latest" | grep \'"tag_name":\' | sed -E \'s/.*"([^"]+)".*/\1/\')/gateway-agent'
-ExecStartPre=/bin/chmod 700 gateway-agent
-ExecStartPre=/bin/mkdir -p /opt/nais-device/bin/
-ExecStartPre=/bin/mv gateway-agent /opt/nais-device/bin/
-ExecStart=/opt/nais-device/bin/gateway-agent \
-    --name ${var.gateways[count.index].name} \
-    --tunnel-ip ${var.gateways[count.index].tunnel_ip} \
-    --api-server-wireguard-endpoint ${var.api_server_wireguard_endpoint} \
-    --api-server-public-key ${var.api_server_public_key}
-
-[Install]
-WantedBy=multi-user.target
-EOF
-
-systemctl daemon-reload
-systemctl enable gateway-agent
-systemctl start gateway-agent
-EOS
-  }
-
   network_interface {
     subnetwork = var.gateways[count.index].subnetwork
 
