@@ -1,7 +1,7 @@
 .PHONY: test alpine
 
 all: test alpine
-dev-apiserver: teardown-postgres run-postgres local-apiserver
+dev-apiserver: teardown-postgres run-postgres insert-testdata local-apiserver
 integration-test: run-postgres-test run-integration-test teardown-postgres-test
 
 alpine:
@@ -26,6 +26,9 @@ run-postgres:
  		sleep 2;\
 		PGPASSWORD=postgres psql -h localhost -U postgres -f apiserver/database/schema/schema.sql && break;\
     done
+
+insert-testdata:
+	PGPASSWORD=postgres psql -h localhost -U postgres -f testdata.sql
 
 run-postgres-test:
 	docker run -e POSTGRES_PASSWORD=postgres --rm --name postgres-test -p 5433:5432 postgres &
