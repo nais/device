@@ -1,11 +1,3 @@
-variable "api_server_public_key" {
-  type = string
-}
-
-variable "api_server_wireguard_endpoint" {
-  type = string
-}
-
 variable "gateways" {
   type = list
 }

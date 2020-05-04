@@ -1,15 +1,3 @@
-variable "apiserver_tunnel_ip" {
-  type = string
-}
-
-variable "db_connection_uri" {
-  type = string
-}
-
-variable "slack_token" {
-  type = string
-}
-
 data "google_compute_network" "default" {
   name = "default"
 }

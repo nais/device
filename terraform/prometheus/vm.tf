@@ -1,7 +1,3 @@
-variable "prometheus_tunnel_ip" {
-  type = string
-}
-
 data "google_compute_network" "default" {
   name = "default"
 }
