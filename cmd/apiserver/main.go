@@ -41,7 +41,7 @@ func init() {
 	flag.BoolVar(&cfg.DevMode, "development-mode", cfg.DevMode, "Development mode avoids setting up wireguard and fetching and validating AAD certificates")
 	flag.StringVar(&cfg.Azure.DiscoveryURL, "azure-discovery-url", "", "Azure discovery url")
 	flag.StringVar(&cfg.Azure.ClientID, "azure-client-id", "", "Azure app client id")
-	flag.StringSliceVar(&cfg.APIKeyEntries, "api-keys", nil, "Comma-separated API keys on format: '<user>:<key>'")
+	flag.StringSliceVar(&cfg.CredentialEntries, "credential-entries", nil, "Comma-separated credentials on format: '<user>:<key>'")
 
 	flag.Parse()
 
@@ -50,7 +50,6 @@ func init() {
 }
 
 func main() {
-
 	go func() {
 		log.Infof("Prometheus serving metrics at %v", cfg.PrometheusAddr)
 		_ = http.ListenAndServe(cfg.PrometheusAddr, promhttp.Handler())
@@ -92,7 +91,7 @@ func main() {
 	}
 
 	if !cfg.DevMode {
-		apiConfig.APIKeys, err = cfg.APIKeys()
+		apiConfig.APIKeys, err = cfg.Credentials()
 		if err != nil {
 			log.Fatalf("Getting API keys: %v", err)
 		}

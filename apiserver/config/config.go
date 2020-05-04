@@ -18,7 +18,7 @@ type Config struct {
 	PrometheusAddr      string
 	PrometheusPublicKey string
 	PrometheusTunnelIP  string
-	APIKeyEntries       []string
+	CredentialEntries   []string
 }
 
 type Azure struct {
@@ -26,22 +26,22 @@ type Azure struct {
 	DiscoveryURL string
 }
 
-func (c *Config) APIKeys() (map[string]string, error) {
-	apiKeys := make(map[string]string)
-	for _, key := range c.APIKeyEntries {
+func (c *Config) Credentials() (map[string]string, error) {
+	credentials := make(map[string]string)
+	for _, key := range c.CredentialEntries {
 		entry := strings.Split(key, ":")
 		if len(entry) > 2 {
-			return nil, fmt.Errorf("invalid format on apikeys, should be comma-separated entries on format 'user:key'")
+			return nil, fmt.Errorf("invalid format on credentials, should be comma-separated entries on format 'user:key'")
 		}
 
-		apiKeys[entry[0]] = entry[1]
+		credentials[entry[0]] = entry[1]
 	}
 
-	if len(apiKeys) == 0 {
+	if len(credentials) == 0 {
 		return nil, fmt.Errorf("no API keys provided")
 	}
 
-	return apiKeys, nil
+	return credentials, nil
 }
 
 func DefaultConfig() Config {

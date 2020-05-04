@@ -38,6 +38,7 @@ func init() {
 	flag.StringVar(&cfg.PrometheusAddr, "prometheus-address", cfg.PrometheusAddr, "prometheus listen address")
 	flag.StringVar(&cfg.APIServerURL, "api-server-url", cfg.APIServerURL, "api server URL")
 	flag.StringVar(&cfg.APIServerPublicKey, "api-server-public-key", cfg.APIServerPublicKey, "api server public key")
+	flag.StringVar(&cfg.APIServerPassword, "api-server-password", cfg.APIServerPassword, "api server password")
 	flag.StringVar(&cfg.APIServerWireGuardEndpoint, "api-server-wireguard-endpoint", cfg.APIServerWireGuardEndpoint, "api server WireGuard endpoint")
 	flag.StringVar(&cfg.PrometheusPublicKey, "prometheus-public-key", cfg.PrometheusPublicKey, "prometheus public key")
 	flag.StringVar(&cfg.PrometheusTunnelIP, "prometheus-tunnel-ip", cfg.PrometheusTunnelIP, "prometheus tunnel ip")
@@ -82,7 +83,6 @@ func main() {
 	}()
 
 	log.Info("starting gateway-agent")
-	log.Infof("with config:\n%+v", cfg)
 
 	if !cfg.DevMode {
 		if err := setupInterface(cfg.TunnelIP); err != nil {
@@ -104,7 +104,7 @@ func main() {
 
 	for range time.NewTicker(10 * time.Second).C {
 		log.Infof("getting config")
-		devices, err := getDevices(cfg.APIServerURL, cfg.Name)
+		devices, err := getDevices(cfg)
 		if err != nil {
 			log.Error(err)
 			failedConfigFetches.Inc()
@@ -127,9 +127,16 @@ func readPrivateKey(privateKeyPath string) (string, error) {
 	return string(b), err
 }
 
-func getDevices(apiServerURL, name string) ([]Device, error) {
-	gatewayConfigURL := fmt.Sprintf("%s/gateways/%s", apiServerURL, name)
-	resp, err := http.Get(gatewayConfigURL)
+func getDevices(config Config) ([]Device, error) {
+	gatewayConfigURL := fmt.Sprintf("%s/gateways/%s", config.APIServerURL, config.Name)
+	req, err := http.NewRequest(http.MethodGet, gatewayConfigURL, nil)
+	if err != nil {
+		return nil, fmt.Errorf("creating http request: %w", err)
+	}
+
+	req.SetBasicAuth(config.Name, config.APIServerPassword)
+
+	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("getting peer config from apiserver: %w", err)
 	}
@@ -160,6 +167,7 @@ type Config struct {
 	PrometheusAddr             string
 	PrometheusPublicKey        string
 	PrometheusTunnelIP         string
+	APIServerPassword          string
 }
 
 func DefaultConfig() Config {
