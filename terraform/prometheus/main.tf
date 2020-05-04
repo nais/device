@@ -10,3 +10,9 @@ provider "google" {
   region  = "europe-north1"
   version = "3.14"
 }
+
+provider "google-beta" {
+  project = "nais-device"
+  region  = "europe-north1"
+  version = "3.14"
+}
