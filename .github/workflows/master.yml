@@ -6,7 +6,9 @@ on:
     paths:
       - 'go.mod'
       - '**.go'
-      - '**.php'
+      - 'device-health-update/**/*.php'
+      - 'device-health-update/composer.json'
+      - 'device-health-update/composer.lock'
 jobs:
   build:
     name: build
