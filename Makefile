@@ -34,6 +34,9 @@ run-postgres-test:
 		PGPASSWORD=postgres psql -h localhost -p 5433 -U postgres -l && break;\
     done
 
+teardown-postgres:
+	docker rm -f postgres || echo "okidoki" 
+
 teardown-postgres-test:
 	docker rm -f postgres-test || echo "okidoki" 
 
