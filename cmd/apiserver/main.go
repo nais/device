@@ -10,6 +10,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/dgrijalva/jwt-go"
 	"github.com/nais/device/apiserver/azure/discovery"
 	"github.com/nais/device/apiserver/azure/validate"
 	"github.com/nais/device/apiserver/middleware"
@@ -40,30 +41,23 @@ func init() {
 	flag.BoolVar(&cfg.DevMode, "development-mode", cfg.DevMode, "Development mode avoids setting up wireguard and fetching and validating AAD certificates")
 	flag.StringVar(&cfg.Azure.DiscoveryURL, "azure-discovery-url", "", "Azure discovery url")
 	flag.StringVar(&cfg.Azure.ClientID, "azure-client-id", "", "Azure app client id")
+	flag.StringSliceVar(&cfg.APIKeyEntries, "api-keys", nil, "Comma-separated API keys on format: '<user>:<key>'")
 
 	flag.Parse()
 
 	cfg.PrivateKeyPath = filepath.Join(cfg.ConfigDir, "private.key")
 	cfg.WireGuardConfigPath = filepath.Join(cfg.ConfigDir, "wg0.conf")
-
-	if err := cfg.Valid(); err != nil && !cfg.DevMode {
-		fmt.Printf("Validating config: %v", err)
-		os.Exit(1)
-	}
 }
 
 func main() {
+
 	go func() {
 		log.Infof("Prometheus serving metrics at %v", cfg.PrometheusAddr)
 		_ = http.ListenAndServe(cfg.PrometheusAddr, promhttp.Handler())
 	}()
 
-	if !cfg.DevMode {
-		if err := setupInterface(); err != nil {
-			log.Fatalf("Setting up WireGuard interface: %v", err)
-		}
-	} else {
-		log.Infof("DevMode: skipping interface setup")
+	if err := setupInterface(); err != nil && !cfg.DevMode {
+		log.Fatalf("Setting up WireGuard interface: %v", err)
 	}
 
 	db, err := database.New(cfg.DbConnURI)
@@ -81,27 +75,27 @@ func main() {
 		log.Fatalf("Generating public key: %v", err)
 	}
 
-	certificates, err := discovery.FetchCertificates(cfg.Azure)
-	if err != nil && !cfg.DevMode {
-		log.Fatalf("Retrieving azure ad certificates for token validation: %v", err)
+	jwtValidator, err := createJWTValidator(cfg)
+	if err != nil {
+		log.Fatalf("Creating JWT validator: %v", err)
 	}
-
-	jwtValidator := validate.JWTValidator(certificates, cfg.Azure.ClientID)
 
 	if len(cfg.SlackToken) > 0 {
 		slackBot := slack.New(cfg.SlackToken, cfg.Endpoint, db, string(publicKey), jwtValidator)
 		go slackBot.Handler()
 	}
 
-	if !cfg.DevMode {
-		go syncWireguardConfig(cfg.DbConnURI, string(privateKey), cfg)
-	}
+	go syncWireguardConfig(cfg.DbConnURI, string(privateKey), cfg)
 
 	apiConfig := api.Config{
 		DB: db,
 	}
 
 	if !cfg.DevMode {
+		apiConfig.APIKeys, err = cfg.APIKeys()
+		if err != nil {
+			log.Fatalf("Getting API keys: %v", err)
+		}
 		apiConfig.OAuthKeyValidatorMiddleware = middleware.TokenValidatorMiddleware(jwtValidator)
 	}
 
@@ -109,6 +103,25 @@ func main() {
 
 	fmt.Println("running @", cfg.BindAddress)
 	fmt.Println(http.ListenAndServe(cfg.BindAddress, router))
+}
+
+func createJWTValidator(conf config.Config) (jwt.Keyfunc, error) {
+	if conf.DevMode {
+		return func(token *jwt.Token) (interface{}, error) {
+			return nil, nil
+		}, nil
+	}
+
+	if len(conf.Azure.ClientID) == 0 || len(conf.Azure.DiscoveryURL) == 0 {
+		return nil, fmt.Errorf("missing required azure configuration")
+	}
+
+	certificates, err := discovery.FetchCertificates(cfg.Azure)
+	if err != nil {
+		return nil, fmt.Errorf("retrieving azure ad certificates for token validation: %v", err)
+	}
+
+	return validate.JWTValidator(certificates, cfg.Azure.ClientID), nil
 }
 
 func generatePublicKey(privateKey []byte, wireGuardPath string) ([]byte, error) {
@@ -143,7 +156,6 @@ func setupInterface() error {
 	run := func(commands [][]string) error {
 		for _, s := range commands {
 			cmd := exec.Command(s[0], s[1:]...)
-
 			if out, err := cmd.CombinedOutput(); err != nil {
 				return fmt.Errorf("running %v: %w: %v", cmd, err, string(out))
 			} else {
@@ -169,8 +181,8 @@ func syncWireguardConfig(dbConnURI, privateKey string, conf config.Config) {
 		log.Fatalf("Instantiating database: %v", err)
 	}
 
+	log.Info("Starting config sync")
 	for c := time.Tick(10 * time.Second); ; <-c {
-		log.Info("Syncing config")
 		devices, err := db.ReadDevices()
 		if err != nil {
 			log.Errorf("Reading devices from database: %v", err)
@@ -187,7 +199,7 @@ func syncWireguardConfig(dbConnURI, privateKey string, conf config.Config) {
 			log.Errorf("Writing WireGuard config to disk: %v", err)
 		}
 
-		if b, err := exec.Command("wg", "syncconf", "wg0", conf.WireGuardConfigPath).Output(); err != nil {
+		if b, err := exec.Command("wg", "syncconf", "wg0", conf.WireGuardConfigPath).CombinedOutput(); err != nil {
 			log.Errorf("Synchronizing WireGuard config: %v: %v", err, string(b))
 		}
 	}

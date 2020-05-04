@@ -1,6 +1,9 @@
 package config
 
-import "fmt"
+import (
+	"fmt"
+	"strings"
+)
 
 type Config struct {
 	DbConnURI           string
@@ -15,23 +18,30 @@ type Config struct {
 	PrometheusAddr      string
 	PrometheusPublicKey string
 	PrometheusTunnelIP  string
-}
-
-func (c Config) Valid() error {
-	if len(c.Azure.DiscoveryURL) == 0 {
-		return fmt.Errorf("--azure-discovery-url must be set")
-	}
-
-	if len(c.Azure.ClientID) == 0 {
-		return fmt.Errorf("--azure-client-id must be set")
-	}
-
-	return nil
+	APIKeyEntries       []string
 }
 
 type Azure struct {
 	ClientID     string
 	DiscoveryURL string
+}
+
+func (c *Config) APIKeys() (map[string]string, error) {
+	apiKeys := make(map[string]string)
+	for _, key := range c.APIKeyEntries {
+		entry := strings.Split(key, ":")
+		if len(entry) > 2 {
+			return nil, fmt.Errorf("invalid format on apikeys, should be comma-separated entries on format 'user:key'")
+		}
+
+		apiKeys[entry[0]] = entry[1]
+	}
+
+	if len(apiKeys) == 0 {
+		return nil, fmt.Errorf("no API keys provided")
+	}
+
+	return apiKeys, nil
 }
 
 func DefaultConfig() Config {
