@@ -143,11 +143,19 @@ func getDevices(config Config) ([]Device, error) {
 
 	defer resp.Body.Close()
 
-	var devices []Device
-	err = json.NewDecoder(resp.Body).Decode(&devices)
-
+	b, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		return nil, fmt.Errorf("unmarshal json from apiserver: %w", err)
+		return nil, fmt.Errorf("reading bytes, %w", err)
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("fetching devices from apiserver: %v %v %v", resp.StatusCode, resp.Status, string(b))
+	}
+
+	var devices []Device
+	err = json.Unmarshal(b, &devices)
+	if err != nil {
+		return nil, fmt.Errorf("unmarshal json from apiserver: bytes: %v, error: %w", string(b), err)
 	}
 
 	return devices, nil
