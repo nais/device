@@ -57,9 +57,9 @@ This script is used to update device health status based on live data from the K
 
 Used for authentication with the Kolide API.
 
-#### `KOLIDE_CHECKS_IGNORED` (optional, default: `''`)
+#### `KOLIDE_CHECKS_IGNORED` (optional, default: `'32831,32837,32848'`)
 
-Comma-separated list of Kolide check IDs to ignore when checking device status. For a complete list of checks used with our account use the `get-checks.phar` script mentioned above.
+Comma-separated list of Kolide check IDs to ignore when checking device status. For a complete list of checks used with our account use the `get-checks.phar` script mentioned above. When specified it will override the default, so if you want to ignore the default ignored checks as well, remember to include them in the environment variable.
 
 #### `APISERVER_PASSWORD` (required, default: `''`)
 

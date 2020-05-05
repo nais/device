@@ -36,7 +36,7 @@ foreach (['KOLIDE_API_TOKEN', 'APISERVER_PASSWORD'] as $requiredEnvVar) {
 
 $kolideChecksIgnored = !empty($_SERVER['KOLIDE_CHECKS_IGNORED'])
     ? array_map(function(string $id) : int { return (int) trim($id); }, explode(',', $_SERVER['KOLIDE_CHECKS_IGNORED']))
-    : [];
+    : [32831, 32837, 32848];
 
 $schema = 'http';
 $host   = $_SERVER['APISERVER_HOST'] ?? '10.255.240.1';
