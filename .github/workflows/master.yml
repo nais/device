@@ -133,7 +133,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./device-health-checker/update.phar
+          asset_path: ./device-health-checker/bin/update.phar
           asset_name: update.phar
           asset_content_type: application/octet-stream
       - name: upload get-checks.phar archive
@@ -142,6 +142,6 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./device-health-checker/get-checks.phar
+          asset_path: ./device-health-checker/bin/get-checks.phar
           asset_name: get-checks.phar
           asset_content_type: application/octet-stream
