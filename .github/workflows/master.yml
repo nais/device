@@ -1,8 +1,6 @@
-name: build and push
+name: Test, build and release
 on:
   push:
-    branches:
-      - master
     paths:
       - 'go.mod'
       - '**.go'
@@ -10,7 +8,7 @@ on:
       - 'device-health-checker/composer.json'
       - 'device-health-checker/composer.lock'
 jobs:
-  build:
+  test:
     name: build
     runs-on: ubuntu-latest
     services:
@@ -27,77 +25,123 @@ jobs:
           --health-timeout 5s
           --health-retries 5
     steps:
-    - uses: actions/checkout@master
+    - uses: actions/checkout@v2
     - name: run tests
       run: |
         make run-integration-test
-    - name: Prepare device-health-checker scripts for packaging
-      working-directory: ./device-health-checker
-      run: |
-        composer install --prefer-dist --no-progress --no-suggest --no-ansi --no-dev
-    - name: build
-      run: |
-        make linux
-    - name: set version
-      id: set_version
-      run: |
+
+  test-device-health-checker:
+    name: Test device-health-checker on PHP ${{ matrix.php }}
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        php:
+          - '7.2'
+          - '7.3'
+          - '7.4'
+      fail-fast: true
+    defaults:
+      run:
+        working-directory: ./device-health-checker
+    steps:
+      - uses: actions/checkout@v2
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php }}
+      - name: Output some debug information about the PHP version
+        run: |
+          php -v
+          php -i
+          php -m
+      - name: Validate composer files
+        run: composer validate --strict
+      - name: Cache Composer packages
+        id: composer-cache
+        uses: actions/cache@v1
+        with:
+          path: vendor
+          key: ${{ runner.os }}-php-${{ matrix.php }}-node-${{ hashFiles('**/composer.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-php-${{ matrix.php }}-node-
+      - name: Install dependencies
+        if: steps.composer-cache.outputs.cache-hit != 'true'
+        run: composer install --prefer-dist --no-progress --no-suggest --no-ansi -o
+      - name: Run tests
+        run: composer run ci
+
+  build-and-release:
+    if: ${{ github.ref == 'ref/head/master' }}
+    needs:
+      - test
+      - test-device-health-checker
+    name: Build and release
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Prepare device-health-checker scripts for packaging
+        working-directory: ./device-health-checker
+        run: |
+          composer install --prefer-dist --no-progress --no-suggest --no-ansi --no-dev -o
+      - name: build
+        run: |
+          make linux
+      - name: set version
+        id: set_version
+        run: |
           echo ::set-output name=version::$(date "+%Y-%m-%d")-$(git --no-pager log -1 --pretty=%h)
-    - name: create release
-      id: create_release
-      uses: actions/create-release@v1.0.1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        tag_name: ${{ steps.set_version.outputs.version }}
-        release_name: Release ${{ steps.set_version.outputs.version }}
-        draft: false
-        prerelease: false
-    - name: upload apiserver binary
-      uses: actions/upload-release-asset@v1.0.2
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: ./bin/apiserver
-        asset_name: apiserver
-        asset_content_type: application/octet-stream
-
-    - name: upload gateway-agent binary
-      uses: actions/upload-release-asset@v1.0.2
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: ./bin/gateway-agent
-        asset_name: gateway-agent
-        asset_content_type: application/octet-stream
-
-    - name: upload prometheus-agent binary
-      uses: actions/upload-release-asset@v1.0.2
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: ./bin/prometheus-agent
-        asset_name: prometheus-agent
-        asset_content_type: application/octet-stream
-
-    - name: upload update.phar archive
-      uses: actions/upload-release-asset@v1.0.2
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: ./device-health-checker/update.phar
-        asset_name: update.phar
-        asset_content_type: application/octet-stream
-
-    - name: upload get-checks.phar archive
-      uses: actions/upload-release-asset@v1.0.2
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: ./device-health-checker/get-checks.phar
-        asset_name: get-checks.phar
-        asset_content_type: application/octet-stream
+      - name: create release
+        id: create_release
+        uses: actions/create-release@v1.0.1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ steps.set_version.outputs.version }}
+          release_name: Release ${{ steps.set_version.outputs.version }}
+          draft: false
+          prerelease: false
+      - name: upload apiserver binary
+        uses: actions/upload-release-asset@v1.0.2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./bin/apiserver
+          asset_name: apiserver
+          asset_content_type: application/octet-stream
+      - name: upload gateway-agent binary
+        uses: actions/upload-release-asset@v1.0.2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./bin/gateway-agent
+          asset_name: gateway-agent
+          asset_content_type: application/octet-stream
+      - name: upload prometheus-agent binary
+        uses: actions/upload-release-asset@v1.0.2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./bin/prometheus-agent
+          asset_name: prometheus-agent
+          asset_content_type: application/octet-stream
+      - name: upload update.phar archive
+        uses: actions/upload-release-asset@v1.0.2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./device-health-checker/update.phar
+          asset_name: update.phar
+          asset_content_type: application/octet-stream
+      - name: upload get-checks.phar archive
+        uses: actions/upload-release-asset@v1.0.2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./device-health-checker/get-checks.phar
+          asset_name: get-checks.phar
+          asset_content_type: application/octet-stream
