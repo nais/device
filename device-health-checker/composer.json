@@ -1,6 +1,6 @@
 {
-  "name": "nais/device-health-update",
-  "description": "Update health status of Nais devices",
+  "name": "nais/device-health-checker",
+  "description": "Check and update health status of Nais devices based on data from the Kolide API",
   "license": "MIT",
   "authors": [
     {

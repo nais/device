@@ -1,4 +1,4 @@
-# Update health status of Nais devices
+# Check and update health status of Nais devices
 
 ![Build and test device health update](https://github.com/nais/device/workflows/Build%20and%20test%20device%20health%20update/badge.svg)
 
@@ -9,7 +9,7 @@ Scripts dealing with device health status of all Nais devices based on checks fr
 For development purposes you can clone the repository and install required dependencies:
 
     git clone git@github.com:nais/device.git
-    cd device/device-health-update
+    cd device/device-health-checker
     composer install
 
 Remember to run tests after making changes:
@@ -84,7 +84,7 @@ During the execution it will output log message in the following format:
 
 ```json
 {
-    "component": "device-health-update",
+    "component": "device-health-checker",
     "system": "nais-device",
     "message": "<log message>",
     "serial": "<device serial>",

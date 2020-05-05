@@ -6,9 +6,9 @@ on:
     paths:
       - 'go.mod'
       - '**.go'
-      - 'device-health-update/**/*.php'
-      - 'device-health-update/composer.json'
-      - 'device-health-update/composer.lock'
+      - 'device-health-checker/**/*.php'
+      - 'device-health-checker/composer.json'
+      - 'device-health-checker/composer.lock'
 jobs:
   build:
     name: build
@@ -31,8 +31,8 @@ jobs:
     - name: run tests
       run: |
         make run-integration-test
-    - name: Prepare device-health-update scripts for packaging
-      working-directory: ./device-health-update
+    - name: Prepare device-health-checker scripts for packaging
+      working-directory: ./device-health-checker
       run: |
         composer install --prefer-dist --no-progress --no-suggest --no-ansi --no-dev
     - name: build
@@ -88,7 +88,7 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
         upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: ./device-health-update/update.phar
+        asset_path: ./device-health-checker/update.phar
         asset_name: update.phar
         asset_content_type: application/octet-stream
 
@@ -98,6 +98,6 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
         upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: ./device-health-update/get-checks.phar
+        asset_path: ./device-health-checker/get-checks.phar
         asset_name: get-checks.phar
         asset_content_type: application/octet-stream
