@@ -2,7 +2,7 @@ name: Build and test device health update
 on:
   push:
     paths:
-      - 'device-health-update/**'
+      - 'device-health-checker/**'
 jobs:
   test:
     name: Install and run unit tests on on PHP ${{ matrix.php }}
@@ -16,7 +16,7 @@ jobs:
       fail-fast: true
     defaults:
       run:
-        working-directory: ./device-health-update
+        working-directory: ./device-health-checker
     steps:
       - uses: actions/checkout@v2
 
@@ -68,4 +68,4 @@ jobs:
       - uses: actions/upload-artifact@v1
         with:
           name: Archives
-          path: device-health-update/bin
+          path: device-health-checker/bin
