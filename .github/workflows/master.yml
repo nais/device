@@ -71,7 +71,7 @@ jobs:
         run: composer run ci
 
   build-and-release:
-    if: ${{ github.ref == 'ref/head/master' }}
+    if: ${{ github.ref == 'refs/heads/master' }}
     needs:
       - test
       - test-device-health-checker
