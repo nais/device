@@ -13,7 +13,7 @@ linux:
 	GOOS=linux GOARCH=amd64 go build -o bin/device-agent cmd/device-agent/main.go
 	GOOS=linux GOARCH=amd64 go build -o bin/prometheus-agent cmd/prometheus-agent/main.go
 	php -d phar.readonly=off device-health-checker/create-phar.php device-health-checker/get-checks.php device-health-checker/bin
-	php -d phar.readonly=off device-health-checker/create-phar.php device-health-checker/update.php device-health-checker/bin
+	php -d phar.readonly=off device-health-checker/create-phar.php device-health-checker/device-health-checker.php device-health-checker/bin
 
 local:
 	go build -o bin/apiserver cmd/apiserver/main.go

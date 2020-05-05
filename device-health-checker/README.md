@@ -19,9 +19,7 @@ Remember to run tests after making changes:
 [Phar](https://www.php.net/manual/en/intro.phar.php) archives are built to ease the usage/installation of the scripts in this library. The following archives are generated and [released](https://github.com/nais/device/releases):
 
 - `get-checks.phar`
-- `update.phar`
-
-The archives are also built and uploaded as artifacts to the [Build and test device health update](https://github.com/nais/device/actions?query=workflow%3A%22Build+and+test+device+health+update%22) workflow.
+- `device-health-checker.phar`
 
 They can be executed like binaries once they are set as executable.
 
@@ -47,7 +45,7 @@ ID    | Name                                 | URL
 ...
 ```
 
-## Script: `update.phar`
+## Script: `device-health-checker.phar`
 
 This script is used to update device health status based on live data from the Kolide API.
 
@@ -78,7 +76,7 @@ Can be specified to override the default port when communicating with the Nais d
 Simply trigger the script to make it run:
 
 ```
-christer_edvartsen@apiserver:~$ ./update.phar
+christer_edvartsen@apiserver:~$ ./device-health-checker.phar
 ...
 ```
 
