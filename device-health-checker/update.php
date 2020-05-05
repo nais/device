@@ -6,28 +6,31 @@ use GuzzleHttp\Client as HttpClient;
 use RuntimeException;
 use Throwable;
 
+const LOGLEVEL_INFO  = 'info';
+const LOGLEVEL_ERROR = 'error';
+
 require 'vendor/autoload.php';
 
-function log(string $message, string $serial = null, string $username = null) : void {
+function log(string $message, string $level = LOGLEVEL_INFO, string $serial = null, string $username = null) : void {
     echo json_encode(array_filter([
-        'component' => 'update-device-health',
+        'component' => 'device-health-checker',
         'system'    => 'nais-device',
         'message'   => $message,
         'serial'    => $serial,
         'username'  => $username,
-        'level'     => 'info',
+        'level'     => $level,
         'timestamp' => time(),
     ])) . PHP_EOL;
 }
 
 set_exception_handler(function(Throwable $e) : void {
-    echo trim($e->getMessage()) . PHP_EOL;
-    exit($e->getCode());
+    log($e->getMessage(), LOGLEVEL_ERROR);
+    exit(1);
 });
 
-foreach (['KOLIDE_API_TOKEN'] as $requiredEnvVar) {
+foreach (['KOLIDE_API_TOKEN', 'APISERVER_PASSWORD'] as $requiredEnvVar) {
     if (empty($_SERVER[$requiredEnvVar])) {
-        throw new RuntimeException(sprintf('Missing required environment variable: %s', $requiredEnvVar), 1);
+        throw new RuntimeException(sprintf('Missing required environment variable: %s', $requiredEnvVar));
     }
 }
 
@@ -44,7 +47,11 @@ if (443 == $port) {
     $port = '';
 }
 
-$naisDeviceApiClient = new HttpClient(['base_uri' => trim(sprintf('%s://%s:%s', $schema, $host, $port), ':')]);
+$naisDeviceApiClient = new HttpClient([
+    'base_uri' => trim(sprintf('%s://%s:%s', $schema, $host, $port), ':'),
+    'timeout'  => 3,
+    'auth'     => ['device-health-checker', $_SERVER['APISERVER_PASSWORD']],
+]);
 $kolideApiClient = new KolideApiClient($_SERVER['KOLIDE_API_TOKEN']);
 
 // Failing devices that will be marked as unhealthy
@@ -106,19 +113,24 @@ $updatedNaisDevices = array_map(function(array $naisDevice) use ($failingDevices
     $healthy        = !array_key_exists($serial, $failingDevices);
 
     if ($healthy && !$alreadyHealthy) {
-        log('No failing checks anymore, device is now healthy', $serial, $username);
+        log('No failing checks anymore, device is now healthy', LOGLEVEL_INFO, $serial, $username);
     } else if ($alreadyHealthy && !$healthy) {
         $failingChecks = array_map(function(array $failure) : string {
             return $failure['title'];
         }, $failingDevices[$serial]['failures']);
-        log(sprintf('Device is no longer healthy because of the following failing checks: %s', join(', ', $failingChecks)), $serial, $username);
+        log(
+            sprintf('Device is no longer healthy because of the following failing checks: %s', join(', ', $failingChecks)),
+            LOGLEVEL_INFO,
+            $serial,
+            $username
+        );
     }
 
     return [
         'serial' => $naisDevice['serial'],
         'isHealthy' => $healthy,
     ];
-}, json_decode($naisDeviceApiClient->get('/devices')->getBody()->getContents(), true));
+}, json_decode($naisDeviceApiClient->get('/devices')->getBody()->getContents(), true) ?: []);
 
 // Trigger the actual update of the devices.
 $naisDeviceApiClient->put('/devices/health', ['json' => $updatedNaisDevices]);

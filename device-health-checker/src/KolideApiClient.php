@@ -9,9 +9,10 @@ class KolideApiClient {
     public function __construct(string $token, HttpClient $client = null) {
         $this->client = $client ?: new HttpClient([
             'base_uri' => 'https://k2.kolide.com/api/v0/',
-            'headers' => [
+            'timeout'  => 3,
+            'headers'  => [
                 'Authorization' => sprintf('Bearer %s', $token),
-                'Accept' => 'application/json',
+                'Accept'        => 'application/json',
             ],
         ]);
     }

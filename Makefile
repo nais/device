@@ -12,6 +12,8 @@ linux:
 	GOOS=linux GOARCH=amd64 go build -o bin/gateway-agent cmd/gateway-agent/main.go
 	GOOS=linux GOARCH=amd64 go build -o bin/device-agent cmd/device-agent/main.go
 	GOOS=linux GOARCH=amd64 go build -o bin/prometheus-agent cmd/prometheus-agent/main.go
+	php -d phar.readonly=off device-health-checker/create-phar.php device-health-checker/get-checks.php device-health-checker/bin
+	php -d phar.readonly=off device-health-checker/create-phar.php device-health-checker/update.php device-health-checker/bin
 
 local:
 	go build -o bin/apiserver cmd/apiserver/main.go
@@ -38,10 +40,10 @@ run-postgres-test:
     done
 
 teardown-postgres:
-	docker rm -f postgres || echo "okidoki" 
+	docker rm -f postgres || echo "okidoki"
 
 teardown-postgres-test:
-	docker rm -f postgres-test || echo "okidoki" 
+	docker rm -f postgres-test || echo "okidoki"
 
 local-gateway-agent:
 	go run ./cmd/gateway-agent/main.go --api-server-url=http://localhost:8080 --name=gw0 --prometheus-address=127.0.0.1:3000 --development-mode=true
