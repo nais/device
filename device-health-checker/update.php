@@ -50,7 +50,7 @@ if (443 == $port) {
 $naisDeviceApiClient = new HttpClient([
     'base_uri' => trim(sprintf('%s://%s:%s', $schema, $host, $port), ':'),
     'timeout'  => 3,
-    'auth'     => ['device-health-checker', $_SEVER['APISERVER_PASSWORD']],
+    'auth'     => ['device-health-checker', $_SERVER['APISERVER_PASSWORD']],
 ]);
 $kolideApiClient = new KolideApiClient($_SERVER['KOLIDE_API_TOKEN']);
 
