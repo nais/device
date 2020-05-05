@@ -2,6 +2,7 @@ name: Test, build and release
 on:
   push:
     paths:
+      - 'Makefile'
       - 'go.mod'
       - '**.go'
       - 'device-health-checker/**/*.php'
