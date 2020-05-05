@@ -63,6 +63,10 @@ Used for authentication with the Kolide API.
 
 Comma-separated list of Kolide check IDs to ignore when checking device status. For a complete list of checks used with our account use the `get-checks.phar` script mentioned above.
 
+#### `APISERVER_PASSWORD` (required, default: `''`)
+
+Password needed when authenticating requests to the API server.
+
 #### `APISERVER_HOST` (optional, default: `'10.255.240.1'`)
 
 Can be specified to override the default host when communicating with the Nais device API server.

@@ -28,7 +28,7 @@ set_exception_handler(function(Throwable $e) : void {
     exit(1);
 });
 
-foreach (['KOLIDE_API_TOKEN'] as $requiredEnvVar) {
+foreach (['KOLIDE_API_TOKEN', 'APISERVER_PASSWORD'] as $requiredEnvVar) {
     if (empty($_SERVER[$requiredEnvVar])) {
         throw new RuntimeException(sprintf('Missing required environment variable: %s', $requiredEnvVar));
     }
@@ -50,6 +50,7 @@ if (443 == $port) {
 $naisDeviceApiClient = new HttpClient([
     'base_uri' => trim(sprintf('%s://%s:%s', $schema, $host, $port), ':'),
     'timeout'  => 3,
+    'auth'     => ['device-health-checker', $_SEVER['APISERVER_PASSWORD']],
 ]);
 $kolideApiClient = new KolideApiClient($_SERVER['KOLIDE_API_TOKEN']);
 
