@@ -1,5 +1,5 @@
 <?php declare(strict_types=1);
-namespace Nais;
+namespace Nais\Device;
 
 // Return checks configuration with regards to criticality. Will be removed once Kolide gets this
 // information embedded in the API responses.

@@ -1,5 +1,5 @@
 <?php declare(strict_types=1);
-namespace Nais;
+namespace Nais\Device;
 
 class Criticality {
     const LOW  = 604800; // 7 days
