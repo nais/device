@@ -5,7 +5,6 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
-	"github.com/nais/device/apiserver/kekw"
 	"io/ioutil"
 	"net/http"
 	"os"
@@ -13,10 +12,12 @@ import (
 	"os/signal"
 	"path"
 	"path/filepath"
-	"regexp"
 	"strings"
 	"syscall"
 	"time"
+
+	"github.com/nais/device/apiserver/kekw"
+	"github.com/nais/device/device-agent/serial"
 
 	"github.com/nais/device/pkg/random"
 	codeverifier "github.com/nirasan/go-oauth-pkce-code-verifier"
@@ -111,7 +112,7 @@ func main() {
 		return
 	}
 
-	serial, err := getDeviceSerial()
+	deviceSerial, err := serial.GetDeviceSerial()
 	if err != nil {
 		log.Errorf("Getting device serial: %v", err)
 		return
@@ -130,7 +131,7 @@ func main() {
 			return
 		}
 
-		enrollmentToken, err := GenerateEnrollmentToken(serial, pubkey, token.AccessToken)
+		enrollmentToken, err := GenerateEnrollmentToken(deviceSerial, pubkey, token.AccessToken)
 		if err != nil {
 			log.Errorf("Generating enrollment token: %v", err)
 			return
@@ -196,7 +197,7 @@ func main() {
 			return
 
 		case <-time.After(10 * time.Second):
-			gateways, err := getGateways(client, cfg.APIServer, serial)
+			gateways, err := getGateways(client, cfg.APIServer, deviceSerial)
 			if err != nil {
 				log.Errorf("Unable to get gateway config: %v", err)
 			}
@@ -321,24 +322,6 @@ func GenerateEnrollmentToken(serial, publicKey, accessToken string) (string, err
 	} else {
 		return base64.StdEncoding.EncodeToString(b), nil
 	}
-}
-
-// TODO(jhrv): extract this as a separate interface, with platform specific implmentations
-func getDeviceSerial() (string, error) {
-	cmd := exec.Command("/usr/sbin/ioreg", "-rd1", "-c", "IOPlatformExpertDevice")
-	b, err := cmd.CombinedOutput()
-	if err != nil {
-		return "", fmt.Errorf("getting serial with ioreg: %w: %v", err, string(b))
-	}
-
-	re := regexp.MustCompile("\"IOPlatformSerialNumber\" = \"([^\"]+)\"")
-	matches := re.FindSubmatch(b)
-
-	if len(matches) != 2 {
-		return "", fmt.Errorf("unable to extract serial from output: %v", string(b))
-	}
-
-	return string(matches[1]), nil
 }
 
 type BootstrapConfig struct {
