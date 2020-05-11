@@ -97,6 +97,10 @@ func main() {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
+	x, err := serial.GetDeviceSerial()
+	fmt.Println(x)
+	fmt.Println(err)
+
 	if err := filesExist(cfg.WireGuardPath, cfg.WireGuardGoBinary); err != nil {
 		log.Errorf("Verifying if file exists: %v", err)
 		return
