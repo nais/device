@@ -14,6 +14,6 @@ require (
 	github.com/slack-go/slack v0.6.3
 	github.com/spf13/pflag v1.0.5
 	github.com/stretchr/testify v1.5.1
-	golang.org/x/crypto v0.0.0-20191002192127-34f69633bfdc // indirect
+	golang.org/x/crypto v0.0.0-20191002192127-34f69633bfdc
 	golang.org/x/oauth2 v0.0.0-20200107190931-bf48bf16ab8d
 )
