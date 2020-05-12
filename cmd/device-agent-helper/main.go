@@ -33,7 +33,7 @@ func init() {
 	flag.StringVar(&cfg.Interface, "interface", "", "name of tunnel interface")
 	flag.StringVar(&cfg.LogLevel, "log-level", "info", "which log level to output")
 	flag.StringVar(&cfg.WireGuardConfigPath, "wireguard-config-path", "", "path to the WireGuard-config the helper will actuate")
-	flag.StringVar(&cfg.WireGuardBinary, "wireguard-binary", WireGuardBinary, "path to WireGuard binary")
+	flag.StringVar(&cfg.WireGuardBinary, "wireguard-binary", cfg.WireGuardBinary, "path to WireGuard binary")
 	platformFlags(&cfg)
 
 	flag.Parse()
@@ -69,7 +69,7 @@ func main() {
 	interrupt := make(chan os.Signal, 1)
 	signal.Notify(interrupt, os.Interrupt, syscall.SIGTERM)
 
-	lastChange := time.Now()
+	lastSync := time.Time{}
 	for {
 		select {
 		case <-interrupt:
@@ -82,12 +82,12 @@ func main() {
 				log.Errorf("checking WireGuard config stats: %v", err)
 			}
 
-			if info.ModTime().After(lastChange) {
+			if info.ModTime().After(lastSync) {
 				err = syncConf(cfg, ctx)
 				if err != nil {
 					log.Errorf("Syncing WireGuard config: %v", err)
 				} else {
-					lastChange = info.ModTime()
+					lastSync = info.ModTime()
 				}
 			}
 		}

@@ -97,10 +97,6 @@ func main() {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	x, err := serial.GetDeviceSerial()
-	fmt.Println(x)
-	fmt.Println(err)
-
 	if err := filesExist(cfg.WireGuardPath, cfg.WireGuardGoBinary); err != nil {
 		log.Errorf("Verifying if file exists: %v", err)
 		return
@@ -200,7 +196,7 @@ func main() {
 			log.Info("Received interrupt, shutting down gracefully.")
 			return
 
-		case <-time.After(10 * time.Second):
+		case <-time.After(15 * time.Second):
 			gateways, err := getGateways(client, cfg.APIServer, deviceSerial)
 			if err != nil {
 				log.Errorf("Unable to get gateway config: %v", err)
