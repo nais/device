@@ -58,7 +58,7 @@ func main() {
 	defer cancel()
 
 	if err := prerequisites(); err != nil {
-		log.Fatal("Checking prerequisites: %v", err)
+		log.Fatalf("Checking prerequisites: %v", err)
 	}
 
 	if err := setupInterface(ctx, cfg); err != nil {
@@ -136,7 +136,7 @@ func runCommands(ctx context.Context, commands [][]string) error {
 		if out, err := cmd.CombinedOutput(); err != nil {
 			return fmt.Errorf("running %v: %w: %v", cmd, err, string(out))
 		} else {
-			log.Debugf("cmd: v: %v\n", cmd, string(out))
+			log.Debugf("cmd: %v: %v\n", cmd, string(out))
 		}
 	}
 	return nil
