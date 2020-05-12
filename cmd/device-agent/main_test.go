@@ -25,27 +25,6 @@ func TestParseBootstrapToken(t *testing.T) {
 	assert.Equal(t, "10.1.1.2", bootstrapConfig.APIServerIP)
 }
 
-func TestGenerateWGConfig(t *testing.T) {
-	bootstrapConfig := &main.BootstrapConfig{
-		TunnelIP:    "10.1.1.1",
-		PublicKey:   "PQKmraPOPye5CJq1x7njpl8rRu5RSrIKyHvZXtLvS0E=",
-		Endpoint:    "69.1.1.1:51820",
-		APIServerIP: "10.1.1.2",
-	}
-	privateKey := []byte("wFTAVe1stJPp0xQ+FE9so56uKh0jaHkPxJ4d2x9jPmU=")
-	wgConfig := main.GenerateBaseConfig(bootstrapConfig, privateKey)
-
-	expected := `[Interface]
-PrivateKey = wFTAVe1stJPp0xQ+FE9so56uKh0jaHkPxJ4d2x9jPmU=
-
-[Peer]
-PublicKey = PQKmraPOPye5CJq1x7njpl8rRu5RSrIKyHvZXtLvS0E=
-AllowedIPs = 10.1.1.2/32
-Endpoint = 69.1.1.1:51820
-`
-	assert.Equal(t, expected, wgConfig)
-}
-
 func TestGenerateWireGuardPeers(t *testing.T) {
 	gateways := []main.Gateway{{
 		PublicKey: "PQKmraPOPye5CJq1x7njpl8rRu5RSrIKyHvZXtLvS0E=",
@@ -65,7 +44,7 @@ Endpoint = 13.37.13.37:51820
 
 func TestGenerateEnrollmentToken(t *testing.T) {
 	expected := "eyJzZXJpYWwiOiJzZXJpYWwiLCJwdWJsaWNLZXkiOiJwdWJsaWNfa2V5IiwiYWNjZXNzVG9rZW4iOiJhY2Nlc3NfdG9rZW4ifQ=="
-	enrollmentToken, err := main.GenerateEnrollmentToken("serial", "public_key", "access_token")
+	enrollmentToken, err := main.GenerateEnrollmentToken("serial", "access_token", []byte("public_key"))
 
 	assert.NoError(t, err)
 	assert.Equal(t, expected, enrollmentToken, "interface changed, remember to change the apiserver counterpart")

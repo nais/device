@@ -2,22 +2,22 @@ package main
 
 import (
 	"context"
+	"crypto/rand"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"github.com/nais/device/apiserver/kekw"
+	"github.com/nais/device/device-agent/serial"
+	"golang.org/x/crypto/curve25519"
 	"io/ioutil"
 	"net/http"
 	"os"
 	"os/exec"
 	"os/signal"
-	"path"
 	"path/filepath"
 	"strings"
 	"syscall"
 	"time"
-
-	"github.com/nais/device/apiserver/kekw"
-	"github.com/nais/device/device-agent/serial"
 
 	"github.com/nais/device/pkg/random"
 	codeverifier "github.com/nirasan/go-oauth-pkce-code-verifier"
@@ -63,8 +63,7 @@ func init() {
 
 	flag.Parse()
 
-	cfg.WireGuardPath = filepath.Join(cfg.BinaryDir, "naisdevice-wg")
-	cfg.WireGuardGoBinary = filepath.Join(cfg.BinaryDir, "naisdevice-wireguard-go")
+	setPlatformDefaults(&cfg)
 	cfg.PrivateKeyPath = filepath.Join(cfg.ConfigDir, "private.key")
 	cfg.WireGuardConfigPath = filepath.Join(cfg.ConfigDir, "wg0.conf")
 	cfg.BootstrapTokenPath = filepath.Join(cfg.ConfigDir, "bootstrap.token")
@@ -97,17 +96,27 @@ func main() {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	if err := filesExist(cfg.WireGuardPath, cfg.WireGuardGoBinary); err != nil {
+	x, err := serial.GetDeviceSerial()
+	fmt.Println(x)
+	fmt.Println(err)
+
+	err = platformPrerequisites(cfg)
+	if err != nil {
+		log.Errorf("Verifying platform prerequisites: %v", err)
+		return
+	}
+
+	if err := filesExist(cfg.WireGuardPath); err != nil {
 		log.Errorf("Verifying if file exists: %v", err)
 		return
 	}
 
-	if err := ensureDirectories(cfg.ConfigDir, cfg.BinaryDir); err != nil {
+	if err := ensureDirectories(cfg.ConfigDir); err != nil {
 		log.Errorf("Ensuring directory exists: %v", err)
 		return
 	}
 
-	if err := ensureKey(cfg.PrivateKeyPath, cfg.WireGuardPath); err != nil {
+	if err := ensureKey(cfg.PrivateKeyPath); err != nil {
 		log.Errorf("Ensuring private key exists: %v", err)
 		return
 	}
@@ -124,14 +133,14 @@ func main() {
 		return
 	}
 
-	if err := filesExist(cfg.BootstrapTokenPath); err != nil {
-		pubkey, err := generatePublicKey(cfg.PrivateKeyPath, cfg.WireGuardPath)
-		if err != nil {
-			log.Errorf("Generate public key during bootstrap: %v", err)
-			return
-		}
+	privateKey, err := ioutil.ReadFile(cfg.PrivateKeyPath)
+	if err != nil {
+		log.Errorf("Reading private key: %v", err)
+		return
+	}
 
-		enrollmentToken, err := GenerateEnrollmentToken(deviceSerial, pubkey, token.AccessToken)
+	if err := filesExist(cfg.BootstrapTokenPath); err != nil {
+		enrollmentToken, err := GenerateEnrollmentToken(deviceSerial, token.AccessToken, wgPubKey(privateKey))
 		if err != nil {
 			log.Errorf("Generating enrollment token: %v", err)
 			return
@@ -153,12 +162,6 @@ func main() {
 		return
 	}
 
-	privateKey, err := ioutil.ReadFile(cfg.PrivateKeyPath)
-	if err != nil {
-		log.Errorf("Reading private key: %v", err)
-		return
-	}
-
 	baseConfig := GenerateBaseConfig(cfg.BootstrapConfig, privateKey)
 
 	if err := ioutil.WriteFile(cfg.WireGuardConfigPath, []byte(baseConfig), 0600); err != nil {
@@ -170,18 +173,8 @@ func main() {
 
 	fmt.Println("Starting device-agent-helper, you might be prompted for password")
 
-	// start device-agent-helper
-	cmd := adminCommandContext(ctx, "./bin/device-agent-helper",
-		"--interface", cfg.Interface,
-		"--tunnel-ip", cfg.BootstrapConfig.TunnelIP,
-		"--wireguard-binary", cfg.WireGuardPath,
-		"--wireguard-go-binary", cfg.WireGuardGoBinary,
-		"--wireguard-config-path", cfg.WireGuardConfigPath)
-
-	cmd.Stderr = os.Stderr
-	cmd.Stdout = os.Stdout
-	if err := cmd.Start(); err != nil {
-		log.Errorf("Starting device-agent-helper: %v", err)
+	if err = runHelper(ctx, cfg); err != nil {
+		log.Errorf("Running helper: %v", err)
 		return
 	}
 
@@ -304,7 +297,7 @@ Endpoint = %s
 	return peers
 }
 
-func GenerateEnrollmentToken(serial, publicKey, accessToken string) (string, error) {
+func GenerateEnrollmentToken(serial, accessToken string, publicKey []byte) (string, error) {
 	type enrollmentConfig struct {
 		Serial      string `json:"serial"`
 		PublicKey   string `json:"publicKey"`
@@ -313,7 +306,7 @@ func GenerateEnrollmentToken(serial, publicKey, accessToken string) (string, err
 
 	ec := enrollmentConfig{
 		Serial:      serial,
-		PublicKey:   publicKey,
+		PublicKey:   string(publicKey),
 		AccessToken: accessToken,
 	}
 
@@ -343,44 +336,6 @@ func ParseBootstrapToken(bootstrapToken string) (*BootstrapConfig, error) {
 	}
 
 	return &bootstrapConfig, nil
-}
-
-func GenerateBaseConfig(bootstrapConfig *BootstrapConfig, privateKey []byte) string {
-	template := `[Interface]
-PrivateKey = %s
-
-[Peer]
-PublicKey = %s
-AllowedIPs = %s/32
-Endpoint = %s
-`
-	return fmt.Sprintf(template, privateKey, bootstrapConfig.PublicKey, bootstrapConfig.APIServerIP, bootstrapConfig.Endpoint)
-}
-
-func generatePublicKey(privateKeyPath string, wireguardPath string) (string, error) {
-	cmd := exec.Command(wireguardPath, "pubkey")
-
-	stdin, err := cmd.StdinPipe()
-	if err != nil {
-		return "", fmt.Errorf("creating stdin pipe on 'wg pubkey': %w", err)
-	}
-
-	b, err := ioutil.ReadFile(privateKeyPath)
-	if err != nil {
-		return "", fmt.Errorf("reading private key: %w", err)
-	}
-
-	if _, err := stdin.Write(b); err != nil {
-		return "", fmt.Errorf("piping private key to 'wg genkey': %w", err)
-	}
-
-	if err := stdin.Close(); err != nil {
-		return "", fmt.Errorf("closing stdin: %w", err)
-	}
-
-	b, err = cmd.Output()
-	pubkey := strings.TrimSuffix(string(b), "\n")
-	return pubkey, err
 }
 
 func filesExist(files ...string) error {
@@ -419,15 +374,9 @@ func ensureDirectory(dir string) error {
 	return nil
 }
 
-func ensureKey(keyPath string, wireGuardPath string) error {
+func ensureKey(keyPath string) error {
 	if err := FileMustExist(keyPath); os.IsNotExist(err) {
-		cmd := exec.Command(wireGuardPath, "genkey")
-		stdout, err := cmd.CombinedOutput()
-		if err != nil {
-			return fmt.Errorf("executing command: %v, %w: %v", cmd, err, string(stdout))
-		}
-
-		return ioutil.WriteFile(keyPath, stdout, 0600)
+		return ioutil.WriteFile(keyPath, wgGenKey(), 0600)
 	} else if err != nil {
 		return err
 	}
@@ -436,10 +385,15 @@ func ensureKey(keyPath string, wireGuardPath string) error {
 }
 
 func DefaultConfig() Config {
+	userConfigDir, err := os.UserConfigDir()
+	if err != nil {
+		log.Fatal("Getting user conig dir: %w", err)
+	}
+
 	return Config{
 		APIServer: "http://10.255.240.1",
 		Interface: "utun69",
-		ConfigDir: path.Join(getHomeDirOrFail(), ".config", "nais-device"),
+		ConfigDir: filepath.Join(userConfigDir, "nais-device"),
 		BinaryDir: "/usr/local/bin",
 		LogLevel:  "info",
 		oauth2Config: oauth2.Config{
@@ -494,4 +448,55 @@ func successfulResponse(w http.ResponseWriter, msg string) {
 
 func adminCommandContext(ctx context.Context, command string, arg ...string) *exec.Cmd {
 	return exec.CommandContext(ctx, "sudo", append([]string{command}, arg...)...)
+}
+
+func WireGuardGenerateKeyPair() (string, string) {
+	var publicKeyArray [32]byte
+	var privateKeyArray [32]byte
+
+	n, err := rand.Read(privateKeyArray[:])
+
+	if err != nil || n != len(privateKeyArray) {
+		panic("Unable to generate random bytes")
+	}
+
+	privateKeyArray[0] &= 248
+	privateKeyArray[31] = (privateKeyArray[31] & 127) | 64
+
+	curve25519.ScalarBaseMult(&publicKeyArray, &privateKeyArray)
+
+	publicKeyString := base64.StdEncoding.EncodeToString(publicKeyArray[:])
+	privateKeyString := base64.StdEncoding.EncodeToString(privateKeyArray[:])
+
+	return publicKeyString, privateKeyString
+}
+
+func keyToBase64(key [32]byte) []byte {
+	dst := make([]byte, 32)
+	base64.StdEncoding.Encode(key[:], dst)
+	return dst
+}
+
+func wgGenKey() []byte {
+	var privateKey [32]byte
+
+	n, err := rand.Read(privateKey[:])
+
+	if err != nil || n != len(privateKey) {
+		panic("Unable to generate random bytes")
+	}
+
+	privateKey[0] &= 248
+	privateKey[31] = (privateKey[31] & 127) | 64
+	return privateKey[:]
+}
+
+func wgPubKey(privateKeySlice []byte) []byte {
+	var privateKey [32]byte
+	var publicKey [32]byte
+	copy(privateKeySlice[:], privateKey[:])
+
+	curve25519.ScalarBaseMult(&publicKey, &privateKey)
+
+	return publicKey[:]
 }
