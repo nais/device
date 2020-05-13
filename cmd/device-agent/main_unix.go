@@ -40,6 +40,10 @@ func setPlatformDefaults(cfg *Config) {
 }
 
 func platformPrerequisites(cfg Config) error {
+	if err := filesExist(cfg.WireGuardGoBinary); err != nil {
+		return fmt.Errorf("verifying if file exists: %w", err)
+	}
+
 	if err := ensureDirectories(cfg.BinaryDir); err != nil {
 		return fmt.Errorf("ensuring directory exists: %w", err)
 	}

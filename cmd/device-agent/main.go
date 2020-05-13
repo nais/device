@@ -97,7 +97,7 @@ func main() {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	err = platformPrerequisites(cfg)
+	err := platformPrerequisites(cfg)
 	if err != nil {
 		log.Errorf("Verifying platform prerequisites: %v", err)
 		return
