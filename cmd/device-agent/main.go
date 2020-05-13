@@ -6,9 +6,6 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
-	"github.com/nais/device/apiserver/kekw"
-	"github.com/nais/device/device-agent/serial"
-	"golang.org/x/crypto/curve25519"
 	"io/ioutil"
 	"net/http"
 	"os"
@@ -18,6 +15,10 @@ import (
 	"strings"
 	"syscall"
 	"time"
+
+	"github.com/nais/device/apiserver/kekw"
+	"github.com/nais/device/device-agent/serial"
+	"golang.org/x/crypto/curve25519"
 
 	"github.com/nais/device/pkg/random"
 	codeverifier "github.com/nirasan/go-oauth-pkce-code-verifier"
@@ -95,10 +96,6 @@ func main() {
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-
-	x, err := serial.GetDeviceSerial()
-	fmt.Println(x)
-	fmt.Println(err)
 
 	err = platformPrerequisites(cfg)
 	if err != nil {
