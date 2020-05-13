@@ -6,6 +6,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"path/filepath"
 )
 
 func runHelper(ctx context.Context, cfg Config) error {
@@ -39,10 +40,6 @@ func setPlatformDefaults(cfg *Config) {
 }
 
 func platformPrerequisites(cfg Config) error {
-	if err := filesExist(cfg.WireGuardGoPath); err != nil {
-		return fmt.Errorf("verifying if file exists: %w", err)
-	}
-
 	if err := ensureDirectories(cfg.BinaryDir); err != nil {
 		return fmt.Errorf("ensuring directory exists: %w", err)
 	}
