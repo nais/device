@@ -37,6 +37,10 @@ class KolideApiClient {
         return $entries;
     }
 
+    public function getAllDevices() : array {
+        return $this->getPaginatedResults('devices');
+    }
+
     public function getAllChecks() : array {
         return $this->getPaginatedResults('checks');
     }

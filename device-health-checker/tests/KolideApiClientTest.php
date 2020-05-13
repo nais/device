@@ -45,6 +45,30 @@ class KolideApiClientTest extends TestCase {
 
     /**
      * @covers ::__construct
+     * @covers ::getAllDevices
+     * @covers ::getPaginatedResults
+     */
+    public function testCanGetAllDevices() : void {
+        $clientHistory = [];
+        $httpClient = $this->getMockClient(
+            [
+                new Response(200, [], json_encode(['page' => 0, 'last_page' => 1, 'data' => [['id' => 1], ['id' => 2]]])),
+                new Response(200, [], json_encode(['page' => 1, 'last_page' => 1, 'data' => [['id' => 3], ['id' => 4]]])),
+            ],
+            $clientHistory
+        );
+
+        $devices = (new KolideApiClient('secret', 5, $httpClient))->getAllDevices();
+
+        $this->assertCount(4, $devices, 'Expected 4 devices');
+
+        $this->assertCount(2, $clientHistory, 'Expected 2 requests');
+        $this->assertStringEndsWith('devices?page=0', (string) $clientHistory[0]['request']->getUri());
+        $this->assertStringEndsWith('devices?page=1', (string) $clientHistory[1]['request']->getUri());
+    }
+
+    /**
+     * @covers ::__construct
      * @covers ::getFailingChecks
      */
     public function testCanGetFailingChecks() : void {
