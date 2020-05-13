@@ -373,7 +373,7 @@ func ensureDirectory(dir string) error {
 
 func ensureKey(keyPath string) error {
 	if err := FileMustExist(keyPath); os.IsNotExist(err) {
-		return ioutil.WriteFile(keyPath, wgGenKey(), 0600)
+		return ioutil.WriteFile(keyPath, KeyToBase64(WgGenKey()), 0600)
 	} else if err != nil {
 		return err
 	}
@@ -468,13 +468,13 @@ func WireGuardGenerateKeyPair() (string, string) {
 	return publicKeyString, privateKeyString
 }
 
-func keyToBase64(key [32]byte) []byte {
-	dst := make([]byte, 32)
-	base64.StdEncoding.Encode(key[:], dst)
+func KeyToBase64(key []byte) []byte {
+	dst := make([]byte, base64.StdEncoding.EncodedLen(len(key)))
+	base64.StdEncoding.Encode(dst, key)
 	return dst
 }
 
-func wgGenKey() []byte {
+func WgGenKey() []byte {
 	var privateKey [32]byte
 
 	n, err := rand.Read(privateKey[:])
