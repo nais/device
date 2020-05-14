@@ -6,11 +6,11 @@ VALUES ('serial1', 'vegar.sechmann.molvig@nav.no', 'psk1', 'windows', true,
         '10.255.240.2');
 
 INSERT INTO device (serial, username, psk, platform, healthy, public_key, ip)
-VALUES ('serial2', 'johnny.horvi@nav.no', 'psk2', 'ubuntu', true, 'EatjldYVvB91aep5kxDnYsQ37Ufk92IBBIcfma1fzBB=',
+VALUES ('serial2', 'johnny.horvi@nav.no', 'psk2', 'linux', true, 'EatjldYVvB91aep5kxDnYsQ37Ufk92IBBIcfma1fzBB=',
         '10.255.240.3');
 INSERT INTO device (serial, username, psk, platform, healthy, public_key, ip)
 VALUES ('serial2', 'johnny.horvi@nav.no', 'psk2', 'darwin', true, 'EatjldYVvB91aep5kxDnYsQ37Ufk92IBBIcfma1fzAA=',
-        '10.255.240.3');
+        '10.255.240.4');
 
 INSERT INTO gateway (name, public_key, ip, endpoint, routes)
 VALUES ('gateway-1', 'QFwvy4pUYXpYm4z9iXw1GZRgjp3iU+3Hsu0UUvre9FM=', '10.255.240.4', '35.228.118.232:51820',
