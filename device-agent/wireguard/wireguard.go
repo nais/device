@@ -62,7 +62,7 @@ func WgGenKey() []byte {
 func WGPubKey(privateKeySlice []byte) []byte {
 	var privateKey [32]byte
 	var publicKey [32]byte
-	copy(privateKeySlice[:], privateKey[:])
+	copy(privateKey[:], privateKeySlice[:])
 
 	curve25519.ScalarBaseMult(&publicKey, &privateKey)
 

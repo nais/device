@@ -101,12 +101,6 @@ func main() {
 		return
 	}
 
-	deviceSerial, err := serial.GetDeviceSerial()
-	if err != nil {
-		log.Errorf("Getting device serial: %v", err)
-		return
-	}
-
 	privateKeyEncoded, err := ioutil.ReadFile(cfg.PrivateKeyPath)
 	if err != nil {
 		log.Errorf("Reading private key: %v", err)
@@ -116,6 +110,12 @@ func main() {
 	privateKey, err := wireguard.Base64toKey(privateKeyEncoded)
 	if err != nil {
 		log.Errorf("Decoding private key:", err)
+		return
+	}
+
+	deviceSerial, err := serial.GetDeviceSerial()
+	if err != nil {
+		log.Errorf("Getting device serial: %v", err)
 		return
 	}
 

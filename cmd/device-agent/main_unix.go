@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 
 	"github.com/nais/device/device-agent/config"
+	"github.com/nais/device/device-agent/wireguard"
 )
 
 func runHelper(ctx context.Context, cfg config.Config) error {
@@ -33,7 +34,7 @@ PublicKey = %s
 AllowedIPs = %s/32
 Endpoint = %s
 `
-	return fmt.Sprintf(template, KeyToBase64(privateKey), bootstrapConfig.PublicKey, bootstrapConfig.APIServerIP, bootstrapConfig.Endpoint)
+	return fmt.Sprintf(template, wireguard.KeyToBase64(privateKey), bootstrapConfig.PublicKey, bootstrapConfig.APIServerIP, bootstrapConfig.Endpoint)
 }
 
 func setPlatformDefaults(cfg *config.Config) {
