@@ -10,7 +10,6 @@ alpine:
 linux:
 	GOOS=linux GOARCH=amd64 go build -o bin/apiserver ./cmd/apiserver
 	GOOS=linux GOARCH=amd64 go build -o bin/gateway-agent ./cmd/gateway-agent
-	GOOS=linux GOARCH=amd64 go build -o bin/device-agent ./cmd/device-agent
 	GOOS=linux GOARCH=amd64 go build -o bin/prometheus-agent ./cmd/prometheus-agent
 	php -d phar.readonly=off device-health-checker/create-phar.php device-health-checker/get-checks.php device-health-checker/bin
 	php -d phar.readonly=off device-health-checker/create-phar.php device-health-checker/device-health-checker.php device-health-checker/bin
