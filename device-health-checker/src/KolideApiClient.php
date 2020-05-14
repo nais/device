@@ -55,13 +55,7 @@ class KolideApiClient {
         return $this->getPaginatedResults(sprintf('checks/%d/failures', $checkId));
     }
 
-    public function getDeviceBySerial(string $serial) : ?array {
-        $response = $this->client->get('devices', [
-            'query' => [
-                'search' => $serial,
-            ],
-        ]);
-
-        return json_decode($response->getBody()->getContents(), true)['data'][0] ?? null;
+    public function getDeviceFailures(int $deviceId) : array {
+        return $this->getPaginatedResults(sprintf('devices/%d/failures', $deviceId));
     }
 }

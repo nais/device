@@ -109,39 +109,31 @@ class KolideApiClientTest extends TestCase {
         $failures = (new KolideApiClient('secret', 5, $httpClient))->getCheckFailures(1);
 
         $this->assertCount(4, $failures, 'Expected 4 failures');
-
         $this->assertCount(2, $clientHistory, 'Expected 2 requests');
         $this->assertStringEndsWith('checks/1/failures?page=0', (string) $clientHistory[0]['request']->getUri());
         $this->assertStringEndsWith('checks/1/failures?page=1', (string) $clientHistory[1]['request']->getUri());
     }
 
     /**
-     * @covers ::getDeviceBySerial
+     * @covers ::__construct
+     * @covers ::getDeviceFailures
+     * @covers ::getPaginatedResults
      */
-    public function testGetDeviceBySerialReturnsNullWhenDeviceIsNotFound() : void {
+    public function testCanGetDeviceFailures() : void {
         $clientHistory = [];
         $httpClient = $this->getMockClient(
-            [new Response(200, [], '{"last_page":0,"page":0,"data":[]}')],
+            [
+                new Response(200, [], json_encode(['page' => 0, 'last_page' => 1, 'data' => [['id' => 1], ['id' => 2]]])),
+                new Response(200, [], json_encode(['page' => 1, 'last_page' => 1, 'data' => [['id' => 3], ['id' => 4]]])),
+            ],
             $clientHistory
         );
 
-        $this->assertNull((new KolideApiClient('secret', 5, $httpClient))->getDeviceBySerial('serial'), 'Expected method to return null');
-        $this->assertCount(1, $clientHistory, 'Expected 1 request');
-        $this->assertStringEndsWith('devices?search=serial', (string) $clientHistory[0]['request']->getUri());
-    }
+        $failures = (new KolideApiClient('secret', 5, $httpClient))->getDeviceFailures(1);
 
-    /**
-     * @covers ::getDeviceBySerial
-     */
-    public function testCanGetDeviceBySerial() : void {
-        $clientHistory = [];
-        $httpClient = $this->getMockClient(
-            [new Response(200, [], '{"last_page":0,"page":0,"data":[{"id": 123}]}')],
-            $clientHistory
-        );
-
-        $this->assertSame(['id' => 123], (new KolideApiClient('secret', 5, $httpClient))->getDeviceBySerial('serial'), 'Expected device');
-        $this->assertCount(1, $clientHistory, 'Expected 1 request');
-        $this->assertStringEndsWith('devices?search=serial', (string) $clientHistory[0]['request']->getUri());
+        $this->assertCount(4, $failures, 'Expected 4 failures');
+        $this->assertCount(2, $clientHistory, 'Expected 2 requests');
+        $this->assertStringEndsWith('devices/1/failures?page=0', (string) $clientHistory[0]['request']->getUri());
+        $this->assertStringEndsWith('devices/1/failures?page=1', (string) $clientHistory[1]['request']->getUri());
     }
 }
