@@ -132,9 +132,15 @@ func main() {
 		return
 	}
 
-	privateKey, err := ioutil.ReadFile(cfg.PrivateKeyPath)
+	privateKeyEncoded, err := ioutil.ReadFile(cfg.PrivateKeyPath)
 	if err != nil {
 		log.Errorf("Reading private key: %v", err)
+		return
+	}
+
+	privateKey, err := Base64toKey(privateKeyEncoded)
+	if err != nil {
+		log.Errorf("Decoding private key:", err)
 		return
 	}
 
@@ -490,10 +496,20 @@ func WgGenKey() []byte {
 	return privateKey[:]
 }
 
+func Base64toKey(encoded []byte) ([]byte, error) {
+	decoded := make([]byte, 32)
+	_, err := base64.StdEncoding.Decode(decoded, encoded)
+	if err != nil {
+		return nil, fmt.Errorf("decoding base64 key: %w", err)
+	}
+
+	return decoded, nil
+}
+
 func wgPubKey(privateKeySlice []byte) []byte {
 	var privateKey [32]byte
 	var publicKey [32]byte
-	copy(privateKeySlice[:], privateKey[:])
+	copy(privateKey[:], privateKeySlice[:])
 
 	curve25519.ScalarBaseMult(&publicKey, &privateKey)
 
