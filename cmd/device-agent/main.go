@@ -129,7 +129,7 @@ func main() {
 		return
 	}
 
-	baseConfig := GenerateBaseConfig(cfg.BootstrapConfig, privateKey)
+	baseConfig := wireguard.GenerateBaseConfig(cfg.BootstrapConfig, privateKey)
 
 	if err := ioutil.WriteFile(cfg.WireGuardConfigPath, []byte(baseConfig), 0600); err != nil {
 		log.Errorf("Writing WireGuard config to disk: %v", err)
