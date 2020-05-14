@@ -2,40 +2,27 @@ package main
 
 import (
 	"context"
-	"encoding/base64"
-	"encoding/json"
 	"fmt"
 	"io/ioutil"
-	"net/http"
 	"os"
 	"os/exec"
 	"os/signal"
 	"path/filepath"
-	"strings"
 	"syscall"
 	"time"
 
-	"github.com/nais/device/apiserver/kekw"
+	"github.com/nais/device/device-agent/apiserver"
+	"github.com/nais/device/device-agent/azure"
 	"github.com/nais/device/device-agent/config"
 	"github.com/nais/device/device-agent/serial"
 	"github.com/nais/device/device-agent/wireguard"
-	"github.com/nais/device/pkg/random"
-	codeverifier "github.com/nirasan/go-oauth-pkce-code-verifier"
 	log "github.com/sirupsen/logrus"
 	flag "github.com/spf13/pflag"
-	"golang.org/x/oauth2"
 )
 
 var (
 	cfg = config.DefaultConfig()
 )
-
-type Gateway struct {
-	PublicKey string   `json:"publicKey"`
-	Endpoint  string   `json:"endpoint"`
-	IP        string   `json:"ip"`
-	Routes    []string `json:"routes"`
-}
 
 func init() {
 	flag.StringVar(&cfg.APIServer, "apiserver", cfg.APIServer, "base url to apiserver")
@@ -120,7 +107,7 @@ func main() {
 	}
 
 	if err := filesExist(cfg.BootstrapTokenPath); err != nil {
-		enrollmentToken, err := GenerateEnrollmentToken(deviceSerial, cfg.Platform, wireguard.WGPubKey(privateKey))
+		enrollmentToken, err := apiserver.GenerateEnrollmentToken(deviceSerial, cfg.Platform, wireguard.KeyToBase64(wireguard.WGPubKey(privateKey)))
 		if err != nil {
 			log.Errorf("Generating enrollment token: %v", err)
 			return
@@ -136,7 +123,7 @@ func main() {
 		return
 	}
 
-	cfg.BootstrapConfig, err = ParseBootstrapToken(string(bootstrapToken))
+	cfg.BootstrapConfig, err = apiserver.ParseBootstrapToken(string(bootstrapToken))
 	if err != nil {
 		log.Errorf("Parsing bootstrap config: %v", err)
 		return
@@ -158,7 +145,7 @@ func main() {
 		return
 	}
 
-	token, err := runAuthFlow(ctx, cfg.OAuth2Config)
+	token, err := azure.RunAuthFlow(ctx, cfg.OAuth2Config)
 	if err != nil {
 		log.Errorf("Unable to get token for user: %v", err)
 		return
@@ -166,7 +153,7 @@ func main() {
 
 	client := cfg.OAuth2Config.Client(ctx, token)
 
-	interrupt := make(chan os.Signal)
+	interrupt := make(chan os.Signal, 1)
 	signal.Notify(interrupt, os.Interrupt, syscall.SIGTERM)
 
 	for {
@@ -176,12 +163,12 @@ func main() {
 			return
 
 		case <-time.After(15 * time.Second):
-			gateways, err := getGateways(client, cfg.APIServer, deviceSerial)
+			gateways, err := apiserver.GetGateways(client, cfg.APIServer, deviceSerial)
 			if err != nil {
 				log.Errorf("Unable to get gateway config: %v", err)
 			}
 
-			wireGuardPeers := GenerateWireGuardPeers(gateways)
+			wireGuardPeers := wireguard.GenerateWireGuardPeers(gateways)
 
 			if err := ioutil.WriteFile(cfg.WireGuardConfigPath, []byte(baseConfig+wireGuardPeers), 0600); err != nil {
 				log.Errorf("Writing WireGuard config to disk: %v", err)
@@ -191,130 +178,6 @@ func main() {
 			log.Debugf("Wrote WireGuard config to disk")
 		}
 	}
-}
-
-func runAuthFlow(ctx context.Context, conf oauth2.Config) (*oauth2.Token, error) {
-	server := &http.Server{Addr: "127.0.0.1:51800"}
-
-	// Ignoring impossible error
-	codeVerifier, _ := codeverifier.CreateCodeVerifier()
-
-	method := oauth2.SetAuthURLParam("code_challenge_method", "S256")
-	challenge := oauth2.SetAuthURLParam("code_challenge", codeVerifier.CodeChallengeS256())
-
-	//TODO check this in response from Azure
-	randomString := random.RandomString(16, random.LettersAndNumbers)
-
-	tokenChan := make(chan *oauth2.Token)
-	// define a handler that will get the authorization code, call the token endpoint, and close the HTTP server
-	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		code := r.URL.Query().Get("code")
-		if code == "" {
-			log.Errorf("Error: could not find 'code' URL query parameter")
-			failureResponse(w, "Error: could not find 'code' URL query parameter")
-			tokenChan <- nil
-			return
-		}
-
-		ctx, cancel := context.WithDeadline(ctx, time.Now().Add(30*time.Second))
-		defer cancel()
-
-		codeVerifierParam := oauth2.SetAuthURLParam("code_verifier", codeVerifier.String())
-		t, err := conf.Exchange(ctx, code, codeVerifierParam)
-		if err != nil {
-			failureResponse(w, "Error: during code exchange")
-			log.Errorf("exchanging code for tokens: %v", err)
-			tokenChan <- nil
-			return
-		}
-
-		successfulResponse(w, "Successfully authenticated 👌 Close me pls")
-		tokenChan <- t
-	})
-
-	go func() {
-		_ = server.ListenAndServe()
-	}()
-
-	url := conf.AuthCodeURL(randomString, oauth2.AccessTypeOffline, method, challenge)
-	command := exec.Command("open", url)
-	_ = command.Start()
-	fmt.Printf("If the browser didn't open, visit this url to sign in: %v\n", url)
-
-	token := <-tokenChan
-	_ = server.Close()
-
-	if token == nil {
-		return nil, fmt.Errorf("no token received")
-	}
-
-	return token, nil
-}
-
-func getGateways(client *http.Client, apiServerURL, serial string) ([]Gateway, error) {
-	deviceConfigAPI := fmt.Sprintf("%s/devices/%s/gateways", apiServerURL, serial)
-	r, err := client.Get(deviceConfigAPI)
-	if err != nil {
-		return nil, fmt.Errorf("getting device config: %w", err)
-	}
-	defer r.Body.Close()
-
-	var gateways []Gateway
-	if err := json.NewDecoder(r.Body).Decode(&gateways); err != nil {
-		return nil, fmt.Errorf("unmarshalling response body into gateways: %w", err)
-	}
-
-	return gateways, nil
-}
-
-func GenerateWireGuardPeers(gateways []Gateway) string {
-	peerTemplate := `[Peer]
-PublicKey = %s
-AllowedIPs = %s
-Endpoint = %s
-`
-	var peers string
-
-	for _, gateway := range gateways {
-		allowedIPs := strings.Join(append(gateway.Routes, gateway.IP+"/32"), ",")
-		peers += fmt.Sprintf(peerTemplate, gateway.PublicKey, allowedIPs, gateway.Endpoint)
-	}
-
-	return peers
-}
-
-func GenerateEnrollmentToken(serial, platform string, publicKey []byte) (string, error) {
-	type enrollmentConfig struct {
-		Serial    string `json:"serial"`
-		PublicKey string `json:"publicKey"`
-		Platform  string `json:"platform"`
-	}
-
-	ec := enrollmentConfig{
-		Serial:    serial,
-		PublicKey: string(wireguard.KeyToBase64(publicKey)),
-		Platform:  platform,
-	}
-
-	if b, err := json.Marshal(ec); err != nil {
-		return "", fmt.Errorf("marshalling enrollment config: %w", err)
-	} else {
-		return base64.StdEncoding.EncodeToString(b), nil
-	}
-}
-
-func ParseBootstrapToken(bootstrapToken string) (*config.BootstrapConfig, error) {
-	b, err := base64.StdEncoding.DecodeString(bootstrapToken)
-	if err != nil {
-		return nil, fmt.Errorf("base64 decoding bootstrap token: %w", err)
-	}
-
-	var bootstrapConfig config.BootstrapConfig
-	if err := json.Unmarshal(b, &bootstrapConfig); err != nil {
-		return nil, fmt.Errorf("unmarshalling bootstrap token json: %w", err)
-	}
-
-	return &bootstrapConfig, nil
 }
 
 func filesExist(files ...string) error {
@@ -373,35 +236,6 @@ func FileMustExist(filepath string) error {
 	}
 
 	return nil
-}
-
-func getHomeDirOrFail() string {
-	homeDir, err := os.UserHomeDir()
-	if err != nil {
-		log.Fatalf("Getting home dir: %v", err)
-	}
-
-	return homeDir
-}
-
-func failureResponse(w http.ResponseWriter, msg string) {
-	w.Header().Set("content-type", "text/html;charset=utf8")
-	_, _ = fmt.Fprintf(w, `
-<h2>
-  %s
-</h2>
-<img width="100" src="data:image/jpeg;base64,%s"/>
-`, msg, kekw.SadKekW)
-}
-
-func successfulResponse(w http.ResponseWriter, msg string) {
-	w.Header().Set("content-type", "text/html;charset=utf8")
-	_, _ = fmt.Fprintf(w, `
-<h2>
-  %s
-</h2>
-<img width="100" src="data:image/jpeg;base64,%s"/>
-`, msg, kekw.HappyKekW)
 }
 
 func adminCommandContext(ctx context.Context, command string, arg ...string) *exec.Cmd {

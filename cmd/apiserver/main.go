@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -149,7 +150,7 @@ func generatePublicKey(privateKey []byte, wireGuardPath string) ([]byte, error) 
 		return nil, fmt.Errorf("executing command: %v: %w: %v", cmd, err, string(out))
 	}
 
-	return out, nil
+	return bytes.TrimSuffix(out, []byte("\n")), nil
 }
 
 func setupInterface() error {

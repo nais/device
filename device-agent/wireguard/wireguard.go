@@ -4,30 +4,14 @@ import (
 	"crypto/rand"
 	"encoding/base64"
 	"fmt"
+<<<<<<< HEAD
+=======
+	"strings"
+>>>>>>> extracted azure, wireguard and apiserver pkg
 
+	"github.com/nais/device/device-agent/apiserver"
 	"golang.org/x/crypto/curve25519"
 )
-
-func WireGuardGenerateKeyPair() (string, string) {
-	var publicKeyArray [32]byte
-	var privateKeyArray [32]byte
-
-	n, err := rand.Read(privateKeyArray[:])
-
-	if err != nil || n != len(privateKeyArray) {
-		panic("Unable to generate random bytes")
-	}
-
-	privateKeyArray[0] &= 248
-	privateKeyArray[31] = (privateKeyArray[31] & 127) | 64
-
-	curve25519.ScalarBaseMult(&publicKeyArray, &privateKeyArray)
-
-	publicKeyString := base64.StdEncoding.EncodeToString(publicKeyArray[:])
-	privateKeyString := base64.StdEncoding.EncodeToString(privateKeyArray[:])
-
-	return publicKeyString, privateKeyString
-}
 
 func KeyToBase64(key []byte) []byte {
 	dst := make([]byte, base64.StdEncoding.EncodedLen(len(key)))
@@ -67,4 +51,20 @@ func WGPubKey(privateKeySlice []byte) []byte {
 	curve25519.ScalarBaseMult(&publicKey, &privateKey)
 
 	return publicKey[:]
+}
+
+func GenerateWireGuardPeers(gateways []apiserver.Gateway) string {
+	peerTemplate := `[Peer]
+PublicKey = %s
+AllowedIPs = %s
+Endpoint = %s
+`
+	var peers string
+
+	for _, gateway := range gateways {
+		allowedIPs := strings.Join(append(gateway.Routes, gateway.IP+"/32"), ",")
+		peers += fmt.Sprintf(peerTemplate, gateway.PublicKey, allowedIPs, gateway.Endpoint)
+	}
+
+	return peers
 }

@@ -3,7 +3,8 @@ package main_test
 import (
 	"testing"
 
-	main "github.com/nais/device/cmd/device-agent"
+	"github.com/nais/device/device-agent/apiserver"
+	"github.com/nais/device/device-agent/wireguard"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -17,7 +18,7 @@ func TestParseBootstrapToken(t *testing.T) {
 		}
 	*/
 	bootstrapToken := "ewogICJkZXZpY2VJUCI6ICIxMC4xLjEuMSIsCiAgInB1YmxpY0tleSI6ICJQUUttcmFQT1B5ZTVDSnExeDduanBsOHJSdTVSU3JJS3lIdlpYdEx2UzBFPSIsCiAgInR1bm5lbEVuZHBvaW50IjogIjY5LjEuMS4xOjUxODIwIiwKICAiYXBpU2VydmVySVAiOiAiMTAuMS4xLjIiCn0K"
-	bootstrapConfig, err := main.ParseBootstrapToken(bootstrapToken)
+	bootstrapConfig, err := apiserver.ParseBootstrapToken(bootstrapToken)
 	assert.NoError(t, err)
 	assert.Equal(t, "10.1.1.1", bootstrapConfig.TunnelIP)
 	assert.Equal(t, "PQKmraPOPye5CJq1x7njpl8rRu5RSrIKyHvZXtLvS0E=", bootstrapConfig.PublicKey)
@@ -26,14 +27,14 @@ func TestParseBootstrapToken(t *testing.T) {
 }
 
 func TestGenerateWireGuardPeers(t *testing.T) {
-	gateways := []main.Gateway{{
+	gateways := []apiserver.Gateway{{
 		PublicKey: "PQKmraPOPye5CJq1x7njpl8rRu5RSrIKyHvZXtLvS0E=",
 		Endpoint:  "13.37.13.37:51820",
 		IP:        "10.255.240.2",
 		Routes:    []string{"13.37.69.0/24", "13.37.59.69/32"},
 	}}
 
-	config := main.GenerateWireGuardPeers(gateways)
+	config := wireguard.GenerateWireGuardPeers(gateways)
 	expected := `[Peer]
 PublicKey = PQKmraPOPye5CJq1x7njpl8rRu5RSrIKyHvZXtLvS0E=
 AllowedIPs = 13.37.69.0/24,13.37.59.69/32,10.255.240.2/32
@@ -43,8 +44,8 @@ Endpoint = 13.37.13.37:51820
 }
 
 func TestGenerateEnrollmentToken(t *testing.T) {
-	expected := "eyJzZXJpYWwiOiJzZXJpYWwiLCJwdWJsaWNLZXkiOiJjSFZpYkdsalgydGxlUT09IiwicGxhdGZvcm0iOiJwbGF0Zm9ybSJ9"
-	enrollmentToken, err := main.GenerateEnrollmentToken("serial", "platform", []byte("public_key"))
+	expected := "eyJzZXJpYWwiOiJzZXJpYWwiLCJwdWJsaWNLZXkiOiJwdWJsaWNfa2V5IiwicGxhdGZvcm0iOiJwbGF0Zm9ybSJ9"
+	enrollmentToken, err := apiserver.GenerateEnrollmentToken("serial", "platform", []byte("public_key"))
 
 	assert.NoError(t, err)
 	assert.Equal(t, expected, enrollmentToken, "interface changed, remember to change the apiserver counterpart")
