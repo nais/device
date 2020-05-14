@@ -2,12 +2,14 @@ CREATE TABLE device
 (
     id         serial PRIMARY KEY,
     username   varchar,
-    serial     varchar UNIQUE,
+    serial     varchar,
     psk        varchar(44),
+    platform   varchar,
     healthy    boolean,
     last_check timestamp,
     public_key varchar(44) NOT NULL UNIQUE,
-    ip         varchar(15) UNIQUE
+    ip         varchar(15) UNIQUE,
+    UNIQUE (serial, platform)
 );
 
 CREATE TABLE gateway

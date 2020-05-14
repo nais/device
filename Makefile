@@ -23,7 +23,7 @@ local:
 	go build -o bin/prometheus-agent cmd/prometheus-agent/main.go
 
 run-postgres:
-	sudo docker run -e POSTGRES_PASSWORD=postgres --rm --name postgres -p 5432:5432 postgres &
+	docker run -e POSTGRES_PASSWORD=postgres --rm --name postgres -p 5432:5432 postgres &
 	for attempt in {0..5}; do \
  		sleep 2;\
 		PGPASSWORD=postgres psql -h localhost -U postgres -f apiserver/database/schema/schema.sql && break;\
@@ -33,7 +33,7 @@ insert-testdata:
 	PGPASSWORD=postgres psql -h localhost -U postgres -f testdata.sql
 
 run-postgres-test:
-	sudo docker run -e POSTGRES_PASSWORD=postgres --rm --name postgres-test -p 5433:5432 postgres &
+	docker run -e POSTGRES_PASSWORD=postgres --rm --name postgres-test -p 5433:5432 postgres &
 	for attempt in {0..5}; do \
  		sleep 2;\
 		PGPASSWORD=postgres psql -h localhost -p 5433 -U postgres -l && break;\

@@ -12,12 +12,12 @@ func TestParseEnrollmentToken(t *testing.T) {
 		{
 		  "serial": "serial",
 		  "publicKey": "public_key",
-		  "accessToken": "access_token"
+		  "platform": "platform"
 		}
 	*/
-	enrollmentToken, err := slack.ParseEnrollmentToken("eyJzZXJpYWwiOiJzZXJpYWwiLCJwdWJsaWNLZXkiOiJwdWJsaWNfa2V5IiwiYWNjZXNzVG9rZW4iOiJhY2Nlc3NfdG9rZW4ifQ==")
+	enrollmentToken, err := slack.ParseEnrollmentToken("ewogICJzZXJpYWwiOiAic2VyaWFsIiwKICAicHVibGljS2V5IjogInB1YmxpY19rZXkiLAogICJwbGF0Zm9ybSI6ICJwbGF0Zm9ybSIKfQo=\n")
 	assert.NoError(t, err)
 	assert.Equal(t, "serial", enrollmentToken.Serial)
 	assert.Equal(t, "public_key", enrollmentToken.PublicKey)
-	assert.Equal(t, "access_token", enrollmentToken.AccessToken)
+	assert.Equal(t, "platform", enrollmentToken.Platform)
 }

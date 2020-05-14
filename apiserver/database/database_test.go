@@ -22,9 +22,9 @@ func setup(t *testing.T) *database.APIServerDB {
 func TestAPIServerDB_AddDevice(t *testing.T) {
 	db := setup(t)
 
-	username, publicKey, serial := "username", "publicKey", "serial"
+	username, publicKey, serial, platform := "username", "publicKey", "serial", "darwin"
 
-	err := db.AddDevice(username, publicKey, serial)
+	err := db.AddDevice(username, publicKey, serial, platform)
 	assert.NoError(t, err)
 
 	device, err := db.ReadDevice(publicKey)
@@ -32,13 +32,14 @@ func TestAPIServerDB_AddDevice(t *testing.T) {
 	assert.Equal(t, username, device.Username)
 	assert.Equal(t, publicKey, device.PublicKey)
 	assert.Equal(t, serial, device.Serial)
+	assert.Equal(t, platform, device.Platform)
 	assert.False(t, *device.Healthy)
 
-	err = db.AddDevice(username, publicKey, serial)
+	err = db.AddDevice(username, publicKey, serial, platform)
 	assert.NoError(t, err)
 
 	newUsername, newPublicKey := "newUsername", "newPublicKey"
-	err = db.AddDevice(newUsername, newPublicKey, serial)
+	err = db.AddDevice(newUsername, newPublicKey, serial, platform)
 	assert.NoError(t, err)
 
 	device, err = db.ReadDevice(newPublicKey)

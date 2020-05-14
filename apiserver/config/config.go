@@ -37,10 +37,6 @@ func (c *Config) Credentials() (map[string]string, error) {
 		credentials[entry[0]] = entry[1]
 	}
 
-	if len(credentials) == 0 {
-		return nil, fmt.Errorf("no API keys provided")
-	}
-
 	return credentials, nil
 }
 

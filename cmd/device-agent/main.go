@@ -46,6 +46,7 @@ type Config struct {
 	BootstrapConfig     *BootstrapConfig
 	LogLevel            string
 	oauth2Config        oauth2.Config
+	Platform            string
 }
 
 type Gateway struct {
@@ -64,6 +65,7 @@ func init() {
 
 	flag.Parse()
 
+	setPlatform(&cfg)
 	setPlatformDefaults(&cfg)
 	cfg.PrivateKeyPath = filepath.Join(cfg.ConfigDir, "private.key")
 	cfg.WireGuardConfigPath = filepath.Join(cfg.ConfigDir, "wg0.conf")
@@ -137,7 +139,7 @@ func main() {
 	}
 
 	if err := filesExist(cfg.BootstrapTokenPath); err != nil {
-		enrollmentToken, err := GenerateEnrollmentToken(deviceSerial, token.AccessToken, wgPubKey(privateKey))
+		enrollmentToken, err := GenerateEnrollmentToken(deviceSerial, cfg.Platform, wgPubKey(privateKey))
 		if err != nil {
 			log.Errorf("Generating enrollment token: %v", err)
 			return
@@ -294,17 +296,17 @@ Endpoint = %s
 	return peers
 }
 
-func GenerateEnrollmentToken(serial, accessToken string, publicKey []byte) (string, error) {
+func GenerateEnrollmentToken(serial, platform string, publicKey []byte) (string, error) {
 	type enrollmentConfig struct {
-		Serial      string `json:"serial"`
-		PublicKey   string `json:"publicKey"`
-		AccessToken string `json:"accessToken"`
+		Serial    string `json:"serial"`
+		PublicKey string `json:"publicKey"`
+		Platform  string `json:"platform"`
 	}
 
 	ec := enrollmentConfig{
-		Serial:      serial,
-		PublicKey:   string(publicKey),
-		AccessToken: accessToken,
+		Serial:    serial,
+		PublicKey: string(publicKey),
+		Platform:  platform,
 	}
 
 	if b, err := json.Marshal(ec); err != nil {

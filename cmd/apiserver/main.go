@@ -74,13 +74,8 @@ func main() {
 		log.Fatalf("Generating public key: %v", err)
 	}
 
-	jwtValidator, err := createJWTValidator(cfg)
-	if err != nil {
-		log.Fatalf("Creating JWT validator: %v", err)
-	}
-
 	if len(cfg.SlackToken) > 0 {
-		slackBot := slack.New(cfg.SlackToken, cfg.Endpoint, db, string(publicKey), jwtValidator)
+		slackBot := slack.New(cfg.SlackToken, cfg.Endpoint, db, string(publicKey))
 		go slackBot.Handler()
 	}
 
@@ -90,11 +85,21 @@ func main() {
 		DB: db,
 	}
 
+	apiConfig.APIKeys, err = cfg.Credentials()
+	if err != nil {
+		log.Fatalf("Getting credentials: %v", err)
+	}
+
 	if !cfg.DevMode {
-		apiConfig.APIKeys, err = cfg.Credentials()
-		if err != nil {
-			log.Fatalf("Getting API keys: %v", err)
+		if apiConfig.APIKeys == nil {
+			log.Fatalf("No credentials provided for basic auth")
 		}
+
+		jwtValidator, err := createJWTValidator(cfg)
+		if err != nil {
+			log.Fatalf("Creating JWT validator: %v", err)
+		}
+
 		apiConfig.OAuthKeyValidatorMiddleware = middleware.TokenValidatorMiddleware(jwtValidator)
 	}
 

@@ -18,8 +18,8 @@ import (
 func TestGetDevices(t *testing.T) {
 	db, router := setup(t)
 
-	publicKey, username, serial := "pubkey", "user", "serial"
-	if err := db.AddDevice(username, publicKey, serial); err != nil {
+	publicKey, username, serial, platform := "pubkey", "user", "serial", "platform"
+	if err := db.AddDevice(username, publicKey, serial, platform); err != nil {
 		t.Fatalf("Adding device: %v", err)
 	}
 
@@ -29,6 +29,7 @@ func TestGetDevices(t *testing.T) {
 	assert.Equal(t, username, device.Username)
 	assert.Equal(t, publicKey, device.PublicKey)
 	assert.Equal(t, serial, device.Serial)
+	assert.Equal(t, platform, device.Platform)
 	assert.NotNil(t, device.IP)
 	assert.False(t, *device.Healthy, "unhealthy by default")
 	assert.Nil(t, device.LastCheck, "unchecked by default")
@@ -36,8 +37,8 @@ func TestGetDevices(t *testing.T) {
 
 func TestUpdateDeviceHealth(t *testing.T) {
 	db, router := setup(t)
-	device := database.Device{Username: "user@acme.org", Serial: "serial", PublicKey: "pubkey", Healthy: boolp(true)}
-	if err := db.AddDevice(device.Username, device.PublicKey, device.Serial); err != nil {
+	device := database.Device{Username: "user@acme.org", Serial: "serial", PublicKey: "pubkey", Platform: "darwin", Healthy: boolp(true)}
+	if err := db.AddDevice(device.Username, device.PublicKey, device.Serial, device.Platform); err != nil {
 		t.Fatalf("Adding device: %v", err)
 	}
 

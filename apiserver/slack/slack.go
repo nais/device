@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/dgrijalva/jwt-go"
 	"github.com/nais/device/apiserver/database"
 	log "github.com/sirupsen/logrus"
 	"github.com/slack-go/slack"
@@ -22,7 +21,6 @@ type slackbot struct {
 	database           *database.APIServerDB
 	tunnelEndpoint     string
 	apiServerPublicKey string
-	jwtValidator       jwt.Keyfunc
 }
 
 // BootstrapConfig is the information the device needs to bootstrap it's connection to the APIServer
@@ -35,18 +33,17 @@ type BootstrapConfig struct {
 
 // EnrollmentConfig is the information sent by the device during enrollment
 type EnrollmentConfig struct {
-	Serial      string `json:"serial"`
-	PublicKey   string `json:"publicKey"`
-	AccessToken string `json:"accessToken"`
+	Serial    string `json:"serial"`
+	PublicKey string `json:"publicKey"`
+	Platform  string `json:"platform"`
 }
 
-func New(token, tunnelEndpoint string, database *database.APIServerDB, apiServerPublicKey string, validator jwt.Keyfunc) *slackbot {
+func New(token, tunnelEndpoint string, database *database.APIServerDB, apiServerPublicKey string) *slackbot {
 	return &slackbot{
 		api:                slack.New(token),
 		tunnelEndpoint:     tunnelEndpoint,
 		database:           database,
 		apiServerPublicKey: apiServerPublicKey,
-		jwtValidator:       validator,
 	}
 }
 
@@ -63,24 +60,13 @@ func (s *slackbot) handleEnroll(msg slack.Msg) string {
 		return "There is something wrong with your token :sadkek: Make sure you copied it correctly. If it still doesn't work, get help in #nais-device channel."
 	}
 
-	tokenEmail, err := s.ExtractEmailFromToken(enrollmentConfig.AccessToken)
-	if err != nil {
-		log.Errorf("Extracting email from access token: %v", err)
-		return InternalErrorMsg
-	}
-
 	slackUserEmail, err := s.getUserEmail(msg.User)
 	if err != nil {
 		log.Errorf("Getting user email: %v", err)
 		return "Unable to find e-mail for your slack user :confused:, I've notified the nais device team for you."
 	}
 
-	if strings.ToLower(tokenEmail) != strings.ToLower(slackUserEmail) {
-		log.Errorf("email address in token did not match slack user, something is 🐟'y")
-		return "Unable to authorize enrollment. Ensure you are using the same account on Slack and when authorizing the device-agent."
-	}
-
-	err = s.database.AddDevice(slackUserEmail, enrollmentConfig.PublicKey, enrollmentConfig.Serial)
+	err = s.database.AddDevice(slackUserEmail, enrollmentConfig.PublicKey, enrollmentConfig.Serial, enrollmentConfig.Platform)
 	if err != nil {
 		log.Errorf("Adding device to database: %v", err)
 		return InternalErrorMsg
@@ -103,20 +89,20 @@ func (s *slackbot) handleEnroll(msg slack.Msg) string {
 			return InternalErrorMsg
 		}
 
+		var configPath string
+
+		switch enrollmentConfig.Platform {
+		case "windows":
+			configPath = `C:\Program Files\AppData\naisdevice\bootstrap.token`
+		case "darwin":
+			configPath = `~/Library/Application Support/naisdevice/bootstrap.token`
+		default:
+			configPath = `~/.config/naisdevice/bootstrap.token`
+		}
+
 		token := base64.StdEncoding.EncodeToString(b)
-		return fmt.Sprintf("Successfully enrolled :kekw: Copy and paste this command on your command line:\n ```echo '%s' > ~/.config/nais-device/bootstrap.token```", token)
+		return fmt.Sprintf("Successfully enrolled :kekw: Copy and paste this command on your command line:\n ```echo '%s' > %s```", token, configPath)
 	}
-}
-
-func (s *slackbot) ExtractEmailFromToken(tokenString string) (string, error) {
-	claims := jwt.MapClaims{}
-	_, err := jwt.ParseWithClaims(tokenString, &claims, s.jwtValidator)
-
-	if err != nil {
-		return "", fmt.Errorf("parsing token: %w", err)
-	}
-
-	return claims["preferred_username"].(string), nil
 }
 
 func (s *slackbot) handleMsg(msg slack.Msg) string {

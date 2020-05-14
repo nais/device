@@ -30,6 +30,7 @@ type Device struct {
 	PublicKey string     `json:"publicKey"`
 	IP        string     `json:"ip"`
 	Username  string     `json:"username"`
+	Platform  string     `json:"platform"`
 }
 
 type Gateway struct {
@@ -88,7 +89,7 @@ func (d *APIServerDB) ReadDevices() ([]Device, error) {
 	ctx := context.Background()
 
 	query := `
-SELECT public_key, username, ip, psk, serial, healthy, last_check
+SELECT public_key, username, ip, psk, serial, platform, healthy, last_check
 FROM device;`
 
 	rows, err := d.conn.Query(ctx, query)
@@ -107,7 +108,7 @@ FROM device;`
 	for rows.Next() {
 		var device Device
 
-		err := rows.Scan(&device.PublicKey, &device.Username, &device.IP, &device.PSK, &device.Serial, &device.Healthy, &device.LastCheck)
+		err := rows.Scan(&device.PublicKey, &device.Username, &device.IP, &device.PSK, &device.Serial, &device.Platform, &device.Healthy, &device.LastCheck)
 
 		if err != nil {
 			return nil, fmt.Errorf("scanning row: %s", err)
@@ -132,11 +133,11 @@ func (d *APIServerDB) UpdateDeviceStatus(devices []Device) error {
 	query := `
 		UPDATE device
            SET healthy = $1, last_check = NOW()
-         WHERE serial = $2;
+         WHERE serial = $2 AND platform = $3;
     `
 
 	for _, device := range devices {
-		_, err = tx.Exec(ctx, query, device.Healthy, device.Serial)
+		_, err = tx.Exec(ctx, query, device.Healthy, device.Serial, device.Platform)
 		if err != nil {
 			return err
 		}
@@ -153,7 +154,7 @@ func (d *APIServerDB) UpdateDeviceStatus(devices []Device) error {
 
 var mux sync.Mutex
 
-func (d *APIServerDB) AddDevice(username, publicKey, serial string) error {
+func (d *APIServerDB) AddDevice(username, publicKey, serial, platform string) error {
 	mux.Lock()
 	defer mux.Unlock()
 
@@ -177,10 +178,10 @@ func (d *APIServerDB) AddDevice(username, publicKey, serial string) error {
 	}
 
 	statement := `
-INSERT INTO device (serial, username, public_key, ip, healthy, psk)
-VALUES ($1, $2, $3, $4, false, '')
-ON CONFLICT(serial) DO UPDATE SET username = $2, public_key = $3;`
-	_, err = tx.Exec(ctx, statement, serial, username, publicKey, ip)
+INSERT INTO device (serial, username, public_key, ip, healthy, psk, platform)
+VALUES ($1, $2, $3, $4, false, '', $5)
+ON CONFLICT(serial, platform) DO UPDATE SET username = $2, public_key = $3;`
+	_, err = tx.Exec(ctx, statement, serial, username, publicKey, ip, platform)
 
 	if err != nil {
 		return fmt.Errorf("inserting new device: %w", err)
@@ -199,14 +200,14 @@ func (d *APIServerDB) ReadDevice(publicKey string) (*Device, error) {
 	ctx := context.Background()
 
 	query := `
-SELECT serial, username, psk, last_check, healthy, public_key, ip
+SELECT serial, username, psk, platform, last_check, healthy, public_key, ip
   FROM device
  WHERE public_key = $1;`
 
 	row := d.conn.QueryRow(ctx, query, publicKey)
 
 	var device Device
-	err := row.Scan(&device.Serial, &device.Username, &device.PSK, &device.LastCheck, &device.Healthy, &device.PublicKey, &device.IP)
+	err := row.Scan(&device.Serial, &device.Username, &device.PSK, &device.Platform, &device.LastCheck, &device.Healthy, &device.PublicKey, &device.IP)
 
 	if err != nil {
 		return nil, fmt.Errorf("scanning row: %s", err)
@@ -277,7 +278,7 @@ SELECT public_key, endpoint, ip, routes
 
 func (d *APIServerDB) readExistingIPs() ([]string, error) {
 	ips := []string{
-		"10.255.240.1", // reserve api server ip
+		"10.255.240.1", // reserve apiserver ip
 	}
 
 	if devices, err := d.ReadDevices(); err != nil {

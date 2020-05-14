@@ -47,3 +47,7 @@ func configDir() {
 func platformPrerequisites(cfg Config) error {
 	return nil
 }
+
+func setPlatform(cfg *Config) {
+	cfg.Platform = "windows"
+}
