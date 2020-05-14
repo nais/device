@@ -43,7 +43,7 @@ Endpoint = 13.37.13.37:51820
 }
 
 func TestGenerateEnrollmentToken(t *testing.T) {
-	expected := "eyJzZXJpYWwiOiJzZXJpYWwiLCJwdWJsaWNLZXkiOiJwdWJsaWNfa2V5IiwicGxhdGZvcm0iOiJwbGF0Zm9ybSJ9"
+	expected := "eyJzZXJpYWwiOiJzZXJpYWwiLCJwdWJsaWNLZXkiOiJjSFZpYkdsalgydGxlUT09IiwicGxhdGZvcm0iOiJwbGF0Zm9ybSJ9"
 	enrollmentToken, err := main.GenerateEnrollmentToken("serial", "platform", []byte("public_key"))
 
 	assert.NoError(t, err)
