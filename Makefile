@@ -51,7 +51,7 @@ local-gateway-agent:
 local-apiserver:
 	$(eval confdir := $(shell mktemp -d))
 	wg genkey > ${confdir}/private.key
-	go run ./cmd/apiserver/main.go --db-connection-uri=postgresql://postgres:postgres@localhost/postgres --bind-address=127.0.0.1:8080 --slack-token=${APISERVER_SLACK_TOKEN} --config-dir=${confdir} --development-mode=true --prometheus-address=127.0.0.1:3000
+	go run ./cmd/apiserver/main.go --db-connection-uri=postgresql://postgres:postgres@localhost/postgres --bind-address=127.0.0.1:8080 --slack-token=${APISERVER_SLACK_TOKEN} --config-dir=${confdir} --development-mode=true --prometheus-address=127.0.0.1:3000 --credential-entries=nais:device
 	echo ${confdir}
 
 test:
