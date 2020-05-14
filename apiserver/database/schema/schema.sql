@@ -1,10 +1,12 @@
+CREATE TYPE platform AS ENUM ('darwin', 'linux', 'windows');
+
 CREATE TABLE device
 (
     id         serial PRIMARY KEY,
     username   varchar,
     serial     varchar,
     psk        varchar(44),
-    platform   varchar,
+    platform   platform,
     healthy    boolean,
     last_check timestamp,
     public_key varchar(44) NOT NULL UNIQUE,

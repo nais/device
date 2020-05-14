@@ -18,7 +18,7 @@ import (
 func TestGetDevices(t *testing.T) {
 	db, router := setup(t)
 
-	publicKey, username, serial, platform := "pubkey", "user", "serial", "platform"
+	publicKey, username, serial, platform := "pubkey", "user", "serial", "darwin"
 	if err := db.AddDevice(username, publicKey, serial, platform); err != nil {
 		t.Fatalf("Adding device: %v", err)
 	}

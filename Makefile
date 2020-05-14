@@ -40,10 +40,10 @@ run-postgres-test:
     done
 
 teardown-postgres:
-	sudo docker rm -f postgres || echo "okidoki"
+	docker rm -f postgres || echo "okidoki"
 
 teardown-postgres-test:
-	sudo docker rm -f postgres-test || echo "okidoki"
+	docker rm -f postgres-test || echo "okidoki"
 
 local-gateway-agent:
 	go run ./cmd/gateway-agent/main.go --api-server-url=http://localhost:8080 --name=gw0 --prometheus-address=127.0.0.1:3000 --development-mode=true
