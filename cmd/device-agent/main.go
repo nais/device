@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"crypto/rand"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
@@ -17,37 +16,19 @@ import (
 	"time"
 
 	"github.com/nais/device/apiserver/kekw"
+	"github.com/nais/device/device-agent/config"
 	"github.com/nais/device/device-agent/serial"
-	"golang.org/x/crypto/curve25519"
-
+	"github.com/nais/device/device-agent/wireguard"
 	"github.com/nais/device/pkg/random"
 	codeverifier "github.com/nirasan/go-oauth-pkce-code-verifier"
 	log "github.com/sirupsen/logrus"
 	flag "github.com/spf13/pflag"
 	"golang.org/x/oauth2"
-	"golang.org/x/oauth2/endpoints"
 )
 
 var (
-	cfg = DefaultConfig()
+	cfg = config.DefaultConfig()
 )
-
-type Config struct {
-	APIServer           string
-	Interface           string
-	ConfigDir           string
-	BinaryDir           string
-	BootstrapToken      string
-	WireGuardPath       string
-	WireGuardGoBinary   string
-	PrivateKeyPath      string
-	WireGuardConfigPath string
-	BootstrapTokenPath  string
-	BootstrapConfig     *BootstrapConfig
-	LogLevel            string
-	oauth2Config        oauth2.Config
-	Platform            string
-}
 
 type Gateway struct {
 	PublicKey string   `json:"publicKey"`
@@ -105,7 +86,7 @@ func main() {
 		return
 	}
 
-	if err := filesExist(cfg.WireGuardPath); err != nil {
+	if err := filesExist(cfg.WireGuardBinary); err != nil {
 		log.Errorf("Verifying if file exists: %v", err)
 		return
 	}
@@ -126,12 +107,6 @@ func main() {
 		return
 	}
 
-	token, err := runAuthFlow(ctx, cfg.oauth2Config)
-	if err != nil {
-		log.Errorf("Unable to get token for user: %v", err)
-		return
-	}
-
 	privateKey, err := ioutil.ReadFile(cfg.PrivateKeyPath)
 	if err != nil {
 		log.Errorf("Reading private key: %v", err)
@@ -139,7 +114,7 @@ func main() {
 	}
 
 	if err := filesExist(cfg.BootstrapTokenPath); err != nil {
-		enrollmentToken, err := GenerateEnrollmentToken(deviceSerial, cfg.Platform, wgPubKey(privateKey))
+		enrollmentToken, err := GenerateEnrollmentToken(deviceSerial, cfg.Platform, wireguard.WGPubKey(privateKey))
 		if err != nil {
 			log.Errorf("Generating enrollment token: %v", err)
 			return
@@ -177,7 +152,13 @@ func main() {
 		return
 	}
 
-	client := cfg.oauth2Config.Client(ctx, token)
+	token, err := runAuthFlow(ctx, cfg.OAuth2Config)
+	if err != nil {
+		log.Errorf("Unable to get token for user: %v", err)
+		return
+	}
+
+	client := cfg.OAuth2Config.Client(ctx, token)
 
 	interrupt := make(chan os.Signal)
 	signal.Notify(interrupt, os.Interrupt, syscall.SIGTERM)
@@ -305,7 +286,7 @@ func GenerateEnrollmentToken(serial, platform string, publicKey []byte) (string,
 
 	ec := enrollmentConfig{
 		Serial:    serial,
-		PublicKey: string(KeyToBase64(publicKey)),
+		PublicKey: string(wireguard.KeyToBase64(publicKey)),
 		Platform:  platform,
 	}
 
@@ -316,20 +297,13 @@ func GenerateEnrollmentToken(serial, platform string, publicKey []byte) (string,
 	}
 }
 
-type BootstrapConfig struct {
-	TunnelIP    string `json:"deviceIP"`
-	PublicKey   string `json:"publicKey"`
-	Endpoint    string `json:"tunnelEndpoint"`
-	APIServerIP string `json:"apiServerIP"`
-}
-
-func ParseBootstrapToken(bootstrapToken string) (*BootstrapConfig, error) {
+func ParseBootstrapToken(bootstrapToken string) (*config.BootstrapConfig, error) {
 	b, err := base64.StdEncoding.DecodeString(bootstrapToken)
 	if err != nil {
 		return nil, fmt.Errorf("base64 decoding bootstrap token: %w", err)
 	}
 
-	var bootstrapConfig BootstrapConfig
+	var bootstrapConfig config.BootstrapConfig
 	if err := json.Unmarshal(b, &bootstrapConfig); err != nil {
 		return nil, fmt.Errorf("unmarshalling bootstrap token json: %w", err)
 	}
@@ -375,33 +349,12 @@ func ensureDirectory(dir string) error {
 
 func ensureKey(keyPath string) error {
 	if err := FileMustExist(keyPath); os.IsNotExist(err) {
-		return ioutil.WriteFile(keyPath, KeyToBase64(WgGenKey()), 0600)
+		return ioutil.WriteFile(keyPath, wireguard.KeyToBase64(wireguard.WgGenKey()), 0600)
 	} else if err != nil {
 		return err
 	}
 
 	return nil
-}
-
-func DefaultConfig() Config {
-	userConfigDir, err := os.UserConfigDir()
-	if err != nil {
-		log.Fatal("Getting user conig dir: %w", err)
-	}
-
-	return Config{
-		APIServer: "http://10.255.240.1",
-		Interface: "utun69",
-		ConfigDir: filepath.Join(userConfigDir, "nais-device"),
-		BinaryDir: "/usr/local/bin",
-		LogLevel:  "info",
-		oauth2Config: oauth2.Config{
-			ClientID:    "8086d321-c6d3-4398-87da-0d54e3d93967",
-			Scopes:      []string{"openid", "6e45010d-2637-4a40-b91d-d4cbb451fb57/.default", "offline_access"},
-			Endpoint:    endpoints.AzureAD("62366534-1ec3-4962-8869-9b5535279d0b"),
-			RedirectURL: "http://localhost:51800",
-		},
-	}
 }
 
 func FileMustExist(filepath string) error {
@@ -447,55 +400,4 @@ func successfulResponse(w http.ResponseWriter, msg string) {
 
 func adminCommandContext(ctx context.Context, command string, arg ...string) *exec.Cmd {
 	return exec.CommandContext(ctx, "sudo", append([]string{command}, arg...)...)
-}
-
-func WireGuardGenerateKeyPair() (string, string) {
-	var publicKeyArray [32]byte
-	var privateKeyArray [32]byte
-
-	n, err := rand.Read(privateKeyArray[:])
-
-	if err != nil || n != len(privateKeyArray) {
-		panic("Unable to generate random bytes")
-	}
-
-	privateKeyArray[0] &= 248
-	privateKeyArray[31] = (privateKeyArray[31] & 127) | 64
-
-	curve25519.ScalarBaseMult(&publicKeyArray, &privateKeyArray)
-
-	publicKeyString := base64.StdEncoding.EncodeToString(publicKeyArray[:])
-	privateKeyString := base64.StdEncoding.EncodeToString(privateKeyArray[:])
-
-	return publicKeyString, privateKeyString
-}
-
-func KeyToBase64(key []byte) []byte {
-	dst := make([]byte, base64.StdEncoding.EncodedLen(len(key)))
-	base64.StdEncoding.Encode(dst, key)
-	return dst
-}
-
-func WgGenKey() []byte {
-	var privateKey [32]byte
-
-	n, err := rand.Read(privateKey[:])
-
-	if err != nil || n != len(privateKey) {
-		panic("Unable to generate random bytes")
-	}
-
-	privateKey[0] &= 248
-	privateKey[31] = (privateKey[31] & 127) | 64
-	return privateKey[:]
-}
-
-func wgPubKey(privateKeySlice []byte) []byte {
-	var privateKey [32]byte
-	var publicKey [32]byte
-	copy(privateKeySlice[:], privateKey[:])
-
-	curve25519.ScalarBaseMult(&publicKey, &privateKey)
-
-	return publicKey[:]
 }

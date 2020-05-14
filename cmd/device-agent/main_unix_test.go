@@ -6,11 +6,12 @@ import (
 	"testing"
 
 	main "github.com/nais/device/cmd/device-agent"
+	"github.com/nais/device/device-agent/config"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestGenerateWGConfig(t *testing.T) {
-	bootstrapConfig := &main.BootstrapConfig{
+	bootstrapConfig := &config.BootstrapConfig{
 		TunnelIP:    "10.1.1.1",
 		PublicKey:   "PQKmraPOPye5CJq1x7njpl8rRu5RSrIKyHvZXtLvS0E=",
 		Endpoint:    "69.1.1.1:51820",

@@ -49,10 +49,3 @@ func TestGenerateEnrollmentToken(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, expected, enrollmentToken, "interface changed, remember to change the apiserver counterpart")
 }
-
-func TestWGGenKey(t *testing.T) {
-	privateKey := main.WgGenKey()
-	assert.Len(t, privateKey, 32)
-	privateKeyB64 := main.KeyToBase64(privateKey)
-	assert.Len(t, privateKeyB64, 44)
-}
