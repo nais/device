@@ -3,13 +3,21 @@ variable "gateways" {
 }
 
 resource "google_compute_address" "gateway" {
-  for_each = var.gateways
+  for_each = {
+    for key, value in var.gateways:
+    key => value
+    if !value.onprem 
+  }
   name     = each.key
   project  = each.value.project
 }
 
 resource "google_compute_instance" "gateway" {
-  for_each = var.gateways
+  for_each = {
+    for key, value in var.gateways:
+    key => value
+    if !value.onprem 
+  }
   project  = each.value.project
   name     = each.key
   labels = {
