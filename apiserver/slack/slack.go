@@ -95,7 +95,7 @@ func (s *slackbot) handleEnroll(msg slack.Msg) string {
 		case "windows":
 			configPath = `C:\Program Files\AppData\naisdevice\bootstrap.token`
 		case "darwin":
-			configPath = `~/Library/Application Support/naisdevice/bootstrap.token`
+			configPath = `~/Library/Application\ Support/naisdevice/bootstrap.token`
 		default:
 			configPath = `~/.config/naisdevice/bootstrap.token`
 		}
