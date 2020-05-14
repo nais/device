@@ -21,7 +21,7 @@ func TestGenerateWGConfig(t *testing.T) {
 	wgConfig := main.GenerateBaseConfig(bootstrapConfig, privateKey)
 
 	expected := `[Interface]
-PrivateKey = wFTAVe1stJPp0xQ+FE9so56uKh0jaHkPxJ4d2x9jPmU=
+PrivateKey = d0ZUQVZlMXN0SlBwMHhRK0ZFOXNvNTZ1S2gwamFIa1B4SjRkMng5alBtVT0=
 
 [Peer]
 PublicKey = PQKmraPOPye5CJq1x7njpl8rRu5RSrIKyHvZXtLvS0E=
