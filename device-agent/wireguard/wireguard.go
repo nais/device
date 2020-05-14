@@ -4,10 +4,7 @@ import (
 	"crypto/rand"
 	"encoding/base64"
 	"fmt"
-<<<<<<< HEAD
-=======
 	"strings"
->>>>>>> extracted azure, wireguard and apiserver pkg
 
 	"github.com/nais/device/device-agent/apiserver"
 	"golang.org/x/crypto/curve25519"
