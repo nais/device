@@ -305,7 +305,7 @@ func GenerateEnrollmentToken(serial, platform string, publicKey []byte) (string,
 
 	ec := enrollmentConfig{
 		Serial:    serial,
-		PublicKey: string(publicKey),
+		PublicKey: string(KeyToBase64(publicKey)),
 		Platform:  platform,
 	}
 
