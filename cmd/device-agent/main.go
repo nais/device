@@ -109,7 +109,7 @@ func main() {
 
 	privateKey, err := wireguard.Base64toKey(privateKeyEncoded)
 	if err != nil {
-		log.Errorf("Decoding private key:", err)
+		log.Errorf("Decoding private key: %v", err)
 		return
 	}
 
