@@ -3,6 +3,7 @@ package wireguard
 import (
 	"crypto/rand"
 	"encoding/base64"
+	"fmt"
 
 	"golang.org/x/crypto/curve25519"
 )
@@ -32,6 +33,16 @@ func KeyToBase64(key []byte) []byte {
 	dst := make([]byte, base64.StdEncoding.EncodedLen(len(key)))
 	base64.StdEncoding.Encode(dst, key)
 	return dst
+}
+
+func Base64toKey(encoded []byte) ([]byte, error) {
+	decoded := make([]byte, 32)
+	_, err := base64.StdEncoding.Decode(decoded, encoded)
+	if err != nil {
+		return nil, fmt.Errorf("decoding base64 key: %w", err)
+	}
+
+	return decoded, nil
 }
 
 func WgGenKey() []byte {
