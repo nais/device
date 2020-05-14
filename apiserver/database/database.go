@@ -191,7 +191,7 @@ ON CONFLICT(serial, platform) DO UPDATE SET username = $2, public_key = $3;`
 		return fmt.Errorf("commiting transaction: %w", err)
 	}
 
-	log.Infof("Added or updated device with serial %v for user %v with public key %v to database.", serial, username, publicKey)
+	log.Infof("Added or updated device with serial %v on platform %v for user %v with public key %v to database.", serial, platform, username, publicKey)
 
 	return nil
 }
