@@ -17,7 +17,6 @@ set_exception_handler(function(Throwable $e) : void {
 require 'vendor/autoload.php';
 
 $application = new Application('Device health checker');
-$application->setCatchExceptions(false);
 $application->add(new Command\ListChecks());
 $application->add(new Command\CheckAndUpdateDevices());
 $application->run();
