@@ -32,15 +32,8 @@ jobs:
         make run-integration-test
 
   test-device-health-checker:
-    name: Test device-health-checker on PHP ${{ matrix.php }}
+    name: Test device-health-checker
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        php:
-          - '7.2'
-          - '7.3'
-          - '7.4'
-      fail-fast: true
     defaults:
       run:
         working-directory: ./device-health-checker
@@ -49,7 +42,7 @@ jobs:
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
         with:
-          php-version: ${{ matrix.php }}
+          php-version: '7.4'
       - name: Output some debug information about the PHP version
         run: |
           php -v
@@ -62,9 +55,9 @@ jobs:
         uses: actions/cache@v1
         with:
           path: vendor
-          key: ${{ runner.os }}-php-${{ matrix.php }}-node-${{ hashFiles('**/composer.lock') }}
+          key: ${{ runner.os }}-php-node-${{ hashFiles('**/composer.lock') }}
           restore-keys: |
-            ${{ runner.os }}-php-${{ matrix.php }}-node-
+            ${{ runner.os }}-php-node-
       - name: Install dependencies
         if: steps.composer-cache.outputs.cache-hit != 'true'
         run: composer install --prefer-dist --no-progress --no-suggest --no-ansi -o
