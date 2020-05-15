@@ -39,4 +39,38 @@ class ApiServerClientTest extends TestCase {
         $this->assertCount(1, $clientHistory, 'Expected 1 request');
         $this->assertStringEndsWith('/devices', (string) $clientHistory[0]['request']->getUri(), 'Incorrect request');
     }
+
+    /**
+     * @covers ::updateDevices
+     */
+    public function testCanUpdateDevices() : void {
+        $clientHistory = [];
+        $httpClient = $this->getMockClient(
+            [new Response(200)],
+            $clientHistory
+        );
+
+        (new ApiServerClient('username', 'password', 5, $httpClient))->updateDevices([
+            [
+                'serial' => 'serial1',
+                'platform' => 'darwin',
+                'username' => 'user1@nav.no',
+                'isHealthy' => true,
+            ],
+            [
+                'serial' => 'serial2',
+                'platform' => 'darwin',
+                'username' => 'user2@nav.no',
+                'isHealthy' => false,
+            ],
+        ]);
+
+        $this->assertCount(1, $clientHistory, 'Expected 1 request');
+        $this->assertSame('PUT', $clientHistory[0]['request']->getMethod(), 'Expected HTTP PUT');
+        $this->assertSame(
+            '[{"serial":"serial1","platform":"darwin","username":"user1@nav.no","isHealthy":true},{"serial":"serial2","platform":"darwin","username":"user2@nav.no","isHealthy":false}]',
+            $clientHistory[0]['request']->getBody()->getContents(),
+            'Unexpected request body'
+        );
+    }
 }
