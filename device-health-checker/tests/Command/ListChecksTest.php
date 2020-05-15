@@ -22,36 +22,29 @@ class ListChecksTest extends TestCase {
     }
 
     public function getChecks() : array {
-        $checksOutput = <<<OUTPUT
-ID     | Name             | URL
-====== | ================ | ========================================
-123    | some check       | https://k2.kolide.com/1401/checks/123
-456789 | some other check | https://k2.kolide.com/1401/checks/456789
-OUTPUT;
-
         return [
             'no checks' => [
                 [],
-                'No checks exist'
+                '[]'
             ],
             'checks' => [
                 [
                     [
-                        'id'                    => 123,
+                        'id'                    => 1,
                         'failing_device_count'  => 0,
-                        'name'                  => 'some check',
-                        'description'           => 'some description',
-                        'notification_strategy' => 'some strategy',
+                        'name'                  => 'check1',
+                        'description'           => 'description1',
+                        'notification_strategy' => 'strategy1',
                     ],
                     [
-                        'id'                    => 456789,
+                        'id'                    => 2,
                         'failing_device_count'  => 3,
-                        'name'                  => 'some other check',
-                        'description'           => 'some other description',
-                        'notification_strategy' => 'some other strategy',
+                        'name'                  => 'check2',
+                        'description'           => 'description2',
+                        'notification_strategy' => 'strategy2',
                     ],
                 ],
-                $checksOutput
+                '[{"id":1,"failing_device_count":0,"name":"check1","description":"description1","notification_strategy":"strategy1"},{"id":2,"failing_device_count":3,"name":"check2","description":"description2","notification_strategy":"strategy2"}]'
             ],
         ];
     }

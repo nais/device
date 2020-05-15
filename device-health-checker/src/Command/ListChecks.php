@@ -13,9 +13,9 @@ class ListChecks extends BaseCommand {
 
     protected function configure() : void {
         $this
-            ->setDescription('List Kolide checks')
-            ->setHelp('This command will list all checks that is currently assigned to our account on Kolide.')
-            ->addOption('kolide-api-token', 't', InputOption::VALUE_REQUIRED, 'Some option');
+            ->setDescription('List Kolide checks as JSON')
+            ->setHelp('This command will list all checks that is currently assigned to our account on Kolide in JSON format.')
+            ->addOption('kolide-api-token', 't', InputOption::VALUE_REQUIRED, 'Token used with the Kolide API');
     }
 
     protected function initialize(InputInterface $input, OutputInterface $output) : void {
@@ -31,40 +31,7 @@ class ListChecks extends BaseCommand {
     }
 
     protected function execute(InputInterface $input, OutputInterface $output) : int {
-        $checks = $this->kolideApiClient->getAllChecks();
-
-        if (empty($checks)) {
-            $output->writeln('No checks exist');
-            return 0;
-        }
-
-        $maxIdLength   = strlen((string) max(array_column($checks, 'id')));
-        $maxUrlLength  = strlen('https://k2.kolide.com/1401/checks/') + $maxIdLength;
-        $maxNameLength = max(array_map('strlen', array_column($checks, 'name')));
-
-        $output->writeln([
-            sprintf(
-                '%s | %s | URL',
-                str_pad('ID', $maxIdLength, ' '),
-                str_pad('Name', $maxNameLength, ' ')
-            ),
-            sprintf(
-                '%s | %s | %s',
-                str_repeat('=', $maxIdLength),
-                str_repeat('=', $maxNameLength),
-                str_repeat('=', $maxUrlLength)
-            )
-        ]);
-
-        foreach ($checks as $check) {
-            $output->writeln(sprintf(
-                '%s | %s | https://k2.kolide.com/1401/checks/%d',
-                str_pad((string) $check['id'], $maxIdLength, ' '),
-                str_pad($check['name'], $maxNameLength, ' '),
-                $check['id']
-            ));
-        }
-
+        $output->writeln(json_encode($this->kolideApiClient->getAllChecks()));
         return 0;
     }
 }
