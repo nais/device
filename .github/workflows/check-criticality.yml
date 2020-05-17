@@ -26,6 +26,6 @@ jobs:
         run: composer install --prefer-dist --no-progress --no-suggest --no-ansi -o --no-dev
 
       - name: Validate Kolide checks
-        run: php device-health-checker.php kolide:check-criticality -t $KOLIDE_API_TOKEN
+        run: php device-health-checker.php kolide:validate-kolide-checks -t $KOLIDE_API_TOKEN
         env:
           KOLIDE_API_TOKEN: ${{ secrets.SLACK_API_TOKEN }}
