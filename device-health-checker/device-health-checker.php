@@ -21,4 +21,5 @@ $checksCriticality = require 'checks-criticality.php';
 $application = new Application('Device health checker');
 $application->add(new Command\ListChecks());
 $application->add(new Command\CheckAndUpdateDevices($checksCriticality));
+$application->add(new Command\ValidateKolideChecksCriticality($checksCriticality));
 $application->run();
