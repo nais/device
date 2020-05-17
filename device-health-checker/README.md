@@ -16,52 +16,55 @@ Remember to run tests after making changes:
 
 ## Releases
 
-[Phar](https://www.php.net/manual/en/intro.phar.php) archives are built to ease the usage/installation of the scripts in this library. The following archives are generated and [released](https://github.com/nais/device/releases):
+A [Phar](https://www.php.net/manual/en/intro.phar.php) archive is built to ease the usage/installation of the scripts in this library. The following archive is generated and [released](https://github.com/nais/device/releases):
 
-- `get-checks.phar`
 - `device-health-checker.phar`
 
-They can be executed like binaries once they are set as executable.
+It can be executed like a regular binary once it is set as executable (`chmod +x device-health-checker.phar`).
 
-## Script: `get-checks.phar`
+## Commands
 
-This script is used to display all checks connected to our account on Kolide.
+### `kolide:list-checks`
 
-### Supported environment variables
+This command will list all checks that is used with our account on Kolide in JSON format:
 
-#### `KOLIDE_API_TOKEN` (required)
+    ./device-health-checker.phar kolide:list-checks -t $KOLIDE_API_TOKEN | json_pp
 
-Used for authentication with the Kolide API.
+#### Command options
 
-### Usage
+##### `-t/--kolide-api-token <token>` (required)
 
-```
-christer_edvartsen@apiserver:~$ ./get-checks.phar
-ID    | Name                                 | URL
-32853 | macOS Secure Keyboard Entry Disabled | https://k2.kolide.com/1401/checks/32853
-32837 | File Extensions Not Visible To User  | https://k2.kolide.com/1401/checks/32837
-32834 | Unencrypted SSH Key                  | https://k2.kolide.com/1401/checks/32834
-32836 | Find My Mac Disabled                 | https://k2.kolide.com/1401/checks/32836
-...
-```
+The command must have a working API token to be able to communicate with Kolide.
 
-## Script: `device-health-checker.phar`
+### `apiserver:update-devices`
 
-This script is used to update device health status based on live data from the Kolide API.
+This command is used to update device health status based on live data from the Kolide API.
 
-### Supported environment variables
+#### Command options
 
-#### `KOLIDE_API_TOKEN` (required)
+##### `-t/--kolide-api-token <token>` (required)
 
-Used for authentication with the Kolide API.
+The command must have a working API token to be able to communicate with Kolide.
 
-#### `KOLIDE_CHECKS_IGNORED` (optional, default: `'32831,32837,32848'`)
+##### `-i/--ignore-checks` (optional, repeatable)
 
-Comma-separated list of Kolide check IDs to ignore when checking device status. For a complete list of checks used with our account use the `get-checks.phar` script mentioned above. When specified it will override the default, so if you want to ignore the default ignored checks as well, remember to include them in the environment variable.
+Comma-separated list of Kolide check IDs to ignore when checking device status. For a complete list of checks used with our account use the `kolide:list-checks` command mentioned above.
 
-#### `APISERVER_PASSWORD` (required, default: `''`)
+Some checks are ignored by default (see above), and using the `-i` option will only add checks to the ignore-list. This option can also be repeated, like this:
 
-Password needed when authenticating requests to the API server.
+    -i <id> -i <another id>
+
+##### `-p/--apiserver-password` (required)
+
+Password used for basic auth with the API server.
+
+##### `-u/--apiserver-username` (optional, default: `'device-health-checker'`)
+
+Userame used for Basic auth with the API server. Can be used when testing the script against a local running API server.
+
+#### Environment variables
+
+The script also uses some environment variables:
 
 #### `APISERVER_HOST` (optional, default: `'10.255.240.1'`)
 
@@ -71,16 +74,13 @@ Can be specified to override the default host when communicating with the Nais d
 
 Can be specified to override the default port when communicating with the Nais device API server. If not specified the API client ends up using port `80`.
 
-### Usage
+#### Usage
 
 Simply trigger the script to make it run:
 
-```
-christer_edvartsen@apiserver:~$ ./device-health-checker.phar
-...
-```
+    APISERVER_HOST=localhost APISERVER_PORT=8080 ./device-health-checker.phar apiserver:update-devices -t $KOLIDE_API_TOKEN -p $APISERVER_PASSWORD
 
-During the execution it will output log message in the following format:
+During the execution it will output device specific log messages in the following format:
 
 ```json
 {
@@ -88,12 +88,13 @@ During the execution it will output log message in the following format:
     "system": "nais-device",
     "message": "<log message>",
     "serial": "<device serial>",
+    "platform": "<device platform>",
     "username": "<nav email address>",
     "level": "info",
     "timestamp": 1587368677
 }
 ```
 
-For generic log messages the `serial` and `username` keys will be omitted. The value of the `timestamp` key is a [Unix timestamp](https://en.wikipedia.org/wiki/Unix_time).
+For generic log messages the `serial`, `platform` and `username` keys will be omitted. The value of the `timestamp` key is a [Unix timestamp](https://en.wikipedia.org/wiki/Unix_time).
 
 On failure it will output an error message and the exit code will be non-zero.
