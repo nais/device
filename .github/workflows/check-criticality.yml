@@ -1,9 +1,12 @@
-name: Validate Kolide check criticality configuration
+name: Validate Kolide checks criticality configuration
 on:
   schedule:
     - cron: '0 * * * *'
 jobs:
-  fetch:
+  validate:
+    defaults:
+      run:
+        working-directory: ./device-health-checker
     name: Install deps and validate Kolide checks
     runs-on: ubuntu-latest
     steps:
