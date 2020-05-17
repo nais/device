@@ -28,4 +28,4 @@ jobs:
       - name: Validate Kolide checks
         run: php device-health-checker.php kolide:validate-kolide-checks -t $KOLIDE_API_TOKEN
         env:
-          KOLIDE_API_TOKEN: ${{ secrets.SLACK_API_TOKEN }}
+          KOLIDE_API_TOKEN: ${{ secrets.KOLIDE_API_TOKEN }}
