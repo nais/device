@@ -1,0 +1,28 @@
+name: Validate Kolide check criticality configuration
+on:
+  schedule:
+    - cron: '0 * * * *'
+jobs:
+  fetch:
+    name: Install deps and validate Kolide checks
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Cache Composer packages
+        id: composer-cache
+        uses: actions/cache@v1
+        with:
+          path: vendor
+          key: ${{ runner.os }}-node-${{ hashFiles('**/composer.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-node-
+
+      - name: Install dependencies
+        if: steps.composer-cache.outputs.cache-hit != 'true'
+        run: composer install --prefer-dist --no-progress --no-suggest --no-ansi -o --no-dev
+
+      - name: Validate Kolide checks
+        run: php device-health-checker.php kolide:check-criticality -t $KOLIDE_API_TOKEN
+        env:
+          KOLIDE_API_TOKEN: ${{ secrets.SLACK_API_TOKEN }}
