@@ -16,7 +16,9 @@ set_exception_handler(function(Throwable $e) : void {
 
 require 'vendor/autoload.php';
 
+$checksCriticality = require 'checks-criticality.php';
+
 $application = new Application('Device health checker');
 $application->add(new Command\ListChecks());
-$application->add(new Command\CheckAndUpdateDevices());
+$application->add(new Command\CheckAndUpdateDevices($checksCriticality));
 $application->run();

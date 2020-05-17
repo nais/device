@@ -2,6 +2,7 @@
 namespace Nais\Device\Command;
 
 use Nais\Device\ApiServerClient;
+use Nais\Device\Criticality;
 use Nais\Device\KolideApiClient;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\Console\Application;
@@ -64,9 +65,9 @@ class CheckAndUpdateDevicesTest extends TestCase {
             'no matching kolide devices' => [
                 'naisDevices' => [
                     [
-                        'serial' => 'serial1',
-                        'platform' => 'linux',
-                        'username' => 'user1@nav.no',
+                        'serial'    => 'serial1',
+                        'platform'  => 'linux',
+                        'username'  => 'user1@nav.no',
                         'isHealthy' => true,
                     ],
                 ],
@@ -89,7 +90,7 @@ class CheckAndUpdateDevicesTest extends TestCase {
                 ],
                 'expectedUpdatePayload' => [
                     [
-                        'serial'   => 'serial1',
+                        'serial'    => 'serial1',
                         'platform'  => 'linux',
                         'username'  => 'user1@nav.no',
                         'isHealthy' => false,
@@ -99,33 +100,33 @@ class CheckAndUpdateDevicesTest extends TestCase {
             'no failing checks' => [
                 'naisDevices' => [
                     [
-                        'serial' => 'serial1',
-                        'platform' => 'linux',
-                        'username' => 'user1@nav.no',
+                        'serial'    => 'serial1',
+                        'platform'  => 'linux',
+                        'username'  => 'user1@nav.no',
                         'isHealthy' => true,
                     ],
                     [
-                        'serial' => 'serial2',
-                        'platform' => 'linux',
-                        'username' => 'user2@nav.no',
+                        'serial'    => 'serial2',
+                        'platform'  => 'linux',
+                        'username'  => 'user2@nav.no',
                         'isHealthy' => true,
                     ],
                 ],
                 'kolideDevices' => [
                     [
-                        'id' => 1,
-                        'serial' => 'serial1',
-                        'platform' => 'ubuntu',
-                        'assigned_owner' => ['email' => 'user1@nav.no'],
-                        'failure_count' => 0,
+                        'id'                     => 1,
+                        'serial'                 => 'serial1',
+                        'platform'               => 'ubuntu',
+                        'assigned_owner'         => ['email' => 'user1@nav.no'],
+                        'failure_count'          => 0,
                         'resolved_failure_count' => 0,
                     ],
                     [
-                        'id' => 2,
-                        'serial' => 'serial2',
-                        'platform' => 'rhel',
-                        'assigned_owner' => ['email' => 'user2@nav.no'],
-                        'failure_count' => 0,
+                        'id'                     => 2,
+                        'serial'                 => 'serial2',
+                        'platform'               => 'rhel',
+                        'assigned_owner'         => ['email' => 'user2@nav.no'],
+                        'failure_count'          => 0,
                         'resolved_failure_count' => 0,
                     ],
                 ],
@@ -143,13 +144,13 @@ class CheckAndUpdateDevicesTest extends TestCase {
                 ],
                 'expectedUpdatePayload' => [
                     [
-                        'serial'   => 'serial1',
+                        'serial'    => 'serial1',
                         'platform'  => 'linux',
                         'username'  => 'user1@nav.no',
                         'isHealthy' => true,
                     ],
                     [
-                        'serial'   => 'serial2',
+                        'serial'    => 'serial2',
                         'platform'  => 'linux',
                         'username'  => 'user2@nav.no',
                         'isHealthy' => true,
@@ -229,37 +230,37 @@ class CheckAndUpdateDevicesTest extends TestCase {
             'getDevices' => [
                 // Healthy device with no failing Kolide checks
                 [
-                    'serial' => 'serial1',
-                    'platform' => 'darwin',
-                    'username' => 'user1@nav.no',
+                    'serial'    => 'serial1',
+                    'platform'  => 'darwin',
+                    'username'  => 'user1@nav.no',
                     'isHealthy' => true,
                 ],
                 // Healthy device, with no matching Kolide device
                 [
-                    'serial' => 'serial2-not-in-kolide',
-                    'platform' => 'darwin',
-                    'username' => 'user2@nav.no',
+                    'serial'    => 'serial2-not-in-kolide',
+                    'platform'  => 'darwin',
+                    'username'  => 'user2@nav.no',
                     'isHealthy' => true,
                 ],
                 // Non-healthy device with no failing Kolide checks
                 [
-                    'serial' => 'serial3',
-                    'platform' => 'linux',
-                    'username' => 'user3@nav.no',
+                    'serial'    => 'serial3',
+                    'platform'  => 'linux',
+                    'username'  => 'user3@nav.no',
                     'isHealthy' => false,
                 ],
                 // Healthy device with failing Kolide check
                 [
-                    'serial' => 'serial4',
-                    'platform' => 'linux',
-                    'username' => 'user4@nav.no',
+                    'serial'    => 'serial4',
+                    'platform'  => 'linux',
+                    'username'  => 'user4@nav.no',
                     'isHealthy' => true,
                 ],
                 // Healthy device with failing Kolide check, but not above time limit
                 [
-                    'serial' => 'serial5',
-                    'platform' => 'linux',
-                    'username' => 'user5@nav.no',
+                    'serial'    => 'serial5',
+                    'platform'  => 'linux',
+                    'username'  => 'user5@nav.no',
                     'isHealthy' => true,
                 ],
             ],
@@ -269,33 +270,33 @@ class CheckAndUpdateDevicesTest extends TestCase {
             ->method('updateDevices')
             ->with([
                 [
-                    'serial' => 'serial1',
-                    'platform' => 'darwin',
-                    'username' => 'user1@nav.no',
+                    'serial'    => 'serial1',
+                    'platform'  => 'darwin',
+                    'username'  => 'user1@nav.no',
                     'isHealthy' => true,
                 ],
                 [
-                    'serial' => 'serial2-not-in-kolide',
-                    'platform' => 'darwin',
-                    'username' => 'user2@nav.no',
+                    'serial'    => 'serial2-not-in-kolide',
+                    'platform'  => 'darwin',
+                    'username'  => 'user2@nav.no',
                     'isHealthy' => false,
                 ],
                 [
-                    'serial' => 'serial3',
-                    'platform' => 'linux',
-                    'username' => 'user3@nav.no',
+                    'serial'    => 'serial3',
+                    'platform'  => 'linux',
+                    'username'  => 'user3@nav.no',
                     'isHealthy' => true,
                 ],
                 [
-                    'serial' => 'serial4',
-                    'platform' => 'linux',
-                    'username' => 'user4@nav.no',
+                    'serial'    => 'serial4',
+                    'platform'  => 'linux',
+                    'username'  => 'user4@nav.no',
                     'isHealthy' => false,
                 ],
                 [
-                    'serial' => 'serial5',
-                    'platform' => 'linux',
-                    'username' => 'user5@nav.no',
+                    'serial'    => 'serial5',
+                    'platform'  => 'linux',
+                    'username'  => 'user5@nav.no',
                     'isHealthy' => true,
                 ],
             ]);
@@ -303,35 +304,35 @@ class CheckAndUpdateDevicesTest extends TestCase {
         $kolideApiClient = $this->createConfiguredMock(KolideApiClient::class, [
             'getAllDevices' => [
                 [
-                    'id' => 1,
-                    'serial' => 'serial1',
-                    'platform' => 'darwin',
-                    'assigned_owner' => ['email' => 'user1@nav.no'],
-                    'failure_count' => 0,
+                    'id'                     => 1,
+                    'serial'                 => 'serial1',
+                    'platform'               => 'darwin',
+                    'assigned_owner'         => ['email' => 'user1@nav.no'],
+                    'failure_count'          => 0,
                     'resolved_failure_count' => 0,
                 ],
                 [
-                    'id' => 2,
-                    'serial' => 'serial3',
-                    'platform' => 'rhel',
-                    'assigned_owner' => ['email' => 'user3@nav.no'],
-                    'failure_count' => 0,
+                    'id'                     => 2,
+                    'serial'                 => 'serial3',
+                    'platform'               => 'rhel',
+                    'assigned_owner'         => ['email' => 'user3@nav.no'],
+                    'failure_count'          => 0,
                     'resolved_failure_count' => 0,
                 ],
                 [
-                    'id' => 3,
-                    'serial' => 'serial4',
-                    'platform' => 'rhel',
-                    'assigned_owner' => ['email' => 'user4@nav.no'],
-                    'failure_count' => 1,
+                    'id'                     => 3,
+                    'serial'                 => 'serial4',
+                    'platform'               => 'rhel',
+                    'assigned_owner'         => ['email' => 'user4@nav.no'],
+                    'failure_count'          => 1,
                     'resolved_failure_count' => 0,
                 ],
                 [
-                    'id' => 4,
-                    'serial' => 'serial5',
-                    'platform' => 'rhel',
-                    'assigned_owner' => ['email' => 'user5@nav.no'],
-                    'failure_count' => 1,
+                    'id'                     => 4,
+                    'serial'                 => 'serial5',
+                    'platform'               => 'rhel',
+                    'assigned_owner'         => ['email' => 'user5@nav.no'],
+                    'failure_count'          => 1,
                     'resolved_failure_count' => 0,
                 ],
             ],
@@ -380,7 +381,11 @@ class CheckAndUpdateDevicesTest extends TestCase {
                 ]
             ));
 
-        $command = new CheckAndUpdateDevices();
+        $command = new CheckAndUpdateDevices([
+            7     => Criticality::HIGH,
+            8     => Criticality::LOW,
+            15804 => Criticality::IGNORE,
+        ]);
         $command->setApiServerClient($apiServerClient);
         $command->setKolideApiClient($kolideApiClient);
 
