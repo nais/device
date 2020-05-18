@@ -48,6 +48,7 @@ return [
     39    => Criticality::CRIT,   // macOS - System Integrity Protection (SIP) Disabled
     40    => Criticality::CRIT,   // Windows - User Account Control (UAC) Disabled
     41    => Criticality::CRIT,   // Vulnerability - Insecure Zoom Video Conference Server
+    15384 => Criticality::IGNORE, // old_customer_data_export
     15804 => Criticality::IGNORE, // MacBook - Battery Unhealthy
     15805 => Criticality::IGNORE, // macOS - Primary Disk Almost Full
     15806 => Criticality::IGNORE, // Linux - Primary Disk Almost Full
