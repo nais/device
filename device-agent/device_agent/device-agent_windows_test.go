@@ -1,4 +1,4 @@
-package main_test
+package device_agent_test
 
 import (
 	"testing"
