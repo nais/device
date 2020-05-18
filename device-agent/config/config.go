@@ -32,7 +32,7 @@ func (c *Config) SetDefaults() {
 	SetPlatform(c)
 	c.PrivateKeyPath = filepath.Join(c.ConfigDir, "private.key")
 	c.WireGuardConfigPath = filepath.Join(c.ConfigDir, "wg0.conf")
-	c.BootstrapConfigPath = filepath.Join(c.ConfigDir, "bootstrap.token")
+	c.BootstrapConfigPath = filepath.Join(c.ConfigDir, "bootstrapconfig.json")
 	c.SetPlatformDefaults()
 }
 
