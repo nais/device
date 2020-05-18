@@ -12,7 +12,7 @@ import (
 
 func TestGenerateWGConfig(t *testing.T) {
 	bootstrapConfig := &bootstrapper.BootstrapConfig{
-		TunnelIP:    "10.1.1.1",
+		DeviceIP:    "10.1.1.1",
 		PublicKey:   "PQKmraPOPye5CJq1x7njpl8rRu5RSrIKyHvZXtLvS0E=",
 		Endpoint:    "69.1.1.1:51820",
 		APIServerIP: "10.1.1.2",

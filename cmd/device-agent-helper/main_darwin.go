@@ -18,7 +18,7 @@ func prerequisites() error {
 }
 
 func platformFlags(cfg *Config) {
-	flag.StringVar(&cfg.TunnelIP, "tunnel-ip", "", "device tunnel ip")
+	flag.StringVar(&cfg.DeviceIP, "device-ip", "", "device tunnel ip")
 	flag.StringVar(&cfg.WireGuardGoBinary, "wireguard-go-binary", "", "path to WireGuard-go binary")
 }
 
@@ -59,7 +59,7 @@ func setupRoutes(ctx context.Context, cidrs []string, interfaceName string) erro
 }
 
 func setupInterface(ctx context.Context, cfg Config) error {
-	ip := cfg.TunnelIP
+	ip := cfg.DeviceIP
 	commands := [][]string{
 		{cfg.WireGuardGoBinary, cfg.Interface},
 		{"ifconfig", cfg.Interface, "inet", ip + "/21", ip, "add"},

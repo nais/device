@@ -11,7 +11,7 @@ import (
 )
 
 type BootstrapConfig struct {
-	TunnelIP    string `json:"deviceIP"`
+	DeviceIP    string `json:"deviceIP"`
 	PublicKey   string `json:"publicKey"`
 	Endpoint    string `json:"tunnelEndpoint"`
 	APIServerIP string `json:"apiServerIP"`

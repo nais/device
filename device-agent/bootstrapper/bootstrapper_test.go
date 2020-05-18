@@ -2,6 +2,7 @@ package bootstrapper_test
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -29,7 +30,7 @@ func TestEnsureBootstrapConfig(t *testing.T) {
 			w.WriteHeader(http.StatusCreated)
 		case r.RequestURI == "/api/v1/bootstrapconfig" && r.Method == http.MethodGet:
 			bc := bootstrapper.BootstrapConfig{
-				TunnelIP:    tunnelIP,
+				DeviceIP:    tunnelIP,
 				PublicKey:   publicKey,
 				Endpoint:    endpoint,
 				APIServerIP: apiserverIP,
@@ -47,8 +48,9 @@ func TestEnsureBootstrapConfig(t *testing.T) {
 
 	bootstrapConfig, err := b.BootstrapDevice()
 	assert.NoError(t, err)
-	assert.Equal(t, tunnelIP, bootstrapConfig.TunnelIP)
+	assert.Equal(t, tunnelIP, bootstrapConfig.DeviceIP)
 	assert.Equal(t, publicKey, bootstrapConfig.PublicKey)
 	assert.Equal(t, endpoint, bootstrapConfig.Endpoint)
 	assert.Equal(t, apiserverIP, bootstrapConfig.APIServerIP)
+	fmt.Println(bootstrapConfig)
 }

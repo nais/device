@@ -26,7 +26,7 @@ type Config struct {
 	WireGuardGoBinary   string
 	WireGuardConfigPath string
 	LogLevel            string
-	TunnelIP            string
+	DeviceIP            string
 }
 
 func init() {

@@ -6,17 +6,17 @@ import (
 	"context"
 	"os"
 
-	"github.com/nais/device/device-agent/config"
+	"github.com/nais/device/device-agent/runtimeconfig"
 )
 
-func runHelper(cfg *config.Config, ctx context.Context) error {
+func runHelper(rc *runtimeconfig.RuntimeConfig, ctx context.Context) error {
 	cmd := adminCommandContext(ctx, "./bin/device-agent-helper",
-		"--interface", cfg.Interface,
-		"--tunnel-ip", cfg.BootstrapConfig.TunnelIP,
-		"--wireguard-binary", cfg.WireGuardBinary,
+		"--interface", rc.Config.Interface,
+		"--device-ip", rc.BootstrapConfig.DeviceIP,
+		"--wireguard-binary", rc.Config.WireGuardBinary,
 
-		"--wireguard-go-binary", cfg.WireGuardGoBinary,
-		"--wireguard-config-path", cfg.WireGuardConfigPath)
+		"--wireguard-go-binary", rc.Config.WireGuardGoBinary,
+		"--wireguard-config-path", rc.Config.WireGuardConfigPath)
 
 	cmd.Stderr = os.Stderr
 	cmd.Stdout = os.Stdout

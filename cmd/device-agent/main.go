@@ -58,7 +58,7 @@ func main() {
 	}
 
 	fmt.Println("Starting device-agent-helper, you might be prompted for password")
-	if err := runHelper(&cfg, ctx); err != nil {
+	if err := runHelper(rc, ctx); err != nil {
 		log.Errorf("Running helper: %v", err)
 		return
 	}

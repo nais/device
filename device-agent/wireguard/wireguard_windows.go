@@ -17,5 +17,5 @@ PublicKey = %s
 AllowedIPs = %s/32
 Endpoint = %s
 `
-	return fmt.Sprintf(template, privateKey, bootstrapConfig.TunnelIP, bootstrapConfig.PublicKey, bootstrapConfig.APIServerIP, bootstrapConfig.Endpoint)
+	return fmt.Sprintf(template, privateKey, bootstrapConfig.DeviceIP, bootstrapConfig.PublicKey, bootstrapConfig.APIServerIP, bootstrapConfig.Endpoint)
 }

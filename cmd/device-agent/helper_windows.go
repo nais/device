@@ -4,14 +4,14 @@ import (
 	"context"
 	"os"
 
-	"github.com/nais/device/device-agent/config"
+	"github.com/nais/device/device-agent/runtimeconfig"
 )
 
-func runHelper(cfg *config.Config, ctx context.Context) error {
+func runHelper(rc *runtimeconfig.RuntimeConfig, ctx context.Context) error {
 	cmd := adminCommandContext(ctx, "./bin/device-agent-helper.exe",
-		"--interface", cfg.Interface,
-		"--wireguard-binary", cfg.WireGuardBinary,
-		"--wireguard-config-path", cfg.WireGuardConfigPath)
+		"--interface", rc.Config.Interface,
+		"--wireguard-binary", rc.Config.WireGuardBinary,
+		"--wireguard-config-path", rc.Config.WireGuardConfigPath)
 
 	cmd.Stderr = os.Stderr
 	cmd.Stdout = os.Stdout
