@@ -1,18 +1,22 @@
-# Wireguard setup (for all vms)
+# Nais device
+
+![Kolide checks criticality](https://github.com/nais/device/workflows/Validate%20Kolide%20checks%20criticality%20configuration/badge.svg)
+
+## Wireguard setup (for all vms)
   1. `# apt-get install --yes wireguard`
   2. mkdir -p /usr/local/etc/nais-device
   3. wg genkey > /usr/local/etc/nais-device/private.key
 
-# Gateway
+## Gateway
   1. `# sed -i -e 's/#net.ipv4.ip_forward=1/net.ipv4.ip_forward=1/' /etc/sysctl.conf`
   2. `# sysctl -p`
 
-# Apiserver
+## Apiserver
 
-# Postgres
+## Postgres
   1. set up managed postgres (TODO)
 
-# Prometheus
+## Prometheus
   0. wireguard setup
   1. create prometheus vm
   2. `# apt get install prometheus`
