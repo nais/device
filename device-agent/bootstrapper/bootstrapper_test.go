@@ -1,8 +1,7 @@
 package bootstrapper_test
 
 import (
-	"fmt"
-	"io/ioutil"
+	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -12,22 +11,44 @@ import (
 )
 
 func TestEnsureBootstrapConfig(t *testing.T) {
+	serial, platform := "serial", "platform"
+	tunnelIP, publicKey, endpoint, apiserverIP := "tunnelIP", "publicKey", "endpoint", "apiserverIP"
+
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		body, err := ioutil.ReadAll(r.Body)
-		assert.NoError(t, err)
-		fmt.Println(err)
+		switch {
+		case r.RequestURI == "/api/v1/deviceinfo" && r.Method == http.MethodPost:
+			var di bootstrapper.DeviceInfo
+			if err := json.NewDecoder(r.Body).Decode(&di); err != nil {
+				assert.NoError(t, err)
+			}
+			defer r.Body.Close()
 
-		fmt.Println(string(body))
-		// unmarshal into deviceinfo, verify data.
+			assert.Equal(t, serial, di.Serial)
+			assert.Equal(t, platform, di.Platform)
 
-		// return canned response on different URL
-		w.WriteHeader(http.StatusCreated)
+			w.WriteHeader(http.StatusCreated)
+		case r.RequestURI == "/api/v1/bootstrapconfig" && r.Method == http.MethodGet:
+			bc := bootstrapper.BootstrapConfig{
+				TunnelIP:    tunnelIP,
+				PublicKey:   publicKey,
+				Endpoint:    endpoint,
+				APIServerIP: apiserverIP,
+			}
+			b, err := json.Marshal(&bc)
+			assert.NoError(t, err)
+
+			w.Write(b)
+		default:
+			t.Fatalf("unexpected method on URI: %v %v", r.Method, r.RequestURI)
+		}
 	}))
 
-	b := bootstrapper.New([]byte("publicKey"), "/some/path", "serial", "platform", server.URL, server.Client())
+	b := bootstrapper.New([]byte("publicKey"), "/some/path", serial, platform, server.URL, server.Client())
 
-	bootstrapConfig, err := b.EnsureBootstrapConfig()
-	//assert.NoError(t, err)
-	fmt.Println(err)
-	fmt.Println(bootstrapConfig)
+	bootstrapConfig, err := b.BootstrapDevice()
+	assert.NoError(t, err)
+	assert.Equal(t, tunnelIP, bootstrapConfig.TunnelIP)
+	assert.Equal(t, publicKey, bootstrapConfig.PublicKey)
+	assert.Equal(t, endpoint, bootstrapConfig.Endpoint)
+	assert.Equal(t, apiserverIP, bootstrapConfig.APIServerIP)
 }
