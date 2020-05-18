@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"os"
-	"path/filepath"
 )
 
 func (d *DeviceAgent) runHelper(ctx context.Context) error {
@@ -30,16 +29,4 @@ AllowedIPs = %s/32
 Endpoint = %s
 `
 	return fmt.Sprintf(template, d.PrivateKey, d.BootstrapConfig.TunnelIP, d.BootstrapConfig.PublicKey, d.BootstrapConfig.APIServerIP, d.BootstrapConfig.Endpoint)
-}
-
-func (d *DeviceAgent) setPlatformDefaults() {
-	programFiles := os.Getenv("%programfiles%")
-	if programFiles == "" {
-		programFiles = `c:\Program Files`
-	}
-	d.Config.WireGuardBinary = filepath.Join(programFiles, "WireGuard", "wireguard.exe")
-}
-
-func platformPrerequisites() error {
-	return nil
 }

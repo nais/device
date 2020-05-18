@@ -9,6 +9,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/nais/device/device-agent/azure"
 	"github.com/nais/device/device-agent/config"
 	device_agent "github.com/nais/device/device-agent/device_agent"
 	log "github.com/sirupsen/logrus"
@@ -21,6 +22,7 @@ var (
 
 func init() {
 	flag.StringVar(&cfg.APIServer, "apiserver", cfg.APIServer, "base url to apiserver")
+	flag.StringVar(&cfg.BootstrapAPI, "bootstrap-api", cfg.BootstrapAPI, "url to bootstrap API")
 	flag.StringVar(&cfg.ConfigDir, "config-dir", cfg.ConfigDir, "path to agent config directory")
 	flag.StringVar(&cfg.BinaryDir, "binary-dir", cfg.BinaryDir, "path to binary directory")
 	flag.StringVar(&cfg.Interface, "interface", cfg.Interface, "name of tunnel interface")
@@ -31,7 +33,13 @@ func init() {
 	setPlatform(&cfg)
 	cfg.PrivateKeyPath = filepath.Join(cfg.ConfigDir, "private.key")
 	cfg.WireGuardConfigPath = filepath.Join(cfg.ConfigDir, "wg0.conf")
-	cfg.BootstrapTokenPath = filepath.Join(cfg.ConfigDir, "bootstrap.token")
+	cfg.BootstrapConfigPath = filepath.Join(cfg.ConfigDir, "bootstrap.token")
+
+	cfg.SetPlatformDefaults()
+
+	if err := cfg.EnsurePrerequisites(); err != nil {
+		log.Fatalf("Verifying prerequisites: %v", err)
+	}
 
 	log.SetFormatter(&log.JSONFormatter{})
 	level, err := log.ParseLevel(cfg.LogLevel)
@@ -47,7 +55,13 @@ func main() {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	d, err := device_agent.New(cfg)
+	token, err := azure.RunAuthFlow(ctx, cfg.OAuth2Config)
+	if err != nil {
+		log.Errorf("Unable to get token for user: %v", err)
+		return
+	}
+
+	d, err := device_agent.New(cfg, cfg.OAuth2Config.Client(ctx, token))
 	if err != nil {
 		log.Errorf("Setting up device-agent: %v", err)
 		return
@@ -56,11 +70,6 @@ func main() {
 	fmt.Println("Starting device-agent-helper, you might be prompted for password")
 	if err := d.RunHelper(ctx); err != nil {
 		log.Errorf("Running helper: %v", err)
-		return
-	}
-
-	if err := d.AuthUser(ctx); err != nil {
-		log.Errorf("Authenticating user: %v", err)
 		return
 	}
 

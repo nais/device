@@ -13,4 +13,3 @@ Endpoint = %s
 `
 	return fmt.Sprintf(template, privateKey, bootstrapConfig.TunnelIP, bootstrapConfig.PublicKey, bootstrapConfig.APIServerIP, bootstrapConfig.Endpoint)
 }
-
