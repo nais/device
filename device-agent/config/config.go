@@ -1,10 +1,10 @@
 package config
 
 import (
-	"fmt"
 	"os"
 	"path/filepath"
 
+	"github.com/nais/device/device-agent/bootstrapper"
 	log "github.com/sirupsen/logrus"
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/endpoints"
@@ -21,43 +21,32 @@ type Config struct {
 	PrivateKeyPath      string
 	WireGuardConfigPath string
 	BootstrapConfigPath string
-	BootstrapConfig     *BootstrapConfig
+	BootstrapConfig     *bootstrapper.BootstrapConfig
 	LogLevel            string
 	OAuth2Config        oauth2.Config
 	Platform            string
 	BootstrapAPI        string
 }
 
-func (c *Config) EnsurePrerequisites() error {
-	if err := filesExist(c.WireGuardBinary); err != nil {
-		return fmt.Errorf("verifying if file exists: %v", err)
-	}
-
-	if err := ensureDirectories(c.ConfigDir); err != nil {
-		return fmt.Errorf("ensuring directory exists: %v", err)
-	}
-
-	return c.EnsurePlatformPrerequisites()
-}
-
-type BootstrapConfig struct {
-	TunnelIP    string `json:"deviceIP"`
-	PublicKey   string `json:"publicKey"`
-	Endpoint    string `json:"tunnelEndpoint"`
-	APIServerIP string `json:"apiServerIP"`
+func (c *Config) SetDefaults() {
+	SetPlatform(c)
+	c.PrivateKeyPath = filepath.Join(c.ConfigDir, "private.key")
+	c.WireGuardConfigPath = filepath.Join(c.ConfigDir, "wg0.conf")
+	c.BootstrapConfigPath = filepath.Join(c.ConfigDir, "bootstrap.token")
+	c.SetPlatformDefaults()
 }
 
 func DefaultConfig() Config {
 	userConfigDir, err := os.UserConfigDir()
 	if err != nil {
-		log.Fatal("Getting user conig dir: %w", err)
+		log.Fatal("Getting user config dir: %w", err)
 	}
 
 	return Config{
 		APIServer:    "http://10.255.240.1",
 		BootstrapAPI: "https://bootstrap.device.nais.io",
 		Interface:    "utun69",
-		ConfigDir:    filepath.Join(userConfigDir, "nais-device"),
+		ConfigDir:    filepath.Join(userConfigDir, "naisdevice"),
 		BinaryDir:    "/usr/local/bin",
 		LogLevel:     "info",
 		OAuth2Config: oauth2.Config{
@@ -67,52 +56,4 @@ func DefaultConfig() Config {
 			RedirectURL: "http://localhost:51800",
 		},
 	}
-}
-
-func FileMustExist(filepath string) error {
-	info, err := os.Stat(filepath)
-	if err != nil {
-		return err
-	}
-	if info.IsDir() {
-		return fmt.Errorf("%v is a directory", filepath)
-	}
-
-	return nil
-}
-
-func filesExist(files ...string) error {
-	for _, file := range files {
-		if err := FileMustExist(file); err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
-
-func ensureDirectories(dirs ...string) error {
-	for _, dir := range dirs {
-		if err := ensureDirectory(dir); err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
-
-func ensureDirectory(dir string) error {
-	info, err := os.Stat(dir)
-
-	if os.IsNotExist(err) {
-		return os.MkdirAll(dir, 0700)
-	}
-	if err != nil {
-		return err
-	}
-	if !info.IsDir() {
-		return fmt.Errorf("%v is a file", dir)
-	}
-
-	return nil
 }

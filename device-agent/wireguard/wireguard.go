@@ -4,9 +4,12 @@ import (
 	"crypto/rand"
 	"encoding/base64"
 	"fmt"
+	"io/ioutil"
+	"os"
 	"strings"
 
 	"github.com/nais/device/device-agent/apiserver"
+	"github.com/nais/device/device-agent/filesystem"
 	"golang.org/x/crypto/curve25519"
 )
 
@@ -64,4 +67,31 @@ Endpoint = %s
 	}
 
 	return peers
+}
+
+//TODO(jhrv): test
+func EnsurePrivateKey(keyPath string) ([]byte, error) {
+	if err := filesystem.FileMustExist(keyPath); os.IsNotExist(err) {
+		if err := ioutil.WriteFile(keyPath, KeyToBase64(WgGenKey()), 0600); err != nil {
+			return nil, fmt.Errorf("writing private key to disk: %w", err)
+		}
+	} else if err != nil {
+		return nil, fmt.Errorf("ensuring private key exists: %w", err)
+	}
+
+	privateKeyEncoded, err := ioutil.ReadFile(keyPath)
+	if err != nil {
+		return nil, fmt.Errorf("reading private key: %v", err)
+	}
+
+	privateKey, err := Base64toKey(privateKeyEncoded)
+	if err != nil {
+		return nil, fmt.Errorf("decoding private key: %v", err)
+	}
+
+	return privateKey, nil
+}
+
+func PublicKey(privateKey []byte) []byte {
+	return KeyToBase64(WGPubKey(privateKey))
 }

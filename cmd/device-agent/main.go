@@ -3,15 +3,18 @@ package main
 import (
 	"context"
 	"fmt"
+	"io/ioutil"
 	"os"
 	"os/signal"
-	"path/filepath"
 	"syscall"
 	"time"
 
-	"github.com/nais/device/device-agent/azure"
+	"github.com/nais/device/device-agent/apiserver"
 	"github.com/nais/device/device-agent/config"
-	device_agent "github.com/nais/device/device-agent/device_agent"
+	"github.com/nais/device/device-agent/filesystem"
+	rc "github.com/nais/device/device-agent/runtimeconfig"
+	"github.com/nais/device/device-agent/wireguard"
+	"github.com/nais/device/pkg/logger"
 	log "github.com/sirupsen/logrus"
 	flag "github.com/spf13/pflag"
 )
@@ -27,48 +30,35 @@ func init() {
 	flag.StringVar(&cfg.BinaryDir, "binary-dir", cfg.BinaryDir, "path to binary directory")
 	flag.StringVar(&cfg.Interface, "interface", cfg.Interface, "name of tunnel interface")
 	flag.StringVar(&cfg.LogLevel, "log-level", cfg.LogLevel, "which log level to output")
-
 	flag.Parse()
 
-	setPlatform(&cfg)
-	cfg.PrivateKeyPath = filepath.Join(cfg.ConfigDir, "private.key")
-	cfg.WireGuardConfigPath = filepath.Join(cfg.ConfigDir, "wg0.conf")
-	cfg.BootstrapConfigPath = filepath.Join(cfg.ConfigDir, "bootstrap.token")
-
-	cfg.SetPlatformDefaults()
-
-	if err := cfg.EnsurePrerequisites(); err != nil {
-		log.Fatalf("Verifying prerequisites: %v", err)
-	}
-
-	log.SetFormatter(&log.JSONFormatter{})
-	level, err := log.ParseLevel(cfg.LogLevel)
-	if err != nil {
-		log.Fatal(err)
-	}
-	log.SetLevel(level)
+	logger.Setup(cfg.LogLevel)
 }
 
 func main() {
 	log.Infof("Starting device-agent with config:\n%+v", cfg)
+	cfg.SetDefaults()
+
+	if err := filesystem.EnsurePrerequisites(&cfg); err != nil {
+		log.Fatalf("Verifying prerequisites: %v", err)
+	}
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	token, err := azure.RunAuthFlow(ctx, cfg.OAuth2Config)
+	rc, err := rc.New(cfg, ctx)
 	if err != nil {
-		log.Errorf("Unable to get token for user: %v", err)
-		return
+		log.Fatalf("Initializing runtime config: %v", err)
 	}
 
-	d, err := device_agent.New(cfg, cfg.OAuth2Config.Client(ctx, token))
-	if err != nil {
-		log.Errorf("Setting up device-agent: %v", err)
-		return
+	baseConfig := wireguard.GenerateBaseConfig(rc.BootstrapConfig, rc.PrivateKey)
+
+	if err := ioutil.WriteFile(cfg.WireGuardConfigPath, []byte(baseConfig), 0600); err != nil {
+		log.Fatalf("Writing base WireGuard config to disk: %v", err)
 	}
 
 	fmt.Println("Starting device-agent-helper, you might be prompted for password")
-	if err := d.RunHelper(ctx); err != nil {
+	if err := runHelper(&cfg, ctx); err != nil {
 		log.Errorf("Running helper: %v", err)
 		return
 	}
@@ -83,9 +73,26 @@ func main() {
 			return
 
 		case <-time.After(15 * time.Second):
-			if err := d.SyncConfig(); err != nil {
+			if err := SyncConfig(baseConfig, rc); err != nil {
 				log.Errorf("Unable to synchronize config with apiserver: %v", err)
 			}
 		}
 	}
+}
+
+func SyncConfig(baseConfig string, rc *rc.RuntimeConfig) error {
+	gateways, err := apiserver.GetGateways(rc.Client, rc.Config.APIServer, rc.Serial)
+
+	if err != nil {
+		log.Errorf("Unable to get gateway config: %v", err)
+	}
+
+	wireGuardPeers := wireguard.GenerateWireGuardPeers(gateways)
+
+	if err := ioutil.WriteFile(rc.Config.WireGuardConfigPath, []byte(baseConfig+wireGuardPeers), 0600); err != nil {
+		log.Errorf("Writing WireGuard config to disk: %v", err)
+	}
+
+	log.Debugf("Wrote WireGuard config to disk")
+	return nil
 }

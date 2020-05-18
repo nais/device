@@ -1,4 +1,4 @@
-package device_agent
+package bootstrapper_test
 
 import (
 	"fmt"
@@ -7,7 +7,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/nais/device/device-agent/config"
+	"github.com/nais/device/device-agent/bootstrapper"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -18,16 +18,15 @@ func TestEnsureBootstrapConfig(t *testing.T) {
 		fmt.Println(err)
 
 		fmt.Println(string(body))
+		// unmarshal into deviceinfo, verify data.
+
+		// return canned response on different URL
+		w.WriteHeader(http.StatusCreated)
 	}))
 
-	deviceAgent := DeviceAgent{
-		Client: server.Client(),
-		Config: config.Config{
-			BootstrapAPI: server.URL,
-		},
-	}
+	b := bootstrapper.New([]byte("publicKey"), "/some/path", "serial", "platform", server.URL, server.Client())
 
-	bootstrapConfig, err := deviceAgent.EnsureBootstrapConfig()
+	bootstrapConfig, err := b.EnsureBootstrapConfig()
 	//assert.NoError(t, err)
 	fmt.Println(err)
 	fmt.Println(bootstrapConfig)

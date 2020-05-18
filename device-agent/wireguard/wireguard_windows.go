@@ -1,6 +1,12 @@
 package wireguard
 
-func GenerateBaseConfig(bootstrapConfig *BootstrapConfig, privateKey []byte) string {
+import (
+	"fmt"
+
+	"github.com/nais/device/device-agent/bootstrapper"
+)
+
+func GenerateBaseConfig(bootstrapConfig *bootstrapper.BootstrapConfig, privateKey []byte) string {
 	template := `[Interface]
 PrivateKey = %s
 MTU = 1360

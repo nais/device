@@ -12,7 +12,3 @@ func (c *Config) SetPlatformDefaults() {
 	}
 	c.WireGuardBinary = filepath.Join(programFiles, "WireGuard", "wireguard.exe")
 }
-
-func (c *Config) PlatformPrerequisites() error {
-	return nil
-}

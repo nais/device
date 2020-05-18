@@ -14,7 +14,16 @@ import (
 	"golang.org/x/oauth2"
 )
 
-func RunAuthFlow(ctx context.Context, conf oauth2.Config) (*oauth2.Token, error) {
+func EnsureClient(ctx context.Context, conf oauth2.Config) (*http.Client, error) {
+	token, err := runAuthFlow(ctx, conf)
+	if err != nil {
+		return nil, fmt.Errorf("running authorization code flow: %w", err)
+	}
+
+	return conf.Client(ctx, token), nil
+}
+
+func runAuthFlow(ctx context.Context, conf oauth2.Config) (*oauth2.Token, error) {
 	server := &http.Server{Addr: "127.0.0.1:51800"}
 
 	// Ignoring impossible error
