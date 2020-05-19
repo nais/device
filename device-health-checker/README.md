@@ -24,11 +24,11 @@ It can be executed like a regular binary once it is set as executable (`chmod +x
 
 ## Commands
 
-### `kolide:validate-kolide-checks`
+### `kolide:validate-checks`
 
 This command will validate that there exists a criticality level for all Kolide checks:
 
-    ./device-health-checker.phar kolide:validate-kolide-checks -t $KOLIDE_API_TOKEN
+    ./device-health-checker.phar kolide:validate-checks -t $KOLIDE_API_TOKEN
 
 #### Command options
 

@@ -9,7 +9,7 @@ use RuntimeException;
 
 class ValidateKolideChecksCriticality extends BaseCommand {
     /** @var string */
-    protected static $defaultName = 'kolide:validate-kolide-checks';
+    protected static $defaultName = 'kolide:validate-checks';
 
     /** @var array */
     private $checksConfig;
