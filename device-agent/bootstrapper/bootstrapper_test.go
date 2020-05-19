@@ -2,7 +2,6 @@ package bootstrapper_test
 
 import (
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -52,5 +51,4 @@ func TestEnsureBootstrapConfig(t *testing.T) {
 	assert.Equal(t, publicKey, bootstrapConfig.PublicKey)
 	assert.Equal(t, endpoint, bootstrapConfig.Endpoint)
 	assert.Equal(t, apiserverIP, bootstrapConfig.APIServerIP)
-	fmt.Println(bootstrapConfig)
 }

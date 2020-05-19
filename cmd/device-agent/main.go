@@ -12,7 +12,7 @@ import (
 	"github.com/nais/device/device-agent/apiserver"
 	"github.com/nais/device/device-agent/config"
 	"github.com/nais/device/device-agent/filesystem"
-	rc "github.com/nais/device/device-agent/runtimeconfig"
+	"github.com/nais/device/device-agent/runtimeconfig"
 	"github.com/nais/device/device-agent/wireguard"
 	"github.com/nais/device/pkg/logger"
 	log "github.com/sirupsen/logrus"
@@ -46,7 +46,7 @@ func main() {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	rc, err := rc.New(cfg, ctx)
+	rc, err := runtimeconfig.New(cfg, ctx)
 	if err != nil {
 		log.Fatalf("Initializing runtime config: %v", err)
 	}
@@ -80,7 +80,7 @@ func main() {
 	}
 }
 
-func SyncConfig(baseConfig string, rc *rc.RuntimeConfig) error {
+func SyncConfig(baseConfig string, rc *runtimeconfig.RuntimeConfig) error {
 	gateways, err := apiserver.GetGateways(rc.Client, rc.Config.APIServer, rc.Serial)
 
 	if err != nil {
