@@ -4,30 +4,18 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"github.com/nais/device/pkg/bootstrap"
 	"io/ioutil"
 	"net/http"
 	"os"
 	"time"
 )
 
-type BootstrapConfig struct {
-	DeviceIP    string `json:"deviceIP"`
-	PublicKey   string `json:"publicKey"`
-	Endpoint    string `json:"tunnelEndpoint"`
-	APIServerIP string `json:"apiServerIP"`
-}
-
 type bootstrapper struct {
 	Client              *http.Client
 	BootstrapAPI        string
 	BootstrapConfigPath string
-	DeviceInfo          DeviceInfo
-}
-
-type DeviceInfo struct {
-	PublicKey []byte `json:"publicKey"`
-	Serial    string `json:"serial"`
-	Platform  string `json:"platform"`
+	DeviceInfo          bootstrap.DeviceInfo
 }
 
 func New(publicKey []byte, bootstrapConfigPath, serial, platform, bootstrapAPI string, client *http.Client) *bootstrapper {
@@ -35,15 +23,15 @@ func New(publicKey []byte, bootstrapConfigPath, serial, platform, bootstrapAPI s
 		Client:              client,
 		BootstrapAPI:        bootstrapAPI,
 		BootstrapConfigPath: bootstrapConfigPath,
-		DeviceInfo: DeviceInfo{
-			PublicKey: publicKey,
+		DeviceInfo: bootstrap.DeviceInfo{
+			PublicKey: string(publicKey),
 			Serial:    serial,
 			Platform:  platform,
 		},
 	}
 }
 
-func (b *bootstrapper) EnsureBootstrapConfig() (*BootstrapConfig, error) {
+func (b *bootstrapper) EnsureBootstrapConfig() (*bootstrap.Config, error) {
 	if FileExists(b.BootstrapConfigPath) {
 		return readFromFile(b.BootstrapConfigPath)
 	}
@@ -60,7 +48,7 @@ func (b *bootstrapper) EnsureBootstrapConfig() (*BootstrapConfig, error) {
 	return bootstrapConfig, nil
 }
 
-func (b *bootstrapper) BootstrapDevice() (*BootstrapConfig, error) {
+func (b *bootstrapper) BootstrapDevice() (*bootstrap.Config, error) {
 	dib, err := json.Marshal(b.DeviceInfo)
 	if err != nil {
 		return nil, fmt.Errorf("marshaling device info: %w", err)
@@ -84,14 +72,14 @@ func (b *bootstrapper) BootstrapDevice() (*BootstrapConfig, error) {
 	return bootstrapConfig, nil
 }
 
-func getBootstrapConfig(url string) (*BootstrapConfig, error) {
+func getBootstrapConfig(url string) (*bootstrap.Config, error) {
 	attempts := 3
 
 	for i := 0; i < attempts; i++ {
 		resp, err := http.Get(url)
 
 		if err == nil && resp.StatusCode == 200 {
-			var bootstrapConfig BootstrapConfig
+			var bootstrapConfig bootstrap.Config
 			if err := json.NewDecoder(resp.Body).Decode(&bootstrapConfig); err == nil {
 				return &bootstrapConfig, nil
 			}
@@ -110,7 +98,7 @@ func FileExists(filepath string) bool {
 	return true
 }
 
-func writeToFile(bootstrapConfig *BootstrapConfig, bootstrapConfigPath string) error {
+func writeToFile(bootstrapConfig *bootstrap.Config, bootstrapConfigPath string) error {
 	b, err := json.Marshal(bootstrapConfig)
 	if err != nil {
 		return fmt.Errorf("marshaling bootstrap config: %w", err)
@@ -121,8 +109,8 @@ func writeToFile(bootstrapConfig *BootstrapConfig, bootstrapConfigPath string) e
 	return nil
 }
 
-func readFromFile(bootstrapConfigPath string) (*BootstrapConfig, error) {
-	var bc BootstrapConfig
+func readFromFile(bootstrapConfigPath string) (*bootstrap.Config, error) {
+	var bc bootstrap.Config
 	b, err := ioutil.ReadFile(bootstrapConfigPath)
 	if err != nil {
 		return nil, fmt.Errorf("reading bootstrap config from disk: %w", err)

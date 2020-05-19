@@ -6,19 +6,20 @@ import (
 )
 
 type Config struct {
-	DbConnURI           string
-	SlackToken          string
-	BindAddress         string
-	ConfigDir           string
-	PrivateKeyPath      string
-	WireGuardConfigPath string
-	DevMode             bool
-	Endpoint            string
-	Azure               Azure
-	PrometheusAddr      string
-	PrometheusPublicKey string
-	PrometheusTunnelIP  string
-	CredentialEntries   []string
+	DbConnURI               string
+	BootstrapApiCredentials string
+	BindAddress             string
+	ConfigDir               string
+	PrivateKeyPath          string
+	WireGuardConfigPath     string
+	DevMode                 bool
+	Endpoint                string
+	Azure                   Azure
+	PrometheusAddr          string
+	PrometheusPublicKey     string
+	PrometheusTunnelIP      string
+	CredentialEntries       []string
+	BootstrapApiURL         string
 }
 
 type Azure struct {

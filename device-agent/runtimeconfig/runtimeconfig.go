@@ -3,6 +3,7 @@ package runtimeconfig
 import (
 	"context"
 	"fmt"
+	"github.com/nais/device/pkg/bootstrap"
 	"net/http"
 
 	"github.com/nais/device/device-agent/azure"
@@ -14,7 +15,7 @@ import (
 
 type RuntimeConfig struct {
 	Serial          string
-	BootstrapConfig *bootstrapper.BootstrapConfig
+	BootstrapConfig *bootstrap.Config
 	Config          config.Config
 	PrivateKey      []byte
 	Client          *http.Client

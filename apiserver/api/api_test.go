@@ -18,8 +18,10 @@ import (
 func TestGetDevices(t *testing.T) {
 	db, router := setup(t)
 
+	ctx := context.Background()
+
 	publicKey, username, serial, platform := "pubkey", "user", "serial", "darwin"
-	if err := db.AddDevice(username, publicKey, serial, platform); err != nil {
+	if err := db.AddDevice(ctx, username, publicKey, serial, platform); err != nil {
 		t.Fatalf("Adding device: %v", err)
 	}
 
@@ -38,7 +40,8 @@ func TestGetDevices(t *testing.T) {
 func TestUpdateDeviceHealth(t *testing.T) {
 	db, router := setup(t)
 	device := database.Device{Username: "user@acme.org", Serial: "serial", PublicKey: "pubkey", Platform: "darwin", Healthy: boolp(true)}
-	if err := db.AddDevice(device.Username, device.PublicKey, device.Serial, device.Platform); err != nil {
+	ctx := context.Background()
+	if err := db.AddDevice(ctx, device.Username, device.PublicKey, device.Serial, device.Platform); err != nil {
 		t.Fatalf("Adding device: %v", err)
 	}
 

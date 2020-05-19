@@ -2,6 +2,7 @@ package bootstrapper_test
 
 import (
 	"encoding/json"
+	"github.com/nais/device/pkg/bootstrap"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -17,7 +18,7 @@ func TestEnsureBootstrapConfig(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch {
 		case r.RequestURI == "/api/v1/deviceinfo" && r.Method == http.MethodPost:
-			var di bootstrapper.DeviceInfo
+			var di bootstrap.DeviceInfo
 			if err := json.NewDecoder(r.Body).Decode(&di); err != nil {
 				assert.NoError(t, err)
 			}
@@ -28,11 +29,11 @@ func TestEnsureBootstrapConfig(t *testing.T) {
 
 			w.WriteHeader(http.StatusCreated)
 		case r.RequestURI == "/api/v1/bootstrapconfig" && r.Method == http.MethodGet:
-			bc := bootstrapper.BootstrapConfig{
-				DeviceIP:    tunnelIP,
-				PublicKey:   publicKey,
-				Endpoint:    endpoint,
-				APIServerIP: apiserverIP,
+			bc := bootstrap.Config{
+				DeviceIP:       tunnelIP,
+				PublicKey:      publicKey,
+				TunnelEndpoint: endpoint,
+				APIServerIP:    apiserverIP,
 			}
 			b, err := json.Marshal(&bc)
 			assert.NoError(t, err)
@@ -49,6 +50,6 @@ func TestEnsureBootstrapConfig(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, tunnelIP, bootstrapConfig.DeviceIP)
 	assert.Equal(t, publicKey, bootstrapConfig.PublicKey)
-	assert.Equal(t, endpoint, bootstrapConfig.Endpoint)
+	assert.Equal(t, endpoint, bootstrapConfig.TunnelEndpoint)
 	assert.Equal(t, apiserverIP, bootstrapConfig.APIServerIP)
 }

@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"github.com/go-chi/chi"
 	"github.com/go-chi/jwtauth"
+	"github.com/nais/device/pkg/bootstrap"
 	"io"
 	"io/ioutil"
 	"net/http"
@@ -49,21 +50,6 @@ var cfg = &Config{
 
 var enrollments ActiveEnrollments
 
-// BootstrapConfig is the information the device needs to bootstrap it's connection to the APIServer
-type BootstrapConfig struct {
-	DeviceIP       string `json:"deviceIP"`
-	PublicKey      string `json:"publicKey"`
-	TunnelEndpoint string `json:"tunnelEndpoint"`
-	APIServerIP    string `json:"apiServerIP"`
-}
-
-// DeviceInfo is the information sent by the device during enrollment
-type DeviceInfo struct {
-	Serial    string `json:"serial"`
-	PublicKey string `json:"publicKey"`
-	Platform  string `json:"platform"`
-}
-
 func init() {
 	log.SetFormatter(&log.JSONFormatter{})
 
@@ -89,7 +75,6 @@ func main() {
 		log.Fatalf("Creating JWT validator: %v", err)
 	}
 
-
 	r := chi.NewRouter()
 	r.Route("/api/v1/", func(r chi.Router) {
 		r.Group(func(r chi.Router) {
@@ -112,7 +97,7 @@ func main() {
 func postBootstrapConfig(w http.ResponseWriter, r *http.Request) {
 	serial := chi.URLParam(r, "serial")
 
-	var bootstrapConfig BootstrapConfig
+	var bootstrapConfig bootstrap.Config
 	err := json.NewDecoder(r.Body).Decode(&bootstrapConfig)
 	if err != nil {
 		log.Errorf("Decoding json: %v", err)
@@ -143,7 +128,7 @@ func getBootstrapConfig(w http.ResponseWriter, r *http.Request) {
 func postDeviceInfo(w http.ResponseWriter, r *http.Request) {
 	serial := chi.URLParam(r, "serial")
 
-	var deviceInfo DeviceInfo
+	var deviceInfo bootstrap.DeviceInfo
 	err := json.NewDecoder(r.Body).Decode(&deviceInfo)
 	if err != nil {
 		log.Errorf("Decoding json: %v", err)
@@ -172,19 +157,19 @@ func getDeviceInfo(w http.ResponseWriter, r *http.Request) {
 }
 
 type ActiveEnrollments struct {
-	deviceInfos     map[string]DeviceInfo
+	deviceInfos     map[string]bootstrap.DeviceInfo
 	deviceInfosLock sync.Mutex
 
-	bootstrapConfigs     map[string]BootstrapConfig
+	bootstrapConfigs     map[string]bootstrap.Config
 	bootstrapConfigsLock sync.Mutex
 }
 
 func (a *ActiveEnrollments) init() {
-	a.deviceInfos = make(map[string]DeviceInfo)
-	a.bootstrapConfigs = make(map[string]BootstrapConfig)
+	a.deviceInfos = make(map[string]bootstrap.DeviceInfo)
+	a.bootstrapConfigs = make(map[string]bootstrap.Config)
 }
 
-func (a *ActiveEnrollments) getDeviceInfo(serial string) DeviceInfo {
+func (a *ActiveEnrollments) getDeviceInfo(serial string) bootstrap.DeviceInfo {
 	a.deviceInfosLock.Lock()
 	val, _ := a.deviceInfos[serial]
 	delete(a.deviceInfos, serial)
@@ -193,19 +178,19 @@ func (a *ActiveEnrollments) getDeviceInfo(serial string) DeviceInfo {
 	return val
 }
 
-func (a *ActiveEnrollments) addDeviceInfo(serial string, enrollmentConfig DeviceInfo) {
+func (a *ActiveEnrollments) addDeviceInfo(serial string, enrollmentConfig bootstrap.DeviceInfo) {
 	a.deviceInfosLock.Lock()
 	a.deviceInfos[serial] = enrollmentConfig
 	defer a.deviceInfosLock.Unlock()
 }
 
-func (a *ActiveEnrollments) addBootstrapConfig(serial string, bootstrapConfig BootstrapConfig) {
+func (a *ActiveEnrollments) addBootstrapConfig(serial string, bootstrapConfig bootstrap.Config) {
 	a.bootstrapConfigsLock.Lock()
 	a.bootstrapConfigs[serial] = bootstrapConfig
 	defer a.bootstrapConfigsLock.Unlock()
 }
 
-func (a *ActiveEnrollments) getBootstrapConfig(serial string) BootstrapConfig {
+func (a *ActiveEnrollments) getBootstrapConfig(serial string) bootstrap.Config {
 	a.bootstrapConfigsLock.Lock()
 	val, _ := a.bootstrapConfigs[serial]
 	delete(a.bootstrapConfigs, serial)

@@ -1,6 +1,7 @@
 package database_test
 
 import (
+	"context"
 	"github.com/nais/device/apiserver/database"
 	"github.com/stretchr/testify/assert"
 	"os"
@@ -23,8 +24,9 @@ func TestAPIServerDB_AddDevice(t *testing.T) {
 	db := setup(t)
 
 	username, publicKey, serial, platform := "username", "publicKey", "serial", "darwin"
+	ctx := context.Background()
 
-	err := db.AddDevice(username, publicKey, serial, platform)
+	err := db.AddDevice(ctx, username, publicKey, serial, platform)
 	assert.NoError(t, err)
 
 	device, err := db.ReadDevice(publicKey)
@@ -35,11 +37,11 @@ func TestAPIServerDB_AddDevice(t *testing.T) {
 	assert.Equal(t, platform, device.Platform)
 	assert.False(t, *device.Healthy)
 
-	err = db.AddDevice(username, publicKey, serial, platform)
+	err = db.AddDevice(ctx, username, publicKey, serial, platform)
 	assert.NoError(t, err)
 
 	newUsername, newPublicKey := "newUsername", "newPublicKey"
-	err = db.AddDevice(newUsername, newPublicKey, serial, platform)
+	err = db.AddDevice(ctx, newUsername, newPublicKey, serial, platform)
 	assert.NoError(t, err)
 
 	device, err = db.ReadDevice(newPublicKey)

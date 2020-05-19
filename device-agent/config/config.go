@@ -4,7 +4,6 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/nais/device/device-agent/bootstrapper"
 	log "github.com/sirupsen/logrus"
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/endpoints"
@@ -21,7 +20,6 @@ type Config struct {
 	PrivateKeyPath      string
 	WireGuardConfigPath string
 	BootstrapConfigPath string
-	BootstrapConfig     *bootstrapper.BootstrapConfig
 	LogLevel            string
 	OAuth2Config        oauth2.Config
 	Platform            string

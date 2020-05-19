@@ -154,11 +154,9 @@ func (d *APIServerDB) UpdateDeviceStatus(devices []Device) error {
 
 var mux sync.Mutex
 
-func (d *APIServerDB) AddDevice(username, publicKey, serial, platform string) error {
+func (d *APIServerDB) AddDevice(ctx context.Context, username, publicKey, serial, platform string) error {
 	mux.Lock()
 	defer mux.Unlock()
-
-	ctx := context.Background()
 
 	tx, err := d.conn.Begin(ctx)
 	if err != nil {

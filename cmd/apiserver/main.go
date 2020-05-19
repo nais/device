@@ -2,7 +2,9 @@ package main
 
 import (
 	"bytes"
+	"context"
 	"fmt"
+	"github.com/nais/device/apiserver/bootstrapper"
 	"io/ioutil"
 	"net/http"
 	"os"
@@ -20,7 +22,6 @@ import (
 	"github.com/nais/device/apiserver/api"
 	"github.com/nais/device/apiserver/config"
 	"github.com/nais/device/apiserver/database"
-	"github.com/nais/device/apiserver/slack"
 	log "github.com/sirupsen/logrus"
 	flag "github.com/spf13/pflag"
 )
@@ -32,7 +33,8 @@ var (
 func init() {
 	log.SetFormatter(&log.JSONFormatter{})
 	flag.StringVar(&cfg.DbConnURI, "db-connection-uri", os.Getenv("DB_CONNECTION_URI"), "database connection URI (DSN)")
-	flag.StringVar(&cfg.SlackToken, "slack-token", os.Getenv("SLACK_TOKEN"), "Slack token")
+	flag.StringVar(&cfg.BootstrapApiURL, "bootstrap-api-url", "", "bootstrap API URL")
+	flag.StringVar(&cfg.BootstrapApiCredentials, "bootstrap-api-credentials", os.Getenv("BOOTSTRAP_API_CREDENTIALS"), "bootstrap API credentials")
 	flag.StringVar(&cfg.PrometheusAddr, "prometheus-address", cfg.PrometheusAddr, "prometheus listen address")
 	flag.StringVar(&cfg.PrometheusPublicKey, "prometheus-public-key", cfg.PrometheusPublicKey, "prometheus public key")
 	flag.StringVar(&cfg.PrometheusTunnelIP, "prometheus-tunnel-ip", cfg.PrometheusTunnelIP, "prometheus tunnel ip")
@@ -51,6 +53,9 @@ func init() {
 }
 
 func main() {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
 	go func() {
 		log.Infof("Prometheus serving metrics at %v", cfg.PrometheusAddr)
 		_ = http.ListenAndServe(cfg.PrometheusAddr, promhttp.Handler())
@@ -75,9 +80,8 @@ func main() {
 		log.Fatalf("Generating public key: %v", err)
 	}
 
-	if len(cfg.SlackToken) > 0 {
-		slackBot := slack.New(cfg.SlackToken, cfg.Endpoint, db, string(publicKey))
-		go slackBot.Handler()
+	if len(cfg.BootstrapApiCredentials) > 0 {
+		go bootstrapper.WatchEnrollments(ctx, db, cfg.BootstrapApiURL, cfg.BootstrapApiCredentials, publicKey)
 	}
 
 	go syncWireguardConfig(cfg.DbConnURI, string(privateKey), cfg)
