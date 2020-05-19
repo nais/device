@@ -84,78 +84,90 @@ func main() {
 		_ = http.ListenAndServe(cfg.PrometheusAddr, promhttp.Handler())
 	}()
 
-	/*	jwtValidator, err := oreateJWTValidator(cfg.Azure)
-		if err != nil {
-			log.Fatalf("Creating JWT validator: %v", err)
-		}
+	jwtValidator, err := createJWTValidator(cfg.Azure)
+	if err != nil {
+		log.Fatalf("Creating JWT validator: %v", err)
+	}
 
-		TokenValidatorMiddleware(jwtValidator)
-	*/
+
 	r := chi.NewRouter()
-	r.Post("/postDeviceInfo/{id}", postDeviceInfo)
-	r.Get("/getBootstrapConfig/{id}", getBootstrapConfig)
-	r.Get("/getDeviceInfo/{id}", getDeviceInfo)
-	r.Post("/postBootstrapConfig/{id}", postBootstrapConfig)
+	r.Route("/api/v1/", func(r chi.Router) {
+		r.Group(func(r chi.Router) {
+			r.Use(TokenValidatorMiddleware(jwtValidator))
+			r.Post("/deviceInfo/{serial}", postDeviceInfo)
+			r.Get("/bootstrapConfig/{serial}", getBootstrapConfig)
+		})
+
+		r.Group(func(r chi.Router) {
+			//r.Use(TokenValidatorMiddleware(jwtValidator))
+			r.Get("/deviceInfo/{serial}", getDeviceInfo)
+			r.Post("/bootstrapConfig/{serial}", postBootstrapConfig)
+		})
+	})
 
 	fmt.Println("running @", cfg.BindAddress)
 	fmt.Println(http.ListenAndServe(cfg.BindAddress, r))
 }
 
 func postBootstrapConfig(w http.ResponseWriter, r *http.Request) {
-	id := chi.URLParam(r, "id")
+	serial := chi.URLParam(r, "serial")
 
 	var bootstrapConfig BootstrapConfig
 	err := json.NewDecoder(r.Body).Decode(&bootstrapConfig)
 	if err != nil {
+		log.Errorf("Decoding json: %v", err)
 		w.WriteHeader(http.StatusInternalServerError)
-		// TODO handle
+		return
 	}
-	enrollments.addBootstrapConfig(id, bootstrapConfig)
-	fmt.Printf("POST id: %s, bootstrapConfig: %v\n", id, bootstrapConfig)
+	enrollments.addBootstrapConfig(serial, bootstrapConfig)
+	fmt.Printf("POST serial: %s, bootstrapConfig: %v\n", serial, bootstrapConfig)
 
 	w.WriteHeader(http.StatusCreated)
 }
 
 func getBootstrapConfig(w http.ResponseWriter, r *http.Request) {
-	id := chi.URLParam(r, "id")
+	serial := chi.URLParam(r, "serial")
 
-	bootstrapConfig := enrollments.getBootstrapConfig(id)
-	fmt.Printf("GET id: %s, bootstrapConfig: %v\n", id, bootstrapConfig)
+	bootstrapConfig := enrollments.getBootstrapConfig(serial)
+	fmt.Printf("GET serial: %s, bootstrapConfig: %v\n", serial, bootstrapConfig)
 
 	w.WriteHeader(http.StatusOK)
 	err := json.NewEncoder(w).Encode(bootstrapConfig)
 	if err != nil {
+		log.Errorf("Encoding json: %v", err)
 		w.WriteHeader(http.StatusInternalServerError)
-		// TODO handle
+		return
 	}
 }
 
 func postDeviceInfo(w http.ResponseWriter, r *http.Request) {
-	id := chi.URLParam(r, "id")
+	serial := chi.URLParam(r, "serial")
 
 	var deviceInfo DeviceInfo
 	err := json.NewDecoder(r.Body).Decode(&deviceInfo)
 	if err != nil {
+		log.Errorf("Decoding json: %v", err)
 		w.WriteHeader(http.StatusInternalServerError)
-		// TODO handle
+		return
 	}
 
-	enrollments.addDeviceInfo(id, deviceInfo)
-	fmt.Printf("GET id: %s, deviceInfo: %v\n", id, deviceInfo)
+	enrollments.addDeviceInfo(serial, deviceInfo)
+	fmt.Printf("GET serial: %s, deviceInfo: %v\n", serial, deviceInfo)
 	w.WriteHeader(http.StatusCreated)
 }
 
 func getDeviceInfo(w http.ResponseWriter, r *http.Request) {
-	id := chi.URLParam(r, "id")
+	serial := chi.URLParam(r, "serial")
 
-	deviceInfo := enrollments.getDeviceInfo(id)
-	fmt.Printf("GET id: %s, deviceInfo: %v\n", id, deviceInfo)
+	deviceInfo := enrollments.getDeviceInfo(serial)
+	fmt.Printf("GET serial: %s, deviceInfo: %v\n", serial, deviceInfo)
 
 	w.WriteHeader(http.StatusOK)
 	err := json.NewEncoder(w).Encode(deviceInfo)
 	if err != nil {
+		log.Errorf("Encoding json: %v", err)
 		w.WriteHeader(http.StatusInternalServerError)
-		// TODO handle
+		return
 	}
 }
 
@@ -172,32 +184,32 @@ func (a *ActiveEnrollments) init() {
 	a.bootstrapConfigs = make(map[string]BootstrapConfig)
 }
 
-func (a *ActiveEnrollments) getDeviceInfo(id string) DeviceInfo {
+func (a *ActiveEnrollments) getDeviceInfo(serial string) DeviceInfo {
 	a.deviceInfosLock.Lock()
-	val, _ := a.deviceInfos[id]
-	delete(a.deviceInfos, id)
-	a.deviceInfosLock.Unlock()
+	val, _ := a.deviceInfos[serial]
+	delete(a.deviceInfos, serial)
+	defer a.deviceInfosLock.Unlock()
 
 	return val
 }
 
-func (a *ActiveEnrollments) addDeviceInfo(id string, enrollmentConfig DeviceInfo) {
+func (a *ActiveEnrollments) addDeviceInfo(serial string, enrollmentConfig DeviceInfo) {
 	a.deviceInfosLock.Lock()
-	a.deviceInfos[id] = enrollmentConfig
-	a.deviceInfosLock.Unlock()
+	a.deviceInfos[serial] = enrollmentConfig
+	defer a.deviceInfosLock.Unlock()
 }
 
-func (a *ActiveEnrollments) addBootstrapConfig(id string, bootstrapConfig BootstrapConfig) {
+func (a *ActiveEnrollments) addBootstrapConfig(serial string, bootstrapConfig BootstrapConfig) {
 	a.bootstrapConfigsLock.Lock()
-	a.bootstrapConfigs[id] = bootstrapConfig
-	a.bootstrapConfigsLock.Unlock()
+	a.bootstrapConfigs[serial] = bootstrapConfig
+	defer a.bootstrapConfigsLock.Unlock()
 }
 
-func (a *ActiveEnrollments) getBootstrapConfig(id string) BootstrapConfig {
+func (a *ActiveEnrollments) getBootstrapConfig(serial string) BootstrapConfig {
 	a.bootstrapConfigsLock.Lock()
-	val, _ := a.bootstrapConfigs[id]
-	delete(a.bootstrapConfigs, id)
-	a.bootstrapConfigsLock.Unlock()
+	val, _ := a.bootstrapConfigs[serial]
+	delete(a.bootstrapConfigs, serial)
+	defer a.bootstrapConfigsLock.Unlock()
 
 	return val
 }
