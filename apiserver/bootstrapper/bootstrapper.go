@@ -50,13 +50,13 @@ func WatchEnrollments(ctx context.Context, db *database.APIServerDB, bootstrapAp
 	}
 }
 
-func pushBootstrapConfig(bootstrapperApiUrl, bootstrapApiCredentials string, bootstrapConfig bootstrap.Config) error {
+func pushBootstrapConfig(bootstrapperURL, bootstrapperCredentials string, bootstrapConfig bootstrap.Config) error {
 	b, err := json.Marshal(bootstrapConfig)
 	if err != nil {
 		return fmt.Errorf("marshalling config: %w", err)
 	}
 
-	r, err := http.Post(bootstrapperApiUrl+"/api/v1/bootstrapconfig", "application/json", bytes.NewReader(b))
+	r, err := http.Post(bootstrapperURL+"/api/v1/bootstrapconfig", "application/json", bytes.NewReader(b))
 	if err != nil {
 		return fmt.Errorf("posting bootstrap config: %w", err)
 	}
@@ -65,8 +65,8 @@ func pushBootstrapConfig(bootstrapperApiUrl, bootstrapApiCredentials string, boo
 	return nil
 }
 
-func fetchDeviceInfos(discoUrl, discoToken string) ([]bootstrap.DeviceInfo, error) {
-	r, err := http.Get(discoUrl + "/api/v1/deviceinfo")
+func fetchDeviceInfos(bootstrapperURL, bootstrapperCredentials string) ([]bootstrap.DeviceInfo, error) {
+	r, err := http.Get(bootstrapperURL + "/api/v1/deviceinfo")
 	if err != nil {
 		return nil, fmt.Errorf("getting device infos: %w", err)
 	}
