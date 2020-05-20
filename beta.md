@@ -8,5 +8,5 @@
   7. `/opt/naisdevice/start`
 
 # Kubeconfig
-open /etc/hosts with sudo and comment out or remove the lines containing `apiserver.*.nais.io`
-in kubeconfigs repo: `git pull && git checkout naisdevice`
+  1. open /etc/hosts as admin and comment out or remove the lines containing `apiserver.*.nais.io`
+  2. in kubeconfigs repo: `git pull && git checkout naisdevice`
