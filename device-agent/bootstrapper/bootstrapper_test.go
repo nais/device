@@ -2,10 +2,12 @@ package bootstrapper_test
 
 import (
 	"encoding/json"
-	"github.com/nais/device/pkg/bootstrap"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
+
+	"github.com/nais/device/pkg/bootstrap"
 
 	"github.com/nais/device/device-agent/bootstrapper"
 	"github.com/stretchr/testify/assert"
@@ -17,7 +19,7 @@ func TestEnsureBootstrapConfig(t *testing.T) {
 
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch {
-		case r.RequestURI == "/api/v1/deviceinfo" && r.Method == http.MethodPost:
+		case strings.HasPrefix(r.RequestURI, "/api/v1/deviceinfo") && r.Method == http.MethodPost:
 			var di bootstrap.DeviceInfo
 			if err := json.NewDecoder(r.Body).Decode(&di); err != nil {
 				assert.NoError(t, err)
@@ -28,7 +30,7 @@ func TestEnsureBootstrapConfig(t *testing.T) {
 			assert.Equal(t, platform, di.Platform)
 
 			w.WriteHeader(http.StatusCreated)
-		case r.RequestURI == "/api/v1/bootstrapconfig" && r.Method == http.MethodGet:
+		case strings.HasPrefix(r.RequestURI, "/api/v1/bootstrapconfig") && r.Method == http.MethodGet:
 			bc := bootstrap.Config{
 				DeviceIP:       tunnelIP,
 				PublicKey:      publicKey,
