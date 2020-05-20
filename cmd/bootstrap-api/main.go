@@ -204,12 +204,12 @@ func (a *ActiveEnrollments) getBootstrapConfig(serial string) *bootstrap.Config 
 	a.bootstrapConfigsLock.Lock()
 	defer a.bootstrapConfigsLock.Unlock()
 
-	val, ok := a.bootstrapConfigs[serial]
-	if ok {
+	if val, ok := a.bootstrapConfigs[serial]; ok {
 		delete(a.bootstrapConfigs, serial)
+		return &val
+	} else {
+		return nil
 	}
-
-	return &val
 }
 
 func createJWTValidator(azure Azure) (jwt.Keyfunc, error) {
