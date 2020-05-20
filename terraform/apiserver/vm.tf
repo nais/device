@@ -45,7 +45,7 @@ resource "google_secret_manager_secret_version" "access" {
 }
 
 locals {
-  secrets = toset(["slack-token", "database-uri", "kolide-api-token"])
+  secrets = toset(["database-uri", "kolide-api-token"])
 }
 
 resource "google_secret_manager_secret" "secret" {
