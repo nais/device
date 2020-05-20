@@ -5,6 +5,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/nais/device/pkg/bootstrap"
+	log "github.com/sirupsen/logrus"
+
 	"io/ioutil"
 	"net/http"
 	"os"
@@ -54,17 +56,19 @@ func (b *bootstrapper) BootstrapDevice() (*bootstrap.Config, error) {
 		return nil, fmt.Errorf("marshaling device info: %w", err)
 	}
 
-	resp, err := http.Post(fmt.Sprintf("%s/api/v1/deviceinfo", b.BootstrapAPI), "application/json", bytes.NewReader(dib))
+	deviceInfoURL := fmt.Sprintf("%s/api/v1/deviceinfo", b.BootstrapAPI)
+	resp, err := b.Client.Post(deviceInfoURL, "application/json", bytes.NewReader(dib))
 
 	if err != nil {
-		return nil, fmt.Errorf("posting device info to bootstrap API: %w", err)
+		return nil, fmt.Errorf("posting device info to bootstrap API (%v): %w", deviceInfoURL, err)
 	}
 
 	if resp.StatusCode != http.StatusCreated {
-		return nil, fmt.Errorf("bootstrap api returned status %v", resp.Status)
+		return nil, fmt.Errorf("bootstrap api (%v) returned status %v", deviceInfoURL, resp.Status)
 	}
 
-	bootstrapConfig, err := getBootstrapConfig(fmt.Sprintf("%s/api/v1/bootstrapconfig/%s", b.BootstrapAPI, b.DeviceInfo.Serial))
+	bootstrapConfigURL := fmt.Sprintf("%s/api/v1/bootstrapconfig/%s", b.BootstrapAPI, b.DeviceInfo.Serial)
+	bootstrapConfig, err := b.getBootstrapConfig(bootstrapConfigURL)
 	if err != nil {
 		return nil, fmt.Errorf("getting bootstrap config: %w", err)
 	}
@@ -72,22 +76,23 @@ func (b *bootstrapper) BootstrapDevice() (*bootstrap.Config, error) {
 	return bootstrapConfig, nil
 }
 
-func getBootstrapConfig(url string) (*bootstrap.Config, error) {
+func (b *bootstrapper) getBootstrapConfig(url string) (*bootstrap.Config, error) {
 	attempts := 3
 
 	for i := 0; i < attempts; i++ {
-		resp, err := http.Get(url)
+		resp, err := b.Client.Get(url)
 
 		if err == nil && resp.StatusCode == 200 {
 			var bootstrapConfig bootstrap.Config
 			if err := json.NewDecoder(resp.Body).Decode(&bootstrapConfig); err == nil {
+				log.Debugf("Got bootstrap config from bootstrap api: %v", bootstrapConfig)
 				return &bootstrapConfig, nil
 			}
 		}
 		time.Sleep(1 * time.Second)
 		continue
 	}
-	return nil, fmt.Errorf("unable to get boostrap config in %v attempts", attempts)
+	return nil, fmt.Errorf("unable to get boostrap config in %v attempts from %v", attempts, url)
 }
 
 func FileExists(filepath string) bool {

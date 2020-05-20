@@ -14,7 +14,6 @@ func runHelper(rc *runtimeconfig.RuntimeConfig, ctx context.Context) error {
 		"--interface", rc.Config.Interface,
 		"--device-ip", rc.BootstrapConfig.DeviceIP,
 		"--wireguard-binary", rc.Config.WireGuardBinary,
-
 		"--wireguard-go-binary", rc.Config.WireGuardGoBinary,
 		"--wireguard-config-path", rc.Config.WireGuardConfigPath)
 
