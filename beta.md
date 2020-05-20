@@ -1,10 +1,9 @@
 # How to beta
   1. Slack: `/msg @Kolide installers`
-  2. `brew install wireguard-tools`
-  3. `ln -s /usr/local/bin/{wg,naisdevice-wg} && ln -s /usr/local/bin/{wireguard-go,naisdevice-wireguard-go}`
-  4. `make local`
-  5. `sudo ./bin/device-agent`
-  6. follow instructions given by agent
+  2. Enroll to kolide
+  3. https://github.com/nais/device/releases/download/beta/nais-device.pkg
+  3. $ `sudo installer -target / -pkg ~/Downloads/nais-device.pkg`
+  4. $ `/opt/nais-device/start`
 
 # Kubeconfig
-In kubeconfigs repo: `git checkout naisdevice`
+In kubeconfigs repo: `git pull && git checkout naisdevice`
