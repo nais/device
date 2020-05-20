@@ -6,14 +6,15 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
-	"github.com/go-chi/chi"
-	"github.com/go-chi/jwtauth"
-	"github.com/nais/device/pkg/bootstrap"
 	"io"
 	"io/ioutil"
 	"net/http"
 	"strings"
 	"sync"
+
+	"github.com/go-chi/chi"
+	"github.com/go-chi/jwtauth"
+	"github.com/nais/device/pkg/bootstrap"
 
 	"github.com/dgrijalva/jwt-go"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
@@ -44,7 +45,7 @@ var cfg = &Config{
 		DiscoveryURL: "",
 	},
 	CredentialEntries: nil,
-	BindAddress:       ":80",
+	BindAddress:       ":8080",
 	PrometheusAddr:    ":3000",
 }
 
@@ -74,19 +75,21 @@ func main() {
 	if err != nil {
 		log.Fatalf("Creating JWT validator: %v", err)
 	}
-
 	r := chi.NewRouter()
+	r.Get("/isalive", func(w http.ResponseWriter, r *http.Request) {
+		return
+	})
 	r.Route("/api/v1/", func(r chi.Router) {
 		r.Group(func(r chi.Router) {
 			r.Use(TokenValidatorMiddleware(jwtValidator))
-			r.Post("/deviceInfo/{serial}", postDeviceInfo)
-			r.Get("/bootstrapConfig/{serial}", getBootstrapConfig)
+			r.Post("/deviceinfo/{serial}", postDeviceInfo)
+			r.Get("/bootstrapconfig/{serial}", getBootstrapConfig)
 		})
 
 		r.Group(func(r chi.Router) {
-			//r.Use(TokenValidatorMiddleware(jwtValidator))
-			r.Get("/deviceInfo/{serial}", getDeviceInfo)
-			r.Post("/bootstrapConfig/{serial}", postBootstrapConfig)
+			// r.Use(TokenValidatorMiddleware(jwtValidator))
+			r.Get("/deviceinfo/{serial}", getDeviceInfo)
+			r.Post("/bootstrapconfig/{serial}", postBootstrapConfig)
 		})
 	})
 
