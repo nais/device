@@ -12,7 +12,7 @@ import (
 	"time"
 )
 
-func WatchEnrollments(ctx context.Context, db *database.APIServerDB, bootstrapApiURL, bootstrapApiCredentials string, publicKey []byte) {
+func WatchEnrollments(ctx context.Context, db *database.APIServerDB, bootstrapApiURL, bootstrapApiCredentials string, publicKey []byte, apiEndpoint string) {
 	for {
 		select {
 		case <-time.After(1 * time.Second):
@@ -34,8 +34,8 @@ func WatchEnrollments(ctx context.Context, db *database.APIServerDB, bootstrapAp
 
 				err = pushBootstrapConfig(bootstrapApiURL, bootstrapApiCredentials, bootstrap.Config{
 					DeviceIP:       device.IP,
-					PublicKey:      device.PublicKey,
-					TunnelEndpoint: "35.35.35.35:51820",
+					PublicKey:      string(publicKey),
+					TunnelEndpoint: apiEndpoint,
 					APIServerIP:    "10.255.240.1",
 				})
 
