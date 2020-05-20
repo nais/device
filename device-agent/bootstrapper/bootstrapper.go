@@ -54,7 +54,7 @@ func (b *bootstrapper) BootstrapDevice() (*bootstrap.Config, error) {
 		return nil, fmt.Errorf("marshaling device info: %w", err)
 	}
 
-	resp, err := http.Post(fmt.Sprintf("%s/api/v1/deviceinfo/%s", b.BootstrapAPI, b.DeviceInfo.Serial), "application/json", bytes.NewReader(dib))
+	resp, err := http.Post(fmt.Sprintf("%s/api/v1/deviceinfo", b.BootstrapAPI), "application/json", bytes.NewReader(dib))
 
 	if err != nil {
 		return nil, fmt.Errorf("posting device info to bootstrap API: %w", err)
