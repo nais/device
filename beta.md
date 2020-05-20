@@ -7,7 +7,7 @@
   6. `curl -OL https://github.com/nais/device/releases/download/beta/naisdevice-beta.pkg`
   7. `sudo installer -target / -pkg ./naisdevice-beta.pkg`
   8. `/opt/naisdevice/start`
-  9. You might have to wait a bit before all systems are in sync, get yourself an ice cream
+  9. You might have to wait a bit before all systems are in sync, get yourself an :icecream:
 
 # Kubeconfig
   1. open /etc/hosts as admin and comment out or remove the lines containing `apiserver.*.nais.io`
