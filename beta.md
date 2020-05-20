@@ -1,9 +1,13 @@
 # How to beta
   1. Slack: `/msg @Kolide installers`
-  2. Enroll to kolide
-  3. `curl -OL https://github.com/nais/device/releases/download/beta/nais-device.pkg`
-  3. `sudo installer -target / -pkg ./nais-device.pkg`
-  4. `/opt/nais-device/start`
+  2. Select platform and wait for Kolide to create your installer
+  3. Install package (xkxp-\*-kolide-launcher.pkg)
+  4. Wait a couple of minutes (get yourself a cup of :coffee:)
+  5. Check your devices status: `/msg @Kolide status` and fix errors if there are any
+  6. `curl -OL https://github.com/nais/device/releases/download/beta/naisdevice-beta.pkg`
+  7. `sudo installer -target / -pkg ./naisdevice-beta.pkg`
+  8. `/opt/naisdevice/start`
 
 # Kubeconfig
-In kubeconfigs repo: `git pull && git checkout naisdevice`
+  1. open /etc/hosts as admin and comment out or remove the lines containing `apiserver.*.nais.io`
+  2. in kubeconfigs repo: `git pull && git checkout naisdevice`
