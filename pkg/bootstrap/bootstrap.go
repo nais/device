@@ -13,4 +13,5 @@ type DeviceInfo struct {
 	Serial    string `json:"serial"`
 	PublicKey string `json:"publicKey"`
 	Platform  string `json:"platform"`
+	Owner     string `json:"owner"`
 }

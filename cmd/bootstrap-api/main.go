@@ -138,9 +138,17 @@ func getBootstrapConfig(w http.ResponseWriter, r *http.Request) {
 func postDeviceInfo(w http.ResponseWriter, r *http.Request) {
 	var deviceInfo bootstrap.DeviceInfo
 	err := json.NewDecoder(r.Body).Decode(&deviceInfo)
+
 	if err != nil {
 		log.Errorf("Decoding json: %v", err)
 		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	deviceInfo.Owner = r.Context().Value("preferred_username").(string)
+	if len(deviceInfo.Owner) == 0 {
+		log.Errorf("deviceInfo without owner, abort enroll")
+		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
 
@@ -278,6 +286,10 @@ func TokenValidatorMiddleware(jwtValidator jwt.Keyfunc) func(next http.Handler) 
 				groups[i] = v.(string)
 			}
 			r = r.WithContext(context.WithValue(r.Context(), "groups", groups))
+
+			username := claims["preferred_username"].(string)
+			r = r.WithContext(context.WithValue(r.Context(), "preferred_username", username))
+
 			next.ServeHTTP(w, r)
 		}
 
