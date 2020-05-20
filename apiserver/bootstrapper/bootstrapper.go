@@ -32,7 +32,7 @@ func WatchEnrollments(ctx context.Context, db *database.APIServerDB, bootstrapAp
 					log.Errorf("getting device: %v", err)
 				}
 
-				err = pushBootstrapConfig(bootstrapApiURL, bootstrapApiCredentials, bootstrap.Config{
+				err = pushBootstrapConfig(bootstrapApiURL, bootstrapApiCredentials, device.Serial, bootstrap.Config{
 					DeviceIP:       device.IP,
 					PublicKey:      string(publicKey),
 					TunnelEndpoint: apiEndpoint,
@@ -50,13 +50,13 @@ func WatchEnrollments(ctx context.Context, db *database.APIServerDB, bootstrapAp
 	}
 }
 
-func pushBootstrapConfig(bootstrapperURL, bootstrapperCredentials string, bootstrapConfig bootstrap.Config) error {
+func pushBootstrapConfig(bootstrapperURL, bootstrapperCredentials, serial string, bootstrapConfig bootstrap.Config) error {
 	b, err := json.Marshal(bootstrapConfig)
 	if err != nil {
 		return fmt.Errorf("marshalling config: %w", err)
 	}
 
-	r, err := http.Post(bootstrapperURL+"/api/v1/bootstrapconfig", "application/json", bytes.NewReader(b))
+	r, err := http.Post(bootstrapperURL+"/api/v1/bootstrapconfig/" + serial, "application/json", bytes.NewReader(b))
 	if err != nil {
 		return fmt.Errorf("posting bootstrap config: %w", err)
 	}
