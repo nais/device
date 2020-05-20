@@ -68,12 +68,13 @@ func init() {
 //# ip addr add <tunnelip> wg0
 //# ip link set wg0 up
 type Device struct {
-	Serial    string     `json:"serial"`
-	PSK       string     `json:"psk"`
-	LastCheck *time.Time `json:"lastCheck"`
-	Healthy   *bool      `json:"isHealthy"`
-	PublicKey string     `json:"publicKey"`
-	IP        string     `json:"ip"`
+	Serial    string `json:"serial"`
+	PSK       string `json:"psk"`
+	LastCheck *int64 `json:"lastCheck"`
+	LastSeen  *int64 `json:"lastSeen"`
+	Healthy   *bool  `json:"isHealthy"`
+	PublicKey string `json:"publicKey"`
+	IP        string `json:"ip"`
 }
 
 func main() {

@@ -6,7 +6,6 @@ import (
 	"io/ioutil"
 	"strings"
 	"sync"
-	"time"
 
 	"github.com/jackc/pgx/v4/pgxpool"
 	"github.com/nais/device/apiserver/cidr"
@@ -23,14 +22,15 @@ type APIServerDB struct {
 }
 
 type Device struct {
-	Serial    string     `json:"serial"`
-	PSK       string     `json:"psk"`
-	LastCheck *time.Time `json:"lastCheck"`
-	Healthy   *bool      `json:"isHealthy"`
-	PublicKey string     `json:"publicKey"`
-	IP        string     `json:"ip"`
-	Username  string     `json:"username"`
-	Platform  string     `json:"platform"`
+	Serial    string `json:"serial"`
+	PSK       string `json:"psk"`
+	LastCheck *int64 `json:"lastCheck"`
+	LastSeen  *int64 `json:"lastSeen"`
+	Healthy   *bool  `json:"isHealthy"`
+	PublicKey string `json:"publicKey"`
+	IP        string `json:"ip"`
+	Username  string `json:"username"`
+	Platform  string `json:"platform"`
 }
 
 type Gateway struct {
@@ -89,7 +89,7 @@ func (d *APIServerDB) ReadDevices() ([]Device, error) {
 	ctx := context.Background()
 
 	query := `
-SELECT public_key, username, ip, psk, serial, platform, healthy, last_check
+SELECT public_key, username, ip, psk, serial, platform, healthy, last_check, last_seen
 FROM device;`
 
 	rows, err := d.conn.Query(ctx, query)
@@ -108,7 +108,7 @@ FROM device;`
 	for rows.Next() {
 		var device Device
 
-		err := rows.Scan(&device.PublicKey, &device.Username, &device.IP, &device.PSK, &device.Serial, &device.Platform, &device.Healthy, &device.LastCheck)
+		err := rows.Scan(&device.PublicKey, &device.Username, &device.IP, &device.PSK, &device.Serial, &device.Platform, &device.Healthy, &device.LastCheck, &device.LastSeen)
 
 		if err != nil {
 			return nil, fmt.Errorf("scanning row: %s", err)
@@ -132,12 +132,12 @@ func (d *APIServerDB) UpdateDeviceStatus(devices []Device) error {
 
 	query := `
 		UPDATE device
-           SET healthy = $1, last_check = NOW()
-         WHERE serial = $2 AND platform = $3;
+           SET healthy = $1, last_seen = $2, last_check = CAST(EXTRACT(EPOCH FROM NOW()) AS BIGINT)
+         WHERE serial = $3 AND platform = $4;
     `
 
 	for _, device := range devices {
-		_, err = tx.Exec(ctx, query, device.Healthy, device.Serial, device.Platform)
+		_, err = tx.Exec(ctx, query, device.Healthy, device.LastSeen, device.Serial, device.Platform)
 		if err != nil {
 			return err
 		}
@@ -198,14 +198,14 @@ func (d *APIServerDB) ReadDevice(publicKey string) (*Device, error) {
 	ctx := context.Background()
 
 	query := `
-SELECT serial, username, psk, platform, last_check, healthy, public_key, ip
+SELECT serial, username, psk, platform, last_check, last_seen, healthy, public_key, ip
   FROM device
  WHERE public_key = $1;`
 
 	row := d.conn.QueryRow(ctx, query, publicKey)
 
 	var device Device
-	err := row.Scan(&device.Serial, &device.Username, &device.PSK, &device.Platform, &device.LastCheck, &device.Healthy, &device.PublicKey, &device.IP)
+	err := row.Scan(&device.Serial, &device.Username, &device.PSK, &device.Platform, &device.LastCheck, &device.LastSeen, &device.Healthy, &device.PublicKey, &device.IP)
 
 	if err != nil {
 		return nil, fmt.Errorf("scanning row: %s", err)

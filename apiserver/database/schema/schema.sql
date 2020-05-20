@@ -8,7 +8,8 @@ CREATE TABLE device
     psk        varchar(44),
     platform   platform,
     healthy    boolean,
-    last_check timestamp,
+    last_check bigint,
+    last_seen  bigint,
     public_key varchar(44) NOT NULL UNIQUE,
     ip         varchar(15) UNIQUE,
     UNIQUE (serial, platform)
