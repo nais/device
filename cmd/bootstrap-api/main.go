@@ -93,8 +93,8 @@ func main() {
 		})
 	})
 
-	fmt.Println("running @", cfg.BindAddress)
-	fmt.Println(http.ListenAndServe(cfg.BindAddress, r))
+	log.Info("running @", cfg.BindAddress)
+	log.Info(http.ListenAndServe(cfg.BindAddress, r))
 }
 
 func postBootstrapConfig(w http.ResponseWriter, r *http.Request) {
@@ -109,7 +109,7 @@ func postBootstrapConfig(w http.ResponseWriter, r *http.Request) {
 	}
 
 	enrollments.addBootstrapConfig(serial, bootstrapConfig)
-	fmt.Printf("POST serial: %s, bootstrapConfigs: %v\n", serial, bootstrapConfig)
+	log.Infof("POST serial: %s, bootstrapConfigs: %v\n", serial, bootstrapConfig)
 
 	w.WriteHeader(http.StatusCreated)
 }
@@ -118,7 +118,12 @@ func getBootstrapConfig(w http.ResponseWriter, r *http.Request) {
 	serial := chi.URLParam(r, "serial")
 
 	bootstrapConfig := enrollments.getBootstrapConfig(serial)
-	fmt.Printf("GET serial: %s, bootstrapConfig: %v\n", serial, bootstrapConfig)
+	log.Infof("GET serial: %s, bootstrapConfig: %v\n", serial, bootstrapConfig)
+
+	if bootstrapConfig == nil {
+		w.WriteHeader(http.StatusNotFound)
+		return
+	}
 
 	w.WriteHeader(http.StatusOK)
 	err := json.NewEncoder(w).Encode(bootstrapConfig)
@@ -130,8 +135,6 @@ func getBootstrapConfig(w http.ResponseWriter, r *http.Request) {
 }
 
 func postDeviceInfo(w http.ResponseWriter, r *http.Request) {
-	serial := chi.URLParam(r, "serial")
-
 	var deviceInfo bootstrap.DeviceInfo
 	err := json.NewDecoder(r.Body).Decode(&deviceInfo)
 	if err != nil {
@@ -141,13 +144,13 @@ func postDeviceInfo(w http.ResponseWriter, r *http.Request) {
 	}
 
 	enrollments.addDeviceInfo(deviceInfo)
-	fmt.Printf("GET serial: %s, deviceInfo: %v\n", serial, deviceInfo)
+	log.Infof("POST deviceInfo: %v\n", deviceInfo)
 	w.WriteHeader(http.StatusCreated)
 }
 
 func getDeviceInfos(w http.ResponseWriter, r *http.Request) {
 	deviceInfos := enrollments.getDeviceInfos()
-	fmt.Printf("GET deviceInfos: %v\n", deviceInfos)
+	log.Infof("GET deviceInfos: %v\n", deviceInfos)
 
 	w.WriteHeader(http.StatusOK)
 	err := json.NewEncoder(w).Encode(deviceInfos)
@@ -196,14 +199,16 @@ func (a *ActiveEnrollments) addBootstrapConfig(serial string, bootstrapConfig bo
 	a.bootstrapConfigs[serial] = bootstrapConfig
 }
 
-func (a *ActiveEnrollments) getBootstrapConfig(serial string) bootstrap.Config {
+func (a *ActiveEnrollments) getBootstrapConfig(serial string) *bootstrap.Config {
 	a.bootstrapConfigsLock.Lock()
 	defer a.bootstrapConfigsLock.Unlock()
 
-	val, _ := a.bootstrapConfigs[serial]
-	delete(a.bootstrapConfigs, serial)
+	val, ok := a.bootstrapConfigs[serial]
+	if ok {
+		delete(a.bootstrapConfigs, serial)
+	}
 
-	return val
+	return &val
 }
 
 func createJWTValidator(azure Azure) (jwt.Keyfunc, error) {
