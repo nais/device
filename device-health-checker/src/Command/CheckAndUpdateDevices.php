@@ -63,6 +63,7 @@ class CheckAndUpdateDevices extends BaseCommand {
             'platform'  => $device['platform'],
             'username'  => $device['username'],
             'isHealthy' => $device['isHealthy'],
+            'lastSeen'  => $device['lastSeen'],
         ], $this->apiServerClient->getDevices());
         $kolideDevices = $this->kolideApiClient->getAllDevices();
         $updatedNaisDevices = [];
@@ -83,6 +84,8 @@ class CheckAndUpdateDevices extends BaseCommand {
 
                 continue;
             }
+
+            $naisDevice['lastSeen'] = strtotime($kolideDevice['last_seen_at']);
 
             if ($kolideDevice['failure_count'] > $kolideDevice['resolved_failure_count']) {
                 $failingChecks = $this->getFailingDeviceChecks($kolideDevice['id'], $ignoreChecks);

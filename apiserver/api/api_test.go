@@ -35,6 +35,7 @@ func TestGetDevices(t *testing.T) {
 	assert.NotNil(t, device.IP)
 	assert.False(t, *device.Healthy, "unhealthy by default")
 	assert.Nil(t, device.LastCheck, "unchecked by default")
+	assert.Nil(t, device.LastSeen, "unseen by default")
 }
 
 func TestUpdateDeviceHealth(t *testing.T) {
