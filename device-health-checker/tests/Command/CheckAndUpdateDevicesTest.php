@@ -69,6 +69,7 @@ class CheckAndUpdateDevicesTest extends TestCase {
                         'platform'  => 'linux',
                         'username'  => 'user1@nav.no',
                         'isHealthy' => true,
+                        'lastSeen'  => 1589952551,
                     ],
                 ],
                 'kolideDevices' => [],
@@ -94,6 +95,7 @@ class CheckAndUpdateDevicesTest extends TestCase {
                         'platform'  => 'linux',
                         'username'  => 'user1@nav.no',
                         'isHealthy' => false,
+                        'lastSeen'  => 1589952551,
                     ]
                 ],
             ],
@@ -104,12 +106,14 @@ class CheckAndUpdateDevicesTest extends TestCase {
                         'platform'  => 'linux',
                         'username'  => 'user1@nav.no',
                         'isHealthy' => true,
+                        'lastSeen'  => 1589952551,
                     ],
                     [
                         'serial'    => 'serial2',
                         'platform'  => 'linux',
                         'username'  => 'user2@nav.no',
                         'isHealthy' => true,
+                        'lastSeen'  => 1589952551,
                     ],
                 ],
                 'kolideDevices' => [
@@ -120,6 +124,7 @@ class CheckAndUpdateDevicesTest extends TestCase {
                         'assigned_owner'         => ['email' => 'user1@nav.no'],
                         'failure_count'          => 0,
                         'resolved_failure_count' => 0,
+                        'last_seen_at'           => $this->getTimestamp(1589956055),
                     ],
                     [
                         'id'                     => 2,
@@ -128,6 +133,7 @@ class CheckAndUpdateDevicesTest extends TestCase {
                         'assigned_owner'         => ['email' => 'user2@nav.no'],
                         'failure_count'          => 0,
                         'resolved_failure_count' => 0,
+                        'last_seen_at'           => $this->getTimestamp(1589956055),
                     ],
                 ],
                 'expectedLogMessages' => [
@@ -148,12 +154,14 @@ class CheckAndUpdateDevicesTest extends TestCase {
                         'platform'  => 'linux',
                         'username'  => 'user1@nav.no',
                         'isHealthy' => true,
+                        'lastSeen'  => 1589956055,
                     ],
                     [
                         'serial'    => 'serial2',
                         'platform'  => 'linux',
                         'username'  => 'user2@nav.no',
                         'isHealthy' => true,
+                        'lastSeen'  => 1589956055,
                     ],
                 ],
             ],
@@ -234,6 +242,7 @@ class CheckAndUpdateDevicesTest extends TestCase {
                     'platform'  => 'darwin',
                     'username'  => 'user1@nav.no',
                     'isHealthy' => true,
+                    'lastSeen'  => 1589952551,
                 ],
                 // Healthy device, with no matching Kolide device
                 [
@@ -241,6 +250,7 @@ class CheckAndUpdateDevicesTest extends TestCase {
                     'platform'  => 'darwin',
                     'username'  => 'user2@nav.no',
                     'isHealthy' => true,
+                    'lastSeen'  => 1589952552
                 ],
                 // Non-healthy device with no failing Kolide checks
                 [
@@ -248,6 +258,7 @@ class CheckAndUpdateDevicesTest extends TestCase {
                     'platform'  => 'linux',
                     'username'  => 'user3@nav.no',
                     'isHealthy' => false,
+                    'lastSeen'  => 1589952553,
                 ],
                 // Healthy device with failing Kolide check
                 [
@@ -255,6 +266,7 @@ class CheckAndUpdateDevicesTest extends TestCase {
                     'platform'  => 'linux',
                     'username'  => 'user4@nav.no',
                     'isHealthy' => true,
+                    'lastSeen'  => 1589952554,
                 ],
                 // Healthy device with failing Kolide check, but not above time limit
                 [
@@ -262,6 +274,7 @@ class CheckAndUpdateDevicesTest extends TestCase {
                     'platform'  => 'linux',
                     'username'  => 'user5@nav.no',
                     'isHealthy' => true,
+                    'lastSeen'  => 1589952555,
                 ],
             ],
         ]);
@@ -274,30 +287,35 @@ class CheckAndUpdateDevicesTest extends TestCase {
                     'platform'  => 'darwin',
                     'username'  => 'user1@nav.no',
                     'isHealthy' => true,
+                    'lastSeen'  => 1589956403,
                 ],
                 [
                     'serial'    => 'serial2-not-in-kolide',
                     'platform'  => 'darwin',
                     'username'  => 'user2@nav.no',
                     'isHealthy' => false,
+                    'lastSeen'  => 1589952552,
                 ],
                 [
                     'serial'    => 'serial3',
                     'platform'  => 'linux',
                     'username'  => 'user3@nav.no',
                     'isHealthy' => true,
+                    'lastSeen'  => 1589956403,
                 ],
                 [
                     'serial'    => 'serial4',
                     'platform'  => 'linux',
                     'username'  => 'user4@nav.no',
                     'isHealthy' => false,
+                    'lastSeen'  => 1589956403,
                 ],
                 [
                     'serial'    => 'serial5',
                     'platform'  => 'linux',
                     'username'  => 'user5@nav.no',
                     'isHealthy' => true,
+                    'lastSeen'  => 1589956403,
                 ],
             ]);
 
@@ -310,6 +328,7 @@ class CheckAndUpdateDevicesTest extends TestCase {
                     'assigned_owner'         => ['email' => 'user1@nav.no'],
                     'failure_count'          => 0,
                     'resolved_failure_count' => 0,
+                    'last_seen_at'           => $this->getTimestamp(1589956403),
                 ],
                 [
                     'id'                     => 2,
@@ -318,6 +337,7 @@ class CheckAndUpdateDevicesTest extends TestCase {
                     'assigned_owner'         => ['email' => 'user3@nav.no'],
                     'failure_count'          => 0,
                     'resolved_failure_count' => 0,
+                    'last_seen_at'           => $this->getTimestamp(1589956403),
                 ],
                 [
                     'id'                     => 3,
@@ -326,6 +346,7 @@ class CheckAndUpdateDevicesTest extends TestCase {
                     'assigned_owner'         => ['email' => 'user4@nav.no'],
                     'failure_count'          => 1,
                     'resolved_failure_count' => 0,
+                    'last_seen_at'           => $this->getTimestamp(1589956403),
                 ],
                 [
                     'id'                     => 4,
@@ -334,6 +355,7 @@ class CheckAndUpdateDevicesTest extends TestCase {
                     'assigned_owner'         => ['email' => 'user5@nav.no'],
                     'failure_count'          => 1,
                     'resolved_failure_count' => 0,
+                    'last_seen_at'           => $this->getTimestamp(1589956403),
                 ],
             ],
         ]);
