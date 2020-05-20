@@ -80,7 +80,7 @@ func main() {
 		log.Fatalf("Generating public key: %v", err)
 	}
 
-	if len(cfg.BootstrapApiCredentials) > 0 {
+	if len(cfg.BootstrapApiURL) > 0 {
 		go bootstrapper.WatchEnrollments(ctx, db, cfg.BootstrapApiURL, cfg.BootstrapApiCredentials, publicKey, cfg.Endpoint)
 	}
 
