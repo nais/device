@@ -109,7 +109,7 @@ func postBootstrapConfig(w http.ResponseWriter, r *http.Request) {
 	}
 
 	enrollments.addBootstrapConfig(serial, bootstrapConfig)
-	log.Infof("POST serial: %s, bootstrapConfigs: %v\n", serial, bootstrapConfig)
+	log.Infof("%s %s: serial: %s bootstrapconfig: %v", r.Method, r.URL, serial, bootstrapConfig)
 
 	w.WriteHeader(http.StatusCreated)
 }
@@ -118,10 +118,11 @@ func getBootstrapConfig(w http.ResponseWriter, r *http.Request) {
 	serial := chi.URLParam(r, "serial")
 
 	bootstrapConfig := enrollments.getBootstrapConfig(serial)
-	log.Infof("GET serial: %s, bootstrapConfig: %v\n", serial, bootstrapConfig)
+	log.Infof("%s %s: serial: %s bootstrapconfig: %v", r.Method, r.URL, serial, bootstrapConfig)
 
 	if bootstrapConfig == nil {
 		w.WriteHeader(http.StatusNotFound)
+		log.Warnf("no bootstrap config for serial: %v", serial)
 		return
 	}
 
@@ -144,13 +145,13 @@ func postDeviceInfo(w http.ResponseWriter, r *http.Request) {
 	}
 
 	enrollments.addDeviceInfo(deviceInfo)
-	log.Infof("POST deviceInfo: %v\n", deviceInfo)
+	log.Infof("%s %s: %v", r.Method, r.URL, deviceInfo)
 	w.WriteHeader(http.StatusCreated)
 }
 
 func getDeviceInfos(w http.ResponseWriter, r *http.Request) {
 	deviceInfos := enrollments.getDeviceInfos()
-	log.Infof("GET deviceInfos: %v\n", deviceInfos)
+	log.Infof("%s %s: %v", r.Method, r.URL, deviceInfos)
 
 	w.WriteHeader(http.StatusOK)
 	err := json.NewEncoder(w).Encode(deviceInfos)
