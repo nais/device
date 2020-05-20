@@ -17,7 +17,8 @@ local:
 	go build -o bin/gateway-agent ./cmd/gateway-agent
 	go build -o bin/device-agent ./cmd/device-agent
 	go build -o bin/device-agent-helper ./cmd/device-agent-helper
-	go build -o bin/prometheus-agent cmd/prometheus-agent/main.go
+	go build -o bin/prometheus-agent ./cmd/prometheus-agent
+	go build -o bin/bootstrap-api ./cmd/bootstrap-api
 
 run-postgres:
 	docker run -e POSTGRES_PASSWORD=postgres --rm --name postgres -p 5432:5432 postgres &
