@@ -9,6 +9,7 @@ import (
 	"path"
 	"time"
 
+	"github.com/nais/device/pkg/logger"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	log "github.com/sirupsen/logrus"
@@ -32,7 +33,7 @@ var (
 )
 
 func init() {
-	log.SetFormatter(&log.JSONFormatter{})
+	logger.Setup(cfg.LogLevel, true)
 	flag.StringVar(&cfg.TunnelIP, "tunnel-ip", cfg.TunnelIP, "prometheus tunnel ip")
 	flag.StringVar(&cfg.PrometheusAddr, "prometheus-address", cfg.PrometheusAddr, "prometheus listen address")
 	flag.StringVar(&cfg.APIServerURL, "api-server-url", cfg.APIServerURL, "api server URL")
@@ -153,6 +154,7 @@ type Config struct {
 	PrometheusAddr             string
 	PrometheusPublicKey        string
 	PrometheusTunnelIP         string
+	LogLevel                   string
 }
 
 func DefaultConfig() Config {
@@ -161,6 +163,7 @@ func DefaultConfig() Config {
 		APIServerTunnelIP: "10.255.240.1",
 		ConfigDir:         "/usr/local/etc/nais-device",
 		PrometheusAddr:    ":3000",
+		LogLevel:          "info",
 	}
 }
 

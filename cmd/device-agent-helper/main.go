@@ -11,6 +11,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/nais/device/pkg/logger"
 	log "github.com/sirupsen/logrus"
 	flag "github.com/spf13/pflag"
 )
@@ -38,12 +39,7 @@ func init() {
 
 	flag.Parse()
 
-	log.SetFormatter(&log.JSONFormatter{})
-	level, err := log.ParseLevel(cfg.LogLevel)
-	if err != nil {
-		log.Fatal(err)
-	}
-	log.SetLevel(level)
+	logger.Setup(cfg.LogLevel, true)
 }
 
 // device-agent-helper is responsible for:

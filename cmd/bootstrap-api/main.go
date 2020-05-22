@@ -15,6 +15,7 @@ import (
 	"github.com/go-chi/chi"
 	"github.com/go-chi/jwtauth"
 	"github.com/nais/device/pkg/bootstrap"
+	"github.com/nais/device/pkg/logger"
 
 	"github.com/dgrijalva/jwt-go"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
@@ -37,6 +38,7 @@ type Config struct {
 	PrometheusPublicKey string
 	PrometheusTunnelIP  string
 	CredentialEntries   []string
+	LogLevel            string
 }
 
 var cfg = &Config{
@@ -47,12 +49,13 @@ var cfg = &Config{
 	CredentialEntries: nil,
 	BindAddress:       ":8080",
 	PrometheusAddr:    ":3000",
+	LogLevel:          "info",
 }
 
 var enrollments ActiveEnrollments
 
 func init() {
-	log.SetFormatter(&log.JSONFormatter{})
+	logger.Setup(cfg.LogLevel, true)
 
 	flag.StringVar(&cfg.PrometheusAddr, "prometheus-address", cfg.PrometheusAddr, "prometheus listen address")
 	flag.StringVar(&cfg.BindAddress, "bind-address", cfg.BindAddress, "Bind address")

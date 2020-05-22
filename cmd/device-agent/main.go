@@ -32,7 +32,7 @@ func init() {
 	flag.StringVar(&cfg.LogLevel, "log-level", cfg.LogLevel, "which log level to output")
 	flag.Parse()
 
-	logger.Setup(cfg.LogLevel)
+	logger.Setup(cfg.LogLevel, true)
 }
 
 func main() {

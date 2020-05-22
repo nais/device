@@ -9,6 +9,7 @@ import (
 	"path"
 	"time"
 
+	"github.com/nais/device/pkg/logger"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	log "github.com/sirupsen/logrus"
@@ -32,7 +33,7 @@ var (
 )
 
 func init() {
-	log.SetFormatter(&log.JSONFormatter{})
+	logger.Setup(cfg.LogLevel, true)
 	flag.StringVar(&cfg.Name, "name", cfg.Name, "gateway name")
 	flag.StringVar(&cfg.TunnelIP, "tunnel-ip", cfg.TunnelIP, "gateway tunnel ip")
 	flag.StringVar(&cfg.PrometheusAddr, "prometheus-address", cfg.PrometheusAddr, "prometheus listen address")
@@ -64,9 +65,9 @@ func init() {
 // - gateway is registered
 // - tunnel ip is configured on wireguard interface for dataplane (see below)
 //
-//# ip link add dev wg0 type wireguard
-//# ip addr add <tunnelip> wg0
-//# ip link set wg0 up
+// # ip link add dev wg0 type wireguard
+// # ip addr add <tunnelip> wg0
+// # ip link set wg0 up
 type Device struct {
 	Serial    string `json:"serial"`
 	PSK       string `json:"psk"`
@@ -177,6 +178,7 @@ type Config struct {
 	PrometheusPublicKey        string
 	PrometheusTunnelIP         string
 	APIServerPassword          string
+	LogLevel                   string
 }
 
 func DefaultConfig() Config {
@@ -185,6 +187,7 @@ func DefaultConfig() Config {
 		APIServerTunnelIP: "10.255.240.1",
 		ConfigDir:         "/usr/local/etc/nais-device",
 		PrometheusAddr:    ":3000",
+		LogLevel:          "info",
 	}
 }
 

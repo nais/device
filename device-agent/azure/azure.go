@@ -69,7 +69,7 @@ func runAuthFlow(ctx context.Context, conf oauth2.Config) (*oauth2.Token, error)
 	url := conf.AuthCodeURL(randomString, oauth2.AccessTypeOffline, method, challenge)
 	command := exec.Command("open", url)
 	_ = command.Start()
-	fmt.Printf("If the browser didn't open, visit this url to sign in: %v\n", url)
+	log.Infof("If the browser didn't open, visit this url to sign in: %v\n", url)
 
 	token := <-tokenChan
 	_ = server.Close()

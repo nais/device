@@ -5,6 +5,8 @@ import (
 	"context"
 	"fmt"
 	"github.com/nais/device/apiserver/bootstrapper"
+	"github.com/nais/device/pkg/logger"
+
 	"io/ioutil"
 	"net/http"
 	"os"
@@ -31,7 +33,7 @@ var (
 )
 
 func init() {
-	log.SetFormatter(&log.JSONFormatter{})
+	logger.Setup(cfg.LogLevel, true)
 	flag.StringVar(&cfg.DbConnURI, "db-connection-uri", os.Getenv("DB_CONNECTION_URI"), "database connection URI (DSN)")
 	flag.StringVar(&cfg.BootstrapApiURL, "bootstrap-api-url", "", "bootstrap API URL")
 	flag.StringVar(&cfg.BootstrapApiCredentials, "bootstrap-api-credentials", os.Getenv("BOOTSTRAP_API_CREDENTIALS"), "bootstrap API credentials")

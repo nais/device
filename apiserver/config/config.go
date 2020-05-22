@@ -20,6 +20,7 @@ type Config struct {
 	PrometheusTunnelIP      string
 	CredentialEntries       []string
 	BootstrapApiURL         string
+	LogLevel                string
 }
 
 type Azure struct {
@@ -46,5 +47,6 @@ func DefaultConfig() Config {
 		BindAddress:    "10.255.240.1:80",
 		ConfigDir:      "/usr/local/etc/nais-device/",
 		PrometheusAddr: ":3000",
+		LogLevel: "info",
 	}
 }
