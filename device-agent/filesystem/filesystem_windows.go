@@ -1,5 +1,9 @@
 package filesystem
 
-func PlatformPrerequisites(c *Config) error {
+import (
+	"github.com/nais/device/device-agent/config"
+)
+
+func ensurePlatformPrerequisites(c *config.Config) error {
 	return nil
 }

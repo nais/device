@@ -12,6 +12,10 @@ linux:
 	GOOS=linux GOARCH=amd64 go build -o bin/prometheus-agent ./cmd/prometheus-agent
 	php -d phar.readonly=off device-health-checker/create-phar.php device-health-checker/device-health-checker.php device-health-checker/bin
 
+windows:
+	GOOS=windows GOARCH=amd64 go build -o bin/device-agent.exe ./cmd/device-agent
+	GOOS=windows GOARCH=amd64 go build -o bin/device-agent-helper.exe ./cmd/device-agent-helper
+
 local:
 	go build -o bin/apiserver ./cmd/apiserver
 	go build -o bin/gateway-agent ./cmd/gateway-agent
