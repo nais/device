@@ -22,15 +22,15 @@ type APIServerDB struct {
 }
 
 type Device struct {
-	Serial    string `json:"serial"`
-	PSK       string `json:"psk"`
-	LastCheck *int64 `json:"lastCheck"`
-	LastSeen  *int64 `json:"lastSeen"`
-	Healthy   *bool  `json:"isHealthy"`
-	PublicKey string `json:"publicKey"`
-	IP        string `json:"ip"`
-	Username  string `json:"username"`
-	Platform  string `json:"platform"`
+	Serial      string `json:"serial"`
+	PSK         string `json:"psk"`
+	LastUpdated *int64 `json:"lastUpdated"`
+	LastSeen    *int64 `json:"lastSeen"`
+	Healthy     *bool  `json:"isHealthy"`
+	PublicKey   string `json:"publicKey"`
+	IP          string `json:"ip"`
+	Username    string `json:"username"`
+	Platform    string `json:"platform"`
 }
 
 type Gateway struct {
@@ -89,7 +89,7 @@ func (d *APIServerDB) ReadDevices() ([]Device, error) {
 	ctx := context.Background()
 
 	query := `
-SELECT public_key, username, ip, psk, serial, platform, healthy, last_check, last_seen
+SELECT public_key, username, ip, psk, serial, platform, healthy, last_updated, last_seen
 FROM device;`
 
 	rows, err := d.conn.Query(ctx, query)
@@ -108,7 +108,7 @@ FROM device;`
 	for rows.Next() {
 		var device Device
 
-		err := rows.Scan(&device.PublicKey, &device.Username, &device.IP, &device.PSK, &device.Serial, &device.Platform, &device.Healthy, &device.LastCheck, &device.LastSeen)
+		err := rows.Scan(&device.PublicKey, &device.Username, &device.IP, &device.PSK, &device.Serial, &device.Platform, &device.Healthy, &device.LastUpdated, &device.LastSeen)
 
 		if err != nil {
 			return nil, fmt.Errorf("scanning row: %s", err)
@@ -132,7 +132,7 @@ func (d *APIServerDB) UpdateDeviceStatus(devices []Device) error {
 
 	query := `
 		UPDATE device
-           SET healthy = $1, last_seen = $2, last_check = CAST(EXTRACT(EPOCH FROM NOW()) AS BIGINT)
+           SET healthy = $1, last_seen = $2, last_updated = CAST(EXTRACT(EPOCH FROM NOW()) AS BIGINT)
          WHERE serial = $3 AND platform = $4;
     `
 
@@ -198,14 +198,14 @@ func (d *APIServerDB) ReadDevice(publicKey string) (*Device, error) {
 	ctx := context.Background()
 
 	query := `
-SELECT serial, username, psk, platform, last_check, last_seen, healthy, public_key, ip
+SELECT serial, username, psk, platform, last_updated, last_seen, healthy, public_key, ip
   FROM device
  WHERE public_key = $1;`
 
 	row := d.conn.QueryRow(ctx, query, publicKey)
 
 	var device Device
-	err := row.Scan(&device.Serial, &device.Username, &device.PSK, &device.Platform, &device.LastCheck, &device.LastSeen, &device.Healthy, &device.PublicKey, &device.IP)
+	err := row.Scan(&device.Serial, &device.Username, &device.PSK, &device.Platform, &device.LastUpdated, &device.LastSeen, &device.Healthy, &device.PublicKey, &device.IP)
 
 	if err != nil {
 		return nil, fmt.Errorf("scanning row: %s", err)

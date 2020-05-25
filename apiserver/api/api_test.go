@@ -34,7 +34,7 @@ func TestGetDevices(t *testing.T) {
 	assert.Equal(t, platform, device.Platform)
 	assert.NotNil(t, device.IP)
 	assert.False(t, *device.Healthy, "unhealthy by default")
-	assert.Nil(t, device.LastCheck, "unchecked by default")
+	assert.Nil(t, device.LastUpdated, "not updated by default")
 	assert.Nil(t, device.LastSeen, "unseen by default")
 }
 
