@@ -72,7 +72,7 @@ func main() {
 			log.Info("Received interrupt, shutting down gracefully.")
 			return
 
-		case <-time.After(10 * time.Second):
+		case <-time.After(5 * time.Second):
 			info, err := os.Stat(cfg.WireGuardConfigPath)
 			if err != nil {
 				log.Errorf("checking WireGuard config stats: %v", err)
