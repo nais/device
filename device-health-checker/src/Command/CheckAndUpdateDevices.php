@@ -59,11 +59,11 @@ class CheckAndUpdateDevices extends BaseCommand {
 
         $ignoreChecks = array_unique(array_map('intval', $input->getOption('ignore-checks')));
         $naisDevices = array_map(fn(array $device) : array => [
-            'serial'    => $device['serial'],
-            'platform'  => $device['platform'],
-            'username'  => $device['username'],
-            'isHealthy' => $device['isHealthy'],
-            'lastSeen'  => $device['lastSeen'],
+            'serial'          => $device['serial'],
+            'platform'        => $device['platform'],
+            'username'        => $device['username'],
+            'isHealthy'       => $device['isHealthy'],
+            'kolideLastSeen'  => $device['kolideLastSeen'],
         ], $this->apiServerClient->getDevices());
         $kolideDevices = $this->kolideApiClient->getAllDevices();
         $updatedNaisDevices = [];
@@ -85,7 +85,7 @@ class CheckAndUpdateDevices extends BaseCommand {
                 continue;
             }
 
-            $naisDevice['lastSeen'] = $kolideDevice['last_seen_at'] ? strtotime($kolideDevice['last_seen_at']) : null;
+            $naisDevice['kolideLastSeen'] = $kolideDevice['last_seen_at'] ? strtotime($kolideDevice['last_seen_at']) : null;
 
             if ($kolideDevice['failure_count'] > $kolideDevice['resolved_failure_count']) {
                 $failingChecks = $this->getFailingDeviceChecks($kolideDevice['id'], $ignoreChecks);
