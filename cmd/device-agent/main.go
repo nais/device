@@ -72,7 +72,7 @@ func main() {
 			log.Info("Received interrupt, shutting down gracefully.")
 			return
 
-		case <-time.After(15 * time.Second):
+		case <-time.After(10 * time.Second):
 			if err := SyncConfig(baseConfig, rc); err != nil {
 				log.Errorf("Unable to synchronize config with apiserver: %v", err)
 			}

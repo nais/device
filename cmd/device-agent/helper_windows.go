@@ -12,7 +12,9 @@ func runHelper(rc *runtimeconfig.RuntimeConfig, ctx context.Context) error {
 	cmd := exec.CommandContext(ctx, "device-agent-helper.exe",
 		"--interface", rc.Config.Interface,
 		"--wireguard-binary", rc.Config.WireGuardBinary,
-		"--wireguard-config-path", rc.Config.WireGuardConfigPath)
+		"--wireguard-config-path", rc.Config.WireGuardConfigPath,
+		"--log-level", rc.Config.LogLevel,
+	)
 
 	cmd.Stderr = os.Stderr
 	cmd.Stdout = os.Stdout
