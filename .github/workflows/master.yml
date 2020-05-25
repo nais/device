@@ -139,3 +139,21 @@ jobs:
           asset_path: ./device-health-checker/bin/device-health-checker.phar
           asset_name: device-health-checker.phar
           asset_content_type: application/octet-stream
+      - name: upload device-agent.exe
+        uses: actions/upload-release-asset@v1.0.2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./device-health-checker/bin/device-agent.exd
+          asset_name: device-health-checker.phar
+          asset_content_type: application/octet-stream
+      - name: upload device-agent-helper.exe
+        uses: actions/upload-release-asset@v1.0.2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./device-health-checker/bin/device-health-helper.exe
+          asset_name: device-health-checker.phar
+          asset_content_type: application/octet-stream

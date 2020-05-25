@@ -61,4 +61,3 @@ test:
 
 run-integration-test:
 	RUN_INTEGRATION_TESTS="true" go test ./... -count=1
-
