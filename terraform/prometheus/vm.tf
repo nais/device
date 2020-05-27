@@ -1,5 +1,5 @@
-data "google_compute_network" "default" {
-  name = "default"
+data "google_compute_network" "naisdevice" {
+  name = "naisdevice"
 }
 
 resource "google_compute_address" "prometheus" {
@@ -20,7 +20,8 @@ resource "google_compute_instance" "prometheus" {
   }
 
   network_interface {
-    network = data.google_compute_network.default.self_link
+    network = data.google_compute_network.naisdevice.self_link
+    subnetwork = "naisdevice"
 
     access_config {
       nat_ip = google_compute_address.prometheus.address
