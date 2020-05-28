@@ -23,12 +23,14 @@ var (
 		Help:      "count of failed config fetches",
 		Namespace: "naisdevice",
 		Subsystem: "gateway_agent",
+		ConstLabels: prometheus.Labels{"name": cfg.Name},
 	})
 	lastSuccessfulConfigFetch = prometheus.NewGauge(prometheus.GaugeOpts{
 		Name:      "last_successful_config_fetch",
 		Help:      "time since last successful config fetch",
 		Namespace: "naisdevice",
 		Subsystem: "gateway_agent",
+		ConstLabels: prometheus.Labels{"name": cfg.Name},
 	})
 )
 
