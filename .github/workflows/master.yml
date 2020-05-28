@@ -145,7 +145,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./device-health-checker/bin/device-agent.exd
+          asset_path: ./device-health-checker/bin/device-agent.exe
           asset_name: device-health-checker.phar
           asset_content_type: application/octet-stream
       - name: upload device-agent-helper.exe
