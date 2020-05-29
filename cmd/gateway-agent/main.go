@@ -17,9 +17,10 @@ import (
 )
 
 var (
-	cfg = DefaultConfig()
-	failedConfigFetches prometheus.Counter
+	cfg                       = DefaultConfig()
+	failedConfigFetches       prometheus.Counter
 	lastSuccessfulConfigFetch prometheus.Gauge
+	registeredDevices         prometheus.Gauge
 )
 
 func init() {
@@ -56,8 +57,16 @@ func initMetrics(name string) {
 		Subsystem:   "gateway_agent",
 		ConstLabels: prometheus.Labels{"name": name},
 	})
+	registeredDevices = prometheus.NewGauge(prometheus.GaugeOpts{
+		Name:        "number_of_registered_devices",
+		Help:        "number of registered devices on a gateway",
+		Namespace:   "naisdevice",
+		Subsystem:   "gateway_agent",
+		ConstLabels: prometheus.Labels{"name": name},
+	})
 	prometheus.MustRegister(failedConfigFetches)
 	prometheus.MustRegister(lastSuccessfulConfigFetch)
+	prometheus.MustRegister(registeredDevices)
 }
 
 // Gateway agent ensures desired configuration as defined by the apiserver
@@ -166,7 +175,7 @@ func getDevices(config Config) ([]Device, error) {
 	if err != nil {
 		return nil, fmt.Errorf("unmarshal json from apiserver: bytes: %v, error: %w", string(b), err)
 	}
-
+	registeredDevices.Set(float64(len(devices)))
 	return devices, nil
 }
 
