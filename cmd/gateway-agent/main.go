@@ -17,21 +17,9 @@ import (
 )
 
 var (
-	cfg                 = DefaultConfig()
-	failedConfigFetches = prometheus.NewCounter(prometheus.CounterOpts{
-		Name:      "failed_config_fetches",
-		Help:      "count of failed config fetches",
-		Namespace: "naisdevice",
-		Subsystem: "gateway_agent",
-		ConstLabels: prometheus.Labels{"name": cfg.Name},
-	})
-	lastSuccessfulConfigFetch = prometheus.NewGauge(prometheus.GaugeOpts{
-		Name:      "last_successful_config_fetch",
-		Help:      "time since last successful config fetch",
-		Namespace: "naisdevice",
-		Subsystem: "gateway_agent",
-		ConstLabels: prometheus.Labels{"name": cfg.Name},
-	})
+	cfg = DefaultConfig()
+	failedConfigFetches prometheus.Counter
+	lastSuccessfulConfigFetch prometheus.Gauge
 )
 
 func init() {
@@ -48,9 +36,26 @@ func init() {
 	flag.BoolVar(&cfg.DevMode, "development-mode", cfg.DevMode, "development mode avoids setting up interface and configuring WireGuard")
 
 	flag.Parse()
-
 	cfg.WireGuardConfigPath = path.Join(cfg.ConfigDir, "wg0.conf")
 	cfg.PrivateKeyPath = path.Join(cfg.ConfigDir, "private.key")
+	initMetrics(cfg.Name)
+}
+
+func initMetrics(name string) {
+	failedConfigFetches = prometheus.NewCounter(prometheus.CounterOpts{
+		Name:        "failed_config_fetches",
+		Help:        "count of failed config fetches",
+		Namespace:   "naisdevice",
+		Subsystem:   "gateway_agent",
+		ConstLabels: prometheus.Labels{"name": name},
+	})
+	lastSuccessfulConfigFetch = prometheus.NewGauge(prometheus.GaugeOpts{
+		Name:        "last_successful_config_fetch",
+		Help:        "time since last successful config fetch",
+		Namespace:   "naisdevice",
+		Subsystem:   "gateway_agent",
+		ConstLabels: prometheus.Labels{"name": name},
+	})
 	prometheus.MustRegister(failedConfigFetches)
 	prometheus.MustRegister(lastSuccessfulConfigFetch)
 }
