@@ -149,8 +149,8 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./device-health-checker/bin/device-agent.exe
-          asset_name: device-health-checker.phar
+          asset_path: ./bin/windows/device-agent.exe
+          asset_name: device-agent.exe
           asset_content_type: application/octet-stream
       - name: upload device-agent-helper.exe
         uses: actions/upload-release-asset@v1.0.2
@@ -158,6 +158,6 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./device-health-checker/bin/device-health-helper.exe
-          asset_name: device-health-checker.phar
+          asset_path: ./bin/windows/device-agent-helper.exe
+          asset_name: device-agent-helper.exe
           asset_content_type: application/octet-stream
