@@ -3,7 +3,7 @@
 all: test alpine
 dev-apiserver: teardown-postgres run-postgres insert-testdata local-apiserver
 integration-test: run-postgres-test run-integration-test teardown-postgres-test
-
+clients: linux-client macos-client windows-client
 
 linux:
 	GOOS=linux GOARCH=amd64 go build -o bin/apiserver ./cmd/apiserver
@@ -12,9 +12,17 @@ linux:
 	GOOS=linux GOARCH=amd64 go build -o bin/prometheus-agent ./cmd/prometheus-agent
 	php -d phar.readonly=off device-health-checker/create-phar.php device-health-checker/device-health-checker.php device-health-checker/bin
 
-windows:
-	GOOS=windows GOARCH=amd64 go build -o bin/device-agent.exe ./cmd/device-agent
-	GOOS=windows GOARCH=amd64 go build -o bin/device-agent-helper.exe ./cmd/device-agent-helper
+linux-client:
+	GOOS=linux GOARCH=amd64 go build -o bin/linux/device-agent ./cmd/device-agent
+	GOOS=linux GOARCH=amd64 go build -o bin/linux/device-agent-helper ./cmd/device-agent-helper
+
+macos-client:
+	GOOS=darwin GOARCH=amd64 go build -o bin/macos/device-agent ./cmd/device-agent
+	GOOS=darwin GOARCH=amd64 go build -o bin/macos/device-agent-helper ./cmd/device-agent-helper
+
+windows-client:
+	GOOS=windows GOARCH=amd64 go build -o bin/windows/device-agent.exe ./cmd/device-agent
+	GOOS=windows GOARCH=amd64 go build -o bin/windows/device-agent-helper.exe ./cmd/device-agent-helper
 
 local:
 	go build -o bin/apiserver ./cmd/apiserver
