@@ -28,7 +28,7 @@ class ApiServerClientTest extends TestCase {
         $httpClient = $this->getMockClient(
             [new Response(
                 200, [],
-                '[{"serial":"serial","psk":"psk","lastCheck":null,"isHealthy":true,"publicKey":"pubkey","ip":"1.2.3.4","username":"user@nav.no"}]'
+                '[{"serial":"serial","psk":"psk","lastUpdated":null,"isHealthy":true,"publicKey":"pubkey","ip":"1.2.3.4","username":"user@nav.no"}]'
             )],
             $clientHistory
         );
