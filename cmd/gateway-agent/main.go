@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"os/exec"
 	"path"
+	"regexp"
 	"time"
 
 	"github.com/nais/device/pkg/logger"
@@ -21,6 +22,7 @@ var (
 	failedConfigFetches       prometheus.Counter
 	lastSuccessfulConfigFetch prometheus.Gauge
 	registeredDevices         prometheus.Gauge
+	connectedDevices          prometheus.Gauge
 )
 
 func init() {
@@ -64,9 +66,17 @@ func initMetrics(name string) {
 		Subsystem:   "gateway_agent",
 		ConstLabels: prometheus.Labels{"name": name},
 	})
+	connectedDevices = prometheus.NewGauge(prometheus.GaugeOpts{
+		Name:        "number_of_connected_devices",
+		Help:        "number of connected devices on a gateway",
+		Namespace:   "naisdevice",
+		Subsystem:   "gateway_agent",
+		ConstLabels: prometheus.Labels{"name": name},
+	})
 	prometheus.MustRegister(failedConfigFetches)
 	prometheus.MustRegister(lastSuccessfulConfigFetch)
 	prometheus.MustRegister(registeredDevices)
+	prometheus.MustRegister(connectedDevices)
 }
 
 // Gateway agent ensures desired configuration as defined by the apiserver
@@ -127,6 +137,11 @@ func main() {
 			log.Error(err)
 			failedConfigFetches.Inc()
 			continue
+		}
+
+		err = updateConnectedDevicesMetrics()
+		if err != nil {
+			log.Errorf("Unable to execute command: %v", err)
 		}
 
 		lastSuccessfulConfigFetch.SetToCurrentTime()
@@ -265,6 +280,18 @@ AllowedIPs = %s
 	}
 
 	return peers
+}
+func updateConnectedDevicesMetrics() error {
+	output, err := exec.Command("wg", "show", "wg0", "endpoints").Output()
+	if err != nil {
+		return err
+	}
+	re := regexp.MustCompile(`\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}:\d{1,5}`)
+	matches := re.FindAll(output, -1)
+
+	numConnectedDevices := float64(len(matches))
+	connectedDevices.Set(numConnectedDevices)
+	return nil
 }
 
 // actuateWireGuardConfig runs syncconfig with the provided WireGuard config
