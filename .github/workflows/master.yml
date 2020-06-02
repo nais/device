@@ -80,9 +80,9 @@ jobs:
       - name: build linux
         run: |
           make linux
-      - name: build windows
+      - name: build windows-client
         run: |
-          make windows
+          make windows-client
       - name: set version
         id: set_version
         run: |
