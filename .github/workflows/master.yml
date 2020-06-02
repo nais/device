@@ -77,9 +77,12 @@ jobs:
         working-directory: ./device-health-checker
         run: |
           composer install --prefer-dist --no-progress --no-suggest --no-ansi --no-dev -o
-      - name: build
+      - name: build linux
         run: |
           make linux
+      - name: build windows
+        run: |
+          make windows
       - name: set version
         id: set_version
         run: |
