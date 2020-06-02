@@ -8,6 +8,7 @@ on:
       - 'device-health-checker/**/*.php'
       - 'device-health-checker/composer.json'
       - 'device-health-checker/composer.lock'
+      - '.github/workflows/master.yml'
 jobs:
   test:
     name: build
