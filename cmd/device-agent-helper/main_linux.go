@@ -18,7 +18,7 @@ func prerequisites() error {
 }
 
 func platformFlags(cfg *Config) {
-	flag.StringVar(&cfg.DeviceIP, "tunnel-ip", "", "device tunnel ip")
+	flag.StringVar(&cfg.DeviceIP, "device-ip", "", "device tunnel ip")
 	flag.StringVar(&cfg.WireGuardGoBinary, "wireguard-go-binary", "", "path to WireGuard-go binary")
 }
 
