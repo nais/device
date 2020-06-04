@@ -1,6 +1,7 @@
 # Nais device
 
-![Kolide checks criticality](https://github.com/nais/device/workflows/Kolide%20checks%20criticality/badge.svg)
+[![Kolide checks criticality](https://github.com/nais/device/workflows/Kolide%20checks%20criticality/badge.svg)](https://github.com/nais/device/actions?query=workflow%3A%22Kolide+checks+criticality%22)
+
 
 ## Wireguard setup (for all vms)
   1. `# apt-get install --yes wireguard`
