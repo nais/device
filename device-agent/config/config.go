@@ -29,7 +29,7 @@ type Config struct {
 func (c *Config) SetDefaults() {
 	SetPlatform(c)
 	c.PrivateKeyPath = filepath.Join(c.ConfigDir, "private.key")
-	c.WireGuardConfigPath = filepath.Join(c.ConfigDir, "wg0.conf")
+	c.WireGuardConfigPath = filepath.Join(c.ConfigDir, c.Interface+".conf")
 	c.BootstrapConfigPath = filepath.Join(c.ConfigDir, "bootstrapconfig.json")
 	c.SetPlatformDefaults()
 }
