@@ -324,7 +324,7 @@ func checkForNewRelease() {
 	type response struct {
 		Tag string `json:"tag_name"`
 	}
-	for range time.NewTicker(60 * time.Second).C {
+	for range time.NewTicker(120 * time.Second).C {
 		resp, err := http.Get("https://api.github.com/repos/nais/device/releases/latest")
 		if err != nil {
 			log.Errorf("Unable to retrieve current release version %s", err)
