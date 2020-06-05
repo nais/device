@@ -1,4 +1,8 @@
 .PHONY: test alpine
+DATE=$(shell date "+%Y-%m-%d")
+LAST_COMMIT=$(shell git --no-pager log -1 --pretty=%h)
+VERSION="$(DATE)-$(LAST_COMMIT)"
+LDFLAGS := -X github.com/nais/device/pkg/version.Revision=$(shell git rev-parse --short HEAD) -X github.com/nais/device/pkg/version.Version=$(VERSION)
 
 all: test alpine
 dev-apiserver: teardown-postgres run-postgres insert-testdata local-apiserver
@@ -8,7 +12,7 @@ clients: linux-client macos-client windows-client
 linux:
 	GOOS=linux GOARCH=amd64 go build -o bin/apiserver ./cmd/apiserver
 	GOOS=linux GOARCH=amd64 go build -o bin/bootstrap-api ./cmd/bootstrap-api
-	GOOS=linux GOARCH=amd64 go build -o bin/gateway-agent ./cmd/gateway-agent
+	GOOS=linux GOARCH=amd64 go build -o bin/gateway-agent -ldflags "-s $(LDFLAGS)" ./cmd/gateway-agent
 	GOOS=linux GOARCH=amd64 go build -o bin/prometheus-agent ./cmd/prometheus-agent
 	php -d phar.readonly=off device-health-checker/create-phar.php device-health-checker/device-health-checker.php device-health-checker/bin
 
@@ -21,12 +25,14 @@ macos-client:
 	GOOS=darwin GOARCH=amd64 go build -o bin/macos/device-agent-helper ./cmd/device-agent-helper
 
 windows-client:
+	go get github.com/akavel/rsrc
+	~/go/bin/rsrc -arch amd64 -manifest ./windows/admin_manifest.xml -o ./cmd/device-agent-helper/main.syso
 	GOOS=windows GOARCH=amd64 go build -o bin/windows/device-agent.exe ./cmd/device-agent
 	GOOS=windows GOARCH=amd64 go build -o bin/windows/device-agent-helper.exe ./cmd/device-agent-helper
 
 local:
 	go build -o bin/apiserver ./cmd/apiserver
-	go build -o bin/gateway-agent ./cmd/gateway-agent
+	go build -o bin/gateway-agent -ldflags "-s $(LDFLAGS)" ./cmd/gateway-agent
 	go build -o bin/device-agent ./cmd/device-agent
 	go build -o bin/device-agent-helper ./cmd/device-agent-helper
 	go build -o bin/prometheus-agent ./cmd/prometheus-agent
