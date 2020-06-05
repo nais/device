@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"os"
 	"os/exec"
 	"path"
 	"regexp"
@@ -15,6 +16,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	log "github.com/sirupsen/logrus"
 	flag "github.com/spf13/pflag"
+	version "github.com/nais/device/pkg/version"
 )
 
 var (
@@ -42,6 +44,7 @@ func init() {
 	cfg.WireGuardConfigPath = path.Join(cfg.ConfigDir, "wg0.conf")
 	cfg.PrivateKeyPath = path.Join(cfg.ConfigDir, "private.key")
 	initMetrics(cfg.Name)
+	log.Infof("Version: %s, Revision: %s", version.Version, version.Revision)
 }
 
 func initMetrics(name string) {
@@ -129,6 +132,8 @@ func main() {
 	if err := actuateWireGuardConfig(baseConfig, cfg.WireGuardConfigPath, cfg.DevMode); err != nil {
 		log.Fatalf("actuating base config: %v", err)
 	}
+
+	go checkForNewRelease()
 
 	for range time.NewTicker(10 * time.Second).C {
 		log.Infof("getting config")
@@ -313,4 +318,27 @@ func actuateWireGuardConfig(wireGuardConfig, wireGuardConfigPath string, devMode
 	log.Debugf("Actuated WireGuard config: %v", wireGuardConfigPath)
 
 	return nil
+}
+func checkForNewRelease() {
+	log.Info("Checking release version on github")
+	type response struct {
+		Tag string `json:"tag_name"`
+	}
+	for range time.NewTicker(10 * time.Second).C {
+		resp, err := http.Get("https://api.github.com/repos/nais/device/releases/latest")
+		if err != nil {
+			log.Errorf("Unable to retrieve current release version %s", err)
+		}
+		defer resp.Body.Close()
+		body, err := ioutil.ReadAll(resp.Body)
+		res := response{}
+		err = json.Unmarshal(body, &res)
+		if err != nil {
+			log.Errorf("unable to unmarshall response: %s", err)
+		}
+		if version.Version != res.Tag {
+			log.Info("New version available, I'm going to die now.")
+			os.Exit(0)
+		}
+	}
 }
