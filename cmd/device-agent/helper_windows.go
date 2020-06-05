@@ -9,7 +9,7 @@ import (
 )
 
 func runHelper(rc *runtimeconfig.RuntimeConfig, ctx context.Context) error {
-	cmd := exec.CommandContext(ctx, "device-agent-helper.exe",
+	cmd := adminCommandContext(ctx, "device-agent-helper.exe",
 		"--interface", rc.Config.Interface,
 		"--wireguard-binary", rc.Config.WireGuardBinary,
 		"--wireguard-config-path", rc.Config.WireGuardConfigPath,
@@ -19,4 +19,7 @@ func runHelper(rc *runtimeconfig.RuntimeConfig, ctx context.Context) error {
 	cmd.Stderr = os.Stderr
 	cmd.Stdout = os.Stdout
 	return cmd.Start()
+}
+func adminCommandContext(ctx context.Context, command string, arg ...string) *exec.Cmd {
+	return exec.CommandContext(ctx, "cmd", append([]string{"/c", "start", command}, arg...)...)
 }

@@ -84,13 +84,13 @@ func SyncConfig(baseConfig string, rc *runtimeconfig.RuntimeConfig) error {
 	gateways, err := apiserver.GetGateways(rc.Client, rc.Config.APIServer, rc.Serial)
 
 	if err != nil {
-		log.Errorf("Unable to get gateway config: %v", err)
+		return fmt.Errorf("unable to get gateway config: %w", err)
 	}
 
 	wireGuardPeers := wireguard.GenerateWireGuardPeers(gateways)
 
 	if err := ioutil.WriteFile(rc.Config.WireGuardConfigPath, []byte(baseConfig+wireGuardPeers), 0600); err != nil {
-		log.Errorf("Writing WireGuard config to disk: %v", err)
+		return fmt.Errorf("writing WireGuard config to disk: %w", err)
 	}
 
 	log.Debugf("Wrote WireGuard config to disk")

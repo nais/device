@@ -59,4 +59,10 @@ return [
     49356 => Criticality::CRIT,   // Windows - Screen Lock Disabled
     50322 => Criticality::CRIT,   // Windows - No Antivirus Products Configured
     53542 => Criticality::CRIT,   // Vulnerability - Windows CryptoAPI (CVE-2020-0601)
+    75184 => Criticality::MED,    // GitHub 2FA Codes stored in Plain-Text
+    75185 => Criticality::MED,    // GitHub 2FA Codes stored in Plain-Text
+    75186 => Criticality::MED,    // GSuite 2FA Codes stored in Plain-Text
+    75187 => Criticality::MED,    // GSuite 2FA Codes stored in Plain-Text
+    75188 => Criticality::MED,    // 1Password Emergency Kits stored in Plain-Text
+    75189 => Criticality::MED,    // 1Password Emergency Kits stored in Plain-Text
 ];

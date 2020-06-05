@@ -25,6 +25,8 @@ macos-client:
 	GOOS=darwin GOARCH=amd64 go build -o bin/macos/device-agent-helper ./cmd/device-agent-helper
 
 windows-client:
+	go get github.com/akavel/rsrc
+	rsrc -arch amd64 -manifest ./windows/admin_manifest.xml -o ./cmd/device-agent-helper/main.syso
 	GOOS=windows GOARCH=amd64 go build -o bin/windows/device-agent.exe ./cmd/device-agent
 	GOOS=windows GOARCH=amd64 go build -o bin/windows/device-agent-helper.exe ./cmd/device-agent-helper
 
