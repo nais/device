@@ -43,7 +43,6 @@ func DefaultConfig() Config {
 	return Config{
 		APIServer:    "http://10.255.240.1",
 		BootstrapAPI: "https://bootstrap.device.nais.io",
-		Interface:    "utun69",
 		ConfigDir:    filepath.Join(userConfigDir, "naisdevice"),
 		BinaryDir:    "/usr/local/bin",
 		LogLevel:     "info",

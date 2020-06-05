@@ -11,4 +11,5 @@ func (c *Config) SetPlatformDefaults() {
 		programFiles = `c:\Program Files`
 	}
 	c.WireGuardBinary = filepath.Join(programFiles, "WireGuard", "wireguard.exe")
+	c.Interface = "utun69"
 }

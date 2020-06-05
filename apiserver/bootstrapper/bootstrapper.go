@@ -56,7 +56,7 @@ func pushBootstrapConfig(bootstrapperURL, bootstrapperCredentials, serial string
 		return fmt.Errorf("marshalling config: %w", err)
 	}
 
-	r, err := http.Post(bootstrapperURL+"/api/v1/bootstrapconfig/" + serial, "application/json", bytes.NewReader(b))
+	r, err := http.Post(bootstrapperURL+"/api/v1/bootstrapconfig/"+serial, "application/json", bytes.NewReader(b))
 	if err != nil {
 		return fmt.Errorf("posting bootstrap config: %w", err)
 	}

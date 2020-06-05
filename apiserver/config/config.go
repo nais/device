@@ -47,6 +47,6 @@ func DefaultConfig() Config {
 		BindAddress:    "10.255.240.1:80",
 		ConfigDir:      "/usr/local/etc/nais-device/",
 		PrometheusAddr: ":3000",
-		LogLevel: "info",
+		LogLevel:       "info",
 	}
 }

@@ -1,5 +1,3 @@
-// +build linux darwin
-
 package config
 
 import (
@@ -9,4 +7,5 @@ import (
 func (c *Config) SetPlatformDefaults() {
 	c.WireGuardBinary = filepath.Join(c.BinaryDir, "naisdevice-wg")
 	c.WireGuardGoBinary = filepath.Join(c.BinaryDir, "naisdevice-wireguard-go")
+	c.Interface = "utun69"
 }
