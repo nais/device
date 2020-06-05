@@ -2,8 +2,11 @@ package azure
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"net/http"
+	"os"
 	"time"
 
 	"github.com/nais/device/apiserver/kekw"
@@ -13,10 +16,23 @@ import (
 	"golang.org/x/oauth2"
 )
 
+const fileName string = "token.jwt"
+
 func EnsureClient(ctx context.Context, conf oauth2.Config) (*http.Client, error) {
-	token, err := runAuthFlow(ctx, conf)
+	token, err := loadToken()
 	if err != nil {
-		return nil, fmt.Errorf("running authorization code flow: %w", err)
+		log.Info("Unable to read token from disk, fetching a new one")
+	}
+
+	if token == nil {
+		token, err = runAuthFlow(ctx, conf)
+		if err != nil {
+			return nil, fmt.Errorf("running authorization code flow: %w", err)
+		}
+		err = saveToken(*token)
+		if err != nil {
+			log.Errorf("Unable to store the token %v", err)
+		}
 	}
 
 	return conf.Client(ctx, token), nil
@@ -61,9 +77,8 @@ func runAuthFlow(ctx context.Context, conf oauth2.Config) (*oauth2.Token, error)
 		tokenChan <- t
 	})
 
-	go func() {
-		_ = server.ListenAndServe()
-	}()
+	go server.ListenAndServe()
+	defer server.Close()
 
 	url := conf.AuthCodeURL(randomString, oauth2.AccessTypeOffline, method, challenge)
 	err := openDefaultBrowser(url)
@@ -74,13 +89,42 @@ func runAuthFlow(ctx context.Context, conf oauth2.Config) (*oauth2.Token, error)
 	fmt.Printf("If the browser didn't open, visit this url to sign in: %v\n", url)
 
 	token := <-tokenChan
-	_ = server.Close()
 
 	if token == nil {
 		return nil, fmt.Errorf("no token received")
 	}
 
 	return token, nil
+}
+
+func loadToken() (*oauth2.Token, error) {
+	log.Info("Loading token from file")
+	tokenBytes, err := ioutil.ReadFile(fileName)
+	if err != nil {
+		return nil, err
+	}
+
+	token := oauth2.Token{}
+	err = json.Unmarshal(tokenBytes, &token)
+	if err != nil {
+		return nil, err
+	}
+
+	return &token, nil
+}
+
+func saveToken(token oauth2.Token) error {
+	jsonToken, err := json.MarshalIndent(token, "", "  ")
+	if err != nil {
+		return err
+	}
+
+	err = ioutil.WriteFile(fileName, jsonToken, os.FileMode(0660))
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func failureResponse(w http.ResponseWriter, msg string) {
