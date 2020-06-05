@@ -25,6 +25,7 @@ var (
 	lastSuccessfulConfigFetch prometheus.Gauge
 	registeredDevices         prometheus.Gauge
 	connectedDevices          prometheus.Gauge
+	currentVersion            prometheus.Counter
 )
 
 func init() {
@@ -48,38 +49,46 @@ func init() {
 }
 
 func initMetrics(name string) {
+	currentVersion = prometheus.NewCounter(prometheus.CounterOpts{
+		Name:        "current_version",
+		Help:        "current running version",
+		Namespace:   "naisdevice",
+		Subsystem:   "gateway_agent",
+		ConstLabels: prometheus.Labels{"name": name, "version": version.Version},
+	})
 	failedConfigFetches = prometheus.NewCounter(prometheus.CounterOpts{
 		Name:        "failed_config_fetches",
 		Help:        "count of failed config fetches",
 		Namespace:   "naisdevice",
 		Subsystem:   "gateway_agent",
-		ConstLabels: prometheus.Labels{"name": name},
+		ConstLabels: prometheus.Labels{"name": name, "version": version.Version},
 	})
 	lastSuccessfulConfigFetch = prometheus.NewGauge(prometheus.GaugeOpts{
 		Name:        "last_successful_config_fetch",
 		Help:        "time since last successful config fetch",
 		Namespace:   "naisdevice",
 		Subsystem:   "gateway_agent",
-		ConstLabels: prometheus.Labels{"name": name},
+		ConstLabels: prometheus.Labels{"name": name, "version": version.Version},
 	})
 	registeredDevices = prometheus.NewGauge(prometheus.GaugeOpts{
 		Name:        "number_of_registered_devices",
 		Help:        "number of registered devices on a gateway",
 		Namespace:   "naisdevice",
 		Subsystem:   "gateway_agent",
-		ConstLabels: prometheus.Labels{"name": name},
+		ConstLabels: prometheus.Labels{"name": name, "version": version.Version},
 	})
 	connectedDevices = prometheus.NewGauge(prometheus.GaugeOpts{
 		Name:        "number_of_connected_devices",
 		Help:        "number of connected devices on a gateway",
 		Namespace:   "naisdevice",
 		Subsystem:   "gateway_agent",
-		ConstLabels: prometheus.Labels{"name": name},
+		ConstLabels: prometheus.Labels{"name": name, "version": version.Version},
 	})
 	prometheus.MustRegister(failedConfigFetches)
 	prometheus.MustRegister(lastSuccessfulConfigFetch)
 	prometheus.MustRegister(registeredDevices)
 	prometheus.MustRegister(connectedDevices)
+	prometheus.MustRegister(currentVersion)
 }
 
 // Gateway agent ensures desired configuration as defined by the apiserver
