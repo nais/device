@@ -324,7 +324,7 @@ func checkForNewRelease() {
 	type response struct {
 		Tag string `json:"tag_name"`
 	}
-	for range time.NewTicker(10 * time.Second).C {
+	for range time.NewTicker(60 * time.Second).C {
 		resp, err := http.Get("https://api.github.com/repos/nais/device/releases/latest")
 		if err != nil {
 			log.Errorf("Unable to retrieve current release version %s", err)
@@ -337,7 +337,7 @@ func checkForNewRelease() {
 			log.Errorf("unable to unmarshall response: %s", err)
 		}
 		if version.Version != res.Tag {
-			log.Info("New version available, I'm going to die now.")
+			log.Info("New version available. So long and thanks for all the fish.")
 			os.Exit(0)
 		}
 	}
