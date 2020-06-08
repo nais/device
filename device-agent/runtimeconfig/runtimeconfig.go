@@ -3,8 +3,9 @@ package runtimeconfig
 import (
 	"context"
 	"fmt"
-	"github.com/nais/device/pkg/bootstrap"
 	"net/http"
+
+	"github.com/nais/device/pkg/bootstrap"
 
 	"github.com/nais/device/device-agent/azure"
 	"github.com/nais/device/device-agent/bootstrapper"

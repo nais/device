@@ -20,22 +20,38 @@ import (
 const fileName string = "token.jwt"
 
 func EnsureClient(ctx context.Context, conf oauth2.Config, tokenDir string) (*http.Client, error) {
-	token, err := loadToken(tokenDir)
-	if err != nil {
-		log.Info("Unable to read token from disk, fetching a new one")
-	}
+	var token *oauth2.Token
+	var err error
 
-	if token == nil {
-		token, err = runAuthFlow(ctx, conf)
-		if err != nil {
-			return nil, fmt.Errorf("running authorization code flow: %w", err)
-		}
+	save := func() {
 		err = saveToken(*token, tokenDir)
 		if err != nil {
 			log.Errorf("Unable to store the token %v", err)
 		}
 	}
 
+	token, err = loadToken(tokenDir)
+	if err == nil {
+		log.Info("Token loaded from disk")
+		src := conf.TokenSource(ctx, token)
+		token, err = src.Token()
+		if err == nil {
+			save()
+			return conf.Client(ctx, token), nil
+		}
+		log.Info("Failed refreshing token")
+	}
+
+	log.Info("Unable to use token from disk, fetching a new one")
+
+	if token == nil {
+		token, err = runAuthFlow(ctx, conf)
+		if err != nil {
+			return nil, fmt.Errorf("running authorization code flow: %w", err)
+		}
+	}
+
+	save()
 	return conf.Client(ctx, token), nil
 }
 
@@ -48,7 +64,7 @@ func runAuthFlow(ctx context.Context, conf oauth2.Config) (*oauth2.Token, error)
 	method := oauth2.SetAuthURLParam("code_challenge_method", "S256")
 	challenge := oauth2.SetAuthURLParam("code_challenge", codeVerifier.CodeChallengeS256())
 
-	//TODO check this in response from Azure
+	// TODO check this in response from Azure
 	randomString := random.RandomString(16, random.LettersAndNumbers)
 
 	tokenChan := make(chan *oauth2.Token)
