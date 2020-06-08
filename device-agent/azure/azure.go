@@ -7,6 +7,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"os"
+	"path"
 	"time"
 
 	"github.com/nais/device/apiserver/kekw"
@@ -18,8 +19,8 @@ import (
 
 const fileName string = "token.jwt"
 
-func EnsureClient(ctx context.Context, conf oauth2.Config) (*http.Client, error) {
-	token, err := loadToken()
+func EnsureClient(ctx context.Context, conf oauth2.Config, tokenDir string) (*http.Client, error) {
+	token, err := loadToken(tokenDir)
 	if err != nil {
 		log.Info("Unable to read token from disk, fetching a new one")
 	}
@@ -29,7 +30,7 @@ func EnsureClient(ctx context.Context, conf oauth2.Config) (*http.Client, error)
 		if err != nil {
 			return nil, fmt.Errorf("running authorization code flow: %w", err)
 		}
-		err = saveToken(*token)
+		err = saveToken(*token, tokenDir)
 		if err != nil {
 			log.Errorf("Unable to store the token %v", err)
 		}
@@ -97,9 +98,9 @@ func runAuthFlow(ctx context.Context, conf oauth2.Config) (*oauth2.Token, error)
 	return token, nil
 }
 
-func loadToken() (*oauth2.Token, error) {
+func loadToken(tokenDir string) (*oauth2.Token, error) {
 	log.Info("Loading token from file")
-	tokenBytes, err := ioutil.ReadFile(fileName)
+	tokenBytes, err := ioutil.ReadFile(path.Join(tokenDir, fileName))
 	if err != nil {
 		return nil, err
 	}
@@ -113,13 +114,13 @@ func loadToken() (*oauth2.Token, error) {
 	return &token, nil
 }
 
-func saveToken(token oauth2.Token) error {
+func saveToken(token oauth2.Token, tokenDir string) error {
 	jsonToken, err := json.MarshalIndent(token, "", "  ")
 	if err != nil {
 		return err
 	}
 
-	err = ioutil.WriteFile(fileName, jsonToken, os.FileMode(0660))
+	err = ioutil.WriteFile(path.Join(tokenDir, fileName), jsonToken, os.FileMode(0660))
 	if err != nil {
 		return err
 	}

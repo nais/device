@@ -36,7 +36,7 @@ func New(cfg config.Config, ctx context.Context) (*RuntimeConfig, error) {
 		return nil, fmt.Errorf("getting device serial: %v", err)
 	}
 
-	if rc.Client, err = azure.EnsureClient(ctx, cfg.OAuth2Config); err != nil {
+	if rc.Client, err = azure.EnsureClient(ctx, cfg.OAuth2Config, cfg.ConfigDir); err != nil {
 		return nil, fmt.Errorf("ensuring authenticated http client: %w", err)
 	}
 
