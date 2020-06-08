@@ -87,7 +87,7 @@ class CheckAndUpdateDevices extends BaseCommand {
 
             $naisDevice['kolideLastSeen'] = $kolideDevice['last_seen_at'] ? strtotime($kolideDevice['last_seen_at']) : null;
 
-            if ($kolideDevice['failure_count'] > $kolideDevice['resolved_failure_count']) {
+            if ($kolideDevice['failure_count']) {
                 $failingChecks = $this->getFailingDeviceChecks($kolideDevice['id'], $ignoreChecks);
             }
 
