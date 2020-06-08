@@ -17,6 +17,13 @@
 1. Download and install [WireGuard](https://www.wireguard.com/install/)
 2. ...
 
+#### Linux
+1. Install wireguard
+	1. `sudo add-apt-repository ppa:wireguard/wireguard`
+	2. `sudo apt install wireguard`
+2. Clone repo: `git clone https://github.com/nais/device`
+3. Make binaries: `cd device && make local`
+4. Run agent: `./bin/device-agent`
 
 # Connecting to NAIS clusters
   1. open /etc/hosts as admin and comment out or remove the lines containing `apiserver.*.nais.io`
