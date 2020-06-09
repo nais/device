@@ -5,8 +5,8 @@ import (
 	"context"
 	"fmt"
 	"github.com/nais/device/apiserver/bootstrapper"
+	"github.com/nais/device/apiserver/session"
 	"github.com/nais/device/pkg/logger"
-
 	"io/ioutil"
 	"net/http"
 	"os"
@@ -18,7 +18,6 @@ import (
 	"github.com/dgrijalva/jwt-go"
 	"github.com/nais/device/apiserver/azure/discovery"
 	"github.com/nais/device/apiserver/azure/validate"
-	"github.com/nais/device/apiserver/middleware"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 
 	"github.com/nais/device/apiserver/api"
@@ -46,6 +45,7 @@ func init() {
 	flag.BoolVar(&cfg.DevMode, "development-mode", cfg.DevMode, "Development mode avoids setting up wireguard and fetching and validating AAD certificates")
 	flag.StringVar(&cfg.Azure.DiscoveryURL, "azure-discovery-url", "", "Azure discovery url")
 	flag.StringVar(&cfg.Azure.ClientID, "azure-client-id", "", "Azure app client id")
+	flag.StringVar(&cfg.Azure.ClientSecret, "azure-client-secret", "", "Azure app client secret")
 	flag.StringSliceVar(&cfg.CredentialEntries, "credential-entries", nil, "Comma-separated credentials on format: '<user>:<key>'")
 
 	flag.Parse()
@@ -72,6 +72,11 @@ func main() {
 		log.Fatalf("Instantiating database: %s", err)
 	}
 
+	sessions, err := session.New(ctx, cfg.DbConnURI, cfg.Azure.ClientID, cfg.Azure.ClientSecret)
+	if err != nil {
+		log.Fatalf("Instantiating sessions: %s", err)
+	}
+
 	privateKey, err := ioutil.ReadFile(cfg.PrivateKeyPath)
 	if err != nil {
 		log.Fatalf("Reading private key: %v", err)
@@ -89,7 +94,8 @@ func main() {
 	go syncWireguardConfig(cfg.DbConnURI, string(privateKey), cfg)
 
 	apiConfig := api.Config{
-		DB: db,
+		DB:       db,
+		Sessions: sessions,
 	}
 
 	apiConfig.APIKeys, err = cfg.Credentials()
@@ -101,16 +107,9 @@ func main() {
 		if apiConfig.APIKeys == nil {
 			log.Fatalf("No credentials provided for basic auth")
 		}
-
-		jwtValidator, err := createJWTValidator(cfg)
-		if err != nil {
-			log.Fatalf("Creating JWT validator: %v", err)
-		}
-
-		apiConfig.OAuthKeyValidatorMiddleware = middleware.TokenValidatorMiddleware(jwtValidator)
 	}
 
-	router := api.New(apiConfig)
+	router := api.New(ctx, apiConfig)
 
 	fmt.Println("running @", cfg.BindAddress)
 	fmt.Println(http.ListenAndServe(cfg.BindAddress, router))

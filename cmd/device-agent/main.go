@@ -82,7 +82,7 @@ func main() {
 }
 
 func SyncConfig(baseConfig string, rc *runtimeconfig.RuntimeConfig) error {
-	gateways, err := apiserver.GetGateways(rc.Client, rc.Config.APIServer, rc.Serial)
+	gateways, err := apiserver.GetGateways(rc.SessionID, rc.Config.APIServer, rc.Serial)
 
 	if err != nil {
 		return fmt.Errorf("unable to get gateway config: %w", err)

@@ -12,11 +12,11 @@ import (
 	"time"
 
 	"github.com/nais/device/pkg/logger"
+	version "github.com/nais/device/pkg/version"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	log "github.com/sirupsen/logrus"
 	flag "github.com/spf13/pflag"
-	version "github.com/nais/device/pkg/version"
 )
 
 var (

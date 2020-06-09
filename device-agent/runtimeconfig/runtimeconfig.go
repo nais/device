@@ -3,11 +3,11 @@ package runtimeconfig
 import (
 	"context"
 	"fmt"
-	"net/http"
-
 	"github.com/nais/device/pkg/bootstrap"
+	log "github.com/sirupsen/logrus"
+	"os"
 
-	"github.com/nais/device/device-agent/azure"
+	"github.com/nais/device/device-agent/auth"
 	"github.com/nais/device/device-agent/bootstrapper"
 	"github.com/nais/device/device-agent/config"
 	"github.com/nais/device/device-agent/serial"
@@ -19,7 +19,7 @@ type RuntimeConfig struct {
 	BootstrapConfig *bootstrap.Config
 	Config          config.Config
 	PrivateKey      []byte
-	Client          *http.Client
+	SessionID       auth.SessionID
 }
 
 func New(cfg config.Config, ctx context.Context) (*RuntimeConfig, error) {
@@ -37,22 +37,45 @@ func New(cfg config.Config, ctx context.Context) (*RuntimeConfig, error) {
 		return nil, fmt.Errorf("getting device serial: %v", err)
 	}
 
-	if rc.Client, err = azure.EnsureClient(ctx, cfg.OAuth2Config, cfg.ConfigDir); err != nil {
-		return nil, fmt.Errorf("ensuring authenticated http client: %w", err)
+	if FileExists(cfg.BootstrapConfigPath) {
+		log.Infoln("Device already bootstrapped")
+		rc.BootstrapConfig, err = bootstrapper.ReadFromFile(cfg.BootstrapConfigPath)
+		if err != nil {
+			return nil, fmt.Errorf("reading bootstrap config from file: %w", err)
+		}
+	} else {
+		log.Infoln("Bootstrapping device")
+		rc.BootstrapConfig, err = bootstrapper.ReadFromFile(cfg.BootstrapConfigPath)
+		client, err := auth.AzureAuthenticatedClient(ctx, rc.Config.OAuth2Config)
+		if err != nil {
+			return nil, fmt.Errorf("authenticating with Azure: %w", err)
+		}
+
+		b := bootstrapper.New(
+			wireguard.PublicKey(rc.PrivateKey),
+			rc.Config.BootstrapConfigPath,
+			rc.Serial,
+			rc.Config.Platform,
+			rc.Config.BootstrapAPI,
+			client,
+		)
+
+		if rc.BootstrapConfig, err = b.EnsureBootstrapConfig(); err != nil {
+			return nil, fmt.Errorf("unable to ensure bootstrap config: %w", err)
+		}
 	}
 
-	b := bootstrapper.New(
-		wireguard.PublicKey(rc.PrivateKey),
-		rc.Config.BootstrapConfigPath,
-		rc.Serial,
-		rc.Config.Platform,
-		rc.Config.BootstrapAPI,
-		rc.Client,
-	)
-
-	if rc.BootstrapConfig, err = b.EnsureBootstrapConfig(); err != nil {
-		return nil, fmt.Errorf("unable to ensure bootstrap config: %w", err)
+	if rc.SessionID, err = auth.RunFlow(ctx, cfg.ConfigDir, cfg.APIServer); err != nil {
+		return nil, fmt.Errorf("getting session id: %w", err)
 	}
 
 	return rc, nil
+}
+
+func FileExists(filepath string) bool {
+	info, err := os.Stat(filepath)
+	if err != nil || info.IsDir() {
+		return false
+	}
+	return true
 }

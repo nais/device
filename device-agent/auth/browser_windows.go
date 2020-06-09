@@ -1,4 +1,4 @@
-package azure
+package auth
 
 import "os/exec"
 

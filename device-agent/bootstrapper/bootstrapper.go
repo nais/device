@@ -9,15 +9,14 @@ import (
 
 	"io/ioutil"
 	"net/http"
-	"os"
 	"time"
 )
 
 type bootstrapper struct {
-	Client              *http.Client
 	BootstrapAPI        string
 	BootstrapConfigPath string
 	DeviceInfo          bootstrap.DeviceInfo
+	Client              *http.Client
 }
 
 func New(publicKey []byte, bootstrapConfigPath, serial, platform, bootstrapAPI string, client *http.Client) *bootstrapper {
@@ -34,10 +33,6 @@ func New(publicKey []byte, bootstrapConfigPath, serial, platform, bootstrapAPI s
 }
 
 func (b *bootstrapper) EnsureBootstrapConfig() (*bootstrap.Config, error) {
-	if FileExists(b.BootstrapConfigPath) {
-		return readFromFile(b.BootstrapConfigPath)
-	}
-
 	bootstrapConfig, err := b.BootstrapDevice()
 	if err != nil {
 		return nil, fmt.Errorf("bootstrapping device: %w", err)
@@ -51,20 +46,10 @@ func (b *bootstrapper) EnsureBootstrapConfig() (*bootstrap.Config, error) {
 }
 
 func (b *bootstrapper) BootstrapDevice() (*bootstrap.Config, error) {
-	dib, err := json.Marshal(b.DeviceInfo)
-	if err != nil {
-		return nil, fmt.Errorf("marshaling device info: %w", err)
-	}
-
 	deviceInfoURL := fmt.Sprintf("%s/api/v1/deviceinfo", b.BootstrapAPI)
-	resp, err := b.Client.Post(deviceInfoURL, "application/json", bytes.NewReader(dib))
-
+	err := b.postDeviceInfo(deviceInfoURL)
 	if err != nil {
-		return nil, fmt.Errorf("posting device info to bootstrap API (%v): %w", deviceInfoURL, err)
-	}
-
-	if resp.StatusCode != http.StatusCreated {
-		return nil, fmt.Errorf("bootstrap api (%v) returned status %v", deviceInfoURL, resp.Status)
+		return nil, fmt.Errorf("posting device info: %w", err)
 	}
 
 	bootstrapConfigURL := fmt.Sprintf("%s/api/v1/bootstrapconfig/%s", b.BootstrapAPI, b.DeviceInfo.Serial)
@@ -74,6 +59,25 @@ func (b *bootstrapper) BootstrapDevice() (*bootstrap.Config, error) {
 	}
 
 	return bootstrapConfig, nil
+}
+
+func (b *bootstrapper) postDeviceInfo(url string) error {
+	dib, err := json.Marshal(b.DeviceInfo)
+	if err != nil {
+		return fmt.Errorf("marshaling device info: %w", err)
+	}
+
+	resp, err := b.Client.Post(url, "application/json", bytes.NewReader(dib))
+
+	if err != nil {
+		return fmt.Errorf("posting device info to bootstrap API (%v): %w", url, err)
+	}
+
+	if resp.StatusCode != http.StatusCreated {
+		return fmt.Errorf("bootstrap api (%v) returned status %v", url, resp.Status)
+	}
+
+	return nil
 }
 
 func (b *bootstrapper) getBootstrapConfig(url string) (*bootstrap.Config, error) {
@@ -95,14 +99,6 @@ func (b *bootstrapper) getBootstrapConfig(url string) (*bootstrap.Config, error)
 	return nil, fmt.Errorf("unable to get boostrap config in %v attempts from %v", attempts, url)
 }
 
-func FileExists(filepath string) bool {
-	info, err := os.Stat(filepath)
-	if err != nil || info.IsDir() {
-		return false
-	}
-	return true
-}
-
 func writeToFile(bootstrapConfig *bootstrap.Config, bootstrapConfigPath string) error {
 	b, err := json.Marshal(bootstrapConfig)
 	if err != nil {
@@ -114,7 +110,7 @@ func writeToFile(bootstrapConfig *bootstrap.Config, bootstrapConfigPath string) 
 	return nil
 }
 
-func readFromFile(bootstrapConfigPath string) (*bootstrap.Config, error) {
+func ReadFromFile(bootstrapConfigPath string) (*bootstrap.Config, error) {
 	var bc bootstrap.Config
 	b, err := ioutil.ReadFile(bootstrapConfigPath)
 	if err != nil {

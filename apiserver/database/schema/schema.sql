@@ -25,3 +25,11 @@ CREATE TABLE gateway
     ip              varchar(15) UNIQUE,
     routes          varchar
 );
+
+
+CREATE TABLE session
+(
+    key varchar,
+    expires bigint,
+    device_id integer REFERENCES device (id)
+);

@@ -26,6 +26,7 @@ type Config struct {
 type Azure struct {
 	ClientID     string
 	DiscoveryURL string
+	ClientSecret string
 }
 
 func (c *Config) Credentials() (map[string]string, error) {

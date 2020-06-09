@@ -3,6 +3,7 @@ package apiserver
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/nais/device/device-agent/auth"
 	"net/http"
 )
 
@@ -13,9 +14,9 @@ type Gateway struct {
 	Routes    []string `json:"routes"`
 }
 
-func GetGateways(client *http.Client, apiServerURL, serial string) ([]Gateway, error) {
+func GetGateways(sessionID auth.SessionID, apiServerURL, serial string) ([]Gateway, error) {
 	deviceConfigAPI := fmt.Sprintf("%s/devices/%s/gateways", apiServerURL, serial)
-	r, err := client.Get(deviceConfigAPI)
+	r, err := http.DefaultClient.Get(deviceConfigAPI)
 	if err != nil {
 		return nil, fmt.Errorf("getting device config: %w", err)
 	}
