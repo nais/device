@@ -13,7 +13,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestEnsureBootstrapConfig(t *testing.T) {
+func TestBootstrapDevice(t *testing.T) {
 	serial, platform := "serial", "platform"
 	tunnelIP, publicKey, endpoint, apiserverIP := "tunnelIP", "publicKey", "endpoint", "apiserverIP"
 

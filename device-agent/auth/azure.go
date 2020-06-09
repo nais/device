@@ -25,14 +25,8 @@ func runAuthFlow(ctx context.Context, conf oauth2.Config) (*oauth2.Token, error)
 	// Ignoring impossible error
 	codeVerifier, _ := codeverifier.CreateCodeVerifier()
 
-	method := oauth2.SetAuthURLParam("code_challenge_method", "S256")
-	challenge := oauth2.SetAuthURLParam("code_challenge", codeVerifier.CodeChallengeS256())
-
 	// TODO check this in response from Azure
-	randomString := random.RandomString(16, random.LettersAndNumbers)
-
 	tokenChan := make(chan *oauth2.Token)
-
 	handler := http.NewServeMux()
 
 	// define a handler that will get the authorization code, call the token endpoint, and close the HTTP server
@@ -65,7 +59,12 @@ func runAuthFlow(ctx context.Context, conf oauth2.Config) (*oauth2.Token, error)
 	go server.ListenAndServe()
 	defer server.Close()
 
-	url := conf.AuthCodeURL(randomString, oauth2.AccessTypeOffline, method, challenge)
+	url := conf.AuthCodeURL(
+		random.RandomString(16, random.LettersAndNumbers),
+		oauth2.AccessTypeOffline,
+		oauth2.SetAuthURLParam("code_challenge_method", "S256"),
+		oauth2.SetAuthURLParam("code_challenge", codeVerifier.CodeChallengeS256()))
+
 	err := openDefaultBrowser(url)
 	if err != nil {
 		log.Errorf("opening browser, err: %v", err)
