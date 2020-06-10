@@ -27,7 +27,7 @@ type Config struct {
 }
 
 func (c *Config) SetDefaults() {
-	SetPlatform(c)
+	c.Platform = Platform
 	c.SetPlatformDefaults()
 	c.PrivateKeyPath = filepath.Join(c.ConfigDir, "private.key")
 	c.WireGuardConfigPath = filepath.Join(c.ConfigDir, c.Interface+".conf")
