@@ -4,16 +4,16 @@ import (
 	"context"
 	"github.com/go-chi/chi"
 	chi_middleware "github.com/go-chi/chi/middleware"
+	"github.com/nais/device/apiserver/auth"
 	"github.com/nais/device/apiserver/database"
 	"github.com/nais/device/apiserver/middleware"
-	"github.com/nais/device/apiserver/session"
 	"net/http"
 )
 
 type Config struct {
 	DB       *database.APIServerDB
 	APIKeys  map[string]string
-	Sessions *session.Sessions
+	Sessions *auth.Sessions
 }
 
 func New(ctx context.Context, cfg Config) chi.Router {
@@ -44,7 +44,8 @@ func New(ctx context.Context, cfg Config) chi.Router {
 		r.Get("/", api.deviceConfig)
 	})
 
-	r.Post("/login", sessions.Login)
+	r.Get("/", sessions.Login)
+	r.Get("/login", sessions.StartLogin)
 
 	return r
 }

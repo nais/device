@@ -33,8 +33,6 @@ windows-client:
 local:
 	go build -o bin/apiserver ./cmd/apiserver
 	go build -o bin/gateway-agent -ldflags "-s $(LDFLAGS)" ./cmd/gateway-agent
-	go build -o bin/device-agent ./cmd/device-agent
-	go build -o bin/device-agent-helper ./cmd/device-agent-helper
 	go build -o bin/prometheus-agent ./cmd/prometheus-agent
 	go build -o bin/bootstrap-api ./cmd/bootstrap-api
 

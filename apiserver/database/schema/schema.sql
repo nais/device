@@ -29,6 +29,6 @@ CREATE TABLE gateway
 CREATE TABLE session
 (
     key varchar,
-    expires bigint,
+    expiry bigint,
     device_id integer REFERENCES device (id)
 );

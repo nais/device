@@ -4,8 +4,8 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"github.com/nais/device/apiserver/auth"
 	"github.com/nais/device/apiserver/bootstrapper"
-	"github.com/nais/device/apiserver/session"
 	"github.com/nais/device/pkg/logger"
 	"io/ioutil"
 	"net/http"
@@ -15,9 +15,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/dgrijalva/jwt-go"
-	"github.com/nais/device/apiserver/azure/discovery"
-	"github.com/nais/device/apiserver/azure/validate"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 
 	"github.com/nais/device/apiserver/api"
@@ -72,7 +69,7 @@ func main() {
 		log.Fatalf("Instantiating database: %s", err)
 	}
 
-	sessions, err := session.New(ctx, cfg.DbConnURI, cfg.Azure.ClientID, cfg.Azure.ClientSecret)
+	sessions, err := auth.New(ctx, cfg)
 	if err != nil {
 		log.Fatalf("Instantiating sessions: %s", err)
 	}
@@ -113,25 +110,6 @@ func main() {
 
 	fmt.Println("running @", cfg.BindAddress)
 	fmt.Println(http.ListenAndServe(cfg.BindAddress, router))
-}
-
-func createJWTValidator(conf config.Config) (jwt.Keyfunc, error) {
-	if conf.DevMode {
-		return func(token *jwt.Token) (interface{}, error) {
-			return nil, nil
-		}, nil
-	}
-
-	if len(conf.Azure.ClientID) == 0 || len(conf.Azure.DiscoveryURL) == 0 {
-		return nil, fmt.Errorf("missing required azure configuration")
-	}
-
-	certificates, err := discovery.FetchCertificates(cfg.Azure)
-	if err != nil {
-		return nil, fmt.Errorf("retrieving azure ad certificates for token validation: %v", err)
-	}
-
-	return validate.JWTValidator(certificates, cfg.Azure.ClientID), nil
 }
 
 func generatePublicKey(privateKey []byte, wireGuardPath string) ([]byte, error) {
