@@ -71,7 +71,7 @@ func main() {
 	// wait until helper has established tunnel to apiserver...
 
 	sessionInfoPath := filepath.Join(cfg.ConfigDir, "sessionkey.json")
-	if rc.SessionInfo, err = ensureValidSessionInfo(sessionInfoPath, cfg.APIServer, ctx); err != nil {
+	if rc.SessionInfo, err = ensureValidSessionInfo(sessionInfoPath, cfg.APIServer, cfg.Platform, rc.Serial, ctx); err != nil {
 		log.Errorf("Ensuring valid session key: %v", err)
 		return
 	}
