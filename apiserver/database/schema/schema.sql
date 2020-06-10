@@ -26,7 +26,6 @@ CREATE TABLE gateway
     routes          varchar
 );
 
-
 CREATE TABLE session
 (
     key varchar,

@@ -2,14 +2,18 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"net/http"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"syscall"
 	"time"
 
 	"github.com/nais/device/device-agent/apiserver"
+	"github.com/nais/device/device-agent/auth"
 	"github.com/nais/device/device-agent/config"
 	"github.com/nais/device/device-agent/filesystem"
 	"github.com/nais/device/device-agent/runtimeconfig"
@@ -64,6 +68,19 @@ func main() {
 		return
 	}
 
+	// wait until helper has established tunnel to apiserver...
+
+	sessionInfoPath := filepath.Join(cfg.ConfigDir, "sessionkey.json")
+	if rc.SessionInfo, err = ensureValidSessionInfo(sessionInfoPath, cfg.APIServer, ctx); err != nil {
+		log.Errorf("Ensuring valid session key: %v", err)
+		return
+	}
+
+	if err := writeToJSONFile(rc.SessionInfo, sessionInfoPath); err != nil {
+		log.Errorf("Writing session info to disk: %v", err)
+		return
+	}
+
 	interrupt := make(chan os.Signal, 1)
 	signal.Notify(interrupt, os.Interrupt, syscall.SIGTERM)
 
@@ -74,15 +91,84 @@ func main() {
 			return
 
 		case <-time.After(5 * time.Second):
-			if err := SyncConfig(baseConfig, rc); err != nil {
+			if err := SyncConfig(baseConfig, rc, ctx); err != nil {
 				log.Errorf("Unable to synchronize config with apiserver: %v", err)
 			}
 		}
 	}
 }
 
-func SyncConfig(baseConfig string, rc *runtimeconfig.RuntimeConfig) error {
-	gateways, err := apiserver.GetGateways(rc.SessionID, rc.Config.APIServer, rc.Serial)
+func writeToJSONFile(strct interface{}, path string) error {
+	b, err := json.Marshal(&strct)
+	if err != nil {
+		return fmt.Errorf("marshaling struct into json: %w", err)
+	}
+	if err := ioutil.WriteFile(path, b, 0600); err != nil {
+		return err
+	}
+	return nil
+}
+
+func fileExists(filepath string) bool {
+	info, err := os.Stat(filepath)
+	if err != nil || info.IsDir() {
+		return false
+	}
+	return true
+}
+
+func ensureValidSessionInfo(sessionInfoFile, apiserverURL, platform, serial string, ctx context.Context) (*auth.SessionInfo, error) {
+	if fileExists(sessionInfoFile) {
+		b, err := ioutil.ReadFile(sessionInfoFile)
+		if err != nil {
+			return nil, fmt.Errorf("reading session key file: %v", err)
+		}
+		var si auth.SessionInfo
+
+		_ = json.Unmarshal(b, &si) // Ignoring unmarshalling errors, fetch new session key instead
+
+		const MinRemainingKeyValidity = 8 * time.Hour
+		if time.Unix(si.Expiry, 0).After(time.Now().Add(MinRemainingKeyValidity)) {
+			log.Debug("Using cached session key, as it is valid for more than 8 hours")
+			return &si, nil
+		}
+	}
+
+	authURL, err := getAuthURL(apiserverURL, ctx)
+
+	if err != nil {
+		return nil, fmt.Errorf("getting Azure auth URL from apiserver: %v", err)
+	}
+
+	return auth.RunFlow(ctx, authURL, apiserverURL, platform, serial)
+}
+
+func getAuthURL(apiserverURL string, ctx context.Context) (string, error) {
+	ctx, cancel := context.WithTimeout(ctx, 2*time.Second)
+	defer cancel()
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, apiserverURL+"/login", nil)
+	if err != nil {
+		return "", fmt.Errorf("creating request to get Azure auth URL: %v", err)
+	}
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return "", fmt.Errorf("getting Azure auth URL from apiserver: %v", err)
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		return "", fmt.Errorf("unable to get Azure auth URL from apiserver (%v), http status: %v", apiserverURL, resp.Status)
+	}
+
+	authURL, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return "", fmt.Errorf("unable to read response body: %v", err)
+	}
+	return string(authURL), nil
+}
+
+func SyncConfig(baseConfig string, rc *runtimeconfig.RuntimeConfig, ctx context.Context) error {
+	gateways, err := apiserver.GetGateways(rc.SessionInfo.Key, rc.Config.APIServer, rc.Serial, ctx)
 
 	if err != nil {
 		return fmt.Errorf("unable to get gateway config: %w", err)

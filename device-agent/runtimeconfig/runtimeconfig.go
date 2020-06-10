@@ -22,7 +22,7 @@ type RuntimeConfig struct {
 	BootstrapConfig *bootstrap.Config
 	Config          config.Config
 	PrivateKey      []byte
-	SessionID       auth.SessionID
+	SessionInfo     *auth.SessionInfo
 }
 
 func New(cfg config.Config, ctx context.Context) (*RuntimeConfig, error) {
@@ -46,10 +46,6 @@ func New(cfg config.Config, ctx context.Context) (*RuntimeConfig, error) {
 
 	if err := writeToJSONFile(rc.BootstrapConfig, rc.Config.BootstrapConfigPath); err != nil {
 		return nil, fmt.Errorf("writing bootstrap config to disk: %w", err)
-	}
-
-	if rc.SessionID, err = auth.RunFlow(ctx, cfg.ConfigDir, cfg.APIServer); err != nil {
-		return nil, fmt.Errorf("getting session id: %w", err)
 	}
 
 	return rc, nil

@@ -1,10 +1,11 @@
 package apiserver
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/nais/device/device-agent/auth"
 	"net/http"
+	"time"
 )
 
 type Gateway struct {
@@ -14,16 +15,23 @@ type Gateway struct {
 	Routes    []string `json:"routes"`
 }
 
-func GetGateways(sessionID auth.SessionID, apiServerURL, serial string) ([]Gateway, error) {
+func GetGateways(sessionKey, apiServerURL, serial string, ctx context.Context) ([]Gateway, error) {
+	ctx, cancel := context.WithTimeout(ctx, 3*time.Second)
+	defer cancel()
+
 	deviceConfigAPI := fmt.Sprintf("%s/devices/%s/gateways", apiServerURL, serial)
-	r, err := http.DefaultClient.Get(deviceConfigAPI)
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, deviceConfigAPI, nil)
+	req.Header.Add("x-naisdevice-session-key", sessionKey)
+
+	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("getting device config: %w", err)
 	}
-	defer r.Body.Close()
+	defer resp.Body.Close()
 
 	var gateways []Gateway
-	if err := json.NewDecoder(r.Body).Decode(&gateways); err != nil {
+	if err := json.NewDecoder(resp.Body).Decode(&gateways); err != nil {
 		return nil, fmt.Errorf("unmarshalling response body into gateways: %w", err)
 	}
 

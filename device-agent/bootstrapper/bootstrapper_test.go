@@ -46,9 +46,14 @@ func TestBootstrapDevice(t *testing.T) {
 		}
 	}))
 
-	b := bootstrapper.New([]byte("publicKey"), "/some/path", serial, platform, server.URL, server.Client())
+	di := &bootstrap.DeviceInfo{
+		Serial:    serial,
+		PublicKey: publicKey,
+		Platform:  platform,
+	}
 
-	bootstrapConfig, err := b.BootstrapDevice()
+	bootstrapConfig, err := bootstrapper.BootstrapDevice(di, server.URL, server.Client())
+
 	assert.NoError(t, err)
 	assert.Equal(t, tunnelIP, bootstrapConfig.DeviceIP)
 	assert.Equal(t, publicKey, bootstrapConfig.PublicKey)

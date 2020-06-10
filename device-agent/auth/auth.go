@@ -2,58 +2,49 @@ package auth
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
+	"net/http"
+	"time"
+
 	"github.com/nais/device/apiserver/kekw"
 	log "github.com/sirupsen/logrus"
-	"io/ioutil"
-	"net/http"
-	"strings"
-	"time"
 )
 
-type SessionID string
+type SessionInfo struct {
+	Key    string `json:"key"`
+	Expiry int64  `json:"expiry"`
+}
 
-func RunFlow(ctx context.Context, authURL, apiserverURL string) (SessionID, error) {
+func RunFlow(ctx context.Context, authURL, apiserverURL, platform, serial string) (*SessionInfo, error) {
 	ctx, cancel := context.WithTimeout(ctx, 3*time.Minute)
 	defer cancel()
 
 	handler := http.NewServeMux()
 
-	sessionIDChan := make(chan string)
-	// define a handler that will get the authorization code, call the sessionID endpoint, and close the HTTP server
+	sessionInfo := make(chan *SessionInfo)
+	// define a handler that will get the authorization code, call the login endpoint to get a new session, and close the HTTP server
 	handler.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		code := r.URL.Query().Get("code")
-		if code == "" {
-			log.Errorf("Error: could not find 'code' URL query parameter")
-			failureResponse(w, "Error: could not find 'code' URL query parameter")
-			sessionIDChan <- ""
+		r.URL.Host = apiserverURL
+		r.Header.Add("x-naisdevice-platform", platform)
+		r.Header.Add("x-naisdevice-serial", serial)
+
+		resp, err := http.DefaultClient.Do(r.WithContext(ctx))
+		if err != nil {
+			log.Errorf("Sending auth code to apiserver login: %v", err)
+			sessionInfo <- nil
 			return
 		}
 
-		// post apiserver/login med code
-		req, err := http.NewRequestWithContext(ctx, http.MethodPost, apiserverURL+"/login", strings.NewReader(code))
-		if err != nil {
-			log.Errorf("Creating post request for apiserver login: %v", err)
-			sessionIDChan <- ""
-			return
-		}
-
-		resp, err := http.DefaultClient.Do(req)
-		if err != nil {
-			log.Errorf("Posting auth code to apiserver login: %v", err)
-			sessionIDChan <- ""
-			return
-		}
-
-		sessionID, err := ioutil.ReadAll(resp.Body)
-		if err != nil {
-			log.Errorf("Reading sessionID from body: %v", err)
-			sessionIDChan <- ""
+		var si SessionInfo
+		if err := json.NewDecoder(resp.Body).Decode(&si); err != nil {
+			log.Errorf("Reading session info from response body: %v", err)
+			sessionInfo <- nil
 			return
 		}
 
 		successfulResponse(w, "Successfully authenticated 👌 Close me pls")
-		sessionIDChan <- string(sessionID)
+		sessionInfo <- &si
 	})
 
 	server := &http.Server{Addr: "127.0.0.1:51800", Handler: handler}
@@ -67,20 +58,20 @@ func RunFlow(ctx context.Context, authURL, apiserverURL string) (SessionID, erro
 	}
 	fmt.Printf("If the browser didn't open, visit this url to sign in: %v\n", authURL)
 
-	var sessionID string
+	var si *SessionInfo
 	select {
-	case sessionID = <-sessionIDChan:
+	case si = <-sessionInfo:
 		break
 	case <-time.After(3 * time.Minute):
 		log.Warn("timed out waiting for authentication flow")
 		break
 	}
 
-	if len(sessionID) == 0 {
-		return "", fmt.Errorf("no sessionID received")
+	if si == nil {
+		return nil, fmt.Errorf("no session info received")
 	}
 
-	return SessionID(sessionID), nil
+	return si, nil
 }
 
 func failureResponse(w http.ResponseWriter, msg string) {
