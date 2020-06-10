@@ -98,11 +98,11 @@ func failureResponse(w http.ResponseWriter, msg string) {
 func successfulResponse(w http.ResponseWriter, msg string) {
 	w.Header().Set("content-type", "text/html;charset=utf8")
 	_, _ = fmt.Fprintf(w, `
-<div style="position:absolute;left:50%;top:50%;margin-top:-150px;margin-left:-200px;height:300px;width:400px;bottom:50%;background-color:#f5f5f5;border:1px solid #d9d9d9;border-radius:5px">
+<div style="position:absolute;left:50%%;top:50%%;margin-top:-150px;margin-left:-200px;height:300px;width:400px;bottom:50%%;background-color:#f5f5f5;border:1px solid #d9d9d9;border-radius:5px">
 <img style="width:100px;display:block;margin:auto;margin-top:50px" width="100" src="data:image/jpeg;base64,%s"/>
 <p style="margin-top: 70px" align="center">
   %s
 </p>
 </div>
-`, msg, kekw.HappyKekW)
+`, kekw.HappyKekW, msg)
 }
