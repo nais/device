@@ -5,6 +5,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"net/url"
+	"strings"
 	"time"
 
 	"github.com/nais/device/apiserver/kekw"
@@ -25,11 +27,20 @@ func RunFlow(ctx context.Context, authURL, apiserverURL, platform, serial string
 	sessionInfo := make(chan *SessionInfo)
 	// define a handler that will get the authorization code, call the login endpoint to get a new session, and close the HTTP server
 	handler.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		r.URL.Host = apiserverURL
-		r.Header.Add("x-naisdevice-platform", platform)
-		r.Header.Add("x-naisdevice-serial", serial)
+		url := url.URL{
+			Scheme: "http",
+			Host: strings.Split(apiserverURL, "://")[1],
+			Path: "/",
+			RawQuery: r.URL.RawQuery,
+		}
+		log.Infof("url: %v", url)
 
-		resp, err := http.DefaultClient.Do(r.WithContext(ctx))
+		codeRequest, _ := http.NewRequest(http.MethodGet, url.String(), nil)
+		log.Infof("req: %v", codeRequest)
+		codeRequest.Header.Add("x-naisdevice-platform", platform)
+		codeRequest.Header.Add("x-naisdevice-serial", serial)
+
+		resp, err := http.DefaultClient.Do(codeRequest.WithContext(ctx))
 		if err != nil {
 			log.Errorf("Sending auth code to apiserver login: %v", err)
 			sessionInfo <- nil
