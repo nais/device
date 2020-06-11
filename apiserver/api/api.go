@@ -105,7 +105,7 @@ func (a *api) gateways(w http.ResponseWriter, r *http.Request) {
 func (a *api) deviceConfig(w http.ResponseWriter, r *http.Request) {
 	sessionInfo := r.Context().Value("sessionInfo").(auth.SessionInfo)
 
-	device, err := a.db.ReadDevice(sessionInfo.DeviceID)
+	device, err := a.db.ReadDeviceById(sessionInfo.DeviceID)
 	if err != nil {
 		log.Errorf("reading device from db: %v", err)
 		respondf(w, http.StatusInternalServerError, "error reading device from db")

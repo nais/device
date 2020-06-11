@@ -6,8 +6,6 @@ import (
 	"fmt"
 	"github.com/dgrijalva/jwt-go"
 	"github.com/jackc/pgx/v4/pgxpool"
-	"github.com/nais/device/apiserver/azure/discovery"
-	"github.com/nais/device/apiserver/azure/validate"
 	"github.com/nais/device/apiserver/config"
 	"github.com/nais/device/pkg/random"
 	log "github.com/sirupsen/logrus"
@@ -21,7 +19,7 @@ import (
 type SessionInfo struct {
 	Key      string `json:"key"`
 	Expiry   int64  `json:"expiry"`
-	DeviceID string `json:"deviceID"`
+	DeviceID int
 	Serial   string
 	Platform string
 	Username string
@@ -42,27 +40,22 @@ type Sessions struct {
 	activeLock sync.Mutex
 }
 
-func New(ctx context.Context, cfg config.Config) (*Sessions, error) {
+func New(ctx context.Context, cfg config.Config, validator jwt.Keyfunc) (*Sessions, error) {
 	db, err := pgxpool.Connect(ctx, cfg.DbConnURI)
 	if err != nil {
 		return nil, fmt.Errorf("connecting to database %w", err)
 	}
 
-	tokenValidator, err := createJWTValidator(cfg)
-	if err != nil {
-		return nil, fmt.Errorf("creating JWT validator: %w", err)
-	}
-
 	return &Sessions{
 		db:             db,
-		tokenValidator: tokenValidator,
+		tokenValidator: validator,
 		state:          make(map[string]bool),
 		active:         make(map[string]SessionInfo),
 		oauthConfig: &oauth2.Config{
 			RedirectURL:  "http://localhost:51800",
 			ClientID:     cfg.Azure.ClientID,
 			ClientSecret: cfg.Azure.ClientSecret,
-			Scopes:       []string{"openid", "6e45010d-2637-4a40-b91d-d4cbb451fb57/.default"},
+			Scopes:       []string{"openid", fmt.Sprintf("%s/.default", cfg.Azure.ClientID)},
 			Endpoint:     endpoints.AzureAD("62366534-1ec3-4962-8869-9b5535279d0b"),
 		},
 	}, nil
@@ -80,8 +73,10 @@ func (s *Sessions) Validator() func(next http.Handler) http.Handler {
 			s.activeLock.Lock()
 			defer s.activeLock.Unlock()
 			sessionInfo, ok := s.active[sessionKey]
+
 			if !ok || !sessionInfo.Expired() {
 				log.Infof("session expired: %v", sessionInfo)
+				log.Infof("s: %v", s.active)
 				w.WriteHeader(http.StatusUnauthorized)
 				return
 			}
@@ -147,6 +142,10 @@ func (s *Sessions) Login(w http.ResponseWriter, r *http.Request) {
 	serial := r.Header.Get("x-naisdevice-serial")
 	platform := r.Header.Get("x-naisdevice-platform")
 	deviceID, err := s.getDeviceID(serial, platform)
+	if err != nil {
+		authFailed(w, "getting device: %v", err)
+		return
+	}
 
 	sessionInfo := SessionInfo{
 		Key:      random.RandomString(20, random.LettersAndNumbers),
@@ -173,10 +172,12 @@ func (s *Sessions) Login(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		log.Errorf("writing response: %v", err)
 	}
+
+	log.Infof("login: %v", s.active)
 }
 
 // Should probably do something smart like sharing the code from ApiServerDB
-func (s *Sessions) getDeviceID(serial string, platform string) (string, error) {
+func (s *Sessions) getDeviceID(serial string, platform string) (int, error) {
 	ctx := context.Background()
 
 	query := `
@@ -187,11 +188,11 @@ SELECT id
 
 	row := s.db.QueryRow(ctx, query, serial, platform)
 
-	var deviceID string
+	var deviceID int
 	err := row.Scan(&deviceID)
 
 	if err != nil {
-		return "", fmt.Errorf("scanning row: %s", err)
+		return -1, fmt.Errorf("scanning row: %s", err)
 	}
 
 	return deviceID, nil
@@ -228,20 +229,6 @@ func (s *Sessions) parseToken(token *oauth2.Token) (string, []string, error) {
 	username := claims["preferred_username"].(string)
 
 	return username, groups, nil
-}
-
-func createJWTValidator(conf config.Config) (jwt.Keyfunc, error) {
-
-	if len(conf.Azure.ClientID) == 0 || len(conf.Azure.DiscoveryURL) == 0 {
-		return nil, fmt.Errorf("missing required azure configuration")
-	}
-
-	certificates, err := discovery.FetchCertificates(conf.Azure)
-	if err != nil {
-		return nil, fmt.Errorf("retrieving azure ad certificates for token validation: %v", err)
-	}
-
-	return validate.JWTValidator(certificates, conf.Azure.ClientID), nil
 }
 
 func authFailed(w http.ResponseWriter, format string, args ...interface{}) {

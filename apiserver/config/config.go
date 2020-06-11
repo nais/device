@@ -2,6 +2,7 @@ package config
 
 import (
 	"fmt"
+	"github.com/dgrijalva/jwt-go"
 	"strings"
 )
 
@@ -21,6 +22,7 @@ type Config struct {
 	CredentialEntries       []string
 	BootstrapApiURL         string
 	LogLevel                string
+	TokenValidator          jwt.Keyfunc
 }
 
 type Azure struct {

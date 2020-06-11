@@ -4,7 +4,10 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"github.com/dgrijalva/jwt-go"
 	"github.com/nais/device/apiserver/auth"
+	"github.com/nais/device/apiserver/azure/discovery"
+	"github.com/nais/device/apiserver/azure/validate"
 	"github.com/nais/device/apiserver/bootstrapper"
 	"github.com/nais/device/pkg/logger"
 	"io/ioutil"
@@ -69,7 +72,12 @@ func main() {
 		log.Fatalf("Instantiating database: %s", err)
 	}
 
-	sessions, err := auth.New(ctx, cfg)
+	tokenValidator, err := createJWTValidator(cfg)
+	if err != nil {
+		log.Fatalf("creating JWT validator: %w", err)
+	}
+
+	sessions, err := auth.New(ctx, cfg, tokenValidator)
 	if err != nil {
 		log.Fatalf("Instantiating sessions: %s", err)
 	}
@@ -217,4 +225,18 @@ PublicKey = %s
 	}
 
 	return []byte(wgConfig)
+}
+
+func createJWTValidator(conf config.Config) (jwt.Keyfunc, error) {
+
+	if len(conf.Azure.ClientID) == 0 || len(conf.Azure.DiscoveryURL) == 0 {
+		return nil, fmt.Errorf("missing required azure configuration")
+	}
+
+	certificates, err := discovery.FetchCertificates(conf.Azure)
+	if err != nil {
+		return nil, fmt.Errorf("retrieving azure ad certificates for token validation: %v", err)
+	}
+
+	return validate.JWTValidator(certificates, conf.Azure.ClientID), nil
 }

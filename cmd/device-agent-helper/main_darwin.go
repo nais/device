@@ -78,7 +78,7 @@ func teardownInterface(ctx context.Context, cfg Config) {
 	out, err := cmd.CombinedOutput()
 
 	if err != nil {
-		log.Infof("tearing down interface failed: %v: %v", cmd,  err)
+		log.Infof("tearing down interface failed: %v: %v", cmd, err)
 		log.Infof("teardown output: %v", string(out))
 		log.Infof("teardown failure probably just means no existing tunnel was running")
 	}

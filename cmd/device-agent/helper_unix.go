@@ -4,10 +4,9 @@ package main
 
 import (
 	"context"
+	"github.com/nais/device/device-agent/runtimeconfig"
 	"os"
 	"os/exec"
-
-	"github.com/nais/device/device-agent/runtimeconfig"
 )
 
 func runHelper(rc *runtimeconfig.RuntimeConfig, ctx context.Context) error {
