@@ -104,7 +104,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./bin/apiserver
+          : ./bin/apiserver
           asset_name: apiserver
           asset_content_type: application/octet-stream
       - name: upload gateway-agent binary
@@ -160,4 +160,22 @@ jobs:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
           asset_path: ./bin/windows/device-agent-helper.exe
           asset_name: device-agent-helper.exe
+          asset_content_type: application/octet-stream
+      - name: upload device-agent (macos)
+        uses: actions/upload-release-asset@v1.0.2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./bin/macos/device-agent
+          asset_name: device-agent-osx
+          asset_content_type: application/octet-stream
+      - name: upload device-agent-helper (macos)
+        uses: actions/upload-release-asset@v1.0.2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./bin/macos/device-agent-helper-osx
+          asset_name: device-agent-helper-osx
           asset_content_type: application/octet-stream
