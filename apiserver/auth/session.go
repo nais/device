@@ -32,6 +32,7 @@ type Sessions struct {
 	db             *pgxpool.Pool
 	oauthConfig    *oauth2.Config
 	tokenValidator jwt.Keyfunc
+	devMode        bool
 
 	state     map[string]bool
 	stateLock sync.Mutex
@@ -48,6 +49,7 @@ func New(ctx context.Context, cfg config.Config, validator jwt.Keyfunc) (*Sessio
 
 	return &Sessions{
 		db:             db,
+		devMode:        cfg.DevMode,
 		tokenValidator: validator,
 		state:          make(map[string]bool),
 		active:         make(map[string]SessionInfo),
@@ -127,34 +129,48 @@ func (s *Sessions) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	token, err := s.getToken(ctx, r.URL.Query().Get("code"))
-	if err != nil {
-		authFailed(w, "Exchanging code for token: %v", err)
-		return
-	}
+	var sessionInfo SessionInfo
+	if !s.devMode {
+		token, err := s.getToken(ctx, r.URL.Query().Get("code"))
+		if err != nil {
+			authFailed(w, "Exchanging code for token: %v", err)
+			return
+		}
 
-	username, groups, err := s.parseToken(token)
-	if err != nil {
-		authFailed(w, "Parsing token: %v", err)
-		return
-	}
+		username, groups, err := s.parseToken(token)
+		if err != nil {
+			authFailed(w, "Parsing token: %v", err)
+			return
+		}
 
-	serial := r.Header.Get("x-naisdevice-serial")
-	platform := r.Header.Get("x-naisdevice-platform")
-	deviceID, err := s.getDeviceID(serial, platform)
-	if err != nil {
-		authFailed(w, "getting device: %v", err)
-		return
-	}
+		serial := r.Header.Get("x-naisdevice-serial")
+		platform := r.Header.Get("x-naisdevice-platform")
+		deviceID, err := s.getDeviceID(serial, platform)
+		if err != nil {
+			authFailed(w, "getting device: %v", err)
+			return
+		}
 
-	sessionInfo := SessionInfo{
-		Key:      random.RandomString(20, random.LettersAndNumbers),
-		Expiry:   time.Now().Add(SessionDuration).Unix(),
-		Serial:   serial,
-		Platform: platform,
-		Username: username,
-		Groups:   groups,
-		DeviceID: deviceID,
+		sessionInfo = SessionInfo{
+			Key:      random.RandomString(20, random.LettersAndNumbers),
+			Expiry:   time.Now().Add(SessionDuration).Unix(),
+			Serial:   serial,
+			Platform: platform,
+			Username: username,
+			Groups:   groups,
+			DeviceID: deviceID,
+		}
+
+	} else {
+		sessionInfo = SessionInfo{
+			Key:      "keyyolo123",
+			Expiry:   time.Now().Add(SessionDuration).Unix(),
+			DeviceID: 1,
+			Serial:   "serial",
+			Platform: "platform",
+			Username: "username",
+			Groups:   []string{"group1", "group2"},
+		}
 	}
 
 	b, err := json.Marshal(sessionInfo)
@@ -200,12 +216,18 @@ SELECT id
 }
 
 func (s *Sessions) AuthURL(w http.ResponseWriter, r *http.Request) {
+
 	state := random.RandomString(20, random.LettersAndNumbers)
 	s.stateLock.Lock()
 	s.state[state] = true
 	s.stateLock.Unlock()
 
-	authURL := s.oauthConfig.AuthCodeURL(state, oauth2.AccessTypeOffline)
+	var authURL string
+	if !s.devMode {
+		authURL = s.oauthConfig.AuthCodeURL(state, oauth2.AccessTypeOffline)
+	} else {
+		authURL = fmt.Sprintf("http://localhost:51800/?state=%s&code=dev", state)
+	}
 	_, err := w.Write([]byte(authURL))
 	if err != nil {
 		log.Errorf("responding to %v %v : %v", r.Method, r.URL.Path, err)

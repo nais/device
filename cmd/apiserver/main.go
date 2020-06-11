@@ -228,6 +228,11 @@ PublicKey = %s
 }
 
 func createJWTValidator(conf config.Config) (jwt.Keyfunc, error) {
+	if conf.DevMode {
+		return func(token *jwt.Token) (interface{}, error) {
+			return []byte("never_used"), nil
+		}, nil
+	}
 
 	if len(conf.Azure.ClientID) == 0 || len(conf.Azure.DiscoveryURL) == 0 {
 		return nil, fmt.Errorf("missing required azure configuration")
