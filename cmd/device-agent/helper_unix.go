@@ -11,7 +11,7 @@ import (
 )
 
 func runHelper(rc *runtimeconfig.RuntimeConfig, ctx context.Context) error {
-	cmd := adminCommandContext(ctx, "./bin/device-agent-helper",
+	cmd := adminCommandContext(ctx, "./bin/macos/device-agent-helper",
 		"--interface", rc.Config.Interface,
 		"--device-ip", rc.BootstrapConfig.DeviceIP,
 		"--wireguard-binary", rc.Config.WireGuardBinary,

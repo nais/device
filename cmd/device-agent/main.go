@@ -144,7 +144,7 @@ func ensureValidSessionInfo(sessionInfoFile, apiserverURL, platform, serial stri
 }
 
 func getAuthURL(apiserverURL string, ctx context.Context) (string, error) {
-	ctx, cancel := context.WithTimeout(ctx, 2*time.Second)
+	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, apiserverURL+"/login", nil)
