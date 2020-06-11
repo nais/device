@@ -27,16 +27,14 @@ func RunFlow(ctx context.Context, authURL, apiserverURL, platform, serial string
 	sessionInfo := make(chan *SessionInfo)
 	// define a handler that will get the authorization code, call the login endpoint to get a new session, and close the HTTP server
 	handler.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		url := url.URL{
+		codeRequestURL := url.URL{
 			Scheme: "http",
 			Host: strings.Split(apiserverURL, "://")[1],
 			Path: "/",
 			RawQuery: r.URL.RawQuery,
 		}
-		log.Infof("url: %v", url)
 
-		codeRequest, _ := http.NewRequest(http.MethodGet, url.String(), nil)
-		log.Infof("req: %v", codeRequest)
+		codeRequest, _ := http.NewRequest(http.MethodGet, codeRequestURL.String(), nil)
 		codeRequest.Header.Add("x-naisdevice-platform", platform)
 		codeRequest.Header.Add("x-naisdevice-serial", serial)
 
