@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"github.com/nais/device/apiserver/auth"
+	"github.com/nais/device/apiserver/config"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -75,9 +77,15 @@ func setup(t *testing.T) (*database.APIServerDB, chi.Router) {
 	if err != nil {
 		t.Fatalf("Instantiating database: %v", err)
 	}
+
+	ctx := context.Background()
+	cfg := config.Config{}
+	sessions, err := auth.New(ctx, cfg)
+	assert.NoError(t, err)
+
 	return db, api.New(api.Config{
-		DB:                          db,
-		OAuthKeyValidatorMiddleware: TokenValidatorMiddlewareMock([]string{"abc-123", "123-abc"}),
+		DB:       db,
+		Sessions: sessions,
 	})
 }
 

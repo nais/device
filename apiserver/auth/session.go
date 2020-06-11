@@ -81,7 +81,7 @@ func (s *Sessions) Validator() func(next http.Handler) http.Handler {
 			defer s.activeLock.Unlock()
 			sessionInfo, ok := s.active[sessionKey]
 			if !ok || !sessionInfo.Expired() {
-				log.Info("session expired: %v", sessionInfo)
+				log.Infof("session expired: %v", sessionInfo)
 				w.WriteHeader(http.StatusUnauthorized)
 				return
 			}
