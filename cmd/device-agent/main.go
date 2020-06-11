@@ -8,7 +8,6 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
-	"path/filepath"
 	"syscall"
 	"time"
 
@@ -70,13 +69,12 @@ func main() {
 
 	// wait until helper has established tunnel to apiserver...
 
-	sessionInfoPath := filepath.Join(cfg.ConfigDir, "sessionkey.json")
-	if rc.SessionInfo, err = ensureValidSessionInfo(sessionInfoPath, cfg.APIServer, cfg.Platform, rc.Serial, ctx); err != nil {
+	if rc.SessionInfo, err = ensureValidSessionInfo(cfg.SessionInfoPath, cfg.APIServer, cfg.Platform, rc.Serial, ctx); err != nil {
 		log.Errorf("Ensuring valid session key: %v", err)
 		return
 	}
 
-	if err := writeToJSONFile(rc.SessionInfo, sessionInfoPath); err != nil {
+	if err := writeToJSONFile(rc.SessionInfo, cfg.SessionInfoPath); err != nil {
 		log.Errorf("Writing session info to disk: %v", err)
 		return
 	}
@@ -168,7 +166,17 @@ func getAuthURL(apiserverURL string, ctx context.Context) (string, error) {
 }
 
 func SyncConfig(baseConfig string, rc *runtimeconfig.RuntimeConfig, ctx context.Context) error {
-	gateways, err := apiserver.GetGateways(rc.SessionInfo.Key, rc.Config.APIServer, rc.Serial, ctx)
+	gateways, err := apiserver.GetGateways(rc.SessionInfo.Key, rc.Config.APIServer, ctx)
+
+	if ue, ok := err.(*apiserver.UnauthorizedError); ok {
+		log.Errorf("Unauthorized access from apiserver: %v\nAssuming invalid session. Removing cached session and stopping process.", ue)
+
+		if err := os.Remove(rc.Config.SessionInfoPath); err != nil {
+			log.Errorf("Removing session info file: %v", err)
+		}
+
+		os.Exit(1)
+	}
 
 	if err != nil {
 		return fmt.Errorf("unable to get gateway config: %w", err)

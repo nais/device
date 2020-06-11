@@ -24,6 +24,7 @@ type Config struct {
 	OAuth2Config        oauth2.Config
 	Platform            string
 	BootstrapAPI        string
+	SessionInfoPath     string
 }
 
 func (c *Config) SetDefaults() {
@@ -32,6 +33,7 @@ func (c *Config) SetDefaults() {
 	c.PrivateKeyPath = filepath.Join(c.ConfigDir, "private.key")
 	c.WireGuardConfigPath = filepath.Join(c.ConfigDir, c.Interface+".conf")
 	c.BootstrapConfigPath = filepath.Join(c.ConfigDir, "bootstrapconfig.json")
+	c.SessionInfoPath = filepath.Join(c.ConfigDir, "sessioninfo.json")
 }
 
 func DefaultConfig() Config {

@@ -15,7 +15,13 @@ type Gateway struct {
 	Routes    []string `json:"routes"`
 }
 
-func GetGateways(sessionKey, apiServerURL, serial string, ctx context.Context) ([]Gateway, error) {
+type UnauthorizedError struct{}
+
+func (u *UnauthorizedError) Error() string {
+	return "unauthorized"
+}
+
+func GetGateways(sessionKey, apiServerURL string, ctx context.Context) ([]Gateway, error) {
 	ctx, cancel := context.WithTimeout(ctx, 3*time.Second)
 	defer cancel()
 
@@ -32,6 +38,10 @@ func GetGateways(sessionKey, apiServerURL, serial string, ctx context.Context) (
 		return nil, fmt.Errorf("getting device config: %w", err)
 	}
 	defer resp.Body.Close()
+
+	if resp.StatusCode == http.StatusUnauthorized {
+		return nil, &UnauthorizedError{}
+	}
 
 	var gateways []Gateway
 	if err := json.NewDecoder(resp.Body).Decode(&gateways); err != nil {
