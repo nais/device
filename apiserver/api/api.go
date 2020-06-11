@@ -3,6 +3,7 @@ package api
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/nais/device/apiserver/auth"
 	"net/http"
 
 	"github.com/nais/device/apiserver/database"
@@ -102,7 +103,20 @@ func (a *api) gateways(w http.ResponseWriter, r *http.Request) {
 }
 
 func (a *api) deviceConfig(w http.ResponseWriter, r *http.Request) {
-	//serial := chi.URLParam(r, "serial")
+	sessionInfo := r.Context().Value("sessionInfo").(auth.SessionInfo)
+
+	device, err := a.db.ReadDevice(sessionInfo.DeviceID)
+	if err != nil {
+		log.Errorf("reading device from db: %v", err)
+		respondf(w, http.StatusInternalServerError, "error reading device from db")
+		return
+	}
+
+	if !*device.Healthy {
+		respondf(w, http.StatusForbidden, "device not healthy, on slack: /msg @Kolide status")
+		return
+	}
+
 	gateways, err := a.db.ReadGateways()
 	if err != nil {
 		log.Errorf("reading gateways: %v", err)

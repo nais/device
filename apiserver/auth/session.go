@@ -72,7 +72,7 @@ func (si *SessionInfo) Expired() bool {
 	return time.Unix(si.Expiry, 0).After(time.Now())
 }
 
-func (s *Sessions) Validator(ctx context.Context) func(next http.Handler) http.Handler {
+func (s *Sessions) Validator() func(next http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			sessionKey := r.Header.Get("x-naisdevice-session-key")
@@ -85,6 +85,8 @@ func (s *Sessions) Validator(ctx context.Context) func(next http.Handler) http.H
 				w.WriteHeader(http.StatusUnauthorized)
 				return
 			}
+
+			r = r.WithContext(context.WithValue(r.Context(), "sessionInfo", sessionInfo))
 
 			/*
 				sessionRow := s.db.QueryRow(ctx, `SELECT key, device_id, expires FROM session WHERE key = $1`, sessionKey)
@@ -160,13 +162,18 @@ func (s *Sessions) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	serial := r.Header.Get("x-naisdevice-serial")
+	platform := r.Header.Get("x-naisdevice-platform")
+	deviceID, err := s.getDeviceID(serial, platform)
+
 	sessionInfo := SessionInfo{
 		Key:      random.RandomString(20, random.LettersAndNumbers),
 		Expiry:   time.Now().Add(SessionDuration).Unix(),
-		Serial:   r.Header.Get("x-naisdevice-serial"),
-		Platform: r.Header.Get("x-naisdevice-platform"),
+		Serial:   serial,
+		Platform: platform,
 		Username: username,
 		Groups:   groups,
+		DeviceID: deviceID,
 	}
 
 	b, err := json.Marshal(sessionInfo)
@@ -184,6 +191,29 @@ func (s *Sessions) Login(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		log.Errorf("writing response: %v", err)
 	}
+}
+
+// Should probably do something smart like sharing the code from ApiServerDB
+func (s *Sessions) getDeviceID(serial string, platform string) (string, error) {
+	ctx := context.Background()
+
+	query := `
+SELECT id
+  FROM device
+ WHERE serial = $1
+   AND platform = $2;`
+
+	row := s.db.QueryRow(ctx, query, serial, platform)
+
+	var deviceID string
+	err := row.Scan(&deviceID)
+
+	if err != nil {
+		return "", fmt.Errorf("scanning row: %s", err)
+	}
+
+	return deviceID, nil
+
 }
 
 func (s *Sessions) StartLogin(w http.ResponseWriter, r *http.Request) {

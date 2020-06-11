@@ -106,7 +106,7 @@ func main() {
 		}
 	}
 
-	router := api.New(ctx, apiConfig)
+	router := api.New(apiConfig)
 
 	fmt.Println("running @", cfg.BindAddress)
 	fmt.Println(http.ListenAndServe(cfg.BindAddress, router))

@@ -1,7 +1,6 @@
 package api
 
 import (
-	"context"
 	"github.com/go-chi/chi"
 	chi_middleware "github.com/go-chi/chi/middleware"
 	"github.com/nais/device/apiserver/auth"
@@ -16,7 +15,7 @@ type Config struct {
 	Sessions *auth.Sessions
 }
 
-func New(ctx context.Context, cfg Config) chi.Router {
+func New(cfg Config) chi.Router {
 	api := api{db: cfg.DB}
 	sessions := cfg.Sessions
 
@@ -39,8 +38,8 @@ func New(ctx context.Context, cfg Config) chi.Router {
 		r.Put("/devices/health", api.updateHealth)
 	})
 
-	r.Route("/devices/{serial}/gateways", func(r chi.Router) {
-		r.Use(sessions.Validator(ctx))
+	r.Route("/devices/gateways", func(r chi.Router) {
+		r.Use(sessions.Validator())
 		r.Get("/", api.deviceConfig)
 	})
 
