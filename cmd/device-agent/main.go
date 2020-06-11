@@ -147,7 +147,7 @@ func getAuthURL(apiserverURL string, ctx context.Context) (string, error) {
 	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, apiserverURL+"/login", nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, apiserverURL+"/authurl", nil)
 	if err != nil {
 		return "", fmt.Errorf("creating request to get Azure auth URL: %v", err)
 	}

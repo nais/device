@@ -88,24 +88,6 @@ func (s *Sessions) Validator() func(next http.Handler) http.Handler {
 
 			r = r.WithContext(context.WithValue(r.Context(), "sessionInfo", sessionInfo))
 
-			/*
-				sessionRow := s.db.QueryRow(ctx, `SELECT key, device_id, expires FROM session WHERE key = $1`, sessionKey)
-
-				var session SessionInfo
-				err := sessionRow.Scan(&session.Key, &session.DeviceID, &session.Expiry)
-				if err != nil {
-					log.Infof("no session found: %v", err)
-					w.WriteHeader(http.StatusUnauthorized)
-					return
-				}
-
-				if session.Expiry < time.Now().Unix() {
-					log.Infof("session epired: %v", session)
-					w.WriteHeader(http.StatusUnauthorized)
-					return
-				}
-			*/
-
 			next.ServeHTTP(w, r)
 		})
 	}
@@ -216,7 +198,7 @@ SELECT id
 
 }
 
-func (s *Sessions) StartLogin(w http.ResponseWriter, r *http.Request) {
+func (s *Sessions) AuthURL(w http.ResponseWriter, r *http.Request) {
 	state := random.RandomString(20, random.LettersAndNumbers)
 	s.stateLock.Lock()
 	s.state[state] = true
@@ -225,7 +207,7 @@ func (s *Sessions) StartLogin(w http.ResponseWriter, r *http.Request) {
 	authURL := s.oauthConfig.AuthCodeURL(state, oauth2.AccessTypeOffline)
 	_, err := w.Write([]byte(authURL))
 	if err != nil {
-		log.Errorf("responding to GET /login: %v", err)
+		log.Errorf("responding to %v %v : %v", r.Method, r.URL.Path, err)
 	}
 }
 

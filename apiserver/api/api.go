@@ -18,7 +18,7 @@ type api struct {
 // TODO(jhrv): keep cache of gateway access group members to remove AAD runtime dependency
 // gatewayConfig returns the devices for the gateway that has the group membership required
 func (a *api) gatewayConfig(w http.ResponseWriter, r *http.Request) {
-	//gateway := chi.URLParam(r, "gateway")
+	//gateway, _ , ok := r.BasicAuth()
 
 	devices, err := a.db.ReadDevices()
 

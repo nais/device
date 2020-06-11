@@ -33,18 +33,19 @@ func New(cfg Config) chi.Router {
 		}
 
 		r.Get("/gateways", api.gateways)
-		r.Get("/gateways/{gateway}/devices", api.gatewayConfig)
 		r.Get("/devices", api.devices)
 		r.Put("/devices/health", api.updateHealth)
+
+		r.Get("/gatewayconfig", api.gatewayConfig)
 	})
 
-	r.Route("/devices/gateways", func(r chi.Router) {
+	r.Group(func(r chi.Router) {
 		r.Use(sessions.Validator())
-		r.Get("/", api.deviceConfig)
+		r.Get("/deviceconfig", api.deviceConfig)
 	})
 
-	r.Get("/", sessions.Login)
-	r.Get("/login", sessions.StartLogin)
+	r.Get("/login", sessions.Login)
+	r.Get("/authurl", sessions.AuthURL)
 
 	return r
 }

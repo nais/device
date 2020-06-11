@@ -30,7 +30,7 @@ func RunFlow(ctx context.Context, authURL, apiserverURL, platform, serial string
 		codeRequestURL := url.URL{
 			Scheme:   "http",
 			Host:     strings.Split(apiserverURL, "://")[1],
-			Path:     "/",
+			Path:     "/login",
 			RawQuery: r.URL.RawQuery,
 		}
 

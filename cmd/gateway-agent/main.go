@@ -175,7 +175,7 @@ func readPrivateKey(privateKeyPath string) (string, error) {
 }
 
 func getDevices(config Config) ([]Device, error) {
-	gatewayConfigURL := fmt.Sprintf("%s/gateways/%s/devices", config.APIServerURL, config.Name)
+	gatewayConfigURL := fmt.Sprintf("%s/gatewayconfig", config.APIServerURL)
 	req, err := http.NewRequest(http.MethodGet, gatewayConfigURL, nil)
 	if err != nil {
 		return nil, fmt.Errorf("creating http request: %w", err)

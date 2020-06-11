@@ -19,9 +19,12 @@ func GetGateways(sessionKey, apiServerURL, serial string, ctx context.Context) (
 	ctx, cancel := context.WithTimeout(ctx, 3*time.Second)
 	defer cancel()
 
-	deviceConfigAPI := fmt.Sprintf("%s/devices/gateways", apiServerURL)
+	deviceConfigAPI := fmt.Sprintf("%s/deviceconfig", apiServerURL)
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, deviceConfigAPI, nil)
+	if err != nil {
+		return nil, fmt.Errorf("creating get request: %w", err)
+	}
 	req.Header.Add("x-naisdevice-session-key", sessionKey)
 
 	resp, err := http.DefaultClient.Do(req)
