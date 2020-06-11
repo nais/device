@@ -28,9 +28,9 @@ func RunFlow(ctx context.Context, authURL, apiserverURL, platform, serial string
 	// define a handler that will get the authorization code, call the login endpoint to get a new session, and close the HTTP server
 	handler.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		url := url.URL{
-			Scheme: "http",
-			Host: strings.Split(apiserverURL, "://")[1],
-			Path: "/",
+			Scheme:   "http",
+			Host:     strings.Split(apiserverURL, "://")[1],
+			Path:     "/",
 			RawQuery: r.URL.RawQuery,
 		}
 		log.Infof("url: %v", url)
@@ -88,17 +88,19 @@ func RunFlow(ctx context.Context, authURL, apiserverURL, platform, serial string
 func failureResponse(w http.ResponseWriter, msg string) {
 	w.Header().Set("content-type", "text/html;charset=utf8")
 	_, _ = fmt.Fprintf(w, `
-<h2>
+<div style="position:absolute;left:50%%;top:50%%;margin-top:-150px;margin-left:-200px;height:300px;width:400px;bottom:50%%;background-color:#f5f5f5;border:1px solid #d9d9d9;border-radius:4px">
+<img style="width:100px;display:block;margin:auto;margin-top:50px" width="100" src="data:image/jpeg;base64,%s"/>
+<p style="margin-top: 70px" align="center">
   %s
-</h2>
-<img width="100" src="data:image/jpeg;base64,%s"/>
-`, msg, kekw.SadKekW)
+</p>
+</div>
+`, kekw.SadKekW, msg)
 }
 
 func successfulResponse(w http.ResponseWriter, msg string) {
 	w.Header().Set("content-type", "text/html;charset=utf8")
 	_, _ = fmt.Fprintf(w, `
-<div style="position:absolute;left:50%%;top:50%%;margin-top:-150px;margin-left:-200px;height:300px;width:400px;bottom:50%%;background-color:#f5f5f5;border:1px solid #d9d9d9;border-radius:5px">
+<div style="position:absolute;left:50%%;top:50%%;margin-top:-150px;margin-left:-200px;height:300px;width:400px;bottom:50%%;background-color:#f5f5f5;border:1px solid #d9d9d9;border-radius:4px">
 <img style="width:100px;display:block;margin:auto;margin-top:50px" width="100" src="data:image/jpeg;base64,%s"/>
 <p style="margin-top: 70px" align="center">
   %s
