@@ -13,6 +13,7 @@ type Gateway struct {
 	Endpoint  string   `json:"endpoint"`
 	IP        string   `json:"ip"`
 	Routes    []string `json:"routes"`
+	Name      string   `json:"name"`
 }
 
 type UnauthorizedError struct{}

@@ -38,6 +38,7 @@ type Gateway struct {
 	PublicKey string   `json:"publicKey"`
 	IP        string   `json:"ip"`
 	Routes    []string `json:"routes"`
+	Name      string   `json:"name"`
 }
 
 // NewTestDatabase creates and returns a new nais device database within the provided database instance
@@ -238,7 +239,7 @@ func (d *APIServerDB) ReadGateways() ([]Gateway, error) {
 	ctx := context.Background()
 
 	query := `
-SELECT public_key, endpoint, ip, routes
+SELECT public_key, endpoint, ip, routes, name
   FROM gateway;`
 
 	rows, err := d.conn.Query(ctx, query)
@@ -250,7 +251,7 @@ SELECT public_key, endpoint, ip, routes
 	for rows.Next() {
 		var gateway Gateway
 		var routes string
-		err := rows.Scan(&gateway.PublicKey, &gateway.Endpoint, &gateway.IP, &routes)
+		err := rows.Scan(&gateway.PublicKey, &gateway.Endpoint, &gateway.IP, &routes, &gateway.Name)
 		if err != nil {
 			return nil, fmt.Errorf("scanning gateway: %w", err)
 		}

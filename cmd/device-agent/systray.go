@@ -85,7 +85,7 @@ func onReady() {
 			case gateways := <-gatewayChan:
 				for _, gateway := range gateways {
 					if _, ok := mCurrentGateways[gateway.Endpoint]; !ok {
-						mCurrentGateways[gateway.Endpoint] = mGateways.AddSubMenuItem(gateway.Endpoint, "")
+						mCurrentGateways[gateway.Endpoint] = mGateways.AddSubMenuItem(gateway.Name, gateway.Endpoint)
 						mCurrentGateways[gateway.Endpoint].Disable()
 					}
 				}
