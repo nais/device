@@ -7,6 +7,7 @@ import (
 	"io/ioutil"
 	"os"
 
+	"github.com/nais/device/device-agent/apiserver"
 	"github.com/nais/device/device-agent/bootstrapper"
 	"github.com/nais/device/pkg/bootstrap"
 	log "github.com/sirupsen/logrus"
@@ -23,6 +24,7 @@ type RuntimeConfig struct {
 	Config          config.Config
 	PrivateKey      []byte
 	SessionInfo     *auth.SessionInfo
+	Gateways        []apiserver.Gateway
 }
 
 func New(cfg config.Config, ctx context.Context) (*RuntimeConfig, error) {

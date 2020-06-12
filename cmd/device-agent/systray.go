@@ -12,6 +12,7 @@ import (
 
 	"github.com/gen2brain/beeep"
 	"github.com/getlantern/systray"
+	"github.com/nais/device/device-agent/apiserver"
 	"github.com/nais/device/device-agent/config"
 	"github.com/nais/device/device-agent/filesystem"
 	"github.com/nais/device/device-agent/runtimeconfig"
@@ -24,7 +25,6 @@ var (
 )
 
 func onReady() {
-	cfg.SetDefaults()
 	currentDir, err := filepath.Abs(filepath.Dir(os.Args[0]))
 	if err != nil {
 		log.Fatal(err)
@@ -36,6 +36,8 @@ func onReady() {
 		fmt.Errorf("unable to find the icon")
 	}
 	systray.SetIcon(icon)
+
+	cfg.SetDefaults()
 	if err = filesystem.EnsurePrerequisites(&cfg); err != nil {
 		beeep.Alert("Warning", fmt.Sprintf("Missing prerequisites: %s", err), iconPath)
 	}
@@ -43,10 +45,16 @@ func onReady() {
 	interrupt := make(chan os.Signal, 1)
 	signal.Notify(interrupt, os.Interrupt, syscall.SIGTERM)
 
-	mConnect := systray.AddMenuItem("Connect", "Bootstrap the nais device")
 	disconnectChan := make(chan bool, 1)
-	mQuit := systray.AddMenuItem("Quit", "exit the application")
+	gatewayChan := make(chan []apiserver.Gateway)
 
+	mConnect := systray.AddMenuItem("Connect", "Bootstrap the nais device")
+	systray.AddSeparator()
+	mGateways := systray.AddMenuItem("Gateways", "")
+	mGateways.Hide()
+	mCurrentGateways := make(map[string]*systray.MenuItem)
+	systray.AddSeparator()
+	mQuit := systray.AddMenuItem("Quit", "exit the application")
 	go func() {
 		connected := false
 		ctx, cancel := context.WithCancel(context.Background())
@@ -58,11 +66,13 @@ func onReady() {
 				if connected {
 					mConnect.SetTitle("Connect")
 					connected = false
+					mGateways.Hide()
 					disconnectChan <- true
 				} else {
 					mConnect.SetTitle("Disconnect")
 					connected = true
-					go connect(ctx, disconnectChan)
+					mGateways.Show()
+					go connect(ctx, disconnectChan, gatewayChan)
 				}
 			case <-mQuit.ClickedCh:
 				log.Info("Exiting")
@@ -72,6 +82,14 @@ func onReady() {
 				disconnectChan <- true
 				time.Sleep(time.Second * 2)
 				systray.Quit()
+			case gateways := <-gatewayChan:
+				for _, gateway := range gateways {
+					if _, ok := mCurrentGateways[gateway.Endpoint]; !ok {
+						mCurrentGateways[gateway.Endpoint] = mGateways.AddSubMenuItem(gateway.Endpoint, "")
+						mCurrentGateways[gateway.Endpoint].Disable()
+					}
+				}
+
 			}
 		}
 	}()
@@ -80,7 +98,7 @@ func onReady() {
 func onExit() {
 	// This is where we clean up
 }
-func connect(ctx context.Context, disconnectChan chan bool){
+func connect(ctx context.Context, disconnectChan chan bool, gatewayChan chan []apiserver.Gateway) {
 	rc, err := runtimeconfig.New(cfg, ctx)
 	if err != nil {
 		log.Fatalf("Initializing runtime config: %v", err)
@@ -112,6 +130,7 @@ ConnectedLoop:
 			if err := SyncConfig(baseConfig, rc, ctx); err != nil {
 				log.Errorf("Unable to synchronize config with apiserver: %v", err)
 			}
+			gatewayChan <- rc.Gateways
 		}
 	}
 }

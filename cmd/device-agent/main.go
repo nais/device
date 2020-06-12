@@ -19,7 +19,6 @@ import (
 	flag "github.com/spf13/pflag"
 )
 
-
 func init() {
 	flag.StringVar(&cfg.APIServer, "apiserver", cfg.APIServer, "base url to apiserver")
 	flag.StringVar(&cfg.BootstrapAPI, "bootstrap-api", cfg.BootstrapAPI, "url to bootstrap API")
@@ -130,6 +129,7 @@ func SyncConfig(baseConfig string, rc *runtimeconfig.RuntimeConfig, ctx context.
 	if err := ioutil.WriteFile(rc.Config.WireGuardConfigPath, []byte(baseConfig+wireGuardPeers), 0600); err != nil {
 		return fmt.Errorf("writing WireGuard config to disk: %w", err)
 	}
+	rc.Gateways = gateways
 
 	log.Debugf("Wrote WireGuard config to disk")
 	return nil
