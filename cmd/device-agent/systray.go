@@ -49,12 +49,9 @@ func onReady() {
 	gatewayChan := make(chan []apiserver.Gateway)
 
 	mConnect := systray.AddMenuItem("Connect", "Bootstrap the nais device")
-	systray.AddSeparator()
-	mGateways := systray.AddMenuItem("Gateways", "")
-	mGateways.Hide()
-	mCurrentGateways := make(map[string]*systray.MenuItem)
-	systray.AddSeparator()
 	mQuit := systray.AddMenuItem("Quit", "exit the application")
+	systray.AddSeparator()
+	mCurrentGateways := make(map[string]*systray.MenuItem)
 	go func() {
 		connected := false
 		ctx, cancel := context.WithCancel(context.Background())
@@ -66,12 +63,10 @@ func onReady() {
 				if connected {
 					mConnect.SetTitle("Connect")
 					connected = false
-					mGateways.Hide()
 					disconnectChan <- true
 				} else {
 					mConnect.SetTitle("Disconnect")
 					connected = true
-					mGateways.Show()
 					go connect(ctx, disconnectChan, gatewayChan)
 				}
 			case <-mQuit.ClickedCh:
@@ -85,7 +80,7 @@ func onReady() {
 			case gateways := <-gatewayChan:
 				for _, gateway := range gateways {
 					if _, ok := mCurrentGateways[gateway.Endpoint]; !ok {
-						mCurrentGateways[gateway.Endpoint] = mGateways.AddSubMenuItem(gateway.Name, gateway.Endpoint)
+						mCurrentGateways[gateway.Endpoint] = systray.AddMenuItem(gateway.Name, gateway.Endpoint)
 						mCurrentGateways[gateway.Endpoint].Disable()
 					}
 				}
@@ -103,6 +98,7 @@ func connect(ctx context.Context, disconnectChan chan bool, gatewayChan chan []a
 	if err != nil {
 		log.Fatalf("Initializing runtime config: %v", err)
 	}
+
 	baseConfig := wireguard.GenerateBaseConfig(rc.BootstrapConfig, rc.PrivateKey)
 
 	if err := ioutil.WriteFile(cfg.WireGuardConfigPath, []byte(baseConfig), 0600); err != nil {
