@@ -7,14 +7,11 @@ import (
 	"io/ioutil"
 	"net/http"
 	"os"
-	"os/signal"
-	"syscall"
 	"time"
 
+	"github.com/getlantern/systray"
 	"github.com/nais/device/device-agent/apiserver"
 	"github.com/nais/device/device-agent/auth"
-	"github.com/nais/device/device-agent/config"
-	"github.com/nais/device/device-agent/filesystem"
 	"github.com/nais/device/device-agent/runtimeconfig"
 	"github.com/nais/device/device-agent/wireguard"
 	"github.com/nais/device/pkg/logger"
@@ -22,9 +19,6 @@ import (
 	flag "github.com/spf13/pflag"
 )
 
-var (
-	cfg = config.DefaultConfig()
-)
 
 func init() {
 	flag.StringVar(&cfg.APIServer, "apiserver", cfg.APIServer, "base url to apiserver")
@@ -40,60 +34,9 @@ func init() {
 
 func main() {
 	log.Infof("Starting device-agent with config:\n%+v", cfg)
-	cfg.SetDefaults()
 
-	if err := filesystem.EnsurePrerequisites(&cfg); err != nil {
-		log.Fatalf("Verifying prerequisites: %v", err)
-	}
+	systray.Run(onReady, onExit)
 
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-
-	rc, err := runtimeconfig.New(cfg, ctx)
-	if err != nil {
-		log.Fatalf("Initializing runtime config: %v", err)
-	}
-
-	baseConfig := wireguard.GenerateBaseConfig(rc.BootstrapConfig, rc.PrivateKey)
-
-	if err := ioutil.WriteFile(cfg.WireGuardConfigPath, []byte(baseConfig), 0600); err != nil {
-		log.Fatalf("Writing base WireGuard config to disk: %v", err)
-	}
-
-	fmt.Println("Starting device-agent-helper, you might be prompted for password")
-
-	if err := runHelper(rc, ctx); err != nil {
-		log.Errorf("Running helper: %v", err)
-		return
-	}
-
-	// wait until helper has established tunnel to apiserver...
-
-	if rc.SessionInfo, err = ensureValidSessionInfo(cfg.SessionInfoPath, cfg.APIServer, cfg.Platform, rc.Serial, ctx); err != nil {
-		log.Errorf("Ensuring valid session key: %v", err)
-		return
-	}
-
-	if err := writeToJSONFile(rc.SessionInfo, cfg.SessionInfoPath); err != nil {
-		log.Errorf("Writing session info to disk: %v", err)
-		return
-	}
-
-	interrupt := make(chan os.Signal, 1)
-	signal.Notify(interrupt, os.Interrupt, syscall.SIGTERM)
-
-	for {
-		select {
-		case <-interrupt:
-			log.Info("Received interrupt, shutting down gracefully.")
-			return
-
-		case <-time.After(5 * time.Second):
-			if err := SyncConfig(baseConfig, rc, ctx); err != nil {
-				log.Errorf("Unable to synchronize config with apiserver: %v", err)
-			}
-		}
-	}
 }
 
 func writeToJSONFile(strct interface{}, path string) error {
