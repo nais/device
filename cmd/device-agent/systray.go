@@ -128,7 +128,7 @@ func mainloop(updateGUI func(guiState GuiState)) {
 		case StateConnecting:
 			if rc == nil {
 				newstate <- StateBootstrapping
-				return
+				continue
 			}
 			ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
 			err := connect(ctx, rc)
@@ -136,6 +136,10 @@ func mainloop(updateGUI func(guiState GuiState)) {
 
 			if err == nil {
 				newstate <- StateConnected
+				notify("connected")
+			} else {
+				newstate <- StateDisconnected
+				notify(err.Error())
 			}
 
 		case StateConnected:
@@ -146,7 +150,7 @@ func mainloop(updateGUI func(guiState GuiState)) {
 			newstate <- StateDisconnected
 
 		case StateQuitting:
-			stop <- new(interface{})
+			// stop <- new(interface{})
 			systray.Quit()
 		}
 	}
@@ -260,11 +264,12 @@ func onExit() {
 
 func connect(ctx context.Context, rc *runtimeconfig.RuntimeConfig) error {
 	var err error
-	if rc.SessionInfo.Expired() {
-		rc.SessionInfo, err = ensureValidSessionInfo(cfg.APIServer, cfg.Platform, rc.Serial, ctx)
-		if err != nil {
-			return fmt.Errorf("ensuring valid session key: %v", err)
-		}
+	if !rc.SessionInfo.Expired() {
+		return nil
+	}
+	rc.SessionInfo, err = ensureValidSessionInfo(cfg.APIServer, cfg.Platform, rc.Serial, ctx)
+	if err != nil {
+		return fmt.Errorf("ensuring valid session key: %v", err)
 	}
 	return nil
 }
@@ -275,7 +280,7 @@ func ping(addr string) error {
 	)
 	var ListenAddr = "0.0.0.0"
 	// Start listening for icmp replies
-	c, err := icmp.ListenPacket("ip4:icmp", ListenAddr)
+	c, err := icmp.ListenPacket("udp4", ListenAddr)
 	if err != nil {
 		return err
 	}
