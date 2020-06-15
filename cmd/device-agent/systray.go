@@ -46,7 +46,7 @@ func onReady() {
 	signal.Notify(interrupt, os.Interrupt, syscall.SIGTERM)
 
 	disconnectChan := make(chan bool, 1)
-	gatewayChan := make(chan []apiserver.Gateway)
+	gatewayChan := make(chan map[string]*apiserver.Gateway)
 
 	mConnect := systray.AddMenuItem("Connect", "Bootstrap the nais device")
 	mQuit := systray.AddMenuItem("Quit", "exit the application")
@@ -93,7 +93,7 @@ func onReady() {
 func onExit() {
 	// This is where we clean up
 }
-func connect(ctx context.Context, disconnectChan chan bool, gatewayChan chan []apiserver.Gateway) {
+func connect(ctx context.Context, disconnectChan chan bool, gatewayChan chan map[string]*apiserver.Gateway) {
 	rc, err := runtimeconfig.New(cfg, ctx)
 	if err != nil {
 		log.Fatalf("Initializing runtime config: %v", err)

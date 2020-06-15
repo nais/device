@@ -124,12 +124,12 @@ func SyncConfig(baseConfig string, rc *runtimeconfig.RuntimeConfig, ctx context.
 		return fmt.Errorf("unable to get gateway config: %w", err)
 	}
 
-	wireGuardPeers := wireguard.GenerateWireGuardPeers(gateways)
+	rc.UpdateGateways(gateways)
+	wireGuardPeers := wireguard.GenerateWireGuardPeers(rc.Gateways)
 
 	if err := ioutil.WriteFile(rc.Config.WireGuardConfigPath, []byte(baseConfig+wireGuardPeers), 0600); err != nil {
 		return fmt.Errorf("writing WireGuard config to disk: %w", err)
 	}
-	rc.Gateways = gateways
 
 	log.Debugf("Wrote WireGuard config to disk")
 	return nil

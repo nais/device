@@ -24,7 +24,17 @@ type RuntimeConfig struct {
 	Config          config.Config
 	PrivateKey      []byte
 	SessionInfo     *auth.SessionInfo
-	Gateways        []apiserver.Gateway
+	Gateways        map[string]*apiserver.Gateway
+}
+
+func (rc *RuntimeConfig) UpdateGateways(gateways map[string]*apiserver.Gateway) {
+	for _, oldGateway := range rc.Gateways{
+		if newGateway, ok := gateways[oldGateway.PublicKey]; ok {
+			newGateway.SetHealthy(oldGateway.IsHealthy())
+		}
+	}
+
+	rc.Gateways = gateways
 }
 
 func New(cfg config.Config, ctx context.Context) (*RuntimeConfig, error) {

@@ -53,7 +53,7 @@ func WGPubKey(privateKeySlice []byte) []byte {
 	return publicKey[:]
 }
 
-func GenerateWireGuardPeers(gateways []apiserver.Gateway) string {
+func GenerateWireGuardPeers(gateways map[string]*apiserver.Gateway) string {
 	peerTemplate := `[Peer]
 PublicKey = %s
 AllowedIPs = %s
@@ -62,7 +62,11 @@ Endpoint = %s
 	var peers string
 
 	for _, gateway := range gateways {
-		allowedIPs := strings.Join(append(gateway.Routes, gateway.IP+"/32"), ",")
+		allowedIPs := gateway.IP+"/32"
+		if gateway.IsHealthy() {
+			allowedIPs += strings.Join(gateway.Routes, ",")
+
+		}
 		peers += fmt.Sprintf(peerTemplate, gateway.PublicKey, allowedIPs, gateway.Endpoint)
 	}
 

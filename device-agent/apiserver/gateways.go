@@ -5,15 +5,32 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"sync"
 	"time"
 )
 
 type Gateway struct {
-	PublicKey string   `json:"publicKey"`
-	Endpoint  string   `json:"endpoint"`
-	IP        string   `json:"ip"`
-	Routes    []string `json:"routes"`
-	Name      string   `json:"name"`
+	PublicKey   string   `json:"publicKey"`
+	Endpoint    string   `json:"endpoint"`
+	IP          string   `json:"ip"`
+	Routes      []string `json:"routes"`
+	Name        string   `json:"name"`
+	healthy     bool
+	healthyLock sync.Mutex
+}
+
+func (gw *Gateway) IsHealthy() bool {
+	gw.healthyLock.Lock()
+	defer gw.healthyLock.Unlock()
+
+	return gw.healthy
+}
+
+func (gw *Gateway) SetHealthy(healthy bool) {
+	gw.healthyLock.Lock()
+	defer gw.healthyLock.Unlock()
+
+	gw.healthy = healthy
 }
 
 type UnauthorizedError struct{}
@@ -22,7 +39,7 @@ func (u *UnauthorizedError) Error() string {
 	return "unauthorized"
 }
 
-func GetGateways(sessionKey, apiServerURL string, ctx context.Context) ([]Gateway, error) {
+func GetGateways(sessionKey, apiServerURL string, ctx context.Context) (map[string]*Gateway, error) {
 	ctx, cancel := context.WithTimeout(ctx, 3*time.Second)
 	defer cancel()
 
@@ -44,10 +61,16 @@ func GetGateways(sessionKey, apiServerURL string, ctx context.Context) ([]Gatewa
 		return nil, &UnauthorizedError{}
 	}
 
-	var gateways []Gateway
-	if err := json.NewDecoder(resp.Body).Decode(&gateways); err != nil {
+	var gatewayList []*Gateway
+	if err := json.NewDecoder(resp.Body).Decode(&gatewayList); err != nil {
 		return nil, fmt.Errorf("unmarshalling response body into gateways: %w", err)
 	}
+
+	gateways := make(map[string]*Gateway)
+	for _, gw := range gatewayList {
+		gateways[gw.PublicKey] = gw
+	}
+
 
 	return gateways, nil
 }
