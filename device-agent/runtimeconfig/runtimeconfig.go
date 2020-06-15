@@ -24,17 +24,14 @@ type RuntimeConfig struct {
 	Config          config.Config
 	PrivateKey      []byte
 	SessionInfo     *auth.SessionInfo
-	Gateways        map[string]*apiserver.Gateway
+	Gateways        apiserver.Gateways
 }
 
-func (rc *RuntimeConfig) UpdateGateways(gateways map[string]*apiserver.Gateway) {
-	for _, oldGateway := range rc.Gateways{
-		if newGateway, ok := gateways[oldGateway.PublicKey]; ok {
-			newGateway.SetHealthy(oldGateway.IsHealthy())
-		}
+func (rc *RuntimeConfig) GetGateways() apiserver.Gateways {
+	if rc == nil {
+		return make(apiserver.Gateways, 0)
 	}
-
-	rc.Gateways = gateways
+	return rc.Gateways
 }
 
 func New(cfg config.Config, ctx context.Context) (*RuntimeConfig, error) {
@@ -56,10 +53,6 @@ func New(cfg config.Config, ctx context.Context) (*RuntimeConfig, error) {
 		return nil, fmt.Errorf("ensuring bootstrap: %w", err)
 	}
 
-	if err := writeToJSONFile(rc.BootstrapConfig, rc.Config.BootstrapConfigPath); err != nil {
-		return nil, fmt.Errorf("writing bootstrap config to disk: %w", err)
-	}
-
 	return rc, nil
 }
 
@@ -67,23 +60,34 @@ func ensureBootstrapping(rc *RuntimeConfig, ctx context.Context) (*bootstrap.Con
 	if fileExists(rc.Config.BootstrapConfigPath) {
 		log.Infoln("Device already bootstrapped")
 		return readBootstrapConfigFromFile(rc.Config.BootstrapConfigPath)
-	} else {
-		log.Infoln("Bootstrapping device")
-		client, err := auth.AzureAuthenticatedClient(ctx, rc.Config.OAuth2Config)
-		if err != nil {
-			return nil, fmt.Errorf("authenticating with Azure: %w", err)
-		}
-
-		return bootstrapper.BootstrapDevice(
-			&bootstrap.DeviceInfo{
-				PublicKey: string(wireguard.PublicKey(rc.PrivateKey)),
-				Serial:    rc.Serial,
-				Platform:  rc.Config.Platform,
-			},
-			rc.Config.BootstrapAPI,
-			client,
-		)
 	}
+
+	log.Infoln("Bootstrapping device")
+	client, err := auth.AzureAuthenticatedClient(ctx, rc.Config.OAuth2Config)
+	if err != nil {
+		return nil, fmt.Errorf("authenticating with Azure: %w", err)
+	}
+
+	cfg, err := bootstrapper.BootstrapDevice(
+		&bootstrap.DeviceInfo{
+			PublicKey: string(wireguard.PublicKey(rc.PrivateKey)),
+			Serial:    rc.Serial,
+			Platform:  rc.Config.Platform,
+		},
+		rc.Config.BootstrapAPI,
+		client,
+	)
+
+	if err != nil {
+		return nil, err
+	}
+
+	err = writeToJSONFile(rc.BootstrapConfig, rc.Config.BootstrapConfigPath)
+	if err != nil {
+		return nil, fmt.Errorf("writing bootstrap config to disk: %w", err)
+	}
+
+	return cfg, nil
 }
 
 func fileExists(filepath string) bool {

@@ -17,15 +17,188 @@ import (
 	"github.com/nais/device/device-agent/config"
 	"github.com/nais/device/device-agent/filesystem"
 	"github.com/nais/device/device-agent/runtimeconfig"
-	"github.com/nais/device/device-agent/wireguard"
 	log "github.com/sirupsen/logrus"
 	"golang.org/x/net/icmp"
 	"golang.org/x/net/ipv4"
 )
 
-var (
-	cfg = config.DefaultConfig()
+type ProgramState int
+
+const (
+	StateDisconnected ProgramState = iota
+	StateBootstrapping
+	StateConnecting
+	StateConnected
+	StateDisconnecting
+	StateQuitting
 )
+
+type GuiState struct {
+	ProgramState ProgramState
+	Gateways     apiserver.Gateways
+}
+
+func (g GuiState) String() string {
+	switch g.ProgramState {
+	case StateDisconnected:
+		return "Disconnected"
+	case StateBootstrapping:
+		return "Bootstrapping..."
+	case StateConnecting:
+		return "Connecting..."
+	case StateConnected:
+		return "Connected"
+	case StateDisconnecting:
+		return "Disconnecting..."
+	case StateQuitting:
+		return "Quitting..."
+	default:
+		return "Unknown state!!!"
+	}
+}
+
+var (
+	cfg      = config.DefaultConfig()
+	state    = StateDisconnected
+	newstate = make(chan ProgramState, 1)
+)
+
+func notify(message string) {
+	err := beeep.Notify("NAIS device", message, "")
+	log.Infof("sending message to notification centre: %s", message)
+	if err != nil {
+		log.Errorf("failed sending message due to error: %s", err)
+	}
+}
+
+// read in external gui events
+func guiloop(mConnect, mQuit *systray.MenuItem, interrupt chan os.Signal) {
+	for {
+		select {
+		case <-mConnect.ClickedCh:
+			if state == StateDisconnected {
+				newstate <- StateConnecting
+			} else {
+				newstate <- StateDisconnecting
+			}
+		case <-mQuit.ClickedCh:
+			newstate <- StateQuitting
+		case <-interrupt:
+			log.Info("Received interrupt, shutting down gracefully.")
+			newstate <- StateQuitting
+		}
+	}
+}
+
+func mainloop(updateGUI func(guiState GuiState)) {
+	var rc *runtimeconfig.RuntimeConfig
+	var err error
+
+	stop := make(chan interface{}, 1)
+
+	for st := range newstate {
+		state = st
+
+		//noinspection GoNilness
+		updateGUI(GuiState{
+			ProgramState: state,
+			Gateways:     rc.GetGateways(),
+		})
+
+		switch state {
+		case StateDisconnected:
+		case StateBootstrapping:
+			ctx, cancel := context.WithTimeout(context.Background(), time.Minute*3)
+			rc, err = runtimeconfig.New(cfg, ctx)
+			cancel()
+			if err != nil {
+				notify(err.Error())
+				newstate <- StateDisconnected
+				continue
+			}
+			err = WriteConfigFile(rc.Config.WireGuardConfigPath, *rc)
+			if err != nil {
+				err = fmt.Errorf("unable to write WireGuard configuration file: %w", err)
+				notify(err.Error())
+				newstate <- StateDisconnected
+				continue
+			}
+			newstate <- StateConnecting
+
+		case StateConnecting:
+			if rc == nil {
+				newstate <- StateBootstrapping
+				return
+			}
+			ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
+			err := connect(ctx, rc)
+			cancel()
+
+			if err == nil {
+				newstate <- StateConnected
+			}
+
+		case StateConnected:
+			go connectedLoop(stop, rc)
+
+		case StateDisconnecting:
+			stop <- new(interface{})
+			newstate <- StateDisconnected
+
+		case StateQuitting:
+			stop <- new(interface{})
+			systray.Quit()
+		}
+	}
+}
+
+func connectedLoop(stop chan interface{}, rc *runtimeconfig.RuntimeConfig) {
+	timeout := 5 * time.Second
+	ticker := time.NewTicker(timeout)
+
+	for {
+		select {
+		case <-ticker.C:
+
+			ctx, cancel := context.WithTimeout(context.Background(), timeout)
+			gateways, err := apiserver.GetGateways(rc.SessionInfo.Key, rc.Config.APIServer, ctx)
+			cancel()
+
+			if err != nil {
+				log.Errorf("unable to get gateway config: %v", err)
+				continue
+			}
+
+			if ue, ok := err.(*apiserver.UnauthorizedError); ok {
+				newstate <- StateDisconnecting
+				log.Errorf("unauthorized access from apiserver: %v", ue)
+				log.Errorf("assuming invalid session; disconnecting.")
+				continue
+			}
+
+			for _, gw := range gateways {
+				err := ping(gw.IP)
+				if err == nil {
+					gw.Healthy = true
+				} else {
+					gw.Healthy = false
+					log.Errorf("unable to ping host %s: %v", gw.IP, err)
+				}
+			}
+
+			rc.Gateways = gateways
+
+			err = WriteConfigFile(rc.Config.WireGuardConfigPath, *rc)
+			if err != nil {
+				err = fmt.Errorf("unable to write WireGuard configuration file: %w", err)
+				notify(err.Error())
+			}
+
+		case <-stop:
+			return
+		}
+	}
+}
 
 func onReady() {
 	currentDir, err := filepath.Abs(filepath.Dir(os.Args[0]))
@@ -36,111 +209,64 @@ func onReady() {
 	icon, err := ioutil.ReadFile(iconPath)
 
 	if err != nil {
-		fmt.Errorf("unable to find the icon")
+		log.Errorf("unable to find the icon")
+	} else {
+		systray.SetIcon(icon)
 	}
-	systray.SetIcon(icon)
 
 	cfg.SetDefaults()
 	if err = filesystem.EnsurePrerequisites(&cfg); err != nil {
-		beeep.Alert("Warning", fmt.Sprintf("Missing prerequisites: %s", err), iconPath)
+		notify(fmt.Sprintf("Missing prerequisites: %s", err))
 	}
 
 	interrupt := make(chan os.Signal, 1)
 	signal.Notify(interrupt, os.Interrupt, syscall.SIGTERM)
 
-	disconnectChan := make(chan bool, 1)
-	gatewayChan := make(chan map[string]*apiserver.Gateway)
-
+	mState := systray.AddMenuItem("", "State")
+	mState.Disable()
 	mConnect := systray.AddMenuItem("Connect", "Bootstrap the nais device")
 	mQuit := systray.AddMenuItem("Quit", "exit the application")
 	systray.AddSeparator()
 	mCurrentGateways := make(map[string]*systray.MenuItem)
-	go func() {
-		connected := false
-		ctx, cancel := context.WithCancel(context.Background())
-		defer cancel()
 
-		for {
-			select {
-			case <-mConnect.ClickedCh:
-				if connected {
-					mConnect.SetTitle("Connect")
-					connected = false
-					disconnectChan <- true
-				} else {
-					mConnect.SetTitle("Disconnect")
-					connected = true
-					go connect(ctx, disconnectChan, gatewayChan)
-				}
-			case <-mQuit.ClickedCh:
-				log.Info("Exiting")
-				systray.Quit()
-			case <-interrupt:
-				log.Info("Received interrupt, shutting down gracefully.")
-				disconnectChan <- true
-				time.Sleep(time.Second * 2)
-				systray.Quit()
-			case gateways := <-gatewayChan:
-				for _, gateway := range gateways {
-					if _, ok := mCurrentGateways[gateway.Endpoint]; !ok {
-						mCurrentGateways[gateway.Endpoint] = systray.AddMenuItem(gateway.Name, gateway.Endpoint)
-						mCurrentGateways[gateway.Endpoint].Disable()
-					}
-				}
-
+	updateGUI := func(st GuiState) {
+		mState.SetTitle(st.String())
+		switch st.ProgramState {
+		case StateDisconnected:
+			mConnect.SetTitle("Connect")
+			mConnect.Enable()
+		case StateConnected:
+			mConnect.SetTitle("Disconnect")
+			mConnect.Enable()
+		default:
+			mConnect.Disable()
+		}
+		for _, gateway := range st.Gateways {
+			if _, ok := mCurrentGateways[gateway.Endpoint]; !ok {
+				mCurrentGateways[gateway.Endpoint] = systray.AddMenuItem(gateway.Name, gateway.Endpoint)
+				mCurrentGateways[gateway.Endpoint].Disable()
 			}
 		}
-	}()
+	}
 
+	go guiloop(mConnect, mQuit, interrupt)
+	newstate <- StateDisconnected
+	mainloop(updateGUI)
 }
+
 func onExit() {
 	// This is where we clean up
 }
-func connect(ctx context.Context, disconnectChan chan bool, gatewayChan chan map[string]*apiserver.Gateway) {
-	rc, err := runtimeconfig.New(cfg, ctx)
-	if err != nil {
-		log.Fatalf("Initializing runtime config: %v", err)
-	}
 
-	baseConfig := wireguard.GenerateBaseConfig(rc.BootstrapConfig, rc.PrivateKey)
-
-	if err := ioutil.WriteFile(cfg.WireGuardConfigPath, []byte(baseConfig), 0600); err != nil {
-		log.Fatalf("Writing base WireGuard config to disk: %v", err)
-	}
-
-	// wait until helper has established tunnel to apiserver...
-	if rc.SessionInfo, err = ensureValidSessionInfo(cfg.SessionInfoPath, cfg.APIServer, cfg.Platform, rc.Serial, ctx); err != nil {
-		log.Errorf("Ensuring valid session key: %v", err)
-		return
-	}
-
-	for _, gateway := range rc.Gateways {
-		err := ping(gateway.IP)
+func connect(ctx context.Context, rc *runtimeconfig.RuntimeConfig) error {
+	var err error
+	if rc.SessionInfo.Expired() {
+		rc.SessionInfo, err = ensureValidSessionInfo(cfg.APIServer, cfg.Platform, rc.Serial, ctx)
 		if err != nil {
-			gateway.SetHealthy(false)
-		} else {
-			gateway.SetHealthy(true)
+			return fmt.Errorf("ensuring valid session key: %v", err)
 		}
 	}
-
-	if err := writeToJSONFile(rc.SessionInfo, cfg.SessionInfoPath); err != nil {
-		log.Errorf("Writing session info to disk: %v", err)
-		return
-	}
-
-ConnectedLoop:
-	for {
-		select {
-		case <-disconnectChan:
-			log.Info("Disconnecting")
-			break ConnectedLoop
-		case <-time.After(5 * time.Second):
-			if err := SyncConfig(baseConfig, rc, ctx); err != nil {
-				log.Errorf("Unable to synchronize config with apiserver: %v", err)
-			}
-			gatewayChan <- rc.Gateways
-		}
-	}
+	return nil
 }
 
 func ping(addr string) error {
@@ -157,7 +283,7 @@ func ping(addr string) error {
 	m := icmp.Message{
 		Type: ipv4.ICMPTypeEcho, Code: 0,
 		Body: &icmp.Echo{
-			ID: os.Getpid() & 0xffff, Seq: 1, //<< uint(seq), // TODO
+			ID: os.Getpid() & 0xffff, Seq: 1, // << uint(seq), // TODO
 			Data: []byte(""),
 		},
 	}

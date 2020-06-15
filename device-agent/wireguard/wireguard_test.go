@@ -15,18 +15,20 @@ func TestWGGenKey(t *testing.T) {
 }
 
 func TestGenerateWireGuardPeers(t *testing.T) {
-	gateways := []apiserver.Gateway{{
+	gateway := apiserver.Gateway{
 		PublicKey: "PQKmraPOPye5CJq1x7njpl8rRu5RSrIKyHvZXtLvS0E=",
 		Endpoint:  "13.37.13.37:51820",
 		IP:        "10.255.240.2",
+		Healthy:   true,
 		Routes:    []string{"13.37.69.0/24", "13.37.59.69/32"},
-	}}
+	}
+	gateways := apiserver.Gateways{&gateway}
 
-	config := GenerateWireGuardPeers(gateways)
+	config := gateways.MarshalIni()
 	expected := `[Peer]
 PublicKey = PQKmraPOPye5CJq1x7njpl8rRu5RSrIKyHvZXtLvS0E=
-AllowedIPs = 13.37.69.0/24,13.37.59.69/32,10.255.240.2/32
+AllowedIPs = 10.255.240.2/32,13.37.69.0/24,13.37.59.69/32
 Endpoint = 13.37.13.37:51820
 `
-	assert.Equal(t, expected, config)
+	assert.Equal(t, expected, string(config))
 }

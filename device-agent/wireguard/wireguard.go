@@ -6,9 +6,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
-	"strings"
 
-	"github.com/nais/device/device-agent/apiserver"
 	"github.com/nais/device/device-agent/filesystem"
 	"golang.org/x/crypto/curve25519"
 )
@@ -53,27 +51,7 @@ func WGPubKey(privateKeySlice []byte) []byte {
 	return publicKey[:]
 }
 
-func GenerateWireGuardPeers(gateways map[string]*apiserver.Gateway) string {
-	peerTemplate := `[Peer]
-PublicKey = %s
-AllowedIPs = %s
-Endpoint = %s
-`
-	var peers string
-
-	for _, gateway := range gateways {
-		allowedIPs := gateway.IP+"/32"
-		if gateway.IsHealthy() {
-			allowedIPs += strings.Join(gateway.Routes, ",")
-
-		}
-		peers += fmt.Sprintf(peerTemplate, gateway.PublicKey, allowedIPs, gateway.Endpoint)
-	}
-
-	return peers
-}
-
-//TODO(jhrv): test
+// TODO(jhrv): test
 func EnsurePrivateKey(keyPath string) ([]byte, error) {
 	if err := filesystem.FileMustExist(keyPath); os.IsNotExist(err) {
 		if err := ioutil.WriteFile(keyPath, KeyToBase64(WgGenKey()), 0600); err != nil {
