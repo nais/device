@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"io/ioutil"
+	"net"
 	"os"
 	"os/signal"
 	"path/filepath"
@@ -18,6 +19,8 @@ import (
 	"github.com/nais/device/device-agent/runtimeconfig"
 	"github.com/nais/device/device-agent/wireguard"
 	log "github.com/sirupsen/logrus"
+	"golang.org/x/net/icmp"
+	"golang.org/x/net/ipv4"
 )
 
 var (
@@ -111,6 +114,15 @@ func connect(ctx context.Context, disconnectChan chan bool, gatewayChan chan map
 		return
 	}
 
+	for _, gateway := range rc.Gateways {
+		err := ping(gateway.IP)
+		if err != nil {
+			gateway.SetHealthy(false)
+		} else {
+			gateway.SetHealthy(true)
+		}
+	}
+
 	if err := writeToJSONFile(rc.SessionInfo, cfg.SessionInfoPath); err != nil {
 		log.Errorf("Writing session info to disk: %v", err)
 		return
@@ -128,5 +140,60 @@ ConnectedLoop:
 			}
 			gatewayChan <- rc.Gateways
 		}
+	}
+}
+
+func ping(addr string) error {
+	const (
+		ProtocolICMP = 1
+	)
+	var ListenAddr = "0.0.0.0"
+	// Start listening for icmp replies
+	c, err := icmp.ListenPacket("ip4:icmp", ListenAddr)
+	if err != nil {
+		return err
+	}
+	defer c.Close()
+	m := icmp.Message{
+		Type: ipv4.ICMPTypeEcho, Code: 0,
+		Body: &icmp.Echo{
+			ID: os.Getpid() & 0xffff, Seq: 1, //<< uint(seq), // TODO
+			Data: []byte(""),
+		},
+	}
+	b, err := m.Marshal(nil)
+	if err != nil {
+		return err
+	}
+
+	// Send it
+	dst, err := net.ResolveIPAddr("ip4", addr)
+	n, err := c.WriteTo(b, dst)
+	if err != nil {
+		return err
+	} else if n != len(b) {
+		return fmt.Errorf("got %v; want %v", n, len(b))
+	}
+	// Wait for a reply
+	reply := make([]byte, 200)
+	err = c.SetReadDeadline(time.Now().Add(10 * time.Second))
+	if err != nil {
+		return err
+	}
+	n, peer, err := c.ReadFrom(reply)
+	if err != nil {
+		return err
+	}
+
+	// Pack it up boys, we're done here
+	rm, err := icmp.ParseMessage(ProtocolICMP, reply[:n])
+	if err != nil {
+		return err
+	}
+	switch rm.Type {
+	case ipv4.ICMPTypeEchoReply:
+		return nil
+	default:
+		return fmt.Errorf("got %+v from %v; want echo reply", rm, peer)
 	}
 }
