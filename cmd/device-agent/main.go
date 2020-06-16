@@ -71,13 +71,13 @@ func getAuthURL(apiserverURL string, ctx context.Context) (string, error) {
 	return string(authURL), nil
 }
 
-func TruncateConfigFile(path string) error {
-	f, err := ConfigFileDescriptor(path)
-	if err == nil {
-		log.Debugf("Truncated WireGuard configuration file at %s", path)
-		f.Close()
+func DeleteConfigFile(path string) error {
+	err := os.Remove(path)
+	if err != nil {
+		return err
 	}
-	return err
+	log.Debugf("Removed WireGuard configuration file at %s", path)
+	return nil
 }
 
 func ConfigFileDescriptor(path string) (*os.File, error) {

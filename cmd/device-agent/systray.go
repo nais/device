@@ -151,7 +151,7 @@ func mainloop(updateGUI func(guiState GuiState)) {
 
 		case StateDisconnecting:
 			stop <- new(interface{})
-			err := TruncateConfigFile(rc.Config.WireGuardConfigPath)
+			err := DeleteConfigFile(rc.Config.WireGuardConfigPath)
 			if err != nil {
 				notify("error synchronizing WireGuard config: %s", err)
 			}

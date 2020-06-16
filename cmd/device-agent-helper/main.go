@@ -6,12 +6,13 @@ import (
 	"os"
 	"os/exec"
 	"os/signal"
+	"path"
 	"regexp"
 	"strings"
 	"syscall"
-	"time"
 
 	"github.com/nais/device/pkg/logger"
+	"github.com/rjeczalik/notify"
 	log "github.com/sirupsen/logrus"
 	flag "github.com/spf13/pflag"
 )
@@ -57,33 +58,41 @@ func main() {
 		log.Fatalf("Checking prerequisites: %v", err)
 	}
 
-	if err := setupInterface(ctx, cfg); err != nil {
-		log.Fatalf("Setting up interface: %v", err)
-	}
 	defer teardownInterface(ctx, cfg)
 
 	interrupt := make(chan os.Signal, 1)
 	signal.Notify(interrupt, os.Interrupt, syscall.SIGTERM)
 
-	lastSync := time.Time{}
+	configdir := path.Dir(cfg.WireGuardConfigPath)
+	notifyEvents := make(chan notify.EventInfo, 100)
+	err := notify.Watch(configdir, notifyEvents, notify.Remove, notify.Write)
+	if err != nil {
+		log.Fatalf("Monitoring WireGuard configuration file: %v", err)
+	}
+
 	for {
 		select {
 		case <-interrupt:
 			log.Info("Received interrupt, shutting down gracefully.")
 			return
 
-		case <-time.After(1 * time.Second):
-			info, err := os.Stat(cfg.WireGuardConfigPath)
-			if err != nil {
-				log.Errorf("checking WireGuard config stats: %v", err)
+		case ev := <-notifyEvents:
+			log.Infof("%#v", ev)
+			if ev.Path() != cfg.WireGuardConfigPath {
+				continue
 			}
-
-			if info.ModTime().After(lastSync) {
+			switch ev.Event() {
+			case notify.Remove:
+				log.Info("WireGuard configuration deleted; tearing down interface")
+				teardownInterface(ctx, cfg)
+			case notify.Write:
+				log.Info("WireGuard configuration updated")
+				if err := setupInterface(ctx, cfg); err != nil {
+					log.Fatalf("Setting up interface: %v", err)
+				}
 				err = syncConf(cfg, ctx)
 				if err != nil {
 					log.Errorf("Syncing WireGuard config: %v", err)
-				} else {
-					lastSync = info.ModTime()
 				}
 			}
 		}

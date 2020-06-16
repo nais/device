@@ -19,7 +19,7 @@ func platformFlags(cfg *Config) {}
 
 func setupInterface(ctx context.Context, cfg Config) error {
 	teardownInterface(ctx, cfg)
-	log.Info("Allowing Windows to process it's existential crisis while it tears down any previous WG interface (aka sleep 1 sec)")
+	log.Info("Allowing Windows to process its existential crisis while tearing down any previous WG interface (aka sleep 5 sec)")
 	time.Sleep(5 * time.Second)
 
 	installService := exec.CommandContext(ctx, cfg.WireGuardBinary, "/installtunnelservice", cfg.WireGuardConfigPath)
