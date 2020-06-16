@@ -32,6 +32,11 @@ const (
 	StateSavingConfiguration
 )
 
+const (
+	gatewayRefreshInterval    = 10 * time.Second
+	initialGatewayRefreshWait = 2 * time.Second
+)
+
 type GuiState struct {
 	ProgramState ProgramState
 	Gateways     apiserver.Gateways
@@ -61,7 +66,7 @@ func (g GuiState) String() string {
 var (
 	cfg           = config.DefaultConfig()
 	state         = StateDisconnected
-	newstate      = make(chan ProgramState, 1)
+	newstate      = make(chan ProgramState, 64)
 	connectedTime = time.Now()
 )
 
@@ -100,6 +105,7 @@ func mainloop(updateGUI func(guiState GuiState)) {
 	stop := make(chan interface{}, 1)
 
 	for st := range newstate {
+		oldstate := state
 		state = st
 
 		//noinspection GoNilness
@@ -149,17 +155,23 @@ func mainloop(updateGUI func(guiState GuiState)) {
 
 		case StateConnected:
 
+		case StateQuitting:
+			fallthrough
 		case StateDisconnecting:
-			stop <- new(interface{})
-			err := DeleteConfigFile(rc.Config.WireGuardConfigPath)
-			if err != nil {
-				notify("error synchronizing WireGuard config: %s", err)
+			if oldstate == StateConnected {
+				stop <- new(interface{})
+			}
+			if rc != nil {
+				err := DeleteConfigFile(rc.Config.WireGuardConfigPath)
+				if err != nil {
+					notify("error synchronizing WireGuard config: %s", err)
+				}
 			}
 			newstate <- StateDisconnected
 
-		case StateQuitting:
-			// stop <- new(interface{})
-			systray.Quit()
+			if state == StateQuitting {
+				systray.Quit()
+			}
 
 		case StateSavingConfiguration:
 			// TODO: Bør vi egentlig skrive fila på nytt hvert 10 sekund om det ikke er endringer?
@@ -175,18 +187,19 @@ func mainloop(updateGUI func(guiState GuiState)) {
 }
 
 func connectedLoop(stop chan interface{}, rc *runtimeconfig.RuntimeConfig) {
-	// Sleeping 2 seconds whilst waiting for API-server connection; waiting for wireguard to sync configuration
-	time.Sleep(2 * time.Second)
-	interval := 10 * time.Second
-	ticker := time.NewTicker(interval)
-	ctx, cancel := context.WithTimeout(context.Background(), interval)
+	// Sleeping whilst waiting for API-server connection; waiting for wireguard to sync configuration
+	time.Sleep(initialGatewayRefreshWait)
+
+	ctx, cancel := context.WithTimeout(context.Background(), gatewayRefreshInterval)
 	fetchConfig(ctx, rc)
 	cancel()
+
+	ticker := time.NewTicker(gatewayRefreshInterval)
 
 	for {
 		select {
 		case <-ticker.C:
-			ctx, cancel := context.WithTimeout(context.Background(), interval)
+			ctx, cancel := context.WithTimeout(context.Background(), gatewayRefreshInterval)
 			fetchConfig(ctx, rc)
 			cancel()
 

@@ -10,6 +10,7 @@ import (
 	"regexp"
 	"strings"
 	"syscall"
+	"time"
 
 	"github.com/nais/device/pkg/logger"
 	"github.com/rjeczalik/notify"
@@ -70,6 +71,29 @@ func main() {
 		log.Fatalf("Monitoring WireGuard configuration file: %v", err)
 	}
 
+	ensureUp := func() {
+		log.Info("WireGuard configuration updated")
+		if err := setupInterface(ctx, cfg); err != nil {
+			log.Errorf("Setting up interface: %v", err)
+			return
+		}
+		err = syncConf(cfg, ctx)
+		if err != nil {
+			log.Errorf("Syncing WireGuard config: %v", err)
+		}
+	}
+
+	ensureDown := func() {
+		log.Info("WireGuard configuration deleted; tearing down interface")
+		teardownInterface(ctx, cfg)
+	}
+
+	if RegularFileExists(cfg.WireGuardConfigPath) == nil {
+		ensureUp()
+	} else {
+		ensureDown()
+	}
+
 	for {
 		select {
 		case <-interrupt:
@@ -83,17 +107,9 @@ func main() {
 			}
 			switch ev.Event() {
 			case notify.Remove:
-				log.Info("WireGuard configuration deleted; tearing down interface")
-				teardownInterface(ctx, cfg)
+				ensureDown()
 			case notify.Write:
-				log.Info("WireGuard configuration updated")
-				if err := setupInterface(ctx, cfg); err != nil {
-					log.Fatalf("Setting up interface: %v", err)
-				}
-				err = syncConf(cfg, ctx)
-				if err != nil {
-					log.Errorf("Syncing WireGuard config: %v", err)
-				}
+				ensureUp()
 			}
 		}
 	}
@@ -114,7 +130,7 @@ func ParseConfig(wireGuardConfig string) ([]string, error) {
 
 func filesExist(files ...string) error {
 	for _, file := range files {
-		if err := FileMustExist(file); err != nil {
+		if err := RegularFileExists(file); err != nil {
 			return err
 		}
 	}
@@ -122,7 +138,7 @@ func filesExist(files ...string) error {
 	return nil
 }
 
-func FileMustExist(filepath string) error {
+func RegularFileExists(filepath string) error {
 	info, err := os.Stat(filepath)
 	if err != nil {
 		return err
@@ -143,6 +159,8 @@ func runCommands(ctx context.Context, commands [][]string) error {
 		} else {
 			log.Debugf("cmd: %v: %v\n", cmd, string(out))
 		}
+
+		time.Sleep(100 * time.Millisecond) // avoid serializable race conditions with kernel
 	}
 	return nil
 }
