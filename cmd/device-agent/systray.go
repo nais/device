@@ -4,8 +4,8 @@ import (
 	"context"
 	"fmt"
 	"io/ioutil"
-	"net"
 	"os"
+	"os/exec"
 	"os/signal"
 	"path/filepath"
 	"syscall"
@@ -18,8 +18,6 @@ import (
 	"github.com/nais/device/device-agent/filesystem"
 	"github.com/nais/device/device-agent/runtimeconfig"
 	log "github.com/sirupsen/logrus"
-	"golang.org/x/net/icmp"
-	"golang.org/x/net/ipv4"
 )
 
 type ProgramState int
@@ -181,6 +179,7 @@ func connectedLoop(stop chan interface{}, rc *runtimeconfig.RuntimeConfig) {
 			}
 
 			for _, gw := range gateways {
+
 				err := ping(gw.IP)
 				if err == nil {
 					gw.Healthy = true
@@ -228,6 +227,7 @@ func onReady() {
 
 	mState := systray.AddMenuItem("", "State")
 	mState.Disable()
+	systray.AddSeparator()
 	mConnect := systray.AddMenuItem("Connect", "Bootstrap the nais device")
 	mQuit := systray.AddMenuItem("Quit", "exit the application")
 	systray.AddSeparator()
@@ -275,56 +275,11 @@ func connect(ctx context.Context, rc *runtimeconfig.RuntimeConfig) error {
 }
 
 func ping(addr string) error {
-	const (
-		ProtocolICMP = 1
-	)
-	var ListenAddr = "0.0.0.0"
-	// Start listening for icmp replies
-	c, err := icmp.ListenPacket("udp4", ListenAddr)
-	if err != nil {
-		return err
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*3)
+	cmd := exec.CommandContext(ctx, "ping", "-c", "1", "127.0.0.1")
+	defer cancel()
+	if err := cmd.Run(); err != nil {
+		return fmt.Errorf("running command %v: %w", cmd, err)
 	}
-	defer c.Close()
-	m := icmp.Message{
-		Type: ipv4.ICMPTypeEcho, Code: 0,
-		Body: &icmp.Echo{
-			ID: os.Getpid() & 0xffff, Seq: 1, // << uint(seq), // TODO
-			Data: []byte(""),
-		},
-	}
-	b, err := m.Marshal(nil)
-	if err != nil {
-		return err
-	}
-
-	// Send it
-	dst, err := net.ResolveIPAddr("ip4", addr)
-	n, err := c.WriteTo(b, dst)
-	if err != nil {
-		return err
-	} else if n != len(b) {
-		return fmt.Errorf("got %v; want %v", n, len(b))
-	}
-	// Wait for a reply
-	reply := make([]byte, 200)
-	err = c.SetReadDeadline(time.Now().Add(10 * time.Second))
-	if err != nil {
-		return err
-	}
-	n, peer, err := c.ReadFrom(reply)
-	if err != nil {
-		return err
-	}
-
-	// Pack it up boys, we're done here
-	rm, err := icmp.ParseMessage(ProtocolICMP, reply[:n])
-	if err != nil {
-		return err
-	}
-	switch rm.Type {
-	case ipv4.ICMPTypeEchoReply:
-		return nil
-	default:
-		return fmt.Errorf("got %+v from %v; want echo reply", rm, peer)
-	}
+	return nil
 }
