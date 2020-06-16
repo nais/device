@@ -221,23 +221,24 @@ func fetchConfig(ctx context.Context, rc *runtimeconfig.RuntimeConfig) {
 
 	newstate <- StateSavingConfiguration
 }
-
-func onReady() {
+func readIcon(color string) []byte {
 	currentDir, err := filepath.Abs(filepath.Dir(os.Args[0]))
 	if err != nil {
 		log.Fatal(err)
 	}
-	iconPath := filepath.Join(currentDir, "..", "..", "assets", "naislogo.png")
+	iconPath := filepath.Join(currentDir, "..", "..", "assets", fmt.Sprintf("nais-logo-%s.png", color))
 	icon, err := ioutil.ReadFile(iconPath)
-
 	if err != nil {
-		log.Errorf("unable to find the icon")
-	} else {
-		systray.SetIcon(icon)
+		log.Errorf("finding icon: %v", err)
 	}
+	return icon
 
+}
+func onReady() {
+
+	systray.SetIcon(readIcon("blue"))
 	cfg.SetDefaults()
-	if err = filesystem.EnsurePrerequisites(&cfg); err != nil {
+	if err := filesystem.EnsurePrerequisites(&cfg); err != nil {
 		notify(fmt.Sprintf("Missing prerequisites: %s", err))
 	}
 
@@ -257,9 +258,12 @@ func onReady() {
 		switch st.ProgramState {
 		case StateDisconnected:
 			mConnect.SetTitle("Connect")
+			systray.SetIcon(readIcon("red"))
 			mConnect.Enable()
 		case StateConnected:
 			mConnect.SetTitle("Disconnect")
+			systray.SetIcon(readIcon("green"))
+			mConnect.Enable()
 			mConnect.Enable()
 		case StateSavingConfiguration:
 			for _, gateway := range st.Gateways {
