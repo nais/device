@@ -19,7 +19,7 @@ type SessionInfo struct {
 }
 
 func (si *SessionInfo) Expired() bool {
-	return si == nil || time.Unix(si.Expiry, 0).After(time.Now())
+	return si == nil || time.Unix(si.Expiry, 0).Before(time.Now())
 }
 
 func RunFlow(ctx context.Context, authURL, apiserverURL, platform, serial string) (*SessionInfo, error) {
