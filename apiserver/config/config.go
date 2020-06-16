@@ -2,8 +2,9 @@ package config
 
 import (
 	"fmt"
-	"github.com/dgrijalva/jwt-go"
 	"strings"
+
+	"github.com/dgrijalva/jwt-go"
 )
 
 type Config struct {
@@ -48,8 +49,7 @@ func (c *Config) Credentials() (map[string]string, error) {
 func DefaultConfig() Config {
 	return Config{
 		BindAddress:    "10.255.240.1:80",
-		ConfigDir:      "/usr/local/etc/nais-device/",
+		ConfigDir:      "/usr/local/etc/naisdevice/",
 		PrometheusAddr: ":3000",
-		LogLevel:       "info",
 	}
 }

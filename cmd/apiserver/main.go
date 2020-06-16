@@ -4,12 +4,6 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"github.com/dgrijalva/jwt-go"
-	"github.com/nais/device/apiserver/auth"
-	"github.com/nais/device/apiserver/azure/discovery"
-	"github.com/nais/device/apiserver/azure/validate"
-	"github.com/nais/device/apiserver/bootstrapper"
-	"github.com/nais/device/pkg/logger"
 	"io/ioutil"
 	"net/http"
 	"os"
@@ -18,6 +12,12 @@ import (
 	"strings"
 	"time"
 
+	"github.com/dgrijalva/jwt-go"
+	"github.com/nais/device/apiserver/auth"
+	"github.com/nais/device/apiserver/azure/discovery"
+	"github.com/nais/device/apiserver/azure/validate"
+	"github.com/nais/device/apiserver/bootstrapper"
+	"github.com/nais/device/pkg/logger"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 
 	"github.com/nais/device/apiserver/api"
@@ -32,13 +32,13 @@ var (
 )
 
 func init() {
-	logger.Setup(cfg.LogLevel, true)
 	flag.StringVar(&cfg.DbConnURI, "db-connection-uri", os.Getenv("DB_CONNECTION_URI"), "database connection URI (DSN)")
 	flag.StringVar(&cfg.BootstrapApiURL, "bootstrap-api-url", "", "bootstrap API URL")
 	flag.StringVar(&cfg.BootstrapApiCredentials, "bootstrap-api-credentials", os.Getenv("BOOTSTRAP_API_CREDENTIALS"), "bootstrap API credentials")
 	flag.StringVar(&cfg.PrometheusAddr, "prometheus-address", cfg.PrometheusAddr, "prometheus listen address")
 	flag.StringVar(&cfg.PrometheusPublicKey, "prometheus-public-key", cfg.PrometheusPublicKey, "prometheus public key")
 	flag.StringVar(&cfg.PrometheusTunnelIP, "prometheus-tunnel-ip", cfg.PrometheusTunnelIP, "prometheus tunnel ip")
+	flag.StringVar(&cfg.LogLevel, "log-level", "info", "which log level to output")
 	flag.StringVar(&cfg.BindAddress, "bind-address", cfg.BindAddress, "Bind address")
 	flag.StringVar(&cfg.ConfigDir, "config-dir", cfg.ConfigDir, "Path to configuration directory")
 	flag.StringVar(&cfg.Endpoint, "endpoint", cfg.Endpoint, "public endpoint (ip:port)")
@@ -52,6 +52,7 @@ func init() {
 
 	cfg.PrivateKeyPath = filepath.Join(cfg.ConfigDir, "private.key")
 	cfg.WireGuardConfigPath = filepath.Join(cfg.ConfigDir, "wg0.conf")
+	logger.Setup(cfg.LogLevel, true)
 }
 
 func main() {
@@ -179,6 +180,7 @@ func syncWireguardConfig(dbConnURI, privateKey string, conf config.Config) {
 
 	log.Info("Starting config sync")
 	for c := time.Tick(10 * time.Second); ; <-c {
+		log.Debug("Synchronizing configuration")
 		devices, err := db.ReadDevices()
 		if err != nil {
 			log.Errorf("Reading devices from database: %v", err)
@@ -193,9 +195,14 @@ func syncWireguardConfig(dbConnURI, privateKey string, conf config.Config) {
 
 		if err := ioutil.WriteFile(conf.WireGuardConfigPath, wgConfigContent, 0600); err != nil {
 			log.Errorf("Writing WireGuard config to disk: %v", err)
+		} else {
+			log.Debugf("Successfully wrote WireGuard config to: %v", conf.WireGuardConfigPath)
 		}
 
-		if b, err := exec.Command("wg", "syncconf", "wg0", conf.WireGuardConfigPath).CombinedOutput(); err != nil {
+		syncConf := exec.Command("wg", "syncconf", "wg0", conf.WireGuardConfigPath)
+		if cfg.DevMode {
+			log.Infof("DevMode: skip running %v", syncConf)
+		} else if b, err := syncConf.CombinedOutput(); err != nil {
 			log.Errorf("Synchronizing WireGuard config: %v: %v", err, string(b))
 		}
 	}

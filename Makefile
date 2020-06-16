@@ -5,7 +5,8 @@ VERSION="$(DATE)-$(LAST_COMMIT)"
 LDFLAGS := -X github.com/nais/device/pkg/version.Revision=$(shell git rev-parse --short HEAD) -X github.com/nais/device/pkg/version.Version=$(VERSION)
 
 all: test alpine
-dev-apiserver: teardown-postgres run-postgres insert-testdata local-apiserver
+db: teardown-postgres run-postgres insert-testdata
+dev-apiserver: db local-apiserver
 integration-test: run-postgres-test run-integration-test teardown-postgres-test
 clients: linux-client macos-client windows-client
 
