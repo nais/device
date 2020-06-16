@@ -29,6 +29,7 @@ const (
 	StateConnected
 	StateDisconnecting
 	StateQuitting
+	StateSavingConfiguration
 )
 
 type GuiState struct {
@@ -44,8 +45,10 @@ func (g GuiState) String() string {
 		return "Bootstrapping..."
 	case StateConnecting:
 		return "Connecting..."
+	case StateSavingConfiguration:
+		fallthrough
 	case StateConnected:
-		return "Connected"
+		return fmt.Sprintf("Connected since %s", connectedTime.Format(time.Kitchen))
 	case StateDisconnecting:
 		return "Disconnecting..."
 	case StateQuitting:
@@ -56,9 +59,10 @@ func (g GuiState) String() string {
 }
 
 var (
-	cfg      = config.DefaultConfig()
-	state    = StateDisconnected
-	newstate = make(chan ProgramState, 1)
+	cfg           = config.DefaultConfig()
+	state         = StateDisconnected
+	newstate      = make(chan ProgramState, 1)
+	connectedTime = time.Now()
 )
 
 func notify(message string) {
@@ -129,19 +133,20 @@ func mainloop(updateGUI func(guiState GuiState)) {
 				continue
 			}
 			ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
-			err := connect(ctx, rc)
+			err := ensureAuth(ctx, rc)
 			cancel()
 
 			if err == nil {
 				newstate <- StateConnected
 				notify("connected")
+				go connectedLoop(stop, rc)
+				connectedTime = time.Now()
 			} else {
 				newstate <- StateDisconnected
 				notify(err.Error())
 			}
 
 		case StateConnected:
-			go connectedLoop(stop, rc)
 
 		case StateDisconnecting:
 			stop <- new(interface{})
@@ -150,57 +155,71 @@ func mainloop(updateGUI func(guiState GuiState)) {
 		case StateQuitting:
 			// stop <- new(interface{})
 			systray.Quit()
+
+		case StateSavingConfiguration:
+			// TODO: Bør vi egentlig skrive fila på nytt hvert 10 sekund om det ikke er endringer?
+			err = WriteConfigFile(rc.Config.WireGuardConfigPath, *rc)
+			if err != nil {
+				err = fmt.Errorf("unable to write WireGuard configuration file: %w", err)
+				notify(err.Error())
+				return
+			}
+			newstate <- StateConnected
 		}
 	}
 }
 
 func connectedLoop(stop chan interface{}, rc *runtimeconfig.RuntimeConfig) {
-	timeout := 5 * time.Second
-	ticker := time.NewTicker(timeout)
+	// Sleeping 2 seconds whilst waiting for API-server connection; waiting for wireguard to sync configuration
+	time.Sleep(2 * time.Second)
+	interval := 10 * time.Second
+	ticker := time.NewTicker(interval)
+	ctx, cancel := context.WithTimeout(context.Background(), interval)
+	fetchConfig(ctx, rc)
+	cancel()
 
 	for {
 		select {
 		case <-ticker.C:
-
-			ctx, cancel := context.WithTimeout(context.Background(), timeout)
-			gateways, err := apiserver.GetGateways(rc.SessionInfo.Key, rc.Config.APIServer, ctx)
+			ctx, cancel := context.WithTimeout(context.Background(), interval)
+			fetchConfig(ctx, rc)
 			cancel()
-
-			if err != nil {
-				log.Errorf("unable to get gateway config: %v", err)
-				continue
-			}
-
-			if ue, ok := err.(*apiserver.UnauthorizedError); ok {
-				newstate <- StateDisconnecting
-				log.Errorf("unauthorized access from apiserver: %v", ue)
-				log.Errorf("assuming invalid session; disconnecting.")
-				continue
-			}
-
-			for _, gw := range gateways {
-
-				err := ping(gw.IP)
-				if err == nil {
-					gw.Healthy = true
-				} else {
-					gw.Healthy = false
-					log.Errorf("unable to ping host %s: %v", gw.IP, err)
-				}
-			}
-
-			rc.Gateways = gateways
-
-			err = WriteConfigFile(rc.Config.WireGuardConfigPath, *rc)
-			if err != nil {
-				err = fmt.Errorf("unable to write WireGuard configuration file: %w", err)
-				notify(err.Error())
-			}
 
 		case <-stop:
 			return
 		}
 	}
+}
+
+func fetchConfig(ctx context.Context, rc *runtimeconfig.RuntimeConfig) {
+	gateways, err := apiserver.GetGateways(rc.SessionInfo.Key, rc.Config.APIServer, ctx)
+
+	if err != nil {
+		log.Errorf("unable to get gateway config: %v", err)
+		return
+	}
+
+	if ue, ok := err.(*apiserver.UnauthorizedError); ok {
+		newstate <- StateDisconnecting
+		log.Errorf("unauthorized access from apiserver: %v", ue)
+		log.Errorf("assuming invalid session; disconnecting.")
+		return
+	}
+
+	for _, gw := range gateways {
+
+		err := ping(gw.IP)
+		if err == nil {
+			gw.Healthy = true
+		} else {
+			gw.Healthy = false
+			log.Errorf("unable to ping host %s: %v", gw.IP, err)
+		}
+	}
+
+	rc.Gateways = gateways
+
+	newstate <- StateSavingConfiguration
 }
 
 func onReady() {
@@ -234,7 +253,7 @@ func onReady() {
 	mCurrentGateways := make(map[string]*systray.MenuItem)
 
 	updateGUI := func(st GuiState) {
-		mState.SetTitle(st.String())
+		mState.SetTitle("Status: " + st.String())
 		switch st.ProgramState {
 		case StateDisconnected:
 			mConnect.SetTitle("Connect")
@@ -242,14 +261,21 @@ func onReady() {
 		case StateConnected:
 			mConnect.SetTitle("Disconnect")
 			mConnect.Enable()
+		case StateSavingConfiguration:
+			for _, gateway := range st.Gateways {
+				if _, ok := mCurrentGateways[gateway.Endpoint]; !ok {
+					mCurrentGateways[gateway.Endpoint] = systray.AddMenuItem(gateway.Name, gateway.Endpoint)
+					mCurrentGateways[gateway.Endpoint].Disable()
+				}
+				if gateway.Healthy {
+					mCurrentGateways[gateway.Endpoint].Check()
+				} else {
+					mCurrentGateways[gateway.Endpoint].Uncheck()
+				}
+			}
+
 		default:
 			mConnect.Disable()
-		}
-		for _, gateway := range st.Gateways {
-			if _, ok := mCurrentGateways[gateway.Endpoint]; !ok {
-				mCurrentGateways[gateway.Endpoint] = systray.AddMenuItem(gateway.Name, gateway.Endpoint)
-				mCurrentGateways[gateway.Endpoint].Disable()
-			}
 		}
 	}
 
@@ -262,7 +288,7 @@ func onExit() {
 	// This is where we clean up
 }
 
-func connect(ctx context.Context, rc *runtimeconfig.RuntimeConfig) error {
+func ensureAuth(ctx context.Context, rc *runtimeconfig.RuntimeConfig) error {
 	var err error
 	if !rc.SessionInfo.Expired() {
 		return nil
@@ -276,7 +302,7 @@ func connect(ctx context.Context, rc *runtimeconfig.RuntimeConfig) error {
 
 func ping(addr string) error {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*3)
-	cmd := exec.CommandContext(ctx, "ping", "-c", "1", "127.0.0.1")
+	cmd := exec.CommandContext(ctx, "ping", "-c", "1", "-t", "1", addr)
 	defer cancel()
 	if err := cmd.Run(); err != nil {
 		return fmt.Errorf("running command %v: %w", cmd, err)
