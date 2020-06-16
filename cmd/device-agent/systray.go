@@ -65,7 +65,8 @@ var (
 	connectedTime = time.Now()
 )
 
-func notify(message string) {
+func notify(format string, args ...interface{}) {
+	message := fmt.Sprintf(format, args)
 	err := beeep.Notify("NAIS device", message, "")
 	log.Infof("sending message to notification centre: %s", message)
 	if err != nil {
@@ -150,6 +151,10 @@ func mainloop(updateGUI func(guiState GuiState)) {
 
 		case StateDisconnecting:
 			stop <- new(interface{})
+			err := TruncateConfigFile(rc.Config.WireGuardConfigPath)
+			if err != nil {
+				notify("error synchronizing WireGuard config: %s", err)
+			}
 			newstate <- StateDisconnected
 
 		case StateQuitting:
@@ -221,6 +226,7 @@ func fetchConfig(ctx context.Context, rc *runtimeconfig.RuntimeConfig) {
 
 	newstate <- StateSavingConfiguration
 }
+
 func readIcon(color string) []byte {
 	currentDir, err := filepath.Abs(filepath.Dir(os.Args[0]))
 	if err != nil {
@@ -234,6 +240,7 @@ func readIcon(color string) []byte {
 	return icon
 
 }
+
 func onReady() {
 
 	systray.SetIcon(readIcon("blue"))

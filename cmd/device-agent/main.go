@@ -71,8 +71,21 @@ func getAuthURL(apiserverURL string, ctx context.Context) (string, error) {
 	return string(authURL), nil
 }
 
-func WriteConfigFile(file string, rc runtimeconfig.RuntimeConfig) error {
-	f, err := os.OpenFile(file, os.O_TRUNC|os.O_WRONLY|os.O_CREATE, 0600)
+func TruncateConfigFile(path string) error {
+	f, err := ConfigFileDescriptor(path)
+	if err == nil {
+		log.Debugf("Truncated WireGuard configuration file at %s", path)
+		f.Close()
+	}
+	return err
+}
+
+func ConfigFileDescriptor(path string) (*os.File, error) {
+	return os.OpenFile(path, os.O_TRUNC|os.O_WRONLY|os.O_CREATE, 0600)
+}
+
+func WriteConfigFile(path string, rc runtimeconfig.RuntimeConfig) error {
+	f, err := ConfigFileDescriptor(path)
 	if err != nil {
 		return err
 	}
