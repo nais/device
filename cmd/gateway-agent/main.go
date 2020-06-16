@@ -12,7 +12,7 @@ import (
 	"time"
 
 	"github.com/nais/device/pkg/logger"
-	version "github.com/nais/device/pkg/version"
+	"github.com/nais/device/pkg/version"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	log "github.com/sirupsen/logrus"
@@ -338,8 +338,8 @@ func checkForNewRelease() {
 		if err != nil {
 			log.Errorf("Unable to retrieve current release version %s", err)
 		}
-		defer resp.Body.Close()
 		body, err := ioutil.ReadAll(resp.Body)
+		resp.Body.Close()
 		res := response{}
 		err = json.Unmarshal(body, &res)
 		if err != nil {

@@ -4,6 +4,7 @@ package wireguard
 
 import (
 	"fmt"
+
 	"github.com/nais/device/pkg/bootstrap"
 )
 

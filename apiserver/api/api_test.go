@@ -93,7 +93,6 @@ func setup(t *testing.T) (*database.APIServerDB, chi.Router) {
 }
 
 func mockTokenValidator(token *jwt.Token) (interface{}, error) {
-	jwt.ParseWithClaims()
 	return nil, nil
 }
 

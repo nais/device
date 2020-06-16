@@ -2,28 +2,20 @@ package main
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"net/http"
 	"os"
-	"os/signal"
-	"syscall"
 	"time"
 
-	"github.com/nais/device/device-agent/apiserver"
+	"github.com/getlantern/systray"
 	"github.com/nais/device/device-agent/auth"
-	"github.com/nais/device/device-agent/config"
-	"github.com/nais/device/device-agent/filesystem"
 	"github.com/nais/device/device-agent/runtimeconfig"
 	"github.com/nais/device/device-agent/wireguard"
 	"github.com/nais/device/pkg/logger"
 	log "github.com/sirupsen/logrus"
 	flag "github.com/spf13/pflag"
-)
-
-var (
-	cfg = config.DefaultConfig()
 )
 
 func init() {
@@ -40,98 +32,12 @@ func init() {
 
 func main() {
 	log.Infof("Starting device-agent with config:\n%+v", cfg)
-	cfg.SetDefaults()
 
-	if err := filesystem.EnsurePrerequisites(&cfg); err != nil {
-		log.Fatalf("Verifying prerequisites: %v", err)
-	}
+	systray.Run(onReady, onExit)
 
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-
-	rc, err := runtimeconfig.New(cfg, ctx)
-	if err != nil {
-		log.Fatalf("Initializing runtime config: %v", err)
-	}
-
-	baseConfig := wireguard.GenerateBaseConfig(rc.BootstrapConfig, rc.PrivateKey)
-
-	if err := ioutil.WriteFile(cfg.WireGuardConfigPath, []byte(baseConfig), 0600); err != nil {
-		log.Fatalf("Writing base WireGuard config to disk: %v", err)
-	}
-
-	fmt.Println("Starting device-agent-helper, you might be prompted for password")
-
-	if err := runHelper(rc, ctx); err != nil {
-		log.Errorf("Running helper: %v", err)
-		return
-	}
-
-	// wait until helper has established tunnel to apiserver...
-
-	if rc.SessionInfo, err = ensureValidSessionInfo(cfg.SessionInfoPath, cfg.APIServer, cfg.Platform, rc.Serial, ctx); err != nil {
-		log.Errorf("Ensuring valid session key: %v", err)
-		return
-	}
-
-	if err := writeToJSONFile(rc.SessionInfo, cfg.SessionInfoPath); err != nil {
-		log.Errorf("Writing session info to disk: %v", err)
-		return
-	}
-
-	interrupt := make(chan os.Signal, 1)
-	signal.Notify(interrupt, os.Interrupt, syscall.SIGTERM)
-
-	for {
-		select {
-		case <-interrupt:
-			log.Info("Received interrupt, shutting down gracefully.")
-			return
-
-		case <-time.After(5 * time.Second):
-			if err := SyncConfig(baseConfig, rc, ctx); err != nil {
-				log.Errorf("Unable to synchronize config with apiserver: %v", err)
-			}
-		}
-	}
 }
 
-func writeToJSONFile(strct interface{}, path string) error {
-	b, err := json.Marshal(&strct)
-	if err != nil {
-		return fmt.Errorf("marshaling struct into json: %w", err)
-	}
-	if err := ioutil.WriteFile(path, b, 0600); err != nil {
-		return err
-	}
-	return nil
-}
-
-func fileExists(filepath string) bool {
-	info, err := os.Stat(filepath)
-	if err != nil || info.IsDir() {
-		return false
-	}
-	return true
-}
-
-func ensureValidSessionInfo(sessionInfoFile, apiserverURL, platform, serial string, ctx context.Context) (*auth.SessionInfo, error) {
-	if fileExists(sessionInfoFile) {
-		b, err := ioutil.ReadFile(sessionInfoFile)
-		if err != nil {
-			return nil, fmt.Errorf("reading session key file: %v", err)
-		}
-		var si auth.SessionInfo
-
-		_ = json.Unmarshal(b, &si) // Ignoring unmarshalling errors, fetch new session key instead
-
-		const MinRemainingKeyValidity = 8 * time.Hour
-		if time.Unix(si.Expiry, 0).After(time.Now().Add(MinRemainingKeyValidity)) {
-			log.Debug("Using cached session key, as it is valid for more than 8 hours")
-			return &si, nil
-		}
-	}
-
+func ensureValidSessionInfo(apiserverURL, platform, serial string, ctx context.Context) (*auth.SessionInfo, error) {
 	authURL, err := getAuthURL(apiserverURL, ctx)
 
 	if err != nil {
@@ -165,29 +71,46 @@ func getAuthURL(apiserverURL string, ctx context.Context) (string, error) {
 	return string(authURL), nil
 }
 
-func SyncConfig(baseConfig string, rc *runtimeconfig.RuntimeConfig, ctx context.Context) error {
-	gateways, err := apiserver.GetGateways(rc.SessionInfo.Key, rc.Config.APIServer, ctx)
-
-	if ue, ok := err.(*apiserver.UnauthorizedError); ok {
-		log.Errorf("Unauthorized access from apiserver: %v\nAssuming invalid session. Removing cached session and stopping process.", ue)
-
-		if err := os.Remove(rc.Config.SessionInfoPath); err != nil {
-			log.Errorf("Removing session info file: %v", err)
-		}
-
-		os.Exit(1)
-	}
-
+func DeleteConfigFile(path string) error {
+	err := os.Remove(path)
 	if err != nil {
-		return fmt.Errorf("unable to get gateway config: %w", err)
+		return err
 	}
+	log.Debugf("Removed WireGuard configuration file at %s", path)
+	return nil
+}
 
-	wireGuardPeers := wireguard.GenerateWireGuardPeers(gateways)
+func ConfigFileDescriptor(path string) (*os.File, error) {
+	return os.OpenFile(path, os.O_TRUNC|os.O_WRONLY|os.O_CREATE, 0600)
+}
 
-	if err := ioutil.WriteFile(rc.Config.WireGuardConfigPath, []byte(baseConfig+wireGuardPeers), 0600); err != nil {
+func WriteConfigFile(path string, rc runtimeconfig.RuntimeConfig) error {
+	f, err := ConfigFileDescriptor(path)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+	err = WriteConfig(f, rc)
+	if err != nil {
 		return fmt.Errorf("writing WireGuard config to disk: %w", err)
 	}
 
 	log.Debugf("Wrote WireGuard config to disk")
 	return nil
+}
+
+func WriteConfig(w io.Writer, rc runtimeconfig.RuntimeConfig) error {
+	baseConfig := wireguard.GenerateBaseConfig(rc.BootstrapConfig, rc.PrivateKey)
+	_, err := w.Write([]byte(baseConfig))
+	if err != nil {
+		return err
+	}
+
+	wireGuardPeers := rc.Gateways.MarshalIni()
+	_, err = w.Write(wireGuardPeers)
+	if err != nil {
+		return err
+	}
+
+	return err
 }

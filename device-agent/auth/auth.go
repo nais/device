@@ -18,6 +18,10 @@ type SessionInfo struct {
 	Expiry int64  `json:"expiry"`
 }
 
+func (si *SessionInfo) Expired() bool {
+	return si == nil || time.Unix(si.Expiry, 0).Before(time.Now())
+}
+
 func RunFlow(ctx context.Context, authURL, apiserverURL, platform, serial string) (*SessionInfo, error) {
 	ctx, cancel := context.WithTimeout(ctx, 3*time.Minute)
 	defer cancel()

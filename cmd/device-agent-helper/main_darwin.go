@@ -59,7 +59,9 @@ func setupRoutes(ctx context.Context, cidrs []string, interfaceName string) erro
 }
 
 func setupInterface(ctx context.Context, cfg Config) error {
-	teardownInterface(ctx, cfg)
+	if interfaceExists(ctx, cfg) {
+		return nil
+	}
 
 	ip := cfg.DeviceIP
 	commands := [][]string{
@@ -74,14 +76,22 @@ func setupInterface(ctx context.Context, cfg Config) error {
 }
 
 func teardownInterface(ctx context.Context, cfg Config) {
+	if !interfaceExists(ctx, cfg) {
+		return
+	}
+
 	cmd := exec.CommandContext(ctx, "pkill", "-f", fmt.Sprintf("%s %s", cfg.WireGuardGoBinary, cfg.Interface))
 	out, err := cmd.CombinedOutput()
 
 	if err != nil {
 		log.Infof("tearing down interface failed: %v: %v", cmd, err)
 		log.Infof("teardown output: %v", string(out))
-		log.Infof("teardown failure probably just means no existing tunnel was running")
 	}
 
 	return
+}
+
+func interfaceExists(ctx context.Context, cfg Config) bool {
+	cmd := exec.CommandContext(ctx, "pgrep", "-f", fmt.Sprintf("%s %s", cfg.WireGuardGoBinary, cfg.Interface))
+	return cmd.Run() == nil
 }
