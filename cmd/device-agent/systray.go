@@ -182,7 +182,7 @@ func synchronizeGateways(stop chan interface{}, rc *runtimeconfig.RuntimeConfig)
 	time.Sleep(initialGatewayRefreshWait)
 
 	ctx, cancel := context.WithTimeout(context.Background(), gatewayRefreshInterval)
-	fetchConfig(ctx, rc)
+	fetchDeviceConfig(ctx, rc)
 	cancel()
 
 	ticker := time.NewTicker(gatewayRefreshInterval)
@@ -191,17 +191,16 @@ func synchronizeGateways(stop chan interface{}, rc *runtimeconfig.RuntimeConfig)
 		select {
 		case <-ticker.C:
 			ctx, cancel := context.WithTimeout(context.Background(), gatewayRefreshInterval)
-			fetchConfig(ctx, rc)
+			fetchDeviceConfig(ctx, rc)
 			cancel()
-
 		case <-stop:
 			return
 		}
 	}
 }
 
-func fetchConfig(ctx context.Context, rc *runtimeconfig.RuntimeConfig) {
-	gateways, err := apiserver.GetGateways(rc.SessionInfo.Key, rc.Config.APIServer, ctx)
+func fetchDeviceConfig(ctx context.Context, rc *runtimeconfig.RuntimeConfig) {
+	gateways, err := apiserver.GetDeviceConfig(rc.SessionInfo.Key, rc.Config.APIServer, ctx)
 
 	if err != nil {
 		log.Errorf("unable to get gateway config: %v", err)

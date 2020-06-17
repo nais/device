@@ -52,7 +52,7 @@ Endpoint = %s
 	return []byte(s)
 }
 
-func GetGateways(sessionKey, apiServerURL string, ctx context.Context) (Gateways, error) {
+func GetDeviceConfig(sessionKey, apiServerURL string, ctx context.Context) (Gateways, error) {
 	ctx, cancel := context.WithTimeout(ctx, 3*time.Second)
 	defer cancel()
 
