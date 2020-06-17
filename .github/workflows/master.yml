@@ -79,21 +79,21 @@ jobs:
           echo ::set-output name=version::$(date "+%Y-%m-%d")-$(git --no-pager log -1 --pretty=%h)
       - name: make wireguard-tools
         run: |
-        curl -OL https://git.zx2c4.com/wireguard-tools/snapshot/wireguard-tools-1.0.20200513.tar.xz
-        tar xf wireguard-tools-*.tar.xz
-        cd wireguard-tools-*/src
-        make
-        mv wg ../../bin/macos/
+          curl -OL https://git.zx2c4.com/wireguard-tools/snapshot/wireguard-tools-1.0.20200513.tar.xz
+          tar xf wireguard-tools-*.tar.xz
+          cd wireguard-tools-*/src
+          make
+          mv wg ../../bin/macos/
       - name: make wireguard-go
         run: |
-        curl -OL https://git.zx2c4.com/wireguard-go/snapshot/wireguard-go-0.0.20200320.tar.xz
-        tar xf wireguard-go-*.tar.xz
-        cd wireguard-go-*
-        make
-        mv wireguard-go ../bin/macos/
+          curl -OL https://git.zx2c4.com/wireguard-go/snapshot/wireguard-go-0.0.20200320.tar.xz
+          tar xf wireguard-go-*.tar.xz
+          cd wireguard-go-*
+          make
+          mv wireguard-go ../bin/macos/
       - name: build pkg
         run: |
-        make pkg VERSION=${{ steps.set_version.outputs.version }}
+          make pkg VERSION=${{ steps.set_version.outputs.version }}
       - name: upload pkg
         uses: actions/upload-artifact@v2.0.1
         with:
