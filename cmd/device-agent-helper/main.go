@@ -2,11 +2,15 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
+	"github.com/nais/device/pkg/bootstrap"
+	"io/ioutil"
 	"os"
 	"os/exec"
 	"os/signal"
 	"path"
+	"path/filepath"
 	"regexp"
 	"strings"
 	"syscall"
@@ -24,22 +28,27 @@ var (
 
 type Config struct {
 	Interface           string
-	BinaryDir           string
 	WireGuardBinary     string
 	WireGuardGoBinary   string
 	WireGuardConfigPath string
+	ConfigPath          string
 	LogLevel            string
-	DeviceIP            string
+	BootstrapConfig     *bootstrap.Config
+	BootstrapConfigPath string
 }
 
 func init() {
-	flag.StringVar(&cfg.Interface, "interface", "", "name of tunnel interface")
 	flag.StringVar(&cfg.LogLevel, "log-level", "info", "which log level to output")
-	flag.StringVar(&cfg.WireGuardConfigPath, "wireguard-config-path", "", "path to the WireGuard-config the helper will actuate")
-	flag.StringVar(&cfg.WireGuardBinary, "wireguard-binary", cfg.WireGuardBinary, "path to WireGuard binary")
+	flag.StringVar(&cfg.ConfigPath, "config-dir", "", "path to naisdevice config dir")
+	flag.StringVar(&cfg.Interface, "interface", "utun69", "interface name")
 	platformFlags(&cfg)
 
 	flag.Parse()
+
+	cfg.WireGuardGoBinary = filepath.Join("/", "Applications", "naisdevice.app", "Contents", "MacOS", "wireguard-go")
+	cfg.WireGuardBinary = filepath.Join("/", "Applications", "naisdevice.app", "Contents", "MacOS", "wg")
+	cfg.WireGuardConfigPath = filepath.Join(cfg.ConfigPath, cfg.Interface+".conf")
+	cfg.BootstrapConfigPath = filepath.Join(cfg.ConfigPath, "bootstrapconfig.json")
 
 	logger.Setup(cfg.LogLevel, true)
 }
@@ -51,6 +60,12 @@ func init() {
 // - setting up the required routes
 func main() {
 	log.Infof("Starting device-agent-helper with config:\n%+v", cfg)
+
+	var err error
+	cfg.BootstrapConfig, err = parseBootstrapConfig(cfg)
+	if err != nil {
+		log.Fatal("parsing bootstrap config", err)
+	}
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -66,7 +81,7 @@ func main() {
 
 	configdir := path.Dir(cfg.WireGuardConfigPath)
 	notifyEvents := make(chan notify.EventInfo, 100)
-	err := notify.Watch(configdir, notifyEvents, notify.Remove, notify.Write)
+	err = notify.Watch(configdir, notifyEvents, notify.Remove, notify.Write)
 	if err != nil {
 		log.Fatalf("Monitoring WireGuard configuration file: %v", err)
 	}
@@ -113,6 +128,21 @@ func main() {
 			}
 		}
 	}
+}
+
+func parseBootstrapConfig(cfg Config) (*bootstrap.Config, error) {
+	b, err := ioutil.ReadFile(cfg.BootstrapConfigPath)
+	if err != nil {
+		return nil, fmt.Errorf("reading bootstrapconfig.json: %w", err)
+	}
+
+	var bootstrapConfig bootstrap.Config
+	err = json.Unmarshal(b, &bootstrapConfig)
+	if err != nil {
+		return nil, fmt.Errorf("unmarshalling bootstrapconfig.json: %w", err)
+	}
+
+	return &bootstrapConfig, nil
 }
 
 func ParseConfig(wireGuardConfig string) ([]string, error) {
