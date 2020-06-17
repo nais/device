@@ -251,11 +251,9 @@ func readIcon(color string) []byte {
 		log.Errorf("finding icon: %v", err)
 	}
 	return icon
-
 }
 
 func onReady() {
-
 	systray.SetIcon(readIcon("blue"))
 	cfg.SetDefaults()
 	if err := filesystem.EnsurePrerequisites(&cfg); err != nil {
