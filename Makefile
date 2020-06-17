@@ -1,10 +1,10 @@
 .PHONY: test alpine
-DATE=$(shell date "+%Y-%m-%d")
-LAST_COMMIT=$(shell git --no-pager log -1 --pretty=%h)
-VERSION=$(DATE)-$(LAST_COMMIT)
+DATE = $(shell date "+%Y-%m-%d")
+LAST_COMMIT = $(shell git --no-pager log -1 --pretty=%h)
+VERSION ?= $(DATE)-$(LAST_COMMIT)
 LDFLAGS := -X github.com/nais/device/pkg/version.Revision=$(shell git rev-parse --short HEAD) -X github.com/nais/device/pkg/version.Version=$(VERSION)
-PKGTITLE="naisdevice"
-PKGID="io.nais.device"
+PKGTITLE = naisdevice
+PKGID = io.nais.device
 
 all: test alpine
 db: teardown-postgres run-postgres insert-testdata

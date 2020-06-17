@@ -66,11 +66,46 @@ jobs:
       - name: Run tests
         run: composer run ci
 
+  build-macos-pkg:
+    if: ${{ github.ref == 'refs/heads/master' }}
+    needs:
+      - test
+      - test-device-health-checker
+    runs-on: macos-latest
+    steps:
+      - name: set version
+        id: set_version
+        run: |
+          echo ::set-output name=version::$(date "+%Y-%m-%d")-$(git --no-pager log -1 --pretty=%h)
+      - name: make wireguard-tools
+        run: |
+        curl -OL https://git.zx2c4.com/wireguard-tools/snapshot/wireguard-tools-1.0.20200513.tar.xz
+        tar xf wireguard-tools-*.tar.xz
+        cd wireguard-tools-*/src
+        make
+        mv wg ../../bin/macos/
+      - name: make wireguard-go
+        run: |
+        curl -OL https://git.zx2c4.com/wireguard-go/snapshot/wireguard-go-0.0.20200320.tar.xz
+        tar xf wireguard-go-*.tar.xz
+        cd wireguard-go-*
+        make
+        mv wireguard-go ../bin/macos/
+      - name: build pkg
+        run: |
+        make pkg VERSION=${{ steps.set_version.outputs.version }}
+      - name: upload pkg
+        uses: actions/upload-artifact@v2.0.1
+        with:
+          name: pkg
+          path: naisdevice-${{ steps.set_version.outputs.version }}.pkg
+
   build-and-release:
     if: ${{ github.ref == 'refs/heads/master' }}
     needs:
       - test
       - test-device-health-checker
+      - build-macos-pkg
     name: Build and release
     runs-on: ubuntu-latest
     steps:
@@ -81,10 +116,10 @@ jobs:
           composer install --prefer-dist --no-progress --no-suggest --no-ansi --no-dev -o
       - name: build linux
         run: |
-          make linux
+          make linux VERSION=${{ steps.set_version.outputs.version }}
       - name: build windows-client
         run: |
-          make windows-client
+          make windows-client  VERSION=${{ steps.set_version.outputs.version }}
       - name: set version
         id: set_version
         run: |
@@ -162,21 +197,17 @@ jobs:
           asset_path: ./bin/windows/device-agent-helper.exe
           asset_name: device-agent-helper.exe
           asset_content_type: application/octet-stream
-      - name: upload device-agent (macos)
+
+      - name: download pkg
+        uses: actions/download-artifact@v2.0
+        with:
+          name: pkg
+      - name: upload macos pkg to release
         uses: actions/upload-release-asset@v1.0.2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./bin/macos/device-agent
-          asset_name: device-agent-osx
-          asset_content_type: application/octet-stream
-      - name: upload device-agent-helper (macos)
-        uses: actions/upload-release-asset@v1.0.2
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./bin/macos/device-agent-helper-osx
-          asset_name: device-agent-helper-osx
+          asset_path: ./naisdevice-${{ steps.set_version.outputs.version }}.pkg
+          asset_name: naisdevice-${{ steps.set_version.outputs.version }}.pkg
           asset_content_type: application/octet-stream
