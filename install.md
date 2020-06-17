@@ -9,9 +9,9 @@
 
 ## Install naisdevice agent
 #### MacOS 
-1. `curl -OL https://github.com/nais/device/releases/download/beta/naisdevice-beta.pkg`
-2. `sudo installer -target / -pkg ./naisdevice-beta.pkg`
-3. `/opt/naisdevice/start` ([allow ~20 seconds before filing issues](https://github.com/nais/device/issues/38))
+1. `curl -OL https://github.com/nais/device/releases/download/beta/naisdevice-2020-06-17-42314dc.pkg`
+2. `sudo installer -target / -pkg ./naisdevice-2020-06-17-42314dc.pkg`
+3. Command+Space -> `naisdevice` -> systray icon -> connect ([allow ~20 seconds before filing issues](https://github.com/nais/device/issues/38))
 
 #### Windows
 1. Download and install [WireGuard](https://www.wireguard.com/install/)
