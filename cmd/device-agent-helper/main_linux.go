@@ -8,7 +8,6 @@ import (
 	"strings"
 
 	log "github.com/sirupsen/logrus"
-	flag "github.com/spf13/pflag"
 )
 
 func prerequisites() error {
@@ -19,8 +18,6 @@ func prerequisites() error {
 }
 
 func platformFlags(cfg *Config) {
-	flag.StringVar(&cfg.DeviceIP, "device-ip", "", "device tunnel ip")
-	flag.StringVar(&cfg.WireGuardGoBinary, "wireguard-go-binary", "", "path to WireGuard-go binary")
 }
 
 func syncConf(cfg Config, ctx context.Context) error {
@@ -74,7 +71,7 @@ func setupInterface(ctx context.Context, cfg Config) error {
 	commands := [][]string{
 		{"ip", "link", "add", "dev", "wg0", "type", "wireguard"},
 		{"ip", "link", "set", "mtu", "1360", "up", "dev", "wg0"},
-		{"ip", "address", "add", "dev", "wg0", cfg.DeviceIP + "/21"},
+		{"ip", "address", "add", "dev", "wg0", cfg.BootstrapConfig.DeviceIP + "/21"},
 	}
 
 	return runCommands(ctx, commands)
