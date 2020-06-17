@@ -1,8 +1,10 @@
 .PHONY: test alpine
 DATE=$(shell date "+%Y-%m-%d")
 LAST_COMMIT=$(shell git --no-pager log -1 --pretty=%h)
-VERSION="$(DATE)-$(LAST_COMMIT)"
+VERSION=$(DATE)-$(LAST_COMMIT)
 LDFLAGS := -X github.com/nais/device/pkg/version.Revision=$(shell git rev-parse --short HEAD) -X github.com/nais/device/pkg/version.Version=$(VERSION)
+PKGTITLE="naisdevice"
+PKGID="io.nais.device"
 
 all: test alpine
 db: teardown-postgres run-postgres insert-testdata
@@ -70,7 +72,7 @@ local-apiserver:
 	echo ${confdir}
 
 icon:
-	rm -Rf MyIcon.iconset
+	rm -rf MyIcon.iconset
 	mkdir -p MyIcon.iconset
 	sips -z 16 16     assets/nais-logo-blue.png --out MyIcon.iconset/icon_16x16.png
 	sips -z 32 32     assets/nais-logo-blue.png --out MyIcon.iconset/icon_16x16@2x.png
@@ -89,7 +91,7 @@ icon:
 app: macos-client icon
 	rm -rf naisdevice.app
 	mkdir -p naisdevice.app/Contents/{MacOS,Resources}
-	cp bin/macos/device-agent naisdevice.app/Contents/MacOS
+	cp bin/macos/* naisdevice.app/Contents/MacOS
 	cp assets/* naisdevice.app/Contents/Resources
 	sed 's/VERSIONSTRING/${VERSION}/' Info.plist.tpl > naisdevice.app/Contents/Info.plist
 
@@ -98,3 +100,14 @@ test:
 
 run-integration-test:
 	RUN_INTEGRATION_TESTS="true" go test ./... -count=1
+
+pkg: app
+	rm -f ./naisdevice*.pkg
+	rm -rf ./pkgtemp
+	mkdir -p ./pkgtemp/{scripts,pkgroot/Applications}
+	cp -r ./naisdevice.app ./pkgtemp/pkgroot/Applications/
+	cp ./scripts/postinstall ./pkgtemp/scripts/postinstall
+	pkgbuild --root ./pkgtemp/pkgroot --identifier ${PKGID} --scripts ./pkgtemp/scripts --version ${VERSION} --ownership recommended ./${PKGTITLE}-${VERSION}.component.pkg
+	productbuild --identifier ${PKGID}.${VERSION} --package ./${PKGTITLE}-${VERSION}.component.pkg ./${PKGTITLE}-${VERSION}.pkg
+	rm -f ./${PKGTITLE}-${VERSION}.component.pkg 
+	rm -rf ./pkgtemp ./naisdevice.app

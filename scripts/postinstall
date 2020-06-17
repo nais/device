@@ -1,7 +1,7 @@
 #!/bin/sh
 user=$( echo "show State:/Users/ConsoleUser" | scutil | awk '/Name :/ && ! /loginwindow/ { print $3 }' )
 
-daemon_name="io.naisdevice.helper"
+daemon_name="io.nais.device.helper"
 destination="/Library/LaunchDaemons/${daemon_name}.plist"
 
 launchctl list | grep -q "$daemon_name" && launchctl unload "$destination"
@@ -16,20 +16,16 @@ cat << EOF > "$destination"
         <key>KeepAlive</key>
         <true/>
         <key>Label</key>
-        <string>io.naisdevice.helper</string>
+        <string>io.nais.device.helper</string>
         <key>Nice</key>
         <integer>0</integer>
-        <key>Program</key>
-        <string>/opt/naisdevice/bin/device-agent-helper</string>
         <key>ProgramArguments</key>
         <array>
-                <string>/opt/naisdevice/bin/device-agent-helper</string>
+                <string>/Applications/naisdevice.app/Contents/MacOS/device-agent-helper</string>
                 <string>--interface</string>
                 <string>utun69</string>
-                <string>--bootstrap-config</string>
-                <string>$config_dir/bootstrapconfig.json</string>
-                <string>--pid-file</string>
-                <string>$config_dir/pid</string>
+                <string>--config-dir</string>
+                <string>$config_dir</string>
         </array>
         <key>RunAtLoad</key>
         <true/>

@@ -7,7 +7,7 @@
 	<key>CFBundleIconFile</key>
 	<string>naisdevice.icns</string>
 	<key>CFBundleIdentifier</key>
-	<string>no.nav.naisdevice</string>
+	<string>io.nais.device</string>
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
 	<key>CFBundleName</key>
