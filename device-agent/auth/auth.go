@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"net/http"
 	"net/url"
 	"strings"
@@ -26,7 +27,28 @@ func (si *SessionInfo) Expired() bool {
 	return time.Unix(si.Expiry, 0).Before(time.Now())
 }
 
-func RunFlow(ctx context.Context, authURL, apiserverURL, platform, serial string) (*SessionInfo, error) {
+func EnsureAuth(existing *SessionInfo, ctx context.Context, apiserverURL, platform, serial string) (*SessionInfo, error) {
+	var err error
+	if !existing.Expired() {
+		return existing, nil
+	}
+
+	authURL, err := getAuthURL(apiserverURL, ctx)
+
+	if err != nil {
+		return nil, fmt.Errorf("getting Azure auth URL from apiserver: %v", err)
+	}
+
+	sessionInfo, err := runFlow(ctx, authURL, apiserverURL, platform, serial)
+
+	if err != nil {
+		return nil, fmt.Errorf("ensuring valid session key: %v", err)
+	}
+
+	return sessionInfo, nil
+}
+
+func runFlow(ctx context.Context, authURL, apiserverURL, platform, serial string) (*SessionInfo, error) {
 	ctx, cancel := context.WithTimeout(ctx, 3*time.Minute)
 	defer cancel()
 
@@ -73,6 +95,7 @@ func RunFlow(ctx context.Context, authURL, apiserverURL, platform, serial string
 		log.Errorf("opening browser, err: %v", err)
 		// Don't return, as this is not fatal (user can open browser manually)
 	}
+
 	fmt.Printf("If the browser didn't open, visit this url to sign in: %v\n", authURL)
 
 	var si *SessionInfo
@@ -89,6 +112,30 @@ func RunFlow(ctx context.Context, authURL, apiserverURL, platform, serial string
 	}
 
 	return si, nil
+}
+
+func getAuthURL(apiserverURL string, ctx context.Context) (string, error) {
+	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
+	defer cancel()
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, apiserverURL+"/authurl", nil)
+	if err != nil {
+		return "", fmt.Errorf("creating request to get Azure auth URL: %v", err)
+	}
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return "", fmt.Errorf("getting Azure auth URL from apiserver: %v", err)
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		return "", fmt.Errorf("unable to get Azure auth URL from apiserver (%v), http status: %v", apiserverURL, resp.Status)
+	}
+
+	authURL, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return "", fmt.Errorf("unable to read response body: %v", err)
+	}
+	return string(authURL), nil
 }
 
 func failureResponse(w http.ResponseWriter, msg string) {

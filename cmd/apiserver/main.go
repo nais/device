@@ -75,7 +75,7 @@ func main() {
 
 	tokenValidator, err := createJWTValidator(cfg)
 	if err != nil {
-		log.Fatalf("creating JWT validator: %w", err)
+		log.Fatalf("creating JWT validator: %v", err)
 	}
 
 	sessions, err := auth.New(ctx, cfg, tokenValidator)

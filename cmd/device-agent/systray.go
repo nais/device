@@ -14,6 +14,7 @@ import (
 	"github.com/gen2brain/beeep"
 	"github.com/getlantern/systray"
 	"github.com/nais/device/device-agent/apiserver"
+	"github.com/nais/device/device-agent/auth"
 	"github.com/nais/device/device-agent/config"
 	"github.com/nais/device/device-agent/filesystem"
 	"github.com/nais/device/device-agent/runtimeconfig"
@@ -70,17 +71,7 @@ var (
 	connectedTime = time.Now()
 )
 
-func notify(format string, args ...interface{}) {
-	message := fmt.Sprintf(format, args)
-	err := beeep.Notify("NAIS device", message, "")
-	log.Infof("sending message to notification centre: %s", message)
-	if err != nil {
-		log.Errorf("failed sending message due to error: %s", err)
-	}
-}
-
-// read in external gui events
-func guiloop(mConnect, mQuit *systray.MenuItem, interrupt chan os.Signal) {
+func handleUserEvents(mConnect, mQuit *systray.MenuItem, interrupt chan os.Signal) {
 	for {
 		select {
 		case <-mConnect.ClickedCh:
@@ -140,13 +131,13 @@ func mainloop(updateGUI func(guiState GuiState)) {
 				continue
 			}
 			ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
-			err := ensureAuth(ctx, rc)
+			rc.SessionInfo, err = auth.EnsureAuth(rc.SessionInfo, ctx, rc.Config.APIServer, rc.Config.Platform, rc.Serial)
 			cancel()
 
 			if err == nil {
 				newstate <- StateConnected
 				notify("connected")
-				go connectedLoop(stop, rc)
+				go synchronizeGateways(stop, rc)
 				connectedTime = time.Now()
 			} else {
 				newstate <- StateDisconnected
@@ -186,7 +177,7 @@ func mainloop(updateGUI func(guiState GuiState)) {
 	}
 }
 
-func connectedLoop(stop chan interface{}, rc *runtimeconfig.RuntimeConfig) {
+func synchronizeGateways(stop chan interface{}, rc *runtimeconfig.RuntimeConfig) {
 	// Sleeping whilst waiting for API-server connection; waiting for wireguard to sync configuration
 	time.Sleep(initialGatewayRefreshWait)
 
@@ -255,7 +246,6 @@ func readIcon(color string) []byte {
 
 func onReady() {
 	systray.SetIcon(readIcon("blue"))
-	cfg.SetDefaults()
 	if err := filesystem.EnsurePrerequisites(&cfg); err != nil {
 		notify(fmt.Sprintf("Missing prerequisites: %s", err))
 	}
@@ -301,25 +291,13 @@ func onReady() {
 		}
 	}
 
-	go guiloop(mConnect, mQuit, interrupt)
+	go handleUserEvents(mConnect, mQuit, interrupt)
 	newstate <- StateDisconnected
 	mainloop(updateGUI)
 }
 
 func onExit() {
 	// This is where we clean up
-}
-
-func ensureAuth(ctx context.Context, rc *runtimeconfig.RuntimeConfig) error {
-	var err error
-	if !rc.SessionInfo.Expired() {
-		return nil
-	}
-	rc.SessionInfo, err = ensureValidSessionInfo(cfg.APIServer, cfg.Platform, rc.Serial, ctx)
-	if err != nil {
-		return fmt.Errorf("ensuring valid session key: %v", err)
-	}
-	return nil
 }
 
 func ping(addr string) error {
@@ -330,4 +308,13 @@ func ping(addr string) error {
 		return fmt.Errorf("running command %v: %w", cmd, err)
 	}
 	return nil
+}
+
+func notify(format string, args ...interface{}) {
+	message := fmt.Sprintf(format, args...)
+	err := beeep.Notify("NAIS device", message, "")
+	log.Infof("sending message to notification centre: %s", message)
+	if err != nil {
+		log.Errorf("failed sending message due to error: %s", err)
+	}
 }
