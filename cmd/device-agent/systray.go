@@ -130,6 +130,7 @@ func mainloop(updateGUI func(guiState GuiState)) {
 				newstate <- StateBootstrapping
 				continue
 			}
+			time.Sleep(1*time.Second) // allow wireguard to syncconf
 			ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
 			rc.SessionInfo, err = auth.EnsureAuth(rc.SessionInfo, ctx, rc.Config.APIServer, rc.Config.Platform, rc.Serial)
 			cancel()
