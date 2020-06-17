@@ -9,8 +9,9 @@
 
 ## Install naisdevice agent
 #### MacOS 
-1. `curl -OL https://github.com/nais/device/releases/download/beta/naisdevice-2020-06-17-42314dc.pkg`
-2. `sudo installer -target / -pkg ./naisdevice-2020-06-17-42314dc.pkg`
+1. https://github.com/nais/device/releases/latest
+2. Download `naisdevice-*.pkg`
+2. `sudo installer -target / -pkg ~/Downloads/naisdevice-*.pkg`
 3. Command+Space -> `naisdevice` -> systray icon -> connect ([allow ~20 seconds before filing issues](https://github.com/nais/device/issues/38))
 
 #### Windows
