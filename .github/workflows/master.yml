@@ -83,6 +83,7 @@ jobs:
           tar xf wireguard-tools-*.tar.xz
           cd wireguard-tools-*/src
           make
+          mkdir -p ../../bin/macos
           mv wg ../../bin/macos/
       - name: make wireguard-go
         run: |
@@ -90,6 +91,7 @@ jobs:
           tar xf wireguard-go-*.tar.xz
           cd wireguard-go-*
           make
+          mkdir -p ../bin/macos
           mv wireguard-go ../bin/macos/
       - name: build pkg
         run: |
