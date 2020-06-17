@@ -69,6 +69,30 @@ local-apiserver:
 	go run ./cmd/apiserver/main.go --db-connection-uri=postgresql://postgres:postgres@localhost/postgres --bind-address=127.0.0.1:8080 --config-dir=${confdir} --development-mode=true --prometheus-address=127.0.0.1:3000 --credential-entries=nais:device
 	echo ${confdir}
 
+icon:
+	rm -Rf MyIcon.iconset
+	mkdir -p MyIcon.iconset
+	sips -z 16 16     assets/nais-logo-blue.png --out MyIcon.iconset/icon_16x16.png
+	sips -z 32 32     assets/nais-logo-blue.png --out MyIcon.iconset/icon_16x16@2x.png
+	sips -z 32 32     assets/nais-logo-blue.png --out MyIcon.iconset/icon_32x32.png
+	sips -z 64 64     assets/nais-logo-blue.png --out MyIcon.iconset/icon_32x32@2x.png
+	sips -z 128 128   assets/nais-logo-blue.png --out MyIcon.iconset/icon_128x128.png
+	sips -z 256 256   assets/nais-logo-blue.png --out MyIcon.iconset/icon_128x128@2x.png
+	sips -z 256 256   assets/nais-logo-blue.png --out MyIcon.iconset/icon_256x256.png
+	sips -z 512 512   assets/nais-logo-blue.png --out MyIcon.iconset/icon_256x256@2x.png
+	sips -z 512 512   assets/nais-logo-blue.png --out MyIcon.iconset/icon_512x512.png
+	cp assets/nais-logo-blue.png MyIcon.iconset/icon_512x512@2x.png
+	iconutil -c icns MyIcon.iconset
+	mv MyIcon.icns assets/naisdevice.icns
+	rm -R MyIcon.iconset
+
+app: macos-client icon
+	rm -rf naisdevice.app
+	mkdir -p naisdevice.app/Contents/{MacOS,Resources}
+	cp bin/macos/device-agent naisdevice.app/Contents/MacOS
+	cp assets/* naisdevice.app/Contents/Resources
+	sed 's/VERSIONSTRING/${VERSION}/' Info.plist.tpl > naisdevice.app/Contents/Info.plist
+
 test:
 	go test ./... -count=1
 

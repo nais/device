@@ -235,7 +235,7 @@ func readIcon(color string) []byte {
 	if err != nil {
 		log.Fatal(err)
 	}
-	iconPath := filepath.Join(currentDir, "..", "..", "assets", fmt.Sprintf("nais-logo-%s.png", color))
+	iconPath := filepath.Join(currentDir, "..", "Resources", fmt.Sprintf("nais-logo-%s.png", color))
 	icon, err := ioutil.ReadFile(iconPath)
 	if err != nil {
 		log.Errorf("finding icon: %v", err)
@@ -311,7 +311,7 @@ func ping(addr string) error {
 
 func notify(format string, args ...interface{}) {
 	message := fmt.Sprintf(format, args...)
-	err := beeep.Notify("NAIS device", message, "")
+	err := beeep.Notify("NAIS device", message, "../Resources/nais-logo-red.png")
 	log.Infof("sending message to notification centre: %s", message)
 	if err != nil {
 		log.Errorf("failed sending message due to error: %s", err)
