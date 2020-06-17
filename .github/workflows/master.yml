@@ -73,34 +73,35 @@ jobs:
       - test-device-health-checker
     runs-on: macos-latest
     steps:
-      - name: set version
-        id: set_version
-        run: |
-          echo ::set-output name=version::$(date "+%Y-%m-%d")-$(git --no-pager log -1 --pretty=%h)
-      - name: make wireguard-tools
-        run: |
-          curl -OL https://git.zx2c4.com/wireguard-tools/snapshot/wireguard-tools-1.0.20200513.tar.xz
-          tar xf wireguard-tools-*.tar.xz
-          cd wireguard-tools-*/src
-          make
-          mkdir -p ../../bin/macos
-          mv wg ../../bin/macos/
-      - name: make wireguard-go
-        run: |
-          curl -OL https://git.zx2c4.com/wireguard-go/snapshot/wireguard-go-0.0.20200320.tar.xz
-          tar xf wireguard-go-*.tar.xz
-          cd wireguard-go-*
-          make
-          mkdir -p ../bin/macos
-          mv wireguard-go ../bin/macos/
-      - name: build pkg
-        run: |
-          make pkg VERSION=${{ steps.set_version.outputs.version }}
-      - name: upload pkg
-        uses: actions/upload-artifact@v2.0.1
-        with:
-          name: pkg
-          path: naisdevice-${{ steps.set_version.outputs.version }}.pkg
+    - uses: actions/checkout@v2
+    - name: set version
+      id: set_version
+      run: |
+        echo ::set-output name=version::$(date "+%Y-%m-%d")-$(git --no-pager log -1 --pretty=%h)
+    - name: make wireguard-tools
+      run: |
+        curl -OL https://git.zx2c4.com/wireguard-tools/snapshot/wireguard-tools-1.0.20200513.tar.xz
+        tar xf wireguard-tools-*.tar.xz
+        cd wireguard-tools-*/src
+        make
+        mkdir -p ../../bin/macos
+        mv wg ../../bin/macos/
+    - name: make wireguard-go
+      run: |
+        curl -OL https://git.zx2c4.com/wireguard-go/snapshot/wireguard-go-0.0.20200320.tar.xz
+        tar xf wireguard-go-*.tar.xz
+        cd wireguard-go-*
+        make
+        mkdir -p ../bin/macos
+        mv wireguard-go ../bin/macos/
+    - name: build pkg
+      run: |
+        make pkg VERSION=${{ steps.set_version.outputs.version }}
+    - name: upload pkg
+      uses: actions/upload-artifact@v2.0.1
+      with:
+        name: pkg
+        path: naisdevice-${{ steps.set_version.outputs.version }}.pkg
 
   build-and-release:
     if: ${{ github.ref == 'refs/heads/master' }}
