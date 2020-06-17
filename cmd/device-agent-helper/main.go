@@ -26,6 +26,10 @@ var (
 	cfg = Config{}
 )
 
+const (
+	TunnelNetworkPrefix = "10.255.24"
+)
+
 type Config struct {
 	Interface           string
 	WireGuardBinary     string

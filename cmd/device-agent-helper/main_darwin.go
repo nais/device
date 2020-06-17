@@ -45,7 +45,7 @@ func syncConf(cfg Config, ctx context.Context) error {
 
 func setupRoutes(ctx context.Context, cidrs []string, interfaceName string) error {
 	for _, cidr := range cidrs {
-		if strings.HasPrefix("10.255.24", cidr) {
+		if strings.HasPrefix(cidr, TunnelNetworkPrefix) {
 			// Don't add routes for the tunnel network, as the whole /21 net is already routed to utun
 			continue
 		}
