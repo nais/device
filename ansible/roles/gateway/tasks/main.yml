@@ -14,6 +14,11 @@
     dest: /opt/nais-device/bin/gateway-agent-fetch-secret
     mode: '0755'
 - name: Install gateway agent systemd unit file
-  template: src=gateway-agent.service.j2 dest=/etc/systemd/system/gateway-agent.service
+  template:
+    src: gateway-agent.service.j2
+    dest: /etc/systemd/system/gateway-agent.service
 - name: Start gateway agent
-  systemd: state=started name=gateway-agent daemon_reload=yes
+  systemd:
+    state: started 
+    name: gateway-agent
+    daemon_reload: yes
