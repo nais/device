@@ -24,7 +24,7 @@ linux-client:
 	GOOS=linux GOARCH=amd64 go build -o bin/linux/device-agent-helper ./cmd/device-agent-helper
 
 macos-client:
-	GOOS=darwin GOARCH=amd64 go build -o bin/macos/device-agent .-ldflags "-s $(LDFLAGS)" /cmd/device-agent
+	GOOS=darwin GOARCH=amd64 go build -o bin/macos/device-agent -ldflags "-s $(LDFLAGS)" ./cmd/device-agent
 	GOOS=darwin GOARCH=amd64 go build -o bin/macos/device-agent-helper ./cmd/device-agent-helper
 
 windows-client:
