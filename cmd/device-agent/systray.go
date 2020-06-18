@@ -2,8 +2,10 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"net/http"
 	"os"
 	"os/exec"
 	"os/signal"
@@ -18,6 +20,7 @@ import (
 	"github.com/nais/device/device-agent/config"
 	"github.com/nais/device/device-agent/filesystem"
 	"github.com/nais/device/device-agent/runtimeconfig"
+	"github.com/nais/device/pkg/version"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -34,6 +37,7 @@ const (
 )
 
 const (
+	versionCheckInterval      = 2 * time.Minute
 	gatewayRefreshInterval    = 10 * time.Second
 	initialGatewayRefreshWait = 2 * time.Second
 )
@@ -130,7 +134,7 @@ func mainloop(updateGUI func(guiState GuiState)) {
 				newstate <- StateBootstrapping
 				continue
 			}
-			time.Sleep(1*time.Second) // allow wireguard to syncconf
+			time.Sleep(1 * time.Second) // allow wireguard to syncconf
 			ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
 			rc.SessionInfo, err = auth.EnsureAuth(rc.SessionInfo, ctx, rc.Config.APIServer, rc.Config.Platform, rc.Serial)
 			cancel()
@@ -139,6 +143,7 @@ func mainloop(updateGUI func(guiState GuiState)) {
 				newstate <- StateConnected
 				notify("connected")
 				go synchronizeGateways(stop, rc)
+				go checkVersion()
 				connectedTime = time.Now()
 			} else {
 				newstate <- StateDisconnected
@@ -177,7 +182,34 @@ func mainloop(updateGUI func(guiState GuiState)) {
 		}
 	}
 }
+func checkVersion() {
+	type response struct {
+		Tag string `json:"tag_name"`
+	}
 
+	ticker := time.NewTicker(versionCheckInterval)
+	for {
+		select {
+		case <-ticker.C:
+			log.Info("Checking release version on github")
+			resp, err := http.Get("https://api.github.com/repos/nais/device/releases/latest")
+			if err != nil {
+				log.Errorf("Unable to retrieve current release version %s", err)
+			}
+			body, err := ioutil.ReadAll(resp.Body)
+			resp.Body.Close()
+			res := response{}
+			err = json.Unmarshal(body, &res)
+			if err != nil {
+				log.Errorf("unable to unmarshall response: %s", err)
+			}
+			if version.Version != res.Tag {
+				notify("New version of device agent available")
+			}
+
+		}
+	}
+}
 func synchronizeGateways(stop chan interface{}, rc *runtimeconfig.RuntimeConfig) {
 	// Sleeping whilst waiting for API-server connection; waiting for wireguard to sync configuration
 	time.Sleep(initialGatewayRefreshWait)

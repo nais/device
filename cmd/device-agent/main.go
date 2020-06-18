@@ -9,6 +9,7 @@ import (
 	"github.com/nais/device/device-agent/runtimeconfig"
 	"github.com/nais/device/device-agent/wireguard"
 	"github.com/nais/device/pkg/logger"
+	"github.com/nais/device/pkg/version"
 	log "github.com/sirupsen/logrus"
 	flag "github.com/spf13/pflag"
 )
@@ -28,6 +29,7 @@ func init() {
 func main() {
 	cfg.SetDefaults()
 	log.Infof("Starting device-agent with config:\n%+v", cfg)
+	log.Infof("Version: %s, Revision: %s", version.Version, version.Revision)
 	systray.Run(onReady, onExit)
 }
 
