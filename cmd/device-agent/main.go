@@ -22,12 +22,11 @@ func init() {
 	flag.StringVar(&cfg.Interface, "interface", cfg.Interface, "name of tunnel interface")
 	flag.StringVar(&cfg.LogLevel, "log-level", cfg.LogLevel, "which log level to output")
 	flag.Parse()
-
-	logger.Setup(cfg.LogLevel, true)
+	cfg.SetDefaults()
+	logger.SetupDeviceLogger(cfg.LogLevel, cfg.LogFilePath)
 }
 
 func main() {
-	cfg.SetDefaults()
 	log.Infof("Starting device-agent with config:\n%+v", cfg)
 	log.Infof("Version: %s, Revision: %s", version.Version, version.Revision)
 	systray.Run(onReady, onExit)

@@ -21,6 +21,7 @@ type Config struct {
 	WireGuardConfigPath string
 	BootstrapConfigPath string
 	LogLevel            string
+	LogFilePath         string
 	OAuth2Config        oauth2.Config
 	Platform            string
 	BootstrapAPI        string
@@ -32,6 +33,17 @@ func (c *Config) SetDefaults() {
 	c.PrivateKeyPath = filepath.Join(c.ConfigDir, "private.key")
 	c.WireGuardConfigPath = filepath.Join(c.ConfigDir, c.Interface+".conf")
 	c.BootstrapConfigPath = filepath.Join(c.ConfigDir, "bootstrapconfig.json")
+	switch c.Platform {
+	case "darwin":
+		home, err := os.UserHomeDir()
+		if err != nil {
+			log.Errorf("opening the user's home directory: %v", err)
+		}
+		c.LogFilePath = filepath.Join(home, "Library", "Logs", "device-agent.log")
+	default:
+		c.LogFilePath = "device-agent.log"
+	}
+
 }
 
 func DefaultConfig() Config {

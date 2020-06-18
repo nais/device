@@ -52,7 +52,7 @@ func init() {
 
 	cfg.PrivateKeyPath = filepath.Join(cfg.ConfigDir, "private.key")
 	cfg.WireGuardConfigPath = filepath.Join(cfg.ConfigDir, "wg0.conf")
-	logger.Setup(cfg.LogLevel, true)
+	logger.Setup(cfg.LogLevel)
 }
 
 func main() {

@@ -204,9 +204,9 @@ func checkVersion() {
 				log.Errorf("unable to unmarshall response: %s", err)
 			}
 			if version.Version != res.Tag {
-				notify("New version of device agent available")
+				notify("New version of device agent available: https://doc.nais.io/device/install#installation")
+				return
 			}
-
 		}
 	}
 }

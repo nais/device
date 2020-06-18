@@ -54,7 +54,7 @@ func init() {
 	cfg.WireGuardConfigPath = filepath.Join(cfg.ConfigPath, cfg.Interface+".conf")
 	cfg.BootstrapConfigPath = filepath.Join(cfg.ConfigPath, "bootstrapconfig.json")
 
-	logger.Setup(cfg.LogLevel, true)
+	logger.Setup(cfg.LogLevel)
 }
 
 // device-agent-helper is responsible for:

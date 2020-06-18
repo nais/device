@@ -56,7 +56,7 @@ var cfg = &Config{
 var enrollments ActiveEnrollments
 
 func init() {
-	logger.Setup(cfg.LogLevel, true)
+	logger.Setup(cfg.LogLevel)
 
 	flag.StringVar(&cfg.PrometheusAddr, "prometheus-address", cfg.PrometheusAddr, "prometheus listen address")
 	flag.StringVar(&cfg.BindAddress, "bind-address", cfg.BindAddress, "Bind address")
