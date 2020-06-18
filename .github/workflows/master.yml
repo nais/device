@@ -11,7 +11,7 @@ on:
       - '.github/workflows/master.yml'
 jobs:
   test:
-    name: build
+    name: test
     runs-on: ubuntu-latest
     services:
       postgres:
@@ -67,6 +67,7 @@ jobs:
         run: composer run ci
 
   build-macos-pkg:
+    name: Build macos client
     if: ${{ github.ref == 'refs/heads/master' }}
     needs:
       - test
@@ -104,12 +105,12 @@ jobs:
         path: naisdevice-${{ steps.set_version.outputs.version }}.pkg
 
   build-and-release:
+    name: Build and release
     if: ${{ github.ref == 'refs/heads/master' }}
     needs:
       - test
       - test-device-health-checker
       - build-macos-pkg
-    name: Build and release
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
