@@ -13,7 +13,6 @@ type Config struct {
 	APIServer           string
 	Interface           string
 	ConfigDir           string
-	BinaryDir           string
 	BootstrapToken      string
 	WireGuardBinary     string
 	WireGuardGoBinary   string
@@ -44,7 +43,6 @@ func DefaultConfig() Config {
 		APIServer:    "http://10.255.240.1",
 		BootstrapAPI: "https://bootstrap.device.nais.io",
 		ConfigDir:    filepath.Join(userConfigDir, "naisdevice"),
-		BinaryDir:    "/usr/local/bin",
 		LogLevel:     "info",
 		OAuth2Config: oauth2.Config{
 			ClientID:    "8086d321-c6d3-4398-87da-0d54e3d93967",

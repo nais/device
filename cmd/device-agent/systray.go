@@ -17,7 +17,6 @@ import (
 	"github.com/getlantern/systray"
 	"github.com/nais/device/device-agent/apiserver"
 	"github.com/nais/device/device-agent/auth"
-	"github.com/nais/device/device-agent/config"
 	"github.com/nais/device/device-agent/filesystem"
 	"github.com/nais/device/device-agent/runtimeconfig"
 	"github.com/nais/device/pkg/version"
@@ -69,7 +68,6 @@ func (g GuiState) String() string {
 }
 
 var (
-	cfg           = config.DefaultConfig()
 	state         = StateDisconnected
 	newstate      = make(chan ProgramState, 64)
 	connectedTime = time.Now()

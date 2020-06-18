@@ -4,8 +4,12 @@ import (
 	"path/filepath"
 )
 
+const (
+	BinaryDir ="/Applications/naisdevice.app/Contents/MacOS"
+)
+
 func (c *Config) SetPlatformDefaults() {
-	c.WireGuardBinary = filepath.Join(c.BinaryDir, "naisdevice-wg")
-	c.WireGuardGoBinary = filepath.Join(c.BinaryDir, "naisdevice-wireguard-go")
+	c.WireGuardBinary = filepath.Join(BinaryDir, "wg")
+	c.WireGuardGoBinary = filepath.Join(BinaryDir, "wireguard-go")
 	c.Interface = "utun69"
 }
