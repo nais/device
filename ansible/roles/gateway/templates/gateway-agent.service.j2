@@ -1,0 +1,24 @@
+# vi:syntax=systemd
+
+[Unit]
+Description=naisdevice gateway agent
+
+[Service]
+Restart=always
+# The failure of either of these commands will be logged, but
+# the service will still attempt to launch, which might well
+# succeed.
+ExecStartPre=/opt/nais-device/bin/gateway-agent-install-latest
+ExecStartPre=/opt/nais-device/bin/gateway-agent-fetch-secret {{ gcp_project }} {{ inventory_hostname }}
+ExecStart=bash -c '/opt/nais-device/bin/gateway-agent \
+	--name="{{ inventory_hostname }}" \
+	--tunnel-ip="{{ tunnel_ip }}" \
+	# backwards compatibility with previous release, remove after testing
+	--api-server-password="$(gcloud --project nais-device secrets versions access latest --secret {{ gcp_project }}_{{ inventory_hostname }}_api-server-password)" \
+	--api-server-wireguard-endpoint="35.228.142.96:51820" \
+	--api-server-public-key="FUwVtyvs8nIRx9RpUUEopkfV8idmHz9g9K/vf9MFOXI=" \
+	--prometheus-public-key="MN9B/ZgAQdgCXH3/KUaUiObwrzHv6zF2P6M4ySTx81M=" \
+	--prometheus-tunnel-ip="10.255.247.254"'
+
+[Install]
+WantedBy=multi-user.target
