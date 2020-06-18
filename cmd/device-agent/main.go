@@ -6,6 +6,7 @@ import (
 	"os"
 
 	"github.com/getlantern/systray"
+	"github.com/nais/device/device-agent/config"
 	"github.com/nais/device/device-agent/runtimeconfig"
 	"github.com/nais/device/device-agent/wireguard"
 	"github.com/nais/device/pkg/logger"
@@ -14,11 +15,14 @@ import (
 	flag "github.com/spf13/pflag"
 )
 
+var (
+	cfg = config.DefaultConfig()
+)
+
 func init() {
 	flag.StringVar(&cfg.APIServer, "apiserver", cfg.APIServer, "base url to apiserver")
 	flag.StringVar(&cfg.BootstrapAPI, "bootstrap-api", cfg.BootstrapAPI, "url to bootstrap API")
 	flag.StringVar(&cfg.ConfigDir, "config-dir", cfg.ConfigDir, "path to agent config directory")
-	flag.StringVar(&cfg.BinaryDir, "binary-dir", cfg.BinaryDir, "path to binary directory")
 	flag.StringVar(&cfg.Interface, "interface", cfg.Interface, "name of tunnel interface")
 	flag.StringVar(&cfg.LogLevel, "log-level", cfg.LogLevel, "which log level to output")
 	flag.Parse()

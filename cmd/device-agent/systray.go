@@ -17,7 +17,6 @@ import (
 	"github.com/getlantern/systray"
 	"github.com/nais/device/device-agent/apiserver"
 	"github.com/nais/device/device-agent/auth"
-	"github.com/nais/device/device-agent/config"
 	"github.com/nais/device/device-agent/filesystem"
 	"github.com/nais/device/device-agent/runtimeconfig"
 	"github.com/nais/device/pkg/version"
@@ -40,6 +39,7 @@ const (
 	versionCheckInterval      = 2 * time.Minute
 	gatewayRefreshInterval    = 10 * time.Second
 	initialGatewayRefreshWait = 2 * time.Second
+	initialConnectWait = initialGatewayRefreshWait
 )
 
 type GuiState struct {
@@ -69,7 +69,6 @@ func (g GuiState) String() string {
 }
 
 var (
-	cfg           = config.DefaultConfig()
 	state         = StateDisconnected
 	newstate      = make(chan ProgramState, 64)
 	connectedTime = time.Now()
@@ -134,7 +133,7 @@ func mainloop(updateGUI func(guiState GuiState)) {
 				newstate <- StateBootstrapping
 				continue
 			}
-			time.Sleep(1 * time.Second) // allow wireguard to syncconf
+			time.Sleep(initialConnectWait) // allow wireguard to syncconf
 			ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
 			rc.SessionInfo, err = auth.EnsureAuth(rc.SessionInfo, ctx, rc.Config.APIServer, rc.Config.Platform, rc.Serial)
 			cancel()

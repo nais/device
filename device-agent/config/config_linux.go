@@ -4,8 +4,10 @@ import (
 	"path/filepath"
 )
 
+const (
+	BinaryDir = "/usr/local/bin"
+)
 func (c *Config) SetPlatformDefaults() {
-	c.WireGuardBinary = filepath.Join(c.BinaryDir, "naisdevice-wg")
-	c.WireGuardGoBinary = filepath.Join(c.BinaryDir, "naisdevice-wireguard-go")
+	c.WireGuardBinary = filepath.Join(BinaryDir, "wg")
 	c.Interface = "wg0"
 }
