@@ -6,6 +6,7 @@ import (
 	"os"
 
 	log "github.com/sirupsen/logrus"
+	easy "github.com/t-tomalak/logrus-easy-formatter"
 )
 
 func SetupDeviceLogger(level, path string) {
@@ -24,7 +25,7 @@ func SetupDeviceLogger(level, path string) {
 		return
 	}
 	log.SetLevel(loglevel)
-	log.SetFormatter(&log.TextFormatter{DisableColors: true, TimestampFormat: "2020-01-02 22:15:22", FullTimestamp: true})
+	log.SetFormatter(&easy.Formatter{TimestampFormat: "2006-01-02 15:04:05.00000", LogFormat: "%time% - [%lvl%] - %msg%\n",})
 	log.Infof("Successfully set up loging. Level %s", loglevel)
 }
 
