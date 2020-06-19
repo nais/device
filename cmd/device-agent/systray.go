@@ -343,9 +343,18 @@ func onReady() {
 	mState.Disable()
 	systray.AddSeparator()
 	mConnect := systray.AddMenuItem("Connect", "Bootstrap the nais device")
-	mQuit := systray.AddMenuItem("Quit", "exit the application")
 	systray.AddSeparator()
 	mCurrentGateways := make(map[string]*systray.MenuItem)
+
+	var mGatewayItems []*systray.MenuItem
+	for i := 0; i < 20; i++ {
+		item := systray.AddMenuItem("", "")
+		item.Disable()
+		item.Hide()
+		mGatewayItems = append(mGatewayItems, item)
+	}
+	systray.AddSeparator()
+	mQuit := systray.AddMenuItem("Quit", "exit the application")
 
 	updateGUI := func(st GuiState) {
 		mState.SetTitle("Status: " + st.String())
@@ -367,14 +376,17 @@ func onReady() {
 			systray.SetIcon(readIcon("yellow"))
 		case StateSavingConfiguration:
 			for _, gateway := range st.Gateways {
-				if _, ok := mCurrentGateways[gateway.Endpoint]; !ok {
-					mCurrentGateways[gateway.Endpoint] = systray.AddMenuItem(gateway.Name, gateway.Endpoint)
-					mCurrentGateways[gateway.Endpoint].Disable()
+				if _, ok := mCurrentGateways[gateway.PublicKey]; !ok {
+					mCurrentGateways[gateway.PublicKey] = mGatewayItems[0]
+					mGatewayItems[0].Show()
+					mGatewayItems[0].SetTitle(gateway.Name)
+					mGatewayItems[0].SetTooltip(gateway.Endpoint)
+					mGatewayItems = mGatewayItems[1:]
 				}
 				if gateway.Healthy {
-					mCurrentGateways[gateway.Endpoint].Check()
+					mCurrentGateways[gateway.PublicKey].Check()
 				} else {
-					mCurrentGateways[gateway.Endpoint].Uncheck()
+					mCurrentGateways[gateway.PublicKey].Uncheck()
 				}
 			}
 
