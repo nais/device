@@ -111,7 +111,7 @@ func (bs *bootstrapper) fetchDeviceInfos(bootstrapURL string) ([]bootstrap.Devic
 	var deviceInfos []bootstrap.DeviceInfo
 	err = json.NewDecoder(r.Body).Decode(&deviceInfos)
 	if err != nil {
-		return nil, fmt.Errorf("decoding deviceInfos")
+		return nil, fmt.Errorf("decoding deviceInfos: %w", err)
 	}
 
 	return deviceInfos, nil
