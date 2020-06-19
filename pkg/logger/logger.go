@@ -24,6 +24,7 @@ func SetupDeviceLogger(level, path string) {
 		return
 	}
 	log.SetLevel(loglevel)
+	log.SetFormatter(&log.TextFormatter{DisableColors: true, TimestampFormat: "2020-01-02 22:15:22", FullTimestamp: true})
 	log.Infof("Successfully set up loging. Level %s", loglevel)
 }
 
