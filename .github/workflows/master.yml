@@ -115,6 +115,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
+      - name: set version
+        id: set_version
+        run: |
+          echo ::set-output name=version::$(date "+%Y-%m-%d")-$(git --no-pager log -1 --pretty=%h)
       - name: Prepare device-health-checker scripts for packaging
         working-directory: ./device-health-checker
         run: |
@@ -125,10 +129,6 @@ jobs:
       - name: build windows-client
         run: |
           make windows-client  VERSION=${{ steps.set_version.outputs.version }}
-      - name: set version
-        id: set_version
-        run: |
-          echo ::set-output name=version::$(date "+%Y-%m-%d")-$(git --no-pager log -1 --pretty=%h)
       - name: create release
         id: create_release
         uses: actions/create-release@v1.0.1
