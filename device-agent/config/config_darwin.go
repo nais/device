@@ -5,7 +5,7 @@ import (
 )
 
 const (
-	BinaryDir ="/Applications/naisdevice.app/Contents/MacOS"
+	BinaryDir = "/Applications/naisdevice.app/Contents/MacOS"
 )
 
 func (c *Config) SetPlatformDefaults() {

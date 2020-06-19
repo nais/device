@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/nais/device/device-agent/open"
 	"io/ioutil"
 	"net/http"
 	"net/url"
@@ -90,7 +91,7 @@ func runFlow(ctx context.Context, authURL, apiserverURL, platform, serial string
 	go server.ListenAndServe()
 	defer server.Close()
 
-	err := openDefaultBrowser(authURL)
+	err := open.Open(authURL)
 	if err != nil {
 		log.Errorf("opening browser, err: %v", err)
 		// Don't return, as this is not fatal (user can open browser manually)

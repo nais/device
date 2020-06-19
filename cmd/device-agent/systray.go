@@ -3,7 +3,9 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
+	"github.com/nais/device/device-agent/open"
 	"io/ioutil"
 	"net/http"
 	"os"
@@ -17,7 +19,6 @@ import (
 	"github.com/getlantern/systray"
 	"github.com/nais/device/device-agent/apiserver"
 	"github.com/nais/device/device-agent/auth"
-	"github.com/nais/device/device-agent/browser"
 	"github.com/nais/device/device-agent/filesystem"
 	"github.com/nais/device/device-agent/runtimeconfig"
 	"github.com/nais/device/pkg/version"
@@ -33,6 +34,7 @@ const (
 	StateConnecting
 	StateConnected
 	StateDisconnecting
+	StateUnhealthy
 	StateQuitting
 	StateSavingConfiguration
 )
@@ -64,6 +66,8 @@ func (g GuiState) String() string {
 		fallthrough
 	case StateConnected:
 		return fmt.Sprintf("Connected since %s", connectedTime.Format(time.Kitchen))
+	case StateUnhealthy:
+		return "Device is unhealthy..."
 	case StateDisconnecting:
 		return "Disconnecting..."
 	case StateQuitting:
@@ -79,11 +83,22 @@ var (
 	connectedTime = time.Now()
 )
 
-func handleUserEvents(mVersion, mConnect, mQuit *systray.MenuItem, interrupt chan os.Signal) {
+func handleUserEvents(mVersion, mConnect, mStateInfo, mQuit *systray.MenuItem, interrupt chan os.Signal) {
 	for {
 		select {
 		case <-mVersion.ClickedCh:
-			browser.OpenDefaultBrowser("https://github.com/nais/device/releases/latest")
+			err := open.Open("https://github.com/nais/device/releases/latest")
+			if err != nil {
+				log.Warn("opening latest release url: %w", err)
+			}
+		case <-mStateInfo.ClickedCh:
+			switch state {
+			case StateUnhealthy:
+				err := open.Open("slack://channel?team=T5LNAMWNA&id=D011T20LDHD")
+				if err != nil {
+					log.Warnf("opening slack: %v", err)
+				}
+			}
 		case <-mConnect.ClickedCh:
 			if state == StateDisconnected {
 				newstate <- StateConnecting
@@ -160,11 +175,10 @@ func mainloop(updateGUI func(guiState GuiState)) {
 		case StateNewVersion:
 			newstate <- StateConnected
 		case StateConnected:
-
 		case StateQuitting:
 			fallthrough
 		case StateDisconnecting:
-			if oldstate == StateConnected {
+			if oldstate == StateConnected || oldstate == StateUnhealthy {
 				stop <- new(interface{})
 			}
 			if rc != nil {
@@ -188,9 +202,11 @@ func mainloop(updateGUI func(guiState GuiState)) {
 				return
 			}
 			newstate <- StateConnected
+		case StateUnhealthy:
 		}
 	}
 }
+
 func checkGatewayHealth(interval time.Duration, rc *runtimeconfig.RuntimeConfig) {
 	ticker := time.Tick(interval)
 	for {
@@ -269,16 +285,26 @@ func synchronizeGateways(interval time.Duration, stop chan interface{}, rc *runt
 func fetchDeviceConfig(ctx context.Context, rc *runtimeconfig.RuntimeConfig) {
 	gateways, err := apiserver.GetDeviceConfig(rc.SessionInfo.Key, rc.Config.APIServer, ctx)
 
-	if err != nil {
-		log.Errorf("unable to get gateway config: %v", err)
-		return
-	}
-
 	if ue, ok := err.(*apiserver.UnauthorizedError); ok {
 		newstate <- StateDisconnecting
 		log.Errorf("unauthorized access from apiserver: %v", ue)
 		log.Errorf("assuming invalid session; disconnecting.")
 		return
+	}
+
+	if errors.Is(err, &apiserver.UnhealthyError{}) {
+		newstate <- StateUnhealthy
+		log.Errorf("fetching device config: %v", err)
+		return
+	}
+
+	if err != nil {
+		log.Errorf("unable to get gateway config: %v", err)
+		return
+	}
+
+	if state == StateUnhealthy {
+		newstate <- StateConnected
 	}
 
 	rc.Gateways = gateways
@@ -312,6 +338,8 @@ func onReady() {
 	mVersion.Hide()
 	systray.AddSeparator()
 	mState := systray.AddMenuItem("", "State")
+	mStateInfo := systray.AddMenuItem("", "StateExtra")
+	mStateInfo.Hide()
 	mState.Disable()
 	systray.AddSeparator()
 	mConnect := systray.AddMenuItem("Connect", "Bootstrap the nais device")
@@ -321,6 +349,7 @@ func onReady() {
 
 	updateGUI := func(st GuiState) {
 		mState.SetTitle("Status: " + st.String())
+		mStateInfo.Hide()
 		switch st.ProgramState {
 		case StateNewVersion:
 			mVersion.Show()
@@ -332,6 +361,10 @@ func onReady() {
 			mConnect.SetTitle("Disconnect")
 			systray.SetIcon(readIcon("green"))
 			mConnect.Enable()
+		case StateUnhealthy:
+			mStateInfo.SetTitle("slack: /msg @kolide status")
+			mStateInfo.Show()
+			systray.SetIcon(readIcon("yellow"))
 		case StateSavingConfiguration:
 			for _, gateway := range st.Gateways {
 				if _, ok := mCurrentGateways[gateway.Endpoint]; !ok {
@@ -350,7 +383,7 @@ func onReady() {
 		}
 	}
 
-	go handleUserEvents(mVersion, mConnect, mQuit, interrupt)
+	go handleUserEvents(mVersion, mConnect, mStateInfo, mQuit, interrupt)
 	newstate <- StateDisconnected
 	mainloop(updateGUI)
 }

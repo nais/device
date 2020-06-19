@@ -27,6 +27,12 @@ func (u *UnauthorizedError) Error() string {
 	return "unauthorized"
 }
 
+type UnhealthyError struct{}
+
+func (e *UnhealthyError) Error() string {
+	return "device is in unhealthy state"
+}
+
 func (gws Gateways) MarshalIni() []byte {
 	output := bytes.NewBufferString("")
 	for _, gw := range gws {
@@ -72,6 +78,10 @@ func GetDeviceConfig(sessionKey, apiServerURL string, ctx context.Context) (Gate
 
 	if resp.StatusCode == http.StatusUnauthorized {
 		return nil, &UnauthorizedError{}
+	}
+
+	if resp.StatusCode == http.StatusForbidden {
+		return nil, fmt.Errorf("http response %v: %w", http.StatusText(resp.StatusCode), &UnhealthyError{})
 	}
 
 	var gateways Gateways

@@ -3,6 +3,7 @@ package auth
 import (
 	"context"
 	"fmt"
+	"github.com/nais/device/device-agent/open"
 	"net/http"
 	"time"
 
@@ -65,7 +66,7 @@ func runAuthFlow(ctx context.Context, conf oauth2.Config) (*oauth2.Token, error)
 		oauth2.SetAuthURLParam("code_challenge_method", "S256"),
 		oauth2.SetAuthURLParam("code_challenge", codeVerifier.CodeChallengeS256()))
 
-	err := openDefaultBrowser(url)
+	err := open.Open(url)
 	if err != nil {
 		log.Errorf("opening browser, err: %v", err)
 		// Don't return, as this is not fatal (user can open browser manually)
