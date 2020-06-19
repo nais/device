@@ -5,21 +5,20 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/nais/device/device-agent/open"
 	"io/ioutil"
 	"net/http"
 	"os"
 	"os/exec"
-	"os/signal"
 	"path/filepath"
-	"syscall"
 	"time"
+
+	"github.com/nais/device/device-agent/filesystem"
+	"github.com/nais/device/device-agent/open"
 
 	"github.com/gen2brain/beeep"
 	"github.com/getlantern/systray"
 	"github.com/nais/device/device-agent/apiserver"
 	"github.com/nais/device/device-agent/auth"
-	"github.com/nais/device/device-agent/filesystem"
 	"github.com/nais/device/device-agent/runtimeconfig"
 	"github.com/nais/device/pkg/version"
 	log "github.com/sirupsen/logrus"
@@ -47,21 +46,14 @@ const (
 	healthCheckInterval       = 5 * time.Second
 )
 
-type GuiState struct {
-	ProgramState ProgramState
-	Gateways     apiserver.Gateways
-}
-
-func (g GuiState) String() string {
-	switch g.ProgramState {
+func (state ProgramState) String() string {
+	switch state {
 	case StateDisconnected:
 		return "Disconnected"
 	case StateBootstrapping:
 		return "Bootstrapping..."
 	case StateConnecting:
 		return "Connecting..."
-	case StateNewVersion:
-		fallthrough
 	case StateSavingConfiguration:
 		fallthrough
 	case StateConnected:
@@ -78,131 +70,137 @@ func (g GuiState) String() string {
 }
 
 var (
-	state         = StateDisconnected
-	newstate      = make(chan ProgramState, 64)
 	connectedTime = time.Now()
 )
 
-func handleUserEvents(mVersion, mConnect, mStateInfo, mQuit *systray.MenuItem, interrupt chan os.Signal) {
-	for {
-		select {
-		case <-mVersion.ClickedCh:
-			err := open.Open("https://github.com/nais/device/releases/latest")
-			if err != nil {
-				log.Warn("opening latest release url: %w", err)
-			}
-		case <-mStateInfo.ClickedCh:
-			switch state {
-			case StateUnhealthy:
-				err := open.Open("slack://channel?team=T5LNAMWNA&id=D011T20LDHD")
-				if err != nil {
-					log.Warnf("opening slack: %v", err)
-				}
-			}
-		case <-mConnect.ClickedCh:
-			if state == StateDisconnected {
-				newstate <- StateConnecting
-			} else {
-				newstate <- StateDisconnecting
-			}
-		case <-mQuit.ClickedCh:
-			newstate <- StateQuitting
-		case <-interrupt:
-			log.Info("Received interrupt, shutting down gracefully.")
-			newstate <- StateQuitting
-		}
+func onReady() {
+	gui := NewGUI()
+
+	if err := filesystem.EnsurePrerequisites(&cfg); err != nil {
+		notify(fmt.Sprintf("Missing prerequisites: %s", err))
 	}
+
+	mainloop(gui)
 }
 
-func mainloop(updateGUI func(guiState GuiState)) {
+func handleGuiEvent(guiEvent GuiEvent, state ProgramState, stateChange chan ProgramState) {
+	switch guiEvent {
+	case VersionClicked:
+		err := open.Open(softwareReleasePage)
+		if err != nil {
+			log.Warn("opening latest release url: %w", err)
+		}
+
+	case StateInfoClicked:
+		err := open.Open(slackURL)
+		if err != nil {
+			log.Warnf("opening slack: %v", err)
+		}
+
+	case ConnectClicked:
+		if state == StateDisconnected {
+			stateChange <- StateConnecting
+		} else {
+			stateChange <- StateDisconnecting
+		}
+
+	case QuitClicked:
+		stateChange <- StateQuitting
+	}
+
+}
+
+func mainloop(gui *Gui) {
 	var rc *runtimeconfig.RuntimeConfig
 	var err error
 
 	stop := make(chan interface{}, 1)
+	oldstate := StateDisconnected
+	state := StateDisconnected
+	stateChange := make(chan ProgramState, 64)
 
-	for st := range newstate {
-		oldstate := state
-		state = st
+	for {
+		oldstate = state
 
-		//noinspection GoNilness
-		updateGUI(GuiState{
-			ProgramState: state,
-			Gateways:     rc.GetGateways(),
-		})
+		select {
+		case guiEvent := <-gui.Events:
+			handleGuiEvent(guiEvent, state, stateChange)
 
-		switch state {
-		case StateDisconnected:
-		case StateBootstrapping:
-			ctx, cancel := context.WithTimeout(context.Background(), time.Minute*3)
-			rc, err = runtimeconfig.New(cfg, ctx)
-			cancel()
-			if err != nil {
-				notify(err.Error())
-				newstate <- StateDisconnected
-				continue
-			}
-			err = WriteConfigFile(rc.Config.WireGuardConfigPath, *rc)
-			if err != nil {
-				err = fmt.Errorf("unable to write WireGuard configuration file: %w", err)
-				notify(err.Error())
-				newstate <- StateDisconnected
-				continue
-			}
-			newstate <- StateConnecting
+		case state := <-stateChange:
+			gui.ProgramState <- state
 
-		case StateConnecting:
-			if rc == nil {
-				newstate <- StateBootstrapping
-				continue
-			}
-			time.Sleep(initialConnectWait) // allow wireguard to syncconf
-			ctx, cancel := context.WithTimeout(context.Background(), 3*time.Minute)
-			rc.SessionInfo, err = auth.EnsureAuth(rc.SessionInfo, ctx, rc.Config.APIServer, rc.Config.Platform, rc.Serial)
-			cancel()
-
-			if err == nil {
-				go synchronizeGateways(gatewayRefreshInterval, stop, rc)
-				go checkGatewayHealth(healthCheckInterval, rc)
-				go checkVersion(versionCheckInterval, newstate)
-				newstate <- StateConnected
-				notify("connected")
-				connectedTime = time.Now()
-			} else {
-				newstate <- StateDisconnected
-				notify(err.Error())
-			}
-
-		case StateNewVersion:
-			newstate <- StateConnected
-		case StateConnected:
-		case StateQuitting:
-			fallthrough
-		case StateDisconnecting:
-			if oldstate == StateConnected || oldstate == StateUnhealthy {
-				stop <- new(interface{})
-			}
-			if rc != nil {
-				err := DeleteConfigFile(rc.Config.WireGuardConfigPath)
+			switch state {
+			case StateDisconnected:
+			case StateBootstrapping:
+				ctx, cancel := context.WithTimeout(context.Background(), time.Minute*3)
+				rc, err = runtimeconfig.New(cfg, ctx)
+				cancel()
 				if err != nil {
-					notify("error synchronizing WireGuard config: %s", err)
+					notify(err.Error())
+					stateChange <- StateDisconnected
+					continue
 				}
-			}
-			newstate <- StateDisconnected
+				err = WriteConfigFile(rc.Config.WireGuardConfigPath, *rc)
+				if err != nil {
+					err = fmt.Errorf("unable to write WireGuard configuration file: %w", err)
+					notify(err.Error())
+					stateChange <- StateDisconnected
+					continue
+				}
+				stateChange <- StateConnecting
 
-			if state == StateQuitting {
-				systray.Quit()
-			}
+			case StateConnecting:
+				if rc == nil {
+					stateChange <- StateBootstrapping
+					continue
+				}
+				time.Sleep(initialConnectWait) // allow wireguard to syncconf
+				ctx, cancel := context.WithTimeout(context.Background(), 3*time.Minute)
+				rc.SessionInfo, err = auth.EnsureAuth(rc.SessionInfo, ctx, rc.Config.APIServer, rc.Config.Platform, rc.Serial)
+				cancel()
 
-		case StateSavingConfiguration:
-			// TODO: Bør vi egentlig skrive fila på nytt hvert 10 sekund om det ikke er endringer?
-			err = WriteConfigFile(rc.Config.WireGuardConfigPath, *rc)
-			if err != nil {
-				err = fmt.Errorf("unable to write WireGuard configuration file: %w", err)
-				notify(err.Error())
-				return
+				if err == nil {
+					go synchronizeGateways(gatewayRefreshInterval, stop, rc, stateChange)
+					go checkGatewayHealth(healthCheckInterval, rc)
+					go checkVersion(versionCheckInterval, gui)
+					stateChange <- StateConnected
+					notify("connected")
+					connectedTime = time.Now()
+				} else {
+					stateChange <- StateDisconnected
+					notify(err.Error())
+				}
+
+			case StateConnected:
+			case StateQuitting:
+				fallthrough
+			case StateDisconnecting:
+				if oldstate == StateConnected || oldstate == StateUnhealthy {
+					stop <- new(interface{})
+				}
+				if rc != nil {
+					err := DeleteConfigFile(rc.Config.WireGuardConfigPath)
+					if err != nil {
+						notify("error synchronizing WireGuard config: %s", err)
+					}
+				}
+				stateChange <- StateDisconnected
+
+				if state == StateQuitting {
+					systray.Quit()
+				}
+
+			case StateSavingConfiguration:
+				// TODO: Bør vi egentlig skrive fila på nytt hvert 10 sekund om det ikke er endringer?
+				err = WriteConfigFile(rc.Config.WireGuardConfigPath, *rc)
+				if err != nil {
+					err = fmt.Errorf("unable to write WireGuard configuration file: %w", err)
+					notify(err.Error())
+					return
+				}
+				stateChange <- StateConnected
+			case StateUnhealthy:
 			}
-			newstate <- StateConnected
-		case StateUnhealthy:
 		}
 	}
 }
@@ -228,44 +226,41 @@ func checkGatewayHealth(interval time.Duration, rc *runtimeconfig.RuntimeConfig)
 	}
 }
 
-func checkVersion(interval time.Duration, newState chan ProgramState) {
+func checkVersion(interval time.Duration, gui *Gui) {
 	type response struct {
 		Tag string `json:"tag_name"`
 	}
 
 	ticker := time.NewTicker(interval)
-	for {
-		select {
-		case <-ticker.C:
-			log.Info("Checking release version on github")
-			resp, err := http.Get("https://api.github.com/repos/nais/device/releases/latest")
-			if err != nil {
-				log.Errorf("Unable to retrieve current release version %s", err)
-				continue
-			}
-			body, err := ioutil.ReadAll(resp.Body)
-			resp.Body.Close()
-			res := response{}
-			err = json.Unmarshal(body, &res)
-			if err != nil {
-				log.Errorf("unable to unmarshall response: %s", err)
-				continue
-			}
-			if version.Version != res.Tag {
-				newState <- StateNewVersion
-				notify("New version of device agent available: https://doc.nais.io/device/install#installation")
-				return
-			}
+	for range ticker.C {
+		log.Info("Checking release version on github")
+		resp, err := http.Get("https://api.github.com/repos/nais/device/releases/latest")
+		if err != nil {
+			log.Errorf("Unable to retrieve current release version %s", err)
+			continue
+		}
+		body, err := ioutil.ReadAll(resp.Body)
+		resp.Body.Close()
+		res := response{}
+		err = json.Unmarshal(body, &res)
+		if err != nil {
+			log.Errorf("unable to unmarshall response: %s", err)
+			continue
+		}
+		if version.Version != res.Tag {
+			gui.NewVersionAvailable <- true
+			notify("New version of device agent available: https://doc.nais.io/device/install#installation")
+			return
 		}
 	}
 }
 
-func synchronizeGateways(interval time.Duration, stop chan interface{}, rc *runtimeconfig.RuntimeConfig) {
+func synchronizeGateways(interval time.Duration, stop chan interface{}, rc *runtimeconfig.RuntimeConfig, stateChange chan ProgramState) {
 	// Sleeping whilst waiting for API-server connection; waiting for wireguard to sync configuration
 	time.Sleep(initialGatewayRefreshWait)
 
 	ctx, cancel := context.WithTimeout(context.Background(), gatewayRefreshInterval)
-	fetchDeviceConfig(ctx, rc)
+	fetchDeviceConfig(ctx, rc, stateChange)
 	cancel()
 
 	ticker := time.NewTicker(interval)
@@ -274,7 +269,7 @@ func synchronizeGateways(interval time.Duration, stop chan interface{}, rc *runt
 		select {
 		case <-ticker.C:
 			ctx, cancel := context.WithTimeout(context.Background(), gatewayRefreshInterval)
-			fetchDeviceConfig(ctx, rc)
+			fetchDeviceConfig(ctx, rc, stateChange)
 			cancel()
 		case <-stop:
 			return
@@ -282,18 +277,18 @@ func synchronizeGateways(interval time.Duration, stop chan interface{}, rc *runt
 	}
 }
 
-func fetchDeviceConfig(ctx context.Context, rc *runtimeconfig.RuntimeConfig) {
+func fetchDeviceConfig(ctx context.Context, rc *runtimeconfig.RuntimeConfig, stateChange chan ProgramState) {
 	gateways, err := apiserver.GetDeviceConfig(rc.SessionInfo.Key, rc.Config.APIServer, ctx)
 
 	if ue, ok := err.(*apiserver.UnauthorizedError); ok {
-		newstate <- StateDisconnecting
+		stateChange <- StateDisconnecting
 		log.Errorf("unauthorized access from apiserver: %v", ue)
 		log.Errorf("assuming invalid session; disconnecting.")
 		return
 	}
 
 	if errors.Is(err, &apiserver.UnhealthyError{}) {
-		newstate <- StateUnhealthy
+		stateChange <- StateUnhealthy
 		log.Errorf("fetching device config: %v", err)
 		return
 	}
@@ -303,13 +298,9 @@ func fetchDeviceConfig(ctx context.Context, rc *runtimeconfig.RuntimeConfig) {
 		return
 	}
 
-	if state == StateUnhealthy {
-		newstate <- StateConnected
-	}
-
 	rc.Gateways = gateways
 
-	newstate <- StateSavingConfiguration
+	stateChange <- StateSavingConfiguration
 }
 
 func readIcon(color string) []byte {
@@ -323,81 +314,6 @@ func readIcon(color string) []byte {
 		log.Errorf("finding icon: %v", err)
 	}
 	return icon
-}
-
-func onReady() {
-	systray.SetIcon(readIcon("blue"))
-	if err := filesystem.EnsurePrerequisites(&cfg); err != nil {
-		notify(fmt.Sprintf("Missing prerequisites: %s", err))
-	}
-
-	interrupt := make(chan os.Signal, 1)
-	signal.Notify(interrupt, os.Interrupt, syscall.SIGTERM)
-
-	mVersion := systray.AddMenuItem("New version available", "Download new version")
-	mVersion.Hide()
-	systray.AddSeparator()
-	mState := systray.AddMenuItem("", "State")
-	mStateInfo := systray.AddMenuItem("", "StateExtra")
-	mStateInfo.Hide()
-	mState.Disable()
-	systray.AddSeparator()
-	mConnect := systray.AddMenuItem("Connect", "Bootstrap the nais device")
-	systray.AddSeparator()
-	mCurrentGateways := make(map[string]*systray.MenuItem)
-
-	var mGatewayItems []*systray.MenuItem
-	for i := 0; i < 20; i++ {
-		item := systray.AddMenuItem("", "")
-		item.Disable()
-		item.Hide()
-		mGatewayItems = append(mGatewayItems, item)
-	}
-	systray.AddSeparator()
-	mQuit := systray.AddMenuItem("Quit", "exit the application")
-
-	updateGUI := func(st GuiState) {
-		mState.SetTitle("Status: " + st.String())
-		mStateInfo.Hide()
-		switch st.ProgramState {
-		case StateNewVersion:
-			mVersion.Show()
-		case StateDisconnected:
-			mConnect.SetTitle("Connect")
-			systray.SetIcon(readIcon("red"))
-			mConnect.Enable()
-		case StateConnected:
-			mConnect.SetTitle("Disconnect")
-			systray.SetIcon(readIcon("green"))
-			mConnect.Enable()
-		case StateUnhealthy:
-			mStateInfo.SetTitle("slack: /msg @kolide status")
-			mStateInfo.Show()
-			systray.SetIcon(readIcon("yellow"))
-		case StateSavingConfiguration:
-			for _, gateway := range st.Gateways {
-				if _, ok := mCurrentGateways[gateway.PublicKey]; !ok {
-					mCurrentGateways[gateway.PublicKey] = mGatewayItems[0]
-					mGatewayItems[0].Show()
-					mGatewayItems[0].SetTitle(gateway.Name)
-					mGatewayItems[0].SetTooltip(gateway.Endpoint)
-					mGatewayItems = mGatewayItems[1:]
-				}
-				if gateway.Healthy {
-					mCurrentGateways[gateway.PublicKey].Check()
-				} else {
-					mCurrentGateways[gateway.PublicKey].Uncheck()
-				}
-			}
-
-		default:
-			mConnect.Disable()
-		}
-	}
-
-	go handleUserEvents(mVersion, mConnect, mStateInfo, mQuit, interrupt)
-	newstate <- StateDisconnected
-	mainloop(updateGUI)
 }
 
 func onExit() {
