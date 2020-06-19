@@ -1,6 +1,7 @@
 <?php declare(strict_types=1);
 namespace Nais\Device\Command;
 
+use Nais\Device\Criticality;
 use Nais\Device\KolideApiClient;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
@@ -10,14 +11,6 @@ use RuntimeException;
 class ValidateKolideChecksCriticality extends BaseCommand {
     /** @var string */
     protected static $defaultName = 'kolide:validate-checks';
-
-    /** @var array */
-    private $checksConfig;
-
-    public function __construct(array $checksConfig = []) {
-        $this->checksConfig = $checksConfig;
-        parent::__construct();
-    }
 
     protected function configure() : void {
         $this
@@ -41,17 +34,29 @@ class ValidateKolideChecksCriticality extends BaseCommand {
     protected function execute(InputInterface $input, OutputInterface $output) : int {
         $checks = $this->kolideApiClient->getAllChecks();
         array_multisort(array_column($checks, 'id'), SORT_ASC, $checks);
-        $missingChecks = [];
+        $incompleteChecks = [];
 
         foreach ($checks as $check) {
-            if (!isset($this->checksConfig[$check['id']])) {
-                $missingChecks[] = $check;
+            foreach ($check['tags'] as $tag) {
+                if (Criticality::isValidTag($tag)) {
+                    continue 2;
+                }
             }
+
+            $incompleteChecks[] = $check;
         }
 
-        if (!empty($missingChecks)) {
-            $output->writeln('The following Kolide checks are missing a criticality level:');
-            $output->writeln(array_map(fn(array $check) : string => sprintf('<info>%s</info> (ID: <info>%d</info>, https://k2.kolide.com/1401/checks/%2$d): %s', $check['name'], $check['id'], $check['description']), $missingChecks));
+        if (!empty($incompleteChecks)) {
+            $output->writeln('The following Kolide checks are missing a severity tag:');
+            $output->writeln(array_map(
+                fn(array $check) : string => sprintf(
+                    '<info>%s</info> (ID: <info>%d</info>, https://k2.kolide.com/1401/checks/%2$d): %s',
+                    $check['name'],
+                    $check['id'],
+                    $check['description']
+                ),
+                $incompleteChecks
+            ));
             return 1;
         }
 
