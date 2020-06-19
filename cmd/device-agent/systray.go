@@ -156,7 +156,7 @@ func mainloop(updateGUI func(guiState GuiState)) {
 				continue
 			}
 			time.Sleep(initialConnectWait) // allow wireguard to syncconf
-			ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
+			ctx, cancel := context.WithTimeout(context.Background(), 3*time.Minute)
 			rc.SessionInfo, err = auth.EnsureAuth(rc.SessionInfo, ctx, rc.Config.APIServer, rc.Config.Platform, rc.Serial)
 			cancel()
 

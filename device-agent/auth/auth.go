@@ -34,7 +34,9 @@ func EnsureAuth(existing *SessionInfo, ctx context.Context, apiserverURL, platfo
 		return existing, nil
 	}
 
-	authURL, err := getAuthURL(apiserverURL, ctx)
+	authUrlCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
+	authURL, err := getAuthURL(apiserverURL, authUrlCtx)
+	cancel()
 
 	if err != nil {
 		return nil, fmt.Errorf("getting Azure auth URL from apiserver: %v", err)
@@ -50,9 +52,6 @@ func EnsureAuth(existing *SessionInfo, ctx context.Context, apiserverURL, platfo
 }
 
 func runFlow(ctx context.Context, authURL, apiserverURL, platform, serial string) (*SessionInfo, error) {
-	ctx, cancel := context.WithTimeout(ctx, 3*time.Minute)
-	defer cancel()
-
 	handler := http.NewServeMux()
 
 	sessionInfo := make(chan *SessionInfo)
