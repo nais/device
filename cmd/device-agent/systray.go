@@ -225,6 +225,7 @@ func checkVersion(interval time.Duration, newState chan ProgramState) {
 			resp, err := http.Get("https://api.github.com/repos/nais/device/releases/latest")
 			if err != nil {
 				log.Errorf("Unable to retrieve current release version %s", err)
+				continue
 			}
 			body, err := ioutil.ReadAll(resp.Body)
 			resp.Body.Close()
@@ -232,6 +233,7 @@ func checkVersion(interval time.Duration, newState chan ProgramState) {
 			err = json.Unmarshal(body, &res)
 			if err != nil {
 				log.Errorf("unable to unmarshall response: %s", err)
+				continue
 			}
 			if version.Version != res.Tag {
 				newState <- StateNewVersion
@@ -241,6 +243,7 @@ func checkVersion(interval time.Duration, newState chan ProgramState) {
 		}
 	}
 }
+
 func synchronizeGateways(interval time.Duration, stop chan interface{}, rc *runtimeconfig.RuntimeConfig) {
 	// Sleeping whilst waiting for API-server connection; waiting for wireguard to sync configuration
 	time.Sleep(initialGatewayRefreshWait)
