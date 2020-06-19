@@ -42,6 +42,7 @@ const (
 	gatewayRefreshInterval    = 10 * time.Second
 	initialGatewayRefreshWait = 2 * time.Second
 	initialConnectWait        = initialGatewayRefreshWait
+	healthCheckInterval       = 5 * time.Second
 )
 
 type GuiState struct {
@@ -145,10 +146,11 @@ func mainloop(updateGUI func(guiState GuiState)) {
 			cancel()
 
 			if err == nil {
+				go synchronizeGateways(gatewayRefreshInterval, stop, rc)
+				go checkGatewayHealth(healthCheckInterval, rc)
+				go checkVersion(versionCheckInterval, newstate)
 				newstate <- StateConnected
 				notify("connected")
-				go synchronizeGateways(stop, rc)
-				go checkVersion(newstate)
 				connectedTime = time.Now()
 			} else {
 				newstate <- StateDisconnected
@@ -189,12 +191,33 @@ func mainloop(updateGUI func(guiState GuiState)) {
 		}
 	}
 }
-func checkVersion(newState chan ProgramState) {
+func checkGatewayHealth(interval time.Duration, rc *runtimeconfig.RuntimeConfig) {
+	ticker := time.Tick(interval)
+	for {
+		select {
+		case <-ticker:
+			for _, gw := range rc.Gateways {
+				err := ping(gw.IP)
+				if err == nil {
+					gw.Healthy = true
+					log.Debugf("Successfully pinged gateway %v with ip: %v", gw.Name, gw.IP)
+				} else {
+					gw.Healthy = false
+					log.Errorf("unable to ping host %s: %v", gw.IP, err)
+				}
+			}
+
+		}
+
+	}
+}
+
+func checkVersion(interval time.Duration, newState chan ProgramState) {
 	type response struct {
 		Tag string `json:"tag_name"`
 	}
 
-	ticker := time.NewTicker(versionCheckInterval)
+	ticker := time.NewTicker(interval)
 	for {
 		select {
 		case <-ticker.C:
@@ -218,7 +241,7 @@ func checkVersion(newState chan ProgramState) {
 		}
 	}
 }
-func synchronizeGateways(stop chan interface{}, rc *runtimeconfig.RuntimeConfig) {
+func synchronizeGateways(interval time.Duration, stop chan interface{}, rc *runtimeconfig.RuntimeConfig) {
 	// Sleeping whilst waiting for API-server connection; waiting for wireguard to sync configuration
 	time.Sleep(initialGatewayRefreshWait)
 
@@ -226,7 +249,7 @@ func synchronizeGateways(stop chan interface{}, rc *runtimeconfig.RuntimeConfig)
 	fetchDeviceConfig(ctx, rc)
 	cancel()
 
-	ticker := time.NewTicker(gatewayRefreshInterval)
+	ticker := time.NewTicker(interval)
 
 	for {
 		select {
@@ -253,17 +276,6 @@ func fetchDeviceConfig(ctx context.Context, rc *runtimeconfig.RuntimeConfig) {
 		log.Errorf("unauthorized access from apiserver: %v", ue)
 		log.Errorf("assuming invalid session; disconnecting.")
 		return
-	}
-
-	for _, gw := range gateways {
-
-		err := ping(gw.IP)
-		if err == nil {
-			gw.Healthy = true
-		} else {
-			gw.Healthy = false
-			log.Errorf("unable to ping host %s: %v", gw.IP, err)
-		}
 	}
 
 	rc.Gateways = gateways
