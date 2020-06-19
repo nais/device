@@ -30,6 +30,7 @@ jobs:
     - uses: actions/checkout@v2
     - name: run tests
       run: |
+        sudo apt update
         sudo apt install --yes build-essential libgtk-3-dev libappindicator3-dev
         make run-integration-test
 
