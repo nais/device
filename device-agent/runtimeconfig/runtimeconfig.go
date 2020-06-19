@@ -82,7 +82,7 @@ func ensureBootstrapping(rc *RuntimeConfig, ctx context.Context) (*bootstrap.Con
 		return nil, err
 	}
 
-	err = writeToJSONFile(rc.BootstrapConfig, rc.Config.BootstrapConfigPath)
+	err = writeToJSONFile(cfg, rc.Config.BootstrapConfigPath)
 	if err != nil {
 		return nil, fmt.Errorf("writing bootstrap config to disk: %w", err)
 	}

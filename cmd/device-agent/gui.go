@@ -42,7 +42,7 @@ func NewGUI() *Gui {
 	gui := &Gui{}
 	systray.SetIcon(readIcon("blue"))
 
-	gui.MenuItems.Version = systray.AddMenuItem("New version available", "Download new version")
+	gui.MenuItems.Version = systray.AddMenuItem("Update to latest version...", "Click to open browser")
 	gui.MenuItems.Version.Hide()
 	systray.AddSeparator()
 	gui.MenuItems.State = systray.AddMenuItem("", "State")

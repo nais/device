@@ -10,6 +10,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"sync"
 	"time"
 
 	"github.com/nais/device/device-agent/filesystem"
@@ -80,6 +81,8 @@ func onReady() {
 		notify(fmt.Sprintf("Missing prerequisites: %s", err))
 	}
 
+	go gui.EventLoop()
+	go checkVersion(versionCheckInterval, gui)
 	mainloop(gui)
 }
 
@@ -114,19 +117,18 @@ func mainloop(gui *Gui) {
 	var rc *runtimeconfig.RuntimeConfig
 	var err error
 
+	once := sync.Once{}
 	stop := make(chan interface{}, 1)
-	oldstate := StateDisconnected
 	state := StateDisconnected
 	stateChange := make(chan ProgramState, 64)
+	gui.ProgramState <- state
 
 	for {
-		oldstate = state
-
 		select {
 		case guiEvent := <-gui.Events:
 			handleGuiEvent(guiEvent, state, stateChange)
 
-		case state := <-stateChange:
+		case state = <-stateChange:
 			gui.ProgramState <- state
 
 			switch state {
@@ -140,18 +142,18 @@ func mainloop(gui *Gui) {
 					stateChange <- StateDisconnected
 					continue
 				}
-				err = WriteConfigFile(rc.Config.WireGuardConfigPath, *rc)
-				if err != nil {
-					err = fmt.Errorf("unable to write WireGuard configuration file: %w", err)
-					notify(err.Error())
-					stateChange <- StateDisconnected
-					continue
-				}
 				stateChange <- StateConnecting
 
 			case StateConnecting:
 				if rc == nil {
 					stateChange <- StateBootstrapping
+					continue
+				}
+				err = WriteConfigFile(rc.Config.WireGuardConfigPath, *rc)
+				if err != nil {
+					err = fmt.Errorf("unable to write WireGuard configuration file: %w", err)
+					notify(err.Error())
+					stateChange <- StateDisconnected
 					continue
 				}
 				time.Sleep(initialConnectWait) // allow wireguard to syncconf
@@ -161,11 +163,12 @@ func mainloop(gui *Gui) {
 
 				if err == nil {
 					go synchronizeGateways(gatewayRefreshInterval, stop, rc, stateChange)
-					go checkGatewayHealth(healthCheckInterval, rc)
-					go checkVersion(versionCheckInterval, gui)
 					stateChange <- StateConnected
 					notify("connected")
 					connectedTime = time.Now()
+					once.Do(func() {
+						go checkGatewayHealth(healthCheckInterval, rc, gui)
+					})
 				} else {
 					stateChange <- StateDisconnected
 					notify(err.Error())
@@ -174,10 +177,11 @@ func mainloop(gui *Gui) {
 			case StateConnected:
 			case StateQuitting:
 				fallthrough
+
 			case StateDisconnecting:
-				if oldstate == StateConnected || oldstate == StateUnhealthy {
-					stop <- new(interface{})
-				}
+				stop <- new(interface{})
+				rc.Gateways = make(apiserver.Gateways, 0)
+
 				if rc != nil {
 					err := DeleteConfigFile(rc.Config.WireGuardConfigPath)
 					if err != nil {
@@ -199,18 +203,19 @@ func mainloop(gui *Gui) {
 					return
 				}
 				stateChange <- StateConnected
+
 			case StateUnhealthy:
 			}
 		}
 	}
 }
 
-func checkGatewayHealth(interval time.Duration, rc *runtimeconfig.RuntimeConfig) {
+func checkGatewayHealth(interval time.Duration, rc *runtimeconfig.RuntimeConfig, gui *Gui) {
 	ticker := time.Tick(interval)
 	for {
 		select {
 		case <-ticker:
-			for _, gw := range rc.Gateways {
+			for _, gw := range rc.GetGateways() {
 				err := ping(gw.IP)
 				if err == nil {
 					gw.Healthy = true
@@ -220,9 +225,8 @@ func checkGatewayHealth(interval time.Duration, rc *runtimeconfig.RuntimeConfig)
 					log.Errorf("unable to ping host %s: %v", gw.IP, err)
 				}
 			}
-
+			gui.Gateways <- rc.GetGateways()
 		}
-
 	}
 }
 
@@ -231,8 +235,10 @@ func checkVersion(interval time.Duration, gui *Gui) {
 		Tag string `json:"tag_name"`
 	}
 
-	ticker := time.NewTicker(interval)
+	ticker := time.NewTicker(1 * time.Nanosecond)
 	for range ticker.C {
+		ticker.Stop()
+		ticker = time.NewTicker(interval)
 		log.Info("Checking release version on github")
 		resp, err := http.Get("https://api.github.com/repos/nais/device/releases/latest")
 		if err != nil {

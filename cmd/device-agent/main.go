@@ -38,7 +38,7 @@ func main() {
 
 func DeleteConfigFile(path string) error {
 	err := os.Remove(path)
-	if err != nil {
+	if err != nil && err != os.ErrNotExist {
 		return err
 	}
 	log.Debugf("Removed WireGuard configuration file at %s", path)
