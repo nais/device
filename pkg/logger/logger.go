@@ -12,7 +12,7 @@ import (
 func SetupDeviceLogger(level, path string) {
 	file, err := os.OpenFile(path, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0664)
 	if err != nil {
-		log.Fatalf("unable to open log file %s, error: %w", path, err)
+		log.Fatalf("unable to open log file %s, error: %v", path, err)
 	}
 
 	mw := io.MultiWriter(os.Stdout, file)
@@ -21,7 +21,7 @@ func SetupDeviceLogger(level, path string) {
 	log.Infof("Path: %s", path)
 	loglevel, err := log.ParseLevel(level)
 	if err != nil {
-		log.Errorf("unable to parse log level %s, error: %w", level, err)
+		log.Errorf("unable to parse log level %s, error: %v", level, err)
 		return
 	}
 	log.SetLevel(loglevel)
