@@ -17,6 +17,7 @@ import (
 	"github.com/getlantern/systray"
 	"github.com/nais/device/device-agent/apiserver"
 	"github.com/nais/device/device-agent/auth"
+	"github.com/nais/device/device-agent/browser"
 	"github.com/nais/device/device-agent/filesystem"
 	"github.com/nais/device/device-agent/runtimeconfig"
 	"github.com/nais/device/pkg/version"
@@ -27,6 +28,7 @@ type ProgramState int
 
 const (
 	StateDisconnected ProgramState = iota
+	StateNewVersion
 	StateBootstrapping
 	StateConnecting
 	StateConnected
@@ -39,7 +41,7 @@ const (
 	versionCheckInterval      = 2 * time.Minute
 	gatewayRefreshInterval    = 10 * time.Second
 	initialGatewayRefreshWait = 2 * time.Second
-	initialConnectWait = initialGatewayRefreshWait
+	initialConnectWait        = initialGatewayRefreshWait
 )
 
 type GuiState struct {
@@ -55,6 +57,8 @@ func (g GuiState) String() string {
 		return "Bootstrapping..."
 	case StateConnecting:
 		return "Connecting..."
+	case StateNewVersion:
+		fallthrough
 	case StateSavingConfiguration:
 		fallthrough
 	case StateConnected:
@@ -74,9 +78,11 @@ var (
 	connectedTime = time.Now()
 )
 
-func handleUserEvents(mConnect, mQuit *systray.MenuItem, interrupt chan os.Signal) {
+func handleUserEvents(mVersion, mConnect, mQuit *systray.MenuItem, interrupt chan os.Signal) {
 	for {
 		select {
+		case <-mVersion.ClickedCh:
+			browser.OpenDefaultBrowser("https://github.com/nais/device/releases/latest")
 		case <-mConnect.ClickedCh:
 			if state == StateDisconnected {
 				newstate <- StateConnecting
@@ -142,13 +148,15 @@ func mainloop(updateGUI func(guiState GuiState)) {
 				newstate <- StateConnected
 				notify("connected")
 				go synchronizeGateways(stop, rc)
-				go checkVersion()
+				go checkVersion(newstate)
 				connectedTime = time.Now()
 			} else {
 				newstate <- StateDisconnected
 				notify(err.Error())
 			}
 
+		case StateNewVersion:
+			newstate <- StateConnected
 		case StateConnected:
 
 		case StateQuitting:
@@ -181,7 +189,7 @@ func mainloop(updateGUI func(guiState GuiState)) {
 		}
 	}
 }
-func checkVersion() {
+func checkVersion(newState chan ProgramState) {
 	type response struct {
 		Tag string `json:"tag_name"`
 	}
@@ -203,6 +211,7 @@ func checkVersion() {
 				log.Errorf("unable to unmarshall response: %s", err)
 			}
 			if version.Version != res.Tag {
+				newState <- StateNewVersion
 				notify("New version of device agent available: https://doc.nais.io/device/install#installation")
 				return
 			}
@@ -284,6 +293,9 @@ func onReady() {
 	interrupt := make(chan os.Signal, 1)
 	signal.Notify(interrupt, os.Interrupt, syscall.SIGTERM)
 
+	mVersion := systray.AddMenuItem("New version available", "Download new version")
+	mVersion.Hide()
+	systray.AddSeparator()
 	mState := systray.AddMenuItem("", "State")
 	mState.Disable()
 	systray.AddSeparator()
@@ -295,6 +307,8 @@ func onReady() {
 	updateGUI := func(st GuiState) {
 		mState.SetTitle("Status: " + st.String())
 		switch st.ProgramState {
+		case StateNewVersion:
+			mVersion.Show()
 		case StateDisconnected:
 			mConnect.SetTitle("Connect")
 			systray.SetIcon(readIcon("red"))
@@ -302,7 +316,6 @@ func onReady() {
 		case StateConnected:
 			mConnect.SetTitle("Disconnect")
 			systray.SetIcon(readIcon("green"))
-			mConnect.Enable()
 			mConnect.Enable()
 		case StateSavingConfiguration:
 			for _, gateway := range st.Gateways {
@@ -322,7 +335,7 @@ func onReady() {
 		}
 	}
 
-	go handleUserEvents(mConnect, mQuit, interrupt)
+	go handleUserEvents(mVersion, mConnect, mQuit, interrupt)
 	newstate <- StateDisconnected
 	mainloop(updateGUI)
 }
