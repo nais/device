@@ -5,6 +5,7 @@ VERSION ?= $(DATE)-$(LAST_COMMIT)
 LDFLAGS := -X github.com/nais/device/pkg/version.Revision=$(shell git rev-parse --short HEAD) -X github.com/nais/device/pkg/version.Version=$(VERSION)
 PKGTITLE = naisdevice
 PKGID = io.nais.device
+GOPATH ?= ~/go
 
 all: test alpine
 db: teardown-postgres run-postgres insert-testdata
@@ -29,7 +30,7 @@ macos-client:
 
 windows-client:
 	go get github.com/akavel/rsrc
-	~/go/bin/rsrc -arch amd64 -manifest ./windows/admin_manifest.xml -o ./cmd/device-agent-helper/main_windows.syso
+	${GOPATH}/bin/rsrc -arch amd64 -manifest ./windows/admin_manifest.xml -o ./cmd/device-agent-helper/main_windows.syso
 	GOOS=windows GOARCH=amd64 go build -o bin/windows/device-agent.exe ./cmd/device-agent
 	GOOS=windows GOARCH=amd64 go build -o bin/windows/device-agent-helper.exe ./cmd/device-agent-helper
 

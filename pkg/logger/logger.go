@@ -1,6 +1,5 @@
 package logger
 
-import "C"
 import (
 	"io"
 	"os"
