@@ -50,9 +50,12 @@ Endpoint = %s
 `
 	allowedIPs := make([]string, 0)
 	allowedIPs = append(allowedIPs, gw.IP+"/32")
+	/*
 	if gw.Healthy == true {
 		allowedIPs = append(allowedIPs, gw.Routes...)
 	}
+	*/
+	allowedIPs = append(allowedIPs, gw.Routes...) // TODO: Remove when health checks are fixed
 
 	s := fmt.Sprintf(peerTemplate, gw.PublicKey, strings.Join(allowedIPs, ","), gw.Endpoint)
 	return []byte(s)
