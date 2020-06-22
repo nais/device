@@ -136,4 +136,38 @@ class KolideApiClientTest extends TestCase {
         $this->assertStringEndsWith('devices/1/failures?page=0', (string) $clientHistory[0]['request']->getUri());
         $this->assertStringEndsWith('devices/1/failures?page=1', (string) $clientHistory[1]['request']->getUri());
     }
+
+    /**
+     * @covers ::getCheck
+     */
+    public function testCanGetCheck() : void {
+        $clientHistory = [];
+        $httpClient = $this->getMockClient([new Response(200, [], '{"id": 123, "tags": ["CRITICAL"]}')], $clientHistory);
+
+        $this->assertSame(
+            [
+                'id'   => 123,
+                'tags' => [
+                    'CRITICAL'
+                ],
+            ],
+            (new KolideApiClient('secret', 5, $httpClient))->getCheck(123)
+        );
+
+        $this->assertCount(1, $clientHistory, 'Expected 1 request');
+        $this->assertStringEndsWith('checks/123', (string) $clientHistory[0]['request']->getUri());
+    }
+
+    /**
+     * @covers ::getCheck
+     */
+    public function testReturnsNullOnUnknownCheck() : void {
+        $clientHistory = [];
+        $httpClient = $this->getMockClient([new Response(404)], $clientHistory);
+
+        $this->assertNull((new KolideApiClient('secret', 5, $httpClient))->getCheck(123), 'Expected check to be null');
+
+        $this->assertCount(1, $clientHistory, 'Expected 1 request');
+        $this->assertStringEndsWith('checks/123', (string) $clientHistory[0]['request']->getUri());
+    }
 }
