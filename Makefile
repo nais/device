@@ -73,6 +73,7 @@ local-apiserver:
 	echo ${confdir}
 
 icon:
+	$(shell cd assets && go run icon.go > ../cmd/device-agent/icons.go)
 	rm -rf MyIcon.iconset
 	mkdir -p MyIcon.iconset
 	sips -z 16 16     assets/nais-logo-blue.png --out MyIcon.iconset/icon_16x16.png
@@ -93,7 +94,7 @@ app: macos-client icon
 	rm -rf naisdevice.app
 	mkdir -p naisdevice.app/Contents/{MacOS,Resources}
 	cp bin/macos/* naisdevice.app/Contents/MacOS
-	cp assets/* naisdevice.app/Contents/Resources
+	cp assets/naisdevice.icns naisdevice.app/Contents/Resources
 	sed 's/VERSIONSTRING/${VERSION}/' Info.plist.tpl > naisdevice.app/Contents/Info.plist
 
 test:

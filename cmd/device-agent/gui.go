@@ -45,7 +45,7 @@ const (
 
 func NewGUI() *Gui {
 	gui := &Gui{}
-	systray.SetIcon(readIcon("blue"))
+	systray.SetIcon(NaisLogoBlue)
 
 	gui.MenuItems.Version = systray.AddMenuItem("Update to latest version...", "Click to open browser")
 	gui.MenuItems.Version.Hide()
@@ -136,16 +136,16 @@ func (gui *Gui) handleProgramState(state ProgramState) {
 		gui.MenuItems.Version.Show()
 	case StateDisconnected:
 		gui.MenuItems.Connect.SetTitle("Connect")
-		systray.SetIcon(readIcon("red"))
+		systray.SetIcon(NaisLogoRed)
 		gui.MenuItems.Connect.Enable()
 	case StateConnected:
 		gui.MenuItems.Connect.SetTitle("Disconnect")
-		systray.SetIcon(readIcon("green"))
+		systray.SetIcon(NaisLogoGreen)
 		gui.MenuItems.Connect.Enable()
 	case StateUnhealthy:
 		gui.MenuItems.StateInfo.SetTitle("slack: /msg @kolide status")
 		gui.MenuItems.StateInfo.Show()
-		systray.SetIcon(readIcon("yellow"))
+		systray.SetIcon(NaisLogoYellow)
 	default:
 		gui.MenuItems.Connect.Disable()
 	}

@@ -323,19 +323,6 @@ func fetchDeviceConfig(ctx context.Context, rc *runtimeconfig.RuntimeConfig, sta
 	stateChange <- StateSavingConfiguration
 }
 
-func readIcon(color string) []byte {
-	currentDir, err := filepath.Abs(filepath.Dir(os.Args[0]))
-	if err != nil {
-		log.Fatal(err)
-	}
-	iconPath := filepath.Join(currentDir, "..", "Resources", fmt.Sprintf("nais-logo-%s.png", color))
-	icon, err := ioutil.ReadFile(iconPath)
-	if err != nil {
-		log.Errorf("finding icon: %v", err)
-	}
-	return icon
-}
-
 func onExit() {
 	// This is where we clean up
 }
