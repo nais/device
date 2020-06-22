@@ -337,6 +337,7 @@ func checkForNewRelease() {
 		resp, err := http.Get("https://api.github.com/repos/nais/device/releases/latest")
 		if err != nil {
 			log.Errorf("Unable to retrieve current release version %s", err)
+			continue
 		}
 		body, err := ioutil.ReadAll(resp.Body)
 		resp.Body.Close()
@@ -344,6 +345,7 @@ func checkForNewRelease() {
 		err = json.Unmarshal(body, &res)
 		if err != nil {
 			log.Errorf("unable to unmarshall response: %s", err)
+			continue
 		}
 		if version.Version != res.Tag {
 			log.Info("New version available. So long and thanks for all the fish.")
