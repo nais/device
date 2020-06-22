@@ -17,7 +17,7 @@ func main() {
 
 	fmt.Print("package main\n\n")
 	for _, file := range files {
-		if filepath.Ext(file.Name()) == ".png" {
+		if filepath.Ext(file.Name()) == ".ico" {
 			b, err := ioutil.ReadFile(file.Name())
 			if err != nil {
 				fmt.Printf("reading file: %v", err)
