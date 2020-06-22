@@ -2,6 +2,7 @@
 namespace Nais\Device;
 
 use GuzzleHttp\Client as HttpClient;
+use GuzzleHttp\Exception\ClientException;
 
 class KolideApiClient {
     /** @var HttpClient */
@@ -57,5 +58,13 @@ class KolideApiClient {
 
     public function getDeviceFailures(int $deviceId) : array {
         return $this->getPaginatedResults(sprintf('devices/%d/failures', $deviceId));
+    }
+
+    public function getCheck(int $checkId) : ?array {
+        try {
+            return json_decode($this->client->get(sprintf('checks/%d', $checkId))->getBody()->getContents(), true);
+        } catch (ClientException $e) {
+            return null;
+        }
     }
 }

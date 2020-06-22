@@ -28,9 +28,8 @@
   },
   "scripts": {
     "lint": "for file in `git ls-files '*.php'`; do php -l $file; done",
-    "phpunit": "vendor/bin/phpunit",
-    "phpunit:coverage": "vendor/bin/phpunit --coverage-html build/coverage",
-    "test": "@phpunit",
+    "test": "vendor/bin/phpunit",
+    "test:coverage": "vendor/bin/phpunit --coverage-html build/coverage",
     "ci": [
       "@lint",
       "@test"

@@ -2,7 +2,6 @@
 namespace Nais\Device\Command;
 
 use Nais\Device\ApiServerClient;
-use Nais\Device\Criticality;
 use Nais\Device\KolideApiClient;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\Console\Application;
@@ -392,16 +391,25 @@ class CheckAndUpdateDevicesTest extends TestCase {
                         'resolved_at' => null,
                         'check_id'    => 8,
                         'timestamp'   => $this->getTimestamp(time() - 3600),
-                        'title'       => 'some failing check that is within the allowed criticality level',
+                        'title'       => 'some failing check that is within the allowed grace time for the given severity tag',
                     ],
                 ]
             ));
 
-        $command = new CheckAndUpdateDevices([
-            7     => Criticality::HIGH,
-            8     => Criticality::LOW,
-            15804 => Criticality::IGNORE,
-        ]);
+        $kolideApiClient
+            ->method('getCheck')
+            ->withConsecutive(
+                [7],
+                [15804],
+                [8]
+            )
+            ->will($this->onConsecutiveCalls(
+                ['tags' => ['DANGER']],
+                ['tags' => ['INFO']],
+                ['tags' => ['NOTICE']]
+            ));
+
+        $command = new CheckAndUpdateDevices();
         $command->setApiServerClient($apiServerClient);
         $command->setKolideApiClient($kolideApiClient);
 
