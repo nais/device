@@ -391,7 +391,7 @@ class CheckAndUpdateDevicesTest extends TestCase {
                         'resolved_at' => null,
                         'check_id'    => 8,
                         'timestamp'   => $this->getTimestamp(time() - 3600),
-                        'title'       => 'some failing check that is within the allowed criticality level',
+                        'title'       => 'some failing check that is within the allowed grace time for the given severity tag',
                     ],
                 ]
             ));

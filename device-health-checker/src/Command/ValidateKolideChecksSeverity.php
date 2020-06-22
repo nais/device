@@ -8,14 +8,14 @@ use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 use RuntimeException;
 
-class ValidateKolideChecksCriticality extends BaseCommand {
+class ValidateKolideChecksSeverity extends BaseCommand {
     /** @var string */
     protected static $defaultName = 'kolide:validate-checks';
 
     protected function configure() : void {
         $this
-            ->setDescription('Validate Kolide checks criticality levels')
-            ->setHelp('Make sure we have set criticality levels for all Kolide checks connected to our account')
+            ->setDescription('Validate Kolide checks for missing severity tags')
+            ->setHelp('Make sure we have set severity tags for all Kolide checks connected to our account')
             ->addOption('kolide-api-token', 't', InputOption::VALUE_REQUIRED, 'Token used with the Kolide API');
     }
 

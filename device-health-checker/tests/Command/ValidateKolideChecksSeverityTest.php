@@ -6,9 +6,9 @@ use PHPUnit\Framework\TestCase;
 use Symfony\Component\Console\Tester\CommandTester;
 
 /**
- * @coversDefaultClass Nais\Device\Command\ValidateKolideChecksCriticality
+ * @coversDefaultClass Nais\Device\Command\ValidateKolideChecksSeverity
  */
-class ValidateKolideChecksCriticalityTest extends TestCase {
+class ValidateKolideChecksSeverityTest extends TestCase {
     /**
      * @covers ::execute
      * @covers ::__construct
@@ -16,7 +16,7 @@ class ValidateKolideChecksCriticalityTest extends TestCase {
      * @covers ::initialize
      */
     public function testReturnsZeroWhenNoChecksAreMissing() : void {
-        $command = new ValidateKolideChecksCriticality();
+        $command = new ValidateKolideChecksSeverity();
         $command->setKolideApiClient($this->createConfiguredMock(KolideApiClient::class, [
             'getAllChecks' => [
                 [
@@ -50,7 +50,7 @@ class ValidateKolideChecksCriticalityTest extends TestCase {
      * @covers ::initialize
      */
     public function testReturnsNonZeroOnFailure() : void {
-        $command = new ValidateKolideChecksCriticality();
+        $command = new ValidateKolideChecksSeverity();
         $command->setKolideApiClient($this->createConfiguredMock(KolideApiClient::class, [
             'getAllChecks' => [
                 [
