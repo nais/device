@@ -19,5 +19,5 @@ require 'vendor/autoload.php';
 $application = new Application('Device health checker');
 $application->add(new Command\ListChecks());
 $application->add(new Command\CheckAndUpdateDevices());
-$application->add(new Command\ValidateKolideChecksCriticality());
+$application->add(new Command\ValidateKolideChecksSeverity());
 $application->run();
