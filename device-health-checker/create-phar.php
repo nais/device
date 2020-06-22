@@ -39,20 +39,19 @@ if (file_exists($archiveName) && !unlink($archiveName)) {
 }
 
 // Files / dirs to add to the archive
-$whitelist = [
+$includeList = [
     'src',
     'vendor',
-    'checks-criticality.php',
     basename($script),
 ];
 
 $iterator = new RecursiveIteratorIterator(
     new RecursiveCallbackFilterIterator(
         new RecursiveDirectoryIterator(__DIR__, RecursiveDirectoryIterator::SKIP_DOTS),
-        function (SplFileInfo $file) use ($whitelist) : bool {
+        function (SplFileInfo $file) use ($includeList) : bool {
             $name = trim(str_replace(__DIR__, '', (string) $file), '/');
 
-            foreach ($whitelist as $fileToAddToArchive) {
+            foreach ($includeList as $fileToAddToArchive) {
                 if (0 === strpos($name, $fileToAddToArchive)) {
                     return true;
                 }
