@@ -1,7 +1,7 @@
 BEGIN;
 
 INSERT INTO device (serial, username, psk, platform, healthy, public_key, ip)
-VALUES ('serial1', 'vegar.sechmann.molvig@nav.no', 'psk1', 'windows', true,
+VALUES ('C02VX5VUHTD6', 'vegar.sechmann.molvig@nav.no', 'psk1', 'darwin', true,
         'EatjldYVvB91aep5kxDnYsQ37Ufk92IBBIcfma1fzAs=',
         '10.255.240.2');
 

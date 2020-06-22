@@ -6,6 +6,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	chi_middleware "github.com/go-chi/chi/middleware"
 	"io"
 	"io/ioutil"
 	"net/http"
@@ -55,7 +56,7 @@ var cfg = &Config{
 var enrollments ActiveEnrollments
 
 func init() {
-	logger.Setup(cfg.LogLevel, true)
+	logger.Setup(cfg.LogLevel)
 
 	flag.StringVar(&cfg.PrometheusAddr, "prometheus-address", cfg.PrometheusAddr, "prometheus listen address")
 	flag.StringVar(&cfg.BindAddress, "bind-address", cfg.BindAddress, "Bind address")
@@ -68,6 +69,11 @@ func init() {
 
 func main() {
 	enrollments.init()
+
+	parts := strings.Split(cfg.CredentialEntries[0], ":")
+	credentialEntries := map[string]string{
+		parts[0]: parts[1],
+	}
 
 	go func() {
 		log.Infof("Prometheus serving metrics at %v", cfg.PrometheusAddr)
@@ -90,7 +96,7 @@ func main() {
 		})
 
 		r.Group(func(r chi.Router) {
-			// TODO r.Use(BasicAuthValidator())
+			r.Use(chi_middleware.BasicAuth("naisdevice", credentialEntries))
 			r.Get("/deviceinfo", getDeviceInfos)
 			r.Post("/bootstrapconfig/{serial}", postBootstrapConfig)
 		})

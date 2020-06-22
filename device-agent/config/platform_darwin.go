@@ -1,5 +1,3 @@
 package config
 
-func SetPlatform(cfg *Config) {
-	cfg.Platform = "darwin"
-}
+const Platform = "darwin"

@@ -4,6 +4,9 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"github.com/dgrijalva/jwt-go"
+	"github.com/nais/device/apiserver/auth"
+	"github.com/nais/device/apiserver/config"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -71,14 +74,26 @@ func setup(t *testing.T) (*database.APIServerDB, chi.Router) {
 		t.Skip("Skipping integration test")
 	}
 
-	db, err := database.NewTestDatabase("postgresql://postgres:postgres@localhost:5433", "../database/schema/schema.sql")
+	testDBURI := "postgresql://postgres:postgres@localhost:5433"
+
+	db, err := database.NewTestDatabase(testDBURI, "../database/schema/schema.sql")
 	if err != nil {
 		t.Fatalf("Instantiating database: %v", err)
 	}
+
+	ctx := context.Background()
+	cfg := config.Config{DbConnURI: testDBURI}
+	sessions, err := auth.New(ctx, cfg, mockTokenValidator)
+	assert.NoError(t, err)
+
 	return db, api.New(api.Config{
-		DB:                          db,
-		OAuthKeyValidatorMiddleware: TokenValidatorMiddlewareMock([]string{"abc-123", "123-abc"}),
+		DB:       db,
+		Sessions: sessions,
 	})
+}
+
+func mockTokenValidator(token *jwt.Token) (interface{}, error) {
+	return nil, nil
 }
 
 func getDevices(t *testing.T, router chi.Router) (devices []database.Device) {

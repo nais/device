@@ -38,6 +38,7 @@ type Gateway struct {
 	PublicKey string   `json:"publicKey"`
 	IP        string   `json:"ip"`
 	Routes    []string `json:"routes"`
+	Name      string   `json:"name"`
 }
 
 // NewTestDatabase creates and returns a new nais device database within the provided database instance
@@ -214,11 +215,31 @@ SELECT serial, username, psk, platform, last_updated, kolide_last_seen, healthy,
 	return &device, nil
 }
 
+func (d *APIServerDB) ReadDeviceById(deviceID int) (*Device, error) {
+	ctx := context.Background()
+
+	query := `
+SELECT serial, username, psk, platform, last_updated, kolide_last_seen, healthy, public_key, ip
+  FROM device
+ WHERE id = $1;`
+
+	row := d.conn.QueryRow(ctx, query, deviceID)
+
+	var device Device
+	err := row.Scan(&device.Serial, &device.Username, &device.PSK, &device.Platform, &device.LastUpdated, &device.KolideLastSeen, &device.Healthy, &device.PublicKey, &device.IP)
+
+	if err != nil {
+		return nil, fmt.Errorf("scanning row: %s", err)
+	}
+
+	return &device, nil
+}
+
 func (d *APIServerDB) ReadGateways() ([]Gateway, error) {
 	ctx := context.Background()
 
 	query := `
-SELECT public_key, endpoint, ip, routes
+SELECT public_key, endpoint, ip, routes, name
   FROM gateway;`
 
 	rows, err := d.conn.Query(ctx, query)
@@ -230,7 +251,7 @@ SELECT public_key, endpoint, ip, routes
 	for rows.Next() {
 		var gateway Gateway
 		var routes string
-		err := rows.Scan(&gateway.PublicKey, &gateway.Endpoint, &gateway.IP, &routes)
+		err := rows.Scan(&gateway.PublicKey, &gateway.Endpoint, &gateway.IP, &routes, &gateway.Name)
 		if err != nil {
 			return nil, fmt.Errorf("scanning gateway: %w", err)
 		}

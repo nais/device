@@ -5,12 +5,14 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"os"
 	"os/exec"
 	"path"
 	"regexp"
 	"time"
 
 	"github.com/nais/device/pkg/logger"
+	"github.com/nais/device/pkg/version"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	log "github.com/sirupsen/logrus"
@@ -23,10 +25,11 @@ var (
 	lastSuccessfulConfigFetch prometheus.Gauge
 	registeredDevices         prometheus.Gauge
 	connectedDevices          prometheus.Gauge
+	currentVersion            prometheus.Counter
 )
 
 func init() {
-	logger.Setup(cfg.LogLevel, true)
+	logger.Setup(cfg.LogLevel)
 	flag.StringVar(&cfg.Name, "name", cfg.Name, "gateway name")
 	flag.StringVar(&cfg.TunnelIP, "tunnel-ip", cfg.TunnelIP, "gateway tunnel ip")
 	flag.StringVar(&cfg.PrometheusAddr, "prometheus-address", cfg.PrometheusAddr, "prometheus listen address")
@@ -42,41 +45,50 @@ func init() {
 	cfg.WireGuardConfigPath = path.Join(cfg.ConfigDir, "wg0.conf")
 	cfg.PrivateKeyPath = path.Join(cfg.ConfigDir, "private.key")
 	initMetrics(cfg.Name)
+	log.Infof("Version: %s, Revision: %s", version.Version, version.Revision)
 }
 
 func initMetrics(name string) {
+	currentVersion = prometheus.NewCounter(prometheus.CounterOpts{
+		Name:        "current_version",
+		Help:        "current running version",
+		Namespace:   "naisdevice",
+		Subsystem:   "gateway_agent",
+		ConstLabels: prometheus.Labels{"name": name, "version": version.Version},
+	})
 	failedConfigFetches = prometheus.NewCounter(prometheus.CounterOpts{
 		Name:        "failed_config_fetches",
 		Help:        "count of failed config fetches",
 		Namespace:   "naisdevice",
 		Subsystem:   "gateway_agent",
-		ConstLabels: prometheus.Labels{"name": name},
+		ConstLabels: prometheus.Labels{"name": name, "version": version.Version},
 	})
 	lastSuccessfulConfigFetch = prometheus.NewGauge(prometheus.GaugeOpts{
 		Name:        "last_successful_config_fetch",
 		Help:        "time since last successful config fetch",
 		Namespace:   "naisdevice",
 		Subsystem:   "gateway_agent",
-		ConstLabels: prometheus.Labels{"name": name},
+		ConstLabels: prometheus.Labels{"name": name, "version": version.Version},
 	})
 	registeredDevices = prometheus.NewGauge(prometheus.GaugeOpts{
 		Name:        "number_of_registered_devices",
 		Help:        "number of registered devices on a gateway",
 		Namespace:   "naisdevice",
 		Subsystem:   "gateway_agent",
-		ConstLabels: prometheus.Labels{"name": name},
+		ConstLabels: prometheus.Labels{"name": name, "version": version.Version},
 	})
 	connectedDevices = prometheus.NewGauge(prometheus.GaugeOpts{
 		Name:        "number_of_connected_devices",
 		Help:        "number of connected devices on a gateway",
 		Namespace:   "naisdevice",
 		Subsystem:   "gateway_agent",
-		ConstLabels: prometheus.Labels{"name": name},
+		ConstLabels: prometheus.Labels{"name": name, "version": version.Version},
 	})
 	prometheus.MustRegister(failedConfigFetches)
 	prometheus.MustRegister(lastSuccessfulConfigFetch)
 	prometheus.MustRegister(registeredDevices)
 	prometheus.MustRegister(connectedDevices)
+	prometheus.MustRegister(currentVersion)
 }
 
 // Gateway agent ensures desired configuration as defined by the apiserver
@@ -130,6 +142,8 @@ func main() {
 		log.Fatalf("actuating base config: %v", err)
 	}
 
+	go checkForNewRelease()
+
 	for range time.NewTicker(10 * time.Second).C {
 		log.Infof("getting config")
 		devices, err := getDevices(cfg)
@@ -161,7 +175,7 @@ func readPrivateKey(privateKeyPath string) (string, error) {
 }
 
 func getDevices(config Config) ([]Device, error) {
-	gatewayConfigURL := fmt.Sprintf("%s/gateways/%s/devices", config.APIServerURL, config.Name)
+	gatewayConfigURL := fmt.Sprintf("%s/gatewayconfig", config.APIServerURL)
 	req, err := http.NewRequest(http.MethodGet, gatewayConfigURL, nil)
 	if err != nil {
 		return nil, fmt.Errorf("creating http request: %w", err)
@@ -313,4 +327,29 @@ func actuateWireGuardConfig(wireGuardConfig, wireGuardConfigPath string, devMode
 	log.Debugf("Actuated WireGuard config: %v", wireGuardConfigPath)
 
 	return nil
+}
+func checkForNewRelease() {
+	type response struct {
+		Tag string `json:"tag_name"`
+	}
+	for range time.NewTicker(120 * time.Second).C {
+		log.Info("Checking release version on github")
+		resp, err := http.Get("https://api.github.com/repos/nais/device/releases/latest")
+		if err != nil {
+			log.Errorf("Unable to retrieve current release version %s", err)
+			continue
+		}
+		body, err := ioutil.ReadAll(resp.Body)
+		resp.Body.Close()
+		res := response{}
+		err = json.Unmarshal(body, &res)
+		if err != nil {
+			log.Errorf("unable to unmarshall response: %s", err)
+			continue
+		}
+		if version.Version != res.Tag {
+			log.Info("New version available. So long and thanks for all the fish.")
+			os.Exit(0)
+		}
+	}
 }

@@ -11,7 +11,7 @@ on:
       - '.github/workflows/master.yml'
 jobs:
   test:
-    name: build
+    name: test
     runs-on: ubuntu-latest
     services:
       postgres:
@@ -30,6 +30,8 @@ jobs:
     - uses: actions/checkout@v2
     - name: run tests
       run: |
+        sudo apt update
+        sudo apt install --yes build-essential libgtk-3-dev libappindicator3-dev
         make run-integration-test
 
   test-device-health-checker:
@@ -65,29 +67,68 @@ jobs:
       - name: Run tests
         run: composer run ci
 
-  build-and-release:
+  build-macos-pkg:
+    name: Build macos client
     if: ${{ github.ref == 'refs/heads/master' }}
     needs:
       - test
       - test-device-health-checker
+    runs-on: macos-latest
+    steps:
+    - uses: actions/checkout@v2
+    - name: set version
+      id: set_version
+      run: |
+        echo ::set-output name=version::$(date "+%Y-%m-%d")-$(git --no-pager log -1 --pretty=%h)
+    - name: make wireguard-tools
+      run: |
+        curl -OL https://git.zx2c4.com/wireguard-tools/snapshot/wireguard-tools-1.0.20200513.tar.xz
+        tar xf wireguard-tools-*.tar.xz
+        cd wireguard-tools-*/src
+        make
+        mkdir -p ../../bin/macos
+        mv wg ../../bin/macos/
+    - name: make wireguard-go
+      run: |
+        curl -OL https://git.zx2c4.com/wireguard-go/snapshot/wireguard-go-0.0.20200320.tar.xz
+        tar xf wireguard-go-*.tar.xz
+        cd wireguard-go-*
+        make
+        mkdir -p ../bin/macos
+        mv wireguard-go ../bin/macos/
+    - name: build pkg
+      run: |
+        make pkg VERSION=${{ steps.set_version.outputs.version }}
+    - name: upload pkg
+      uses: actions/upload-artifact@v2.0.1
+      with:
+        name: pkg
+        path: naisdevice-${{ steps.set_version.outputs.version }}.pkg
+
+  build-and-release:
     name: Build and release
+    if: ${{ github.ref == 'refs/heads/master' }}
+    needs:
+      - test
+      - test-device-health-checker
+      - build-macos-pkg
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
+      - name: set version
+        id: set_version
+        run: |
+          echo ::set-output name=version::$(date "+%Y-%m-%d")-$(git --no-pager log -1 --pretty=%h)
       - name: Prepare device-health-checker scripts for packaging
         working-directory: ./device-health-checker
         run: |
           composer install --prefer-dist --no-progress --no-suggest --no-ansi --no-dev -o
       - name: build linux
         run: |
-          make linux
+          make linux VERSION=${{ steps.set_version.outputs.version }}
       - name: build windows-client
         run: |
-          make windows-client
-      - name: set version
-        id: set_version
-        run: |
-          echo ::set-output name=version::$(date "+%Y-%m-%d")-$(git --no-pager log -1 --pretty=%h)
+          make windows-client  VERSION=${{ steps.set_version.outputs.version }}
       - name: create release
         id: create_release
         uses: actions/create-release@v1.0.1
@@ -160,4 +201,18 @@ jobs:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
           asset_path: ./bin/windows/device-agent-helper.exe
           asset_name: device-agent-helper.exe
+          asset_content_type: application/octet-stream
+
+      - name: download pkg
+        uses: actions/download-artifact@v2.0
+        with:
+          name: pkg
+      - name: upload macos pkg to release
+        uses: actions/upload-release-asset@v1.0.2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./naisdevice-${{ steps.set_version.outputs.version }}.pkg
+          asset_name: naisdevice-${{ steps.set_version.outputs.version }}.pkg
           asset_content_type: application/octet-stream

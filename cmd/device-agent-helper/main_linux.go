@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os/exec"
+	"strings"
 
 	log "github.com/sirupsen/logrus"
-	flag "github.com/spf13/pflag"
 )
 
 func prerequisites() error {
@@ -18,8 +18,6 @@ func prerequisites() error {
 }
 
 func platformFlags(cfg *Config) {
-	flag.StringVar(&cfg.DeviceIP, "tunnel-ip", "", "device tunnel ip")
-	flag.StringVar(&cfg.WireGuardGoBinary, "wireguard-go-binary", "", "path to WireGuard-go binary")
 }
 
 func syncConf(cfg Config, ctx context.Context) error {
@@ -47,10 +45,17 @@ func syncConf(cfg Config, ctx context.Context) error {
 
 func setupRoutes(ctx context.Context, cidrs []string, interfaceName string) error {
 	for _, cidr := range cidrs {
-		cmd := exec.CommandContext(ctx, "route", "-q", "-n", "add", "-inet", cidr, "-interface", interfaceName)
+		cmd := exec.CommandContext(ctx, "ip", "-4", "route", "add", cidr, "dev", interfaceName)
 		output, err := cmd.CombinedOutput()
 		if err != nil {
-			log.Errorf("%v: %v", cmd, string(output))
+			if exitErr, ok := err.(*exec.ExitError); ok {
+				log.Debugf("Command: %v, exit code: %v, output: %v", cmd, exitErr.ExitCode(), string(output))
+				if exitErr.ExitCode() == 2 && strings.Contains(string(output), "File exists") {
+					log.Debug("Assuming route already exists")
+					continue
+				}
+			}
+
 			return fmt.Errorf("executing %v: %w", cmd, err)
 		}
 		log.Debugf("%v: %v", cmd, string(output))
@@ -59,18 +64,22 @@ func setupRoutes(ctx context.Context, cidrs []string, interfaceName string) erro
 }
 
 func setupInterface(ctx context.Context, cfg Config) error {
-	ip := cfg.DeviceIP
+	if err := exec.Command("ip", "link", "del", "wg0").Run(); err != nil {
+		log.Infof("pre-deleting WireGuard interface (ok if this fails): %v", err)
+	}
+
 	commands := [][]string{
-		{cfg.WireGuardGoBinary, cfg.Interface},
-		{"ifconfig", cfg.Interface, "inet", ip + "/21", ip, "add"},
-		{"ifconfig", cfg.Interface, "mtu", "1360"},
-		{"ifconfig", cfg.Interface, "up"},
-		{"route", "-q", "-n", "add", "-inet", ip + "/21", "-interface", cfg.Interface},
+		{"ip", "link", "add", "dev", "wg0", "type", "wireguard"},
+		{"ip", "link", "set", "mtu", "1360", "up", "dev", "wg0"},
+		{"ip", "address", "add", "dev", "wg0", cfg.BootstrapConfig.DeviceIP + "/21"},
 	}
 
 	return runCommands(ctx, commands)
 }
 
 func teardownInterface(ctx context.Context, cfg Config) {
-	return
+	cmd := exec.CommandContext(ctx, "ip", "link", "del", "wg0")
+	if err := cmd.Run(); err != nil {
+		log.Errorf("Tearing down interface: %v", err)
+	}
 }

@@ -33,7 +33,7 @@ var (
 )
 
 func init() {
-	logger.Setup(cfg.LogLevel, true)
+	logger.Setup(cfg.LogLevel)
 	flag.StringVar(&cfg.TunnelIP, "tunnel-ip", cfg.TunnelIP, "prometheus tunnel ip")
 	flag.StringVar(&cfg.PrometheusAddr, "prometheus-address", cfg.PrometheusAddr, "prometheus listen address")
 	flag.StringVar(&cfg.APIServerURL, "api-server-url", cfg.APIServerURL, "api server URL")

@@ -13,7 +13,6 @@ type Config struct {
 	APIServer           string
 	Interface           string
 	ConfigDir           string
-	BinaryDir           string
 	BootstrapToken      string
 	WireGuardBinary     string
 	WireGuardGoBinary   string
@@ -21,17 +20,29 @@ type Config struct {
 	WireGuardConfigPath string
 	BootstrapConfigPath string
 	LogLevel            string
+	LogFilePath         string
 	OAuth2Config        oauth2.Config
 	Platform            string
 	BootstrapAPI        string
 }
 
 func (c *Config) SetDefaults() {
-	SetPlatform(c)
-	c.PrivateKeyPath = filepath.Join(c.ConfigDir, "private.key")
-	c.WireGuardConfigPath = filepath.Join(c.ConfigDir, "wg0.conf")
-	c.BootstrapConfigPath = filepath.Join(c.ConfigDir, "bootstrapconfig.json")
+	c.Platform = Platform
 	c.SetPlatformDefaults()
+	c.PrivateKeyPath = filepath.Join(c.ConfigDir, "private.key")
+	c.WireGuardConfigPath = filepath.Join(c.ConfigDir, c.Interface+".conf")
+	c.BootstrapConfigPath = filepath.Join(c.ConfigDir, "bootstrapconfig.json")
+	switch c.Platform {
+	case "darwin":
+		home, err := os.UserHomeDir()
+		if err != nil {
+			log.Errorf("opening the user's home directory: %v", err)
+		}
+		c.LogFilePath = filepath.Join(home, "Library", "Logs", "device-agent.log")
+	default:
+		c.LogFilePath = "device-agent.log"
+	}
+
 }
 
 func DefaultConfig() Config {
@@ -43,9 +54,7 @@ func DefaultConfig() Config {
 	return Config{
 		APIServer:    "http://10.255.240.1",
 		BootstrapAPI: "https://bootstrap.device.nais.io",
-		Interface:    "utun69",
 		ConfigDir:    filepath.Join(userConfigDir, "naisdevice"),
-		BinaryDir:    "/usr/local/bin",
 		LogLevel:     "info",
 		OAuth2Config: oauth2.Config{
 			ClientID:    "8086d321-c6d3-4398-87da-0d54e3d93967",

@@ -3,6 +3,8 @@ package config
 import (
 	"fmt"
 	"strings"
+
+	"github.com/dgrijalva/jwt-go"
 )
 
 type Config struct {
@@ -21,11 +23,13 @@ type Config struct {
 	CredentialEntries       []string
 	BootstrapApiURL         string
 	LogLevel                string
+	TokenValidator          jwt.Keyfunc
 }
 
 type Azure struct {
 	ClientID     string
 	DiscoveryURL string
+	ClientSecret string
 }
 
 func (c *Config) Credentials() (map[string]string, error) {
@@ -45,8 +49,7 @@ func (c *Config) Credentials() (map[string]string, error) {
 func DefaultConfig() Config {
 	return Config{
 		BindAddress:    "10.255.240.1:80",
-		ConfigDir:      "/usr/local/etc/nais-device/",
+		ConfigDir:      "/usr/local/etc/naisdevice/",
 		PrometheusAddr: ":3000",
-		LogLevel: "info",
 	}
 }

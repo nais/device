@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os/exec"
+	"strings"
 
 	log "github.com/sirupsen/logrus"
-	flag "github.com/spf13/pflag"
 )
 
 func prerequisites() error {
@@ -18,8 +18,6 @@ func prerequisites() error {
 }
 
 func platformFlags(cfg *Config) {
-	flag.StringVar(&cfg.DeviceIP, "device-ip", "", "device tunnel ip")
-	flag.StringVar(&cfg.WireGuardGoBinary, "wireguard-go-binary", "", "path to WireGuard-go binary")
 }
 
 func syncConf(cfg Config, ctx context.Context) error {
@@ -47,6 +45,11 @@ func syncConf(cfg Config, ctx context.Context) error {
 
 func setupRoutes(ctx context.Context, cidrs []string, interfaceName string) error {
 	for _, cidr := range cidrs {
+		if strings.HasPrefix(cidr, TunnelNetworkPrefix) {
+			// Don't add routes for the tunnel network, as the whole /21 net is already routed to utun
+			continue
+		}
+
 		cmd := exec.CommandContext(ctx, "route", "-q", "-n", "add", "-inet", cidr, "-interface", interfaceName)
 		output, err := cmd.CombinedOutput()
 		if err != nil {
@@ -59,7 +62,11 @@ func setupRoutes(ctx context.Context, cidrs []string, interfaceName string) erro
 }
 
 func setupInterface(ctx context.Context, cfg Config) error {
-	ip := cfg.DeviceIP
+	if interfaceExists(ctx, cfg) {
+		return nil
+	}
+
+	ip := cfg.BootstrapConfig.DeviceIP
 	commands := [][]string{
 		{cfg.WireGuardGoBinary, cfg.Interface},
 		{"ifconfig", cfg.Interface, "inet", ip + "/21", ip, "add"},
@@ -72,5 +79,22 @@ func setupInterface(ctx context.Context, cfg Config) error {
 }
 
 func teardownInterface(ctx context.Context, cfg Config) {
+	if !interfaceExists(ctx, cfg) {
+		return
+	}
+
+	cmd := exec.CommandContext(ctx, "pkill", "-f", fmt.Sprintf("%s %s", cfg.WireGuardGoBinary, cfg.Interface))
+	out, err := cmd.CombinedOutput()
+
+	if err != nil {
+		log.Infof("tearing down interface failed: %v: %v", cmd, err)
+		log.Infof("teardown output: %v", string(out))
+	}
+
 	return
+}
+
+func interfaceExists(ctx context.Context, cfg Config) bool {
+	cmd := exec.CommandContext(ctx, "pgrep", "-f", fmt.Sprintf("%s %s", cfg.WireGuardGoBinary, cfg.Interface))
+	return cmd.Run() == nil
 }

@@ -3,6 +3,7 @@ package api
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/nais/device/apiserver/auth"
 	"net/http"
 
 	"github.com/nais/device/apiserver/database"
@@ -17,7 +18,7 @@ type api struct {
 // TODO(jhrv): keep cache of gateway access group members to remove AAD runtime dependency
 // gatewayConfig returns the devices for the gateway that has the group membership required
 func (a *api) gatewayConfig(w http.ResponseWriter, r *http.Request) {
-	//gateway := chi.URLParam(r, "gateway")
+	//gateway, _ , ok := r.BasicAuth()
 
 	devices, err := a.db.ReadDevices()
 
@@ -102,7 +103,20 @@ func (a *api) gateways(w http.ResponseWriter, r *http.Request) {
 }
 
 func (a *api) deviceConfig(w http.ResponseWriter, r *http.Request) {
-	//serial := chi.URLParam(r, "serial")
+	sessionInfo := r.Context().Value("sessionInfo").(auth.SessionInfo)
+
+	device, err := a.db.ReadDeviceById(sessionInfo.DeviceID)
+	if err != nil {
+		log.Errorf("reading device from db: %v", err)
+		respondf(w, http.StatusInternalServerError, "error reading device from db")
+		return
+	}
+
+	if !*device.Healthy {
+		respondf(w, http.StatusForbidden, "device not healthy, on slack: /msg @Kolide status")
+		return
+	}
+
 	gateways, err := a.db.ReadGateways()
 	if err != nil {
 		log.Errorf("reading gateways: %v", err)

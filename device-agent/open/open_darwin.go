@@ -1,8 +1,8 @@
-package azure
+package open
 
 import "os/exec"
 
-func openDefaultBrowser(url string) error {
+func Open(url string) error {
 	command := exec.Command("open", url)
 	return command.Start()
 }

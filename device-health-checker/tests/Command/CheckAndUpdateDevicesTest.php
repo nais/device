@@ -123,7 +123,6 @@ class CheckAndUpdateDevicesTest extends TestCase {
                         'platform'               => 'ubuntu',
                         'assigned_owner'         => ['email' => 'user1@nav.no'],
                         'failure_count'          => 0,
-                        'resolved_failure_count' => 0,
                         'last_seen_at'           => $this->getTimestamp(1589956055),
                     ],
                     [
@@ -132,7 +131,6 @@ class CheckAndUpdateDevicesTest extends TestCase {
                         'platform'               => 'rhel',
                         'assigned_owner'         => ['email' => 'user2@nav.no'],
                         'failure_count'          => 0,
-                        'resolved_failure_count' => 0,
                         'last_seen_at'           => $this->getTimestamp(1589956055),
                     ],
                 ],
@@ -327,7 +325,6 @@ class CheckAndUpdateDevicesTest extends TestCase {
                     'platform'               => 'darwin',
                     'assigned_owner'         => ['email' => 'user1@nav.no'],
                     'failure_count'          => 0,
-                    'resolved_failure_count' => 0,
                     'last_seen_at'           => $this->getTimestamp(1589956403),
                 ],
                 [
@@ -336,7 +333,6 @@ class CheckAndUpdateDevicesTest extends TestCase {
                     'platform'               => 'rhel',
                     'assigned_owner'         => ['email' => 'user3@nav.no'],
                     'failure_count'          => 0,
-                    'resolved_failure_count' => 0,
                     'last_seen_at'           => $this->getTimestamp(1589956403),
                 ],
                 [
@@ -345,7 +341,6 @@ class CheckAndUpdateDevicesTest extends TestCase {
                     'platform'               => 'rhel',
                     'assigned_owner'         => ['email' => 'user4@nav.no'],
                     'failure_count'          => 1,
-                    'resolved_failure_count' => 0,
                     'last_seen_at'           => $this->getTimestamp(1589956403),
                 ],
                 [
@@ -354,7 +349,6 @@ class CheckAndUpdateDevicesTest extends TestCase {
                     'platform'               => 'rhel',
                     'assigned_owner'         => ['email' => 'user5@nav.no'],
                     'failure_count'          => 1,
-                    'resolved_failure_count' => 0,
                     'last_seen_at'           => $this->getTimestamp(1589956403),
                 ],
             ],

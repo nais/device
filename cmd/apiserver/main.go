@@ -4,9 +4,6 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"github.com/nais/device/apiserver/bootstrapper"
-	"github.com/nais/device/pkg/logger"
-
 	"io/ioutil"
 	"net/http"
 	"os"
@@ -16,9 +13,11 @@ import (
 	"time"
 
 	"github.com/dgrijalva/jwt-go"
+	"github.com/nais/device/apiserver/auth"
 	"github.com/nais/device/apiserver/azure/discovery"
 	"github.com/nais/device/apiserver/azure/validate"
-	"github.com/nais/device/apiserver/middleware"
+	"github.com/nais/device/apiserver/bootstrapper"
+	"github.com/nais/device/pkg/logger"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 
 	"github.com/nais/device/apiserver/api"
@@ -33,25 +32,27 @@ var (
 )
 
 func init() {
-	logger.Setup(cfg.LogLevel, true)
 	flag.StringVar(&cfg.DbConnURI, "db-connection-uri", os.Getenv("DB_CONNECTION_URI"), "database connection URI (DSN)")
 	flag.StringVar(&cfg.BootstrapApiURL, "bootstrap-api-url", "", "bootstrap API URL")
 	flag.StringVar(&cfg.BootstrapApiCredentials, "bootstrap-api-credentials", os.Getenv("BOOTSTRAP_API_CREDENTIALS"), "bootstrap API credentials")
 	flag.StringVar(&cfg.PrometheusAddr, "prometheus-address", cfg.PrometheusAddr, "prometheus listen address")
 	flag.StringVar(&cfg.PrometheusPublicKey, "prometheus-public-key", cfg.PrometheusPublicKey, "prometheus public key")
 	flag.StringVar(&cfg.PrometheusTunnelIP, "prometheus-tunnel-ip", cfg.PrometheusTunnelIP, "prometheus tunnel ip")
+	flag.StringVar(&cfg.LogLevel, "log-level", "info", "which log level to output")
 	flag.StringVar(&cfg.BindAddress, "bind-address", cfg.BindAddress, "Bind address")
 	flag.StringVar(&cfg.ConfigDir, "config-dir", cfg.ConfigDir, "Path to configuration directory")
 	flag.StringVar(&cfg.Endpoint, "endpoint", cfg.Endpoint, "public endpoint (ip:port)")
 	flag.BoolVar(&cfg.DevMode, "development-mode", cfg.DevMode, "Development mode avoids setting up wireguard and fetching and validating AAD certificates")
 	flag.StringVar(&cfg.Azure.DiscoveryURL, "azure-discovery-url", "", "Azure discovery url")
 	flag.StringVar(&cfg.Azure.ClientID, "azure-client-id", "", "Azure app client id")
+	flag.StringVar(&cfg.Azure.ClientSecret, "azure-client-secret", "", "Azure app client secret")
 	flag.StringSliceVar(&cfg.CredentialEntries, "credential-entries", nil, "Comma-separated credentials on format: '<user>:<key>'")
 
 	flag.Parse()
 
 	cfg.PrivateKeyPath = filepath.Join(cfg.ConfigDir, "private.key")
 	cfg.WireGuardConfigPath = filepath.Join(cfg.ConfigDir, "wg0.conf")
+	logger.Setup(cfg.LogLevel)
 }
 
 func main() {
@@ -72,6 +73,16 @@ func main() {
 		log.Fatalf("Instantiating database: %s", err)
 	}
 
+	tokenValidator, err := createJWTValidator(cfg)
+	if err != nil {
+		log.Fatalf("creating JWT validator: %v", err)
+	}
+
+	sessions, err := auth.New(ctx, cfg, tokenValidator)
+	if err != nil {
+		log.Fatalf("Instantiating sessions: %s", err)
+	}
+
 	privateKey, err := ioutil.ReadFile(cfg.PrivateKeyPath)
 	if err != nil {
 		log.Fatalf("Reading private key: %v", err)
@@ -89,7 +100,8 @@ func main() {
 	go syncWireguardConfig(cfg.DbConnURI, string(privateKey), cfg)
 
 	apiConfig := api.Config{
-		DB: db,
+		DB:       db,
+		Sessions: sessions,
 	}
 
 	apiConfig.APIKeys, err = cfg.Credentials()
@@ -101,38 +113,12 @@ func main() {
 		if apiConfig.APIKeys == nil {
 			log.Fatalf("No credentials provided for basic auth")
 		}
-
-		jwtValidator, err := createJWTValidator(cfg)
-		if err != nil {
-			log.Fatalf("Creating JWT validator: %v", err)
-		}
-
-		apiConfig.OAuthKeyValidatorMiddleware = middleware.TokenValidatorMiddleware(jwtValidator)
 	}
 
 	router := api.New(apiConfig)
 
 	fmt.Println("running @", cfg.BindAddress)
 	fmt.Println(http.ListenAndServe(cfg.BindAddress, router))
-}
-
-func createJWTValidator(conf config.Config) (jwt.Keyfunc, error) {
-	if conf.DevMode {
-		return func(token *jwt.Token) (interface{}, error) {
-			return nil, nil
-		}, nil
-	}
-
-	if len(conf.Azure.ClientID) == 0 || len(conf.Azure.DiscoveryURL) == 0 {
-		return nil, fmt.Errorf("missing required azure configuration")
-	}
-
-	certificates, err := discovery.FetchCertificates(cfg.Azure)
-	if err != nil {
-		return nil, fmt.Errorf("retrieving azure ad certificates for token validation: %v", err)
-	}
-
-	return validate.JWTValidator(certificates, cfg.Azure.ClientID), nil
 }
 
 func generatePublicKey(privateKey []byte, wireGuardPath string) ([]byte, error) {
@@ -194,6 +180,7 @@ func syncWireguardConfig(dbConnURI, privateKey string, conf config.Config) {
 
 	log.Info("Starting config sync")
 	for c := time.Tick(10 * time.Second); ; <-c {
+		log.Debug("Synchronizing configuration")
 		devices, err := db.ReadDevices()
 		if err != nil {
 			log.Errorf("Reading devices from database: %v", err)
@@ -208,9 +195,14 @@ func syncWireguardConfig(dbConnURI, privateKey string, conf config.Config) {
 
 		if err := ioutil.WriteFile(conf.WireGuardConfigPath, wgConfigContent, 0600); err != nil {
 			log.Errorf("Writing WireGuard config to disk: %v", err)
+		} else {
+			log.Debugf("Successfully wrote WireGuard config to: %v", conf.WireGuardConfigPath)
 		}
 
-		if b, err := exec.Command("wg", "syncconf", "wg0", conf.WireGuardConfigPath).CombinedOutput(); err != nil {
+		syncConf := exec.Command("wg", "syncconf", "wg0", conf.WireGuardConfigPath)
+		if cfg.DevMode {
+			log.Infof("DevMode: skip running %v", syncConf)
+		} else if b, err := syncConf.CombinedOutput(); err != nil {
 			log.Errorf("Synchronizing WireGuard config: %v: %v", err, string(b))
 		}
 	}
@@ -240,4 +232,23 @@ PublicKey = %s
 	}
 
 	return []byte(wgConfig)
+}
+
+func createJWTValidator(conf config.Config) (jwt.Keyfunc, error) {
+	if conf.DevMode {
+		return func(token *jwt.Token) (interface{}, error) {
+			return []byte("never_used"), nil
+		}, nil
+	}
+
+	if len(conf.Azure.ClientID) == 0 || len(conf.Azure.DiscoveryURL) == 0 {
+		return nil, fmt.Errorf("missing required azure configuration")
+	}
+
+	certificates, err := discovery.FetchCertificates(conf.Azure)
+	if err != nil {
+		return nil, fmt.Errorf("retrieving azure ad certificates for token validation: %v", err)
+	}
+
+	return validate.JWTValidator(certificates, conf.Azure.ClientID), nil
 }

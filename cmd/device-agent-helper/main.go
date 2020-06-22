@@ -2,16 +2,22 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
+	"github.com/nais/device/pkg/bootstrap"
+	"io/ioutil"
 	"os"
 	"os/exec"
 	"os/signal"
+	"path"
+	"path/filepath"
 	"regexp"
 	"strings"
 	"syscall"
 	"time"
 
 	"github.com/nais/device/pkg/logger"
+	"github.com/rjeczalik/notify"
 	log "github.com/sirupsen/logrus"
 	flag "github.com/spf13/pflag"
 )
@@ -20,26 +26,35 @@ var (
 	cfg = Config{}
 )
 
+const (
+	TunnelNetworkPrefix = "10.255.24"
+)
+
 type Config struct {
 	Interface           string
-	BinaryDir           string
 	WireGuardBinary     string
 	WireGuardGoBinary   string
 	WireGuardConfigPath string
+	ConfigPath          string
 	LogLevel            string
-	DeviceIP            string
+	BootstrapConfig     *bootstrap.Config
+	BootstrapConfigPath string
 }
 
 func init() {
-	flag.StringVar(&cfg.Interface, "interface", "", "name of tunnel interface")
 	flag.StringVar(&cfg.LogLevel, "log-level", "info", "which log level to output")
-	flag.StringVar(&cfg.WireGuardConfigPath, "wireguard-config-path", "", "path to the WireGuard-config the helper will actuate")
-	flag.StringVar(&cfg.WireGuardBinary, "wireguard-binary", cfg.WireGuardBinary, "path to WireGuard binary")
+	flag.StringVar(&cfg.ConfigPath, "config-dir", "", "path to naisdevice config dir")
+	flag.StringVar(&cfg.Interface, "interface", "utun69", "interface name")
 	platformFlags(&cfg)
 
 	flag.Parse()
 
-	logger.Setup(cfg.LogLevel, true)
+	cfg.WireGuardGoBinary = filepath.Join("/", "Applications", "naisdevice.app", "Contents", "MacOS", "wireguard-go")
+	cfg.WireGuardBinary = filepath.Join("/", "Applications", "naisdevice.app", "Contents", "MacOS", "wg")
+	cfg.WireGuardConfigPath = filepath.Join(cfg.ConfigPath, cfg.Interface+".conf")
+	cfg.BootstrapConfigPath = filepath.Join(cfg.ConfigPath, "bootstrapconfig.json")
+
+	logger.Setup(cfg.LogLevel)
 }
 
 // device-agent-helper is responsible for:
@@ -50,6 +65,12 @@ func init() {
 func main() {
 	log.Infof("Starting device-agent-helper with config:\n%+v", cfg)
 
+	var err error
+	cfg.BootstrapConfig, err = parseBootstrapConfig(cfg)
+	if err != nil {
+		log.Fatal("parsing bootstrap config", err)
+	}
+
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
@@ -57,37 +78,75 @@ func main() {
 		log.Fatalf("Checking prerequisites: %v", err)
 	}
 
-	if err := setupInterface(ctx, cfg); err != nil {
-		log.Fatalf("Setting up interface: %v", err)
-	}
 	defer teardownInterface(ctx, cfg)
 
 	interrupt := make(chan os.Signal, 1)
 	signal.Notify(interrupt, os.Interrupt, syscall.SIGTERM)
 
-	lastSync := time.Time{}
+	configdir := path.Dir(cfg.WireGuardConfigPath)
+	notifyEvents := make(chan notify.EventInfo, 100)
+	err = notify.Watch(configdir, notifyEvents, notify.Remove, notify.Write)
+	if err != nil {
+		log.Fatalf("Monitoring WireGuard configuration file: %v", err)
+	}
+
+	ensureUp := func() {
+		log.Info("WireGuard configuration updated")
+		if err := setupInterface(ctx, cfg); err != nil {
+			log.Errorf("Setting up interface: %v", err)
+			return
+		}
+		err = syncConf(cfg, ctx)
+		if err != nil {
+			log.Errorf("Syncing WireGuard config: %v", err)
+		}
+	}
+
+	ensureDown := func() {
+		log.Info("WireGuard configuration deleted; tearing down interface")
+		teardownInterface(ctx, cfg)
+	}
+
+	if RegularFileExists(cfg.WireGuardConfigPath) == nil {
+		ensureUp()
+	} else {
+		ensureDown()
+	}
+
 	for {
 		select {
 		case <-interrupt:
 			log.Info("Received interrupt, shutting down gracefully.")
 			return
 
-		case <-time.After(5 * time.Second):
-			info, err := os.Stat(cfg.WireGuardConfigPath)
-			if err != nil {
-				log.Errorf("checking WireGuard config stats: %v", err)
+		case ev := <-notifyEvents:
+			log.Infof("%#v", ev)
+			if ev.Path() != cfg.WireGuardConfigPath {
+				continue
 			}
-
-			if info.ModTime().After(lastSync) {
-				err = syncConf(cfg, ctx)
-				if err != nil {
-					log.Errorf("Syncing WireGuard config: %v", err)
-				} else {
-					lastSync = info.ModTime()
-				}
+			switch ev.Event() {
+			case notify.Remove:
+				ensureDown()
+			case notify.Write:
+				ensureUp()
 			}
 		}
 	}
+}
+
+func parseBootstrapConfig(cfg Config) (*bootstrap.Config, error) {
+	b, err := ioutil.ReadFile(cfg.BootstrapConfigPath)
+	if err != nil {
+		return nil, fmt.Errorf("reading bootstrapconfig.json: %w", err)
+	}
+
+	var bootstrapConfig bootstrap.Config
+	err = json.Unmarshal(b, &bootstrapConfig)
+	if err != nil {
+		return nil, fmt.Errorf("unmarshalling bootstrapconfig.json: %w", err)
+	}
+
+	return &bootstrapConfig, nil
 }
 
 func ParseConfig(wireGuardConfig string) ([]string, error) {
@@ -105,7 +164,7 @@ func ParseConfig(wireGuardConfig string) ([]string, error) {
 
 func filesExist(files ...string) error {
 	for _, file := range files {
-		if err := FileMustExist(file); err != nil {
+		if err := RegularFileExists(file); err != nil {
 			return err
 		}
 	}
@@ -113,7 +172,7 @@ func filesExist(files ...string) error {
 	return nil
 }
 
-func FileMustExist(filepath string) error {
+func RegularFileExists(filepath string) error {
 	info, err := os.Stat(filepath)
 	if err != nil {
 		return err
@@ -134,6 +193,8 @@ func runCommands(ctx context.Context, commands [][]string) error {
 		} else {
 			log.Debugf("cmd: %v: %v\n", cmd, string(out))
 		}
+
+		time.Sleep(100 * time.Millisecond) // avoid serializable race conditions with kernel
 	}
 	return nil
 }
