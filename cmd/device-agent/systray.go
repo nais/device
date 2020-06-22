@@ -106,6 +106,20 @@ func handleGuiEvent(guiEvent GuiEvent, state ProgramState, stateChange chan Prog
 		} else {
 			stateChange <- StateDisconnecting
 		}
+	case HelperLogClicked:
+		err := open.Open("/Library/Logs/device-agent-helper-err.log")
+		if err != nil {
+			log.Warn("opening device agent helper log: %w", err)
+		}
+	case DeviceLogClicked:
+		homedir, err := os.UserHomeDir()
+		if err != nil {
+			log.Warn("finding user's home directory", err)
+		}
+		err = open.Open(filepath.Join(homedir, "Library", "Logs", "device-agent.log"))
+		if err != nil {
+			log.Warn("opening device agent log: %w", err)
+		}
 
 	case QuitClicked:
 		stateChange <- StateQuitting

@@ -22,6 +22,9 @@ type Gui struct {
 		Quit         *systray.MenuItem
 		State        *systray.MenuItem
 		StateInfo    *systray.MenuItem
+		Logs         *systray.MenuItem
+		DeviceLog    *systray.MenuItem
+		HelperLog    *systray.MenuItem
 		Version      *systray.MenuItem
 		GatewayItems []*systray.MenuItem
 	}
@@ -32,6 +35,8 @@ const (
 	StateInfoClicked
 	ConnectClicked
 	QuitClicked
+	DeviceLogClicked
+	HelperLogClicked
 
 	maxGateways         = 20
 	slackURL            = "slack://channel?team=T5LNAMWNA&id=D011T20LDHD"
@@ -49,6 +54,9 @@ func NewGUI() *Gui {
 	gui.MenuItems.StateInfo = systray.AddMenuItem("", "StateExtra")
 	gui.MenuItems.StateInfo.Hide()
 	gui.MenuItems.State.Disable()
+	gui.MenuItems.Logs = systray.AddMenuItem("Logs", "")
+	gui.MenuItems.DeviceLog = gui.MenuItems.Logs.AddSubMenuItem("Device Agent", "")
+	gui.MenuItems.HelperLog = gui.MenuItems.Logs.AddSubMenuItem("Device Agent helper", "")
 	systray.AddSeparator()
 	gui.MenuItems.Connect = systray.AddMenuItem("Connect", "Bootstrap the nais device")
 	systray.AddSeparator()
@@ -92,6 +100,10 @@ func (gui *Gui) EventLoop() {
 			gui.Events <- QuitClicked
 		case <-gui.Interrupts:
 			gui.Events <- QuitClicked
+		case <-gui.MenuItems.DeviceLog.ClickedCh:
+			gui.Events <- DeviceLogClicked
+		case <-gui.MenuItems.HelperLog.ClickedCh:
+			gui.Events <- HelperLogClicked
 		}
 	}
 }
