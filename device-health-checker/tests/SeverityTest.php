@@ -4,9 +4,9 @@ namespace Nais\Device;
 use PHPUnit\Framework\TestCase;
 
 /**
- * @coversDefaultClass Nais\Device\Criticality
+ * @coversDefaultClass Nais\Device\Severity
  */
-class CriticalityTest extends TestCase {
+class SeverityTest extends TestCase {
     public function getTags() : array {
         return [
             'valid tag' => [
@@ -29,14 +29,14 @@ class CriticalityTest extends TestCase {
      * @covers ::isSeverityTag
      */
     public function testCheckSeverityTagsTags(string $tag, bool $isValid) : void {
-        $this->assertSame($isValid, Criticality::isSeverityTag($tag), 'Unable to get tag validity');
+        $this->assertSame($isValid, Severity::isSeverityTag($tag), 'Unable to get tag validity');
     }
 
     public function getTagsForGraceTime() : array {
         return [
             'no tags' => [
                 'tags' => [],
-                'expectedTime' => Criticality::WARNING,
+                'expectedTime' => Severity::WARNING,
             ],
             'multiple tags' => [
                 'tags' => [
@@ -44,7 +44,7 @@ class CriticalityTest extends TestCase {
                     'LINUX',
                     'WINDOWS'
                 ],
-                'expectedTime' => Criticality::CRITICAL,
+                'expectedTime' => Severity::CRITICAL,
             ],
             'multiple tags including INFO' => [
                 'tags' => [
@@ -52,7 +52,7 @@ class CriticalityTest extends TestCase {
                     'LINUX',
                     'INFO'
                 ],
-                'expectedTime' => Criticality::INFO,
+                'expectedTime' => Severity::INFO,
             ],
         ];
     }
@@ -62,6 +62,6 @@ class CriticalityTest extends TestCase {
      * @covers ::getGraceTime
      */
     public function testCanGetTagGraceTime(array $tags, int $expectedTime) : void {
-        $this->assertSame($expectedTime, Criticality::getGraceTime($tags));
+        $this->assertSame($expectedTime, Severity::getGraceTime($tags));
     }
 }

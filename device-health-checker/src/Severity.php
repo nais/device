@@ -1,7 +1,7 @@
 <?php declare(strict_types=1);
 namespace Nais\Device;
 
-class Criticality {
+class Severity {
     const INFO     = -1;     // Used for checks we want to ignore
     const NOTICE   = 604800; // 7 days
     const WARNING  = 172800; // 2 days
