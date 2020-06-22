@@ -2,28 +2,18 @@
 namespace Nais\Device\Command;
 
 use Nais\Device\ApiServerClient;
-use Nais\Device\Criticality;
+use Nais\Device\Severity;
 use Nais\Device\KolideApiClient;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
+use Symfony\Component\Console\Command\Command;
 use DateTime;
 use RuntimeException;
 
 class CheckAndUpdateDevices extends BaseCommand {
     /** @var string */
     protected static $defaultName = 'apiserver:update-devices';
-
-    /** @var int */
-    private $defaultCriticality = Criticality::MED;
-
-    /** @var array */
-    private $checksConfig;
-
-    public function __construct(array $checksConfig = []) {
-        $this->checksConfig = $checksConfig;
-        parent::__construct();
-    }
 
     protected function configure() : void {
         $this
@@ -111,13 +101,13 @@ class CheckAndUpdateDevices extends BaseCommand {
 
         if (empty($updatedNaisDevices)) {
             $this->log($output, 'No Nais devices to update :(');
-            return 0;
+            return Command::SUCCESS;
         }
 
         $this->apiServerClient->updateDevices($updatedNaisDevices);
         $this->log($output, 'Sent updated Nais device configuration to API server');
 
-        return 0;
+        return Command::SUCCESS;
     }
 
     /**
@@ -145,11 +135,11 @@ class CheckAndUpdateDevices extends BaseCommand {
                 && strtolower($platform) === strtolower($kolideDevice['platform']);
         }));
 
-        if (empty($devices) || 1 < count($devices)) {
-            return null;
+        if (1 === count($devices)) {
+            return $devices[0];
         }
 
-        return $devices[0];
+        return null;
     }
 
     /**
@@ -169,15 +159,20 @@ class CheckAndUpdateDevices extends BaseCommand {
                 continue;
             }
 
-            $criticality = $this->checksConfig[$failure['check_id']] ?? $this->defaultCriticality;
+            if (in_array($failure['check_id'], $ignoreChecks)) {
+                continue;
+            }
 
-            if (Criticality::IGNORE === $criticality || in_array($failure['check_id'], $ignoreChecks)) {
+            $tags = $this->kolideApiClient->getCheck($failure['check_id'])['tags'];
+            $graceTime = Severity::getGraceTime($tags);
+
+            if (Severity::INFO === $graceTime) {
                 continue;
             }
 
             $occurredAt = (new DateTime($failure['timestamp']))->getTimestamp();
 
-            if (Criticality::CRIT === $criticality || ((time() - $occurredAt) > $criticality)) {
+            if (Severity::CRITICAL === $graceTime || ((time() - $occurredAt) > $graceTime)) {
                 $failingChecks[] = $failure;
             }
         }

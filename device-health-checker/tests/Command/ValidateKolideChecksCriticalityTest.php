@@ -1,7 +1,6 @@
 <?php declare(strict_types=1);
 namespace Nais\Device\Command;
 
-use Nais\Device\Criticality;
 use Nais\Device\KolideApiClient;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\Console\Tester\CommandTester;

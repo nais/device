@@ -1,7 +1,7 @@
 <?php declare(strict_types=1);
 namespace Nais\Device\Command;
 
-use Nais\Device\Criticality;
+use Nais\Device\Severity;
 use Nais\Device\KolideApiClient;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
@@ -38,7 +38,7 @@ class ValidateKolideChecksCriticality extends BaseCommand {
 
         foreach ($checks as $check) {
             foreach ($check['tags'] as $tag) {
-                if (Criticality::isValidTag($tag)) {
+                if (Severity::isSeverityTag($tag)) {
                     continue 2;
                 }
             }
