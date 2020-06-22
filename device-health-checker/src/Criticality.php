@@ -2,18 +2,17 @@
 namespace Nais\Device;
 
 class Criticality {
-    const IGNORE = -1;     // Used for checks we want to ignore
-    const LOW    = 604800; // 7 days
-    const MED    = 172800; // 2 days
-    const HIGH   = 3600;   // 1 hour
-    const CRIT   = 0;      // Not allowed
-
     const INFO     = -1;     // Used for checks we want to ignore
     const NOTICE   = 604800; // 7 days
     const WARNING  = 172800; // 2 days
     const DANGER   = 3600;   // 1 hour
     const CRITICAL = 0;      // Not allowed
 
+    /**
+     * Valid severity tags
+     *
+     * @var array<string, int>
+     */
     static $tags = [
         'info'     => self::INFO,
         'notice'   => self::NOTICE,
@@ -22,11 +21,29 @@ class Criticality {
         'critical' => self::CRITICAL,
     ];
 
-    public static function getTagGraceTime(string $tag) : int {
-        return self::$tags[strtolower($tag)] ?? 172800;
+    /**
+     * Get the grace time given a set of tags
+     *
+     * @param string[] $tags
+     * @return int
+     */
+    public static function getGraceTime(array $tags) : int {
+        $severityLevels = [self::WARNING];
+
+        foreach ($tags as $tag) {
+            $severityLevels[] = self::$tags[strtolower($tag)] ?? self::WARNING;
+        }
+
+        return min($severityLevels);
     }
 
-    public static function isValidTag(string $tag) : bool {
+    /**
+     * Check if a tag is a severity tag
+     *
+     * @param string $tag
+     * @return bool
+     */
+    public static function isSeverityTag(string $tag) : bool {
         return in_array(strtolower($tag), array_keys(self::$tags));
     }
 }
