@@ -90,7 +90,23 @@ icon:
 	mv MyIcon.icns assets/naisdevice.icns
 	rm -R MyIcon.iconset
 
-app: macos-client icon
+wg-binaries:
+	# wg
+	curl -OL https://git.zx2c4.com/wireguard-tools/snapshot/wireguard-tools-1.0.20200513.tar.xz
+	tar xf wireguard-tools-*.tar.xz
+	rm -f wireguard-tools-*.tar.xz
+	make -f wireguard-tools-*/src/Makefile
+	mkdir -p ./bin/macos
+	cp ./wireguard-tools-*/src/wg ./bin/macos/
+	# wireguard-go
+	curl -OL https://git.zx2c4.com/wireguard-go/snapshot/wireguard-go-0.0.20200320.tar.xz
+	tar xf wireguard-go-*.tar.xz
+	rm -f wireguard-go-*.tar.xz
+	cd wireguard-go-*/ && make # Makefiles assumes you are in the same directory as the Makefile
+	mkdir -p ./bin/macos
+	cp ./wireguard-go-*/wireguard-go ./bin/macos/
+
+app: macos-client wg-binaries icon
 	rm -rf naisdevice.app
 	mkdir -p naisdevice.app/Contents/{MacOS,Resources}
 	cp bin/macos/* naisdevice.app/Contents/MacOS
