@@ -58,16 +58,11 @@ const (
 
 func init() {
 	flag.StringVar(&cfg.LogLevel, "log-level", "info", "which log level to output")
-	flag.StringVar(&cfg.ConfigPath, "config-dir", "", "path to naisdevice config dir [required]")
+	flag.StringVar(&cfg.ConfigPath, "config-dir", "", "path to naisdevice config dir (required)")
 	flag.StringVar(&cfg.Interface, "interface", "utun69", "interface name")
 	platformFlags(&cfg)
 
 	flag.Parse()
-
-	if len(cfg.ConfigPath) == 0 {
-		fmt.Println("--config-dir is required")
-		os.Exit(1)
-	}
 
 	cfg.WireGuardConfigPath = filepath.Join(cfg.ConfigPath, cfg.Interface+".conf")
 	cfg.BootstrapConfigPath = filepath.Join(cfg.ConfigPath, "bootstrapconfig.json")
@@ -79,8 +74,13 @@ func init() {
 // - synchronizing WireGuard with the provided config
 // - setting up the required routes
 func main() {
-	log.Infof("Starting device-agent-helper with config:\n%+v", cfg)
+	if len(cfg.ConfigPath) == 0 {
+		fmt.Println("--config-dir is required")
+		os.Exit(1)
+	}
+
 	platformInit(&cfg)
+	log.Infof("Starting device-agent-helper with config:\n%+v", cfg)
 
 	var err error
 	cfg.BootstrapConfig, err = parseBootstrapConfig(cfg)
