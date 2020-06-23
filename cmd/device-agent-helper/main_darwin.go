@@ -3,25 +3,34 @@ package main
 import (
 	"context"
 	"fmt"
+	"github.com/nais/device/pkg/logger"
 	"io/ioutil"
 	"os/exec"
+	"path/filepath"
 	"strings"
 
 	log "github.com/sirupsen/logrus"
 )
 
+var (
+	WireGuardGoBinary = filepath.Join("/", "Applications", "naisdevice.app", "Contents", "MacOS", "wireguard-go")
+	WireGuardBinary   = filepath.Join("/", "Applications", "naisdevice.app", "Contents", "MacOS", "wg")
+)
+
 func prerequisites() error {
-	if err := filesExist(cfg.WireGuardBinary, cfg.WireGuardGoBinary); err != nil {
+	if err := filesExist(WireGuardBinary, WireGuardGoBinary); err != nil {
 		return fmt.Errorf("verifying if file exists: %w", err)
 	}
 	return nil
 }
 
-func platformFlags(cfg *Config) {
+func platformFlags(cfg *Config) {}
+func platformInit(cfg *Config) {
+	logger.SetupDeviceLogger(cfg.LogLevel, filepath.Join("/", "Library", "Logs", "device-agent-helper.log"))
 }
 
 func syncConf(cfg Config, ctx context.Context) error {
-	cmd := exec.CommandContext(ctx, cfg.WireGuardBinary, "syncconf", cfg.Interface, cfg.WireGuardConfigPath)
+	cmd := exec.CommandContext(ctx, WireGuardBinary, "syncconf", cfg.Interface, cfg.WireGuardConfigPath)
 	if b, err := cmd.CombinedOutput(); err != nil {
 		return fmt.Errorf("running syncconf: %w: %v", err, string(b))
 	}
@@ -68,7 +77,7 @@ func setupInterface(ctx context.Context, cfg Config) error {
 
 	ip := cfg.BootstrapConfig.DeviceIP
 	commands := [][]string{
-		{cfg.WireGuardGoBinary, cfg.Interface},
+		{WireGuardGoBinary, cfg.Interface},
 		{"ifconfig", cfg.Interface, "inet", ip + "/21", ip, "add"},
 		{"ifconfig", cfg.Interface, "mtu", "1360"},
 		{"ifconfig", cfg.Interface, "up"},
@@ -83,7 +92,7 @@ func teardownInterface(ctx context.Context, cfg Config) {
 		return
 	}
 
-	cmd := exec.CommandContext(ctx, "pkill", "-f", fmt.Sprintf("%s %s", cfg.WireGuardGoBinary, cfg.Interface))
+	cmd := exec.CommandContext(ctx, "pkill", "-f", fmt.Sprintf("%s %s", WireGuardGoBinary, cfg.Interface))
 	out, err := cmd.CombinedOutput()
 
 	if err != nil {
@@ -95,6 +104,9 @@ func teardownInterface(ctx context.Context, cfg Config) {
 }
 
 func interfaceExists(ctx context.Context, cfg Config) bool {
-	cmd := exec.CommandContext(ctx, "pgrep", "-f", fmt.Sprintf("%s %s", cfg.WireGuardGoBinary, cfg.Interface))
+	cmd := exec.CommandContext(ctx, "pgrep", "-f", fmt.Sprintf("%s %s", WireGuardGoBinary, cfg.Interface))
 	return cmd.Run() == nil
 }
+
+func uninstallService()         {}
+func installService(cfg Config) {}

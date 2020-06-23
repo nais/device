@@ -9,52 +9,68 @@ import (
 	"os"
 	"os/exec"
 	"os/signal"
-	"path"
 	"path/filepath"
 	"regexp"
 	"strings"
 	"syscall"
 	"time"
 
-	"github.com/nais/device/pkg/logger"
 	"github.com/rjeczalik/notify"
 	log "github.com/sirupsen/logrus"
 	flag "github.com/spf13/pflag"
 )
 
+type MockService struct{}
+
+func (service *MockService) ControlChannel() <-chan ControlEvent {
+	return make(chan ControlEvent, 1)
+}
+
+type ControlEvent int
+
+type Controllable interface {
+	ControlChannel() <-chan ControlEvent
+}
+
+type Config struct {
+	Interface               string
+	WireGuardConfigPath     string
+	ConfigPath              string
+	LogLevel                string
+	BootstrapConfig         *bootstrap.Config
+	BootstrapConfigPath     string
+	WindowsServiceInstall   bool
+	WindowsServiceUninstall bool
+}
+
 var (
-	cfg = Config{}
+	cfg                    = Config{}
+	myService Controllable = &MockService{}
 )
 
 const (
 	TunnelNetworkPrefix = "10.255.24"
-)
 
-type Config struct {
-	Interface           string
-	WireGuardBinary     string
-	WireGuardGoBinary   string
-	WireGuardConfigPath string
-	ConfigPath          string
-	LogLevel            string
-	BootstrapConfig     *bootstrap.Config
-	BootstrapConfigPath string
-}
+	Stop ControlEvent = iota
+	Pause
+	Continue
+)
 
 func init() {
 	flag.StringVar(&cfg.LogLevel, "log-level", "info", "which log level to output")
-	flag.StringVar(&cfg.ConfigPath, "config-dir", "", "path to naisdevice config dir")
+	flag.StringVar(&cfg.ConfigPath, "config-dir", "", "path to naisdevice config dir [required]")
 	flag.StringVar(&cfg.Interface, "interface", "utun69", "interface name")
 	platformFlags(&cfg)
 
 	flag.Parse()
 
-	cfg.WireGuardGoBinary = filepath.Join("/", "Applications", "naisdevice.app", "Contents", "MacOS", "wireguard-go")
-	cfg.WireGuardBinary = filepath.Join("/", "Applications", "naisdevice.app", "Contents", "MacOS", "wg")
+	if len(cfg.ConfigPath) == 0 {
+		fmt.Println("--config-dir is required")
+		os.Exit(1)
+	}
+
 	cfg.WireGuardConfigPath = filepath.Join(cfg.ConfigPath, cfg.Interface+".conf")
 	cfg.BootstrapConfigPath = filepath.Join(cfg.ConfigPath, "bootstrapconfig.json")
-
-	logger.Setup(cfg.LogLevel)
 }
 
 // device-agent-helper is responsible for:
@@ -64,6 +80,7 @@ func init() {
 // - setting up the required routes
 func main() {
 	log.Infof("Starting device-agent-helper with config:\n%+v", cfg)
+	platformInit(&cfg)
 
 	var err error
 	cfg.BootstrapConfig, err = parseBootstrapConfig(cfg)
@@ -78,14 +95,22 @@ func main() {
 		log.Fatalf("Checking prerequisites: %v", err)
 	}
 
+	if cfg.WindowsServiceUninstall {
+		uninstallService()
+		return
+	}
+	if cfg.WindowsServiceInstall {
+		installService(cfg)
+		return
+	}
+
 	defer teardownInterface(ctx, cfg)
 
 	interrupt := make(chan os.Signal, 1)
 	signal.Notify(interrupt, os.Interrupt, syscall.SIGTERM)
 
-	configdir := path.Dir(cfg.WireGuardConfigPath)
 	notifyEvents := make(chan notify.EventInfo, 100)
-	err = notify.Watch(configdir, notifyEvents, notify.Remove, notify.Write)
+	err = notify.Watch(cfg.ConfigPath, notifyEvents, notify.Remove, notify.Write)
 	if err != nil {
 		log.Fatalf("Monitoring WireGuard configuration file: %v", err)
 	}
@@ -107,28 +132,48 @@ func main() {
 		teardownInterface(ctx, cfg)
 	}
 
+	handleEvent := func(ev notify.EventInfo) {
+		log.Infof("%#v", ev)
+		if ev.Path() != cfg.WireGuardConfigPath {
+			return
+		}
+		switch ev.Event() {
+		case notify.Remove:
+			ensureDown()
+		case notify.Write:
+			ensureUp()
+		}
+	}
+
 	if RegularFileExists(cfg.WireGuardConfigPath) == nil {
 		ensureUp()
 	} else {
 		ensureDown()
 	}
 
+	paused := false
+	var lastEventWhilePaused notify.EventInfo
+	controlChannel := myService.ControlChannel()
 	for {
 		select {
 		case <-interrupt:
 			log.Info("Received interrupt, shutting down gracefully.")
 			return
-
 		case ev := <-notifyEvents:
-			log.Infof("%#v", ev)
-			if ev.Path() != cfg.WireGuardConfigPath {
+			if paused {
+				lastEventWhilePaused = ev
 				continue
 			}
-			switch ev.Event() {
-			case notify.Remove:
-				ensureDown()
-			case notify.Write:
-				ensureUp()
+			handleEvent(ev)
+		case ce := <-controlChannel:
+			switch ce {
+			case Stop:
+				return
+			case Continue:
+				paused = false
+				handleEvent(lastEventWhilePaused)
+			case Pause:
+				paused = true
 			}
 		}
 	}

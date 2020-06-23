@@ -20,4 +20,5 @@ require (
 	github.com/t-tomalak/logrus-easy-formatter v0.0.0-20190827215021-c074f06c5816
 	golang.org/x/crypto v0.0.0-20191002192127-34f69633bfdc
 	golang.org/x/oauth2 v0.0.0-20200107190931-bf48bf16ab8d
+	golang.org/x/sys v0.0.0-20200515095857-1151b9dac4a9
 )

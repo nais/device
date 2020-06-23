@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"github.com/nais/device/pkg/logger"
 	"io/ioutil"
 	"os/exec"
 	"strings"
@@ -11,17 +12,19 @@ import (
 )
 
 func prerequisites() error {
-	if err := filesExist(cfg.WireGuardBinary, cfg.WireGuardGoBinary); err != nil {
+	if err := filesExist(WireGuardBinary); err != nil {
 		return fmt.Errorf("verifying if file exists: %w", err)
 	}
 	return nil
 }
 
-func platformFlags(cfg *Config) {
+func platformFlags(cfg *Config) {}
+func platformInit(cfg *Config) {
+	logger.SetupDeviceLogger(cfg.LogLevel, filepath.Join("/", "var", "log", "device-agent-helper.log"))
 }
 
 func syncConf(cfg Config, ctx context.Context) error {
-	cmd := exec.CommandContext(ctx, cfg.WireGuardBinary, "syncconf", cfg.Interface, cfg.WireGuardConfigPath)
+	cmd := exec.CommandContext(ctx, WireGuardBinary, "syncconf", cfg.Interface, cfg.WireGuardConfigPath)
 	if b, err := cmd.CombinedOutput(); err != nil {
 		return fmt.Errorf("running syncconf: %w: %v", err, string(b))
 	}
@@ -83,3 +86,6 @@ func teardownInterface(ctx context.Context, cfg Config) {
 		log.Errorf("Tearing down interface: %v", err)
 	}
 }
+
+func uninstallService()         {}
+func installService(cfg Config) {}
