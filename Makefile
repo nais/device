@@ -14,6 +14,7 @@ integration-test: run-postgres-test run-integration-test teardown-postgres-test
 clients: linux-client macos-client windows-client
 
 linux:
+	mkdir -p ./bin/linux
 	GOOS=linux GOARCH=amd64 go build -o bin/apiserver ./cmd/apiserver
 	GOOS=linux GOARCH=amd64 go build -o bin/bootstrap-api ./cmd/bootstrap-api
 	GOOS=linux GOARCH=amd64 go build -o bin/gateway-agent -ldflags "-s $(LDFLAGS)" ./cmd/gateway-agent
@@ -21,24 +22,28 @@ linux:
 	php -d phar.readonly=off device-health-checker/create-phar.php device-health-checker/device-health-checker.php device-health-checker/bin
 
 linux-client:
+	mkdir -p ./bin/linux
 	GOOS=linux GOARCH=amd64 go build -o bin/linux/device-agent ./cmd/device-agent
 	GOOS=linux GOARCH=amd64 go build -o bin/linux/device-agent-helper ./cmd/device-agent-helper
 
 macos-client:
+	mkdir -p ./bin/macos
 	GOOS=darwin GOARCH=amd64 go build -o bin/macos/device-agent -ldflags "-s $(LDFLAGS)" ./cmd/device-agent
 	GOOS=darwin GOARCH=amd64 go build -o bin/macos/device-agent-helper ./cmd/device-agent-helper
 
 windows-client:
+	mkdir -p ./bin/windows
 	go get github.com/akavel/rsrc
 	${GOPATH}/bin/rsrc -arch amd64 -manifest ./windows/admin_manifest.xml -o ./cmd/device-agent-helper/main_windows.syso
 	GOOS=windows GOARCH=amd64 go build -o bin/windows/device-agent.exe -ldflags "-s $(LDFLAGS) -H=windowsgui" ./cmd/device-agent
 	GOOS=windows GOARCH=amd64 go build -o bin/windows/device-agent-helper.exe ./cmd/device-agent-helper
 
 local:
-	go build -o bin/apiserver ./cmd/apiserver
-	go build -o bin/gateway-agent -ldflags "-s $(LDFLAGS)" ./cmd/gateway-agent
-	go build -o bin/prometheus-agent ./cmd/prometheus-agent
-	go build -o bin/bootstrap-api ./cmd/bootstrap-api
+	mkdir -p ./bin/local
+	go build -o bin/local/apiserver ./cmd/apiserver
+	go build -o bin/local/gateway-agent -ldflags "-s $(LDFLAGS)" ./cmd/gateway-agent
+	go build -o bin/local/prometheus-agent ./cmd/prometheus-agent
+	go build -o bin/local/bootstrap-api ./cmd/bootstrap-api
 
 run-postgres:
 	docker run -e POSTGRES_PASSWORD=postgres --rm --name postgres -p 5432:5432 postgres &
@@ -90,25 +95,19 @@ icon:
 	mv MyIcon.icns assets/naisdevice.icns
 	rm -R MyIcon.iconset
 
-wg-binaries:
-	# wg
-	curl -OL https://git.zx2c4.com/wireguard-tools/snapshot/wireguard-tools-1.0.20200513.tar.xz
-	tar xf wireguard-tools-*.tar.xz
-	rm -f wireguard-tools-*.tar.xz
-	make -f wireguard-tools-*/src/Makefile
-	mkdir -p ./bin/macos
-	cp ./wireguard-tools-*/src/wg ./bin/macos/
-	# wireguard-go
-	curl -OL https://git.zx2c4.com/wireguard-go/snapshot/wireguard-go-0.0.20200320.tar.xz
-	tar xf wireguard-go-*.tar.xz
-	rm -f wireguard-go-*.tar.xz
-	cd wireguard-go-*/ && make # Makefiles assumes you are in the same directory as the Makefile
-	mkdir -p ./bin/macos
-	cp ./wireguard-go-*/wireguard-go ./bin/macos/
+wireguard-go:
+	curl -L https://git.zx2c4.com/wireguard-tools/snapshot/wireguard-tools-1.0.20200513.tar.xz | tar x
+	cd wireguard-tools-*/src && make
 
-app: macos-client wg-binaries icon
+wg:
+	curl -L https://git.zx2c4.com/wireguard-go/snapshot/wireguard-go-0.0.20200320.tar.xz | tar x
+	cd wireguard-go-*/ && make
+
+app: macos-client wg wireguard-go icon
 	rm -rf naisdevice.app
 	mkdir -p naisdevice.app/Contents/{MacOS,Resources}
+	cp ./wireguard-go-*/wireguard-go ./bin/macos/
+	cp ./wireguard-tools-*/src/wg ./bin/macos/
 	cp bin/macos/* naisdevice.app/Contents/MacOS
 	cp assets/naisdevice.icns naisdevice.app/Contents/Resources
 	sed 's/VERSIONSTRING/${VERSION}/' Info.plist.tpl > naisdevice.app/Contents/Info.plist
@@ -129,3 +128,10 @@ pkg: app
 	productbuild --identifier ${PKGID}.${VERSION} --package ./${PKGTITLE}-${VERSION}.component.pkg ./${PKGTITLE}-${VERSION}.pkg
 	rm -f ./${PKGTITLE}-${VERSION}.component.pkg 
 	rm -rf ./pkgtemp ./naisdevice.app
+
+clean:
+	rm -rf wireguard-go-*
+	rm -rf wireguard-tools-*
+	rm -rf naisdevice.app
+	rm -f naisdevice-*.pkg
+	rm -rf ./bin
