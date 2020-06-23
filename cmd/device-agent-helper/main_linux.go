@@ -6,9 +6,14 @@ import (
 	"github.com/nais/device/pkg/logger"
 	"io/ioutil"
 	"os/exec"
+	"path/filepath"
 	"strings"
 
 	log "github.com/sirupsen/logrus"
+)
+
+const (
+	WireGuardBinary = "/usr/bin/wg"
 )
 
 func prerequisites() error {
