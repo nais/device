@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
-	"os"
 
 	"github.com/nais/device/device-agent/apiserver"
 	"github.com/nais/device/device-agent/bootstrapper"
@@ -57,9 +56,10 @@ func New(cfg config.Config, ctx context.Context) (*RuntimeConfig, error) {
 }
 
 func ensureBootstrapping(rc *RuntimeConfig, ctx context.Context) (*bootstrap.Config, error) {
-	if fileExists(rc.Config.BootstrapConfigPath) {
+	cfg, err := readBootstrapConfigFromFile(rc.Config.BootstrapConfigPath)
+	if err != nil {
 		log.Infoln("Device already bootstrapped")
-		return readBootstrapConfigFromFile(rc.Config.BootstrapConfigPath)
+		return cfg, nil
 	}
 
 	log.Infoln("Bootstrapping device")
@@ -68,7 +68,7 @@ func ensureBootstrapping(rc *RuntimeConfig, ctx context.Context) (*bootstrap.Con
 		return nil, fmt.Errorf("authenticating with Azure: %w", err)
 	}
 
-	cfg, err := bootstrapper.BootstrapDevice(
+	cfg, err = bootstrapper.BootstrapDevice(
 		&bootstrap.DeviceInfo{
 			PublicKey: string(wireguard.PublicKey(rc.PrivateKey)),
 			Serial:    rc.Serial,
@@ -88,14 +88,6 @@ func ensureBootstrapping(rc *RuntimeConfig, ctx context.Context) (*bootstrap.Con
 	}
 
 	return cfg, nil
-}
-
-func fileExists(filepath string) bool {
-	info, err := os.Stat(filepath)
-	if err != nil || info.IsDir() {
-		return false
-	}
-	return true
 }
 
 func writeToJSONFile(strct interface{}, path string) error {
