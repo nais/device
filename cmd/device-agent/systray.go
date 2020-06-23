@@ -37,6 +37,10 @@ const (
 	StateUnhealthy
 	StateQuitting
 	StateSavingConfiguration
+	StateAuthenticating
+	StateSyncConfig
+	StateHealthCheck
+	StateRunning
 )
 
 const (
@@ -131,6 +135,9 @@ func mainloop(gui *Gui) {
 	var rc *runtimeconfig.RuntimeConfig
 	var err error
 
+	syncConfigTicker := time.NewTicker(gatewayRefreshInterval)
+	healthCheckTicker := time.NewTicker(healthCheckInterval)
+
 	once := sync.Once{}
 	stop := make(chan interface{}, 1)
 	state := StateDisconnected
@@ -141,6 +148,16 @@ func mainloop(gui *Gui) {
 		select {
 		case guiEvent := <-gui.Events:
 			handleGuiEvent(guiEvent, state, stateChange)
+
+		case <-syncConfigTicker.C:
+			if state == StateRunning {
+				stateChange <- StateSyncConfig
+			}
+
+		case <-healthCheckTicker.C:
+			if state == StateRunning {
+				stateChange <- StateHealthCheck
+			}
 
 		case state = <-stateChange:
 			gui.ProgramState <- state
