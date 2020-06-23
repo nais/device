@@ -73,7 +73,7 @@ local-apiserver:
 	echo ${confdir}
 
 icon:
-	$(shell cd assets && go run icon.go > ../cmd/device-agent/icons.go)
+	cd assets && go run icon.go | gofmt -s > ../cmd/device-agent/icons.go
 	rm -rf MyIcon.iconset
 	mkdir -p MyIcon.iconset
 	sips -z 16 16     assets/nais-logo-blue.png --out MyIcon.iconset/icon_16x16.png
