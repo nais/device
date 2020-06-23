@@ -6,9 +6,9 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
+	"net"
 	"net/http"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"sync"
 	"time"
@@ -328,12 +328,12 @@ func onExit() {
 }
 
 func ping(addr string) error {
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second*3)
-	cmd := exec.CommandContext(ctx, "ping", "-c", "1", "-t", "1", addr)
-	defer cancel()
-	if err := cmd.Run(); err != nil {
-		return fmt.Errorf("running command %v: %w", cmd, err)
+	c, err := net.Dial("tcp", fmt.Sprintf("%s:%s", addr, "3000"))
+	if err != nil {
+		return err
 	}
+	c.Close()
+
 	return nil
 }
 
