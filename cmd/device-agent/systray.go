@@ -194,9 +194,9 @@ func mainloop(gui *Gui) {
 
 			case StateDisconnecting:
 				stop <- new(interface{})
-				rc.Gateways = make(apiserver.Gateways, 0)
 
 				if rc != nil {
+					rc.Gateways = make(apiserver.Gateways, 0)
 					err := DeleteConfigFile(rc.Config.WireGuardConfigPath)
 					if err != nil {
 						notify("error synchronizing WireGuard config: %s", err)
@@ -225,10 +225,10 @@ func mainloop(gui *Gui) {
 }
 
 func checkGatewayHealth(interval time.Duration, rc *runtimeconfig.RuntimeConfig, gui *Gui) {
-	ticker := time.Tick(interval)
+	ticker := time.NewTicker(interval)
 	for {
 		select {
-		case <-ticker:
+		case <-ticker.C:
 			for _, gw := range rc.GetGateways() {
 				err := ping(gw.IP)
 				if err == nil {
