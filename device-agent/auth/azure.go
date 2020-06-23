@@ -15,6 +15,7 @@ import (
 
 func AzureAuthenticatedClient(ctx context.Context, conf oauth2.Config) (*http.Client, error) {
 	token, err := runAuthFlow(ctx, conf)
+
 	if err != nil {
 		return nil, fmt.Errorf("running authorization code flow: %w", err)
 	}

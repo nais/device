@@ -146,6 +146,11 @@ func (gui *Gui) handleProgramState(state ProgramState) {
 		gui.MenuItems.StateInfo.SetTitle("slack: /msg @kolide status")
 		gui.MenuItems.StateInfo.Show()
 		systray.SetIcon(NaisLogoYellow)
+	case StateHealthCheck:
+	case StateAuthenticating:
+	case StateSyncConfig:
+	case StateBootstrapping:
+	case StateSavingConfiguration:
 	default:
 		gui.MenuItems.Connect.Disable()
 	}

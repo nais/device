@@ -30,7 +30,7 @@ func (si *SessionInfo) Expired() bool {
 
 func EnsureAuth(existing *SessionInfo, ctx context.Context, apiserverURL, platform, serial string) (*SessionInfo, error) {
 	var err error
-	if !existing.Expired() {
+	if existing != nil && !existing.Expired() {
 		return existing, nil
 	}
 

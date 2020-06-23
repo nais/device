@@ -33,6 +33,25 @@ func (rc *RuntimeConfig) GetGateways() apiserver.Gateways {
 	return rc.Gateways
 }
 
+// UpdateGateways sets a slice of gateways on the RuntimeConfig but preserves the previous healthstatus
+func (rc *RuntimeConfig) UpdateGateways(new apiserver.Gateways) {
+	old := rc.Gateways
+	previousHealthState := func(name string, gws apiserver.Gateways) bool {
+		for _, gw := range gws {
+			if gw.Name == name {
+				return gw.Healthy
+			}
+		}
+		return false
+	}
+
+	for _, gw := range new {
+		gw.Healthy = previousHealthState(gw.Name, old)
+	}
+
+	rc.Gateways = new
+}
+
 func New(cfg config.Config, ctx context.Context) (*RuntimeConfig, error) {
 	rc := &RuntimeConfig{
 		Config: cfg,
@@ -48,27 +67,24 @@ func New(cfg config.Config, ctx context.Context) (*RuntimeConfig, error) {
 		return nil, fmt.Errorf("getting device serial: %w", err)
 	}
 
-	if rc.BootstrapConfig, err = ensureBootstrapping(rc, ctx); err != nil {
-		return nil, fmt.Errorf("ensuring bootstrap: %w", err)
+	rc.BootstrapConfig, err = readBootstrapConfigFromFile(rc.Config.BootstrapConfigPath)
+	if err != nil {
+		log.Infof("Unable to read bootstrap config from file: %v", err)
+	} else {
+		log.Infof("Read bootstrap config from file: %v", rc.Config.BootstrapConfigPath)
 	}
 
 	return rc, nil
 }
 
-func ensureBootstrapping(rc *RuntimeConfig, ctx context.Context) (*bootstrap.Config, error) {
-	cfg, err := readBootstrapConfigFromFile(rc.Config.BootstrapConfigPath)
-	if err != nil {
-		log.Infoln("Device already bootstrapped")
-		return cfg, nil
-	}
-
+func EnsureBootstrapping(rc *RuntimeConfig, ctx context.Context) (*bootstrap.Config, error) {
 	log.Infoln("Bootstrapping device")
 	client, err := auth.AzureAuthenticatedClient(ctx, rc.Config.OAuth2Config)
 	if err != nil {
 		return nil, fmt.Errorf("authenticating with Azure: %w", err)
 	}
 
-	cfg, err = bootstrapper.BootstrapDevice(
+	cfg, err := bootstrapper.BootstrapDevice(
 		&bootstrap.DeviceInfo{
 			PublicKey: string(wireguard.PublicKey(rc.PrivateKey)),
 			Serial:    rc.Serial,
