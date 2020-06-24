@@ -137,7 +137,6 @@ func handleGuiEvent(guiEvent GuiEvent, state ProgramState, stateChange chan Prog
 	case QuitClicked:
 		stateChange <- StateQuitting
 	}
-
 }
 
 func mainloop(gui *Gui, rc *runtimeconfig.RuntimeConfig) {
@@ -172,17 +171,15 @@ func mainloop(gui *Gui, rc *runtimeconfig.RuntimeConfig) {
 			case StateBootstrapping:
 				if rc.BootstrapConfig != nil {
 					log.Infof("Already bootstrapped")
-					stateChange <- StateAuthenticating
-					continue
-				}
-
-				ctx, cancel := context.WithTimeout(context.Background(), 1*time.Minute)
-				rc.BootstrapConfig, err = runtimeconfig.EnsureBootstrapping(rc, ctx)
-				cancel()
-				if err != nil {
-					notify(fmt.Sprintf("Error during bootstrap: %v", err))
-					stateChange <- StateDisconnected
-					continue
+				} else {
+					ctx, cancel := context.WithTimeout(context.Background(), 1*time.Minute)
+					rc.BootstrapConfig, err = runtimeconfig.EnsureBootstrapping(rc, ctx)
+					cancel()
+					if err != nil {
+						notify(fmt.Sprintf("Error during bootstrap: %v", err))
+						stateChange <- StateDisconnected
+						continue
+					}
 				}
 
 				err = WriteConfigFile(rc.Config.WireGuardConfigPath, *rc)
@@ -192,8 +189,8 @@ func mainloop(gui *Gui, rc *runtimeconfig.RuntimeConfig) {
 					stateChange <- StateDisconnecting
 					continue
 				}
-				time.Sleep(initialConnectWait) // allow wireguard to syncconf
 
+				time.Sleep(initialConnectWait) // allow wireguard to syncconf
 				stateChange <- StateAuthenticating
 
 			case StateAuthenticating:
@@ -202,8 +199,12 @@ func mainloop(gui *Gui, rc *runtimeconfig.RuntimeConfig) {
 				} else {
 					log.Infof("No valid session, authenticating")
 					ctx, cancel := context.WithTimeout(context.Background(), 3*time.Minute)
-					rc.SessionInfo, err = auth.EnsureAuth(rc.SessionInfo, ctx, rc.Config.APIServer, rc.Config.Platform, rc.Serial)
 					cancel()
+					if rc.SessionInfo, err = auth.EnsureAuth(rc.SessionInfo, ctx, rc.Config.APIServer, rc.Config.Platform, rc.Serial); err != nil {
+						log.Errorf("Authenticating with apiserver: %v", err)
+						stateChange <- StateDisconnecting
+						continue
+					}
 				}
 				connectedTime = time.Now()
 				stateChange <- StateSyncConfig
@@ -252,6 +253,7 @@ func mainloop(gui *Gui, rc *runtimeconfig.RuntimeConfig) {
 					log.Errorf("Assuming invalid session; disconnecting.")
 					rc.SessionInfo = nil
 					stateChange <- StateDisconnecting
+					continue
 				}
 
 				if errors.Is(err, &apiserver.UnhealthyError{}) {
@@ -276,7 +278,6 @@ func mainloop(gui *Gui, rc *runtimeconfig.RuntimeConfig) {
 				if err != nil {
 					err = fmt.Errorf("unable to write WireGuard configuration file: %w", err)
 					notify(err.Error())
-					return
 				}
 				stateChange <- StateConnected
 
