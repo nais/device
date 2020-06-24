@@ -249,8 +249,8 @@ func mainloop(gui *Gui, rc *runtimeconfig.RuntimeConfig) {
 				gateways, err := apiserver.GetDeviceConfig(rc.SessionInfo.Key, rc.Config.APIServer, ctx)
 				cancel()
 
-				if ue, ok := err.(*apiserver.UnauthorizedError); ok {
-					log.Errorf("Unauthorized access from apiserver: %v", ue)
+				if errors.Is(err, &apiserver.UnauthorizedError{}) {
+					log.Errorf("Getting device config: %v", err)
 					log.Errorf("Assuming invalid session; disconnecting.")
 					rc.SessionInfo = nil
 					stateChange <- StateDisconnecting

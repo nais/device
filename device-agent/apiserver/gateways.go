@@ -79,7 +79,7 @@ func GetDeviceConfig(sessionKey, apiServerURL string, ctx context.Context) (Gate
 	defer resp.Body.Close()
 
 	if resp.StatusCode == http.StatusUnauthorized {
-		return nil, &UnauthorizedError{}
+		return nil, fmt.Errorf("unauthorized access from apiserver: %w", &UnauthorizedError{})
 	}
 
 	if resp.StatusCode == http.StatusForbidden {
