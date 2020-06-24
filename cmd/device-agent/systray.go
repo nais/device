@@ -199,12 +199,13 @@ func mainloop(gui *Gui, rc *runtimeconfig.RuntimeConfig) {
 				} else {
 					log.Infof("No valid session, authenticating")
 					ctx, cancel := context.WithTimeout(context.Background(), 3*time.Minute)
-					cancel()
 					if rc.SessionInfo, err = auth.EnsureAuth(rc.SessionInfo, ctx, rc.Config.APIServer, rc.Config.Platform, rc.Serial); err != nil {
 						log.Errorf("Authenticating with apiserver: %v", err)
 						stateChange <- StateDisconnecting
+						cancel()
 						continue
 					}
+					cancel()
 				}
 				connectedTime = time.Now()
 				stateChange <- StateSyncConfig
