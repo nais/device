@@ -288,6 +288,26 @@ func mainloop(gui *Gui, rc *runtimeconfig.RuntimeConfig) {
 	}
 }
 
+func checkGatewayHealth(interval time.Duration, rc *runtimeconfig.RuntimeConfig, gui *Gui) {
+	ticker := time.NewTicker(interval)
+	for {
+		select {
+		case <-ticker.C:
+			for _, gw := range rc.GetGateways() {
+				err := ping(gw.IP)
+				if err == nil {
+					gw.Healthy = true
+					log.Debugf("Successfully pinged gateway %v with ip: %v", gw.Name, gw.IP)
+				} else {
+					gw.Healthy = false
+					log.Errorf("unable to ping host %s: %v", gw.IP, err)
+				}
+			}
+			gui.Gateways <- rc.GetGateways()
+		}
+	}
+}
+
 func checkVersion(interval time.Duration, gui *Gui) {
 	type response struct {
 		Tag string `json:"tag_name"`

@@ -51,7 +51,8 @@ Endpoint = %s
 	allowedIPs := make([]string, 0)
 	allowedIPs = append(allowedIPs, gw.IP+"/32")
 
-	if gw.Healthy == true {
+	// TODO: re-implement when health checks are fixed?
+	if true || gw.Healthy {
 		allowedIPs = append(allowedIPs, gw.Routes...)
 	}
 
