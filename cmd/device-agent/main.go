@@ -3,12 +3,11 @@ package main
 import (
 	"fmt"
 	"io"
+	"io/ioutil"
 	"os"
 
 	"github.com/getlantern/systray"
 	"github.com/nais/device/device-agent/config"
-	"github.com/nais/device/device-agent/runtimeconfig"
-	"github.com/nais/device/device-agent/wireguard"
 	"github.com/nais/device/pkg/logger"
 	"github.com/nais/device/pkg/version"
 	log "github.com/sirupsen/logrus"
@@ -42,40 +41,20 @@ func DeleteConfigFile(path string) error {
 		return err
 	}
 	log.Debugf("Removed WireGuard configuration file at %s", path)
+	lastConfigurationFile = ""
 	return nil
 }
 
-func ConfigFileDescriptor(path string) (*os.File, error) {
-	return os.OpenFile(path, os.O_TRUNC|os.O_WRONLY|os.O_CREATE, 0600)
-}
-
-func WriteConfigFile(path string, rc runtimeconfig.RuntimeConfig) error {
-	f, err := ConfigFileDescriptor(path)
+func WriteConfigFile(path string, r io.Reader) error {
+	cfg, err := ioutil.ReadAll(r)
 	if err != nil {
 		return err
 	}
-	defer f.Close()
-	err = WriteConfig(f, rc)
+	err = ioutil.WriteFile(path, cfg, 0600)
 	if err != nil {
 		return fmt.Errorf("writing WireGuard config to disk: %w", err)
 	}
 
 	log.Debugf("Wrote WireGuard config to disk")
 	return nil
-}
-
-func WriteConfig(w io.Writer, rc runtimeconfig.RuntimeConfig) error {
-	baseConfig := wireguard.GenerateBaseConfig(rc.BootstrapConfig, rc.PrivateKey)
-	_, err := w.Write([]byte(baseConfig))
-	if err != nil {
-		return err
-	}
-
-	wireGuardPeers := rc.Gateways.MarshalIni()
-	_, err = w.Write(wireGuardPeers)
-	if err != nil {
-		return err
-	}
-
-	return err
 }

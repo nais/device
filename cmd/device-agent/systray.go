@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
@@ -34,7 +35,6 @@ const (
 	StateDisconnecting
 	StateUnhealthy
 	StateQuitting
-	StateSavingConfiguration
 	StateAuthenticating
 	StateSyncConfig
 	StateHealthCheck
@@ -57,15 +57,13 @@ func (state ProgramState) String() string {
 	case StateAuthenticating:
 		return "Authenticating..."
 	case StateSyncConfig:
-		fallthrough
+		return "Synchronizing configuration..."
 	case StateHealthCheck:
-		fallthrough
-	case StateSavingConfiguration:
-		fallthrough
+		return "Checking gateway health..."
 	case StateConnected:
 		return fmt.Sprintf("Connected since %s", connectedTime.Format(time.Kitchen))
 	case StateUnhealthy:
-		return "Device is unhealthy..."
+		return "Device is unhealthy >_<"
 	case StateDisconnecting:
 		return "Disconnecting..."
 	case StateQuitting:
@@ -76,7 +74,8 @@ func (state ProgramState) String() string {
 }
 
 var (
-	connectedTime = time.Now()
+	connectedTime         = time.Now()
+	lastConfigurationFile string
 )
 
 func onReady() {
@@ -91,6 +90,8 @@ func onReady() {
 		notify("Unable to start naisdevice, check logs for details")
 		return
 	}
+
+	_ = DeleteConfigFile(rc.Config.WireGuardConfigPath)
 
 	go gui.EventLoop()
 	go checkVersion(versionCheckInterval, gui)
@@ -112,6 +113,7 @@ func handleGuiEvent(guiEvent GuiEvent, state ProgramState, stateChange chan Prog
 		}
 
 	case ConnectClicked:
+		log.Infof("Connect button clicked")
 		if state == StateDisconnected {
 			stateChange <- StateBootstrapping
 		} else {
@@ -166,6 +168,7 @@ func mainloop(gui *Gui, rc *runtimeconfig.RuntimeConfig) {
 
 		case state = <-stateChange:
 			gui.ProgramState <- state
+			log.Infof("state changed to %s", state)
 
 			switch state {
 			case StateBootstrapping:
@@ -177,14 +180,14 @@ func mainloop(gui *Gui, rc *runtimeconfig.RuntimeConfig) {
 					cancel()
 					if err != nil {
 						notify(fmt.Sprintf("Error during bootstrap: %v", err))
-						stateChange <- StateDisconnected
+						stateChange <- StateDisconnecting
 						continue
 					}
 				}
 
-				err = WriteConfigFile(rc.Config.WireGuardConfigPath, *rc)
+				err := saveConfig(*rc)
 				if err != nil {
-					err = fmt.Errorf("unable to write WireGuard configuration file: %w", err)
+					log.Error(err.Error())
 					notify(err.Error())
 					stateChange <- StateDisconnecting
 					continue
@@ -199,13 +202,13 @@ func mainloop(gui *Gui, rc *runtimeconfig.RuntimeConfig) {
 				} else {
 					log.Infof("No valid session, authenticating")
 					ctx, cancel := context.WithTimeout(context.Background(), 3*time.Minute)
-					if rc.SessionInfo, err = auth.EnsureAuth(rc.SessionInfo, ctx, rc.Config.APIServer, rc.Config.Platform, rc.Serial); err != nil {
+					rc.SessionInfo, err = auth.EnsureAuth(rc.SessionInfo, ctx, rc.Config.APIServer, rc.Config.Platform, rc.Serial)
+					cancel()
+					if err != nil {
 						log.Errorf("Authenticating with apiserver: %v", err)
 						stateChange <- StateDisconnecting
-						cancel()
 						continue
 					}
-					cancel()
 				}
 				connectedTime = time.Now()
 				stateChange <- StateSyncConfig
@@ -214,22 +217,20 @@ func mainloop(gui *Gui, rc *runtimeconfig.RuntimeConfig) {
 			case StateConnected:
 			case StateDisconnected:
 			case StateQuitting:
-				fallthrough
+				_ = DeleteConfigFile(rc.Config.WireGuardConfigPath)
+				//noinspection GoDeferInLoop
+				defer systray.Quit()
+				return
 
 			case StateDisconnecting:
-				if rc != nil {
-					rc.Gateways = make(apiserver.Gateways, 0)
-					gui.Gateways <- rc.GetGateways()
-					err := DeleteConfigFile(rc.Config.WireGuardConfigPath)
-					if err != nil {
-						notify("error synchronizing WireGuard config: %s", err)
-					}
+				rc.Gateways = make(apiserver.Gateways, 0)
+				gui.Gateways <- rc.GetGateways()
+				err := DeleteConfigFile(rc.Config.WireGuardConfigPath)
+				if err != nil {
+					notify("error synchronizing WireGuard config: %s", err)
 				}
 				stateChange <- StateDisconnected
 
-				if state == StateQuitting {
-					systray.Quit()
-				}
 			case StateHealthCheck:
 				for _, gw := range rc.GetGateways() {
 					err := ping(gw.IP)
@@ -242,45 +243,45 @@ func mainloop(gui *Gui, rc *runtimeconfig.RuntimeConfig) {
 					}
 				}
 				gui.Gateways <- rc.GetGateways()
-				stateChange <- StateSavingConfiguration
+				stateChange <- StateConnected
+				// trigger configuration save here if health checks are supposed to alter routes
 
 			case StateSyncConfig:
 				ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 				gateways, err := apiserver.GetDeviceConfig(rc.SessionInfo.Key, rc.Config.APIServer, ctx)
 				cancel()
 
-				if errors.Is(err, &apiserver.UnauthorizedError{}) {
-					log.Errorf("Getting device config: %v", err)
+				switch {
+				case errors.Is(err, &apiserver.UnauthorizedError{}):
+					log.Errorf("Unauthorized access from apiserver: %v", err)
 					log.Errorf("Assuming invalid session; disconnecting.")
 					rc.SessionInfo = nil
 					stateChange <- StateDisconnecting
 					continue
-				}
 
-				if errors.Is(err, &apiserver.UnhealthyError{}) {
+				case errors.Is(err, &apiserver.UnhealthyError{}):
 					gui.ProgramState <- StateUnhealthy
 					log.Errorf("Device is not healthy: %v", err)
 					stateChange <- StateDisconnecting
 					continue
-				}
 
-				if err != nil {
+				case err != nil:
 					log.Errorf("Unable to get gateway config: %v", err)
+					stateChange <- StateHealthCheck
 					continue
 				}
 
 				rc.UpdateGateways(gateways)
 				gui.Gateways <- rc.GetGateways()
-				stateChange <- StateSavingConfiguration
 
-			case StateSavingConfiguration:
-				// TODO: Bør vi egentlig skrive fila på nytt hvert 10 sekund om det ikke er endringer?
-				err = WriteConfigFile(rc.Config.WireGuardConfigPath, *rc)
+				err = saveConfig(*rc)
 				if err != nil {
-					err = fmt.Errorf("unable to write WireGuard configuration file: %w", err)
+					log.Error(err.Error())
 					notify(err.Error())
+					stateChange <- StateDisconnecting
+				} else {
+					stateChange <- StateHealthCheck
 				}
-				stateChange <- StateConnected
 
 			case StateUnhealthy:
 			}
@@ -288,24 +289,23 @@ func mainloop(gui *Gui, rc *runtimeconfig.RuntimeConfig) {
 	}
 }
 
-func checkGatewayHealth(interval time.Duration, rc *runtimeconfig.RuntimeConfig, gui *Gui) {
-	ticker := time.NewTicker(interval)
-	for {
-		select {
-		case <-ticker.C:
-			for _, gw := range rc.GetGateways() {
-				err := ping(gw.IP)
-				if err == nil {
-					gw.Healthy = true
-					log.Debugf("Successfully pinged gateway %v with ip: %v", gw.Name, gw.IP)
-				} else {
-					gw.Healthy = false
-					log.Errorf("unable to ping host %s: %v", gw.IP, err)
-				}
-			}
-			gui.Gateways <- rc.GetGateways()
-		}
+func saveConfig(rc runtimeconfig.RuntimeConfig) error {
+	cfgbuf := new(bytes.Buffer)
+	_, err := rc.Write(cfgbuf)
+	if err != nil {
+		return fmt.Errorf("unable to create WireGuard configuration: %w", err)
 	}
+	newConfigurationFile := cfgbuf.String()
+	if newConfigurationFile == lastConfigurationFile {
+		log.Debugf("skip writing identical configuration file")
+		return nil
+	}
+	err = WriteConfigFile(rc.Config.WireGuardConfigPath, cfgbuf)
+	if err != nil {
+		return fmt.Errorf("unable to create WireGuard configuration file %s: %w", rc.Config.WireGuardConfigPath, err)
+	}
+	lastConfigurationFile = newConfigurationFile
+	return nil
 }
 
 func checkVersion(interval time.Duration, gui *Gui) {
