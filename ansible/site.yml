@@ -1,0 +1,5 @@
+---
+- hosts: gateways
+  tasks:
+    - include_role:
+        name: gateway
