@@ -12,7 +12,6 @@ import (
 	"io/ioutil"
 	"os"
 	"os/exec"
-	"path"
 	"path/filepath"
 	"time"
 )
@@ -37,21 +36,30 @@ func platformFlags(cfg *Config) {
 }
 
 func platformInit(cfg *Config) {
-	logger.SetupDeviceLogger(cfg.LogLevel, path.Join(filepath.Join(cfg.ConfigPath, "device-agent-helper.log")))
+	logdir := "c:\\naisdevice"
+	err := os.MkdirAll(logdir, 0755)
+	if err != nil {
+		log.Fatalf("Creating log directory: %v", err)
+	}
+	logger.SetupDeviceLogger(cfg.LogLevel, filepath.Join(logdir, "device-agent-helper.log"))
 
 	interactive, err := svc.IsAnInteractiveSession()
 	if err != nil {
-		log.Fatalf("checking if session is interactive: %v", err)
+		log.Fatalf("Checking if session is interactive: %v", err)
 	}
 
-	if !interactive {
-		s := NewService()
-		myService = s
+	if interactive {
+		return
+	}
+
+	s := NewService()
+	myService = s
+	go func() {
 		err := svc.Run(ServiceName, s)
 		if err != nil {
-			log.Fatalf("running service: %v", err)
+			log.Fatalf("Running service: %v", err)
 		}
-	}
+	}()
 }
 
 func interfaceExists(ctx context.Context, cfg Config) bool {
@@ -115,7 +123,7 @@ func teardownInterface(ctx context.Context, cfg Config) {
 
 func prerequisites() error {
 	if err := filesExist(WireGuardBinary); err != nil {
-		return fmt.Errorf("Verifying if file exists: %w", err)
+		return fmt.Errorf("verifying if file exists: %w", err)
 	}
 
 	return nil
@@ -157,6 +165,7 @@ func exePath() (string, error) {
 }
 
 func installService(cfg Config) {
+	log.Info("Installing service: %s", ServiceName)
 	if cfg.ConfigPath == "" {
 		log.Errorf("--config-path must be provided to install service")
 		return
@@ -200,6 +209,7 @@ func installService(cfg Config) {
 }
 
 func uninstallService() {
+	log.Info("Uninstalling service: %s", ServiceName)
 	m, err := mgr.Connect()
 	if err != nil {
 		log.Error("Connecting to Service Manager: %v", err)
@@ -230,7 +240,7 @@ func NewService() *MyService {
 }
 
 func (service *MyService) Execute(args []string, r <-chan svc.ChangeRequest, changes chan<- svc.Status) (ssec bool, errno uint32) {
-	const cmdsAccepted = svc.AcceptStop | svc.AcceptShutdown | svc.AcceptPauseAndContinue
+	const cmdsAccepted = svc.AcceptStop | svc.AcceptShutdown
 	changes <- svc.Status{State: svc.StartPending}
 	log.Infof("service started with args: %v", args)
 	changes <- svc.Status{State: svc.Running, Accepts: cmdsAccepted}
@@ -246,12 +256,6 @@ loop:
 			case svc.Stop, svc.Shutdown:
 				service.controlChannel <- Stop
 				break loop
-			case svc.Pause:
-				service.controlChannel <- Pause
-				changes <- svc.Status{State: svc.Paused, Accepts: cmdsAccepted}
-			case svc.Continue:
-				service.controlChannel <- Continue
-				changes <- svc.Status{State: svc.Running, Accepts: cmdsAccepted}
 			default:
 				log.Errorf("unexpected control request #%d", c)
 			}

@@ -99,6 +99,7 @@ func main() {
 		uninstallService()
 		return
 	}
+
 	if cfg.WindowsServiceInstall {
 		installService(cfg)
 		return
@@ -151,8 +152,6 @@ func main() {
 		ensureDown()
 	}
 
-	paused := false
-	var lastEventWhilePaused notify.EventInfo
 	controlChannel := myService.ControlChannel()
 	for {
 		select {
@@ -160,20 +159,13 @@ func main() {
 			log.Info("Received interrupt, shutting down gracefully.")
 			return
 		case ev := <-notifyEvents:
-			if paused {
-				lastEventWhilePaused = ev
-				continue
-			}
 			handleEvent(ev)
 		case ce := <-controlChannel:
 			switch ce {
 			case Stop:
 				return
-			case Continue:
-				paused = false
-				handleEvent(lastEventWhilePaused)
-			case Pause:
-				paused = true
+			default:
+				log.Errorf("Unrecognized control event: %v", ce)
 			}
 		}
 	}

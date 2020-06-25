@@ -14,7 +14,8 @@ func SetupDeviceLogger(level, path string) {
 		log.Fatalf("unable to open log file %s, error: %v", path, err)
 	}
 
-	mw := io.MultiWriter(os.Stdout, file)
+	// file must be before os.Stdout here because when running as windows service writes to stdout fail.
+	mw := io.MultiWriter(file, os.Stdout)
 	log.SetOutput(mw)
 
 	log.Infof("Path: %s", path)
