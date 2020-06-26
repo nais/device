@@ -20,6 +20,8 @@ type SessionInfo struct {
 	Expiry int64  `json:"expiry"`
 }
 
+const GetAuthURLMaxAttempts = 3
+
 func (si *SessionInfo) Expired() bool {
 	if si == nil {
 		return true
@@ -34,12 +36,21 @@ func EnsureAuth(existing *SessionInfo, ctx context.Context, apiserverURL, platfo
 		return existing, nil
 	}
 
-	authUrlCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
-	authURL, err := getAuthURL(apiserverURL, authUrlCtx)
-	cancel()
+	var authURL string
+	for attempt := 0; attempt < GetAuthURLMaxAttempts; attempt += 1 {
+		authUrlCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
+		authURL, err = getAuthURL(apiserverURL, authUrlCtx)
+		cancel()
 
-	if err != nil {
-		return nil, fmt.Errorf("getting Azure auth URL from apiserver: %v", err)
+		if err == nil && len(authURL) > 0 {
+			break
+		}
+
+		log.Warnf("[attempt %d/3]: getting Azure auth URL from apiserver: %v", attempt, err)
+	}
+
+	if len(authURL) == 0 {
+		return nil, fmt.Errorf("unable to get auth URL from apiserver after %d attempts", GetAuthURLMaxAttempts)
 	}
 
 	sessionInfo, err := runFlow(ctx, authURL, apiserverURL, platform, serial)
@@ -115,9 +126,6 @@ func runFlow(ctx context.Context, authURL, apiserverURL, platform, serial string
 }
 
 func getAuthURL(apiserverURL string, ctx context.Context) (string, error) {
-	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
-	defer cancel()
-
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, apiserverURL+"/authurl", nil)
 	if err != nil {
 		return "", fmt.Errorf("creating request to get Azure auth URL: %v", err)
