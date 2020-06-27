@@ -27,12 +27,12 @@ jobs:
         uses: actions/cache@v2
         with:
           path: vendor
-          key: ${{ runner.os }}-composer-approval-${{ hashFiles('**/composer.lock') }}
+          key: ${{ runner.os }}-composer-approval-ci-${{ hashFiles('**/composer.lock') }}
           restore-keys: |
-            ${{ runner.os }}-composer-approval-
+            ${{ runner.os }}-composer-approval-ci-
       - name: Install dependencies
         if: steps.composer-cache.outputs.cache-hit != 'true'
-        run: composer install --prefer-dist --no-progress --no-suggest --no-ansi -o
+        run: composer install --prefer-dist --no-progress --no-suggest --no-ansi
       - name: Run unit tests
         run: composer run test
       - name: Run static analysis
