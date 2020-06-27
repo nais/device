@@ -2,7 +2,7 @@ name: Test, build and deploy the approval app
 on:
   push:
     paths:
-      - 'approval'
+      - 'approval/**'
       - '.github/workflows/approval-test-and-deploy.yml'
 
 defaults:
