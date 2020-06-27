@@ -1,0 +1,54 @@
+name: Test, build and deploy the approval app
+on:
+  push:
+    paths:
+      - 'approval'
+      - '.github/workflows/approval-test-and-deploy.yml'
+
+defaults:
+  run:
+    working-directory: ./approval
+
+jobs:
+  test:
+    name: Run unit tests and static analysis
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Output some debug information about the PHP version
+        run: |
+          php -v
+          php -i
+          php -m
+      - name: Validate composer files
+        run: composer validate --strict
+      - name: Cache Composer packages
+        id: composer-cache
+        uses: actions/cache@v2
+        with:
+          path: vendor
+          key: ${{ runner.os }}-composer-approval-${{ hashFiles('**/composer.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-composer-approval-
+      - name: Install dependencies
+        if: steps.composer-cache.outputs.cache-hit != 'true'
+        run: composer install --prefer-dist --no-progress --no-suggest --no-ansi -o
+      - name: Run unit tests
+        run: composer run test
+      - name: Run static analysis
+        run: composer run sa
+
+  build:
+    env:
+      IMAGE: docker.pkg.github.com/${{ github.repository }}/approval:${{ github.sha }}
+    name: Build docker container
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Build and publish Docker image
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          docker build --tag ${IMAGE} .
+          docker login docker.pkg.github.com -u ${GITHUB_REPOSITORY} -p ${GITHUB_TOKEN}
+          docker push ${IMAGE}
