@@ -37,18 +37,3 @@ jobs:
         run: composer run test
       - name: Run static analysis
         run: composer run sa
-
-  build:
-    env:
-      IMAGE: docker.pkg.github.com/${{ github.repository }}/approval:${{ github.sha }}
-    name: Build docker container
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v2
-      - name: Build and publish Docker image
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          docker build --tag ${IMAGE} .
-          docker login docker.pkg.github.com -u ${GITHUB_REPOSITORY} -p ${GITHUB_TOKEN}
-          docker push ${IMAGE}
