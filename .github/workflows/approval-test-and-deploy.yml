@@ -28,8 +28,6 @@ jobs:
         with:
           path: vendor
           key: ${{ runner.os }}-composer-approval-ci-${{ hashFiles('**/composer.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-composer-approval-ci-
       - name: Install dependencies
         if: steps.composer-cache.outputs.cache-hit != 'true'
         run: composer install --prefer-dist --no-progress --no-suggest --no-ansi
