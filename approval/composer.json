@@ -45,7 +45,7 @@
       "@phpstan",
       "@psalm"
     ],
-    "phpstan": "vendor/bin/phpstan analyse src tests -l max --no-progress",
+    "phpstan": "vendor/bin/phpstan analyse public src tests -l max --no-progress",
     "psalm": "vendor/bin/psalm --no-progress",
     "ci": [
       "@lint",
