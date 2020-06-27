@@ -10,7 +10,7 @@ use Nais\Device\Approval\Controllers\IndexController;
 use Nais\Device\Approval\Controllers\MembershipController;
 use Nais\Device\Approval\Controllers\SamlController;
 use Psr\Container\ContainerInterface;
-use Psr\Http\Message\ResponseInterface;
+use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
 use Psr\Http\Server\RequestHandlerInterface as RequestHandler;
 use RuntimeException;
@@ -66,7 +66,7 @@ $app = AppFactory::create();
 // Register middleware
 $app->addBodyParsingMiddleware();
 $app->add(TwigMiddleware::createFromContainer($app, Twig::class));
-$app->add(function(Request $request, RequestHandler $handler) : ResponseInterface {
+$app->add(function(Request $request, RequestHandler $handler) : Response {
     if ('' === AAD_CLIENT_SECRET) {
         throw new RuntimeException('Missing AAD_CLIENT_SECRET environment variable');
     } else if ('' === SAML_CERT) {
@@ -94,6 +94,8 @@ $app->get('/',                  IndexController::class . ':index');
 $app->post('/toggleMembership', MembershipController::class . ':toggle');
 $app->post('/saml/acs',         SamlController::class . ':acs');
 $app->get('/saml/logout',       SamlController::class . ':logout');
+$app->get('/isAlive',           fn(Request $request, Response $response) : Response => $response);
+$app->get('/isReady',           fn(Request $request, Response $response) : Response => $response);
 
 // Run the app
 $app->run();
