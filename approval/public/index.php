@@ -23,7 +23,7 @@ require __DIR__ . '/../vendor/autoload.php';
  * @return string
  */
 function env(string $key) : string {
-    return (string) getenv($key);
+    return trim((string) getenv($key));
 }
 
 define('DEBUG', '1' === env('DEBUG'));
