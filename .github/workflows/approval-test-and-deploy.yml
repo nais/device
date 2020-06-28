@@ -33,8 +33,6 @@ jobs:
         run: composer run sa
 
   build:
-    needs:
-      - test
     name: Build docker container
     runs-on: ubuntu-latest
     steps:
@@ -50,6 +48,7 @@ jobs:
   deploy-dev-gcp:
     name: Deploy to dev-gcp
     needs:
+      - test
       - build
     runs-on: ubuntu-latest
     steps:
@@ -58,5 +57,5 @@ jobs:
         env:
           APIKEY: ${{ secrets.NAIS_DEPLOY_KEY }}
           CLUSTER: dev-gcp
-          RESOURCE: nais.yml
-          VARS: dev-gcp-vars.yml
+          RESOURCE: ./approval/nais.yml
+          VARS: ./approval/dev-gcp-vars.yml
