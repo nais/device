@@ -29,6 +29,11 @@ spec:
     requests:
       cpu: 200m
       memory: 256Mi
+  env:
+    {{#each env}}
+    - name: {{@key}}
+      value: "{{this}}"
+    {{/each}}
   ingresses:
   {{#each ingresses as |url|}}
      - {{url}}

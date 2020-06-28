@@ -1,5 +1,7 @@
 app: naisdevice-approval
 namespace: naisdevice
 team: naisdevice
+env:
+  DEBUG: "1"
 ingresses:
   - https://naisdevice-approval.dev-gcp.nais.io
