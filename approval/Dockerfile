@@ -16,7 +16,8 @@ RUN echo "export ISSUER_ENTITY_ID" >> /etc/apache2/envvars && \
     echo "export ACCESS_GROUP" >> /etc/apache2/envvars && \
     echo "export AAD_CLIENT_ID" >> /etc/apache2/envvars && \
     echo "export SAML_CERT" >> /etc/apache2/envvars && \
-    echo "export AAD_CLIENT_SECRET" >> /etc/apache2/envvars
+    echo "export AAD_CLIENT_SECRET" >> /etc/apache2/envvars && \
+    echo "export DOMAIN" >> /etc/apache2/envvars
 COPY --from=build /app/vendor/ /var/www/vendor/
 COPY templates/ /var/www/templates/
 COPY src/ /var/www/src/
