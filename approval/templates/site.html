@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+
+    <link href="https://fonts.googleapis.com/css?family=Open+Sans:300,400|Sen&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.0/css/bootstrap.min.css"
+        integrity="sha384-9aIt2nRpC12Uk9gS9baDl411NQApFmC26EwAOH8WgZl5MYYxFfc+NcPb1dKGj7Sk" crossorigin="anonymous">
+    <link rel="stylesheet" href="/css/style.css">
+    <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon.png">
+
+    <title>naisdevice - Do's and don'ts</title>
+</head>
+
+<body>
+    <header>
+        <div class="container d-flex flex-column flex-md-row align-items-center p-3 ">
+            <h1 class="my-0 mr-md-auto">naisdevice</h1>
+            <h1 class="mt-4 mb-1 my-md-0">do's and don'ts</h1>
+        </div>
+    </header>
+
+    <main role="main">
+        <div class="container">
+            {% block content %}{% endblock %}
+        </div>
+    </main>
+
+    <div class="tech container mt-3 mb-3">
+        <div class="row">
+            <div class="col-12 text-center text-md-left">
+                <p>naisdevice is powered by:</p>
+            </div>
+        </div>
+        <div class="row align-items-center">
+            <div class="text-center col-md mt-4 mt-md-0">
+                <a href="https://nais.io"><img alt="Nais logo" title="Nais" src="/images/tech/nais-logo.svg"></a>
+            </div>
+            <div class="text-center col-md mt-4 mt-md-0">
+                <a href="https://slack.com"><img alt="Slack logo" title="Slack" src="/images/tech/slack.svg"></a>
+            </div>
+            <div class="text-center col-md mt-4 mt-md-0">
+                <a href="https://kolide.com"><img alt="Kolide logo" title="Kolide" src="/images/tech/kolide.svg"></a>
+            </div>
+            <div class="text-center col-md mt-4 mt-md-0">
+                <a href="https://azure.com"><img alt="Azure logo" title="Azure" src="/images/tech/azure.svg"></a>
+            </div>
+            <div class="text-center col-md mt-4 mt-md-0">
+                <a href="https://wireguard.com"><img alt="Wireguard logo" title="Wireguard" src="/images/tech/wireguard.svg"></a>
+            </div>
+            <div class="text-center col-md mt-4 mt-md-0 d-none">
+                <p>and PHP \o/</p>
+            </div>
+        </div>
+    </div>
+
+    {% block script %}{% endblock %}
+</body>
+</html>

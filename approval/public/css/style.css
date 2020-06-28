@@ -1,0 +1,39 @@
+:root {
+  --b: #005b82;
+}
+
+.index a {
+  text-decoration: underline;
+  color: var(--b);
+}
+
+body {
+  font-family: 'Open Sans', sans-serif;
+  color: var(--b);
+}
+
+main {
+  background-color: #efefef;
+  border-top: 1px solid var(--b);
+  border-bottom: 1px solid var(--b);
+}
+
+.tech img {
+  width: 50%;
+}
+
+@media (min-width: 768px) {
+  .tech img {
+    width: 75%;
+    filter: grayscale(100%);
+    opacity: 50%;
+    transition: opacity .2s ease-in-out, filter .2s ease-in-out;
+  }
+
+  .tech img:hover {
+    width: 75%;
+    filter: grayscale(0%);
+    opacity: 100%;
+    transition: opacity .2s ease-in-out, filter .2s ease-in-out
+  }
+}
