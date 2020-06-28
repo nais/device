@@ -40,7 +40,6 @@ class EnvironmentValidation {
         ] as $required) {
             if (empty($this->env[$required])) {
                 $missing[] = $required;
-
             }
         }
 
