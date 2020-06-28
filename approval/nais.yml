@@ -11,7 +11,7 @@ spec:
     outbound:
       external:
         - host: login.microsoftonline.com
-      rules: []
+        - host: graph.microsoft.com
   port: 80
   replicas:
     min: 1
