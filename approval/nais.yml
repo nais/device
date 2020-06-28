@@ -7,6 +7,11 @@ metadata:
     team: {{team}}
 spec:
   image: {{ image }}
+  accessPolicy:
+    outbound:
+      external:
+        - host: login.microsoftonline.com
+      rules: []
   port: 80
   replicas:
     min: 1
