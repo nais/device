@@ -33,6 +33,8 @@ jobs:
         run: composer run sa
 
   build:
+    needs:
+      - test
     name: Build docker container
     runs-on: ubuntu-latest
     steps:
