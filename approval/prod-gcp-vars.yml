@@ -1,5 +1,5 @@
 app: naisdevice-approval
-namespace: nais
-team: nais
+namespace: naisdevice
+team: naisdevice
 ingresses:
   - https://naisdevice-approval.prod-gcp.nais.io
