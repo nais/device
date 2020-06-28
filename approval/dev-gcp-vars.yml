@@ -2,6 +2,9 @@ app: naisdevice-approval
 namespace: naisdevice
 team: naisdevice
 env:
-  DEBUG: "1"
+  DEBUG: 1
+  DOMAIN: trygdeetaten.no
+  ACCESS_GROUP: 86a52f98-7297-45ac-a2d0-2c6eb67a19df
+  AAD_CLIENT_ID: e8ee6148-5e20-47d3-a073-2ccd150d5603
 ingresses:
   - https://naisdevice-approval.dev-gcp.nais.io

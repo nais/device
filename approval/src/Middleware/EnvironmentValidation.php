@@ -37,6 +37,7 @@ class EnvironmentValidation {
             'AAD_CLIENT_ID',
             'AAD_CLIENT_SECRET',
             'SAML_CERT',
+            'DOMAIN',
         ] as $required) {
             if (empty($this->env[$required])) {
                 $missing[] = $required;

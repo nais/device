@@ -16,8 +16,6 @@ use Throwable;
 
 require __DIR__ . '/../vendor/autoload.php';
 
-define('DEBUG', '1' === getenv('DEBUG'));
-
 /**
  * Get env var as string
  *
@@ -28,11 +26,13 @@ function env(string $key) : string {
     return (string) getenv($key);
 }
 
+define('DEBUG', '1' === env('DEBUG'));
+
 // Create and populate container
 $container = new Container();
 $container->set(Twig::class, fn() : Twig => Twig::create(__DIR__ . '/../templates'));
 $container->set(Session::class, fn() : Session => (new Session())->start() );
-$container->set(ApiClient::class, fn() => new ApiClient(env('AAD_CLIENT_ID'), env('AAD_CLIENT_SECRET'), 'nav.no'));
+$container->set(ApiClient::class, fn() => new ApiClient(env('AAD_CLIENT_ID'), env('AAD_CLIENT_SECRET'), env('DOMAIN')));
 $container->set(IndexController::class, function(ContainerInterface $c) : IndexController {
     /** @var ApiClient */
     $apiClient = $c->get(ApiClient::class);

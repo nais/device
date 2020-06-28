@@ -18,7 +18,7 @@ class EnvironmentValidationTest extends TestCase {
         return [
             'no vars' => [
                 [],
-                'Missing required environment variable(s): ISSUER_ENTITY_ID, LOGIN_URL, ACCESS_GROUP, AAD_CLIENT_ID, AAD_CLIENT_SECRET, SAML_CERT',
+                'Missing required environment variable(s): ISSUER_ENTITY_ID, LOGIN_URL, ACCESS_GROUP, AAD_CLIENT_ID, AAD_CLIENT_SECRET, SAML_CERT, DOMAIN',
             ],
             'missing' => [
                 [
@@ -26,7 +26,7 @@ class EnvironmentValidationTest extends TestCase {
                     'AAD_CLIENT_ID' => 'some id',
                     'SAML_CERT'     => 'some cert',
                 ],
-                'Missing required environment variable(s): ISSUER_ENTITY_ID, ACCESS_GROUP, AAD_CLIENT_SECRET',
+                'Missing required environment variable(s): ISSUER_ENTITY_ID, ACCESS_GROUP, AAD_CLIENT_SECRET, DOMAIN',
             ],
         ];
     }
@@ -67,6 +67,7 @@ class EnvironmentValidationTest extends TestCase {
             'AAD_CLIENT_ID'     => 'some id',
             'AAD_CLIENT_SECRET' => 'some secret',
             'SAML_CERT'         => 'some cert',
+            'DOMAIN'            => 'nav.no',
         ]);
         $this->assertSame($response, $middleware($request, $handler));
     }
