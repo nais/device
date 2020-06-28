@@ -53,6 +53,90 @@ class MembershipControllerTest extends TestCase {
     }
 
     /**
+     * @covers ::__construct
+     * @covers ::toggle
+     */
+    public function testRespondsWithErrorOnMissingSessionToken() : void {
+        $controller = new MembershipController(
+            $this->createConfiguredMock(Session::class, [
+                'getUser'      => $this->createMock(User::class),
+                'getPostToken' => null,
+            ]),
+            $this->createMock(ApiClient::class),
+            'access-group'
+        );
+
+        $body = $this->createMock(StreamInterface::class);
+        $body
+            ->expects($this->once())
+            ->method('write')
+            ->with('{"error":"Missing session token"}');
+
+        $response2 = $this->createConfiguredMock(Response::class, ['getBody' => $body]);
+        $response2
+            ->expects($this->once())
+            ->method('withStatus')
+            ->with(400)
+            ->willReturn($this->createMock(Response::class));
+
+        $response1 = $this->createMock(Response::class);
+        $response1
+            ->expects($this->once())
+            ->method('withHeader')
+            ->with('Content-Type', 'application/json')
+            ->willReturn($response2);
+
+        $controller->toggle(
+            $this->createMock(Request::class),
+            $response1
+        );
+    }
+
+    /**
+     * @covers ::__construct
+     * @covers ::toggle
+     */
+    public function testRespondsWithErrorOnInvalidSessionToken() : void {
+        $controller = new MembershipController(
+            $this->createConfiguredMock(Session::class, [
+                'getUser'      => $this->createMock(User::class),
+                'getPostToken' => 'some-token',
+            ]),
+            $this->createMock(ApiClient::class),
+            'access-group'
+        );
+
+        $body = $this->createMock(StreamInterface::class);
+        $body
+            ->expects($this->once())
+            ->method('write')
+            ->with('{"error":"Incorrect session token"}');
+
+        $response2 = $this->createConfiguredMock(Response::class, ['getBody' => $body]);
+        $response2
+            ->expects($this->once())
+            ->method('withStatus')
+            ->with(400)
+            ->willReturn($this->createMock(Response::class));
+
+        $response1 = $this->createMock(Response::class);
+        $response1
+            ->expects($this->once())
+            ->method('withHeader')
+            ->with('Content-Type', 'application/json')
+            ->willReturn($response2);
+
+        $controller->toggle(
+            $this->createConfiguredMock(Request::class, [
+                'getParsedBody' => [
+                    'token' => 'some-other-token',
+                ],
+            ]),
+            $response1
+        );
+    }
+
+    /**
      * @covers ::toggle
      */
     public function testThrowsExceptionWhenUnableToFetchUserGroups() : void {
@@ -68,6 +152,7 @@ class MembershipControllerTest extends TestCase {
                 'getUser' => $this->createConfiguredMock(User::class, [
                     'getObjectId' => 'user-id',
                 ]),
+                'getPostToken' => 'some-token',
             ]),
             $apiClient,
             'access-group'
@@ -95,7 +180,11 @@ class MembershipControllerTest extends TestCase {
             ->willReturn($response2);
 
         $controller->toggle(
-            $this->createMock(Request::class),
+            $this->createConfiguredMock(Request::class, [
+                'getParsedBody' => [
+                    'token' => 'some-token',
+                ],
+            ]),
             $response1
         );
     }
@@ -122,6 +211,7 @@ class MembershipControllerTest extends TestCase {
                 'getUser' => $this->createConfiguredMock(User::class, [
                     'getObjectId' => 'user-id',
                 ]),
+                'getPostToken' => 'some-token'
             ]),
             $apiClient,
             'access-group'
@@ -149,7 +239,11 @@ class MembershipControllerTest extends TestCase {
             ->willReturn($response2);
 
         $controller->toggle(
-            $this->createMock(Request::class),
+            $this->createConfiguredMock(Request::class, [
+                'getParsedBody' => [
+                    'token' => 'some-token',
+                ],
+            ]),
             $response1
         );
     }
@@ -179,6 +273,7 @@ class MembershipControllerTest extends TestCase {
                 'getUser' => $this->createConfiguredMock(User::class, [
                     'getObjectId' => 'user-id',
                 ]),
+                'getPostToken' => 'some-token',
             ]),
             $apiClient,
             'access-group'
@@ -206,7 +301,11 @@ class MembershipControllerTest extends TestCase {
             ->willReturn($response2);
 
         $controller->toggle(
-            $this->createMock(Request::class),
+            $this->createConfiguredMock(Request::class, [
+                'getParsedBody' => [
+                    'token' => 'some-token',
+                ],
+            ]),
             $response1
         );
     }
@@ -235,6 +334,7 @@ class MembershipControllerTest extends TestCase {
                 'getUser' => $this->createConfiguredMock(User::class, [
                     'getObjectId' => 'user-id',
                 ]),
+                'getPostToken' => 'some-token',
             ]),
             $apiClient,
             'access-group'
@@ -262,7 +362,11 @@ class MembershipControllerTest extends TestCase {
             ->willReturn($response2);
 
         $controller->toggle(
-            $this->createMock(Request::class),
+            $this->createConfiguredMock(Request::class, [
+                'getParsedBody' => [
+                    'token' => 'some-token',
+                ],
+            ]),
             $response1
         );
     }

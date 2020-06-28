@@ -63,6 +63,25 @@ class Session {
     }
 
     /**
+     * Set post token
+     *
+     * @param string $token
+     * @return void
+     */
+    public function setPostToken(string $token) : void {
+        $_SESSION['postToken'] = $token;
+    }
+
+    /**
+     * Get the post token
+     *
+     * @return ?string
+     */
+    public function getPostToken() : ?string {
+        return !empty($_SESSION['postToken']) ? (string) $_SESSION['postToken'] : null;
+    }
+
+    /**
      * Destroy the current session
      *
      * @codeCoverageIgnore

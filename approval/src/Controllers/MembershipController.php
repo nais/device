@@ -25,11 +25,22 @@ class MembershipController {
     }
 
     public function toggle(Request $request, Response $response) : Response {
-        $user = $this->session->getUser();
-        $response = $response->withHeader('Content-Type', 'application/json');
+        $response         = $response->withHeader('Content-Type', 'application/json');
+        $user             = $this->session->getUser();
+        $sessionToken     = $this->session->getPostToken();
+
+        /** @var array{token: ?string} */
+        $post             = $request->getParsedBody();
+        $tokenFromRequest = $post['token'] ?? null;
 
         if (null === $user) {
             $response->getBody()->write((string) json_encode(['error' => 'Invalid session']));
+            return $response->withStatus(400);
+        } else if (null === $sessionToken) {
+            $response->getBody()->write((string) json_encode(['error' => 'Missing session token']));
+            return $response->withStatus(400);
+        } else if ($sessionToken !== $tokenFromRequest) {
+            $response->getBody()->write((string) json_encode(['error' => 'Incorrect session token']));
             return $response->withStatus(400);
         }
 

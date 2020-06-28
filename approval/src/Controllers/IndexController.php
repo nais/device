@@ -59,9 +59,13 @@ class IndexController {
             throw new RuntimeException('Unable to fetch user groups', (int) $e->getCode(), $e);
         }
 
+        $token = uniqid('', true);
+        $this->session->setPostToken($token);
+
         return $this->view->render($response, 'index.html', [
             'user'        => $user,
             'hasAccepted' => 0 !== count($groups),
+            'token'       => $token,
         ]);
     }
 }

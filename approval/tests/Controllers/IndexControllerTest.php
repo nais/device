@@ -123,25 +123,38 @@ class IndexControllerTest extends TestCase {
             ->with('user-id')
             ->willReturn($groups);
 
-        $user = $this->createConfiguredMock(User::class, [
-            'getObjectId' => 'user-id'
-        ]);
+        $user = $this->createConfiguredMock(User::class, ['getObjectId' => 'user-id']);
+
+        $session = $this->createConfiguredMock(Session::class, ['getUser' => $user]);
+        $session
+            ->expects($this->once())
+            ->method('setPostToken')
+            ->with($this->callback(function(string $value) use (&$token) : bool {
+                $token = $value;
+
+                // Always return true as the type hint above does the actual expectation for us,
+                // and we simply want to capture the value for the incoming token
+                return true;
+            }));
 
         $view = $this->createMock(Twig::class);
         $view
             ->expects($this->once())
             ->method('render')
-            ->with($this->isInstanceOf(Response::class), 'index.html', [
-                'user'        => $user,
-                'hasAccepted' => $hasAccepted
-            ]);
+            ->with(
+                $this->isInstanceOf(Response::class),
+                'index.html',
+                [
+                    'user'        => $user,
+                    'hasAccepted' => $hasAccepted,
+                    'token'       => &$token
+                ]
+            );
 
         $controller = new IndexController(
             $apiClient,
             $view,
-            $this->createConfiguredMock(Session::class, [
-                'getUser' => $user,
-            ]),
+            $session,
             'loginurl', 'entityid', $accessGroup
         );
 

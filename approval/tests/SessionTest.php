@@ -28,6 +28,16 @@ class SessionTest extends TestCase {
     }
 
     /**
+     * @covers ::setPostToken
+     * @covers ::getPostToken
+     */
+    public function testCanSetAndGetPostToken() : void {
+        $this->assertNull($this->session->getPostToken());
+        $this->session->setPostToken('token');
+        $this->assertSame('token', $this->session->getPostToken());
+    }
+
+    /**
      * @covers ::setUser
      * @covers ::deleteUser
      */
