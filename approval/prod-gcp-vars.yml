@@ -1,0 +1,5 @@
+app: naisdevice-approval
+namespace: nais
+team: nais
+ingresses:
+  - https://naisdevice-approval.prod-gcp.nais.io
