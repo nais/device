@@ -31,6 +31,7 @@ class EnvironmentValidation {
         $missing = [];
 
         foreach ([
+            'ISSUER_ENTITY_ID',
             'LOGIN_URL',
             'ACCESS_GROUP',
             'AAD_CLIENT_ID',

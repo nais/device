@@ -18,7 +18,7 @@ class EnvironmentValidationTest extends TestCase {
         return [
             'no vars' => [
                 [],
-                'Missing required environment variable(s): LOGIN_URL, ACCESS_GROUP, AAD_CLIENT_ID, AAD_CLIENT_SECRET, SAML_CERT',
+                'Missing required environment variable(s): ISSUER_ENTITY_ID, LOGIN_URL, ACCESS_GROUP, AAD_CLIENT_ID, AAD_CLIENT_SECRET, SAML_CERT',
             ],
             'missing' => [
                 [
@@ -26,7 +26,7 @@ class EnvironmentValidationTest extends TestCase {
                     'AAD_CLIENT_ID' => 'some id',
                     'SAML_CERT'     => 'some cert',
                 ],
-                'Missing required environment variable(s): ACCESS_GROUP, AAD_CLIENT_SECRET',
+                'Missing required environment variable(s): ISSUER_ENTITY_ID, ACCESS_GROUP, AAD_CLIENT_SECRET',
             ],
         ];
     }
@@ -61,6 +61,7 @@ class EnvironmentValidationTest extends TestCase {
             ->willReturn($response);
 
         $middleware = new EnvironmentValidation([
+            'ISSUER_ENTITY_ID'  => 'some id',
             'LOGIN_URL'         => 'some url',
             'ACCESS_GROUP'      => 'some group',
             'AAD_CLIENT_ID'     => 'some id',
