@@ -10,7 +10,6 @@ RUN php -r "copy('https://getcomposer.org/installer', 'composer-setup.php');" &&
 RUN php composer.phar install -o --no-dev --no-plugins --no-scripts --no-ansi --no-progress
 
 FROM php:7.4-apache
-RUN apt-get update && apt-get -y install vim-tiny
 RUN a2enmod rewrite
 RUN echo "export ISSUER_ENTITY_ID" >> /etc/apache2/envvars && \
     echo "export LOGIN_URL" >> /etc/apache2/envvars && \
