@@ -1,6 +1,3 @@
-app: naisdevice-approval
-namespace: naisdevice
-team: naisdevice
 env:
   DOMAIN: nav.no
   ACCESS_GROUP: ffd89425-c75c-4618-b5ab-67149ddbbc2d

@@ -1,6 +1,3 @@
-app: naisdevice-approval
-namespace: naisdevice
-team: naisdevice
 env:
   DEBUG: 1
   DOMAIN: trygdeetaten.no
