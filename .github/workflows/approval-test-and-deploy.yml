@@ -1,6 +1,8 @@
 name: Test, build and deploy the approval app
 on:
   push:
+    tags:
+      - approval/v*
     paths:
       - 'approval/**'
       - '.github/workflows/approval-test-and-deploy.yml'
@@ -10,7 +12,7 @@ defaults:
     working-directory: ./approval
 
 env:
-  IMAGE: docker.pkg.github.com/${{ github.repository }}/approval:${{ github.sha }}
+  IMAGE_WITHOUT_TAG: docker.pkg.github.com/${{ github.repository }}/approval
 
 jobs:
   test:
@@ -41,9 +43,22 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
+          IMAGE=${IMAGE_WITHOUT_TAG}:${GITHUB_SHA}
+          PRODUCTION_TAG=$(echo ${GITHUB_REF} | cut -d / -f 4 -s)
+
+          if [[ ! -z "${PRODUCTION_TAG}" ]]; then
+            IMAGE=${IMAGE_WITHOUT_TAG}:${PRODUCTION_TAG}
+          fi
+
           docker build --tag ${IMAGE} .
           docker login docker.pkg.github.com -u ${GITHUB_REPOSITORY} -p ${GITHUB_TOKEN}
           docker push ${IMAGE}
+
+          echo ${IMAGE} > image-name.txt
+      - uses: actions/upload-artifact@v2
+        with:
+          name: image-name
+          path: image-name.txt
 
   deploy-dev-gcp:
     name: Deploy to dev-gcp
@@ -53,9 +68,33 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
+      - uses: actions/download-artifact@v2
+        with:
+          name: image-name
+      - run: echo ::set-env name=IMAGE::$(cat image-name.txt)
       - uses: nais/deploy/actions/deploy@v1
         env:
           APIKEY: ${{ secrets.NAIS_DEPLOY_KEY }}
           CLUSTER: dev-gcp
           RESOURCE: ./approval/nais.yml
           VARS: ./approval/dev-gcp-vars.yml
+
+  deploy-prod-gcp:
+    if: ${{ startWith(github.ref, "refs/tags/approval/v") }}
+    name: Deploy to prod-gcp
+    needs:
+      - test
+      - build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/download-artifact@v2
+        with:
+          name: image-name
+      - run: echo ::set-env name=IMAGE::$(cat image-name.txt)
+      - uses: nais/deploy/actions/deploy@v1
+        env:
+          APIKEY: ${{ secrets.NAIS_DEPLOY_KEY }}
+          CLUSTER: prod-gcp
+          RESOURCE: ./approval/nais.yml
+          VARS: ./approval/prod-gcp-vars.yml
