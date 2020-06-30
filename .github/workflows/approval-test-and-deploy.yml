@@ -82,7 +82,7 @@ jobs:
           VARS: ./approval/dev-gcp-vars.yml
 
   deploy-prod-gcp:
-    if: ${{ startsWith(github.ref, "refs/tags/approval/v") }}
+    if: ${{ startsWith(github.ref, 'refs/tags/approval/v') }}
     name: Deploy to prod-gcp
     needs:
       - test
