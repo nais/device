@@ -56,11 +56,11 @@ jobs:
           docker login docker.pkg.github.com -u ${GITHUB_REPOSITORY} -p ${GITHUB_TOKEN}
           docker push ${IMAGE}
 
-          echo ${IMAGE} > image-name.txt
+          echo "${IMAGE}" > image-name.txt
       - uses: actions/upload-artifact@v2
         with:
           name: image-name
-          path: image-name.txt
+          path: ./approval/image-name.txt # This action does not take working-directory into account
 
   deploy-dev-gcp:
     name: Deploy to dev-gcp
@@ -73,13 +73,14 @@ jobs:
       - uses: actions/download-artifact@v2
         with:
           name: image-name
+          path: ./approval # Need to prefix working-directory manually
       - run: echo ::set-env name=IMAGE::$(cat image-name.txt)
       - uses: nais/deploy/actions/deploy@v1
         env:
           APIKEY: ${{ secrets.NAIS_DEPLOY_KEY }}
           CLUSTER: dev-gcp
-          RESOURCE: ./approval/nais.yml
-          VARS: ./approval/dev-gcp-vars.yml
+          RESOURCE: ./approval/nais.yml # Need to prefix working-directory manually
+          VARS: ./approval/dev-gcp-vars.yml # Need to prefix working-directory manually
 
   deploy-prod-gcp:
     if: ${{ startsWith(github.ref, 'refs/tags/approval/v') }}
@@ -93,10 +94,11 @@ jobs:
       - uses: actions/download-artifact@v2
         with:
           name: image-name
+          path: ./approval # Need to prefix working-directory manually
       - run: echo ::set-env name=IMAGE::$(cat image-name.txt)
       - uses: nais/deploy/actions/deploy@v1
         env:
           APIKEY: ${{ secrets.NAIS_DEPLOY_KEY }}
           CLUSTER: prod-gcp
-          RESOURCE: ./approval/nais.yml
-          VARS: ./approval/prod-gcp-vars.yml
+          RESOURCE: ./approval/nais.yml # Need to prefix working-directory manually
+          VARS: ./approval/prod-gcp-vars.yml # Need to prefix working-directory manually
