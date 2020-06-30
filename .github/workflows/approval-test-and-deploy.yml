@@ -2,7 +2,7 @@ name: Test, build and deploy the approval app
 on:
   push:
     tags:
-      - approval/v*
+      - 'approval/v*'
     paths:
       - 'approval/**'
       - '.github/workflows/approval-test-and-deploy.yml'
