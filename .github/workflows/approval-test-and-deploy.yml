@@ -5,9 +5,9 @@ on:
       - 'approval/**'
       - '.github/workflows/approval-test-and-deploy.yml'
     branches:
-      - '*'
+      - '**'
     tags:
-      - 'approval/v*'
+      - 'approval/v**'
 
 defaults:
   run:
