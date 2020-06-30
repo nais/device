@@ -4,6 +4,8 @@ on:
     paths:
       - 'approval/**'
       - '.github/workflows/approval-test-and-deploy.yml'
+    branches:
+      - '*'
     tags:
       - 'approval/v*'
 
