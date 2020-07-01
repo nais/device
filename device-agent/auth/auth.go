@@ -47,6 +47,7 @@ func EnsureAuth(existing *SessionInfo, ctx context.Context, apiserverURL, platfo
 		}
 
 		log.Warnf("[attempt %d/3]: getting Azure auth URL from apiserver: %v", attempt, err)
+                time.Sleep(1*time.Second)
 	}
 
 	if len(authURL) == 0 {
