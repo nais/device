@@ -8,8 +8,7 @@ use PHPUnit\Framework\TestCase;
  * @coversDefaultClass Nais\Device\Approval\Session
  */
 class SessionTest extends TestCase {
-    /** @var Session */
-    private $session;
+    private Session $session;
 
     public function setUp() : void {
         $_SESSION['user'] = null;

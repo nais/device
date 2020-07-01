@@ -8,14 +8,9 @@ use Psr\Http\Message\ResponseInterface as Response;
 use SimpleXMLElement;
 
 class SamlController {
-    /** @var Session */
-    private $session;
-
-    /** @var string */
-    private $certificate;
-
-    /** @var string */
-    private $logoutUrl;
+    private Session $session;
+    private string $certificate;
+    private string $logoutUrl;
 
     public function __construct(Session $session, string $certificate, string $logoutUrl) {
         $this->session     = $session;

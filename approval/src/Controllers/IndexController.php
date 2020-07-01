@@ -11,23 +11,12 @@ use Psr\Http\Message\ResponseInterface as Response;
 use RuntimeException;
 
 class IndexController {
-    /** @var ApiClient */
-    private $apiClient;
-
-    /** @var Twig */
-    private $view;
-
-    /** @var Session */
-    private $session;
-
-    /** @var string */
-    private $loginUrl;
-
-    /** @var string */
-    private $entityId;
-
-    /** @var string */
-    private $accessGroup;
+    private ApiClient $apiClient;
+    private Twig $view;
+    private Session $session;
+    private string $loginUrl;
+    private string $entityId;
+    private string $accessGroup;
 
     public function __construct(ApiClient $apiClient, Twig $view, Session $session, string $loginUrl, string $entityId, string $accessGroup) {
         $this->apiClient   = $apiClient;

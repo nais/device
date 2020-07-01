@@ -8,7 +8,7 @@ use RuntimeException;
 
 class EnvironmentValidation {
     /** @var array<string, string> */
-    private $env;
+    private array $env;
 
     /**
      * Class constructor
@@ -27,7 +27,7 @@ class EnvironmentValidation {
      * @throws RuntimeException
      * @return Response
      */
-    public function __invoke(Request $request, RequestHandler $handler): Response {
+    public function __invoke(Request $request, RequestHandler $handler) : Response {
         $missing = [];
 
         foreach ([

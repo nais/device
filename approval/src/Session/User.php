@@ -2,11 +2,8 @@
 namespace Nais\Device\Approval\Session;
 
 class User {
-    /** @var string */
-    private $objectId;
-
-    /** @var string */
-    private $name;
+    private string $objectId;
+    private string $name;
 
     /**
      * Class constructor

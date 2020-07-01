@@ -5,8 +5,7 @@ use DateTime;
 use DateTimeZone;
 
 class SamlRequest {
-    /** @var string */
-    private $issuer;
+    private string $issuer;
 
     /**
      * Class constructor

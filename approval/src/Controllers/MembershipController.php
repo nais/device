@@ -9,14 +9,9 @@ use Psr\Http\Message\ResponseInterface as Response;
 use RuntimeException;
 
 class MembershipController {
-    /** @var Session */
-    private $session;
-
-    /** @var ApiClient */
-    private $apiClient;
-
-    /** @var string */
-    private $accessGroup;
+    private Session $session;
+    private ApiClient $apiClient;
+    private string $accessGroup;
 
     public function __construct(Session $session, ApiClient $apiClient, string $accessGroup) {
         $this->session     = $session;
