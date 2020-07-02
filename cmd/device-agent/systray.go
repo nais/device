@@ -42,10 +42,10 @@ const (
 
 const (
 	versionCheckInterval      = 2 * time.Minute
-	syncConfigInterval        = 30 * time.Second
+	syncConfigInterval        = 5 * time.Minute
 	initialGatewayRefreshWait = 2 * time.Second
 	initialConnectWait        = initialGatewayRefreshWait
-	healthCheckInterval       = 10 * time.Second
+	healthCheckInterval       = 1 * time.Minute
 )
 
 func (state ProgramState) String() string {
