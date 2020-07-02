@@ -37,7 +37,7 @@ type Sessions struct {
 	state     map[string]bool
 	stateLock sync.Mutex
 
-	active     map[string]SessionInfo
+	Active     map[string]SessionInfo
 	activeLock sync.Mutex
 }
 
@@ -52,7 +52,7 @@ func New(ctx context.Context, cfg config.Config, validator jwt.Keyfunc) (*Sessio
 		devMode:        cfg.DevMode,
 		tokenValidator: validator,
 		state:          make(map[string]bool),
-		active:         make(map[string]SessionInfo),
+		Active:         make(map[string]SessionInfo),
 		oauthConfig: &oauth2.Config{
 			RedirectURL:  "http://localhost:51800",
 			ClientID:     cfg.Azure.ClientID,
@@ -74,11 +74,11 @@ func (s *Sessions) Validator() func(next http.Handler) http.Handler {
 
 			s.activeLock.Lock()
 			defer s.activeLock.Unlock()
-			sessionInfo, ok := s.active[sessionKey]
+			sessionInfo, ok := s.Active[sessionKey]
 
 			if !ok || !sessionInfo.Expired() {
 				log.Infof("session expired: %v", sessionInfo)
-				log.Infof("s: %v", s.active)
+				log.Infof("s: %v", s.Active)
 				w.WriteHeader(http.StatusUnauthorized)
 				return
 			}
@@ -161,16 +161,6 @@ func (s *Sessions) Login(w http.ResponseWriter, r *http.Request) {
 			DeviceID: deviceID,
 		}
 
-	} else {
-		sessionInfo = SessionInfo{
-			Key:      "keyyolo123",
-			Expiry:   time.Now().Add(SessionDuration).Unix(),
-			DeviceID: 1,
-			Serial:   "serial",
-			Platform: "platform",
-			Username: "username",
-			Groups:   []string{"group1", "group2"},
-		}
 	}
 
 	b, err := json.Marshal(sessionInfo)
@@ -181,7 +171,7 @@ func (s *Sessions) Login(w http.ResponseWriter, r *http.Request) {
 
 	s.activeLock.Lock()
 	defer s.activeLock.Unlock()
-	s.active[sessionInfo.Key] = sessionInfo
+	s.Active[sessionInfo.Key] = sessionInfo
 
 	w.WriteHeader(http.StatusOK)
 	_, err = w.Write(b)
@@ -189,7 +179,7 @@ func (s *Sessions) Login(w http.ResponseWriter, r *http.Request) {
 		log.Errorf("writing response: %v", err)
 	}
 
-	log.Infof("login: %v", s.active)
+	log.Infof("login: %v", s.Active)
 }
 
 // Should probably do something smart like sharing the code from ApiServerDB

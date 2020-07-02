@@ -117,12 +117,7 @@ func (a *api) deviceConfig(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	gateways, err := a.db.ReadGateways()
-	if err != nil {
-		log.Errorf("reading gateways: %v", err)
-		respondf(w, http.StatusInternalServerError, "unable to get device config\n")
-		return
-	}
+	gateways, err := a.UserGateways(sessionInfo.Groups)
 
 	w.WriteHeader(http.StatusOK)
 	err = json.NewEncoder(w).Encode(gateways)
@@ -132,6 +127,33 @@ func (a *api) deviceConfig(w http.ResponseWriter, r *http.Request) {
 		respondf(w, http.StatusInternalServerError, "unable to get device config\n")
 		return
 	}
+}
+
+func (a *api) UserGateways(userGroups []string) (*[]database.Gateway, error) {
+	gateways, err := a.db.ReadGateways()
+	if err != nil {
+		return nil, fmt.Errorf("reading gateways from db: %v", err)
+	}
+
+	userIsAuthorized := func(gatewayGroups []string, userGroups []string) bool {
+		for _, userGroup := range userGroups {
+			for _, gatewayGroup := range gatewayGroups {
+				if userGroup == gatewayGroup {
+					return true
+				}
+			}
+		}
+		return false
+	}
+
+	var filtered []database.Gateway
+	for _, gw := range gateways {
+		if userIsAuthorized(gw.AccessGroupIDs, userGroups) {
+			filtered = append(filtered, gw)
+		}
+	}
+
+	return &filtered, nil
 }
 
 func respondf(w http.ResponseWriter, statusCode int, format string, args ...interface{}) {

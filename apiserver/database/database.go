@@ -34,11 +34,12 @@ type Device struct {
 }
 
 type Gateway struct {
-	Endpoint  string   `json:"endpoint"`
-	PublicKey string   `json:"publicKey"`
-	IP        string   `json:"ip"`
-	Routes    []string `json:"routes"`
-	Name      string   `json:"name"`
+	Endpoint       string   `json:"endpoint"`
+	PublicKey      string   `json:"publicKey"`
+	IP             string   `json:"ip"`
+	Routes         []string `json:"routes"`
+	Name           string   `json:"name"`
+	AccessGroupIDs []string `json:"-"`
 }
 
 // NewTestDatabase creates and returns a new nais device database within the provided database instance
@@ -153,9 +154,25 @@ func (d *APIServerDB) UpdateDeviceStatus(devices []Device) error {
 	return nil
 }
 
+func (d *APIServerDB) AddGateway(ctx context.Context, gateway Gateway) error {
+	statement := `
+INSERT INTO gateway (name, access_group_ids, endpoint, public_key, ip, routes)
+VALUES ($1, $2, $3, $4, $5, $6);`
+
+	_, err := d.conn.Exec(ctx, statement, gateway.Name, strings.Join(gateway.AccessGroupIDs, ","), gateway.Endpoint, gateway.PublicKey, gateway.IP, strings.Join(gateway.Routes, ","))
+
+	if err != nil {
+		return fmt.Errorf("inserting new gateway: %w", err)
+	}
+
+	log.Infof("Added gateway: %+v", gateway)
+
+	return nil
+}
+
 var mux sync.Mutex
 
-func (d *APIServerDB) AddDevice(ctx context.Context, username, publicKey, serial, platform string) error {
+func (d *APIServerDB) AddDevice(ctx context.Context, device Device) error {
 	mux.Lock()
 	defer mux.Unlock()
 
@@ -180,7 +197,7 @@ func (d *APIServerDB) AddDevice(ctx context.Context, username, publicKey, serial
 INSERT INTO device (serial, username, public_key, ip, healthy, psk, platform)
 VALUES ($1, $2, $3, $4, false, '', $5)
 ON CONFLICT(serial, platform) DO UPDATE SET username = $2, public_key = $3;`
-	_, err = tx.Exec(ctx, statement, serial, username, publicKey, ip, platform)
+	_, err = tx.Exec(ctx, statement, device.Serial, device.Username, device.PublicKey, ip, device.Platform)
 
 	if err != nil {
 		return fmt.Errorf("inserting new device: %w", err)
@@ -190,7 +207,7 @@ ON CONFLICT(serial, platform) DO UPDATE SET username = $2, public_key = $3;`
 		return fmt.Errorf("commiting transaction: %w", err)
 	}
 
-	log.Infof("Added or updated device with serial %v on platform %v for user %v with public key %v to database.", serial, platform, username, publicKey)
+	log.Infof("Added or updated device: %+v", device)
 
 	return nil
 }
@@ -239,7 +256,7 @@ func (d *APIServerDB) ReadGateways() ([]Gateway, error) {
 	ctx := context.Background()
 
 	query := `
-SELECT public_key, endpoint, ip, routes, name
+SELECT public_key, access_group_ids, endpoint, ip, routes, name
   FROM gateway;`
 
 	rows, err := d.conn.Query(ctx, query)
@@ -251,9 +268,14 @@ SELECT public_key, endpoint, ip, routes, name
 	for rows.Next() {
 		var gateway Gateway
 		var routes string
-		err := rows.Scan(&gateway.PublicKey, &gateway.Endpoint, &gateway.IP, &routes, &gateway.Name)
+		var accessGroupIDs string
+		err := rows.Scan(&gateway.PublicKey, &accessGroupIDs, &gateway.Endpoint, &gateway.IP, &routes, &gateway.Name)
 		if err != nil {
 			return nil, fmt.Errorf("scanning gateway: %w", err)
+		}
+
+		if len(accessGroupIDs) != 0 {
+			gateway.AccessGroupIDs = strings.Split(accessGroupIDs, ",")
 		}
 
 		if len(routes) != 0 {

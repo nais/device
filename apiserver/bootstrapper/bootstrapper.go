@@ -52,7 +52,13 @@ func WatchEnrollments(ctx context.Context, db *database.APIServerDB, bootstrapAp
 			}
 
 			for _, enrollment := range deviceInfos {
-				err := db.AddDevice(ctx, enrollment.Owner, enrollment.PublicKey, enrollment.Serial, enrollment.Platform)
+				err := db.AddDevice(ctx, database.Device{
+					Username:  enrollment.Owner,
+					PublicKey: enrollment.PublicKey,
+					Serial:    enrollment.Serial,
+					Platform:  enrollment.Platform,
+				})
+
 				if err != nil {
 					log.Errorf("bootstrap: Adding device: %v", err)
 					continue
