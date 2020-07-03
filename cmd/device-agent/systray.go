@@ -262,7 +262,8 @@ func mainloop(gui *Gui, rc *runtimeconfig.RuntimeConfig) {
 				case errors.Is(err, &apiserver.UnhealthyError{}):
 					gui.ProgramState <- StateUnhealthy
 					log.Errorf("Device is not healthy: %v", err)
-					stateChange <- StateDisconnecting
+					notify("No access as your device is unhealthy. Run '/msg @Kolide status' on Slack and fix the errors")
+					stateChange <- StateUnhealthy
 					continue
 
 				case err != nil:
