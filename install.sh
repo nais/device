@@ -2,7 +2,6 @@
 
 set -o pipefail
 
-_=$(sudo ls) # sudo this shell
 latest_tag=$(curl --show-error --silent --fail -L "https://api.github.com/repos/nais/device/releases/latest" | grep 'tag_name' | sed -E 's/.*"([^"]+)".*/\1/' || exit 1)
 pkg_url="https://github.com/nais/device/releases/download/${latest_tag}/naisdevice-${latest_tag}.pkg"
 
