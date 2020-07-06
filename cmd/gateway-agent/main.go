@@ -459,7 +459,7 @@ func ParseDefaultInterfaceOutput(output []byte) (string, string, error) {
 	return interfaceName, interfaceIP, nil
 }
 
-func forwardRoutes(cfg Config, routes []string, ) error {
+func forwardRoutes(cfg Config, routes []string) error {
 	var err error
 
 	for _, ip := range routes {
@@ -468,7 +468,7 @@ func forwardRoutes(cfg Config, routes []string, ) error {
 			return fmt.Errorf("setting up snat: %w", err)
 		}
 
-		err = cfg.IPTables.AppendUnique("filter", "FORWARD", "-i", "wg0", "-o", cfg.DefaultInterface, "-p", "tcp", "--syn", "-d", ip, "-m", "conntrack", "--cstate", "NEW", "-j", "ACCEPT")
+		err = cfg.IPTables.AppendUnique("filter", "FORWARD", "-i", "wg0", "-o", cfg.DefaultInterface, "-p", "tcp", "--syn", "-d", ip, "-m", "conntrack", "--ctstate", "NEW", "-j", "ACCEPT")
 		if err != nil {
 			return fmt.Errorf("setting up forward: %w", err)
 		}
