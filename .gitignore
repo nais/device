@@ -5,3 +5,5 @@ bin
 *.pkg
 *.app
 *.icns
+wireguard-go-*
+wireguard-tools-*
