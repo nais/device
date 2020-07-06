@@ -9,8 +9,8 @@ pkg_url="https://github.com/nais/device/releases/download/${latest_tag}/naisdevi
 echo "downloading latest pkg from: $pkg_url"
 
 temp_pkg=$(mktemp).pkg
-curl --show-error --silent --fail -L $pkg_url  > $temp_pkg || exit 1
+curl --show-error --silent --fail -L "$pkg_url"  > "$temp_pkg" || exit 1
 
 echo "installing new version: $latest_tag"
-sudo installer -target / -pkg $temp_pkg
+sudo installer -target / -pkg "$temp_pkg"
 echo "done"
