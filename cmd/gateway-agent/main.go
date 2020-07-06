@@ -403,9 +403,9 @@ func checkForNewRelease(cfg Config) {
 }
 
 func setupIptables(cfg Config) error {
-	err := cfg.IPTables.ChangePolicy("filter", "FORWARD", "DENY")
+	err := cfg.IPTables.ChangePolicy("filter", "FORWARD", "DROP")
 	if err != nil {
-		return fmt.Errorf("setting FORWARD policy to DENY: %w", err)
+		return fmt.Errorf("setting FORWARD policy to DROP: %w", err)
 	}
 
 	// Allow ESTABLISHED,RELATED from wg0 to default interface
