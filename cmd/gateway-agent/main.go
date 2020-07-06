@@ -438,7 +438,8 @@ func ParseDefaultInterfaceOutput(output []byte) (string, string, error) {
 	lines := strings.Split(string(output), "\n")
 	parts := strings.Split(lines[0], " ")
 	if len(parts) != 9 {
-		return "", "", fmt.Errorf("wrong number of parts in output: '%v', output: '%v'", len(parts), output)
+		log.Errorf("wrong number of parts in output: '%v', output: '%v'", len(parts), string(output))
+		//return "", "", fmt.Errorf("wrong number of parts in output: '%v', output: '%v'", len(parts), string(output))
 	}
 
 	interfaceName := parts[4]
