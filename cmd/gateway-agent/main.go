@@ -138,17 +138,17 @@ func main() {
 		var err error
 		cfg.IPTables, err = iptables.New()
 		if err != nil {
-			log.Fatalf("setting up iptables %w", err)
+			log.Fatalf("setting up iptables %v", err)
 		}
 
 		cfg.DefaultInterface, cfg.DefaultInterfaceIP, err = getDefaultInterfaceInfo()
 		if err != nil {
-			log.Fatalf("Getting default interface info: %w", err)
+			log.Fatalf("Getting default interface info: %v", err)
 		}
 
 		err = setupIptables(cfg)
 		if err != nil {
-			log.Fatalf("Setting up iptables defaults: %w", err)
+			log.Fatalf("Setting up iptables defaults: %v", err)
 		}
 	} else {
 		log.Infof("Skipping interface setup")
