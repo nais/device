@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/nais/device/pkg/logger"
 	"io/ioutil"
 	"net/http"
 	"os"
@@ -11,7 +12,6 @@ import (
 	"regexp"
 	"time"
 
-	"github.com/nais/device/pkg/logger"
 	"github.com/nais/device/pkg/version"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
@@ -29,7 +29,6 @@ var (
 )
 
 func init() {
-	logger.Setup(cfg.LogLevel)
 	flag.StringVar(&cfg.Name, "name", cfg.Name, "gateway name")
 	flag.StringVar(&cfg.ConfigDir, "config-dir", cfg.ConfigDir, "gateway-agent config directory")
 	flag.StringVar(&cfg.TunnelIP, "tunnel-ip", cfg.TunnelIP, "gateway tunnel ip")
@@ -41,8 +40,11 @@ func init() {
 	flag.StringVar(&cfg.PrometheusPublicKey, "prometheus-public-key", cfg.PrometheusPublicKey, "prometheus public key")
 	flag.StringVar(&cfg.PrometheusTunnelIP, "prometheus-tunnel-ip", cfg.PrometheusTunnelIP, "prometheus tunnel ip")
 	flag.BoolVar(&cfg.DevMode, "development-mode", cfg.DevMode, "development mode avoids setting up interface and configuring WireGuard")
+	flag.StringVar(&cfg.LogLevel, "log-level", "info", "log level")
 
 	flag.Parse()
+
+	logger.Setup(cfg.LogLevel)
 	cfg.WireGuardConfigPath = path.Join(cfg.ConfigDir, "wg0.conf")
 	cfg.PrivateKeyPath = path.Join(cfg.ConfigDir, "private.key")
 	initMetrics(cfg.Name)
@@ -107,14 +109,15 @@ func initMetrics(name string) {
 // # ip link add dev wg0 type wireguard
 // # ip addr add <tunnelip> wg0
 // # ip link set wg0 up
+type GatewayConfig struct {
+	Devices []Device `json:"devices"`
+	Routes  []string `json:"routes"`
+}
+
 type Device struct {
-	Serial         string `json:"serial"`
-	PSK            string `json:"psk"`
-	LastUpdated    *int64 `json:"lastUpdated"`
-	KolideLastSeen *int64 `json:"kolideLastSeen"`
-	Healthy        *bool  `json:"isHealthy"`
-	PublicKey      string `json:"publicKey"`
-	IP             string `json:"ip"`
+	PSK       string `json:"psk"`
+	PublicKey string `json:"publicKey"`
+	IP        string `json:"ip"`
 }
 
 func main() {
@@ -143,27 +146,27 @@ func main() {
 		log.Fatalf("actuating base config: %v", err)
 	}
 
-	go checkForNewRelease()
+	go checkForNewRelease(cfg)
 
 	for range time.NewTicker(10 * time.Second).C {
 		log.Infof("getting config")
-		devices, err := getDevices(cfg)
+		gatewayConfig, err := getGatewayConfig(cfg)
 		if err != nil {
 			log.Error(err)
 			failedConfigFetches.Inc()
 			continue
 		}
 
-		err = updateConnectedDevicesMetrics()
+		err = updateConnectedDevicesMetrics(cfg)
 		if err != nil {
 			log.Errorf("Unable to execute command: %v", err)
 		}
 
 		lastSuccessfulConfigFetch.SetToCurrentTime()
 
-		log.Debugf("%+v\n", devices)
+		log.Debugf("%+v\n", gatewayConfig)
 
-		peerConfig := GenerateWireGuardPeers(devices)
+		peerConfig := GenerateWireGuardPeers(gatewayConfig.Devices)
 		if err := actuateWireGuardConfig(baseConfig+peerConfig, cfg.WireGuardConfigPath, cfg.DevMode); err != nil {
 			log.Errorf("actuating WireGuard config: %v", err)
 		}
@@ -175,7 +178,7 @@ func readPrivateKey(privateKeyPath string) (string, error) {
 	return string(b), err
 }
 
-func getDevices(config Config) ([]Device, error) {
+func getGatewayConfig(config Config) (*GatewayConfig, error) {
 	gatewayConfigURL := fmt.Sprintf("%s/gatewayconfig", config.APIServerURL)
 	req, err := http.NewRequest(http.MethodGet, gatewayConfigURL, nil)
 	if err != nil {
@@ -197,16 +200,18 @@ func getDevices(config Config) ([]Device, error) {
 	}
 
 	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("fetching devices from apiserver: %v %v %v", resp.StatusCode, resp.Status, string(b))
+		return nil, fmt.Errorf("fetching gatewayConfig from apiserver: %v %v %v", resp.StatusCode, resp.Status, string(b))
 	}
 
-	var devices []Device
-	err = json.Unmarshal(b, &devices)
+	var gatewayConfig GatewayConfig
+	err = json.Unmarshal(b, &gatewayConfig)
 	if err != nil {
 		return nil, fmt.Errorf("unmarshal json from apiserver: bytes: %v, error: %w", string(b), err)
 	}
-	registeredDevices.Set(float64(len(devices)))
-	return devices, nil
+
+	registeredDevices.Set(float64(len(gatewayConfig.Devices)))
+
+	return &gatewayConfig, nil
 }
 
 type Config struct {
@@ -278,6 +283,7 @@ Endpoint = %s
 [Peer] # prometheus
 PublicKey = %s
 AllowedIPs = %s/32
+
 `
 
 	return fmt.Sprintf(template, privateKey, cfg.APIServerPublicKey, cfg.APIServerTunnelIP, cfg.APIServerWireGuardEndpoint, cfg.PrometheusPublicKey, cfg.PrometheusTunnelIP)
@@ -296,7 +302,13 @@ AllowedIPs = %s
 
 	return peers
 }
-func updateConnectedDevicesMetrics() error {
+
+func updateConnectedDevicesMetrics(cfg Config) error {
+	if cfg.DevMode {
+		connectedDevices.Set(1337)
+		return nil
+	}
+
 	output, err := exec.Command("wg", "show", "wg0", "endpoints").Output()
 	if err != nil {
 		return err
@@ -329,17 +341,21 @@ func actuateWireGuardConfig(wireGuardConfig, wireGuardConfigPath string, devMode
 
 	return nil
 }
-func checkForNewRelease() {
+
+func checkForNewRelease(cfg Config) {
 	type response struct {
 		Tag string `json:"tag_name"`
 	}
+
 	for range time.NewTicker(120 * time.Second).C {
 		log.Info("Checking release version on github")
+
 		resp, err := http.Get("https://api.github.com/repos/nais/device/releases/latest")
 		if err != nil {
 			log.Errorf("Unable to retrieve current release version %s", err)
 			continue
 		}
+
 		body, err := ioutil.ReadAll(resp.Body)
 		resp.Body.Close()
 		res := response{}
@@ -348,9 +364,14 @@ func checkForNewRelease() {
 			log.Errorf("unable to unmarshall response: %s", err)
 			continue
 		}
+
 		if version.Version != res.Tag {
 			log.Info("New version available. So long and thanks for all the fish.")
-			os.Exit(0)
+			if !cfg.DevMode {
+				log.Info("jk, DevMode")
+			} else {
+				os.Exit(0)
+			}
 		}
 	}
 }

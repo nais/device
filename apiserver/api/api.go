@@ -14,22 +14,39 @@ type api struct {
 	db *database.APIServerDB
 }
 
+type GatewayConfig struct {
+	Devices []database.Device
+	Routes  []string
+}
+
 // TODO(jhrv): do actual filtering of the devices.
 // TODO(jhrv): keep cache of gateway access group members to remove AAD runtime dependency
 // gatewayConfig returns the devices for the gateway that has the group membership required
 func (a *api) gatewayConfig(w http.ResponseWriter, r *http.Request) {
-	//gateway, _ , ok := r.BasicAuth()
+	gatewayName, _, _ := r.BasicAuth()
 
 	devices, err := a.db.ReadDevices()
 
 	if err != nil {
 		log.Errorf("reading devices from database: %v", err)
-		w.WriteHeader(http.StatusInternalServerError)
+		respondf(w, http.StatusInternalServerError, "failed getting gateway config")
 		return
 	}
 
+	gateway, err := a.db.ReadGateway(gatewayName)
+	if err != nil {
+		log.Errorf("reading gateway from database: %v", err)
+		respondf(w, http.StatusInternalServerError, "failed getting gateway config")
+		return
+	}
+
+	gatewayConfig := GatewayConfig{
+		Devices: healthy(devices),
+		Routes:  gateway.Routes,
+	}
+
 	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(healthy(devices))
+	json.NewEncoder(w).Encode(gatewayConfig)
 }
 
 func healthy(devices []database.Device) []database.Device {

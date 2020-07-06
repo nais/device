@@ -293,21 +293,26 @@ SELECT public_key, access_group_ids, endpoint, ip, routes, name
 
 }
 
-func (d *APIServerDB) ReadGateway(publicKey string) (*Gateway, error) {
+func (d *APIServerDB) ReadGateway(name string) (*Gateway, error) {
 	ctx := context.Background()
 
 	query := `
-SELECT public_key, endpoint, ip, routes
+SELECT public_key, access_group_ids, endpoint, ip, routes
   FROM gateway
- WHERE public_key = $1;`
+ WHERE name = $1;`
 
-	row := d.conn.QueryRow(ctx, query, publicKey)
+	row := d.conn.QueryRow(ctx, query, name)
 
 	var gateway Gateway
 	var routes string
-	err := row.Scan(&gateway.PublicKey, &gateway.Endpoint, &gateway.IP, &routes)
+	var accessGroupIDs string
+	err := row.Scan(&gateway.PublicKey, &accessGroupIDs, &gateway.Endpoint, &gateway.IP, &routes)
 	if err != nil {
 		return nil, fmt.Errorf("scanning gateway: %w", err)
+	}
+
+	if len(accessGroupIDs) != 0 {
+		gateway.AccessGroupIDs = strings.Split(accessGroupIDs, ",")
 	}
 
 	if len(routes) != 0 {
