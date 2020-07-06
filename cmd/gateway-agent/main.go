@@ -10,8 +10,10 @@ import (
 	"os/exec"
 	"path"
 	"regexp"
+	"strings"
 	"time"
 
+	"github.com/coreos/go-iptables/iptables"
 	"github.com/nais/device/pkg/version"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
@@ -132,6 +134,22 @@ func main() {
 		if err := setupInterface(cfg.TunnelIP); err != nil {
 			log.Fatalf("setting up interface: %v", err)
 		}
+
+		var err error
+		cfg.IPTables, err = iptables.New()
+		if err != nil {
+			log.Fatalf("setting up iptables %w", err)
+		}
+
+		cfg.DefaultInterface, cfg.DefaultInterfaceIP, err = getDefaultInterfaceInfo()
+		if err != nil {
+			log.Fatalf("Getting default interface info: %w", err)
+		}
+
+		err = setupIptables(cfg)
+		if err != nil {
+			log.Fatalf("Setting up iptables defaults: %w", err)
+		}
 	} else {
 		log.Infof("Skipping interface setup")
 	}
@@ -169,6 +187,11 @@ func main() {
 		peerConfig := GenerateWireGuardPeers(gatewayConfig.Devices)
 		if err := actuateWireGuardConfig(baseConfig+peerConfig, cfg.WireGuardConfigPath, cfg.DevMode); err != nil {
 			log.Errorf("actuating WireGuard config: %v", err)
+		}
+
+		err = forwardRoutes(cfg, gatewayConfig.Routes)
+		if err != nil {
+			log.Errorf("forwarding routes: %v", err)
 		}
 	}
 }
@@ -230,6 +253,9 @@ type Config struct {
 	PrometheusTunnelIP         string
 	APIServerPassword          string
 	LogLevel                   string
+	IPTables                   *iptables.IPTables
+	DefaultInterface           string
+	DefaultInterfaceIP         string
 }
 
 func DefaultConfig() Config {
@@ -374,4 +400,78 @@ func checkForNewRelease(cfg Config) {
 			}
 		}
 	}
+}
+
+func setupIptables(cfg Config) error {
+	err := cfg.IPTables.ChangePolicy("filter", "FORWARD", "DENY")
+	if err != nil {
+		return fmt.Errorf("setting FORWARD policy to DENY: %w", err)
+	}
+
+	// Allow ESTABLISHED,RELATED from wg0 to default interface
+	err = cfg.IPTables.AppendUnique("filter", "FORWARD", "-i", "wg0", "-o", cfg.DefaultInterface, "-m", "conntrack", "--ctstate", "ESTABLISHED,RELATED", "-j", "ACCEPT")
+	if err != nil {
+		return fmt.Errorf("adding default forward rule: %w", err)
+	}
+
+	// Allow ESTABLISHED,RELATED from default interface to wg0
+	err = cfg.IPTables.AppendUnique("filter", "FORWARD", "-i", cfg.DefaultInterface, "-o", "wg0", "-m", "conntrack", "--ctstate", "ESTABLISHED,RELATED", "-j", "ACCEPT")
+	if err != nil {
+		return fmt.Errorf("adding default forward rule: %w", err)
+	}
+
+	return nil
+}
+
+func getDefaultInterfaceInfo() (string, string, error) {
+	cmd := exec.Command("ip", "route", "get", "1.1.1.1")
+	out, err := cmd.CombinedOutput()
+
+	if err != nil {
+		return "", "", fmt.Errorf("getting default gateway: %w", err)
+	}
+
+	return ParseDefaultInterfaceOutput(out)
+}
+
+func ParseDefaultInterfaceOutput(output []byte) (string, string, error) {
+	lines := strings.Split(string(output), "\n")
+	parts := strings.Split(lines[0], " ")
+	if len(parts) != 9 {
+		return "", "", fmt.Errorf("wrong number of parts in output: '%v', output: '%v'", len(parts), output)
+	}
+
+	interfaceName := parts[4]
+	if len(interfaceName) < 4 {
+		return "", "", fmt.Errorf("weird interface name: '%v'", interfaceName)
+	}
+
+	interfaceIP := parts[6]
+	if len(interfaceIP) < 9 {
+		return "", "", fmt.Errorf("weird interface ip: '%v'", interfaceIP)
+	}
+
+	if len(strings.Split(interfaceIP, ".")) != 4 {
+		return "", "", fmt.Errorf("weird interface ip: '%v'", interfaceIP)
+	}
+
+	return interfaceName, interfaceIP, nil
+}
+
+func forwardRoutes(cfg Config, routes []string, ) error {
+	var err error
+
+	for _, ip := range routes {
+		err = cfg.IPTables.AppendUnique("nat", "POSTROUTING", "-o", cfg.DefaultInterface, "-p", "tcp", "-d", ip, "-j", "SNAT", "--to-source", cfg.DefaultInterfaceIP)
+		if err != nil {
+			return fmt.Errorf("setting up snat: %w", err)
+		}
+
+		err = cfg.IPTables.AppendUnique("filter", "FORWARD", "-i", "wg0", "-o", cfg.DefaultInterface, "-p", "tcp", "--syn", "-d", ip, "-m", "conntrack", "--cstate", "NEW", "-j", "ACCEPT")
+		if err != nil {
+			return fmt.Errorf("setting up forward: %w", err)
+		}
+	}
+
+	return nil
 }
