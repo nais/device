@@ -448,9 +448,6 @@ func ParseDefaultInterfaceOutput(output []byte) (string, string, error) {
 	}
 
 	interfaceIP := parts[6]
-	if len(interfaceIP) < 9 {
-		return "", "", fmt.Errorf("weird interface ip: '%v'", interfaceIP)
-	}
 
 	if len(strings.Split(interfaceIP, ".")) != 4 {
 		return "", "", fmt.Errorf("weird interface ip: '%v'", interfaceIP)
