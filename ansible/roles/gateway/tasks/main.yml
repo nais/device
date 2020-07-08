@@ -2,16 +2,19 @@
   apt:
     name: wireguard
     state: present
+
 - name: Enable IPv4 forwarding in sysctl
   sysctl:
     name: net.ipv4.ip_forward
     value: '1'
     reload: yes
+
 - name: Create gateway agent binary directory
   file:
     path: /opt/nais-device/bin
     state: directory
     mode: '0755'
+
 - name: Download gateway agent
   get_url:
     dest: /opt/nais-device/bin/gateway-agent
@@ -21,26 +24,31 @@
     mode: 0755
   notify:
     - restart_gateway-agent
+
 - name: Copy gateway agent secret fetcher script
   copy:
     src: gateway-agent-fetch-secret
     dest: /opt/nais-device/bin/gateway-agent-fetch-secret
     mode: '0755'
+
 - name: Install gateway agent systemd unit file
   template:
     src: gateway-agent.service.j2
     dest: /etc/systemd/system/gateway-agent.service
   notify:
     - restart_gateway-agent
+
 - name: Ensure gateway-agent is enabled
   systemd:
     name: gateway-agent
     enabled: yes
     daemon_reload: yes
+
 - name: Ensure gateway-agent is started
   systemd:
     name: gateway-agent
     state: started
+
 - name: Remove unused update script # TODO REMOVE THIS
   file:
     path: /opt/nais-device/bin/gateway-agent-install-latest

@@ -5,6 +5,7 @@
         name: logging
     - include_role:
         name: gateway
+
 - hosts: onprem-gateways
   environment: "{{ proxy_env }}"
   tasks:
