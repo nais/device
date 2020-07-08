@@ -2,6 +2,8 @@
 - hosts: gateways
   tasks:
     - include_role:
+        name: logging
+    - include_role:
         name: gateway
 - hosts: onprem-gateways
   environment: "{{ proxy_env }}"
@@ -10,3 +12,5 @@
         name: gateway
     - include_role:
         name: onprem-gateway
+    - include_role:
+        name: logging

@@ -1,0 +1,19 @@
+- name: Ensure docker.io package installed
+  apt:
+    name: docker.io
+    state: present
+
+- name: Copy fluentd systemd unit
+  copy:
+    src: fluentd-stackdriver.service
+    dest: /etc/systemd/system/fluentd-stackdriver.service
+    mode: '0644'
+  notify:
+    - restart_fluentd-stackdriver
+
+- name: Start and enable fluentd
+  systemd:
+    name: fluentd-stackdriver
+    state: started
+    enabled: yes
+    daemon_reload: yes
