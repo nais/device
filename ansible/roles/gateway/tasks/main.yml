@@ -21,10 +21,6 @@
     mode: 0755
   notify:
     - restart_gateway-agent
-- name: Remove unused update script
-  file:
-    path: /opt/nais-device/bin/gateway-agent-install-latest
-    state: absent
 - name: Copy gateway agent secret fetcher script
   copy:
     src: gateway-agent-fetch-secret
@@ -45,3 +41,7 @@
   systemd:
     name: gateway-agent
     state: started
+- name: Remove unused update script # TODO REMOVE THIS
+  file:
+    path: /opt/nais-device/bin/gateway-agent-install-latest
+    state: absent
