@@ -19,6 +19,8 @@
     url: https://github.com/nais/device/releases/download/2020-07-07-9d1c573/gateway-agent
     backup: yes
     mode: 0755
+  notify:
+    - restart_gateway-agent
 - name: Remove unused update script
   file:
     path: /opt/nais-device/bin/gateway-agent-install-latest
@@ -33,7 +35,7 @@
     src: gateway-agent.service.j2
     dest: /etc/systemd/system/gateway-agent.service
   notify:
-    - restart_gateway-agent # if file changed, restart
+    - restart_gateway-agent
 - name: Ensure gateway-agent is enabled
   systemd:
     name: gateway-agent
