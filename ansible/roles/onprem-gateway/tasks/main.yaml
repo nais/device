@@ -5,7 +5,7 @@
 
 - name: Add gcloud cli repo
   apt_repository:
-    repo: [signed-by=/usr/share/keyrings/cloud.google.gpg] https://packages.cloud.google.com/apt cloud-sdk main
+    repo: "deb [signed-by=/usr/share/keyrings/cloud.google.gpg] https://packages.cloud.google.com/apt cloud-sdk main"
 
 - name: Add gcloud cli
   apt:
