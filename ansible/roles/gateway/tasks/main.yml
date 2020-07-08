@@ -6,6 +6,7 @@
   sysctl:
     name: net.ipv4.ip_forward
     value: '1'
+    reload: yes
 - name: Create gateway agent binary directory
   file:
     path: /opt/nais-device/bin
@@ -25,8 +26,14 @@
   template:
     src: gateway-agent.service.j2
     dest: /etc/systemd/system/gateway-agent.service
-- name: Start gateway agent
+  notify:
+    - restart_gateway-agent # if file changed, restart
+- name: Ensure gateway-agent is enabled
   systemd:
-    state: started 
     name: gateway-agent
+    enabled: yes
     daemon_reload: yes
+- name: Ensure gateway-agent is started
+  systemd:
+    name: gateway-agent
+    state: started

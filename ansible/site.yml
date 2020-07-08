@@ -1,5 +1,10 @@
 ---
 - hosts: gateways
+  environment: "{{ proxy_env }}"
   tasks:
     - include_role:
         name: gateway
+- hosts: onprem-gateways
+  tasks:
+    - include_role:
+        name: onprem-gateway

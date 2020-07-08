@@ -9,9 +9,10 @@ Restart=always
 # The failure of either of these commands will be logged, but
 # the service will still attempt to launch, which might well
 # succeed.
-ExecStartPre=bash -c '/snap/bin/gcloud --project nais-device secrets versions access latest --secret logwriter-credentials > /root/sa.json'
-ExecStartPre=bash -c 'docker rm -f fluentd-stackdriver || echo "alt blir bra"'
-ExecStart=docker run --name fluentd-stackdriver -e GOOGLE_APPLICATION_CREDENTIALS=/sa.json -v /root/sa.json:/sa.json -v /var/log/naisdevice:/logs docker.pkg.github.com/nais/device/fluentd-stackdriver:latest
+ExecStartPre=bash -c '/snap/bin/gcloud --project nais-device secrets versions access latest --secret logwriter-credentials > /root/sa_tmp.json && mv /root/sa{_tmp,}.json || echo "alt blir bra"'
+ExecStartPre=bash -c 'docker rm -f fluentd-stackdriver || echo "alt blir braa"'
+ExecStartPre=bash -c 'docker pull navikt/fluentd-stackdriver:latest || echo "alt blir braaa"'
+ExecStart=docker run --name fluentd-stackdriver -e GOOGLE_APPLICATION_CREDENTIALS=/sa.json -v /root/sa.json:/sa.json -v /var/log/naisdevice:/logs navikt/fluentd-stackdriver:latest
 
 [Install]
 WantedBy=multi-user.target
