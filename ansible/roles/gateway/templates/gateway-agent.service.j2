@@ -10,7 +10,7 @@ Restart=always
 # succeed.
 {% if proxy_env is defined and proxy_env|length %}
 Environment={{ proxy_env|quote }}
-{% end %}
+{% endif %}
 ExecStartPre=/opt/nais-device/bin/gateway-agent-install-latest
 ExecStartPre=/opt/nais-device/bin/gateway-agent-fetch-secret {{ gcp_project }} {{ inventory_hostname }}
 ExecStart=bash -c '/opt/nais-device/bin/gateway-agent \
