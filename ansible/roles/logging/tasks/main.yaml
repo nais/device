@@ -3,6 +3,12 @@
     name: docker.io
     state: present
 
+- name: Docker systemd config directory
+  file:
+    path: /etc/systemd/system/docker.service.d/99-proxy.conf
+    mode: 0755
+    state: directory
+
 - name: Docker proxy settings
   copy:
     src: 99-proxy.conf
