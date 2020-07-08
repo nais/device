@@ -5,9 +5,10 @@
 
 - name: Docker systemd config directory
   file:
-    path: /etc/systemd/system/docker.service.d/99-proxy.conf
+    path: /etc/systemd/system/docker.service.d/
     mode: 0755
     state: directory
+  when: proxy_env is defined
 
 - name: Docker proxy settings
   copy:
