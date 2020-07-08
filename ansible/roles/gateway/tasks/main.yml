@@ -19,6 +19,10 @@
     url: https://github.com/nais/device/releases/download/2020-07-07-9d1c573/gateway-agent
     backup: yes
     mode: 0755
+- name: Remove unused update script
+  file:
+    path: /opt/nais-device/bin/gateway-agent-install-latest
+    state: absent
 - name: Copy gateway agent secret fetcher script
   copy:
     src: gateway-agent-fetch-secret
