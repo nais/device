@@ -3,3 +3,9 @@
     state: restarted
     name: fluentd-stackdriver
     daemon_reload: yes
+
+- name: restart_dockerd
+  systemd:
+    state: restarted
+    name: dockerd
+    daemon_reload: yes

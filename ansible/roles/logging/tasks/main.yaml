@@ -3,6 +3,14 @@
     name: docker.io
     state: present
 
+- name: Docker proxy settings
+  copy:
+    src: 99-proxy.conf
+    dest: /etc/systemd/system/docker.service.d/99-proxy.conf
+  when: proxy_env is defined
+  notify:
+    - restart_dockerd
+
 - name: Download google cloud log write SA credentials
   shell:
     cmd: gcloud --project nais-device secrets versions access latest --secret logwriter-credentials > /root/sa_tmp.json && mv /root/sa{_tmp,}.json
