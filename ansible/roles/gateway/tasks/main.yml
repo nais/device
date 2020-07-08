@@ -12,11 +12,13 @@
     path: /opt/nais-device/bin
     state: directory
     mode: '0755'
-- name: Copy gateway agent deploy script
-  copy:
-    src: gateway-agent-install-latest
-    dest: /opt/nais-device/bin/gateway-agent-install-latest
-    mode: '0755'
+- name: Download gateway agent
+  get_url:
+    dest: /opt/nais-device/bin/gateway-agent
+    force: yes
+    url: https://github.com/nais/device/releases/download/2020-07-07-9d1c573/gateway-agent
+    backup: yes
+    mode: 0755
 - name: Copy gateway agent secret fetcher script
   copy:
     src: gateway-agent-fetch-secret
