@@ -3,6 +3,10 @@
     name: docker.io
     state: present
 
+- name: Download google cloud log write SA credentials
+  shell:
+    cmd: gcloud --project nais-device secrets versions access latest --secret logwriter-credentials > /root/sa_tmp.json && mv /root/sa{_tmp,}.json || echo "alt blir bra"'
+
 - name: Copy fluentd systemd unit
   copy:
     src: fluentd-stackdriver.service
