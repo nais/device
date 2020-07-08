@@ -3,15 +3,15 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/nais/device/pkg/logger"
 	"io/ioutil"
 	"net/http"
-	"os"
 	"os/exec"
 	"path"
 	"regexp"
 	"strings"
 	"time"
+
+	"github.com/nais/device/pkg/logger"
 
 	"github.com/coreos/go-iptables/iptables"
 	"github.com/nais/device/pkg/version"
@@ -163,8 +163,6 @@ func main() {
 	if err := actuateWireGuardConfig(baseConfig, cfg.WireGuardConfigPath, cfg.DevMode); err != nil {
 		log.Fatalf("actuating base config: %v", err)
 	}
-
-	go checkForNewRelease(cfg)
 
 	for range time.NewTicker(10 * time.Second).C {
 		log.Infof("getting config")
@@ -366,40 +364,6 @@ func actuateWireGuardConfig(wireGuardConfig, wireGuardConfigPath string, devMode
 	log.Debugf("Actuated WireGuard config: %v", wireGuardConfigPath)
 
 	return nil
-}
-
-func checkForNewRelease(cfg Config) {
-	type response struct {
-		Tag string `json:"tag_name"`
-	}
-
-	for range time.NewTicker(120 * time.Second).C {
-		log.Info("Checking release version on github")
-
-		resp, err := http.Get("https://api.github.com/repos/nais/device/releases/latest")
-		if err != nil {
-			log.Errorf("Unable to retrieve current release version %s", err)
-			continue
-		}
-
-		body, err := ioutil.ReadAll(resp.Body)
-		resp.Body.Close()
-		res := response{}
-		err = json.Unmarshal(body, &res)
-		if err != nil {
-			log.Errorf("unable to unmarshall response: %s", err)
-			continue
-		}
-
-		if version.Version != res.Tag {
-			log.Info("New version available. So long and thanks for all the fish.")
-			if !cfg.DevMode {
-				log.Info("jk, DevMode")
-			} else {
-				os.Exit(0)
-			}
-		}
-	}
 }
 
 func setupIptables(cfg Config) error {
