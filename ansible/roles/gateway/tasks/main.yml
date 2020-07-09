@@ -26,9 +26,10 @@
     - restart_gateway-agent
 
 - name: Get apiserver password
-  shell:
-    cmd: gcloud --project nais-device secrets versions access latest --secret {{ gcp_project }}_{{ name }}_api-server-password > /usr/local/etc/nais-device/apiserver_password
+  shell: gcloud --project nais-device secrets versions access latest --secret {{ gcp_project }}_{{ name }}_api-server-password > /usr/local/etc/nais-device/apiserver_password
+  args:
     creates: /usr/local/etc/nais-device/apiserver_password
+    executable: /bin/bash
 
 - name: Install gateway agent systemd unit file
   template:
@@ -47,8 +48,3 @@
   systemd:
     name: gateway-agent
     state: started
-
-- name: Remove unused update script # TODO REMOVE THIS
-  file:
-    path: /opt/nais-device/bin/gateway-agent-install-latest
-    state: absent

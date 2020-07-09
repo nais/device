@@ -25,9 +25,10 @@
     mode: 0755
 
 - name: Download google cloud log write SA credentials
-  shell:
-    cmd: gcloud --project nais-device secrets versions access latest --secret logwriter-credentials > /opt/naisdevice/fluentd-stackdriver/sa.json
+  shell: gcloud --project nais-device secrets versions access latest --secret logwriter-credentials > /opt/naisdevice/fluentd-stackdriver/sa.json
+  args:
     creates: /opt/naisdevice/fluentd-stackdriver/sa.json
+    executable: /bin/bash
 
 - name: Copy fluentd systemd unit
   template:
