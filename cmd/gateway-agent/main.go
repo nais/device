@@ -287,7 +287,7 @@ func setupInterface(tunnelIP string) error {
 			if out, err := cmd.CombinedOutput(); err != nil {
 				return fmt.Errorf("running %v: %w: %v", cmd, err, string(out))
 			} else {
-				fmt.Printf("%v: %v\n", cmd, string(out))
+				log.Debugf("%v: %v\n", cmd, string(out))
 			}
 		}
 		return nil
