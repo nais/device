@@ -37,6 +37,22 @@
   notify:
     - restart_fluentd-stackdriver
 
+- name: Add fluentd user
+  user:
+    name: fluentd
+    uid: 15069
+    groups: syslog
+    shell: /usr/sbin/nologin
+    password_lock: yes
+
+- name: Ensure /var/log/naisdevice/ permissions
+  file:
+    path: /var/log/naisdevice
+    state: directory
+    owner: root
+    group: syslog
+    mode: 0775
+
 - name: Start and enable fluentd
   systemd:
     name: fluentd-stackdriver
