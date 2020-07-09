@@ -30,6 +30,8 @@
   args:
     creates: /usr/local/etc/nais-device/apiserver_password
     executable: /bin/bash
+  environment:
+    PATH: /usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/snap/bin
 
 - name: Install gateway agent systemd unit file
   template:

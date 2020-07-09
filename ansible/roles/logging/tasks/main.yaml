@@ -29,6 +29,8 @@
   args:
     creates: /opt/naisdevice/fluentd-stackdriver/sa.json
     executable: /bin/bash
+  environment:
+    PATH: /usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/snap/bin
 
 - name: Copy fluentd systemd unit
   template:
