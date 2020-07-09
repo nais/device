@@ -4,8 +4,8 @@
     name: fluentd-stackdriver
     daemon_reload: yes
 
-- name: restart_dockerd
+- name: restart_docker
   systemd:
     state: restarted
-    name: dockerd
+    name: docker
     daemon_reload: yes

@@ -16,7 +16,7 @@
     dest: /etc/systemd/system/docker.service.d/99-proxy.conf
   when: proxy_env is defined
   notify:
-    - restart_dockerd
+    - restart_docker
 
 - name: Ensure /opt/naisdevice/fluentd-stackdriver/ directory
   file:
