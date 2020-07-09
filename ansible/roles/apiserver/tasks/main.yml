@@ -1,0 +1,38 @@
+- name: Ensure wireguard package installed
+  apt:
+    name: wireguard
+    state: present
+
+- name: Create binary directory
+  file:
+    path: /opt/nais-device/bin
+    state: directory
+    mode: '0755'
+
+- name: Download apiserver
+  get_url:
+    dest: /opt/nais-device/bin/apiserver
+    force: yes
+    url: https://github.com/nais/device/releases/download/2020-07-09-8f8ee2c/apiserver
+    backup: yes
+    mode: 0755
+  notify:
+    - restart_apiserver
+
+- name: Install apiserver systemd unit file
+  template:
+    src: apiserver.service.j2
+    dest: /etc/systemd/system/apiserver.service
+  notify:
+    - restart_apiserver
+
+- name: Ensure apiserver is enabled
+  systemd:
+    name: apiserver
+    enabled: yes
+    daemon_reload: yes
+
+- name: Ensure apiserver is started
+  systemd:
+    name: apiserver
+    state: started

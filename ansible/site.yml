@@ -1,4 +1,11 @@
 ---
+- hosts: apiservers
+  tasks:
+    - include_role:
+        name: logging
+    - include_role:
+        name: apiserver
+
 - hosts: gateways
   tasks:
     - include_role:
