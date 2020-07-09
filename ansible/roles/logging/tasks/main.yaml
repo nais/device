@@ -30,8 +30,8 @@
     creates: /opt/naisdevice/fluentd-stackdriver/sa.json
 
 - name: Copy fluentd systemd unit
-  copy:
-    src: fluentd-stackdriver.service
+  template:
+    src: fluentd-stackdriver.service.j2
     dest: /etc/systemd/system/fluentd-stackdriver.service
     mode: '0644'
   notify:
