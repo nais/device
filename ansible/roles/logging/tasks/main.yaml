@@ -18,10 +18,16 @@
   notify:
     - restart_dockerd
 
+- name: Ensure /opt/naisdevice/fluentd-stackdriver/ directory
+  file:
+    path: /opt/naisdevice/fluentd-stackdriver/
+    state: directory
+    mode: 0755
+
 - name: Download google cloud log write SA credentials
   shell:
-    cmd: gcloud --project nais-device secrets versions access latest --secret logwriter-credentials > /root/sa_tmp.json && mv /root/sa{_tmp,}.json
-    creates: /root/sa.json
+    cmd: gcloud --project nais-device secrets versions access latest --secret logwriter-credentials > /opt/naisdevice/fluentd-stackdriver/sa.json
+    creates: /opt/naisdevice/fluentd-stackdriver/sa.json
 
 - name: Copy fluentd systemd unit
   copy:

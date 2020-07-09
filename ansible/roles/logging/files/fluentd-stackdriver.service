@@ -11,7 +11,7 @@ Restart=always
 # succeed.
 ExecStartPre=bash -c 'docker pull navikt/fluentd-stackdriver:latest || echo "alt blir braaa"'
 ExecStartPre=bash -c 'docker rm -f fluentd-stackdriver || echo "alt blir braa"'
-ExecStart=docker run --name fluentd-stackdriver -e GOOGLE_APPLICATION_CREDENTIALS=/sa.json -v /root/sa.json:/sa.json -v /var/log/naisdevice:/logs navikt/fluentd-stackdriver:latest
+ExecStart=docker run --name fluentd-stackdriver -e GOOGLE_APPLICATION_CREDENTIALS=/fluentd-stackdriver/sa.json -v /opt/naisdevice/fluentd-stackdriver/:/fluentd-stackdriver/ -v /var/log/naisdevice:/logs navikt/fluentd-stackdriver:latest
 
 [Install]
 WantedBy=multi-user.target
