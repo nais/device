@@ -40,6 +40,6 @@
 - name: Start and enable fluentd
   systemd:
     name: fluentd-stackdriver
-    state: stopped
-    enabled: no
+    state: started
+    enabled: yes
     daemon_reload: yes
