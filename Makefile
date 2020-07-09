@@ -8,8 +8,8 @@ PKGID = io.nais.device
 GOPATH ?= ~/go
 
 all: test alpine
-db: teardown-postgres run-postgres insert-testdata
-dev-apiserver: db local-apiserver
+local-postgres: teardown-postgres run-postgres insert-testdata
+dev-apiserver: local-postgres local-apiserver teardown-postgres
 integration-test: run-postgres-test run-integration-test teardown-postgres-test
 clients: linux-client macos-client windows-client
 
@@ -69,12 +69,14 @@ teardown-postgres-test:
 	docker rm -f postgres-test || echo "okidoki"
 
 local-gateway-agent:
-	go run ./cmd/gateway-agent/main.go --api-server-url=http://localhost:8080 --name=gw0 --prometheus-address=127.0.0.1:3000 --development-mode=true
+	$(eval config_dir := $(shell mktemp -d))
+	wg genkey > $(config_dir)/private.key
+	go run ./cmd/gateway-agent/main.go --api-server-url=http://localhost:8080 --name=gateway-1 --api-server-password=password --prometheus-address=127.0.0.1:3000 --development-mode=true --config-dir $(config_dir) --log-level debug
 
 local-apiserver:
 	$(eval confdir := $(shell mktemp -d))
 	wg genkey > ${confdir}/private.key
-	go run ./cmd/apiserver/main.go --db-connection-uri=postgresql://postgres:postgres@localhost/postgres --bind-address=127.0.0.1:8080 --config-dir=${confdir} --development-mode=true --prometheus-address=127.0.0.1:3000 --credential-entries=nais:device
+	go run ./cmd/apiserver/main.go --db-connection-uri=postgresql://postgres:postgres@localhost/postgres --bind-address=127.0.0.1:8080 --config-dir=${confdir} --development-mode=true --prometheus-address=127.0.0.1:3000 --credential-entries="nais:device,gateway-1:password"
 	echo ${confdir}
 
 icon:

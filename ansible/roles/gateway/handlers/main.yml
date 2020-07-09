@@ -1,0 +1,5 @@
+- name: restart_gateway-agent
+  systemd:
+    state: restarted
+    name: gateway-agent
+    daemon_reload: yes

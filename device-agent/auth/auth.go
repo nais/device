@@ -47,6 +47,7 @@ func EnsureAuth(existing *SessionInfo, ctx context.Context, apiserverURL, platfo
 		}
 
 		log.Warnf("[attempt %d/3]: getting Azure auth URL from apiserver: %v", attempt, err)
+		time.Sleep(1 * time.Second)
 	}
 
 	if len(authURL) == 0 {
@@ -68,6 +69,14 @@ func runFlow(ctx context.Context, authURL, apiserverURL, platform, serial string
 	sessionInfo := make(chan *SessionInfo)
 	// define a handler that will get the authorization code, call the login endpoint to get a new session, and close the HTTP server
 	handler.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+
+		// Catch if user has not approved terms
+		if strings.HasPrefix(r.URL.Query().Get("error_description"), "AADSTS50105") {
+			http.Redirect(w, r, "https://naisdevice-approval.nais.io/", http.StatusSeeOther)
+			sessionInfo <- nil
+			return
+		}
+
 		codeRequestURL := url.URL{
 			Scheme:   "http",
 			Host:     strings.Split(apiserverURL, "://")[1],

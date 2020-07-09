@@ -1,0 +1,11 @@
+- name: restart_fluentd-stackdriver
+  systemd:
+    state: restarted
+    name: fluentd-stackdriver
+    daemon_reload: yes
+
+- name: restart_docker
+  systemd:
+    state: restarted
+    name: docker
+    daemon_reload: yes

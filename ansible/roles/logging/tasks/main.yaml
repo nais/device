@@ -1,0 +1,61 @@
+- name: Ensure docker.io package installed
+  apt:
+    name: docker.io
+    state: present
+
+- name: Docker systemd config directory
+  file:
+    path: /etc/systemd/system/docker.service.d/
+    mode: 0755
+    state: directory
+  when: proxy_env is defined
+
+- name: Docker proxy settings
+  template:
+    src: 99-proxy.conf.j2
+    dest: /etc/systemd/system/docker.service.d/99-proxy.conf
+  when: proxy_env is defined
+  notify:
+    - restart_docker
+
+- name: Ensure /opt/naisdevice/fluentd-stackdriver/ directory
+  file:
+    path: /opt/naisdevice/fluentd-stackdriver/
+    state: directory
+    mode: 0755
+
+- name: Download google cloud log write SA credentials
+  shell:
+    cmd: gcloud --project nais-device secrets versions access latest --secret logwriter-credentials > /opt/naisdevice/fluentd-stackdriver/sa.json
+    creates: /opt/naisdevice/fluentd-stackdriver/sa.json
+
+- name: Copy fluentd systemd unit
+  template:
+    src: fluentd-stackdriver.service.j2
+    dest: /etc/systemd/system/fluentd-stackdriver.service
+    mode: '0644'
+  notify:
+    - restart_fluentd-stackdriver
+
+- name: Add fluentd user
+  user:
+    name: fluentd
+    uid: 15069
+    groups: syslog
+    shell: /usr/sbin/nologin
+    password_lock: yes
+
+- name: Ensure /var/log/naisdevice/ permissions
+  file:
+    path: /var/log/naisdevice
+    state: directory
+    owner: fluentd
+    group: syslog
+    mode: 0775
+
+- name: Start and enable fluentd
+  systemd:
+    name: fluentd-stackdriver
+    state: started
+    enabled: yes
+    daemon_reload: yes

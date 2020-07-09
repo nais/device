@@ -5,13 +5,15 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
-	"os"
 	"os/exec"
 	"path"
 	"regexp"
+	"strings"
 	"time"
 
 	"github.com/nais/device/pkg/logger"
+
+	"github.com/coreos/go-iptables/iptables"
 	"github.com/nais/device/pkg/version"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
@@ -29,8 +31,8 @@ var (
 )
 
 func init() {
-	logger.Setup(cfg.LogLevel)
 	flag.StringVar(&cfg.Name, "name", cfg.Name, "gateway name")
+	flag.StringVar(&cfg.ConfigDir, "config-dir", cfg.ConfigDir, "gateway-agent config directory")
 	flag.StringVar(&cfg.TunnelIP, "tunnel-ip", cfg.TunnelIP, "gateway tunnel ip")
 	flag.StringVar(&cfg.PrometheusAddr, "prometheus-address", cfg.PrometheusAddr, "prometheus listen address")
 	flag.StringVar(&cfg.APIServerURL, "api-server-url", cfg.APIServerURL, "api server URL")
@@ -39,8 +41,11 @@ func init() {
 	flag.StringVar(&cfg.PrometheusPublicKey, "prometheus-public-key", cfg.PrometheusPublicKey, "prometheus public key")
 	flag.StringVar(&cfg.PrometheusTunnelIP, "prometheus-tunnel-ip", cfg.PrometheusTunnelIP, "prometheus tunnel ip")
 	flag.BoolVar(&cfg.DevMode, "development-mode", cfg.DevMode, "development mode avoids setting up interface and configuring WireGuard")
+	flag.StringVar(&cfg.LogLevel, "log-level", "info", "log level")
 
 	flag.Parse()
+
+	logger.Setup(cfg.LogLevel)
 	cfg.WireGuardConfigPath = path.Join(cfg.ConfigDir, "wg0.conf")
 	cfg.PrivateKeyPath = path.Join(cfg.ConfigDir, "private.key")
 	cfg.APIServerPasswordPath = path.Join(cfg.ConfigDir, "api_secret")
@@ -106,14 +111,15 @@ func initMetrics(name string) {
 // # ip link add dev wg0 type wireguard
 // # ip addr add <tunnelip> wg0
 // # ip link set wg0 up
+type GatewayConfig struct {
+	Devices []Device `json:"devices"`
+	Routes  []string `json:"routes"`
+}
+
 type Device struct {
-	Serial         string `json:"serial"`
-	PSK            string `json:"psk"`
-	LastUpdated    *int64 `json:"lastUpdated"`
-	KolideLastSeen *int64 `json:"kolideLastSeen"`
-	Healthy        *bool  `json:"isHealthy"`
-	PublicKey      string `json:"publicKey"`
-	IP             string `json:"ip"`
+	PSK       string `json:"psk"`
+	PublicKey string `json:"publicKey"`
+	IP        string `json:"ip"`
 }
 
 func main() {
@@ -127,6 +133,22 @@ func main() {
 	if !cfg.DevMode {
 		if err := setupInterface(cfg.TunnelIP); err != nil {
 			log.Fatalf("setting up interface: %v", err)
+		}
+
+		var err error
+		cfg.IPTables, err = iptables.New()
+		if err != nil {
+			log.Fatalf("setting up iptables %v", err)
+		}
+
+		cfg.DefaultInterface, cfg.DefaultInterfaceIP, err = getDefaultInterfaceInfo()
+		if err != nil {
+			log.Fatalf("Getting default interface info: %v", err)
+		}
+
+		err = setupIptables(cfg)
+		if err != nil {
+			log.Fatalf("Setting up iptables defaults: %v", err)
 		}
 	} else {
 		log.Infof("Skipping interface setup")
@@ -142,8 +164,6 @@ func main() {
 		log.Fatalf("actuating base config: %v", err)
 	}
 
-	go checkForNewRelease()
-
 	cfg.APIServerPassword, err = readFileToString(cfg.APIServerPasswordPath)
 	if err != nil {
 		log.Fatalf("reading API server password: %s", err)
@@ -154,25 +174,30 @@ func main() {
 
 	for range time.NewTicker(10 * time.Second).C {
 		log.Infof("getting config")
-		devices, err := getDevices(cfg)
+		gatewayConfig, err := getGatewayConfig(cfg)
 		if err != nil {
 			log.Error(err)
 			failedConfigFetches.Inc()
 			continue
 		}
 
-		err = updateConnectedDevicesMetrics()
+		err = updateConnectedDevicesMetrics(cfg)
 		if err != nil {
 			log.Errorf("Unable to execute command: %v", err)
 		}
 
 		lastSuccessfulConfigFetch.SetToCurrentTime()
 
-		log.Debugf("%+v\n", devices)
+		log.Debugf("%+v\n", gatewayConfig)
 
-		peerConfig := GenerateWireGuardPeers(devices)
+		peerConfig := GenerateWireGuardPeers(gatewayConfig.Devices)
 		if err := actuateWireGuardConfig(baseConfig+peerConfig, cfg.WireGuardConfigPath, cfg.DevMode); err != nil {
 			log.Errorf("actuating WireGuard config: %v", err)
+		}
+
+		err = forwardRoutes(cfg, gatewayConfig.Routes)
+		if err != nil {
+			log.Errorf("forwarding routes: %v", err)
 		}
 	}
 }
@@ -182,7 +207,7 @@ func readFileToString(filePath string) (string, error) {
 	return string(b), err
 }
 
-func getDevices(config Config) ([]Device, error) {
+func getGatewayConfig(config Config) (*GatewayConfig, error) {
 	gatewayConfigURL := fmt.Sprintf("%s/gatewayconfig", config.APIServerURL)
 	req, err := http.NewRequest(http.MethodGet, gatewayConfigURL, nil)
 	if err != nil {
@@ -204,16 +229,18 @@ func getDevices(config Config) ([]Device, error) {
 	}
 
 	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("fetching devices from apiserver: %v %v %v", resp.StatusCode, resp.Status, string(b))
+		return nil, fmt.Errorf("fetching gatewayConfig from apiserver: %v %v %v", resp.StatusCode, resp.Status, string(b))
 	}
 
-	var devices []Device
-	err = json.Unmarshal(b, &devices)
+	var gatewayConfig GatewayConfig
+	err = json.Unmarshal(b, &gatewayConfig)
 	if err != nil {
 		return nil, fmt.Errorf("unmarshal json from apiserver: bytes: %v, error: %w", string(b), err)
 	}
-	registeredDevices.Set(float64(len(devices)))
-	return devices, nil
+
+	registeredDevices.Set(float64(len(gatewayConfig.Devices)))
+
+	return &gatewayConfig, nil
 }
 
 type Config struct {
@@ -233,6 +260,9 @@ type Config struct {
 	APIServerPassword          string
 	APIServerPasswordPath      string
 	LogLevel                   string
+	IPTables                   *iptables.IPTables
+	DefaultInterface           string
+	DefaultInterfaceIP         string
 }
 
 func DefaultConfig() Config {
@@ -286,6 +316,7 @@ Endpoint = %s
 [Peer] # prometheus
 PublicKey = %s
 AllowedIPs = %s/32
+
 `
 
 	return fmt.Sprintf(template, privateKey, cfg.APIServerPublicKey, cfg.APIServerTunnelIP, cfg.APIServerWireGuardEndpoint, cfg.PrometheusPublicKey, cfg.PrometheusTunnelIP)
@@ -304,7 +335,13 @@ AllowedIPs = %s
 
 	return peers
 }
-func updateConnectedDevicesMetrics() error {
+
+func updateConnectedDevicesMetrics(cfg Config) error {
+	if cfg.DevMode {
+		connectedDevices.Set(1337)
+		return nil
+	}
+
 	output, err := exec.Command("wg", "show", "wg0", "endpoints").Output()
 	if err != nil {
 		return err
@@ -337,28 +374,75 @@ func actuateWireGuardConfig(wireGuardConfig, wireGuardConfigPath string, devMode
 
 	return nil
 }
-func checkForNewRelease() {
-	type response struct {
-		Tag string `json:"tag_name"`
+
+func setupIptables(cfg Config) error {
+	err := cfg.IPTables.ChangePolicy("filter", "FORWARD", "DROP")
+	if err != nil {
+		return fmt.Errorf("setting FORWARD policy to DROP: %w", err)
 	}
-	for range time.NewTicker(120 * time.Second).C {
-		log.Info("Checking release version on github")
-		resp, err := http.Get("https://api.github.com/repos/nais/device/releases/latest")
+
+	// Allow ESTABLISHED,RELATED from wg0 to default interface
+	err = cfg.IPTables.AppendUnique("filter", "FORWARD", "-i", "wg0", "-o", cfg.DefaultInterface, "-m", "conntrack", "--ctstate", "ESTABLISHED,RELATED", "-j", "ACCEPT")
+	if err != nil {
+		return fmt.Errorf("adding default forward rule: %w", err)
+	}
+
+	// Allow ESTABLISHED,RELATED from default interface to wg0
+	err = cfg.IPTables.AppendUnique("filter", "FORWARD", "-i", cfg.DefaultInterface, "-o", "wg0", "-m", "conntrack", "--ctstate", "ESTABLISHED,RELATED", "-j", "ACCEPT")
+	if err != nil {
+		return fmt.Errorf("adding default forward rule: %w", err)
+	}
+
+	return nil
+}
+
+func getDefaultInterfaceInfo() (string, string, error) {
+	cmd := exec.Command("ip", "route", "get", "1.1.1.1")
+	out, err := cmd.CombinedOutput()
+
+	if err != nil {
+		return "", "", fmt.Errorf("getting default gateway: %w", err)
+	}
+
+	return ParseDefaultInterfaceOutput(out)
+}
+
+func ParseDefaultInterfaceOutput(output []byte) (string, string, error) {
+	lines := strings.Split(string(output), "\n")
+	parts := strings.Split(lines[0], " ")
+	if len(parts) != 9 {
+		log.Errorf("wrong number of parts in output: '%v', output: '%v'", len(parts), string(output))
+		//return "", "", fmt.Errorf("wrong number of parts in output: '%v', output: '%v'", len(parts), string(output))
+	}
+
+	interfaceName := parts[4]
+	if len(interfaceName) < 4 {
+		return "", "", fmt.Errorf("weird interface name: '%v'", interfaceName)
+	}
+
+	interfaceIP := parts[6]
+
+	if len(strings.Split(interfaceIP, ".")) != 4 {
+		return "", "", fmt.Errorf("weird interface ip: '%v'", interfaceIP)
+	}
+
+	return interfaceName, interfaceIP, nil
+}
+
+func forwardRoutes(cfg Config, routes []string) error {
+	var err error
+
+	for _, ip := range routes {
+		err = cfg.IPTables.AppendUnique("nat", "POSTROUTING", "-o", cfg.DefaultInterface, "-p", "tcp", "-d", ip, "-j", "SNAT", "--to-source", cfg.DefaultInterfaceIP)
 		if err != nil {
-			log.Errorf("Unable to retrieve current release version %s", err)
-			continue
+			return fmt.Errorf("setting up snat: %w", err)
 		}
-		body, err := ioutil.ReadAll(resp.Body)
-		resp.Body.Close()
-		res := response{}
-		err = json.Unmarshal(body, &res)
+
+		err = cfg.IPTables.AppendUnique("filter", "FORWARD", "-i", "wg0", "-o", cfg.DefaultInterface, "-p", "tcp", "--syn", "-d", ip, "-m", "conntrack", "--ctstate", "NEW", "-j", "ACCEPT")
 		if err != nil {
-			log.Errorf("unable to unmarshall response: %s", err)
-			continue
-		}
-		if version.Version != res.Tag {
-			log.Info("New version available. So long and thanks for all the fish.")
-			os.Exit(0)
+			return fmt.Errorf("setting up forward: %w", err)
 		}
 	}
+
+	return nil
 }

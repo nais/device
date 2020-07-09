@@ -8,10 +8,14 @@ Restart=always
 # The failure of either of these commands will be logged, but
 # the service will still attempt to launch, which might well
 # succeed.
-ExecStartPre=/opt/nais-device/bin/gateway-agent-install-latest
-ExecStartPre=/opt/nais-device/bin/gateway-agent-fetch-secret {{ gcp_project }} {{ inventory_hostname }}
+{% if proxy_env is defined and proxy_env|length %}
+Environment="HTTPS_PROXY={{ proxy_env.https_proxy }}"
+{% endif %}
+StandardOutput=file:/var/log/naisdevice/gateway-agent.json
+StandardError=file:/var/log/naisdevice/gateway-agent.json
+ExecStartPre=/opt/nais-device/bin/gateway-agent-fetch-secret {{ gcp_project }} {{ name }}
 ExecStart=bash -c '/opt/nais-device/bin/gateway-agent \
-	--name="{{ inventory_hostname }}" \
+	--name="{{ name }}" \
 	--tunnel-ip="{{ tunnel_ip }}" \
 	--api-server-wireguard-endpoint="35.228.142.96:51820" \
 	--api-server-public-key="FUwVtyvs8nIRx9RpUUEopkfV8idmHz9g9K/vf9MFOXI=" \
