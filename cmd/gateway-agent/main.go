@@ -37,7 +37,6 @@ func init() {
 	flag.StringVar(&cfg.PrometheusAddr, "prometheus-address", cfg.PrometheusAddr, "prometheus listen address")
 	flag.StringVar(&cfg.APIServerURL, "api-server-url", cfg.APIServerURL, "api server URL")
 	flag.StringVar(&cfg.APIServerPublicKey, "api-server-public-key", cfg.APIServerPublicKey, "api server public key")
-	flag.StringVar(&cfg.APIServerPassword, "api-server-password", cfg.APIServerPassword, "api server password")
 	flag.StringVar(&cfg.APIServerWireGuardEndpoint, "api-server-wireguard-endpoint", cfg.APIServerWireGuardEndpoint, "api server WireGuard endpoint")
 	flag.StringVar(&cfg.PrometheusPublicKey, "prometheus-public-key", cfg.PrometheusPublicKey, "prometheus public key")
 	flag.StringVar(&cfg.PrometheusTunnelIP, "prometheus-tunnel-ip", cfg.PrometheusTunnelIP, "prometheus tunnel ip")
@@ -49,6 +48,7 @@ func init() {
 	logger.Setup(cfg.LogLevel)
 	cfg.WireGuardConfigPath = path.Join(cfg.ConfigDir, "wg0.conf")
 	cfg.PrivateKeyPath = path.Join(cfg.ConfigDir, "private.key")
+	cfg.APIServerPasswordPath = path.Join(cfg.ConfigDir, "apiserver_password")
 	initMetrics(cfg.Name)
 	log.Infof("Version: %s, Revision: %s", version.Version, version.Revision)
 }
@@ -154,7 +154,7 @@ func main() {
 		log.Infof("Skipping interface setup")
 	}
 
-	privateKey, err := readPrivateKey(cfg.PrivateKeyPath)
+	privateKey, err := readFileToString(cfg.PrivateKeyPath)
 	if err != nil {
 		log.Fatalf("reading private key: %s", err)
 	}
@@ -162,6 +162,14 @@ func main() {
 	baseConfig := GenerateBaseConfig(cfg, privateKey)
 	if err := actuateWireGuardConfig(baseConfig, cfg.WireGuardConfigPath, cfg.DevMode); err != nil {
 		log.Fatalf("actuating base config: %v", err)
+	}
+
+	cfg.APIServerPassword, err = readFileToString(cfg.APIServerPasswordPath)
+	if err != nil {
+		log.Fatalf("reading API server password: %s", err)
+	}
+	if len(cfg.APIServerPassword) == 0 {
+		log.Fatalf("API server password file empty: %s", cfg.APIServerPasswordPath)
 	}
 
 	for range time.NewTicker(10 * time.Second).C {
@@ -194,8 +202,8 @@ func main() {
 	}
 }
 
-func readPrivateKey(privateKeyPath string) (string, error) {
-	b, err := ioutil.ReadFile(privateKeyPath)
+func readFileToString(filePath string) (string, error) {
+	b, err := ioutil.ReadFile(filePath)
 	return string(b), err
 }
 
@@ -250,6 +258,7 @@ type Config struct {
 	PrometheusPublicKey        string
 	PrometheusTunnelIP         string
 	APIServerPassword          string
+	APIServerPasswordPath      string
 	LogLevel                   string
 	IPTables                   *iptables.IPTables
 	DefaultInterface           string

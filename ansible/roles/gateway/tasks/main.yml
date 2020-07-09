@@ -25,11 +25,10 @@
   notify:
     - restart_gateway-agent
 
-- name: Copy gateway agent secret fetcher script
-  copy:
-    src: gateway-agent-fetch-secret
-    dest: /opt/nais-device/bin/gateway-agent-fetch-secret
-    mode: '0755'
+- name: Get apiserver password
+  shell:
+    cmd: gcloud --project nais-device secrets versions access latest --secret nais-device_{{ name }}_api-server-password > /usr/local/etc/nais-device/apiserver_password
+    creates: /usr/local/etc/nais-device/apiserver_password
 
 - name: Install gateway agent systemd unit file
   template:
