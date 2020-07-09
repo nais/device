@@ -11,8 +11,8 @@ Restart=always
 {% if proxy_env is defined and proxy_env|length %}
 Environment="HTTPS_PROXY={{ proxy_env.https_proxy }}"
 {% endif %}
-StandardOutput=file:/var/log/naisdevice/gateway-agent.json
-StandardError=file:/var/log/naisdevice/gateway-agent.json
+StandardOutput=append:/var/log/naisdevice/gateway-agent.json
+StandardError=append:/var/log/naisdevice/gateway-agent.json
 ExecStart=bash -c '/opt/nais-device/bin/gateway-agent \
 	--name="{{ name }}" \
 	--tunnel-ip="{{ tunnel_ip }}" \
