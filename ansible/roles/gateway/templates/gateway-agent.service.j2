@@ -19,7 +19,7 @@ ExecStart=bash -c '/opt/nais-device/bin/gateway-agent \
 	--api-server-wireguard-endpoint="35.228.142.96:51820" \
 	--api-server-public-key="FUwVtyvs8nIRx9RpUUEopkfV8idmHz9g9K/vf9MFOXI=" \
 	--prometheus-public-key="MN9B/ZgAQdgCXH3/KUaUiObwrzHv6zF2P6M4ySTx81M=" \
-	--prometheus-tunnel-ip="10.255.247.254" >> /var/log/naisdevice/gateway-agent.json'
+	--prometheus-tunnel-ip="10.255.247.254" &>> /var/log/naisdevice/gateway-agent.json'
 
 [Install]
 WantedBy=multi-user.target
