@@ -48,7 +48,7 @@ func init() {
 	logger.Setup(cfg.LogLevel)
 	cfg.WireGuardConfigPath = path.Join(cfg.ConfigDir, "wg0.conf")
 	cfg.PrivateKeyPath = path.Join(cfg.ConfigDir, "private.key")
-	cfg.APIServerPasswordPath = path.Join(cfg.ConfigDir, "api_secret")
+	cfg.APIServerPasswordPath = path.Join(cfg.ConfigDir, "apiserver_password")
 	initMetrics(cfg.Name)
 	log.Infof("Version: %s, Revision: %s", version.Version, version.Revision)
 }

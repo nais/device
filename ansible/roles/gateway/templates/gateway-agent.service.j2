@@ -13,7 +13,6 @@ Environment="HTTPS_PROXY={{ proxy_env.https_proxy }}"
 {% endif %}
 StandardOutput=file:/var/log/naisdevice/gateway-agent.json
 StandardError=file:/var/log/naisdevice/gateway-agent.json
-ExecStartPre=/opt/nais-device/bin/gateway-agent-fetch-secret {{ gcp_project }} {{ name }}
 ExecStart=bash -c '/opt/nais-device/bin/gateway-agent \
 	--name="{{ name }}" \
 	--tunnel-ip="{{ tunnel_ip }}" \
