@@ -49,7 +49,7 @@
   file:
     path: /var/log/naisdevice
     state: directory
-    owner: root
+    owner: fluentd
     group: syslog
     mode: 0775
 
