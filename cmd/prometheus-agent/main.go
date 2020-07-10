@@ -99,7 +99,7 @@ func main() {
 			continue
 		}
 
-		nodeTargetsFile, err := os.Open("/etc/prometheus/node-targets.json")
+		nodeTargetsFile, err := os.OpenFile("/etc/prometheus/node-targets.json", os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0644)
 		if err != nil {
 			log.Fatalf("Unable to open file: %v", err)
 		}
@@ -108,7 +108,7 @@ func main() {
 			log.Fatalf("Unable to write prometheus config: %v", err)
 		}
 
-		gatewayTargetsFile, err := os.Open("/etc/prometheus/gateway-targets.json")
+		gatewayTargetsFile, err := os.OpenFile("/etc/prometheus/gateway-targets.json", os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0644)
 		if err != nil {
 			log.Fatalf("Unable to open file: %v", err)
 		}
