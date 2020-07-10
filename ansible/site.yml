@@ -1,4 +1,11 @@
 ---
+- hosts: bootstrap-api
+  tasks:
+    - include_role:
+        name: logging
+    - include_role:
+        name: bootstrap-api
+
 - hosts: prometheus
   tasks:
     - include_role:

@@ -1,0 +1,39 @@
+#TODO remove once run
+- name: remove old dir
+  file:
+    path: /opt/nais-device
+    state: absent
+
+- name: Create binary directory
+  file:
+    path: /opt/naisdevice/bin
+    state: directory
+    mode: '0755'
+
+- name: Download bootstrap-api
+  get_url:
+    dest: /opt/naisdevice/bin/bootstrap-api
+    force: yes
+    url: https://github.com/nais/device/releases/download/2020-07-09-8f8ee2c/bootstrap-api
+    backup: yes
+    mode: 0755
+  notify:
+    - restart_bootstrap-api
+
+- name: Install bootstrap-api systemd unit file
+  copy:
+    src: bootstrap-api.service
+    dest: /etc/systemd/system/
+  notify:
+    - restart_bootstrap-api
+
+- name: Ensure bootstrap-api is enabled
+  systemd:
+    name: bootstrap-api
+    enabled: yes
+    daemon_reload: yes
+
+- name: Ensure bootstrap-api is started
+  systemd:
+    name: bootstrap-api
+    state: started
