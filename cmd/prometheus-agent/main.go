@@ -3,8 +3,10 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"net/http"
+	"os"
 	"os/exec"
 	"path"
 	"time"
@@ -15,6 +17,8 @@ import (
 	log "github.com/sirupsen/logrus"
 	flag "github.com/spf13/pflag"
 )
+
+const GatewayFetchInterval = 5 * time.Minute
 
 var (
 	cfg                 = DefaultConfig()
@@ -84,13 +88,31 @@ func main() {
 		log.Fatalf("actuating base config: %v", err)
 	}
 
-	for range time.NewTicker(10 * time.Second).C {
+	for range time.NewTicker(GatewayFetchInterval).C {
 		log.Infof("getting config")
 		gateways, err := getGateways(cfg)
 		if err != nil {
 			log.Error(err)
 			failedConfigFetches.Inc()
 			continue
+		}
+
+		nodeTargetsFile, err := os.Open("/etc/prometheus/node-targets.json")
+		if err != nil {
+			log.Fatalf("Unable to open file: %v", err)
+		}
+
+		if err := WritePrometheusTargets(gateways, 9100, nodeTargetsFile); err != nil {
+			log.Fatalf("Unable to write prometheus config: %v", err)
+		}
+
+		gatewayTargetsFile, err := os.Open("/etc/prometheus/gateway-targets.json")
+		if err != nil {
+			log.Fatalf("Unable to open file: %v", err)
+		}
+
+		if err := WritePrometheusTargets(gateways, 3000, gatewayTargetsFile); err != nil {
+			log.Fatalf("Unable to write prometheus config: %v", err)
 		}
 
 		lastSuccessfulConfigFetch.SetToCurrentTime()
@@ -102,6 +124,19 @@ func main() {
 			log.Errorf("actuating WireGuard config: %v", err)
 		}
 	}
+}
+
+func WritePrometheusTargets(gateways []Gateway, port int, writer io.Writer) error {
+	var targets []string
+	for _, gw := range gateways {
+		targets = append(targets, fmt.Sprintf("%v:%v", gw.IP, port))
+	}
+
+	return json.NewEncoder(writer).Encode([]PrometheusSDConfig{{Targets: targets}})
+}
+
+type PrometheusSDConfig struct {
+	Targets []string `json:"targets"`
 }
 
 func readPrivateKey(privateKeyPath string) (string, error) {
