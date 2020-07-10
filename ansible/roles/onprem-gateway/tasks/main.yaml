@@ -12,3 +12,11 @@
     update_cache: yes
     name: google-cloud-sdk
     state: present
+
+- name: Activate main service account
+  shell: gcloud auth activate-service-account --key-file=/root/sa.json
+  args:
+    #creates: /opt/naisdevice/fluentd-stackdriver/sa.json
+    executable: /bin/bash
+  environment:
+    PATH: /usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/snap/bin

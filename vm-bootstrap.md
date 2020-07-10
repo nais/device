@@ -1,3 +1,11 @@
+# add to terraform
+1. add to `github.com/naisdevice-terraform/gateways/terraform.tfvars`
+2. apply
+3. [onprem]:
+  a. `gcloud iam service-accounts keys create --iam-account=<account_email> key.json`
+  b. `cat key.json | pbcopy && rm key.json`
+  c. ssh to new gateway, paste key at: `/root/sa.json`
+
 # install ansible-pull
 `apt install ansible`
 
