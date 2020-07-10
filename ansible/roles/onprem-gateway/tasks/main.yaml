@@ -24,7 +24,7 @@
 - name: Create admin group
   group:
     name: admin
-    gid: 1001
+    gid: 1069
     state: present
 
 - name: Create admin users
