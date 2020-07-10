@@ -21,6 +21,12 @@
 
 - hosts: onprem_gateways
   environment: "{{ proxy_env }}"
+  vars:
+    admin_users:
+      - name: m152973
+        authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIO7fYA2cjne20QGuDjsVAorHikWPB5iPVzfbh/ej6pWZ vegar@sechmann.no-20190405"
+      - name: h129009
+        authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIHsIXwF/eT74JubXMiAmk1Qwxs4VgZESy/JT/0gKTRG1 johnny@horvi.no-2019-05-15"
   roles:
     - onprem-gateway
     - logging

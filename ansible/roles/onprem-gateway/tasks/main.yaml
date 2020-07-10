@@ -20,3 +20,28 @@
     executable: /bin/bash
   environment:
     PATH: /usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/snap/bin
+
+- name: Create admin group
+  group:
+    name: admin
+    gid: 1001
+    state: present
+
+- name: Create admin users
+  user:
+    name: "{{ item.name }}"
+    comment: "{{ item.name }}"
+    shell: "/bin/bash"
+    group: "admin"
+    groups: "sudo"
+    state: present
+  when: admin_users is defined
+  loop: "{{ admin_users }}"
+
+- name: Add admin_users  ssh keys
+  authorized_key:
+    user: "{{ item.name }}"
+    key: "{{ item.authorized_key }}"
+    state: present
+  when: admin_users is defined and item.authorized_key is defined
+  loop: "{{ admin_users }}"
