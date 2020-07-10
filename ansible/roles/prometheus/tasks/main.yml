@@ -8,15 +8,21 @@
     name: prometheus
     state: present
 
-- name: Create binary directory
+# TODO: remove once run
+- name: remove legacy binary directory
   file:
     path: /opt/nais-device/bin
+    state: absent
+
+- name: Create binary directory
+  file:
+    path: /opt/naisdevice/bin
     state: directory
     mode: '0755'
 
 - name: Download prometheus-agent
   get_url:
-    dest: /opt/nais-device/bin/prometheus-agent
+    dest: /opt/naisdevice/bin/prometheus-agent
     force: yes
     url: https://github.com/nais/device/releases/download/2020-07-10-85fbd3e/prometheus-agent
     backup: yes
