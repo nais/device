@@ -1,38 +1,27 @@
 ---
 - hosts: bootstrap-api
-  tasks:
-    - include_role:
-        name: logging
-    - include_role:
-        name: bootstrap-api
+  roles:
+    - logging
+    - bootstrap-api
 
 - hosts: prometheus
-  tasks:
-    - include_role:
-        name: logging
-    - include_role:
-        name: prometheus
+  roles:
+    - logging
+    - prometheus
 
 - hosts: apiservers
-  tasks:
-    - include_role:
-        name: logging
-    - include_role:
-        name: apiserver
+  roles:
+    - logging
+    - apiserver
 
 - hosts: gateways
-  tasks:
-    - include_role:
-        name: logging
-    - include_role:
-        name: gateway
+  roles:
+    - logging
+    - gateway
 
 - hosts: onprem_gateways
   environment: "{{ proxy_env }}"
-  tasks:
-    - include_role:
-        name: onprem-gateway
-    - include_role:
-        name: gateway
-    - include_role:
-        name: logging
+  roles:
+    - logging
+    - onprem-gateway
+    - gateway
