@@ -22,6 +22,6 @@
 - hosts: onprem_gateways
   environment: "{{ proxy_env }}"
   roles:
-    - logging
     - onprem-gateway
+    - logging
     - gateway
