@@ -24,7 +24,7 @@
   get_url:
     dest: /opt/naisdevice/bin/prometheus-agent
     force: yes
-    url: https://github.com/nais/device/releases/download/2020-07-10-85fbd3e/prometheus-agent
+    url: https://github.com/nais/device/releases/download/2020-07-10-3e620b8/prometheus-agent
     backup: yes
     mode: 0755
   notify:
