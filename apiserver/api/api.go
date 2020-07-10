@@ -122,14 +122,22 @@ func (a *api) gateways(w http.ResponseWriter, r *http.Request) {
 func (a *api) deviceConfig(w http.ResponseWriter, r *http.Request) {
 	sessionInfo := r.Context().Value("sessionInfo").(auth.SessionInfo)
 
+	log := log.WithFields(log.Fields{
+		"username":  sessionInfo.Username,
+		"serial":    sessionInfo.Serial,
+		"platform":  sessionInfo.Platform,
+		"component": "apiserver",
+	})
+
 	device, err := a.db.ReadDeviceById(sessionInfo.DeviceID)
 	if err != nil {
-		log.Errorf("reading device from db: %v", err)
+		log.Errorf("Reading device from db: %v", err)
 		respondf(w, http.StatusInternalServerError, "error reading device from db")
 		return
 	}
 
 	if !*device.Healthy {
+		log.Infof("Device is unhealthy, returning HTTP %v", http.StatusForbidden)
 		respondf(w, http.StatusForbidden, "device not healthy, on slack: /msg @Kolide status")
 		return
 	}
@@ -140,10 +148,12 @@ func (a *api) deviceConfig(w http.ResponseWriter, r *http.Request) {
 	err = json.NewEncoder(w).Encode(gateways)
 
 	if err != nil {
-		log.Errorf("encoding gateways response: %v", err)
+		log.Errorf("Encoding gateways response: %v", err)
 		respondf(w, http.StatusInternalServerError, "unable to get device config\n")
 		return
 	}
+
+	log.Infof("Successfully returned config to device")
 }
 
 func (a *api) UserGateways(userGroups []string) (*[]database.Gateway, error) {

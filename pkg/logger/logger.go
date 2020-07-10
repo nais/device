@@ -26,14 +26,18 @@ func SetupDeviceLogger(level, path string) {
 	}
 	log.SetLevel(loglevel)
 	log.SetFormatter(&easy.Formatter{TimestampFormat: "2006-01-02 15:04:05.00000", LogFormat: "%time% - [%lvl%] - %msg%\n"})
-	log.Infof("Successfully set up loging. Level %s", loglevel)
+	log.Infof("Successfully set up logging. Level %s", loglevel)
 }
 
 func Setup(level string) {
-	log.SetFormatter(&log.JSONFormatter{})
+	log.SetFormatter(&log.JSONFormatter{FieldMap: log.FieldMap{
+		log.FieldKeyMsg: "message",
+	}})
+
 	l, err := log.ParseLevel(level)
 	if err != nil {
 		log.Fatal(err)
 	}
+
 	log.SetLevel(l)
 }
