@@ -11,7 +11,7 @@
 # TODO: remove once run
 - name: remove legacy binary directory
   file:
-    path: /opt/nais-device/bin
+    path: /opt/nais-device
     state: absent
 
 - name: Create binary directory
