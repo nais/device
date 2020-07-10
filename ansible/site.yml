@@ -1,5 +1,5 @@
 ---
-- hosts: bootstrap-api
+- hosts: bootstrap_api
   roles:
     - logging
     - bootstrap-api

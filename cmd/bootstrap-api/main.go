@@ -109,6 +109,11 @@ func main() {
 func postBootstrapConfig(w http.ResponseWriter, r *http.Request) {
 	serial := chi.URLParam(r, "serial")
 
+	log := log.WithFields(log.Fields{
+		"component": "bootstrap-api",
+		"serial":    serial,
+	})
+
 	var bootstrapConfig bootstrap.Config
 	err := json.NewDecoder(r.Body).Decode(&bootstrapConfig)
 	if err != nil {
@@ -118,16 +123,21 @@ func postBootstrapConfig(w http.ResponseWriter, r *http.Request) {
 	}
 
 	enrollments.addBootstrapConfig(serial, bootstrapConfig)
-	log.Infof("%s %s: serial: %s bootstrapconfig: %v", r.Method, r.URL, serial, bootstrapConfig)
 
 	w.WriteHeader(http.StatusCreated)
+
+	log.WithField("event", "apiserver_posted_bootstrapconfig").Infof("Successful enrollment response came from apiserver")
 }
 
 func getBootstrapConfig(w http.ResponseWriter, r *http.Request) {
 	serial := chi.URLParam(r, "serial")
+	log := log.WithFields(log.Fields{
+		"component": "bootstrap-api",
+		"serial":    serial,
+		"username":  r.Context().Value("preferred_username").(string),
+	})
 
 	bootstrapConfig := enrollments.getBootstrapConfig(serial)
-	log.Infof("%s %s: serial: %s bootstrapconfig: %v", r.Method, r.URL, serial, bootstrapConfig)
 
 	if bootstrapConfig == nil {
 		w.WriteHeader(http.StatusNotFound)
@@ -138,10 +148,12 @@ func getBootstrapConfig(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 	err := json.NewEncoder(w).Encode(bootstrapConfig)
 	if err != nil {
-		log.Errorf("Encoding json: %v", err)
+		log.Errorf("Unable to get bootstrap config: Encoding json: %v", err)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
+
+	log.WithField("event", "retrieved_bootstrapconfig").Infof("Successfully returned bootstrap config")
 }
 
 func postDeviceInfo(w http.ResponseWriter, r *http.Request) {
@@ -162,7 +174,14 @@ func postDeviceInfo(w http.ResponseWriter, r *http.Request) {
 	}
 
 	enrollments.addDeviceInfo(deviceInfo)
-	log.Infof("%s %s: %v", r.Method, r.URL, deviceInfo)
+
+	log.WithFields(log.Fields{
+		"component": "bootstrap-api",
+		"serial":    deviceInfo.Serial,
+		"username":  deviceInfo.Owner,
+		"platform":  deviceInfo.Platform,
+	}).Infof("Enrollment request for apiserver queued")
+
 	w.WriteHeader(http.StatusCreated)
 }
 
