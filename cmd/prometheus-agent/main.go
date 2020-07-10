@@ -88,7 +88,9 @@ func main() {
 		log.Fatalf("actuating base config: %v", err)
 	}
 
-	for range time.NewTicker(GatewayFetchInterval).C {
+	timer := time.NewTimer(1 * time.Millisecond)
+	for range timer.C {
+		timer.Reset(GatewayFetchInterval)
 		log.Infof("getting config")
 		gateways, err := getGateways(cfg)
 		if err != nil {
