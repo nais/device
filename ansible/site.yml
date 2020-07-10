@@ -1,4 +1,11 @@
 ---
+- hosts: prometheus
+  tasks:
+    - include_role:
+        name: logging
+    - include_role:
+        name: prometheus
+
 - hosts: apiservers
   tasks:
     - include_role:

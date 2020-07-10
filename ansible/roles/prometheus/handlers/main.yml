@@ -1,0 +1,11 @@
+- name: restart_prometheus-agent
+  systemd:
+    state: restarted
+    name: prometheus-agent
+    daemon_reload: yes
+
+- name: restart_prometheus
+  systemd:
+    state: restarted
+    name: prometheus
+    daemon_reload: yes
