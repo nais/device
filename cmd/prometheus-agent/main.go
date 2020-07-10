@@ -39,6 +39,7 @@ var (
 func init() {
 	logger.Setup(cfg.LogLevel)
 	flag.StringVar(&cfg.TunnelIP, "tunnel-ip", cfg.TunnelIP, "prometheus tunnel ip")
+	flag.StringVar(&cfg.ConfigDir, "config-dir", cfg.ConfigDir, "agent configuration directory")
 	flag.StringVar(&cfg.PrometheusAddr, "prometheus-address", cfg.PrometheusAddr, "prometheus listen address")
 	flag.StringVar(&cfg.APIServerURL, "api-server-url", cfg.APIServerURL, "api server URL")
 	flag.StringVar(&cfg.APIServerPublicKey, "api-server-public-key", cfg.APIServerPublicKey, "api server public key")
@@ -99,7 +100,7 @@ func main() {
 			continue
 		}
 
-		nodeTargetsFile, err := os.OpenFile("/etc/prometheus/node-targets.json", os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0644)
+		nodeTargetsFile, err := os.Create("/etc/prometheus/node-targets.json")
 		if err != nil {
 			log.Fatalf("Unable to open file: %v", err)
 		}
@@ -107,8 +108,9 @@ func main() {
 		if err := WritePrometheusTargets(gateways, 9100, nodeTargetsFile); err != nil {
 			log.Fatalf("Unable to write prometheus config: %v", err)
 		}
+		_ = nodeTargetsFile.Close()
 
-		gatewayTargetsFile, err := os.OpenFile("/etc/prometheus/gateway-targets.json", os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0644)
+		gatewayTargetsFile, err := os.Create("/etc/prometheus/gateway-targets.json")
 		if err != nil {
 			log.Fatalf("Unable to open file: %v", err)
 		}
@@ -116,6 +118,7 @@ func main() {
 		if err := WritePrometheusTargets(gateways, 3000, gatewayTargetsFile); err != nil {
 			log.Fatalf("Unable to write prometheus config: %v", err)
 		}
+		_ = gatewayTargetsFile.Close()
 
 		lastSuccessfulConfigFetch.SetToCurrentTime()
 
