@@ -1,15 +1,38 @@
 #!/usr/bin/env bash
-
 set -o pipefail
 
-latest_tag=$(curl --show-error --silent --fail -L "https://api.github.com/repos/nais/device/releases/latest" | grep 'tag_name' | sed -E 's/.*"([^"]+)".*/\1/' || exit 1)
+err='no error'
+latest_tag=''
+
+ok() {
+  echo -e "..[\e[38;5;82mok\e[0;5;82m]"
+}
+
+fail() {
+  echo -e "[\e[31;5;82mfail\e[0;5;82m]"
+  echo $err
+  exit 1
+}
+
+admin() {
+  echo -e "[\e[33;5;82msudo\e[0;5;82m]"
+  sudo whoami > /dev/null
+}
+
+echo "##################################"
+echo "# Installing naisdevice           "
+echo "##################################"
+echo
+
+echo -n "determining latest version..."
+latest_tag=$(curl --show-error --silent --fail -L "https://api.github.com/repos/nais/device/releases/latest" | grep 'tag_name' | sed -E 's/.*"([^"]+)".*/\1/') && ok || fail
+
+echo -n "downloading latest pkg......."
 pkg_url="https://github.com/nais/device/releases/download/${latest_tag}/naisdevice-${latest_tag}.pkg"
-
-echo "downloading latest pkg from: $pkg_url"
-
 temp_pkg=$(mktemp).pkg
-curl --show-error --silent --fail -L "$pkg_url"  > "$temp_pkg" || exit 1
+err=$(curl --show-error --silent --fail -L "$pkg_url" -o "$temp_pkg") && ok || fail
 
-echo "installing new version: $latest_tag"
-sudo installer -target / -pkg "$temp_pkg"
-echo "done"
+echo -n "elevating to admin .........."
+admin
+echo -n "installing package..........."
+err=$(sudo installer -target / -pkg "$temp_pkg") && ok || fail
