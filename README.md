@@ -1,28 +1,55 @@
-# Nais device
+# naisdevice
 
-[![Kolide checks severity](https://github.com/nais/device/workflows/Kolide%20checks%20severity/badge.svg)](https://github.com/nais/device/actions?query=workflow%3A%22Kolide+checks+severity%22)
+naisdevice is a mechanism enabling NAVs developers to connect to internal resources in a secure and friendly manner. 
 
+Each resource is protected by a gateway, and the developer is only granted access to the gateway if all of the following requirements are met:
+- Has a valid nav.no account
+- Has accepted naisdevice [terms and conditions](https://naisdevice-approval.nais.io/)
+- Device is [healthy](#what-is-a-healthy-device)
+- Is member of the AAD access group for the gateway (e.g. to connect to team A's DB, you must be member of team A's AAD-group)
 
-## Wireguard setup (for all vms)
-  1. `# apt-get install --yes wireguard`
-  2. mkdir -p /usr/local/etc/nais-device
-  3. wg genkey > /usr/local/etc/nais-device/private.key
+## key attributes
 
-## Gateway
-  1. `# sed -i -e 's/#net.ipv4.ip_forward=1/net.ipv4.ip_forward=1/' /etc/sysctl.conf`
-  2. `# sysctl -p`
+- minimal attack surface
+- frequent key rotation
+- instantly reacting to relevant security events
+- improved auditlogs: who connected when and to what, as well as other relevant user events
+- moving away from traditional device management enables building a strong security culture through educating our users on client security instead of automatically configuring their computers
 
-## Apiserver
+## architecture
 
-## Postgres
-  1. set up managed postgres (TODO)
+todo: simple visual describing:
+- apiserver coordinates configuration
+- device + gateway fetches config on a timer
+- device-health-checker informs apiserver of device health from Kolide
+- additionally: bootstrap-api used first time user connects/enrolls into the system
 
-## Prometheus
-  0. wireguard setup
-  1. create prometheus vm
-  2. `# apt get install prometheus`
-  3. add apiserver/gateways tunnel ips as targets to: `/etc/prometheus/prometheus.yml`
-  4. sudo systemctl restart prometheus
-  5. on apiserver/gateways, `# apt install prometheus-node-exporter` (default setup is fine)
-  6. $$$ profit $$$
+### components 
+
+#### apiserver
+The naisdevice apiserver main responsibility is to serve the [device-agents](#device-agent) and [gateway-agents](#gateway-agent) with configuration through a set of APIs.
+
+It's database is master for all peers (devices and gateways) operating in the environment, as well as keeping track of and allocating IPs in the VPN's address space.
+
+It calculates the appropriate configuration for the peers primarily based on two factors:
+1. Is the device owner authorized to use the gateway?
+2. Is the device in a healthy state?
+
+If both is true, the device-agent and gateway-agent is informed with the necessary information in order for them to communicate. 
+
+The apiserver also:
+- exposes an endpoint for other trusted processes to inform about the health status of the devices. Currently this is the [device-health-checker](#device-health-checker) components
+- continuously checks the [bootstrap-api](#bootstrap-api) for any pending enrollments requests and adds new devices.
+
+### device-agent
+### gateway-agent
+### device-health-checker
+### bootstrap-api
+
+## [Kolide](https://www.kolide.com/)
+
+## [WireGuard](https://www.wireguard.com)
+
+## FAQ
+### What is a healthy device?
 
