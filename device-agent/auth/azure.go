@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/nais/device/device-agent/open"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/nais/device/pkg/random"
@@ -33,6 +34,13 @@ func runAuthFlow(ctx context.Context, conf oauth2.Config) (*oauth2.Token, error)
 
 	// define a handler that will get the authorization code, call the token endpoint, and close the HTTP server
 	handler.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		// Catch if user has not approved terms
+		if strings.HasPrefix(r.URL.Query().Get("error_description"), "AADSTS50105") {
+			http.Redirect(w, r, "https://naisdevice-approval.nais.io/", http.StatusSeeOther)
+			tokenChan <- nil
+			return
+		}
+
 		code := r.URL.Query().Get("code")
 		if code == "" {
 			log.Errorf("Error: could not find 'code' URL query parameter")
