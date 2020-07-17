@@ -54,7 +54,7 @@ func EnsureAuth(existing *SessionInfo, ctx context.Context, apiserverURL, platfo
 		return nil, fmt.Errorf("unable to get auth URL from apiserver after %d attempts", GetAuthURLMaxAttempts)
 	}
 
-	sessionInfo, err := runFlow(ctx, authURL, apiserverURL, platform, serial)
+	sessionInfo, err := RunFlow(ctx, urlOpener(authURL), sessionInfoGetter(apiserverURL, platform, serial))
 
 	if err != nil {
 		return nil, fmt.Errorf("ensuring valid session key: %v", err)
@@ -63,13 +63,15 @@ func EnsureAuth(existing *SessionInfo, ctx context.Context, apiserverURL, platfo
 	return sessionInfo, nil
 }
 
-func runFlow(ctx context.Context, authURL, apiserverURL, platform, serial string) (*SessionInfo, error) {
+type SessionInfoGetter func(context.Context, string) (*SessionInfo, error)
+type UrlOpener func() error
+
+func RunFlow(ctx context.Context, urlOpener UrlOpener, exchange SessionInfoGetter) (*SessionInfo, error) {
 	handler := http.NewServeMux()
 
-	sessionInfo := make(chan *SessionInfo)
+	sessionInfo := make(chan *SessionInfo, 1)
 	// define a handler that will get the authorization code, call the login endpoint to get a new session, and close the HTTP server
 	handler.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-
 		// Catch if user has not approved terms
 		if strings.HasPrefix(r.URL.Query().Get("error_description"), "AADSTS50105") {
 			http.Redirect(w, r, "https://naisdevice-approval.nais.io/", http.StatusSeeOther)
@@ -77,46 +79,27 @@ func runFlow(ctx context.Context, authURL, apiserverURL, platform, serial string
 			return
 		}
 
-		codeRequestURL := url.URL{
-			Scheme:   "http",
-			Host:     strings.Split(apiserverURL, "://")[1],
-			Path:     "/login",
-			RawQuery: r.URL.RawQuery,
-		}
-
-		codeRequest, _ := http.NewRequest(http.MethodGet, codeRequestURL.String(), nil)
-		codeRequest.Header.Add("x-naisdevice-platform", platform)
-		codeRequest.Header.Add("x-naisdevice-serial", serial)
-
-		resp, err := http.DefaultClient.Do(codeRequest.WithContext(ctx))
+		si, err := exchange(ctx, r.URL.RawQuery)
 		if err != nil {
-			log.Errorf("Sending auth code to apiserver login: %v", err)
-			sessionInfo <- nil
-			return
-		}
-
-		var si SessionInfo
-		if err := json.NewDecoder(resp.Body).Decode(&si); err != nil {
-			log.Errorf("Reading session info from response body: %v", err)
+			err = fmt.Errorf("failed logging in: %v", err)
+			failureResponse(w, err.Error())
 			sessionInfo <- nil
 			return
 		}
 
 		successfulResponse(w, "Successfully authenticated 👌 Close me pls")
-		sessionInfo <- &si
+		sessionInfo <- si
 	})
 
 	server := &http.Server{Addr: "127.0.0.1:51800", Handler: handler}
 	go server.ListenAndServe()
 	defer server.Close()
 
-	err := open.Open(authURL)
+	err := urlOpener()
 	if err != nil {
 		log.Errorf("opening browser, err: %v", err)
 		// Don't return, as this is not fatal (user can open browser manually)
 	}
-
-	fmt.Printf("If the browser didn't open, visit this url to sign in: %v\n", authURL)
 
 	var si *SessionInfo
 	select {
@@ -132,6 +115,45 @@ func runFlow(ctx context.Context, authURL, apiserverURL, platform, serial string
 	}
 
 	return si, nil
+}
+
+func urlOpener(url string) func() error {
+	return func() error {
+		err := open.Open(url)
+
+		if err != nil {
+			fmt.Printf("If the browser didn't open, visit this url to sign in: %v\n", url)
+		}
+
+		return err
+	}
+}
+
+func sessionInfoGetter(apiserverURL, platform, serial string) SessionInfoGetter {
+	return func(ctx context.Context, queryParams string) (*SessionInfo, error) {
+		codeRequestURL := url.URL{
+			Scheme:   "http",
+			Host:     strings.Split(apiserverURL, "://")[1],
+			Path:     "/login",
+			RawQuery: queryParams,
+		}
+
+		codeRequest, _ := http.NewRequest(http.MethodGet, codeRequestURL.String(), nil)
+		codeRequest.Header.Add("x-naisdevice-platform", platform)
+		codeRequest.Header.Add("x-naisdevice-serial", serial)
+
+		resp, err := http.DefaultClient.Do(codeRequest.WithContext(ctx))
+		if err != nil {
+			return nil, fmt.Errorf("sending auth code to apiserver login: %v", err)
+		}
+
+		var si SessionInfo
+		if err := json.NewDecoder(resp.Body).Decode(&si); err != nil {
+			return nil, fmt.Errorf("reading session info from response body: %v", err)
+		}
+
+		return &si, nil
+	}
 }
 
 func getAuthURL(apiserverURL string, ctx context.Context) (string, error) {
