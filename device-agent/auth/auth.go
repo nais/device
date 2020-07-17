@@ -54,7 +54,7 @@ func EnsureAuth(existing *SessionInfo, ctx context.Context, apiserverURL, platfo
 		return nil, fmt.Errorf("unable to get auth URL from apiserver after %d attempts", GetAuthURLMaxAttempts)
 	}
 
-	sessionInfo, err := RunFlow(ctx, urlOpener(authURL), sessionInfoGetter(apiserverURL, platform, serial))
+	sessionInfo, err := RunFlow(ctx, urlOpener(authURL), MakeSessionInfoGetter(apiserverURL, platform, serial))
 
 	if err != nil {
 		return nil, fmt.Errorf("ensuring valid session key: %v", err)
@@ -129,7 +129,7 @@ func urlOpener(url string) func() error {
 	}
 }
 
-func sessionInfoGetter(apiserverURL, platform, serial string) SessionInfoGetter {
+func MakeSessionInfoGetter(apiserverURL, platform, serial string) SessionInfoGetter {
 	return func(ctx context.Context, queryParams string) (*SessionInfo, error) {
 		codeRequestURL := url.URL{
 			Scheme:   "http",

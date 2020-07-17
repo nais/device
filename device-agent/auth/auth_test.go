@@ -2,9 +2,11 @@ package auth_test
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"net/http/httptest"
 	"testing"
 	"time"
 
@@ -79,4 +81,37 @@ func TestRunFlow(t *testing.T) {
 	assert.NoError(t, err)
 	assert.NotNil(t, si.Key)
 	assert.Equal(t, "key", si.Key)
+}
+
+func TestMakeSessionInfoGetter(t *testing.T) {
+	expectedSessionInfo := auth.SessionInfo{
+		Key:    "key",
+		Expiry: 100,
+	}
+	expectedParams := "?code=123&state=asd"
+	expectedPlatform := "linux"
+	expectedSerial := "serial"
+
+	mux := http.NewServeMux()
+	mux.HandleFunc("/login", func(writer http.ResponseWriter, request *http.Request) {
+		assert.Equal(t, request.Header.Get("x-naisdevice-platform"), expectedPlatform)
+		assert.Equal(t, request.Header.Get("x-naisdevice-serial"), expectedSerial)
+		assert.Equal(t, request.URL.RawQuery, expectedParams)
+
+		json.NewEncoder(writer).Encode(&expectedSessionInfo)
+		writer.WriteHeader(http.StatusOK)
+
+	})
+	s := httptest.NewServer(mux)
+	defer s.Close()
+
+	sessionInfoGetter := auth.MakeSessionInfoGetter(s.URL, "linux", "serial")
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
+	si, err := sessionInfoGetter(ctx, expectedParams)
+
+	assert.NoError(t, err)
+	assert.NotNil(t, si)
+	assert.Equal(t, expectedSessionInfo.Key, si.Key)
+	assert.Equal(t, expectedSessionInfo.Expiry, si.Expiry)
 }
