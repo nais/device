@@ -27,6 +27,14 @@
     gid: 1069
     state: present
 
+- name: nopasswd for members of 'sudo' group
+  copy:
+    mode: '0600'
+    owner: root
+    group: root
+    dest: /etc/sudoers.d/sudo-group-nopasswd
+    content: '%sudo ALL=(ALL:ALL) NOPASSWD:ALL'
+
 - name: Create admin users
   user:
     name: "{{ item.name }}"
