@@ -8,9 +8,9 @@ PKGID = io.nais.device
 GOPATH ?= ~/go
 
 all: test alpine
-local-postgres: teardown-postgres run-postgres insert-testdata
-dev-apiserver: local-postgres local-apiserver teardown-postgres
-integration-test: run-postgres-test run-integration-test teardown-postgres-test
+local-postgres: stop-postgres run-postgres
+dev-apiserver: local-postgres local-apiserver stop-postgres
+integration-test: run-postgres-test run-integration-test stop-postgres-test
 clients: linux-client macos-client windows-client
 
 linux:
@@ -46,27 +46,19 @@ local:
 	go build -o bin/local/bootstrap-api ./cmd/bootstrap-api
 
 run-postgres:
-	docker run -e POSTGRES_PASSWORD=postgres --rm --name postgres -p 5432:5432 postgres &
-	for attempt in {0..5}; do \
- 		sleep 2;\
-		PGPASSWORD=postgres psql -h localhost -U postgres -f apiserver/database/schema/schema.sql && break;\
-    done
-
-insert-testdata:
-	PGPASSWORD=postgres psql -h localhost -U postgres -f testdata.sql
+	docker run -e POSTGRES_PASSWORD=postgres --rm --name postgres -p 5432:5432 -d \
+	  -v ${PWD}/apiserver/database/schema/schema.sql:/docker-entrypoint-initdb.d/schema.sql \
+	  -v ${PWD}/testdata.sql:/docker-entrypoint-initdb.d/testdata.sql \
+		postgres
 
 run-postgres-test:
-	docker run -e POSTGRES_PASSWORD=postgres --rm --name postgres-test -p 5433:5432 postgres &
-	for attempt in {0..5}; do \
- 		sleep 2;\
-		PGPASSWORD=postgres psql -h localhost -p 5433 -U postgres -l && break;\
-    done
+	docker run -e POSTGRES_PASSWORD=postgres --rm --name postgres-test -p 5433:5432 -d postgres
 
-teardown-postgres:
-	docker rm -f postgres || echo "okidoki"
+stop-postgres:
+	docker stop postgres || echo "okidoki"
 
-teardown-postgres-test:
-	docker rm -f postgres-test || echo "okidoki"
+stop-postgres-test:
+	docker stop postgres-test || echo "okidoki"
 
 local-gateway-agent:
 	$(eval config_dir := $(shell mktemp -d))

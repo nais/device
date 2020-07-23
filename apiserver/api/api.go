@@ -3,7 +3,6 @@ package api
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/nais/device/apiserver/auth"
 	"net/http"
 
 	"github.com/nais/device/apiserver/database"
@@ -120,16 +119,17 @@ func (a *api) gateways(w http.ResponseWriter, r *http.Request) {
 }
 
 func (a *api) deviceConfig(w http.ResponseWriter, r *http.Request) {
-	sessionInfo := r.Context().Value("sessionInfo").(auth.SessionInfo)
+	sessionInfo := r.Context().Value("sessionInfo").(*database.SessionInfo)
 
 	log := log.WithFields(log.Fields{
-		"username":  sessionInfo.Username,
-		"serial":    sessionInfo.Serial,
-		"platform":  sessionInfo.Platform,
+		"username":  sessionInfo.Device.Username,
+		"serial":    sessionInfo.Device.Serial,
+		"platform":  sessionInfo.Device.Platform,
 		"component": "apiserver",
 	})
 
-	device, err := a.db.ReadDeviceById(sessionInfo.DeviceID)
+	// Don't reuse Device from Session here as it might be outdated.
+	device, err := a.db.ReadDeviceById(r.Context(), sessionInfo.Device.ID)
 	if err != nil {
 		log.Errorf("Reading device from db: %v", err)
 		respondf(w, http.StatusInternalServerError, "error reading device from db")

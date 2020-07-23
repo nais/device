@@ -59,7 +59,8 @@ func TestGetDeviceConfig(t *testing.T) {
 
 	device.Healthy = boolp(true)
 
-	db.UpdateDeviceStatus([]database.Device{device})
+	err := db.UpdateDeviceStatus([]database.Device{device})
+	assert.NoError(t, err)
 
 	authorizedGateway := database.Gateway{AccessGroupIDs: []string{"group1"}, PublicKey: "pubkey1", IP: "1.2.3.4"}
 	unauthorizedGateway := database.Gateway{AccessGroupIDs: []string{"group2"}, PublicKey: "pubkey2", IP: "1.2.3.5"}
@@ -71,7 +72,7 @@ func TestGetDeviceConfig(t *testing.T) {
 		t.Fatalf("Adding gateway: %v", err)
 	}
 
-	gateways := getDeviceConfig(t, router)
+	gateways := getDeviceConfig(t, router, "keyyolo123")
 
 	assert.Len(t, gateways, 1)
 	assert.Equal(t, gateways[0].PublicKey, authorizedGateway.PublicKey)
@@ -105,6 +106,48 @@ func TestUpdateDeviceHealth(t *testing.T) {
 	assert.True(t, *devices[0].Healthy)
 }
 
+func TestGetDeviceConfigSessionNotInCache(t *testing.T) {
+	db, router := setup(t)
+
+	ctx := context.Background()
+
+	device := database.Device{
+		Serial:    "serial",
+		PublicKey: "pubkey",
+		Username:  "user",
+		Platform:  "darwin",
+	}
+
+	if err := db.AddDevice(ctx, device); err != nil {
+		t.Fatalf("Adding device: %v", err)
+	}
+
+	device.Healthy = boolp(true)
+
+	err := db.UpdateDeviceStatus([]database.Device{device})
+	assert.NoError(t, err)
+
+	// Read from db as we need the device ID
+	databaseDevice, err := db.ReadDevice(device.PublicKey)
+	if err != nil {
+		t.Fatalf("Reading device from db: %v", err)
+	}
+
+	databaseSessionInfo := database.SessionInfo{
+		Key:    "dbSessionKey",
+		Expiry: time.Now().Add(time.Minute).Unix(),
+		Device: databaseDevice,
+		Groups: []string{"group1", "group2"},
+	}
+	if err := db.AddSessionInfo(ctx, &databaseSessionInfo); err != nil {
+		t.Fatalf("Adding SessionInfo: %v", err)
+	}
+
+	gateways := getDeviceConfig(t, router, "dbSessionKey")
+
+	assert.Len(t, gateways, 0)
+}
+
 func setup(t *testing.T) (*database.APIServerDB, chi.Router) {
 	if os.Getenv("RUN_INTEGRATION_TESTS") == "" {
 		t.Skip("Skipping integration test")
@@ -117,14 +160,16 @@ func setup(t *testing.T) (*database.APIServerDB, chi.Router) {
 		t.Fatalf("Instantiating database: %v", err)
 	}
 
-	sessionInfo := auth.SessionInfo{
-		Key:      "keyyolo123",
-		Expiry:   time.Now().Add(1 * time.Minute).Unix(),
-		DeviceID: 1,
-		Serial:   "serial",
-		Platform: "platform",
-		Username: "username",
-		Groups:   []string{"group1"},
+	sessionInfo := database.SessionInfo{
+		Key:    "keyyolo123",
+		Expiry: time.Now().Add(1 * time.Minute).Unix(),
+		Device: &database.Device{
+			ID:       1,
+			Serial:   "serial",
+			Platform: "platform",
+			Username: "username",
+		},
+		Groups: []string{"group1"},
 	}
 
 	assert.NoError(t, err)
@@ -132,14 +177,15 @@ func setup(t *testing.T) (*database.APIServerDB, chi.Router) {
 	return db, api.New(api.Config{
 		DB: db,
 		Sessions: &auth.Sessions{
-			Active: map[string]auth.SessionInfo{sessionInfo.Key: sessionInfo},
+			DB:     db,
+			Active: map[string]*database.SessionInfo{sessionInfo.Key: &sessionInfo},
 		},
 	})
 }
 
-func getDeviceConfig(t *testing.T, router chi.Router) (gateways []database.Gateway) {
+func getDeviceConfig(t *testing.T, router chi.Router, sessionKey string) (gateways []database.Gateway) {
 	req, _ := http.NewRequest("GET", "/deviceconfig", nil)
-	req.Header.Add("x-naisdevice-session-key", "keyyolo123")
+	req.Header.Add("x-naisdevice-session-key", sessionKey)
 	resp := executeRequest(req, router)
 	assert.Equal(t, http.StatusOK, resp.Code)
 
@@ -171,14 +217,4 @@ func executeRequest(req *http.Request, router chi.Router) *httptest.ResponseReco
 
 func boolp(b bool) *bool {
 	return &b
-}
-
-func TokenValidatorMiddlewareMock(groups []string) func(next http.Handler) http.Handler {
-	return func(next http.Handler) http.Handler {
-		fn := func(w http.ResponseWriter, r *http.Request) {
-			r = r.WithContext(context.WithValue(r.Context(), "groups", groups))
-			next.ServeHTTP(w, r)
-		}
-		return http.HandlerFunc(fn)
-	}
 }

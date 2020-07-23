@@ -5,8 +5,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/dgrijalva/jwt-go"
-	"github.com/jackc/pgx/v4/pgxpool"
 	"github.com/nais/device/apiserver/config"
+	"github.com/nais/device/apiserver/database"
 	"github.com/nais/device/pkg/random"
 	log "github.com/sirupsen/logrus"
 	"golang.org/x/oauth2"
@@ -16,20 +16,10 @@ import (
 	"time"
 )
 
-type SessionInfo struct {
-	Key      string `json:"key"`
-	Expiry   int64  `json:"expiry"`
-	DeviceID int
-	Serial   string
-	Platform string
-	Username string
-	Groups   []string
-}
-
 const SessionDuration = time.Hour * 10
 
 type Sessions struct {
-	db             *pgxpool.Pool
+	DB             *database.APIServerDB
 	oauthConfig    *oauth2.Config
 	tokenValidator jwt.Keyfunc
 	devMode        bool
@@ -37,22 +27,17 @@ type Sessions struct {
 	state     map[string]bool
 	stateLock sync.Mutex
 
-	Active     map[string]SessionInfo
+	Active     map[string]*database.SessionInfo
 	activeLock sync.Mutex
 }
 
-func New(ctx context.Context, cfg config.Config, validator jwt.Keyfunc) (*Sessions, error) {
-	db, err := pgxpool.Connect(ctx, cfg.DbConnURI)
-	if err != nil {
-		return nil, fmt.Errorf("connecting to database %w", err)
-	}
-
+func New(cfg config.Config, validator jwt.Keyfunc, db *database.APIServerDB) (*Sessions, error) {
 	return &Sessions{
-		db:             db,
+		DB:             db,
 		devMode:        cfg.DevMode,
 		tokenValidator: validator,
 		state:          make(map[string]bool),
-		Active:         make(map[string]SessionInfo),
+		Active:         make(map[string]*database.SessionInfo),
 		oauthConfig: &oauth2.Config{
 			RedirectURL:  "http://localhost:51800",
 			ClientID:     cfg.Azure.ClientID,
@@ -63,10 +48,6 @@ func New(ctx context.Context, cfg config.Config, validator jwt.Keyfunc) (*Sessio
 	}, nil
 }
 
-func (si *SessionInfo) Expired() bool {
-	return time.Unix(si.Expiry, 0).After(time.Now())
-}
-
 func (s *Sessions) Validator() func(next http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -75,6 +56,18 @@ func (s *Sessions) Validator() func(next http.Handler) http.Handler {
 			s.activeLock.Lock()
 			defer s.activeLock.Unlock()
 			sessionInfo, ok := s.Active[sessionKey]
+			if !ok {
+				si, err := s.DB.ReadSessionInfo(r.Context(), sessionKey)
+				if err != nil {
+					log.Errorf("reading session info from db: %v", err)
+					w.WriteHeader(http.StatusUnauthorized)
+					return
+				}
+
+				s.Active[sessionKey] = si // cache it
+				sessionInfo = si
+				ok = true
+			}
 
 			if !ok || !sessionInfo.Expired() {
 				log.Infof("session expired: %v", sessionInfo)
@@ -129,7 +122,11 @@ func (s *Sessions) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var sessionInfo SessionInfo
+	sessionInfo := &database.SessionInfo{
+		Key:    random.RandomString(20, random.LettersAndNumbers),
+		Expiry: time.Now().Add(SessionDuration).Unix(),
+	}
+
 	if !s.devMode {
 		token, err := s.getToken(ctx, r.URL.Query().Get("code"))
 		if err != nil {
@@ -145,22 +142,17 @@ func (s *Sessions) Login(w http.ResponseWriter, r *http.Request) {
 
 		serial := r.Header.Get("x-naisdevice-serial")
 		platform := r.Header.Get("x-naisdevice-platform")
-		deviceID, err := s.getDeviceID(serial, platform)
+		device, err := s.DB.ReadDeviceBySerialPlatformUsername(ctx, serial, platform, username)
 		if err != nil {
 			authFailed(w, "getting device: %v", err)
 			return
 		}
 
-		sessionInfo = SessionInfo{
-			Key:      random.RandomString(20, random.LettersAndNumbers),
-			Expiry:   time.Now().Add(SessionDuration).Unix(),
-			Serial:   serial,
-			Platform: platform,
-			Username: username,
-			Groups:   groups,
-			DeviceID: deviceID,
-		}
-
+		sessionInfo.Groups = groups
+		sessionInfo.Device = device
+	} else {
+		sessionInfo.Groups = []string{"group1", "group2"}
+		sessionInfo.Device = &database.Device{ID: 0, Serial: "serial1", Username: "username1", Platform: "platform1"}
 	}
 
 	b, err := json.Marshal(sessionInfo)
@@ -173,6 +165,12 @@ func (s *Sessions) Login(w http.ResponseWriter, r *http.Request) {
 	defer s.activeLock.Unlock()
 	s.Active[sessionInfo.Key] = sessionInfo
 
+	err = s.DB.AddSessionInfo(r.Context(), sessionInfo)
+	if err != nil {
+		log.Errorf("Persisting session info %v: %v", sessionInfo, err)
+		// don't abort auth here as this might be OK
+	}
+
 	w.WriteHeader(http.StatusOK)
 	_, err = w.Write(b)
 	if err != nil {
@@ -180,29 +178,6 @@ func (s *Sessions) Login(w http.ResponseWriter, r *http.Request) {
 	}
 
 	log.Infof("login: %v", s.Active)
-}
-
-// Should probably do something smart like sharing the code from ApiServerDB
-func (s *Sessions) getDeviceID(serial string, platform string) (int, error) {
-	ctx := context.Background()
-
-	query := `
-SELECT id
-  FROM device
- WHERE serial = $1
-   AND platform = $2;`
-
-	row := s.db.QueryRow(ctx, query, serial, platform)
-
-	var deviceID int
-	err := row.Scan(&deviceID)
-
-	if err != nil {
-		return -1, fmt.Errorf("scanning row: %s", err)
-	}
-
-	return deviceID, nil
-
 }
 
 func (s *Sessions) AuthURL(w http.ResponseWriter, r *http.Request) {
