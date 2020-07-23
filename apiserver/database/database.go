@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/jackc/pgx/v4/pgxpool"
 	"github.com/nais/device/apiserver/cidr"
@@ -22,6 +23,7 @@ type APIServerDB struct {
 }
 
 type Device struct {
+	ID             int
 	Serial         string `json:"serial"`
 	PSK            string `json:"psk"`
 	LastUpdated    *int64 `json:"lastUpdated"`
@@ -42,12 +44,39 @@ type Gateway struct {
 	AccessGroupIDs []string `json:"-"`
 }
 
+type SessionInfo struct {
+	Key    string `json:"key"`
+	Expiry int64  `json:"expiry"`
+	Device *Device
+	Groups []string
+}
+
+func (si SessionInfo) Expired() bool {
+	return time.Unix(si.Expiry, 0).After(time.Now())
+}
+
 // NewTestDatabase creates and returns a new nais device database within the provided database instance
 func NewTestDatabase(dsn, schema string) (*APIServerDB, error) {
 	ctx := context.Background()
-	initialConn, err := pgxpool.Connect(ctx, dsn)
+
+	var initialConn *pgxpool.Pool
+	var err error
+
+	for i := 0; i < 5; i++ {
+		initialConn, err = pgxpool.Connect(ctx, dsn)
+		if err != nil {
+			err = fmt.Errorf("connecting to database: %v", err)
+			log.Errorf("[attempt %d/5]: %v", i, err)
+			time.Sleep(1 * time.Second)
+		} else {
+			// means successful connect
+			err = nil
+			break
+		}
+	}
+
 	if err != nil {
-		return nil, fmt.Errorf("connecting to database: %v", err)
+		return nil, err
 	}
 
 	defer initialConn.Close()
@@ -216,14 +245,14 @@ func (d *APIServerDB) ReadDevice(publicKey string) (*Device, error) {
 	ctx := context.Background()
 
 	query := `
-SELECT serial, username, psk, platform, last_updated, kolide_last_seen, healthy, public_key, ip
+SELECT id, serial, username, psk, platform, last_updated, kolide_last_seen, healthy, public_key, ip
   FROM device
  WHERE public_key = $1;`
 
 	row := d.conn.QueryRow(ctx, query, publicKey)
 
 	var device Device
-	err := row.Scan(&device.Serial, &device.Username, &device.PSK, &device.Platform, &device.LastUpdated, &device.KolideLastSeen, &device.Healthy, &device.PublicKey, &device.IP)
+	err := row.Scan(&device.ID, &device.Serial, &device.Username, &device.PSK, &device.Platform, &device.LastUpdated, &device.KolideLastSeen, &device.Healthy, &device.PublicKey, &device.IP)
 
 	if err != nil {
 		return nil, fmt.Errorf("scanning row: %s", err)
@@ -232,18 +261,16 @@ SELECT serial, username, psk, platform, last_updated, kolide_last_seen, healthy,
 	return &device, nil
 }
 
-func (d *APIServerDB) ReadDeviceById(deviceID int) (*Device, error) {
-	ctx := context.Background()
-
+func (d *APIServerDB) ReadDeviceById(ctx context.Context, deviceID int) (*Device, error) {
 	query := `
-SELECT serial, username, psk, platform, last_updated, kolide_last_seen, healthy, public_key, ip
+SELECT id, serial, username, psk, platform, last_updated, kolide_last_seen, healthy, public_key, ip
   FROM device
  WHERE id = $1;`
 
 	row := d.conn.QueryRow(ctx, query, deviceID)
 
 	var device Device
-	err := row.Scan(&device.Serial, &device.Username, &device.PSK, &device.Platform, &device.LastUpdated, &device.KolideLastSeen, &device.Healthy, &device.PublicKey, &device.IP)
+	err := row.Scan(&device.ID, &device.Serial, &device.Username, &device.PSK, &device.Platform, &device.LastUpdated, &device.KolideLastSeen, &device.Healthy, &device.PublicKey, &device.IP)
 
 	if err != nil {
 		return nil, fmt.Errorf("scanning row: %s", err)
@@ -344,4 +371,70 @@ func (d *APIServerDB) readExistingIPs() ([]string, error) {
 	}
 
 	return ips, nil
+}
+
+func (d *APIServerDB) ReadDeviceBySerialPlatformUsername(ctx context.Context, serial string, platform string, username string) (*Device, error) {
+	query := `
+SELECT id, username, serial, psk, platform, healthy, last_updated, kolide_last_seen, public_key, ip
+  FROM device
+ WHERE serial = $1
+   AND platform = $2
+   AND username = $3;
+	`
+
+	var device Device
+	row := d.conn.QueryRow(ctx, query, serial, platform, username)
+
+	err := row.Scan(&device.ID, &device.Username, &device.Serial, &device.PSK, &device.Platform, &device.Healthy, &device.LastUpdated, &device.KolideLastSeen, &device.PublicKey, &device.IP)
+
+	if err != nil {
+		return nil, fmt.Errorf("scanning row: %s", err)
+	}
+
+	return &device, nil
+}
+
+func (d *APIServerDB) AddSessionInfo(ctx context.Context, si *SessionInfo) error {
+	query := `
+INSERT INTO session (key, expiry, device_id, groups)
+             VALUES ($1, $2, $3, $4);
+`
+
+	_, err := d.conn.Exec(ctx, query, si.Key, si.Expiry, si.Device.ID, strings.Join(si.Groups, ","))
+	if err != nil {
+		return fmt.Errorf("scanning row: %s", err)
+	}
+
+	log.Infof("persisted session: %v", si)
+
+	return nil
+}
+
+func (d *APIServerDB) ReadSessionInfo(ctx context.Context, key string) (*SessionInfo, error) {
+	query := `
+SELECT key, expiry, device_id, groups
+FROM session
+WHERE key = $1;
+`
+
+	row := d.conn.QueryRow(ctx, query, key)
+
+	var si SessionInfo
+	var groups string
+	var deviceID int
+	err := row.Scan(&si.Key, &si.Expiry, &deviceID, &groups)
+	if err != nil {
+		return nil, fmt.Errorf("scanning row: %w", err)
+	}
+
+	si.Groups = strings.Split(groups, ",")
+	si.Device, err = d.ReadDeviceById(ctx, deviceID)
+
+	if err != nil {
+		return nil, fmt.Errorf("reading device: %w", err)
+	}
+
+	log.Infof("retrieved session info from db: %v", si)
+
+	return &si, nil
 }

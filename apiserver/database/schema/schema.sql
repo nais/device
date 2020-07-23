@@ -30,5 +30,6 @@ CREATE TABLE session
 (
     key       varchar,
     expiry    bigint,
-    device_id integer REFERENCES device (id)
+    device_id integer REFERENCES device (id),
+    groups    varchar
 );
