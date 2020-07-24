@@ -12,7 +12,9 @@ For development purposes you can clone the repository and install required depen
 
 Remember to run tests after making changes:
 
-    composer run ci
+    composer run test
+
+For both of these commands to work you will need to install [Composer](https://getcomposer.org/doc/00-intro.md#installation-linux-unix-macos).
 
 ## Releases
 
