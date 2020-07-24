@@ -94,7 +94,7 @@ func main() {
 		len(cfg.BootstrapConfig.TunnelEndpoint) == 0 {
 		err = os.Remove(cfg.BootstrapConfigPath)
 		if err != nil {
-			log.Fatal("deleting invalid bootstrap config: %v", err)
+			log.Fatalf("deleting invalid bootstrap config: %v", err)
 		}
 
 		log.Fatalf("Invalid bootstrap config (%+v), so i deleted it", cfg.BootstrapConfig)
