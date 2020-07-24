@@ -67,11 +67,6 @@ class CheckAndUpdateDevices extends BaseCommand {
 
             if (null === $kolideDevice) {
                 $this->log($output, 'Could not find matching Kolide device', $serial, $platform, $username);
-
-                // Could not identify a single Kolide device for this Nais device
-                $naisDevice['isHealthy'] = false;
-                $updatedNaisDevices[] = $naisDevice;
-
                 continue;
             }
 

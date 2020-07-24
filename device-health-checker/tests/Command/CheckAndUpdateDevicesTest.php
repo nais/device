@@ -74,7 +74,7 @@ class CheckAndUpdateDevicesTest extends TestCase {
                 'kolideDevices' => [],
                 'expectedLogMessages' => [
                     'Could not find matching Kolide device',
-                    'Sent updated Nais device configuration to API server'
+                    'No Nais devices to update :('
                 ],
                 'expectedLogSerials' => [
                     'serial1',
@@ -88,15 +88,7 @@ class CheckAndUpdateDevicesTest extends TestCase {
                     'user1@nav.no',
                     null,
                 ],
-                'expectedUpdatePayload' => [
-                    [
-                        'serial'         => 'serial1',
-                        'platform'       => 'linux',
-                        'username'       => 'user1@nav.no',
-                        'isHealthy'      => false,
-                        'kolideLastSeen' => 1589952551,
-                    ]
-                ],
+                'expectedUpdatePayload' => [],
             ],
             'no failing checks' => [
                 'naisDevices' => [
@@ -285,13 +277,6 @@ class CheckAndUpdateDevicesTest extends TestCase {
                     'username'       => 'user1@nav.no',
                     'isHealthy'      => true,
                     'kolideLastSeen' => 1589956403,
-                ],
-                [
-                    'serial'         => 'serial2-not-in-kolide',
-                    'platform'       => 'darwin',
-                    'username'       => 'user2@nav.no',
-                    'isHealthy'      => false,
-                    'kolideLastSeen' => 1589952552,
                 ],
                 [
                     'serial'         => 'serial3',
