@@ -28,6 +28,7 @@ class KolideApiClient {
             $response = json_decode($this->client->get($endpoint, [
                 'query' => [
                     'page' => $page++,
+                    'per_page' => 100,
                 ],
             ])->getBody()->getContents(), true);
 
