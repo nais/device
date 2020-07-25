@@ -39,8 +39,8 @@ class KolideApiClientTest extends TestCase {
         $this->assertCount(4, $checks, 'Expected 4 checks');
 
         $this->assertCount(2, $clientHistory, 'Expected 2 requests');
-        $this->assertStringEndsWith('checks?page=0', (string) $clientHistory[0]['request']->getUri());
-        $this->assertStringEndsWith('checks?page=1', (string) $clientHistory[1]['request']->getUri());
+        $this->assertStringEndsWith('checks?page=0&per_page=100', (string) $clientHistory[0]['request']->getUri());
+        $this->assertStringEndsWith('checks?page=1&per_page=100', (string) $clientHistory[1]['request']->getUri());
     }
 
     /**
@@ -63,8 +63,8 @@ class KolideApiClientTest extends TestCase {
         $this->assertCount(4, $devices, 'Expected 4 devices');
 
         $this->assertCount(2, $clientHistory, 'Expected 2 requests');
-        $this->assertStringEndsWith('devices?page=0', (string) $clientHistory[0]['request']->getUri());
-        $this->assertStringEndsWith('devices?page=1', (string) $clientHistory[1]['request']->getUri());
+        $this->assertStringEndsWith('devices?page=0&per_page=100', (string) $clientHistory[0]['request']->getUri());
+        $this->assertStringEndsWith('devices?page=1&per_page=100', (string) $clientHistory[1]['request']->getUri());
     }
 
     /**
@@ -87,8 +87,8 @@ class KolideApiClientTest extends TestCase {
         $this->assertSame(1, $checks[0]['id'], 'Incorrect check result');
 
         $this->assertCount(2, $clientHistory, 'Expected 2 requests');
-        $this->assertStringEndsWith('checks?page=0', (string) $clientHistory[0]['request']->getUri());
-        $this->assertStringEndsWith('checks?page=1', (string) $clientHistory[1]['request']->getUri());
+        $this->assertStringEndsWith('checks?page=0&per_page=100', (string) $clientHistory[0]['request']->getUri());
+        $this->assertStringEndsWith('checks?page=1&per_page=100', (string) $clientHistory[1]['request']->getUri());
     }
 
     /**
@@ -110,8 +110,8 @@ class KolideApiClientTest extends TestCase {
 
         $this->assertCount(4, $failures, 'Expected 4 failures');
         $this->assertCount(2, $clientHistory, 'Expected 2 requests');
-        $this->assertStringEndsWith('checks/1/failures?page=0', (string) $clientHistory[0]['request']->getUri());
-        $this->assertStringEndsWith('checks/1/failures?page=1', (string) $clientHistory[1]['request']->getUri());
+        $this->assertStringEndsWith('checks/1/failures?page=0&per_page=100', (string) $clientHistory[0]['request']->getUri());
+        $this->assertStringEndsWith('checks/1/failures?page=1&per_page=100', (string) $clientHistory[1]['request']->getUri());
     }
 
     /**
@@ -133,8 +133,8 @@ class KolideApiClientTest extends TestCase {
 
         $this->assertCount(4, $failures, 'Expected 4 failures');
         $this->assertCount(2, $clientHistory, 'Expected 2 requests');
-        $this->assertStringEndsWith('devices/1/failures?page=0', (string) $clientHistory[0]['request']->getUri());
-        $this->assertStringEndsWith('devices/1/failures?page=1', (string) $clientHistory[1]['request']->getUri());
+        $this->assertStringEndsWith('devices/1/failures?page=0&per_page=100', (string) $clientHistory[0]['request']->getUri());
+        $this->assertStringEndsWith('devices/1/failures?page=1&per_page=100', (string) $clientHistory[1]['request']->getUri());
     }
 
     /**
