@@ -125,6 +125,10 @@ class CheckAndUpdateDevices extends BaseCommand {
                 $kolideDevice['platform'] = 'linux';
             }
 
+            if is_null($kolideDevice['assigned_owner']) || is_null($kolideDevice['assigned_owner']['email']) {
+              return false
+            }
+
             return
                 strtolower($username) === strtolower($kolideDevice['assigned_owner']['email'])
                 && strtolower($serial) === strtolower($kolideDevice['serial'])
