@@ -46,7 +46,6 @@
     uid: 15069
     groups: syslog
     shell: /usr/sbin/nologin
-    password_lock: yes
 
 - name: Ensure /var/log/naisdevice/ permissions
   file:
