@@ -347,6 +347,22 @@ class CheckAndUpdateDevicesTest extends TestCase {
                     'failure_count'          => 1,
                     'last_seen_at'           => $this->getTimestamp(1589956403),
                 ],
+                [
+                    'id'                     => 5,
+                    'serial'                 => 'serial6',
+                    'platform'               => 'rhel',
+                    // 'assigned_owner'      => ... // Missing on purpose
+                    'failure_count'          => 1,
+                    'last_seen_at'           => $this->getTimestamp(1589956403),
+                ],
+                [
+                    'id'                     => 6,
+                    'serial'                 => 'serial7',
+                    'platform'               => 'rhel',
+                    'assigned_owner'         => ['name' => 'Some name'],
+                    'failure_count'          => 1,
+                    'last_seen_at'           => $this->getTimestamp(1589956403),
+                ],
             ],
         ]);
 
