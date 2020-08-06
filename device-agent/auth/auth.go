@@ -20,7 +20,7 @@ type SessionInfo struct {
 	Expiry int64  `json:"expiry"`
 }
 
-const GetAuthURLMaxAttempts = 3
+const GetAuthURLMaxAttempts = 10
 
 func (si *SessionInfo) Expired() bool {
 	if si == nil {
@@ -46,7 +46,7 @@ func EnsureAuth(existing *SessionInfo, ctx context.Context, apiserverURL, platfo
 			break
 		}
 
-		log.Warnf("[attempt %d/3]: getting Azure auth URL from apiserver: %v", attempt, err)
+		log.Warnf("[attempt %d/%d]: getting Azure auth URL from apiserver: %v", attempt, GetAuthURLMaxAttempts, err)
 		time.Sleep(1 * time.Second)
 	}
 
