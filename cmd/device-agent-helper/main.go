@@ -2,10 +2,7 @@ package main
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
-	"github.com/nais/device/pkg/bootstrap"
-	"io/ioutil"
 	"os"
 	"os/exec"
 	"os/signal"
@@ -37,8 +34,6 @@ type Config struct {
 	WireGuardConfigPath     string
 	ConfigPath              string
 	LogLevel                string
-	BootstrapConfig         *bootstrap.Config
-	BootstrapConfigPath     string
 	WindowsServiceInstall   bool
 	WindowsServiceUninstall bool
 }
@@ -65,7 +60,6 @@ func init() {
 	flag.Parse()
 
 	cfg.WireGuardConfigPath = filepath.Join(cfg.ConfigPath, cfg.Interface+".conf")
-	cfg.BootstrapConfigPath = filepath.Join(cfg.ConfigPath, "bootstrapconfig.json")
 }
 
 // device-agent-helper is responsible for:
@@ -83,23 +77,6 @@ func main() {
 	log.Infof("Starting device-agent-helper with config:\n%+v", cfg)
 
 	var err error
-	cfg.BootstrapConfig, err = parseBootstrapConfig(cfg)
-	if err != nil {
-		log.Fatal("Parsing bootstrap config", err)
-	}
-
-	if len(cfg.BootstrapConfig.DeviceIP) == 0 ||
-		len(cfg.BootstrapConfig.PublicKey) == 0 ||
-		len(cfg.BootstrapConfig.APIServerIP) == 0 ||
-		len(cfg.BootstrapConfig.TunnelEndpoint) == 0 {
-		err = os.Remove(cfg.BootstrapConfigPath)
-		if err != nil {
-			log.Fatalf("deleting invalid bootstrap config: %v", err)
-		}
-
-		log.Fatalf("Invalid bootstrap config (%+v), so i deleted it", cfg.BootstrapConfig)
-	}
-
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
@@ -181,21 +158,6 @@ func main() {
 			}
 		}
 	}
-}
-
-func parseBootstrapConfig(cfg Config) (*bootstrap.Config, error) {
-	b, err := ioutil.ReadFile(cfg.BootstrapConfigPath)
-	if err != nil {
-		return nil, fmt.Errorf("reading bootstrapconfig.json: %w", err)
-	}
-
-	var bootstrapConfig bootstrap.Config
-	err = json.Unmarshal(b, &bootstrapConfig)
-	if err != nil {
-		return nil, fmt.Errorf("unmarshalling bootstrapconfig.json: %w", err)
-	}
-
-	return &bootstrapConfig, nil
 }
 
 func ParseConfig(wireGuardConfig string) ([]string, error) {
