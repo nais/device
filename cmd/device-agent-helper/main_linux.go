@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"github.com/nais/device/pkg/bootstrap"
 	"github.com/nais/device/pkg/logger"
 	"io/ioutil"
 	"os/exec"
@@ -71,7 +72,7 @@ func setupRoutes(ctx context.Context, cidrs []string, interfaceName string) erro
 	return nil
 }
 
-func setupInterface(ctx context.Context, cfg Config) error {
+func setupInterface(ctx context.Context, cfg Config, bootstrapConfig *bootstrap.Config) error {
 	if err := exec.Command("ip", "link", "del", "wg0").Run(); err != nil {
 		log.Infof("pre-deleting WireGuard interface (ok if this fails): %v", err)
 	}
@@ -79,7 +80,7 @@ func setupInterface(ctx context.Context, cfg Config) error {
 	commands := [][]string{
 		{"ip", "link", "add", "dev", "wg0", "type", "wireguard"},
 		{"ip", "link", "set", "mtu", "1360", "up", "dev", "wg0"},
-		{"ip", "address", "add", "dev", "wg0", cfg.BootstrapConfig.DeviceIP + "/21"},
+		{"ip", "address", "add", "dev", "wg0", bootstrapConfig.DeviceIP + "/21"},
 	}
 
 	return runCommands(ctx, commands)

@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"github.com/nais/device/pkg/bootstrap"
 	"github.com/nais/device/pkg/logger"
 	"io/ioutil"
 	"os/exec"
@@ -70,12 +71,12 @@ func setupRoutes(ctx context.Context, cidrs []string, interfaceName string) erro
 	return nil
 }
 
-func setupInterface(ctx context.Context, cfg Config) error {
+func setupInterface(ctx context.Context, cfg Config, bootstrapConfig *bootstrap.Config) error {
 	if interfaceExists(ctx, cfg) {
 		return nil
 	}
 
-	ip := cfg.BootstrapConfig.DeviceIP
+	ip := bootstrapConfig.DeviceIP
 	commands := [][]string{
 		{WireGuardGoBinary, cfg.Interface},
 		{"ifconfig", cfg.Interface, "inet", ip + "/21", ip, "add"},
