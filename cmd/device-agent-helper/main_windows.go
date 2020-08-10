@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"github.com/nais/device/pkg/bootstrap"
 	"github.com/nais/device/pkg/logger"
 	log "github.com/sirupsen/logrus"
 	flag "github.com/spf13/pflag"
@@ -71,7 +72,7 @@ func interfaceExists(ctx context.Context, cfg Config) bool {
 	}
 }
 
-func setupInterface(ctx context.Context, cfg Config) error {
+func setupInterface(ctx context.Context, cfg Config, bootstrapConfig *bootstrap.Config) error {
 	if interfaceExists(ctx, cfg) {
 		return nil
 	}

@@ -37,7 +37,6 @@ type Config struct {
 	WireGuardConfigPath     string
 	ConfigPath              string
 	LogLevel                string
-	BootstrapConfig         *bootstrap.Config
 	BootstrapConfigPath     string
 	WindowsServiceInstall   bool
 	WindowsServiceUninstall bool
@@ -83,22 +82,6 @@ func main() {
 	log.Infof("Starting device-agent-helper with config:\n%+v", cfg)
 
 	var err error
-	cfg.BootstrapConfig, err = parseBootstrapConfig(cfg)
-	if err != nil {
-		log.Fatal("Parsing bootstrap config", err)
-	}
-
-	if len(cfg.BootstrapConfig.DeviceIP) == 0 ||
-		len(cfg.BootstrapConfig.PublicKey) == 0 ||
-		len(cfg.BootstrapConfig.APIServerIP) == 0 ||
-		len(cfg.BootstrapConfig.TunnelEndpoint) == 0 {
-		err = os.Remove(cfg.BootstrapConfigPath)
-		if err != nil {
-			log.Fatalf("deleting invalid bootstrap config: %v", err)
-		}
-
-		log.Fatalf("Invalid bootstrap config (%+v), so i deleted it", cfg.BootstrapConfig)
-	}
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -130,7 +113,28 @@ func main() {
 
 	ensureUp := func() {
 		log.Info("WireGuard configuration updated")
-		if err := setupInterface(ctx, cfg); err != nil {
+
+		var bootstrapConfig *bootstrap.Config
+		bootstrapConfig, err = parseBootstrapConfig(cfg)
+		if err != nil {
+			log.Fatal("Parsing bootstrap config", err)
+			return
+		}
+
+		if len(bootstrapConfig.DeviceIP) == 0 ||
+			len(bootstrapConfig.PublicKey) == 0 ||
+			len(bootstrapConfig.APIServerIP) == 0 ||
+			len(bootstrapConfig.TunnelEndpoint) == 0 {
+			err = os.Remove(cfg.BootstrapConfigPath)
+			if err != nil {
+				log.Fatalf("deleting invalid bootstrap config: %v", err)
+			}
+
+			log.Fatalf("Invalid bootstrap config (%+v), so i deleted it", bootstrapConfig)
+			return
+		}
+
+		if err := setupInterface(ctx, cfg, bootstrapConfig); err != nil {
 			log.Errorf("Setting up interface: %v", err)
 			return
 		}
