@@ -19,7 +19,7 @@ type Config struct {
 	PrivateKeyPath      string
 	WireGuardConfigPath string
 	BootstrapConfigPath string
-	SerialPath			string
+	SerialPath          string
 	LogLevel            string
 	LogFilePath         string
 	OAuth2Config        oauth2.Config
