@@ -81,7 +81,7 @@ func New(cfg config.Config, ctx context.Context) (*RuntimeConfig, error) {
 		return nil, fmt.Errorf("ensuring private key: %w", err)
 	}
 
-	if rc.Serial, err = serial.GetDeviceSerial(); err != nil {
+	if rc.Serial, err = serial.GetDeviceSerial(cfg.SerialPath); err != nil {
 		return nil, fmt.Errorf("getting device serial: %w", err)
 	}
 
