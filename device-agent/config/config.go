@@ -19,6 +19,7 @@ type Config struct {
 	PrivateKeyPath      string
 	WireGuardConfigPath string
 	BootstrapConfigPath string
+	SerialPath			string
 	LogLevel            string
 	LogFilePath         string
 	OAuth2Config        oauth2.Config
@@ -32,6 +33,7 @@ func (c *Config) SetDefaults() {
 	c.PrivateKeyPath = filepath.Join(c.ConfigDir, "private.key")
 	c.WireGuardConfigPath = filepath.Join(c.ConfigDir, c.Interface+".conf")
 	c.BootstrapConfigPath = filepath.Join(c.ConfigDir, "bootstrapconfig.json")
+	c.SerialPath = filepath.Join(c.ConfigDir, "product_serial")
 	switch c.Platform {
 	case "darwin":
 		home, err := os.UserHomeDir()
