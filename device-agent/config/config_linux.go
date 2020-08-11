@@ -5,7 +5,7 @@ import (
 )
 
 const (
-	BinaryDir = "/usr/local/bin"
+	BinaryDir = "/usr/bin/"
 )
 
 func (c *Config) SetPlatformDefaults() {
