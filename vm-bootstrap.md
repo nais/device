@@ -7,15 +7,16 @@
   c. ssh to new gateway, paste key at: `/root/sa.json`
 
 # install ansible-pull
-`apt install ansible`
+`sudo apt update && sudo apt install ansible`
 
 # add crontab entry
 ```
+sudo contab -e
 */2 * * * * /usr/bin/ansible-pull --only-if-changed -U https://github.com/nais/device ansible/site.yml -i /root/ansible-inventory.yaml >> /var/log/naisdevice/ansible.log
 ```
 
 # add ansible-inventory.yaml
-
+sudo vi /root/ansible-inventory.yaml
 Example:
 ```yaml
 all:
