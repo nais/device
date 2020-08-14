@@ -36,6 +36,11 @@
     state: directory
     mode: '0750'
 
+- name: Generate wireguard public key
+  shell: umask 077 && wg genkey > /usr/local/etc/nais-device/private.key
+  args:
+    creates: /usr/local/etc/nais-device/private.key
+
 - name: Get apiserver password
   shell: gcloud --project nais-device secrets versions access latest --secret {{ gcp_project }}_{{ name }}_api-server-password > /usr/local/etc/nais-device/apiserver_password
   args:
