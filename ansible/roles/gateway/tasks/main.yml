@@ -30,6 +30,12 @@
   notify:
     - restart_gateway-agent
 
+- name: Create gateway config dir
+  file:
+    path: /usr/local/etc/nais-device
+    state: directory
+    mode: '0750'
+
 - name: Get apiserver password
   shell: gcloud --project nais-device secrets versions access latest --secret {{ gcp_project }}_{{ name }}_api-server-password > /usr/local/etc/nais-device/apiserver_password
   args:
