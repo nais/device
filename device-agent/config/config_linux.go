@@ -5,10 +5,10 @@ import (
 )
 
 const (
-	BinaryDir = "/usr/local/bin"
+	BinaryDir = "/usr/bin/"
 )
 
 func (c *Config) SetPlatformDefaults() {
 	c.WireGuardBinary = filepath.Join(BinaryDir, "wg")
-	c.Interface = "wg0"
+	c.Interface = "utun69"
 }

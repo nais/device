@@ -15,6 +15,7 @@ import (
 
 const (
 	WireGuardBinary = "/usr/bin/wg"
+	ProductSerialPath = "/sys/devices/virtual/dmi/id/product_serial"
 )
 
 func prerequisites() error {
@@ -27,6 +28,10 @@ func prerequisites() error {
 func platformFlags(cfg *Config) {}
 func platformInit(cfg *Config) {
 	logger.SetupDeviceLogger(cfg.LogLevel, filepath.Join("/", "var", "log", "device-agent-helper.log"))
+	if err := extractProductSerial(ProductSerialPath); err != nil {
+		log.Error(err)
+	}
+	
 }
 
 func syncConf(cfg Config, ctx context.Context) error {
@@ -73,24 +78,38 @@ func setupRoutes(ctx context.Context, cidrs []string, interfaceName string) erro
 }
 
 func setupInterface(ctx context.Context, cfg Config, bootstrapConfig *bootstrap.Config) error {
-	if err := exec.Command("ip", "link", "del", "wg0").Run(); err != nil {
+	if err := exec.Command("ip", "link", "del", cfg.Interface).Run(); err != nil {
 		log.Infof("pre-deleting WireGuard interface (ok if this fails): %v", err)
 	}
 
 	commands := [][]string{
-		{"ip", "link", "add", "dev", "wg0", "type", "wireguard"},
-		{"ip", "link", "set", "mtu", "1360", "up", "dev", "wg0"},
-		{"ip", "address", "add", "dev", "wg0", bootstrapConfig.DeviceIP + "/21"},
+		{"ip", "link", "add", "dev", cfg.Interface, "type", "wireguard"},
+		{"ip", "link", "set", "mtu", "1360", "up", "dev", cfg.Interface},
+		{"ip", "address", "add", "dev", cfg.Interface, bootstrapConfig.DeviceIP + "/21"},
 	}
 
 	return runCommands(ctx, commands)
 }
 
 func teardownInterface(ctx context.Context, cfg Config) {
-	cmd := exec.CommandContext(ctx, "ip", "link", "del", "wg0")
+	cmd := exec.CommandContext(ctx, "ip", "link", "del", cfg.Interface)
 	if err := cmd.Run(); err != nil {
 		log.Errorf("Tearing down interface: %v", err)
 	}
+}
+
+func extractProductSerial(cfgpath string) error {
+	target := filepath.Join(cfg.ConfigPath, "product_serial")
+	serialBytes, err := ioutil.ReadFile(ProductSerialPath)
+	if err != nil {
+		return fmt.Errorf("reading file: %w", err)
+	}
+	if err := ioutil.WriteFile(target, serialBytes, 0644); err != nil {
+		return fmt.Errorf("Writing product serial to disk: %v", err)
+	} else {
+		log.Debugf("Successfully wrote product serial to: %v", target)
+	}
+	return nil
 }
 
 func uninstallService()         {}

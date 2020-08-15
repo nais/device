@@ -6,7 +6,7 @@ import (
 	"os/exec"
 )
 
-func GetDeviceSerial() (string, error) {
+func GetDeviceSerial(serialpath string) (string, error) {
 	cmd := exec.Command("wmic", "bios", "get", "serialnumber")
 	b, err := cmd.CombinedOutput()
 	if err != nil {
