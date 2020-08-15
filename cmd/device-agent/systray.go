@@ -87,7 +87,7 @@ func onReady() {
 
 	rc, err := runtimeconfig.New(cfg, context.Background())
 	if err != nil {
-		log.Errorf("Runtime config: %w", err)
+		log.Errorf("Runtime config: %v", err)
 		notify("Unable to start naisdevice, check logs for details")
 		return
 	}
