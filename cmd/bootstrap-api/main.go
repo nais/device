@@ -299,6 +299,7 @@ func TokenValidatorMiddleware(jwtValidator jwt.Keyfunc) func(next http.Handler) 
 
 			_, err := jwt.ParseWithClaims(token, &claims, jwtValidator)
 			if err != nil {
+				log.Errorf("parsing token: %v", err)
 				w.WriteHeader(http.StatusForbidden)
 				_, err = fmt.Fprintf(w, "Unauthorized access: %s", err.Error())
 				if err != nil {
