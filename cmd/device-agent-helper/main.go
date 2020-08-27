@@ -150,7 +150,7 @@ func main() {
 	}
 
 	handleEvent := func(ev notify.EventInfo) {
-		log.Infof("%#v", ev)
+		log.Debugf("%#v", ev)
 		if ev.Path() != cfg.WireGuardConfigPath {
 			return
 		}
