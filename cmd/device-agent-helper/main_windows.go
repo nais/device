@@ -171,7 +171,7 @@ func exePath() (string, error) {
 }
 
 func installService(cfg Config) {
-	log.Info("Installing service: %s", ServiceName)
+	log.Infof("Installing service: %s", ServiceName)
 	if cfg.ConfigPath == "" {
 		log.Errorf("--config-path must be provided to install service")
 		return
