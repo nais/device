@@ -92,6 +92,8 @@ func New(cfg config.Config, ctx context.Context) (*RuntimeConfig, error) {
 		log.Infof("Read bootstrap config from file: %v", rc.Config.BootstrapConfigPath)
 	}
 
+	log.Infof("Runtime config initialized with public key: %s", wireguard.PublicKey(rc.PrivateKey))
+
 	return rc, nil
 }
 
