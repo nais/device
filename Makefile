@@ -34,7 +34,8 @@ macos-client:
 windows-client:
 	mkdir -p ./bin/windows
 	go get github.com/akavel/rsrc
-	${GOPATH}/bin/rsrc -arch amd64 -manifest ./windows/admin_manifest.xml -o ./cmd/device-agent-helper/main_windows.syso
+	${GOPATH}/bin/rsrc -arch amd64 -manifest ./windows/admin_manifest.xml -ico assets/nais-logo-blue.ico -o ./cmd/device-agent-helper/main_windows.syso
+	${GOPATH}/bin/rsrc -ico assets/nais-logo-blue.ico -o ./cmd/device-agent/main_windows.syso
 	GOOS=windows GOARCH=amd64 go build -o bin/windows/device-agent.exe -ldflags "-s $(LDFLAGS) -H=windowsgui" ./cmd/device-agent
 	GOOS=windows GOARCH=amd64 go build -o bin/windows/device-agent-helper.exe ./cmd/device-agent-helper
 

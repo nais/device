@@ -3,6 +3,7 @@ module github.com/nais/device
 go 1.13
 
 require (
+	github.com/akavel/rsrc v0.9.0 // indirect
 	github.com/coreos/go-iptables v0.4.5
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
 	github.com/gen2brain/beeep v0.0.0-20200526185328-e9c15c258e28
