@@ -7,3 +7,5 @@ bin
 *.icns
 wireguard-go-*
 wireguard-tools-*
+cmd/device-agent/main_windows.syso
+cmd/device-agent-helper/main_windows.syso
