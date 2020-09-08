@@ -1,8 +1,10 @@
 package config
 
 import (
+	"errors"
 	"os"
 	"path/filepath"
+	"runtime"
 
 	log "github.com/sirupsen/logrus"
 	"golang.org/x/oauth2"
@@ -47,8 +49,31 @@ func (c *Config) SetDefaults() {
 
 }
 
+func ConfigDir() (string, error) {
+	switch runtime.GOOS {
+	case "windows":
+		var dir string
+
+		dir = os.Getenv("PROGRAMDATA")
+		if dir == "" {
+			return "", errors.New("%PROGRAMDATA% is not defined")
+		}
+		dir += "\\NAV\\naisdevice"
+
+		return dir, nil
+
+	default:
+		userConfigDir, err := os.UserConfigDir()
+		if (err != nil) {
+			return "", err
+		} else {
+			return filepath.Join(userConfigDir, "naisdevice"), err
+		}
+	}
+}
+
 func DefaultConfig() Config {
-	userConfigDir, err := os.UserConfigDir()
+	userConfigDir, err := ConfigDir()
 	if err != nil {
 		log.Fatal("Getting user config dir: %w", err)
 	}
@@ -56,7 +81,7 @@ func DefaultConfig() Config {
 	return Config{
 		APIServer:    "http://10.255.240.1",
 		BootstrapAPI: "https://bootstrap.device.nais.io",
-		ConfigDir:    filepath.Join(userConfigDir, "naisdevice"),
+		ConfigDir:    userConfigDir,
 		LogLevel:     "info",
 		OAuth2Config: oauth2.Config{
 			ClientID:    "8086d321-c6d3-4398-87da-0d54e3d93967",

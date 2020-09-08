@@ -69,7 +69,6 @@ jobs:
 
   build-macos-pkg:
     name: Build macos client
-    if: ${{ github.ref == 'refs/heads/master' }}
     needs:
       - test
       - test-device-health-checker
@@ -89,9 +88,8 @@ jobs:
         name: pkg
         path: naisdevice-${{ steps.set_version.outputs.version }}.pkg
 
-  build-and-release:
-    name: Build and release
-    if: ${{ github.ref == 'refs/heads/master' }}
+  build:
+    name: Build
     needs:
       - test
       - test-device-health-checker
@@ -113,6 +111,47 @@ jobs:
       - name: build windows-client
         run: |
           make windows-client  VERSION=${{ steps.set_version.outputs.version }}
+      - name: upload windows binaries
+        uses: actions/upload-artifact@v2.0.1
+        with:
+          name: windows-binaries
+          path: bin/windows
+
+  build-windows-installer:
+    name: Build Windows Installer
+    needs:
+      - test
+      - build
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Add msbuild to PATH
+        uses: microsoft/setup-msbuild@v1.0.1
+      - name: download windows binaries
+        uses: actions/download-artifact@v2.0
+        with:
+          name: windows-binaries
+          path: bin/windows
+      - name: create windows installer
+        run: |
+          msbuild windows\naisdevice.wixproj
+      - name: upload windows installer
+        uses: actions/upload-artifact@v2.0.1
+        with:
+          name: windows-installer
+          path: bin/windows/naisdevice.msi
+
+  release:
+    name: Release
+    if: ${{ github.ref == 'refs/heads/master' }}
+    needs:
+      - test
+      - test-device-health-checker
+      - build-macos-pkg
+      - build
+      - build-windows-installer
+    runs-on: ubuntu-latest
+    steps:
       - name: create release
         id: create_release
         uses: actions/create-release@v1.0.1
@@ -185,6 +224,20 @@ jobs:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
           asset_path: ./bin/windows/device-agent-helper.exe
           asset_name: device-agent-helper.exe
+          asset_content_type: application/octet-stream
+      - name: download windows installer
+        uses: actions/download-artifact@v2.0
+        with:
+          name: windows-installer
+          path: bin/windows
+      - name: upload naisdevice.msi
+        uses: actions/upload-release-asset@v1.0.2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./bin/windows/naisdevice.msi
+          asset_name: naisdevice.msi
           asset_content_type: application/octet-stream
 
       - name: download pkg
