@@ -20,7 +20,7 @@ func setup(t *testing.T) *database.APIServerDB {
 	return db
 }
 
-func TestAPIServerDB_AddDevice(t *testing.T) {
+func TestAPIServerDB_AddUpdateDevice(t *testing.T) {
 	db := setup(t)
 
 	ctx := context.Background()
@@ -49,4 +49,29 @@ func TestAPIServerDB_AddDevice(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, dUpdated.Username, device.Username)
 	assert.Equal(t, dUpdated.PublicKey, device.PublicKey)
+}
+
+func TestAPIServerDB_AddGateway(t *testing.T) {
+	db := setup(t)
+
+	ctx := context.Background()
+	g := database.Gateway{
+		Name:           "some-service-x",
+		FriendlyName:   "Some Service X",
+		Endpoint:       "1.2.3.4:56789",
+		PublicKey:      "public_key",
+		IP:             "10.255.250.1",
+		Routes:         []string{"4.3.2.1", "5.4.3.2"},
+		AccessGroupIDs: []string{"xyz-123-abc"},
+	}
+	err := db.AddGateway(ctx, g)
+	assert.NoError(t, err)
+
+	gateway, err := db.ReadGateway(g.Name)
+	assert.NoError(t, err)
+	assert.Equal(t, g.FriendlyName, gateway.FriendlyName)
+	assert.Equal(t, g.PublicKey, gateway.PublicKey)
+	assert.Equal(t, g.Routes, gateway.Routes)
+	assert.Equal(t, g.IP, gateway.IP)
+	assert.Equal(t, g.AccessGroupIDs, gateway.AccessGroupIDs)
 }

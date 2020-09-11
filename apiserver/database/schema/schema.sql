@@ -19,6 +19,7 @@ CREATE TABLE gateway
 (
     id               serial PRIMARY KEY,
     name             varchar,
+    friendly_name    varchar,
     access_group_ids varchar,
     endpoint         varchar(21),
     public_key       varchar(44) NOT NULL UNIQUE,

@@ -25,6 +25,7 @@ type Config struct {
 	OAuth2Config        oauth2.Config
 	Platform            string
 	BootstrapAPI        string
+	DevMode             bool
 }
 
 func (c *Config) SetDefaults() {
@@ -44,7 +45,6 @@ func (c *Config) SetDefaults() {
 	default:
 		c.LogFilePath = "device-agent.log"
 	}
-
 }
 
 func DefaultConfig() Config {

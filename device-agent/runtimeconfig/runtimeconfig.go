@@ -70,9 +70,16 @@ func (rc *RuntimeConfig) Write(w io.Writer) (int, error) {
 	return written, err
 }
 
-func New(cfg config.Config, ctx context.Context) (*RuntimeConfig, error) {
+func New(cfg config.Config) (*RuntimeConfig, error) {
 	rc := &RuntimeConfig{
 		Config: cfg,
+	}
+
+	if cfg.DevMode {
+		rc.SessionInfo = &auth.SessionInfo{
+			Key:    "sessionkey",
+			Expiry: 9999999999,
+		}
 	}
 
 	var err error

@@ -13,12 +13,13 @@ import (
 type Gateways []*Gateway
 
 type Gateway struct {
-	PublicKey string   `json:"publicKey"`
-	Endpoint  string   `json:"endpoint"`
-	IP        string   `json:"ip"`
-	Routes    []string `json:"routes"`
-	Name      string   `json:"name"`
-	Healthy   bool     `json:"-"`
+	PublicKey    string   `json:"publicKey"`
+	Endpoint     string   `json:"endpoint"`
+	IP           string   `json:"ip"`
+	Routes       []string `json:"routes"`
+	Name         string   `json:"name"`
+	FriendlyName string   `json:"friendlyName"`
+	Healthy      bool     `json:"-"`
 }
 
 type UnauthorizedError struct{}
@@ -58,6 +59,14 @@ Endpoint = %s
 
 	s := fmt.Sprintf(peerTemplate, gw.PublicKey, strings.Join(allowedIPs, ","), gw.Endpoint)
 	return []byte(s)
+}
+
+func (gw *Gateway) DisplayName() string {
+	if len(gw.FriendlyName) != 0 {
+		return gw.FriendlyName
+	}
+
+	return gw.Name
 }
 
 func GetDeviceConfig(sessionKey, apiServerURL string, ctx context.Context) (Gateways, error) {

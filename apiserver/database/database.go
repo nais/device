@@ -41,6 +41,7 @@ type Gateway struct {
 	IP             string   `json:"ip"`
 	Routes         []string `json:"routes"`
 	Name           string   `json:"name"`
+	FriendlyName   string   `json:"friendlyName"`
 	AccessGroupIDs []string `json:"-"`
 }
 
@@ -185,10 +186,10 @@ func (d *APIServerDB) UpdateDeviceStatus(devices []Device) error {
 
 func (d *APIServerDB) AddGateway(ctx context.Context, gateway Gateway) error {
 	statement := `
-INSERT INTO gateway (name, access_group_ids, endpoint, public_key, ip, routes)
-VALUES ($1, $2, $3, $4, $5, $6);`
+INSERT INTO gateway (name, friendly_name, access_group_ids, endpoint, public_key, ip, routes)
+VALUES ($1, $2, $3, $4, $5, $6, $7);`
 
-	_, err := d.conn.Exec(ctx, statement, gateway.Name, strings.Join(gateway.AccessGroupIDs, ","), gateway.Endpoint, gateway.PublicKey, gateway.IP, strings.Join(gateway.Routes, ","))
+	_, err := d.conn.Exec(ctx, statement, gateway.Name, gateway.FriendlyName, strings.Join(gateway.AccessGroupIDs, ","), gateway.Endpoint, gateway.PublicKey, gateway.IP, strings.Join(gateway.Routes, ","))
 
 	if err != nil {
 		return fmt.Errorf("inserting new gateway: %w", err)
@@ -283,7 +284,7 @@ func (d *APIServerDB) ReadGateways() ([]Gateway, error) {
 	ctx := context.Background()
 
 	query := `
-SELECT public_key, access_group_ids, endpoint, ip, routes, name
+SELECT public_key, access_group_ids, endpoint, ip, routes, name, friendly_name
   FROM gateway;`
 
 	rows, err := d.conn.Query(ctx, query)
@@ -296,7 +297,7 @@ SELECT public_key, access_group_ids, endpoint, ip, routes, name
 		var gateway Gateway
 		var routes string
 		var accessGroupIDs string
-		err := rows.Scan(&gateway.PublicKey, &accessGroupIDs, &gateway.Endpoint, &gateway.IP, &routes, &gateway.Name)
+		err := rows.Scan(&gateway.PublicKey, &accessGroupIDs, &gateway.Endpoint, &gateway.IP, &routes, &gateway.Name, &gateway.FriendlyName)
 		if err != nil {
 			return nil, fmt.Errorf("scanning gateway: %w", err)
 		}
@@ -324,7 +325,7 @@ func (d *APIServerDB) ReadGateway(name string) (*Gateway, error) {
 	ctx := context.Background()
 
 	query := `
-SELECT public_key, access_group_ids, endpoint, ip, routes
+SELECT friendly_name, public_key, access_group_ids, endpoint, ip, routes
   FROM gateway
  WHERE name = $1;`
 
@@ -333,7 +334,7 @@ SELECT public_key, access_group_ids, endpoint, ip, routes
 	var gateway Gateway
 	var routes string
 	var accessGroupIDs string
-	err := row.Scan(&gateway.PublicKey, &accessGroupIDs, &gateway.Endpoint, &gateway.IP, &routes)
+	err := row.Scan(&gateway.FriendlyName, &gateway.PublicKey, &accessGroupIDs, &gateway.Endpoint, &gateway.IP, &routes)
 	if err != nil {
 		return nil, fmt.Errorf("scanning gateway: %w", err)
 	}

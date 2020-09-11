@@ -100,7 +100,6 @@ func (a *api) updateHealth(w http.ResponseWriter, r *http.Request) {
 }
 
 func (a *api) gateways(w http.ResponseWriter, r *http.Request) {
-	//serial := chi.URLParam(r, "serial")
 	gateways, err := a.db.ReadGateways()
 	if err != nil {
 		log.Errorf("reading gateways: %v", err)

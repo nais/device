@@ -14,7 +14,7 @@ import (
 )
 
 const (
-	WireGuardBinary = "/usr/bin/wg"
+	WireGuardBinary   = "/usr/bin/wg"
 	ProductSerialPath = "/sys/devices/virtual/dmi/id/product_serial"
 )
 
@@ -31,7 +31,7 @@ func platformInit(cfg *Config) {
 	if err := extractProductSerial(ProductSerialPath); err != nil {
 		log.Error(err)
 	}
-	
+
 }
 
 func syncConf(cfg Config, ctx context.Context) error {

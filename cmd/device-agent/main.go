@@ -24,6 +24,7 @@ func init() {
 	flag.StringVar(&cfg.ConfigDir, "config-dir", cfg.ConfigDir, "path to agent config directory")
 	flag.StringVar(&cfg.Interface, "interface", cfg.Interface, "name of tunnel interface")
 	flag.StringVar(&cfg.LogLevel, "log-level", cfg.LogLevel, "which log level to output")
+	flag.BoolVar(&cfg.DevMode, "development-mode", cfg.DevMode, "Development mode avoids...") // TODO
 	flag.Parse()
 	cfg.SetDefaults()
 	logger.SetupDeviceLogger(cfg.LogLevel, cfg.LogFilePath)

@@ -114,7 +114,7 @@ func (gui *Gui) handleGateways(gateways apiserver.Gateways) {
 		panic("twenty wasn't enough, was it??????")
 	}
 	for i, gateway := range gateways {
-		gui.MenuItems.GatewayItems[i].SetTitle(gateway.Name)
+		gui.MenuItems.GatewayItems[i].SetTitle(gateway.DisplayName())
 		gui.MenuItems.GatewayItems[i].SetTooltip(gateway.Endpoint)
 		if gateway.Healthy {
 			gui.MenuItems.GatewayItems[i].Check()
