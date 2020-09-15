@@ -58,6 +58,9 @@ class ValidateKolideChecksSeverity extends BaseCommand {
                 ),
                 $incompleteChecks
             ));
+
+            $output->writeln(sprintf('::set-output name=incomplete-checks::%s', json_encode($incompleteChecks)));
+
             return Command::FAILURE;
         }
 
