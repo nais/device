@@ -32,7 +32,7 @@ This command will validate that there exists a criticality level for all Kolide 
 
     ./device-health-checker.phar kolide:validate-checks -t $KOLIDE_API_TOKEN
 
-This command is run as a scheduled workflow in this repository, and if the command finds checks with missing tags it will send a message to the `#nais-device-alerts` channel. This is done using a webhook that is owned by the `Kolide checks validation` Slack app installed on the NAV IT workspace.
+This command is run as a scheduled workflow in this repository, and if the command finds checks with missing tags it will send a message to the `#nais-device-alarms` channel. This is done using a webhook that is owned by the `Kolide checks validation` Slack app installed on the NAV IT workspace.
 
 #### Command options
 
