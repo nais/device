@@ -82,6 +82,7 @@ class ValidateKolideChecksSeverityTest extends TestCase {
 The following Kolide checks are missing a severity tag:
 some other name (ID: 2, https://k2.kolide.com/1401/checks/2): some other description
 some third name (ID: 3, https://k2.kolide.com/1401/checks/3): some third description
+::set-output name=incomplete-checks::[{"id":2,"name":"some other name","description":"some other description","tags":["WINDOWS"]},{"id":3,"name":"some third name","description":"some third description","tags":["LINUX"]}]
 DISPLAY;
 
         $this->assertSame(1, $exitCode, 'Expected exit code to be 1');
