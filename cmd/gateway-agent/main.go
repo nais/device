@@ -456,7 +456,7 @@ func forwardRoutes(cfg Config, routes []string) error {
 				[]string{
 					"LOG",
 					"--log-level", "info",
-					"--log-prefix", "[NaisDeviceGatwayAgentForwardingConnection] ",
+					"--log-prefix", "naisdevice-gateway-forwardedconnection: ",
 				}...,
 			)...,
 		)
