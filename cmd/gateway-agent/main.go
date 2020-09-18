@@ -438,9 +438,41 @@ func forwardRoutes(cfg Config, routes []string) error {
 			return fmt.Errorf("setting up snat: %w", err)
 		}
 
-		err = cfg.IPTables.AppendUnique("filter", "FORWARD", "-i", "wg0", "-o", cfg.DefaultInterface, "-p", "tcp", "--syn", "-d", ip, "-m", "conntrack", "--ctstate", "NEW", "-j", "ACCEPT")
+		commonArgsForForwardingRule := []string{
+			"--in-interface", "wg0",
+			"--out-interface", cfg.DefaultInterface,
+			"--protocol", "tcp",
+			"--syn",
+			"--destination", ip,
+			"--match", "conntrack",
+			"--ctstate", "NEW",
+			"--jump",
+		}
+		err = cfg.IPTables.AppendUnique(
+			"filter",
+			"FORWARD",
+			append(
+				commonArgsForForwardingRule,
+				[]string{
+					"LOG",
+					"--log-level", "info",
+					"--log-prefix", "naisdevice-gateway-forwardedconnection: ",
+				}...,
+			)...,
+		)
 		if err != nil {
-			return fmt.Errorf("setting up forward: %w", err)
+			return fmt.Errorf("setting up iptables log rule: %w", err)
+		}
+		err = cfg.IPTables.AppendUnique(
+			"filter",
+			"FORWARD",
+			append(
+				commonArgsForForwardingRule,
+				[]string{"ACCEPT"}...,
+			)...,
+		)
+		if err != nil {
+			return fmt.Errorf("setting up iptables forwarding rule: %w", err)
 		}
 	}
 
