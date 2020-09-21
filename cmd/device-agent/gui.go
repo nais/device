@@ -40,7 +40,7 @@ const (
 
 	maxGateways         = 20
 	slackURL            = "slack://channel?team=T5LNAMWNA&id=D011T20LDHD"
-	softwareReleasePage = "https://github.com/nais/device/releases/latest"
+	softwareReleasePage = "https://doc.nais.io/device/install"
 )
 
 func NewGUI() *Gui {
