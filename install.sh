@@ -28,7 +28,7 @@ echo -n "determining latest version..."
 latest_tag=$(curl --show-error --silent --fail -L "https://api.github.com/repos/nais/device/releases/latest" | grep 'tag_name' | sed -E 's/.*"([^"]+)".*/\1/') && ok || fail
 
 echo -n "downloading latest pkg......."
-pkg_url="https://github.com/nais/device/releases/download/${latest_tag}/naisdevice-${latest_tag}.pkg"
+pkg_url="https://github.com/nais/device/releases/download/${latest_tag}/naisdevice.pkg"
 temp_pkg=$(mktemp).pkg
 err=$(curl --show-error --silent --fail -L "$pkg_url" -o "$temp_pkg") && ok || fail
 
