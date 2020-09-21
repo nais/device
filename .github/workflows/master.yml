@@ -45,40 +45,39 @@ jobs:
         id: set-version
         run: echo ::set-output name=version::$(date "+%Y-%m-%d")-$(git --no-pager log -1 --pretty=%h)
 
-  test-device-health-checker:
-    name: Test device-health-checker
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: ./device-health-checker
-    steps:
-      - uses: actions/checkout@v2
-      - name: Setup PHP
-        uses: shivammathur/setup-php@v2
-        with:
-          php-version: '7.4'
-      - name: Output some debug information about the PHP version
-        run: |
-          php -v
-          php -i
-          php -m
-      - name: Validate composer files
-        run: composer validate --strict
-      - name: Cache Composer packages
-        id: composer-cache
-        uses: actions/cache@v1
-        with:
-          path: vendor
-          key: ${{ runner.os }}-php-node-${{ hashFiles('**/composer.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-php-node-
-      - name: Install dependencies
-        if: steps.composer-cache.outputs.cache-hit != 'true'
-        run: composer install --prefer-dist --no-progress --no-suggest --no-ansi -o
-      - name: Run tests
-        run: composer run ci
+ #test-device-health-checker:
+ #  name: Test device-health-checker
+ #  runs-on: ubuntu-latest
+ #  defaults:
+ #    run:
+ #      working-directory: ./device-health-checker
+ #  steps:
+ #    - uses: actions/checkout@v2
+ #    - name: Setup PHP
+ #      uses: shivammathur/setup-php@v2
+ #      with:
+ #        php-version: '7.4'
+ #    - name: Output some debug information about the PHP version
+ #      run: |
+ #        php -v
+ #        php -i
+ #        php -m
+ #    - name: Validate composer files
+ #      run: composer validate --strict
+ #    - name: Cache Composer packages
+ #      id: composer-cache
+ #      uses: actions/cache@v1
+ #      with:
+ #        path: vendor
+ #        key: ${{ runner.os }}-php-node-${{ hashFiles('**/composer.lock') }}
+ #        restore-keys: |
+ #          ${{ runner.os }}-php-node-
+ #    - name: Install dependencies
+ #      if: steps.composer-cache.outputs.cache-hit != 'true'
+ #      run: composer install --prefer-dist --no-progress --no-suggest --no-ansi -o
+ #    - name: Run tests
+ #      run: composer run ci
 
-  # atm only package-windows needs this
   build:
     name: Build
     needs:
@@ -86,18 +85,18 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        os: [macos, linux, windows]
+        target: [macos-client, linux-client, windows-client, controlplane]
     steps:
       - uses: actions/checkout@v2
-      - name: build ${{ matrix.os }}
+      - name: build ${{ matrix.target }}
         run: |
-          make ${{ matrix.os }}-client VERSION=${{ needs.set-version.outputs.version }}
+          make ${{ matrix.target }} VERSION=${{ needs.set-version.outputs.version }}
 
-      - name: upload ${{ matrix.os }}
+      - name: upload ${{ matrix.target }}
         uses: actions/upload-artifact@v2.0.1
         with:
-          name: ${{ matrix.os }}-binaries
-          path: bin/${{ matrix.os }}
+          name: ${{ matrix.target }}
+          path: bin/${{ matrix.target }}
 
   # Also builds, should probably download artifact instead
   package-macos:
@@ -128,7 +127,7 @@ jobs:
       - name: download windows binaries
         uses: actions/download-artifact@v2.0
         with:
-          name: windows-binaries
+          name: windows-client
           path: bin/windows
       - name: create windows installer
         run: |
@@ -144,7 +143,7 @@ jobs:
     if: ${{ github.ref == 'refs/heads/master' }}
     needs:
       - test
-      - test-device-health-checker
+        #- test-device-health-checker
       - package-macos
       - package-windows
       - set-version
@@ -161,59 +160,66 @@ jobs:
           draft: false
           prerelease: false
 
+      - name: download controlplane artifacts
+        uses: actions/download-artifact@v2.0
+        with:
+          name: controlplane
+          path: bin/controlplane
       - name: upload apiserver binary
         uses: actions/upload-release-asset@v1.0.2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./bin/apiserver
+          asset_path: ./bin/controlplane/apiserver
           asset_name: apiserver
           asset_content_type: application/octet-stream
-
       - name: upload gateway-agent binary
         uses: actions/upload-release-asset@v1.0.2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./bin/gateway-agent
+          asset_path: ./bin/controlplane/gateway-agent
           asset_name: gateway-agent
           asset_content_type: application/octet-stream
-
       - name: upload bootstrap-api binary
         uses: actions/upload-release-asset@v1.0.2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./bin/bootstrap-api
+          asset_path: ./bin/controlplane/bootstrap-api
           asset_name: bootstrap-api
           asset_content_type: application/octet-stream
-
       - name: upload prometheus-agent binary
         uses: actions/upload-release-asset@v1.0.2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./bin/prometheus-agent
+          asset_path: ./bin/controlplane/prometheus-agent
           asset_name: prometheus-agent
           asset_content_type: application/octet-stream
 
-      - name: Prepare device-health-checker scripts for packaging
-        working-directory: ./device-health-checker
-        run: |
-          composer install --prefer-dist --no-progress --no-suggest --no-ansi --no-dev -o
-      - name: upload device-health-checker.phar archive
-        uses: actions/upload-release-asset@v1.0.2
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./device-health-checker/bin/device-health-checker.phar
-          asset_name: device-health-checker.phar
-          asset_content_type: application/octet-stream
+     #- name: download device-health-checker artifact
+     #  uses: actions/download-artifact@v2.0
+     #  with:
+     #    name: device-health-checker
+     #    path: bin/device-health-checker
+     #- name: Prepare device-health-checker scripts for packaging
+     #  working-directory: ./device-health-checker
+     #  run: |
+     #    composer install --prefer-dist --no-progress --no-suggest --no-ansi --no-dev -o
+     #- name: upload device-health-checker.phar archive
+     #  uses: actions/upload-release-asset@v1.0.2
+     #  env:
+     #    GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+     #  with:
+     #    upload_url: ${{ steps.create_release.outputs.upload_url }}
+     #    asset_path: ./device-health-checker/bin/device-health-checker.phar
+     #    asset_name: device-health-checker.phar
+     #    asset_content_type: application/octet-stream
 
       - name: download windows installer
         uses: actions/download-artifact@v2.0
