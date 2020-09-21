@@ -23,8 +23,9 @@ controlplane:
 
 # Run by GitHub actions on linux
 device-health-checker:
+	mkdir -p ./bin/device-health-checker
 	cd device-health-checker && composer install --prefer-dist --no-progress --no-suggest --no-ansi --no-dev -o
-	php -d phar.readonly=off device-health-checker/create-phar.php device-health-checker/device-health-checker.php bin/device-health-checker
+	php -d phar.readonly=off device-health-checker/create-phar.php device-health-checker/device-health-checker.php bin/device-health-checker/
 
 # Run by GitHub actions on linux
 linux-client:
