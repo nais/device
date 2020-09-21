@@ -25,6 +25,8 @@ device-health-checker:
 
 linux-client:
 	mkdir -p ./bin/linux-client
+	sudo apt update
+	sudo apt-get install --yes build-essential libgtk-3-dev libappindicator3-dev
 	GOOS=linux GOARCH=amd64 go build -o bin/linux-client/device-agent ./cmd/device-agent
 	GOOS=linux GOARCH=amd64 go build -o bin/linux-client/device-agent-helper ./cmd/device-agent-helper
 
