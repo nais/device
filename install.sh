@@ -14,11 +14,6 @@ fail() {
   exit 1
 }
 
-admin() {
-  echo -e "[\e[33;5;82msudo\e[0;5;82m]"
-  sudo whoami > /dev/null
-}
-
 echo "##################################"
 echo "# Installing naisdevice           "
 echo "##################################"
