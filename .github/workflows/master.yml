@@ -81,7 +81,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        target: [macos-client, linux-client, windows-client, controlplane]
+        target: [linux-client, windows-client, controlplane]
     steps:
       - uses: actions/checkout@v2
       - name: build ${{ matrix.target }}
@@ -95,7 +95,7 @@ jobs:
           path: bin/${{ matrix.target }}
 
   # Also builds, should probably download artifact instead
-  package-macos:
+  build-macos:
     needs:
       - set-version
     runs-on: macos-latest
@@ -110,7 +110,7 @@ jobs:
         name: pkg
         path: naisdevice-${{ needs.set-version.outputs.version }}.pkg
 
-  package-windows:
+  build-windows:
     needs:
       - build
     runs-on: windows-latest
@@ -135,11 +135,12 @@ jobs:
   release:
     if: ${{ github.ref == 'refs/heads/master' }}
     needs:
-      - test
-        #- test-device-health-checker
-      - package-macos
-      - package-windows
       - set-version
+      - test
+      #- test-device-health-checker
+      - build
+      - build-macos
+      - build-windows
     runs-on: ubuntu-latest
     steps:
       - name: create release
