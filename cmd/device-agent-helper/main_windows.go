@@ -37,10 +37,9 @@ func platformFlags(cfg *Config) {
 }
 
 func platformInit(cfg *Config) {
-	logdir := "c:\\naisdevice"
-	err := os.MkdirAll(logdir, 0755)
-	if err != nil {
-		log.Fatalf("Creating log directory: %v", err)
+	logdir := os.Getenv("PROGRAMDATA") + "\\NAV\\naisdevice"
+	if _, err := os.Stat(logdir); err != nil {
+		log.Fatalf("Error opening application data folder: %v", err)
 	}
 	logger.SetupDeviceLogger(cfg.LogLevel, filepath.Join(logdir, "device-agent-helper.log"))
 
