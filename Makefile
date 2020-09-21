@@ -1,4 +1,4 @@
-.PHONY: test alpine
+.PHONY: test device-health-checker
 DATE = $(shell date "+%Y-%m-%d")
 LAST_COMMIT = $(shell git --no-pager log -1 --pretty=%h)
 VERSION ?= $(DATE)-$(LAST_COMMIT)
@@ -7,12 +7,13 @@ PKGTITLE = naisdevice
 PKGID = io.nais.device
 GOPATH ?= ~/go
 
-all: test alpine
+all: test
 local-postgres: stop-postgres run-postgres
 dev-apiserver: local-postgres local-apiserver stop-postgres
 integration-test: run-postgres-test run-integration-test stop-postgres-test
 clients: linux-client macos-client windows-client
 
+# Run by GitHub actions
 controlplane:
 	mkdir -p ./bin/controlplane
 	GOOS=linux GOARCH=amd64 go build -o bin/controlplane/apiserver ./cmd/apiserver
@@ -20,9 +21,12 @@ controlplane:
 	GOOS=linux GOARCH=amd64 go build -o bin/controlplane/gateway-agent -ldflags "-s $(LDFLAGS)" ./cmd/gateway-agent
 	GOOS=linux GOARCH=amd64 go build -o bin/controlplane/prometheus-agent ./cmd/prometheus-agent
 
+# Run by GitHub actions on linux
 device-health-checker:
+	cd device-health-checker && composer install --prefer-dist --no-progress --no-suggest --no-ansi --no-dev -o
 	php -d phar.readonly=off device-health-checker/create-phar.php device-health-checker/device-health-checker.php bin/device-health-checker
 
+# Run by GitHub actions on linux
 linux-client:
 	mkdir -p ./bin/linux-client
 	sudo apt update
@@ -30,11 +34,13 @@ linux-client:
 	GOOS=linux GOARCH=amd64 go build -o bin/linux-client/device-agent ./cmd/device-agent
 	GOOS=linux GOARCH=amd64 go build -o bin/linux-client/device-agent-helper ./cmd/device-agent-helper
 
+# Run by GitHub actions on macos
 macos-client:
 	mkdir -p ./bin/macos-client
 	GOOS=darwin GOARCH=amd64 go build -o bin/macos-client/device-agent -ldflags "-s $(LDFLAGS)" ./cmd/device-agent
 	GOOS=darwin GOARCH=amd64 go build -o bin/macos-client/device-agent-helper ./cmd/device-agent-helper
 
+# Run by GitHub actions on linux
 windows-client:
 	mkdir -p ./bin/windows-client
 	go get github.com/akavel/rsrc
@@ -117,6 +123,7 @@ test:
 run-integration-test:
 	RUN_INTEGRATION_TESTS="true" go test ./... -count=1
 
+# Run by GitHub actions on macos
 pkg: app
 	rm -f ./naisdevice*.pkg
 	rm -rf ./pkgtemp
