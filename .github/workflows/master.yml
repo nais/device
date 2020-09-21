@@ -11,7 +11,6 @@ on:
       - '.github/workflows/master.yml'
 jobs:
   test:
-    name: test
     runs-on: ubuntu-latest
     services:
       postgres:
@@ -35,7 +34,6 @@ jobs:
         make run-integration-test
 
   set-version:
-    name: Set version
     runs-on: ubuntu-latest
     outputs:
       version: ${{ steps.set-version.outputs.version }}
@@ -46,7 +44,6 @@ jobs:
         run: echo ::set-output name=version::$(date "+%Y-%m-%d")-$(git --no-pager log -1 --pretty=%h)
 
  #test-device-health-checker:
- #  name: Test device-health-checker
  #  runs-on: ubuntu-latest
  #  defaults:
  #    run:
@@ -79,7 +76,6 @@ jobs:
  #      run: composer run ci
 
   build:
-    name: Build
     needs:
       - set-version
     runs-on: ubuntu-latest
@@ -100,7 +96,6 @@ jobs:
 
   # Also builds, should probably download artifact instead
   package-macos:
-    name: Build macos client
     needs:
       - set-version
     runs-on: macos-latest
@@ -116,7 +111,6 @@ jobs:
         path: naisdevice-${{ needs.set-version.outputs.version }}.pkg
 
   package-windows:
-    name: Build Windows Installer
     needs:
       - build
     runs-on: windows-latest
@@ -139,7 +133,6 @@ jobs:
           path: bin/windows/naisdevice.msi
 
   release:
-    name: Release
     if: ${{ github.ref == 'refs/heads/master' }}
     needs:
       - test
