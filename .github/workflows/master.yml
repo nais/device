@@ -200,14 +200,14 @@ jobs:
         uses: actions/download-artifact@v2.0
         with:
           name: device-health-checker
-          path: bin/device-health-checker.phar
+          path: bin/device-health-checker
       - name: upload device-health-checker.phar archive
         uses: actions/upload-release-asset@v1.0.2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./bin/device-health-checker.phar
+          asset_path: ./bin/device-health-checker/device-health-checker.phar
           asset_name: device-health-checker.phar
           asset_content_type: application/octet-stream
 
