@@ -78,11 +78,31 @@ jobs:
       - name: Run tests
         run: composer run ci
 
-  build-macos-pkg:
+  # atm only package-windows needs this
+  build:
+    name: Build
+    needs:
+      - set-version
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        os: [macos, linux, windows]
+    steps:
+      - uses: actions/checkout@v2
+      - name: build ${{ matrix.os }}
+        run: |
+          make ${{ matrix.os }}-client VERSION=${{ needs.set-version.outputs.version }}
+
+      - name: upload ${{ matrix.os }}
+        uses: actions/upload-artifact@v2.0.1
+        with:
+          name: ${{ matrix.os }}-binaries
+          path: bin/${{ matrix.os }}
+
+  # Also builds, should probably download artifact instead
+  package-macos:
     name: Build macos client
     needs:
-      - test
-      - test-device-health-checker
       - set-version
     runs-on: macos-latest
     steps:
@@ -96,36 +116,9 @@ jobs:
         name: pkg
         path: naisdevice-${{ needs.set-version.outputs.version }}.pkg
 
-  build:
-    name: Build
-    needs:
-      - test
-      - test-device-health-checker
-      - build-macos-pkg
-      - set-version
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v2
-      - name: Prepare device-health-checker scripts for packaging
-        working-directory: ./device-health-checker
-        run: |
-          composer install --prefer-dist --no-progress --no-suggest --no-ansi --no-dev -o
-      - name: build linux
-        run: |
-          make linux VERSION=${{ needs.set-version.outputs.version }}
-      - name: build windows-client
-        run: |
-          make windows-client  VERSION=${{ needs.set-version.outputs.version }}
-      - name: upload windows binaries
-        uses: actions/upload-artifact@v2.0.1
-        with:
-          name: windows-binaries
-          path: bin/windows
-
-  build-windows-installer:
+  package-windows:
     name: Build Windows Installer
     needs:
-      - test
       - build
     runs-on: windows-latest
     steps:
@@ -152,9 +145,8 @@ jobs:
     needs:
       - test
       - test-device-health-checker
-      - build-macos-pkg
-      - build
-      - build-windows-installer
+      - package-macos
+      - package-windows
       - set-version
     runs-on: ubuntu-latest
     steps:
@@ -168,6 +160,7 @@ jobs:
           release_name: Release ${{ needs.set-version.outputs.version }}
           draft: false
           prerelease: false
+
       - name: upload apiserver binary
         uses: actions/upload-release-asset@v1.0.2
         env:
@@ -177,6 +170,7 @@ jobs:
           asset_path: ./bin/apiserver
           asset_name: apiserver
           asset_content_type: application/octet-stream
+
       - name: upload gateway-agent binary
         uses: actions/upload-release-asset@v1.0.2
         env:
@@ -186,6 +180,7 @@ jobs:
           asset_path: ./bin/gateway-agent
           asset_name: gateway-agent
           asset_content_type: application/octet-stream
+
       - name: upload bootstrap-api binary
         uses: actions/upload-release-asset@v1.0.2
         env:
@@ -195,6 +190,7 @@ jobs:
           asset_path: ./bin/bootstrap-api
           asset_name: bootstrap-api
           asset_content_type: application/octet-stream
+
       - name: upload prometheus-agent binary
         uses: actions/upload-release-asset@v1.0.2
         env:
@@ -204,6 +200,11 @@ jobs:
           asset_path: ./bin/prometheus-agent
           asset_name: prometheus-agent
           asset_content_type: application/octet-stream
+
+      - name: Prepare device-health-checker scripts for packaging
+        working-directory: ./device-health-checker
+        run: |
+          composer install --prefer-dist --no-progress --no-suggest --no-ansi --no-dev -o
       - name: upload device-health-checker.phar archive
         uses: actions/upload-release-asset@v1.0.2
         env:
@@ -213,24 +214,7 @@ jobs:
           asset_path: ./device-health-checker/bin/device-health-checker.phar
           asset_name: device-health-checker.phar
           asset_content_type: application/octet-stream
-      - name: upload device-agent.exe
-        uses: actions/upload-release-asset@v1.0.2
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./bin/windows/device-agent.exe
-          asset_name: device-agent.exe
-          asset_content_type: application/octet-stream
-      - name: upload device-agent-helper.exe
-        uses: actions/upload-release-asset@v1.0.2
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./bin/windows/device-agent-helper.exe
-          asset_name: device-agent-helper.exe
-          asset_content_type: application/octet-stream
+
       - name: download windows installer
         uses: actions/download-artifact@v2.0
         with:
@@ -257,5 +241,5 @@ jobs:
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
           asset_path: ./naisdevice-${{ needs.set-version.outputs.version }}.pkg
-          asset_name: naisdevice-${{ needs.set-version.outputs.version }}.pkg
+          asset_name: naisdevice.pkg
           asset_content_type: application/octet-stream
