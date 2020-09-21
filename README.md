@@ -52,4 +52,5 @@ The apiserver also:
 
 ## FAQ
 ### What is a healthy device?
-
+### How to install
+See https://doc.nais.io/device
