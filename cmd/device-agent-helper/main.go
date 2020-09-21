@@ -33,13 +33,11 @@ type Controllable interface {
 }
 
 type Config struct {
-	Interface               string
-	WireGuardConfigPath     string
-	ConfigPath              string
-	LogLevel                string
-	BootstrapConfigPath     string
-	WindowsServiceInstall   bool
-	WindowsServiceUninstall bool
+	Interface           string
+	WireGuardConfigPath string
+	ConfigPath          string
+	LogLevel            string
+	BootstrapConfigPath string
 }
 
 var (
@@ -90,15 +88,8 @@ func main() {
 		log.Fatalf("Checking prerequisites: %v", err)
 	}
 
-	if cfg.WindowsServiceUninstall {
-		uninstallService()
-		return
-	}
-
-	if cfg.WindowsServiceInstall {
-		installService(cfg)
-		return
-	}
+	// Deprecated service, new one is installed via msi intaller
+	uninstallService()
 
 	defer teardownInterface(ctx, cfg)
 

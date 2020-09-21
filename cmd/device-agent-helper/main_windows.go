@@ -7,7 +7,6 @@ import (
 	"github.com/nais/device/pkg/bootstrap"
 	"github.com/nais/device/pkg/logger"
 	log "github.com/sirupsen/logrus"
-	flag "github.com/spf13/pflag"
 	"golang.org/x/sys/windows/svc"
 	"golang.org/x/sys/windows/svc/mgr"
 	"io/ioutil"
@@ -31,10 +30,7 @@ func (service *MyService) ControlChannel() <-chan ControlEvent {
 	return service.controlChannel
 }
 
-func platformFlags(cfg *Config) {
-	flag.BoolVar(&cfg.WindowsServiceInstall, "install", false, "install service")
-	flag.BoolVar(&cfg.WindowsServiceUninstall, "uninstall", false, "uninstall service")
-}
+func platformFlags(cfg *Config) { }
 
 func platformInit(cfg *Config) {
 	logdir := os.Getenv("PROGRAMDATA") + "\\NAV\\naisdevice"
@@ -169,50 +165,6 @@ func exePath() (string, error) {
 	return absoluteProgramPath, nil
 }
 
-func installService(cfg Config) {
-	log.Infof("Installing service: %s", ServiceName)
-	if cfg.ConfigPath == "" {
-		log.Errorf("--config-path must be provided to install service")
-		return
-	}
-
-	exe, err := exePath()
-	if err != nil {
-		log.Errorf("Getting exe path: %v", err)
-		return
-	}
-
-	m, err := mgr.Connect()
-	if err != nil {
-		log.Errorf("Connecting to Service Manager: %v", err)
-		return
-	}
-	defer m.Disconnect()
-
-	s, err := m.OpenService(ServiceName)
-	if err == nil {
-		s.Close()
-		log.Errorf("service %v already exists. Aborting.", ServiceName)
-		return
-	}
-
-	mgrCfg := mgr.Config{
-		DisplayName: ServiceDisplayName,
-		StartType:   mgr.StartAutomatic,
-	}
-	s, err = m.CreateService(ServiceName, exe, mgrCfg, "--interface", cfg.Interface, "--config-dir", cfg.ConfigPath)
-	if err != nil {
-		log.Errorf("Creating service: %v", err)
-		return
-	}
-	defer s.Close()
-
-	err = s.Start()
-	if err != nil {
-		log.Warnf("starting service: %v", err)
-	}
-}
-
 func uninstallService() {
 	log.Info("Uninstalling service: %s", ServiceName)
 	m, err := mgr.Connect()
@@ -224,7 +176,7 @@ func uninstallService() {
 
 	s, err := m.OpenService(ServiceName)
 	if err != nil {
-		log.Error("Opening service \"%v\": %v", ServiceName, err)
+		log.Infof("Opening service \"%v\": %v", ServiceName, err)
 		return
 	}
 	defer s.Close()
