@@ -32,7 +32,5 @@ pkg_url="https://github.com/nais/device/releases/download/${latest_tag}/naisdevi
 temp_pkg=$(mktemp).pkg
 err=$(curl --show-error --silent --fail -L "$pkg_url" -o "$temp_pkg") && ok || fail
 
-echo -n "elevating to admin..........."
-admin
 echo -n "installing package..........."
-err=$(sudo installer -target / -pkg "$temp_pkg") && ok || fail
+err=$(/usr/bin/osascript -e "do shell script \"pkill device-agent; pkill device-agent-helper; installer -target / -pkg '$temp_pkg'\" with administrator privileges") && ok || fail
