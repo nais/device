@@ -34,6 +34,17 @@ jobs:
         sudo apt install --yes build-essential libgtk-3-dev libappindicator3-dev
         make run-integration-test
 
+  set-version:
+    name: Set version
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.set-version.outputs.version }}
+    steps:
+      - uses: actions/checkout@v2
+      - name: set version
+        id: set-version
+        run: echo ::set-output name=version::$(date "+%Y-%m-%d")-$(git --no-pager log -1 --pretty=%h)
+
   test-device-health-checker:
     name: Test device-health-checker
     runs-on: ubuntu-latest
@@ -72,21 +83,18 @@ jobs:
     needs:
       - test
       - test-device-health-checker
+      - set-version
     runs-on: macos-latest
     steps:
     - uses: actions/checkout@v2
-    - name: set version
-      id: set_version
-      run: |
-        echo ::set-output name=version::$(date "+%Y-%m-%d")-$(git --no-pager log -1 --pretty=%h)
     - name: build pkg
       run: |
-        make pkg VERSION=${{ steps.set_version.outputs.version }}
+        make pkg VERSION=${{ needs.set-version.outputs.version }}
     - name: upload pkg
       uses: actions/upload-artifact@v2.0.1
       with:
         name: pkg
-        path: naisdevice-${{ steps.set_version.outputs.version }}.pkg
+        path: naisdevice-${{ needs.set-version.outputs.version }}.pkg
 
   build:
     name: Build
@@ -94,23 +102,20 @@ jobs:
       - test
       - test-device-health-checker
       - build-macos-pkg
+      - set-version
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
-      - name: set version
-        id: set_version
-        run: |
-          echo ::set-output name=version::$(date "+%Y-%m-%d")-$(git --no-pager log -1 --pretty=%h)
       - name: Prepare device-health-checker scripts for packaging
         working-directory: ./device-health-checker
         run: |
           composer install --prefer-dist --no-progress --no-suggest --no-ansi --no-dev -o
       - name: build linux
         run: |
-          make linux VERSION=${{ steps.set_version.outputs.version }}
+          make linux VERSION=${{ needs.set-version.outputs.version }}
       - name: build windows-client
         run: |
-          make windows-client  VERSION=${{ steps.set_version.outputs.version }}
+          make windows-client  VERSION=${{ needs.set-version.outputs.version }}
       - name: upload windows binaries
         uses: actions/upload-artifact@v2.0.1
         with:
@@ -150,6 +155,7 @@ jobs:
       - build-macos-pkg
       - build
       - build-windows-installer
+      - set-version
     runs-on: ubuntu-latest
     steps:
       - name: create release
@@ -158,8 +164,8 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          tag_name: ${{ steps.set_version.outputs.version }}
-          release_name: Release ${{ steps.set_version.outputs.version }}
+          tag_name: ${{ needs.set-version.outputs.version }}
+          release_name: Release ${{ needs.set-version.outputs.version }}
           draft: false
           prerelease: false
       - name: upload apiserver binary
@@ -250,6 +256,6 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./naisdevice-${{ steps.set_version.outputs.version }}.pkg
-          asset_name: naisdevice-${{ steps.set_version.outputs.version }}.pkg
+          asset_path: ./naisdevice-${{ needs.set-version.outputs.version }}.pkg
+          asset_name: naisdevice-${{ needs.set-version.outputs.version }}.pkg
           asset_content_type: application/octet-stream
