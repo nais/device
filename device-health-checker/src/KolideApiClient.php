@@ -20,21 +20,23 @@ class KolideApiClient {
     }
 
     private function getPaginatedResults(string $endpoint) : array {
-        $page = 0;
-        $lastPage = false;
-        $entries = [];
+        $cursor   = '';
+        $entries  = [];
 
-        while (!$lastPage) {
-            $response = json_decode($this->client->get($endpoint, [
-                'query' => [
-                    'page'     => $page++,
-                    'per_page' => 100,
-                ],
-            ])->getBody()->getContents(), true);
+        do {
+            $response = json_decode(
+                $this->client->get($endpoint, [
+                    'query' => [
+                        'per_page' => 100,
+                        'cursor'   => $cursor,
+                    ],
+                ])->getBody()->getContents(),
+                true,
+            );
 
-            $lastPage = $response['page'] === $response['last_page'];
-            $entries = array_merge($entries, $response['data']);
-        }
+            $cursor   = $response['pagination']['next_cursor'] ?: false;
+            $entries  = array_merge($entries, $response['data']);
+        } while($cursor);
 
         return $entries;
     }

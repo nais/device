@@ -28,8 +28,8 @@ class KolideApiClientTest extends TestCase {
         $clientHistory = [];
         $httpClient = $this->getMockClient(
             [
-                new Response(200, [], json_encode(['page' => 0, 'last_page' => 1, 'data' => [['id' => 1], ['id' => 2]]])),
-                new Response(200, [], json_encode(['page' => 1, 'last_page' => 1, 'data' => [['id' => 3], ['id' => 4]]])),
+                new Response(200, [], json_encode(['pagination' => ['next_cursor' => 'next'], 'data' => [['id' => 1], ['id' => 2]]])),
+                new Response(200, [], json_encode(['pagination' => ['next_cursor' => ''], 'data' => [['id' => 3], ['id' => 4]]])),
             ],
             $clientHistory
         );
@@ -39,8 +39,8 @@ class KolideApiClientTest extends TestCase {
         $this->assertCount(4, $checks, 'Expected 4 checks');
 
         $this->assertCount(2, $clientHistory, 'Expected 2 requests');
-        $this->assertStringEndsWith('checks?page=0&per_page=100', (string) $clientHistory[0]['request']->getUri());
-        $this->assertStringEndsWith('checks?page=1&per_page=100', (string) $clientHistory[1]['request']->getUri());
+        $this->assertStringEndsWith('checks?per_page=100&cursor=', (string) $clientHistory[0]['request']->getUri());
+        $this->assertStringEndsWith('checks?per_page=100&cursor=next', (string) $clientHistory[1]['request']->getUri());
     }
 
     /**
@@ -52,8 +52,8 @@ class KolideApiClientTest extends TestCase {
         $clientHistory = [];
         $httpClient = $this->getMockClient(
             [
-                new Response(200, [], json_encode(['page' => 0, 'last_page' => 1, 'data' => [['id' => 1], ['id' => 2]]])),
-                new Response(200, [], json_encode(['page' => 1, 'last_page' => 1, 'data' => [['id' => 3], ['id' => 4]]])),
+                new Response(200, [], json_encode(['pagination' => ['next_cursor' => 'next'], 'data' => [['id' => 1], ['id' => 2]]])),
+                new Response(200, [], json_encode(['pagination' => ['next_cursor' => ''], 'data' => [['id' => 3], ['id' => 4]]])),
             ],
             $clientHistory
         );
@@ -63,8 +63,8 @@ class KolideApiClientTest extends TestCase {
         $this->assertCount(4, $devices, 'Expected 4 devices');
 
         $this->assertCount(2, $clientHistory, 'Expected 2 requests');
-        $this->assertStringEndsWith('devices?page=0&per_page=100', (string) $clientHistory[0]['request']->getUri());
-        $this->assertStringEndsWith('devices?page=1&per_page=100', (string) $clientHistory[1]['request']->getUri());
+        $this->assertStringEndsWith('devices?per_page=100&cursor=', (string) $clientHistory[0]['request']->getUri());
+        $this->assertStringEndsWith('devices?per_page=100&cursor=next', (string) $clientHistory[1]['request']->getUri());
     }
 
     /**
@@ -75,8 +75,8 @@ class KolideApiClientTest extends TestCase {
         $clientHistory = [];
         $httpClient = $this->getMockClient(
             [
-                new Response(200, [], json_encode(['page' => 0, 'last_page' => 1, 'data' => [['id' => 1, 'failing_device_count' => 1], ['id' => 2, 'failing_device_count' => 3]]])),
-                new Response(200, [], json_encode(['page' => 1, 'last_page' => 1, 'data' => [['id' => 3, 'failing_device_count' => 2], ['id' => 4, 'failing_device_count' => 0]]])),
+                new Response(200, [], json_encode(['pagination' => ['next_cursor' => 'next'], 'data' => [['id' => 1, 'failing_device_count' => 1], ['id' => 2, 'failing_device_count' => 3]]])),
+                new Response(200, [], json_encode(['pagination' => ['next_cursor' => ''], 'data' => [['id' => 3, 'failing_device_count' => 2], ['id' => 4, 'failing_device_count' => 0]]])),
             ],
             $clientHistory
         );
@@ -87,8 +87,8 @@ class KolideApiClientTest extends TestCase {
         $this->assertSame(1, $checks[0]['id'], 'Incorrect check result');
 
         $this->assertCount(2, $clientHistory, 'Expected 2 requests');
-        $this->assertStringEndsWith('checks?page=0&per_page=100', (string) $clientHistory[0]['request']->getUri());
-        $this->assertStringEndsWith('checks?page=1&per_page=100', (string) $clientHistory[1]['request']->getUri());
+        $this->assertStringEndsWith('checks?per_page=100&cursor=', (string) $clientHistory[0]['request']->getUri());
+        $this->assertStringEndsWith('checks?per_page=100&cursor=next', (string) $clientHistory[1]['request']->getUri());
     }
 
     /**
@@ -100,8 +100,8 @@ class KolideApiClientTest extends TestCase {
         $clientHistory = [];
         $httpClient = $this->getMockClient(
             [
-                new Response(200, [], json_encode(['page' => 0, 'last_page' => 1, 'data' => [['id' => 1], ['id' => 2]]])),
-                new Response(200, [], json_encode(['page' => 1, 'last_page' => 1, 'data' => [['id' => 3], ['id' => 4]]])),
+                new Response(200, [], json_encode(['pagination' => ['next_cursor' => 'next'], 'data' => [['id' => 1], ['id' => 2]]])),
+                new Response(200, [], json_encode(['pagination' => ['next_cursor' => ''], 'data' => [['id' => 3], ['id' => 4]]])),
             ],
             $clientHistory
         );
@@ -110,8 +110,8 @@ class KolideApiClientTest extends TestCase {
 
         $this->assertCount(4, $failures, 'Expected 4 failures');
         $this->assertCount(2, $clientHistory, 'Expected 2 requests');
-        $this->assertStringEndsWith('checks/1/failures?page=0&per_page=100', (string) $clientHistory[0]['request']->getUri());
-        $this->assertStringEndsWith('checks/1/failures?page=1&per_page=100', (string) $clientHistory[1]['request']->getUri());
+        $this->assertStringEndsWith('checks/1/failures?per_page=100&cursor=', (string) $clientHistory[0]['request']->getUri());
+        $this->assertStringEndsWith('checks/1/failures?per_page=100&cursor=next', (string) $clientHistory[1]['request']->getUri());
     }
 
     /**
@@ -123,8 +123,8 @@ class KolideApiClientTest extends TestCase {
         $clientHistory = [];
         $httpClient = $this->getMockClient(
             [
-                new Response(200, [], json_encode(['page' => 0, 'last_page' => 1, 'data' => [['id' => 1], ['id' => 2]]])),
-                new Response(200, [], json_encode(['page' => 1, 'last_page' => 1, 'data' => [['id' => 3], ['id' => 4]]])),
+                new Response(200, [], json_encode(['pagination' => ['next_cursor' => 'next'], 'data' => [['id' => 1], ['id' => 2]]])),
+                new Response(200, [], json_encode(['pagination' => ['next_cursor' => ''], 'data' => [['id' => 3], ['id' => 4]]])),
             ],
             $clientHistory
         );
@@ -133,8 +133,8 @@ class KolideApiClientTest extends TestCase {
 
         $this->assertCount(4, $failures, 'Expected 4 failures');
         $this->assertCount(2, $clientHistory, 'Expected 2 requests');
-        $this->assertStringEndsWith('devices/1/failures?page=0&per_page=100', (string) $clientHistory[0]['request']->getUri());
-        $this->assertStringEndsWith('devices/1/failures?page=1&per_page=100', (string) $clientHistory[1]['request']->getUri());
+        $this->assertStringEndsWith('devices/1/failures?per_page=100&cursor=', (string) $clientHistory[0]['request']->getUri());
+        $this->assertStringEndsWith('devices/1/failures?per_page=100&cursor=next', (string) $clientHistory[1]['request']->getUri());
     }
 
     /**
