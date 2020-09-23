@@ -3,3 +3,7 @@
     state: restarted
     name: gateway-agent
     daemon_reload: yes
+- name: restart-naisdevice-fwds-logging
+  systemd:
+    state: restarted
+    name: naisdevice-fwds-logging

@@ -66,3 +66,4 @@
   systemd:
     name: gateway-agent
     state: started
+- include_tasks: install_dmesg_to_json.yml
