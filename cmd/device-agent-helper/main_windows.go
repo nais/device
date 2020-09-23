@@ -19,7 +19,6 @@ import (
 const (
 	WireGuardBinary    = `c:\Program Files\WireGuard\wireguard.exe`
 	ServiceName        = "naisdevice-agent-helper"
-	ServiceDisplayName = ServiceName
 )
 
 type MyService struct {
@@ -29,8 +28,6 @@ type MyService struct {
 func (service *MyService) ControlChannel() <-chan ControlEvent {
 	return service.controlChannel
 }
-
-func platformFlags(cfg *Config) { }
 
 func platformInit(cfg *Config) {
 	logdir := os.Getenv("PROGRAMDATA") + "\\NAV\\naisdevice"

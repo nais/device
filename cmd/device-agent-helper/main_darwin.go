@@ -25,7 +25,6 @@ func prerequisites() error {
 	return nil
 }
 
-func platformFlags(cfg *Config) {}
 func platformInit(cfg *Config) {
 	logger.SetupDeviceLogger(cfg.LogLevel, filepath.Join("/", "Library", "Logs", "device-agent-helper.log"))
 }

@@ -25,7 +25,6 @@ func prerequisites() error {
 	return nil
 }
 
-func platformFlags(cfg *Config) {}
 func platformInit(cfg *Config) {
 	logger.SetupDeviceLogger(cfg.LogLevel, filepath.Join("/", "var", "log", "device-agent-helper.log"))
 	if err := extractProductSerial(ProductSerialPath); err != nil {
