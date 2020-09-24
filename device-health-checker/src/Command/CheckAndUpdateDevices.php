@@ -56,7 +56,6 @@ class CheckAndUpdateDevices extends BaseCommand {
             'kolideLastSeen'  => $device['kolideLastSeen'],
         ], $this->apiServerClient->getDevices());
         $kolideDevices = $this->kolideApiClient->getAllDevices();
-        #$this->log($output, 'Fetched devices from Kolide', null, null, null, $kolideDevices);
         $updatedNaisDevices = [];
 
         foreach ($naisDevices as $naisDevice) {
