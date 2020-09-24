@@ -154,12 +154,12 @@ jobs:
       - build-macos
       - build-windows
     runs-on: ubuntu-latest
+    env:
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     steps:
       - name: create release
         id: create_release
         uses: actions/create-release@v1.0.1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           tag_name: ${{ needs.set-version.outputs.version }}
           release_name: Release ${{ needs.set-version.outputs.version }}
@@ -173,8 +173,6 @@ jobs:
           path: bin/controlplane
       - name: upload apiserver binary
         uses: actions/upload-release-asset@v1.0.2
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
           asset_path: ./bin/controlplane/apiserver
@@ -182,8 +180,6 @@ jobs:
           asset_content_type: application/octet-stream
       - name: upload gateway-agent binary
         uses: actions/upload-release-asset@v1.0.2
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
           asset_path: ./bin/controlplane/gateway-agent
@@ -191,8 +187,6 @@ jobs:
           asset_content_type: application/octet-stream
       - name: upload bootstrap-api binary
         uses: actions/upload-release-asset@v1.0.2
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
           asset_path: ./bin/controlplane/bootstrap-api
@@ -200,8 +194,6 @@ jobs:
           asset_content_type: application/octet-stream
       - name: upload prometheus-agent binary
         uses: actions/upload-release-asset@v1.0.2
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
           asset_path: ./bin/controlplane/prometheus-agent
@@ -215,8 +207,6 @@ jobs:
           path: bin/device-health-checker
       - name: upload device-health-checker.phar archive
         uses: actions/upload-release-asset@v1.0.2
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
           asset_path: ./bin/device-health-checker/device-health-checker.phar
@@ -230,8 +220,6 @@ jobs:
           path: bin/windows
       - name: upload naisdevice.msi
         uses: actions/upload-release-asset@v1.0.2
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
           asset_path: ./bin/windows/naisdevice.msi
@@ -244,8 +232,6 @@ jobs:
           name: pkg
       - name: upload macos pkg to release
         uses: actions/upload-release-asset@v1.0.2
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
           asset_path: ./naisdevice.pkg
