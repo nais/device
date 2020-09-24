@@ -3,7 +3,6 @@ DATE = $(shell date "+%Y-%m-%d")
 LAST_COMMIT = $(shell git --no-pager log -1 --pretty=%h)
 VERSION ?= $(DATE)-$(LAST_COMMIT)
 LDFLAGS := -X github.com/nais/device/pkg/version.Revision=$(shell git rev-parse --short HEAD) -X github.com/nais/device/pkg/version.Version=$(VERSION)
-PKGTITLE = naisdevice
 PKGID = io.nais.device
 GOPATH ?= ~/go
 
@@ -83,7 +82,8 @@ local-apiserver:
 	go run ./cmd/apiserver/main.go --db-connection-uri=postgresql://postgres:postgres@localhost/postgres --bind-address=127.0.0.1:8080 --config-dir=${confdir} --development-mode=true --prometheus-address=127.0.0.1:3000 --credential-entries="nais:device,gateway-1:password"
 	echo ${confdir}
 
-icon:
+icon: assets/naisdevice.icns
+assets/naisdevice.icns:
 	cd assets && go run icon.go | gofmt -s > ../cmd/device-agent/icons.go
 	rm -rf MyIcon.iconset
 	mkdir -p MyIcon.iconset
@@ -101,22 +101,27 @@ icon:
 	mv MyIcon.icns assets/naisdevice.icns
 	rm -R MyIcon.iconset
 
-wireguard-go:
+wg: bin/macos-client/wg
+bin/macos-client/wg:
+	mkdir -p bin/macos-client
 	curl -L https://git.zx2c4.com/wireguard-tools/snapshot/wireguard-tools-1.0.20200513.tar.xz | tar x
-	cd wireguard-tools-*/src && make
+	cd wireguard-tools-*/src && make && cp wg ../../bin/macos-client/
+	rm -rf ./wireguard-tools-*
 
-wg:
+wireguard-go: bin/macos-client/wireguard-go
+bin/macos-client/wireguard-go:
+	mkdir -p bin/macos-client
 	curl -L https://git.zx2c4.com/wireguard-go/snapshot/wireguard-go-0.0.20200320.tar.xz | tar x
-	cd wireguard-go-*/ && make
+	cd wireguard-go-*/ && make && cp wireguard-go ../bin/macos-client/
+	rm -rf ./wireguard-go-*
 
-app: macos-client wg wireguard-go icon
+app: wg wireguard-go icon macos-client
 	rm -rf naisdevice.app
 	mkdir -p naisdevice.app/Contents/{MacOS,Resources}
-	cp ./wireguard-go-*/wireguard-go ./bin/macos-client/
-	cp ./wireguard-tools-*/src/wg ./bin/macos-client/
 	cp bin/macos-client/* naisdevice.app/Contents/MacOS
 	cp assets/naisdevice.icns naisdevice.app/Contents/Resources
 	sed 's/VERSIONSTRING/${VERSION}/' Info.plist.tpl > naisdevice.app/Contents/Info.plist
+	gon gon-app.json
 
 test:
 	go test ./... -count=1
@@ -131,10 +136,12 @@ pkg: app
 	mkdir -p ./pkgtemp/{scripts,pkgroot/Applications}
 	cp -r ./naisdevice.app ./pkgtemp/pkgroot/Applications/
 	cp ./scripts/postinstall ./pkgtemp/scripts/postinstall
-	pkgbuild --root ./pkgtemp/pkgroot --identifier ${PKGID} --scripts ./pkgtemp/scripts --version ${VERSION} --ownership recommended ./${PKGTITLE}-${VERSION}.component.pkg
-	productbuild --identifier ${PKGID}.${VERSION} --package ./${PKGTITLE}-${VERSION}.component.pkg ./${PKGTITLE}-${VERSION}.pkg
-	rm -f ./${PKGTITLE}-${VERSION}.component.pkg 
+	pkgbuild --root ./pkgtemp/pkgroot --identifier ${PKGID} --scripts ./pkgtemp/scripts --version ${VERSION} --ownership recommended ./component.pkg
+	productbuild --identifier ${PKGID}.${VERSION} --package ./component.pkg ./unsigned.pkg
+	productsign --sign "Developer ID Installer: Torbjorn Hallenberg (T7D7Y5484F)" unsigned.pkg naisdevice.pkg
+	rm -f ./component.pkg ./unsigned.pkg
 	rm -rf ./pkgtemp ./naisdevice.app
+	gon gon-pkg.json
 
 clean:
 	rm -rf wireguard-go-*

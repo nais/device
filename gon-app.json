@@ -1,0 +1,16 @@
+{
+  "apple_id": {
+    "username": "@env:AC_USERNAME",
+    "password": "@env:AC_PASSWORD"
+  },
+  "source": [
+    "./naisdevice.app/Contents/MacOS/wg",
+    "./naisdevice.app/Contents/MacOS/wireguard-go",
+    "./naisdevice.app/Contents/MacOS/device-agent",
+    "./naisdevice.app/Contents/MacOS/device-agent-helper"
+  ],
+  "bundle_id": "io.nais.device",
+  "sign" :{
+    "application_identity" : "Developer ID Application: Torbjorn Hallenberg (T7D7Y5484F)"
+  }
+}

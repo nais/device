@@ -1,0 +1,11 @@
+{
+  "apple_id": {
+    "username": "@env:AC_USERNAME",
+    "password": "@env:AC_PASSWORD"
+  },
+  "notarize": [{
+    "path": "naisdevice.pkg",
+    "bundle_id": "io.nais.device",
+    "staple": true
+  }]
+}
