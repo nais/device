@@ -11,6 +11,6 @@
   ],
   "bundle_id": "io.nais.device",
   "sign" :{
-    "application_identity" : "Developer ID Application: Torbjorn Hallenberg (T7D7Y5484F)"
+    "application_identity" : "Developer ID Application: Torbjorn Hallenberg"
   }
 }
