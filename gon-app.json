@@ -4,11 +4,10 @@
     "password": "@env:AC_PASSWORD"
   },
   "source": [
-    "./naisdevice.app/Contents/MacOS//wg",
-    "./naisdevice.app/Contents/MacOS//wireguard-go",
-    "./naisdevice.app/Contents/MacOS//device-agent-helper",
-    "./naisdevice.app/Contents/MacOS//device-agent",
-    "./naisdevice.app"
+    "./naisdevice.app/Contents/MacOS/wg",
+    "./naisdevice.app/Contents/MacOS/wireguard-go",
+    "./naisdevice.app/Contents/MacOS/device-agent-helper",
+    "./naisdevice.app/Contents/MacOS/device-agent"
   ],
   "bundle_id": "io.nais.device",
   "sign" :{
