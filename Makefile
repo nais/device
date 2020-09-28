@@ -141,7 +141,7 @@ pkg: app
 	productsign --sign "Developer ID Installer: Torbjorn Hallenberg" unsigned.pkg naisdevice.pkg
 	rm -f ./component.pkg ./unsigned.pkg
 	rm -rf ./pkgtemp ./naisdevice.app
-	gon --log-level=debug gon-pkg.json
+	# gon --log-level=debug gon-pkg.json
 
 clean:
 	rm -rf wireguard-go-*
