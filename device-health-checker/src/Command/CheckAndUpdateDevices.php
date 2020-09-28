@@ -2,8 +2,11 @@
 namespace Nais\Device\Command;
 
 use Nais\Device\ApiServerClient;
-use Nais\Device\Severity;
+use Nais\Device\Exception\HealthCheckerException;
+use Nais\Device\Exception\MissingKolideDeviceException;
+use Nais\Device\Exception\MultipleKolideDevicesException;
 use Nais\Device\KolideApiClient;
+use Nais\Device\Severity;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
@@ -63,10 +66,11 @@ class CheckAndUpdateDevices extends BaseCommand {
             $username          = $naisDevice['username'];
             $serial            = $naisDevice['serial'];
             $platform          = $naisDevice['platform'];
-            $kolideDevice      = $this->identifyKolideDevice($username, $serial, $platform, $kolideDevices);
 
-            if (null === $kolideDevice) {
-                $this->log($output, 'Could not find matching Kolide device', $serial, $platform, $username);
+            try {
+                $kolideDevice = $this->identifyKolideDevice($username, $serial, $platform, $kolideDevices);
+            } catch (HealthCheckerException $e) {
+                $this->log($output, $e->getMessage(), $serial, $platform, $username);
                 continue;
             }
 
@@ -114,9 +118,10 @@ class CheckAndUpdateDevices extends BaseCommand {
      * @param string $serial
      * @param string $platform
      * @param array $kolideDevices
-     * @return ?array Returns null if no Kolide device matches
+     * @throws HealthCheckerException
+     * @return array Returns the matching Kolide device
      */
-    private function identifyKolideDevice(string $username, string $serial, string $platform, array $kolideDevices) : ?array {
+    private function identifyKolideDevice(string $username, string $serial, string $platform, array $kolideDevices) : array {
         $devices = array_values(array_filter($kolideDevices, function(array $kolideDevice) use ($username, $serial, $platform) : bool {
             // Currently we only have darwin, windows or linux as possible platforms in the
             // apiserver, so if the Kolide device is not windows or darwin, assume linux.
@@ -134,11 +139,15 @@ class CheckAndUpdateDevices extends BaseCommand {
                 && strtolower($platform) === strtolower($kolideDevice['platform']);
         }));
 
-        if (1 === count($devices)) {
-            return $devices[0];
+        $numKolideDevices = count($devices);
+
+        if (1 < $numKolideDevices) {
+            throw new MultipleKolideDevicesException(sprintf('Found %d matching devices in Kolide', $numKolideDevices));
+        } else if (0 === $numKolideDevices) {
+            throw new MissingKolideDeviceException('Did not find any matching device in Kolide');
         }
 
-        return null;
+        return $devices[0];
     }
 
     /**

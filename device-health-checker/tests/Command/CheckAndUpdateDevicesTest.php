@@ -73,7 +73,53 @@ class CheckAndUpdateDevicesTest extends TestCase {
                 ],
                 'kolideDevices' => [],
                 'expectedLogMessages' => [
-                    'Could not find matching Kolide device',
+                    'Did not find any matching device in Kolide',
+                    'No Nais devices to update :('
+                ],
+                'expectedLogSerials' => [
+                    'serial1',
+                    null,
+                ],
+                'expectedLogPlatforms' => [
+                    'linux',
+                    null,
+                ],
+                'expectedLogUsernames' => [
+                    'user1@nav.no',
+                    null,
+                ],
+                'expectedUpdatePayload' => [],
+            ],
+            'multiple matching kolide devices' => [
+                'naisDevices' => [
+                    [
+                        'serial'         => 'serial1',
+                        'platform'       => 'linux',
+                        'username'       => 'user1@nav.no',
+                        'isHealthy'      => true,
+                        'kolideLastSeen' => 1589952551,
+                    ],
+                ],
+                'kolideDevices' => [
+                    [
+                        'id'                     => 1,
+                        'serial'                 => 'serial1',
+                        'platform'               => 'ubuntu',
+                        'assigned_owner'         => ['email' => 'user1@nav.no'],
+                        'failure_count'          => 0,
+                        'last_seen_at'           => $this->getTimestamp(1589956055),
+                    ],
+                    [
+                        'id'                     => 2,
+                        'serial'                 => 'serial1',
+                        'platform'               => 'rhel',
+                        'assigned_owner'         => ['email' => 'user1@nav.no'],
+                        'failure_count'          => 0,
+                        'last_seen_at'           => $this->getTimestamp(1589956055),
+                    ],
+                ],
+                'expectedLogMessages' => [
+                    'Found 2 matching devices in Kolide',
                     'No Nais devices to update :('
                 ],
                 'expectedLogSerials' => [
@@ -429,7 +475,7 @@ class CheckAndUpdateDevicesTest extends TestCase {
         $this->assertSame(0, $exitCode, 'Expected exit code to be 0');
         $this->assertSame(
             [
-                'Could not find matching Kolide device',
+                'Did not find any matching device in Kolide',
                 'No failing checks anymore, device is now healthy',
                 'Device is no longer healthy because of the following failing check(s): some failing check',
                 'Sent updated Nais device configuration to API server',
