@@ -39,7 +39,7 @@ func New(cfg config.Config, validator jwt.Keyfunc, db *database.APIServerDB) (*S
 		state:          make(map[string]bool),
 		Active:         make(map[string]*database.SessionInfo),
 		oauthConfig: &oauth2.Config{
-			RedirectURL:  "http://localhost:51800",
+			RedirectURL:  "http://localhost",
 			ClientID:     cfg.Azure.ClientID,
 			ClientSecret: cfg.Azure.ClientSecret,
 			Scopes:       []string{"openid", fmt.Sprintf("%s/.default", cfg.Azure.ClientID)},
