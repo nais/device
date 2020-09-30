@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"net"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -28,23 +29,21 @@ func TestSessionInfo_Expired(t *testing.T) {
 }
 
 func TestRunFlow(t *testing.T) {
-	failureURL := "http://127.0.0.1:51800/?error=interaction_required&error_description=AADSTS50105%3a+The+signed+in+user+%27%7bEmailHidden%7d%27+is+not+assigned+to+a+role+for+the+application+%276e45010d-2637-4a40-b91d-d4cbb451fb57%27(nais-device-apiserver).%0d%0aTrace+ID%3a+320db82b-71a0-4520-a16f-f962e19a9000%0d%0aCorrelation+ID%3a+ba8b945c-1cd8-4344-b355-b40c63174248%0d%0aTimestamp%3a+2020-07-14+11%3a00%3a34Z&error_uri=https%3a%2f%2flogin.microsoftonline.com%2ferror%3fcode%3d50105&state=8MuwmgykQzr1FCT2"
-	successURL := "http://127.0.0.1:51800/?code=123&state=123"
-
 	ctx := context.Background()
 	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
 
-	urlOpener := func(url string) func() error {
+	urlOpener := func(url string) auth.UrlOpener {
 		return func() error {
 			time.Sleep(2 * time.Second)
-			fmt.Println("urlOpener")
+			fmt.Println("urlOpener:", url)
 			client := &http.Client{
 				Timeout: 5 * time.Second,
 				CheckRedirect: func(req *http.Request, via []*http.Request) error {
 					return http.ErrUseLastResponse
 				},
 			}
+
 			r, err := client.Get(url)
 			if err != nil {
 				err = fmt.Errorf("performing get request: %v", err)
@@ -74,11 +73,18 @@ func TestRunFlow(t *testing.T) {
 		}, nil
 	}
 
-	si, err := auth.RunFlow(ctx, urlOpener(failureURL), sessionInfoGetter)
+	listener, err := net.Listen("tcp", "127.0.0.1:0")
+	assert.NoError(t, err)
+	port := listener.Addr().(*net.TCPAddr).Port
+
+	si, err := auth.RunFlow(ctx, urlOpener(failureUrl(port)), sessionInfoGetter, listener)
 	assert.Error(t, err)
 	assert.Nil(t, si)
 
-	si, err = auth.RunFlow(ctx, urlOpener(successURL), sessionInfoGetter)
+	listener, err = net.Listen("tcp", "127.0.0.1:0")
+	assert.NoError(t, err)
+	port = listener.Addr().(*net.TCPAddr).Port
+	si, err = auth.RunFlow(ctx, urlOpener(successUrl(port)), sessionInfoGetter, listener)
 	assert.NoError(t, err)
 	assert.NotNil(t, si.Key)
 	assert.Equal(t, "key", si.Key)
@@ -115,4 +121,14 @@ func TestMakeSessionInfoGetter(t *testing.T) {
 	assert.NotNil(t, si)
 	assert.Equal(t, expectedSessionInfo.Key, si.Key)
 	assert.Equal(t, expectedSessionInfo.Expiry, si.Expiry)
+}
+
+func successUrl(port int) string {
+	localUrl := fmt.Sprintf("http://127.0.0.1:%d", port)
+	return localUrl + "/?code=123&state=123"
+}
+
+func failureUrl(port int) string {
+	localUrl := fmt.Sprintf("http://127.0.0.1:%d", port)
+	return localUrl + "/?error=interaction_required&error_description=AADSTS50105%3a+The+signed+in+user+%27%7bEmailHidden%7d%27+is+not+assigned+to+a+role+for+the+application+%276e45010d-2637-4a40-b91d-d4cbb451fb57%27(nais-device-apiserver).%0d%0aTrace+ID%3a+320db82b-71a0-4520-a16f-f962e19a9000%0d%0aCorrelation+ID%3a+ba8b945c-1cd8-4344-b355-b40c63174248%0d%0aTimestamp%3a+2020-07-14+11%3a00%3a34Z&error_uri=https%3a%2f%2flogin.microsoftonline.com%2ferror%3fcode%3d50105&state=8MuwmgykQzr1FCT2"
 }
