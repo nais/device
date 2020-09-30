@@ -4,12 +4,13 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
+	"io/ioutil"
+
 	"github.com/nais/device/device-agent/apiserver"
 	"github.com/nais/device/device-agent/bootstrapper"
 	"github.com/nais/device/pkg/bootstrap"
 	log "github.com/sirupsen/logrus"
-	"io"
-	"io/ioutil"
 
 	"github.com/nais/device/device-agent/auth"
 	"github.com/nais/device/device-agent/config"
