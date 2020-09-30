@@ -110,7 +110,7 @@ func RunFlow(ctx context.Context, urlOpener UrlOpener, exchange SessionInfoGette
 		err := server.Serve(listener)
 		defer server.Close()
 		if err != nil {
-			log.Errorf("serving: %w", err)
+			log.Errorf("serving: %v", err)
 		} else {
 			log.Debugf("done serving")
 		}
