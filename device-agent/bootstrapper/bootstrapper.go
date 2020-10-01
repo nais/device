@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"net/http"
 	"time"
 
@@ -40,6 +41,11 @@ func postDeviceInfo(url string, deviceInfo *bootstrap.DeviceInfo, client *http.C
 	}
 
 	if resp.StatusCode != http.StatusCreated {
+		body, err := ioutil.ReadAll(resp.Body)
+		if err != nil {
+			return fmt.Errorf("parsing response: %w", err)
+		}
+		log.Warningf("bad response from bootstrap-api, request body: %v", string(body))
 		return fmt.Errorf("bootstrap api (%v) returned status %v", url, resp.Status)
 	}
 
