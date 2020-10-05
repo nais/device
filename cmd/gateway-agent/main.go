@@ -384,13 +384,27 @@ func setupIptables(cfg Config) error {
 	// Allow ESTABLISHED,RELATED from wg0 to default interface
 	err = cfg.IPTables.AppendUnique("filter", "FORWARD", "-i", "wg0", "-o", cfg.DefaultInterface, "-m", "conntrack", "--ctstate", "ESTABLISHED,RELATED", "-j", "ACCEPT")
 	if err != nil {
-		return fmt.Errorf("adding default forward rule: %w", err)
+		return fmt.Errorf("adding default FORWARD outbound-rule: %w", err)
 	}
 
 	// Allow ESTABLISHED,RELATED from default interface to wg0
 	err = cfg.IPTables.AppendUnique("filter", "FORWARD", "-i", cfg.DefaultInterface, "-o", "wg0", "-m", "conntrack", "--ctstate", "ESTABLISHED,RELATED", "-j", "ACCEPT")
 	if err != nil {
-		return fmt.Errorf("adding default forward rule: %w", err)
+		return fmt.Errorf("adding default FORWARD inbound-rule: %w", err)
+	}
+
+	// Create and set up LOG_ACCEPT CHAIN
+	err = cfg.IPTables.NewChain("filter", "LOG_ACCEPT")
+	if err != nil {
+		log.Infof("Creating LOG_ACCEPT chain (probably already exist), error: %v", err)
+	}
+	err = cfg.IPTables.AppendUnique("filter", "LOG_ACCEPT", "-j", "LOG", "--log-prefix", "naisdevice-fwd: ", "--log-level", "6")
+	if err != nil {
+		return fmt.Errorf("adding default LOG_ACCEPT log-rule: %w", err)
+	}
+	err = cfg.IPTables.AppendUnique("filter", "LOG_ACCEPT", "-j", "ACCEPT")
+	if err != nil {
+		return fmt.Errorf("adding default LOG_ACCEPT accept-rule: %w", err)
 	}
 
 	return nil
@@ -448,9 +462,7 @@ func forwardRoutes(cfg Config, routes []string) error {
 			"--destination", ip,
 			"--match", "conntrack",
 			"--ctstate", "NEW",
-			"--jump", "LOG",
-			"--log-level", "info",
-			"--log-prefix", "naisdevice-fwd: ",
+			"--jump", "LOG_ACCEPT",
 		)
 		if err != nil {
 			return fmt.Errorf("setting up iptables log rule: %w", err)
