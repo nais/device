@@ -8,10 +8,7 @@ Description=naisdevice gateway connections logging service.
 Restart=always
 StandardOutput=append:/var/log/naisdevice/gateway-forwarded-connections.json
 StandardError=append:/var/log/naisdevice/gateway-forwarded-connections.err
-ExecStart=dmesg \
-	--follow \
-	--time-format iso \
-	| /opt/nais-device/bin/dmesg-to-json
+ExecStart=dmesg --follow --time-format iso | /opt/nais-device/bin/dmesg-to-json
 
 [Install]
 WantedBy=multi-user.target
