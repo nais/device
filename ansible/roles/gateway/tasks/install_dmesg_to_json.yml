@@ -1,0 +1,26 @@
+- name: Download dmesg-to-json
+  get_url:
+    dest: /opt/nais-device/bin/dmesg-to-json
+    force: yes
+    url: https://github.com/nais/dmesg-to-json/releases/download/2020-09-23-5bbb525/dmesg-to-json
+    backup: no
+    mode: 0755
+  notify:
+    - restart-naisdevice-fwds-logging
+
+- name: Install naisdevice-fwds-logging systemd unit file
+  template:
+    src: naisdevice-fwds-logging.service.j2
+    dest: /etc/systemd/system/naisdevice-fwds-logging.service
+  notify:
+    - restart-naisdevice-fwds-logging
+
+- name: Ensure naisdevice-fwds-logging is enabled
+  systemd:
+    name: naisdevice-fwds-logging
+    enabled: yes
+
+- name: Ensure naisdevice-fwds-logging is started
+  systemd:
+    name: naisdevice-fwds-logging
+    state: started
