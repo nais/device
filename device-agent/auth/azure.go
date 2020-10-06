@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/nais/device/device-agent/open"
+	"net"
 	"net/http"
 	"strings"
 	"time"
@@ -65,8 +66,13 @@ func runAuthFlow(ctx context.Context, conf oauth2.Config) (*oauth2.Token, error)
 		tokenChan <- t
 	})
 
-	server := &http.Server{Addr: "127.0.0.1:51800", Handler: handler}
-	go server.ListenAndServe()
+	listener, err := net.Listen("tcp", "127.0.0.1:51800")
+	if err != nil {
+		return nil, fmt.Errorf("Error listening on port 51800: %w", err)
+	}
+
+	server := &http.Server{Handler: handler}
+	go server.Serve(listener)
 	defer server.Close()
 
 	url := conf.AuthCodeURL(
@@ -75,7 +81,7 @@ func runAuthFlow(ctx context.Context, conf oauth2.Config) (*oauth2.Token, error)
 		oauth2.SetAuthURLParam("code_challenge_method", "S256"),
 		oauth2.SetAuthURLParam("code_challenge", codeVerifier.CodeChallengeS256()))
 
-	err := open.Open(url)
+	err = open.Open(url)
 	if err != nil {
 		log.Errorf("opening browser, err: %v", err)
 		// Don't return, as this is not fatal (user can open browser manually)
