@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github.com/nais/device/device-agent/open"
 	"io/ioutil"
+	"net"
 	"net/http"
 	"net/url"
 	"strings"
@@ -91,16 +92,21 @@ func RunFlow(ctx context.Context, urlOpener UrlOpener, exchange SessionInfoGette
 		sessionInfo <- si
 	})
 
-	server := &http.Server{Addr: "127.0.0.1:51800", Handler: handler}
+	listener, err := net.Listen("tcp", "localhost:51800")
+	if err != nil {
+		return nil, fmt.Errorf("Error listening on port 51800: %w", err)
+	}
+
+	server := &http.Server{Handler: handler}
 	/* TODO
 	    consider waiting for this to become ready. In the case where Azure AD
 	    redirects extremely fast the listener won't be ready. We saw this in
 	    unit tests where we mocked AAD.
 	*/
-	go server.ListenAndServe()
+	go server.Serve(listener)
 	defer server.Close()
 
-	err := urlOpener()
+	err = urlOpener()
 	if err != nil {
 		log.Errorf("opening browser, err: %v", err)
 		// Don't return, as this is not fatal (user can open browser manually)

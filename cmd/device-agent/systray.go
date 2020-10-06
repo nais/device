@@ -206,6 +206,8 @@ func mainloop(gui *Gui, rc *runtimeconfig.RuntimeConfig) {
 					rc.SessionInfo, err = auth.EnsureAuth(rc.SessionInfo, ctx, rc.Config.APIServer, rc.Config.Platform, rc.Serial)
 					cancel()
 					if err != nil {
+						notify(fmt.Sprintf("Error during authentication: %v", err))
+
 						log.Errorf("Authenticating with apiserver: %v", err)
 						stateChange <- StateDisconnecting
 						continue
