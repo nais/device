@@ -18,6 +18,19 @@
   roles:
     - logging
     - gateway
+  tasks:
+    - shell: >
+        ip address show dev ens4
+        | grep -oP 'inet (\d+(\.\d+){3})'
+        | awk '{print $2}'
+      register: GCP_NETWORK_INTERFACE_GATEWAY_IP_ADDRESS
+    - shell: >
+        ip address show dev wg0
+        | grep -oP 'inet (\d+(\.\d+){3})'
+        | awk '{print $2}'
+      register: WIREGUARD_NETWORK_INTERFACE_GATEWAY_IP_ADDRESS
+  vars:
+    K8S_CLUSTER_API_IP_ADDRESS: 172.10.0.2
 
 - hosts: onprem_gateways
   environment: "{{ proxy_env }}"
