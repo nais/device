@@ -17,7 +17,7 @@ COMMIT
 :INPUT ACCEPT [8:448]
 :OUTPUT ACCEPT [229:17447]
 :POSTROUTING ACCEPT [229:17447]
--A PREROUTING -i wg0 -d {{ WIREGUARD_NETWORK_INTERFACE_GATEWAY_IP_ADDRESS }} -p tcp -m tcp --dport 443 -j DNAT --to-destination {{ K8S_CLUSTER_API_IP_ADDRESS }}
--A POSTROUTING -d {{ K8S_CLUSTER_API_IP_ADDRESS }}/32 -o ens4 -p tcp -m tcp --dport 443 -j SNAT --to-source {{ GCP_NETWORK_INTERFACE_GATEWAY_IP_ADDRESS }}
+-A PREROUTING -i wg0 -d {{ tunnel_ip }} -p tcp -m tcp --dport 443 -j DNAT --to-destination {{ K8S_CLUSTER_API_IP_ADDRESS }}
+-A POSTROUTING -d {{ K8S_CLUSTER_API_IP_ADDRESS }}/32 -o ens4 -p tcp -m tcp --dport 443 -j SNAT --to-source {{ ansible_default_ipv4.address }}
 COMMIT
 # Completed on Mon May  4 07:54:01 2020
