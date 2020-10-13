@@ -18,6 +18,8 @@
   roles:
     - logging
     - gateway
+  vars:
+    K8S_CLUSTER_API_IP_ADDRESS: 172.10.0.2
 
 - hosts: onprem_gateways
   environment: "{{ proxy_env }}"
