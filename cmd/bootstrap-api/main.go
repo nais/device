@@ -1,24 +1,13 @@
 package main
 
 import (
-	"context"
 	"crypto/x509"
-	"encoding/base64"
-	"encoding/json"
-	"fmt"
+	"github.com/go-chi/chi"
 	chi_middleware "github.com/go-chi/chi/middleware"
-	"io"
-	"io/ioutil"
+	"github.com/nais/device/pkg/logger"
 	"net/http"
 	"strings"
-	"sync"
 
-	"github.com/go-chi/chi"
-	"github.com/go-chi/jwtauth"
-	"github.com/nais/device/pkg/bootstrap"
-	"github.com/nais/device/pkg/logger"
-
-	"github.com/dgrijalva/jwt-go"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 
 	log "github.com/sirupsen/logrus"
@@ -53,7 +42,9 @@ var cfg = &Config{
 	LogLevel:          "info",
 }
 
-var enrollments ActiveEnrollments
+var deviceEnrollments ActiveDeviceEnrollments
+var gatewayEnrollments ActiveGatewayEnrollments
+const TokenHeaderKey = "x-naisdevice-gateway-token"
 
 func init() {
 	logger.Setup(cfg.LogLevel)
@@ -65,10 +56,12 @@ func init() {
 	flag.StringSliceVar(&cfg.CredentialEntries, "credential-entries", nil, "Comma-separated credentials on format: '<user>:<key>'")
 
 	flag.Parse()
+
+	deviceEnrollments.init()
+	gatewayEnrollments.init()
 }
 
 func main() {
-	enrollments.init()
 
 	parts := strings.Split(cfg.CredentialEntries[0], ":")
 	credentialEntries := map[string]string{
@@ -84,344 +77,62 @@ func main() {
 	if err != nil {
 		log.Fatalf("Creating JWT validator: %v", err)
 	}
-	r := chi.NewRouter()
-	r.Get("/isalive", func(w http.ResponseWriter, r *http.Request) {
-		return
-	})
-	r.Route("/api/v1", func(r chi.Router) {
-		r.Group(func(r chi.Router) {
-			r.Use(TokenValidatorMiddleware(jwtValidator))
-			r.Post("/deviceinfo", postDeviceInfo)
-			r.Get("/bootstrapconfig/{serial}", getBootstrapConfig)
-		})
-
-		r.Group(func(r chi.Router) {
-			r.Use(chi_middleware.BasicAuth("naisdevice", credentialEntries))
-			r.Get("/deviceinfo", getDeviceInfos)
-			r.Post("/bootstrapconfig/{serial}", postBootstrapConfig)
-		})
-	})
+	r := Api(credentialEntries, TokenValidatorMiddleware(jwtValidator))
 
 	log.Info("running @", cfg.BindAddress)
 	log.Info(http.ListenAndServe(cfg.BindAddress, r))
 }
 
-func postBootstrapConfig(w http.ResponseWriter, r *http.Request) {
-	serial := chi.URLParam(r, "serial")
+func Api(apiserverCredentialEntries map[string]string, azureValidator func(next http.Handler) http.Handler) chi.Router {
+	r := chi.NewRouter()
 
-	log := log.WithFields(log.Fields{
-		"component": "bootstrap-api",
-		"serial":    serial,
+	r.Get("/isalive", func(w http.ResponseWriter, r *http.Request) {
+		return
 	})
 
-	var bootstrapConfig bootstrap.Config
-	err := json.NewDecoder(r.Body).Decode(&bootstrapConfig)
-	if err != nil {
-		log.Errorf("Decoding json: %v", err)
-		w.WriteHeader(http.StatusInternalServerError)
-		return
-	}
+	r.Route("/api/v1", func(r chi.Router) {
+		// device calls
+		r.Group(func(r chi.Router) {
+			r.Use(azureValidator)
+			r.Post("/deviceinfo", postDeviceInfo)
+			r.Get("/bootstrapconfig/{serial}", getBootstrapConfig)
+		})
 
-	enrollments.addBootstrapConfig(serial, bootstrapConfig)
+		// apiserver calls
+		r.Group(func(r chi.Router) {
+			r.Use(chi_middleware.BasicAuth("naisdevice", apiserverCredentialEntries))
+			r.Get("/deviceinfo", getDeviceInfos)
+			r.Post("/bootstrapconfig/{serial}", postBootstrapConfig)
+		})
 
-	w.WriteHeader(http.StatusCreated)
+		// gateway calls
+		r.Group(func(r chi.Router) {
+			r.Use(TokenAuth)
+			r.Post("/gatewayinfo", postGatewayInfo)
+			r.Get("/gatewayconfig", getGatewayConfig)
+		})
 
-	log.WithField("event", "apiserver_posted_bootstrapconfig").Infof("Successful enrollment response came from apiserver")
-}
-
-func getBootstrapConfig(w http.ResponseWriter, r *http.Request) {
-	serial := chi.URLParam(r, "serial")
-	log := log.WithFields(log.Fields{
-		"component": "bootstrap-api",
-		"serial":    serial,
-		"username":  r.Context().Value("preferred_username").(string),
+		// apiserver calls
+		r.Group(func(r chi.Router) {
+			r.Use(chi_middleware.BasicAuth("naisdevice", apiserverCredentialEntries))
+			r.Get("/gatewayinfo", getGatewayInfo)
+			r.Post("/gatewayconfig", postGatewayConfig)
+			r.Post("/token", postToken)
+		})
 	})
 
-	bootstrapConfig := enrollments.getBootstrapConfig(serial)
-
-	if bootstrapConfig == nil {
-		w.WriteHeader(http.StatusNotFound)
-		log.Warnf("no bootstrap config for serial: %v", serial)
-		return
-	}
-
-	w.WriteHeader(http.StatusOK)
-	err := json.NewEncoder(w).Encode(bootstrapConfig)
-	if err != nil {
-		log.Errorf("Unable to get bootstrap config: Encoding json: %v", err)
-		w.WriteHeader(http.StatusInternalServerError)
-		return
-	}
-
-	log.WithField("event", "retrieved_bootstrapconfig").Infof("Successfully returned bootstrap config")
+	return r
 }
 
-func postDeviceInfo(w http.ResponseWriter, r *http.Request) {
-	var deviceInfo bootstrap.DeviceInfo
-	err := json.NewDecoder(r.Body).Decode(&deviceInfo)
+func TokenAuth(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		token := r.Header.Get(TokenHeaderKey)
 
-	if err != nil {
-		log.Errorf("Decoding json: %v", err)
-		w.WriteHeader(http.StatusInternalServerError)
-		return
-	}
-
-	deviceInfo.Owner = r.Context().Value("preferred_username").(string)
-	if len(deviceInfo.Owner) == 0 {
-		log.Errorf("deviceInfo without owner, abort enroll")
-		w.WriteHeader(http.StatusBadRequest)
-		return
-	}
-
-	enrollments.addDeviceInfo(deviceInfo)
-
-	log.WithFields(log.Fields{
-		"component": "bootstrap-api",
-		"serial":    deviceInfo.Serial,
-		"username":  deviceInfo.Owner,
-		"platform":  deviceInfo.Platform,
-	}).Infof("Enrollment request for apiserver queued")
-
-	w.WriteHeader(http.StatusCreated)
-}
-
-func getDeviceInfos(w http.ResponseWriter, r *http.Request) {
-	deviceInfos := enrollments.getDeviceInfos()
-	log.Infof("%s %s: %v", r.Method, r.URL, deviceInfos)
-
-	w.WriteHeader(http.StatusOK)
-	err := json.NewEncoder(w).Encode(deviceInfos)
-	if err != nil {
-		log.Errorf("Encoding json: %v", err)
-		w.WriteHeader(http.StatusInternalServerError)
-		return
-	}
-}
-
-type ActiveEnrollments struct {
-	deviceInfos     []bootstrap.DeviceInfo
-	deviceInfosLock sync.Mutex
-
-	bootstrapConfigs     map[string]bootstrap.Config
-	bootstrapConfigsLock sync.Mutex
-}
-
-func (a *ActiveEnrollments) init() {
-	a.bootstrapConfigs = make(map[string]bootstrap.Config)
-}
-
-func (a *ActiveEnrollments) getDeviceInfos() []bootstrap.DeviceInfo {
-	a.deviceInfosLock.Lock()
-	defer a.deviceInfosLock.Unlock()
-
-	var deviceInfosToReturn []bootstrap.DeviceInfo
-	deviceInfosToReturn = append(deviceInfosToReturn, a.deviceInfos...)
-
-	a.deviceInfos = nil
-
-	return deviceInfosToReturn
-}
-
-func (a *ActiveEnrollments) addDeviceInfo(deviceInfo bootstrap.DeviceInfo) {
-	a.deviceInfosLock.Lock()
-	defer a.deviceInfosLock.Unlock()
-
-	a.deviceInfos = append(a.deviceInfos, deviceInfo)
-}
-
-func (a *ActiveEnrollments) addBootstrapConfig(serial string, bootstrapConfig bootstrap.Config) {
-	a.bootstrapConfigsLock.Lock()
-	defer a.bootstrapConfigsLock.Unlock()
-
-	a.bootstrapConfigs[serial] = bootstrapConfig
-}
-
-func (a *ActiveEnrollments) getBootstrapConfig(serial string) *bootstrap.Config {
-	a.bootstrapConfigsLock.Lock()
-	defer a.bootstrapConfigsLock.Unlock()
-
-	if val, ok := a.bootstrapConfigs[serial]; ok {
-		delete(a.bootstrapConfigs, serial)
-		return &val
-	} else {
-		return nil
-	}
-}
-
-func createJWTValidator(azure Azure) (jwt.Keyfunc, error) {
-	if len(azure.ClientID) == 0 || len(azure.DiscoveryURL) == 0 {
-		return nil, fmt.Errorf("missing required azure configuration")
-	}
-
-	certificates, err := FetchCertificates(cfg.Azure)
-	if err != nil {
-		return nil, fmt.Errorf("retrieving azure ad certificates for token validation: %v", err)
-	}
-
-	return JWTValidator(certificates, cfg.Azure.ClientID), nil
-}
-
-func FetchCertificates(azure Azure) (map[string]CertificateList, error) {
-	log.Infof("Discover Microsoft signing certificates from %s", azure.DiscoveryURL)
-	azureKeyDiscovery, err := DiscoverURL(azure.DiscoveryURL)
-	if err != nil {
-		return nil, err
-	}
-
-	log.Infof("Decoding certificates for %d keys", len(azureKeyDiscovery.Keys))
-	azureCertificates, err := azureKeyDiscovery.Map()
-	if err != nil {
-		return nil, err
-	}
-	return azureCertificates, nil
-}
-
-func (c *Config) Credentials() (map[string]string, error) {
-	credentials := make(map[string]string)
-	for _, key := range c.CredentialEntries {
-		entry := strings.Split(key, ":")
-		if len(entry) > 2 {
-			return nil, fmt.Errorf("invalid format on credentials, should be comma-separated entries on format 'user:key'")
+		if !gatewayEnrollments.hasToken(token) {
+			w.WriteHeader(http.StatusUnauthorized)
+			return
 		}
 
-		credentials[entry[0]] = entry[1]
-	}
-
-	return credentials, nil
-}
-
-func TokenValidatorMiddleware(jwtValidator jwt.Keyfunc) func(next http.Handler) http.Handler {
-	return func(next http.Handler) http.Handler {
-		fn := func(w http.ResponseWriter, r *http.Request) {
-			var claims jwt.MapClaims
-
-			token := jwtauth.TokenFromHeader(r)
-
-			_, err := jwt.ParseWithClaims(token, &claims, jwtValidator)
-			if err != nil {
-				log.Errorf("parsing token: %v", err)
-				w.WriteHeader(http.StatusForbidden)
-				_, err = fmt.Fprintf(w, "Unauthorized access: %s", err.Error())
-				if err != nil {
-					log.Errorf("Writing http response: %v", err)
-				}
-				return
-			}
-
-			var groups []string
-			groupInterface := claims["groups"].([]interface{})
-			groups = make([]string, len(groupInterface))
-			for i, v := range groupInterface {
-				groups[i] = v.(string)
-			}
-			r = r.WithContext(context.WithValue(r.Context(), "groups", groups))
-
-			username := claims["preferred_username"].(string)
-			r = r.WithContext(context.WithValue(r.Context(), "preferred_username", username))
-
-			next.ServeHTTP(w, r)
-		}
-
-		return http.HandlerFunc(fn)
-	}
-}
-
-func JWTValidator(certificates map[string]CertificateList, audience string) jwt.Keyfunc {
-	return func(token *jwt.Token) (interface{}, error) {
-		var certificateList CertificateList
-		var kid string
-		var ok bool
-
-		if claims, ok := token.Claims.(*jwt.MapClaims); !ok {
-			return nil, fmt.Errorf("unable to retrieve claims from token")
-		} else {
-			if valid := claims.VerifyAudience(audience, true); !valid {
-				return nil, fmt.Errorf("the token is not valid for this application")
-			}
-		}
-
-		if _, ok := token.Method.(*jwt.SigningMethodRSA); !ok {
-			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
-		}
-
-		if kid, ok = token.Header["kid"].(string); !ok {
-			return nil, fmt.Errorf("field 'kid' is of invalid type %T, should be string", token.Header["kid"])
-		}
-
-		if certificateList, ok = certificates[kid]; !ok {
-			return nil, fmt.Errorf("kid '%s' not found in certificate list", kid)
-		}
-
-		for _, certificate := range certificateList {
-			return certificate.PublicKey, nil
-		}
-
-		return nil, fmt.Errorf("no certificate candidates for kid '%s'", kid)
-	}
-}
-
-type EncodedCertificate string
-
-type KeyDiscovery struct {
-	Keys []Key `json:"keys"`
-}
-
-type Key struct {
-	Kid string               `json:"kid"`
-	X5c []EncodedCertificate `json:"x5c"`
-}
-
-func DiscoverURL(url string) (*KeyDiscovery, error) {
-	response, err := http.Get(url)
-	if err != nil {
-		return nil, err
-	}
-
-	return Discover(response.Body)
-}
-
-func Discover(reader io.Reader) (*KeyDiscovery, error) {
-	document, err := ioutil.ReadAll(reader)
-	if err != nil {
-		return nil, err
-	}
-
-	keyDiscovery := &KeyDiscovery{}
-	err = json.Unmarshal(document, keyDiscovery)
-
-	return keyDiscovery, err
-}
-
-// Transform a KeyDiscovery object into a dictionary with "kid" as key
-// and lists of decoded X509 certificates as values.
-//
-// Returns an error if any certificate does not decode.
-func (k *KeyDiscovery) Map() (result map[string]CertificateList, err error) {
-	result = make(map[string]CertificateList)
-
-	for _, key := range k.Keys {
-		certList := make(CertificateList, 0)
-		for _, encodedCertificate := range key.X5c {
-			certificate, err := encodedCertificate.Decode()
-			if err != nil {
-				return nil, err
-			}
-			certList = append(certList, certificate)
-		}
-		result[key.Kid] = certList
-	}
-
-	return
-}
-
-// Decode a base64 encoded certificate into a X509 structure.
-func (c EncodedCertificate) Decode() (*x509.Certificate, error) {
-	stream := strings.NewReader(string(c))
-	decoder := base64.NewDecoder(base64.StdEncoding, stream)
-	key, err := ioutil.ReadAll(decoder)
-	if err != nil {
-		return nil, err
-	}
-
-	return x509.ParseCertificate(key)
+		next.ServeHTTP(w, r)
+	})
 }

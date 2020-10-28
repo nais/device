@@ -15,3 +15,16 @@ type DeviceInfo struct {
 	Platform  string `json:"platform"`
 	Owner     string `json:"owner"`
 }
+
+// GatewayInfo is the info provided by the gateway-agent in order to bootstrap a gateway
+type GatewayInfo struct {
+	Name     string `json:"name"`
+	PublicIP string `json:"endpoint"`
+}
+
+// GatewayConfig is the response from the bootstrap-api, produced by the api server and used by the gateway-agent to connect
+type GatewayConfig struct {
+	TunnelIP           string `json:"deviceIP"`
+	APIServerPublicKey string `json:"apiServerPublicKey"`
+	APIServerIP        string `json:"apiServerIP"`
+}
