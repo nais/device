@@ -1,4 +1,4 @@
-package main
+package bootstrap_api
 
 import (
 	"encoding/json"
@@ -19,6 +19,13 @@ import (
 4. gateway   <- GatewayConfig <- bootstrap-api
 */
 
+const TokenHeaderKey = "x-naisdevice-gateway-token"
+
+var gatewayEnrollments ActiveGatewayEnrollments
+
+func init() {
+	gatewayEnrollments.init()
+}
 
 //step 0: apiserver posts token
 func postToken(w http.ResponseWriter, r *http.Request) {

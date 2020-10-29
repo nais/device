@@ -64,7 +64,7 @@ func ConfigDir() (string, error) {
 
 	default:
 		userConfigDir, err := os.UserConfigDir()
-		if (err != nil) {
+		if err != nil {
 			return "", err
 		} else {
 			return filepath.Join(userConfigDir, "naisdevice"), err

@@ -1,4 +1,4 @@
-package main
+package bootstrap_api
 
 import (
 	"context"
@@ -15,17 +15,24 @@ import (
 	"strings"
 )
 
-func createJWTValidator(azure Azure) (jwt.Keyfunc, error) {
+type CertificateList []*x509.Certificate
+
+type Azure struct {
+	DiscoveryURL string
+	ClientID     string
+}
+
+func CreateJWTValidator(azure Azure) (jwt.Keyfunc, error) {
 	if len(azure.ClientID) == 0 || len(azure.DiscoveryURL) == 0 {
 		return nil, fmt.Errorf("missing required azure configuration")
 	}
 
-	certificates, err := FetchCertificates(cfg.Azure)
+	certificates, err := FetchCertificates(azure)
 	if err != nil {
 		return nil, fmt.Errorf("retrieving azure ad certificates for token validation: %v", err)
 	}
 
-	return JWTValidator(certificates, cfg.Azure.ClientID), nil
+	return JWTValidator(certificates, azure.ClientID), nil
 }
 
 func FetchCertificates(azure Azure) (map[string]CertificateList, error) {
@@ -41,20 +48,6 @@ func FetchCertificates(azure Azure) (map[string]CertificateList, error) {
 		return nil, err
 	}
 	return azureCertificates, nil
-}
-
-func (c *Config) Credentials() (map[string]string, error) {
-	credentials := make(map[string]string)
-	for _, key := range c.CredentialEntries {
-		entry := strings.Split(key, ":")
-		if len(entry) > 2 {
-			return nil, fmt.Errorf("invalid format on credentials, should be comma-separated entries on format 'user:key'")
-		}
-
-		credentials[entry[0]] = entry[1]
-	}
-
-	return credentials, nil
 }
 
 func TokenValidatorMiddleware(jwtValidator jwt.Keyfunc) func(next http.Handler) http.Handler {

@@ -1,10 +1,10 @@
-package main_test
+package bootstrap_api_test
 
 import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	main "github.com/nais/device/cmd/bootstrap-api"
+	bootstrap_api "github.com/nais/device/bootstrap-api"
 	"github.com/nais/device/pkg/bootstrap"
 	"github.com/stretchr/testify/assert"
 	"log"
@@ -86,7 +86,7 @@ func postGatewayInfo(token string, config *bootstrap.GatewayInfo) (*http.Respons
 		return nil, err
 	}
 
-	request.Header.Add(main.TokenHeaderKey, token)
+	request.Header.Add(bootstrap_api.TokenHeaderKey, token)
 	request.SetBasicAuth("user", "pass")
 
 	response, err := http.DefaultClient.Do(request)
@@ -132,7 +132,7 @@ func postGatewayConfig(token string, config *bootstrap.GatewayConfig) (*http.Res
 		return nil, err
 	}
 
-	request.Header.Add(main.TokenHeaderKey, token)
+	request.Header.Add(bootstrap_api.TokenHeaderKey, token)
 	request.SetBasicAuth("user", "pass")
 
 	response, err := http.DefaultClient.Do(request)
@@ -149,7 +149,7 @@ func getGatewayConfig(token string) (*bootstrap.GatewayConfig, *http.Response, e
 	if err != nil {
 		return nil, nil, err
 	}
-	request.Header.Add(main.TokenHeaderKey, token)
+	request.Header.Add(bootstrap_api.TokenHeaderKey, token)
 
 	response, err := http.DefaultClient.Do(request)
 	if err != nil {
@@ -175,7 +175,7 @@ func setup(listener net.Listener) (*http.Server, error) {
 		})
 	}
 
-	server := &http.Server{Handler: main.Api(c, azureAuthMock)}
+	server := &http.Server{Handler: bootstrap_api.Api(c, azureAuthMock)}
 	go server.Serve(listener)
 	time.Sleep(1 * time.Second)
 
@@ -193,7 +193,7 @@ func addToken(token string) (*http.Response, error) {
 		return nil, err
 	}
 
-	request.Header.Add(main.TokenHeaderKey, token)
+	request.Header.Add(bootstrap_api.TokenHeaderKey, token)
 	request.SetBasicAuth("user", "pass")
 	response, err := http.DefaultClient.Do(request)
 	if err != nil {

@@ -17,8 +17,8 @@ import (
 )
 
 const (
-	WireGuardBinary    = `c:\Program Files\WireGuard\wireguard.exe`
-	ServiceName        = "naisdevice-agent-helper"
+	WireGuardBinary = `c:\Program Files\WireGuard\wireguard.exe`
+	ServiceName     = "naisdevice-agent-helper"
 )
 
 type MyService struct {

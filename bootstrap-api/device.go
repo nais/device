@@ -1,4 +1,4 @@
-package main
+package bootstrap_api
 
 import (
 	"encoding/json"
@@ -8,6 +8,12 @@ import (
 	"net/http"
 	"sync"
 )
+
+var deviceEnrollments ActiveDeviceEnrollments
+
+func init() {
+	deviceEnrollments.init()
+}
 
 func postBootstrapConfig(w http.ResponseWriter, r *http.Request) {
 	serial := chi.URLParam(r, "serial")

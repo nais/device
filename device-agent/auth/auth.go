@@ -99,9 +99,9 @@ func RunFlow(ctx context.Context, urlOpener UrlOpener, exchange SessionInfoGette
 
 	server := &http.Server{Handler: handler}
 	/* TODO
-	    consider waiting for this to become ready. In the case where Azure AD
-	    redirects extremely fast the listener won't be ready. We saw this in
-	    unit tests where we mocked AAD.
+	   consider waiting for this to become ready. In the case where Azure AD
+	   redirects extremely fast the listener won't be ready. We saw this in
+	   unit tests where we mocked AAD.
 	*/
 	go server.Serve(listener)
 	defer server.Close()
