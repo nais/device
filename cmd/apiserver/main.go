@@ -32,7 +32,7 @@ var (
 )
 
 func init() {
-	flag.StringVar(&cfg.DbConnURI, "db-connection-uri", os.Getenv("DB_CONNECTION_URI"), "database connection URI (DSN)")
+	flag.StringVar(&cfg.DbConnDSN, "db-connection-dsn", os.Getenv("DB_CONNECTION_DSN"), "database connection DSN")
 	flag.StringVar(&cfg.BootstrapApiURL, "bootstrap-api-url", "", "bootstrap API URL")
 	flag.StringVar(&cfg.BootstrapApiCredentials, "bootstrap-api-credentials", os.Getenv("BOOTSTRAP_API_CREDENTIALS"), "bootstrap API credentials")
 	flag.StringVar(&cfg.PrometheusAddr, "prometheus-address", cfg.PrometheusAddr, "prometheus listen address")
@@ -68,7 +68,7 @@ func main() {
 		log.Fatalf("Setting up WireGuard interface: %v", err)
 	}
 
-	db, err := database.New(cfg.DbConnURI)
+	db, err := database.New(cfg.DbConnDSN)
 	if err != nil {
 		log.Fatalf("Instantiating database: %s", err)
 	}
@@ -97,7 +97,7 @@ func main() {
 		go bootstrapper.WatchEnrollments(ctx, db, cfg.BootstrapApiURL, cfg.BootstrapApiCredentials, publicKey, cfg.Endpoint)
 	}
 
-	go syncWireguardConfig(cfg.DbConnURI, string(privateKey), cfg)
+	go syncWireguardConfig(cfg.DbConnDSN, string(privateKey), cfg)
 
 	apiConfig := api.Config{
 		DB:       db,
@@ -172,8 +172,8 @@ func setupInterface() error {
 	return run(commands)
 }
 
-func syncWireguardConfig(dbConnURI, privateKey string, conf config.Config) {
-	db, err := database.New(dbConnURI)
+func syncWireguardConfig(dbConnDSN, privateKey string, conf config.Config) {
+	db, err := database.New(dbConnDSN)
 	if err != nil {
 		log.Fatalf("Instantiating database: %v", err)
 	}

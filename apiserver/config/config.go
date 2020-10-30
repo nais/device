@@ -8,7 +8,7 @@ import (
 )
 
 type Config struct {
-	DbConnURI               string
+	DbConnDSN               string
 	BootstrapApiCredentials string
 	BindAddress             string
 	ConfigDir               string

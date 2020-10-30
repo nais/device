@@ -154,9 +154,9 @@ func setup(t *testing.T) (*database.APIServerDB, chi.Router) {
 		t.Skip("Skipping integration test")
 	}
 
-	testDBURI := "user=postgres password=postgres host=localhost port=5433 sslmode=disable"
+	testDBDSN := "user=postgres password=postgres host=localhost port=5433 sslmode=disable"
 
-	db, err := testdatabase.New(testDBURI, "../database/schema/schema.sql")
+	db, err := testdatabase.New(testDBDSN, "../database/schema/schema.sql")
 	if err != nil {
 		t.Fatalf("Instantiating database: %v", err)
 	}
