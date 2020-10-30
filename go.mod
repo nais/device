@@ -3,6 +3,7 @@ module github.com/nais/device
 go 1.13
 
 require (
+	cloud.google.com/go v0.65.0
 	github.com/GoogleCloudPlatform/cloudsql-proxy v1.18.0
 	github.com/coreos/go-iptables v0.4.5
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
@@ -24,4 +25,6 @@ require (
 	golang.org/x/net v0.0.0-20200904194848-62affa334b73
 	golang.org/x/oauth2 v0.0.0-20200902213428-5d25da1a8d43
 	golang.org/x/sys v0.0.0-20200828194041-157a740278f4
+	google.golang.org/api v0.31.0
+	google.golang.org/genproto v0.0.0-20200831141814-d751682dd103
 )
