@@ -3,6 +3,7 @@ package database_test
 import (
 	"context"
 	"github.com/nais/device/apiserver/database"
+	"github.com/nais/device/apiserver/testdatabase"
 	"github.com/stretchr/testify/assert"
 	"os"
 	"testing"
@@ -13,7 +14,7 @@ func setup(t *testing.T) *database.APIServerDB {
 		t.Skip("Skipping integration test")
 	}
 
-	db, err := database.NewTestDatabase("postgresql://postgres:postgres@localhost:5433", "../database/schema/schema.sql")
+	db, err := testdatabase.New("user=postgres password=postgres host=localhost port=5433 sslmode=disable", "../database/schema/schema.sql")
 	if err != nil {
 		t.Fatalf("Instantiating database: %v", err)
 	}

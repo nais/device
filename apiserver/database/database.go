@@ -2,15 +2,14 @@ package database
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
-	"io/ioutil"
 	"strings"
 	"sync"
 	"time"
 
-	"github.com/jackc/pgx/v4/pgxpool"
+	_ "github.com/GoogleCloudPlatform/cloudsql-proxy/proxy/dialers/postgres"
 	"github.com/nais/device/apiserver/cidr"
-	"github.com/nais/device/pkg/random"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -19,7 +18,7 @@ const (
 )
 
 type APIServerDB struct {
-	conn *pgxpool.Pool
+	Conn *sql.DB
 }
 
 type Device struct {
@@ -55,65 +54,13 @@ func (si SessionInfo) Expired() bool {
 	return time.Unix(si.Expiry, 0).After(time.Now())
 }
 
-// NewTestDatabase creates and returns a new nais device database within the provided database instance
-func NewTestDatabase(dsn, schema string) (*APIServerDB, error) {
-	ctx := context.Background()
-
-	var initialConn *pgxpool.Pool
-	var err error
-
-	for i := 0; i < 5; i++ {
-		initialConn, err = pgxpool.Connect(ctx, dsn)
-		if err != nil {
-			err = fmt.Errorf("connecting to database: %v", err)
-			log.Errorf("[attempt %d/5]: %v", i, err)
-			time.Sleep(1 * time.Second)
-		} else {
-			// means successful connect
-			err = nil
-			break
-		}
-	}
-
-	if err != nil {
-		return nil, err
-	}
-
-	defer initialConn.Close()
-
-	databaseName := random.RandomString(5, random.LowerCaseLetters)
-
-	_, err = initialConn.Exec(ctx, fmt.Sprintf("CREATE DATABASE %v", databaseName))
-	if err != nil {
-		return nil, fmt.Errorf("creating database: %v", err)
-	}
-
-	conn, err := pgxpool.Connect(ctx, fmt.Sprintf("%s/%s", dsn, databaseName))
-	if err != nil {
-		return nil, fmt.Errorf("connecting to database: %v", err)
-	}
-
-	b, err := ioutil.ReadFile(schema)
-	if err != nil {
-		return nil, fmt.Errorf("reading schema file from disk: %w", err)
-	}
-
-	_, err = conn.Exec(ctx, string(b))
-	if err != nil {
-		return nil, fmt.Errorf("executing schema: %v", err)
-	}
-
-	return &APIServerDB{conn: conn}, nil
-}
-
 func New(dsn string) (*APIServerDB, error) {
-	ctx := context.Background()
-	conn, err := pgxpool.Connect(ctx, dsn)
+	db, err := sql.Open("cloudsqlpostgres", dsn)
 	if err != nil {
 		return nil, fmt.Errorf("connecting to database: %s", err)
 	}
 
-	return &APIServerDB{conn: conn}, nil
+	return &APIServerDB{Conn: db}, nil
 }
 
 func (d *APIServerDB) ReadDevices() ([]Device, error) {
@@ -123,7 +70,7 @@ func (d *APIServerDB) ReadDevices() ([]Device, error) {
 SELECT public_key, username, ip, psk, serial, platform, healthy, last_updated, kolide_last_seen
 FROM device;`
 
-	rows, err := d.conn.Query(ctx, query)
+	rows, err := d.Conn.QueryContext(ctx, query)
 
 	if err != nil {
 		return nil, fmt.Errorf("querying for devices: %v", err)
@@ -154,12 +101,12 @@ FROM device;`
 func (d *APIServerDB) UpdateDeviceStatus(devices []Device) error {
 	ctx := context.Background()
 
-	tx, err := d.conn.Begin(ctx)
+	tx, err := d.Conn.BeginTx(ctx, nil)
 	if err != nil {
 		return fmt.Errorf("start transaction: %s", err)
 	}
 
-	defer tx.Rollback(ctx)
+	defer tx.Rollback()
 
 	query := `
 		UPDATE device
@@ -168,13 +115,13 @@ func (d *APIServerDB) UpdateDeviceStatus(devices []Device) error {
     `
 
 	for _, device := range devices {
-		_, err = tx.Exec(ctx, query, device.Healthy, device.KolideLastSeen, device.Serial, device.Platform)
+		_, err = tx.ExecContext(ctx, query, device.Healthy, device.KolideLastSeen, device.Serial, device.Platform)
 		if err != nil {
 			return err
 		}
 	}
 
-	if err := tx.Commit(ctx); err != nil {
+	if err := tx.Commit(); err != nil {
 		return fmt.Errorf("commiting transaction: %w", err)
 	}
 
@@ -188,7 +135,7 @@ func (d *APIServerDB) AddGateway(ctx context.Context, gateway Gateway) error {
 INSERT INTO gateway (name, access_group_ids, endpoint, public_key, ip, routes)
 VALUES ($1, $2, $3, $4, $5, $6);`
 
-	_, err := d.conn.Exec(ctx, statement, gateway.Name, strings.Join(gateway.AccessGroupIDs, ","), gateway.Endpoint, gateway.PublicKey, gateway.IP, strings.Join(gateway.Routes, ","))
+	_, err := d.Conn.ExecContext(ctx, statement, gateway.Name, strings.Join(gateway.AccessGroupIDs, ","), gateway.Endpoint, gateway.PublicKey, gateway.IP, strings.Join(gateway.Routes, ","))
 
 	if err != nil {
 		return fmt.Errorf("inserting new gateway: %w", err)
@@ -205,12 +152,12 @@ func (d *APIServerDB) AddDevice(ctx context.Context, device Device) error {
 	mux.Lock()
 	defer mux.Unlock()
 
-	tx, err := d.conn.Begin(ctx)
+	tx, err := d.Conn.Begin()
 	if err != nil {
 		return fmt.Errorf("start transaction: %w", err)
 	}
 
-	defer tx.Rollback(ctx)
+	defer tx.Rollback()
 
 	ips, err := d.readExistingIPs()
 	if err != nil {
@@ -226,13 +173,13 @@ func (d *APIServerDB) AddDevice(ctx context.Context, device Device) error {
 INSERT INTO device (serial, username, public_key, ip, healthy, psk, platform)
 VALUES ($1, $2, $3, $4, false, '', $5)
 ON CONFLICT(serial, platform) DO UPDATE SET username = $2, public_key = $3;`
-	_, err = tx.Exec(ctx, statement, device.Serial, device.Username, device.PublicKey, ip, device.Platform)
+	_, err = tx.ExecContext(ctx, statement, device.Serial, device.Username, device.PublicKey, ip, device.Platform)
 
 	if err != nil {
 		return fmt.Errorf("inserting new device: %w", err)
 	}
 
-	if err := tx.Commit(ctx); err != nil {
+	if err := tx.Commit(); err != nil {
 		return fmt.Errorf("commiting transaction: %w", err)
 	}
 
@@ -249,7 +196,7 @@ SELECT id, serial, username, psk, platform, last_updated, kolide_last_seen, heal
   FROM device
  WHERE public_key = $1;`
 
-	row := d.conn.QueryRow(ctx, query, publicKey)
+	row := d.Conn.QueryRowContext(ctx, query, publicKey)
 
 	var device Device
 	err := row.Scan(&device.ID, &device.Serial, &device.Username, &device.PSK, &device.Platform, &device.LastUpdated, &device.KolideLastSeen, &device.Healthy, &device.PublicKey, &device.IP)
@@ -267,7 +214,7 @@ SELECT id, serial, username, psk, platform, last_updated, kolide_last_seen, heal
   FROM device
  WHERE id = $1;`
 
-	row := d.conn.QueryRow(ctx, query, deviceID)
+	row := d.Conn.QueryRowContext(ctx, query, deviceID)
 
 	var device Device
 	err := row.Scan(&device.ID, &device.Serial, &device.Username, &device.PSK, &device.Platform, &device.LastUpdated, &device.KolideLastSeen, &device.Healthy, &device.PublicKey, &device.IP)
@@ -286,7 +233,7 @@ func (d *APIServerDB) ReadGateways() ([]Gateway, error) {
 SELECT public_key, access_group_ids, endpoint, ip, routes, name
   FROM gateway;`
 
-	rows, err := d.conn.Query(ctx, query)
+	rows, err := d.Conn.QueryContext(ctx, query)
 	if err != nil {
 		return nil, fmt.Errorf("querying for gateways %w", err)
 	}
@@ -328,7 +275,7 @@ SELECT public_key, access_group_ids, endpoint, ip, routes
   FROM gateway
  WHERE name = $1;`
 
-	row := d.conn.QueryRow(ctx, query, name)
+	row := d.Conn.QueryRowContext(ctx, query, name)
 
 	var gateway Gateway
 	var routes string
@@ -383,7 +330,7 @@ SELECT id, username, serial, psk, platform, healthy, last_updated, kolide_last_s
 	`
 
 	var device Device
-	row := d.conn.QueryRow(ctx, query, serial, platform, username)
+	row := d.Conn.QueryRowContext(ctx, query, serial, platform, username)
 
 	err := row.Scan(&device.ID, &device.Username, &device.Serial, &device.PSK, &device.Platform, &device.Healthy, &device.LastUpdated, &device.KolideLastSeen, &device.PublicKey, &device.IP)
 
@@ -400,7 +347,7 @@ INSERT INTO session (key, expiry, device_id, groups)
              VALUES ($1, $2, $3, $4);
 `
 
-	_, err := d.conn.Exec(ctx, query, si.Key, si.Expiry, si.Device.ID, strings.Join(si.Groups, ","))
+	_, err := d.Conn.ExecContext(ctx, query, si.Key, si.Expiry, si.Device.ID, strings.Join(si.Groups, ","))
 	if err != nil {
 		return fmt.Errorf("scanning row: %s", err)
 	}
@@ -417,7 +364,7 @@ FROM session
 WHERE key = $1;
 `
 
-	row := d.conn.QueryRow(ctx, query, key)
+	row := d.Conn.QueryRowContext(ctx, query, key)
 
 	var si SessionInfo
 	var groups string

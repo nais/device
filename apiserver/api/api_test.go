@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"github.com/nais/device/apiserver/database"
+	"github.com/nais/device/apiserver/testdatabase"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -14,7 +16,6 @@ import (
 
 	"github.com/go-chi/chi"
 	"github.com/nais/device/apiserver/api"
-	"github.com/nais/device/apiserver/database"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -153,9 +154,9 @@ func setup(t *testing.T) (*database.APIServerDB, chi.Router) {
 		t.Skip("Skipping integration test")
 	}
 
-	testDBURI := "postgresql://postgres:postgres@localhost:5433"
+	testDBURI := "user=postgres password=postgres host=localhost port=5433 sslmode=disable"
 
-	db, err := database.NewTestDatabase(testDBURI, "../database/schema/schema.sql")
+	db, err := testdatabase.New(testDBURI, "../database/schema/schema.sql")
 	if err != nil {
 		t.Fatalf("Instantiating database: %v", err)
 	}

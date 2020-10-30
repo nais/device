@@ -9,7 +9,7 @@ GOPATH ?= ~/go
 all: test
 local-postgres: stop-postgres run-postgres
 dev-apiserver: local-postgres local-apiserver stop-postgres
-integration-test: run-postgres-test run-integration-test stop-postgres-test
+integration-test: stop-postgres-test run-postgres-test run-integration-test stop-postgres-test
 clients: linux-client macos-client windows-client
 
 # Run by GitHub actions
