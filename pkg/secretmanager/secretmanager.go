@@ -101,14 +101,25 @@ func (sm *SecretManager) GetSecretVersionData(secretVersion *gsecretmanagerpb.Se
 	return accessSecretVersion.Payload.Data, nil
 }
 
-func (sm *SecretManager) ListSecrets() ([]*Secret, error) {
+func (sm *SecretManager) ListSecrets(filter map[string]string) ([]*Secret, error) {
 	var secrets []*Secret
 	googleSecrets, err := sm.GetSecrets()
 	if err != nil {
 		return nil, err
 	}
 
+	secretLoop:
 	for _, secret := range googleSecrets {
+		for key, value := range filter {
+			if secretValue, ok := secret.Labels[key]; ok {
+				if secretValue != value {
+					continue secretLoop
+				}
+			} else {
+				continue secretLoop
+			}
+		}
+
 		googleVersion, err := sm.GetSecretVersions(secret)
 		if err != nil {
 			return nil, err
