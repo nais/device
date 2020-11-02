@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/nais/device/pkg/secretmanager"
+	"github.com/stretchr/testify/assert"
 	"net"
 
 	gsecretmanager "cloud.google.com/go/secretmanager/apiv1"
@@ -16,11 +17,11 @@ import (
 
 func TestListSecrets(t *testing.T) {
 	testdata := []*secretmanager.Secret{{
-		Secret: &gsecretmanagerpb.Secret{Name: "x",
+		GoogleSecret: &gsecretmanagerpb.Secret{Name: "x",
 			Labels: map[string]string{"foo": "bar"}},
 		SecretVersions: secretmanager.SecretVersions{{
 			Data: []byte("hemmelig"),
-			Version: &gsecretmanagerpb.SecretVersion{
+			GoogleVersion: &gsecretmanagerpb.SecretVersion{
 				State: gsecretmanagerpb.SecretVersion_ENABLED,
 			},
 		}},
@@ -30,7 +31,7 @@ func TestListSecrets(t *testing.T) {
 
 	filter := map[string]string{"foo": "bar"}
 	secrets, err := sm.ListSecrets(filter)
-	fmt.Println(err)
+	assert.NoError(t, err)
 
 	for _, secret := range secrets {
 		fmt.Println(string(secret.SecretVersions.Latest().Data))

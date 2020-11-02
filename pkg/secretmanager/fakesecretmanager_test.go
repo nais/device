@@ -12,6 +12,14 @@ type fakeSecretManager struct {
 	Secrets []*secretmanager.Secret
 }
 
+func (f *fakeSecretManager) ListSecrets(ctx context.Context, request *gsecretmanagerpb.ListSecretsRequest) (*gsecretmanagerpb.ListSecretsResponse, error) {
+	response := &gsecretmanagerpb.ListSecretsResponse{
+		Secrets: secrets(f.Secrets),
+	}
+
+	return response, nil
+}
+
 func (f *fakeSecretManager) ListSecretVersions(ctx context.Context, in *gsecretmanagerpb.ListSecretVersionsRequest) (*gsecretmanagerpb.ListSecretVersionsResponse, error) {
 	secret := getByName(f.Secrets, in.Parent)
 	if secret == nil {
@@ -23,9 +31,20 @@ func (f *fakeSecretManager) ListSecretVersions(ctx context.Context, in *gsecretm
 	}, nil
 }
 
+func (f *fakeSecretManager) AccessSecretVersion(ctx context.Context, in *gsecretmanagerpb.AccessSecretVersionRequest) (*gsecretmanagerpb.AccessSecretVersionResponse, error) {
+	v := getVersion(f.Secrets, in.Name)
+	if v == nil {
+		return nil, fmt.Errorf("no secret version found for secret: %s", in.Name)
+	}
+	return &gsecretmanagerpb.AccessSecretVersionResponse{
+		Name:    v.GoogleVersion.Name,
+		Payload: &gsecretmanagerpb.SecretPayload{Data: v.Data},
+	}, nil
+}
+
 func getByName(secrets []*secretmanager.Secret, name string) *secretmanager.Secret {
 	for _, secret := range secrets {
-		if secret.Secret.Name == name {
+		if secret.GoogleSecret.Name == name {
 			return secret
 		}
 	}
@@ -33,29 +52,10 @@ func getByName(secrets []*secretmanager.Secret, name string) *secretmanager.Secr
 	return nil
 }
 
-func (f *fakeSecretManager) ListSecrets(ctx context.Context, request *gsecretmanagerpb.ListSecretsRequest) (*gsecretmanagerpb.ListSecretsResponse, error) {
-	response := &gsecretmanagerpb.ListSecretsResponse{
-		Secrets: secrets(f.Secrets),
-	}
-
-	return response, nil
-}
-
-func (f *fakeSecretManager) AccessSecretVersion(ctx context.Context, in *gsecretmanagerpb.AccessSecretVersionRequest) (*gsecretmanagerpb.AccessSecretVersionResponse, error) {
-	v := getVersion(f.Secrets, in.Name)
-	if v == nil {
-		return nil, fmt.Errorf("no secret version found for secret: %s", in.Name)
-	}
-	return &gsecretmanagerpb.AccessSecretVersionResponse{
-		Name:    v.Version.Name,
-		Payload: &gsecretmanagerpb.SecretPayload{Data: v.Data},
-	}, nil
-}
-
-func getVersion(secrets []*secretmanager.Secret, versionURI string) *secretmanager.SecretVersion {
+func getVersion(secrets []*secretmanager.Secret, versionPath string) *secretmanager.SecretVersion {
 	for _, secret := range secrets {
 		for _, version := range secret.SecretVersions {
-			if version.Version.Name == versionURI {
+			if version.GoogleVersion.Name == versionPath {
 				return version
 			}
 		}
@@ -66,7 +66,7 @@ func getVersion(secrets []*secretmanager.Secret, versionURI string) *secretmanag
 
 func versions(versions []*secretmanager.SecretVersion) (googleVersions []*gsecretmanagerpb.SecretVersion) {
 	for _, version := range versions {
-		googleVersions = append(googleVersions, version.Version)
+		googleVersions = append(googleVersions, version.GoogleVersion)
 	}
 
 	return
@@ -74,7 +74,7 @@ func versions(versions []*secretmanager.SecretVersion) (googleVersions []*gsecre
 
 func secrets(secrets []*secretmanager.Secret) (googleSecrets []*gsecretmanagerpb.Secret) {
 	for _, secret := range secrets {
-		googleSecrets = append(googleSecrets, secret.Secret)
+		googleSecrets = append(googleSecrets, secret.GoogleSecret)
 	}
 
 	return

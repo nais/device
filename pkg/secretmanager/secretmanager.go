@@ -10,12 +10,12 @@ import (
 )
 
 type SecretVersion struct {
-	Data    []byte
-	Version *gsecretmanagerpb.SecretVersion
+	Data          []byte
+	GoogleVersion *gsecretmanagerpb.SecretVersion
 }
 
 type Secret struct {
-	Secret         *gsecretmanagerpb.Secret
+	GoogleSecret   *gsecretmanagerpb.Secret
 	SecretVersions SecretVersions
 }
 
@@ -33,7 +33,7 @@ func (versions SecretVersions) Latest() *SecretVersion {
 			latest = version
 		}
 
-		if version.Version.CreateTime.AsTime().After(latest.Version.CreateTime.AsTime()) {
+		if version.GoogleVersion.CreateTime.AsTime().After(latest.GoogleVersion.CreateTime.AsTime()) {
 			latest = version
 		}
 	}
@@ -149,14 +149,14 @@ func (sm *SecretManager) ListSecrets(filter map[string]string) ([]*Secret, error
 			}
 
 			secretVersions = append(secretVersions, &SecretVersion{
-				Data:    data,
-				Version: version,
+				Data:          data,
+				GoogleVersion: version,
 			})
 		}
 
 		if len(secretVersions) > 0 {
 			secrets = append(secrets, &Secret{
-				Secret:         secret,
+				GoogleSecret:   secret,
 				SecretVersions: secretVersions,
 			})
 		}
