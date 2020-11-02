@@ -25,6 +25,8 @@ type SecretManager struct {
 	Client *gsecretmanager.Client
 }
 
+
+
 func (versions SecretVersions) Latest() *SecretVersion {
 	var latest *SecretVersion
 	for _, version := range versions {
@@ -128,6 +130,11 @@ func (sm *SecretManager) ListSecrets(filter map[string]string) ([]*Secret, error
 		var secretVersions []*SecretVersion
 
 		for _, version := range googleVersion {
+
+			if version.State != gsecretmanagerpb.SecretVersion_ENABLED {
+				continue
+			}
+
 			data, err := sm.GetSecretVersionData(version)
 			if err != nil {
 				return nil, err
@@ -139,10 +146,12 @@ func (sm *SecretManager) ListSecrets(filter map[string]string) ([]*Secret, error
 			})
 		}
 
-		secrets = append(secrets, &Secret{
-			Secret:         secret,
-			SecretVersions: secretVersions,
-		})
+		if len(secretVersions) > 0 {
+			secrets = append(secrets, &Secret{
+				Secret:         secret,
+				SecretVersions: secretVersions,
+			})
+		}
 	}
 
 	return secrets, nil
