@@ -2,7 +2,6 @@ package secretmanager_test
 
 import (
 	"context"
-	"fmt"
 	"github.com/nais/device/pkg/secretmanager"
 	"github.com/stretchr/testify/assert"
 	"net"
@@ -16,26 +15,29 @@ import (
 )
 
 func TestListSecrets(t *testing.T) {
-	testdata := []*secretmanager.Secret{{
-		GoogleSecret: &gsecretmanagerpb.Secret{Name: "x",
-			Labels: map[string]string{"foo": "bar"}},
-		SecretVersions: secretmanager.SecretVersions{{
-			Data: []byte("hemmelig"),
-			GoogleVersion: &gsecretmanagerpb.SecretVersion{
-				State: gsecretmanagerpb.SecretVersion_ENABLED,
-			},
-		}},
-	}}
-
-	sm, err := setup(t, &fakeSecretManager{Secrets: testdata})
-
-	filter := map[string]string{"foo": "bar"}
-	secrets, err := sm.ListSecrets(filter)
+	fsm := &fakeSecretManager{}
+	sm, err := setup(t, fsm)
 	assert.NoError(t, err)
 
-	for _, secret := range secrets {
-		fmt.Println(string(secret.SecretVersions.Latest().Data))
-	}
+	fsm.addSecret("one", map[string]string{"label1": "value1", "label2": "value2"})
+	fsm.addSecret("two", map[string]string{"label2": "value2"})
+	fsm.addSecret("three", map[string]string{"label3": "value3"})
+
+	fsm.addSecretVersion("one", "latest", []byte("1"), gsecretmanagerpb.SecretVersion_ENABLED)
+	fsm.addSecretVersion("two", "latest", []byte("2"), gsecretmanagerpb.SecretVersion_ENABLED)
+	fsm.addSecretVersion("three", "latest", []byte("3"), gsecretmanagerpb.SecretVersion_DISABLED)
+
+	t.Run("nil filter returns all enabled secrets", func(t *testing.T) {
+		secrets, err := sm.ListSecrets(nil)
+		assert.NoError(t, err)
+		assert.Len(t, secrets, 2)
+	})
+
+	t.Run("filter works", func(t *testing.T) {
+		secrets, err := sm.ListSecrets(map[string]string{"label1": "value1", "label2": "value2"})
+		assert.NoError(t, err)
+		assert.Len(t, secrets, 1)
+	})
 }
 
 func setup(t *testing.T, fsm *fakeSecretManager) (*secretmanager.SecretManager, error) {
@@ -66,20 +68,3 @@ func setup(t *testing.T, fsm *fakeSecretManager) (*secretmanager.SecretManager, 
 
 	return sm, err
 }
-
-//var enrollmentTokens EnrollmentTokens
-//
-//type EnrollmentTokens struct {
-//	Active        map[string]string
-//	ActiveLock    sync.Mutex
-//	SecretManager *secretmanager.SecretManager
-//}
-
-//func init() {
-//	var err error
-//	enrollmentTokens.SecretManager, err = New()
-//
-//	if err != nil {
-//		log.Fatalf("Instantiating SecretManager: %v", err)
-//	}
-//}

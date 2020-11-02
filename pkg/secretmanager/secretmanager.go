@@ -9,36 +9,14 @@ import (
 	gsecretmanagerpb "google.golang.org/genproto/googleapis/cloud/secretmanager/v1"
 )
 
-type SecretVersion struct {
-	Data          []byte
-	GoogleVersion *gsecretmanagerpb.SecretVersion
-}
-
 type Secret struct {
-	GoogleSecret   *gsecretmanagerpb.Secret
-	SecretVersions SecretVersions
+	Name string
+	Data []byte
 }
-
-type SecretVersions []*SecretVersion
 
 type SecretManager struct {
 	Client  *gsecretmanager.Client
 	Project string
-}
-
-func (versions SecretVersions) Latest() *SecretVersion {
-	var latest *SecretVersion
-	for _, version := range versions {
-		if latest == nil {
-			latest = version
-		}
-
-		if version.GoogleVersion.CreateTime.AsTime().After(latest.GoogleVersion.CreateTime.AsTime()) {
-			latest = version
-		}
-	}
-
-	return latest
 }
 
 func New(project string) (*SecretManager, error) {
@@ -73,25 +51,8 @@ func (sm *SecretManager) listSecrets() ([]*gsecretmanagerpb.Secret, error) {
 	return result, nil
 }
 
-func (sm *SecretManager) listSecretVersions(secret *gsecretmanagerpb.Secret) ([]*gsecretmanagerpb.SecretVersion, error) {
-	var result []*gsecretmanagerpb.SecretVersion
-	ctx := context.Background()
-	request := &gsecretmanagerpb.ListSecretVersionsRequest{Parent: secret.Name}
-	secretVersion := sm.Client.ListSecretVersions(ctx, request)
-
-	for {
-		secret, err := secretVersion.Next()
-		if err == iterator.Done {
-			break
-		}
-		if err != nil {
-			return nil, fmt.Errorf("getting secret: %w", err)
-		}
-
-		result = append(result, secret)
-	}
-
-	return result, nil
+func (sm *SecretManager) getLatestVersion(secret *gsecretmanagerpb.Secret) (*gsecretmanagerpb.SecretVersion, error) {
+	return sm.Client.GetSecretVersion(context.Background(), &gsecretmanagerpb.GetSecretVersionRequest{Name: fmt.Sprintf("%s/versions/latest", secret.Name)})
 }
 
 func (sm *SecretManager) accessSecretVersion(secretVersion *gsecretmanagerpb.SecretVersion) ([]byte, error) {
@@ -130,36 +91,24 @@ func (sm *SecretManager) ListSecrets(filter map[string]string) ([]*Secret, error
 			continue
 		}
 
-		googleVersions, err := sm.listSecretVersions(secret)
+		googleVersion, err := sm.getLatestVersion(secret)
 		if err != nil {
 			return nil, err
 		}
 
-		var secretVersions []*SecretVersion
-
-		for _, version := range googleVersions {
-
-			if version.State != gsecretmanagerpb.SecretVersion_ENABLED {
-				continue
-			}
-
-			data, err := sm.accessSecretVersion(version)
-			if err != nil {
-				return nil, err
-			}
-
-			secretVersions = append(secretVersions, &SecretVersion{
-				Data:          data,
-				GoogleVersion: version,
-			})
+		if googleVersion.State != gsecretmanagerpb.SecretVersion_ENABLED {
+			continue
 		}
 
-		if len(secretVersions) > 0 {
-			secrets = append(secrets, &Secret{
-				GoogleSecret:   secret,
-				SecretVersions: secretVersions,
-			})
+		data, err := sm.accessSecretVersion(googleVersion)
+		if err != nil {
+			return nil, err
 		}
+
+		secrets = append(secrets, &Secret{
+			Name: secret.Name,
+			Data: data,
+		})
 	}
 
 	return secrets, nil
