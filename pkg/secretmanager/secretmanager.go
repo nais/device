@@ -22,10 +22,9 @@ type Secret struct {
 type SecretVersions []*SecretVersion
 
 type SecretManager struct {
-	Client *gsecretmanager.Client
+	Client  *gsecretmanager.Client
+	Project string
 }
-
-
 
 func (versions SecretVersions) Latest() *SecretVersion {
 	var latest *SecretVersion
@@ -42,19 +41,22 @@ func (versions SecretVersions) Latest() *SecretVersion {
 	return latest
 }
 
-func New() (*SecretManager, error) {
+func New(project string) (*SecretManager, error) {
 	client, err := gsecretmanager.NewClient(context.Background())
 	if err != nil {
 		return nil, fmt.Errorf("creating Google Secret Manager client; %w", err)
 	}
 
-	return &SecretManager{Client: client}, nil
+	return &SecretManager{
+		Client:  client,
+		Project: fmt.Sprintf("projects/%s", project),
+	}, nil
 }
 
-func (sm *SecretManager) GetSecrets() ([]*gsecretmanagerpb.Secret, error) {
+func (sm *SecretManager) listSecrets() ([]*gsecretmanagerpb.Secret, error) {
 	var result []*gsecretmanagerpb.Secret
 	ctx := context.Background()
-	request := &gsecretmanagerpb.ListSecretsRequest{Parent: "projects/nais-device"}
+	request := &gsecretmanagerpb.ListSecretsRequest{Parent: sm.Project}
 	secrets := sm.Client.ListSecrets(ctx, request)
 	for {
 		secret, err := secrets.Next()
@@ -71,7 +73,7 @@ func (sm *SecretManager) GetSecrets() ([]*gsecretmanagerpb.Secret, error) {
 	return result, nil
 }
 
-func (sm *SecretManager) GetSecretVersions(secret *gsecretmanagerpb.Secret) ([]*gsecretmanagerpb.SecretVersion, error) {
+func (sm *SecretManager) listSecretVersions(secret *gsecretmanagerpb.Secret) ([]*gsecretmanagerpb.SecretVersion, error) {
 	var result []*gsecretmanagerpb.SecretVersion
 	ctx := context.Background()
 	request := &gsecretmanagerpb.ListSecretVersionsRequest{Parent: secret.Name}
@@ -92,7 +94,7 @@ func (sm *SecretManager) GetSecretVersions(secret *gsecretmanagerpb.Secret) ([]*
 	return result, nil
 }
 
-func (sm *SecretManager) GetSecretVersionData(secretVersion *gsecretmanagerpb.SecretVersion) ([]byte, error) {
+func (sm *SecretManager) accessSecretVersion(secretVersion *gsecretmanagerpb.SecretVersion) ([]byte, error) {
 	ctx := context.Background()
 	request := &gsecretmanagerpb.AccessSecretVersionRequest{Name: secretVersion.Name}
 	accessSecretVersion, err := sm.Client.AccessSecretVersion(ctx, request)
@@ -103,39 +105,45 @@ func (sm *SecretManager) GetSecretVersionData(secretVersion *gsecretmanagerpb.Se
 	return accessSecretVersion.Payload.Data, nil
 }
 
+func matchesAllLabels(has, need map[string]string) bool {
+	for key, value := range need {
+		if secretValue, ok := has[key]; ok {
+			if secretValue != value {
+				return false
+			}
+		} else {
+			return false
+		}
+	}
+	return true
+}
+
 func (sm *SecretManager) ListSecrets(filter map[string]string) ([]*Secret, error) {
 	var secrets []*Secret
-	googleSecrets, err := sm.GetSecrets()
+	googleSecrets, err := sm.listSecrets()
 	if err != nil {
 		return nil, err
 	}
 
-	secretLoop:
 	for _, secret := range googleSecrets {
-		for key, value := range filter {
-			if secretValue, ok := secret.Labels[key]; ok {
-				if secretValue != value {
-					continue secretLoop
-				}
-			} else {
-				continue secretLoop
-			}
+		if !matchesAllLabels(secret.Labels, filter) {
+			continue
 		}
 
-		googleVersion, err := sm.GetSecretVersions(secret)
+		googleVersions, err := sm.listSecretVersions(secret)
 		if err != nil {
 			return nil, err
 		}
 
 		var secretVersions []*SecretVersion
 
-		for _, version := range googleVersion {
+		for _, version := range googleVersions {
 
 			if version.State != gsecretmanagerpb.SecretVersion_ENABLED {
 				continue
 			}
 
-			data, err := sm.GetSecretVersionData(version)
+			data, err := sm.accessSecretVersion(version)
 			if err != nil {
 				return nil, err
 			}
