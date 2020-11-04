@@ -9,13 +9,7 @@ import (
 	"sync"
 )
 
-var deviceEnrollments ActiveDeviceEnrollments
-
-func init() {
-	deviceEnrollments.init()
-}
-
-func postBootstrapConfig(w http.ResponseWriter, r *http.Request) {
+func (api *DeviceApi) postBootstrapConfig(w http.ResponseWriter, r *http.Request) {
 	serial := chi.URLParam(r, "serial")
 
 	log := log.WithFields(log.Fields{
@@ -31,14 +25,14 @@ func postBootstrapConfig(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	deviceEnrollments.addBootstrapConfig(serial, bootstrapConfig)
+	api.enrollments.addBootstrapConfig(serial, bootstrapConfig)
 
 	w.WriteHeader(http.StatusCreated)
 
 	log.WithField("event", "apiserver_posted_bootstrapconfig").Infof("Successful enrollment response came from apiserver")
 }
 
-func getBootstrapConfig(w http.ResponseWriter, r *http.Request) {
+func (api *DeviceApi) getBootstrapConfig(w http.ResponseWriter, r *http.Request) {
 	serial := chi.URLParam(r, "serial")
 	log := log.WithFields(log.Fields{
 		"component": "bootstrap-api",
@@ -46,7 +40,7 @@ func getBootstrapConfig(w http.ResponseWriter, r *http.Request) {
 		"username":  r.Context().Value("preferred_username").(string),
 	})
 
-	bootstrapConfig := deviceEnrollments.getBootstrapConfig(serial)
+	bootstrapConfig := api.enrollments.getBootstrapConfig(serial)
 
 	if bootstrapConfig == nil {
 		w.WriteHeader(http.StatusNotFound)
@@ -65,7 +59,7 @@ func getBootstrapConfig(w http.ResponseWriter, r *http.Request) {
 	log.WithField("event", "retrieved_bootstrapconfig").Infof("Successfully returned bootstrap config")
 }
 
-func postDeviceInfo(w http.ResponseWriter, r *http.Request) {
+func (api *DeviceApi) postDeviceInfo(w http.ResponseWriter, r *http.Request) {
 	var deviceInfo bootstrap.DeviceInfo
 	err := json.NewDecoder(r.Body).Decode(&deviceInfo)
 
@@ -82,7 +76,7 @@ func postDeviceInfo(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	deviceEnrollments.addDeviceInfo(deviceInfo)
+	api.enrollments.addDeviceInfo(deviceInfo)
 
 	log.WithFields(log.Fields{
 		"component": "bootstrap-api",
@@ -94,8 +88,8 @@ func postDeviceInfo(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusCreated)
 }
 
-func getDeviceInfos(w http.ResponseWriter, r *http.Request) {
-	deviceInfos := deviceEnrollments.getDeviceInfos()
+func (api *DeviceApi) getDeviceInfos(w http.ResponseWriter, r *http.Request) {
+	deviceInfos := api.enrollments.getDeviceInfos()
 	log.Infof("%s %s: %v", r.Method, r.URL, deviceInfos)
 
 	w.WriteHeader(http.StatusOK)
@@ -115,8 +109,10 @@ type ActiveDeviceEnrollments struct {
 	bootstrapConfigsLock sync.Mutex
 }
 
-func (a *ActiveDeviceEnrollments) init() {
-	a.bootstrapConfigs = make(map[string]bootstrap.Config)
+func NewActiveDeviceEnrollments() *ActiveDeviceEnrollments {
+	return &ActiveDeviceEnrollments{
+		bootstrapConfigs: make(map[string]bootstrap.Config),
+	}
 }
 
 func (a *ActiveDeviceEnrollments) getDeviceInfos() []bootstrap.DeviceInfo {

@@ -19,7 +19,6 @@ type GatewayConfig struct {
 }
 
 // TODO(jhrv): do actual filtering of the devices.
-// TODO(jhrv): keep cache of gateway access group members to remove AAD runtime dependency
 // gatewayConfig returns the devices for the gateway that has the group membership required
 func (a *api) gatewayConfig(w http.ResponseWriter, r *http.Request) {
 	gatewayName, _, _ := r.BasicAuth()

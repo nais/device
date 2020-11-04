@@ -6,6 +6,7 @@ import (
 	"fmt"
 	bootstrap_api "github.com/nais/device/bootstrap-api"
 	"github.com/nais/device/pkg/bootstrap"
+	"github.com/nais/device/pkg/secretmanager"
 	"github.com/stretchr/testify/assert"
 	"log"
 	"net"
@@ -16,35 +17,69 @@ import (
 
 var gatewayInfoUrl string
 var gatewayConfigUrl string
-var tokenUrl string
+
+const (
+	apiserverPassword = "pass"
+	apiserverUsername = "user"
+)
 
 func TestGatewayEnrollHappyPath(t *testing.T) {
 	listener, err := net.Listen("tcp", "127.0.0.1:0")
 	assert.NoError(t, err)
-
-	server, err := setup(listener)
-	assert.NoError(t, err)
-
-	tokenUrl = fmt.Sprintf("http://%s%s", listener.Addr().String(), "/api/v1/token")
-	gatewayConfigUrl = fmt.Sprintf("http://%s%s", listener.Addr().String(), "/api/v1/gatewayconfig")
-	gatewayInfoUrl = fmt.Sprintf("http://%s%s", listener.Addr().String(), "/api/v1/gatewayinfo")
+	if err != nil {
+		t.Fatal()
+	}
 
 	token := "fakeToken123"
-	tokenResponse, err := addToken(token)
+	gatewayName := "test-gateway"
+
+	sm := &FakeSecretManager{secrets: []*secretmanager.Secret{{
+		Name: gatewayName,
+		Data: []byte(token),
+	}}}
+
+	server, err := setup(listener, sm)
 	assert.NoError(t, err)
-	assert.Equal(t, http.StatusCreated, tokenResponse.StatusCode)
+	if err != nil {
+		t.Fatal()
+	}
+
+	gatewayConfigUrl = fmt.Sprintf("http://%s%s", listener.Addr().String(), "/api/v2/gateway/config")
+	gatewayInfoUrl = fmt.Sprintf("http://%s%s", listener.Addr().String(), "/api/v2/gateway/info")
 
 	gwInfoToPost := &bootstrap.GatewayInfo{
-		Name:     "test",
+		Name:     gatewayName,
 		PublicIP: "1.2.3.4",
 	}
 
-	gwInfoPostResponse, err := postGatewayInfo(token, gwInfoToPost)
+	var gwInfoPostResponse *http.Response
+
+	attempts := 0
+	for {
+		attempts += 1
+		time.Sleep(500 * time.Millisecond)
+		fmt.Printf("Attempt %d at posting gateway info", attempts)
+		gwInfoPostResponse, err = postGatewayInfo(gatewayName, token, gwInfoToPost)
+		if err == nil && gwInfoPostResponse.StatusCode != 401 {
+			break
+		}
+
+		if attempts >= 10 {
+			t.Fatal("reached max attempts for posting gateway info")
+		}
+	}
+
 	assert.NoError(t, err)
+	if err != nil {
+		t.Fatal()
+	}
 	assert.Equal(t, http.StatusCreated, gwInfoPostResponse.StatusCode)
 
 	gwInfos, gwInfosResponse, err := getGatewayInfo()
 	assert.NoError(t, err)
+	if err != nil {
+		t.Fatal()
+	}
 	assert.Len(t, gwInfos, 1)
 	assert.Equal(t, gwInfosResponse.StatusCode, http.StatusOK)
 
@@ -52,17 +87,24 @@ func TestGatewayEnrollHappyPath(t *testing.T) {
 	assert.Equal(t, gwInfos[0].Name, gwInfoToPost.Name)
 
 	gwConfigToPost := &bootstrap.GatewayConfig{
+		Name:               gatewayName,
 		TunnelIP:           "10.255.240.2",
 		APIServerPublicKey: "apiserver-public-key",
 		APIServerIP:        "33.44.55.66",
 	}
 
-	postGwConfigResponse, err := postGatewayConfig(token, gwConfigToPost)
+	postGwConfigResponse, err := postGatewayConfig(gwConfigToPost)
 	assert.NoError(t, err)
+	if err != nil {
+		t.Fatal()
+	}
 	assert.Equal(t, http.StatusCreated, postGwConfigResponse.StatusCode)
 
-	returnedGwConfig, getGwConfigResponse, err := getGatewayConfig(token)
+	returnedGwConfig, getGwConfigResponse, err := getGatewayConfig(gatewayName, token)
 	assert.NoError(t, err)
+	if err != nil {
+		t.Fatal()
+	}
 	assert.Equal(t, http.StatusOK, getGwConfigResponse.StatusCode)
 
 	assert.Equal(t, returnedGwConfig.APIServerIP, gwConfigToPost.APIServerIP)
@@ -71,10 +113,14 @@ func TestGatewayEnrollHappyPath(t *testing.T) {
 
 	err = server.Close()
 	assert.NoError(t, err)
+	if err != nil {
+		t.Fatal()
+	}
 	time.Sleep(1 * time.Second)
 }
 
-func postGatewayInfo(token string, config *bootstrap.GatewayInfo) (*http.Response, error) {
+// 1
+func postGatewayInfo(gatewayName, token string, config *bootstrap.GatewayInfo) (*http.Response, error) {
 	buffer := new(bytes.Buffer)
 	err := json.NewEncoder(buffer).Encode(*config)
 	if err != nil {
@@ -86,8 +132,7 @@ func postGatewayInfo(token string, config *bootstrap.GatewayInfo) (*http.Respons
 		return nil, err
 	}
 
-	request.Header.Add(bootstrap_api.TokenHeaderKey, token)
-	request.SetBasicAuth("user", "pass")
+	request.SetBasicAuth(gatewayName, token)
 
 	response, err := http.DefaultClient.Do(request)
 	if err != nil {
@@ -98,12 +143,13 @@ func postGatewayInfo(token string, config *bootstrap.GatewayInfo) (*http.Respons
 	return response, err
 }
 
+// 2
 func getGatewayInfo() ([]bootstrap.GatewayInfo, *http.Response, error) {
 	request, err := http.NewRequest("GET", gatewayInfoUrl, nil)
 	if err != nil {
 		return nil, nil, err
 	}
-	request.SetBasicAuth("user", "pass")
+	request.SetBasicAuth(apiserverUsername, apiserverPassword)
 
 	response, err := http.DefaultClient.Do(request)
 	if err != nil {
@@ -120,7 +166,8 @@ func getGatewayInfo() ([]bootstrap.GatewayInfo, *http.Response, error) {
 	return gwInfos, response, err
 }
 
-func postGatewayConfig(token string, config *bootstrap.GatewayConfig) (*http.Response, error) {
+// 3
+func postGatewayConfig(config *bootstrap.GatewayConfig) (*http.Response, error) {
 	buffer := new(bytes.Buffer)
 	err := json.NewEncoder(buffer).Encode(config)
 	if err != nil {
@@ -132,8 +179,7 @@ func postGatewayConfig(token string, config *bootstrap.GatewayConfig) (*http.Res
 		return nil, err
 	}
 
-	request.Header.Add(bootstrap_api.TokenHeaderKey, token)
-	request.SetBasicAuth("user", "pass")
+	request.SetBasicAuth(apiserverUsername, apiserverPassword)
 
 	response, err := http.DefaultClient.Do(request)
 	if err != nil {
@@ -144,12 +190,13 @@ func postGatewayConfig(token string, config *bootstrap.GatewayConfig) (*http.Res
 	return response, err
 }
 
-func getGatewayConfig(token string) (*bootstrap.GatewayConfig, *http.Response, error) {
+// 4
+func getGatewayConfig(gatewayName, token string) (*bootstrap.GatewayConfig, *http.Response, error) {
 	request, err := http.NewRequest("GET", gatewayConfigUrl, nil)
 	if err != nil {
 		return nil, nil, err
 	}
-	request.Header.Add(bootstrap_api.TokenHeaderKey, token)
+	request.SetBasicAuth(gatewayName, token)
 
 	response, err := http.DefaultClient.Do(request)
 	if err != nil {
@@ -166,7 +213,7 @@ func getGatewayConfig(token string) (*bootstrap.GatewayConfig, *http.Response, e
 	return &gwConfig, response, err
 }
 
-func setup(listener net.Listener) (*http.Server, error) {
+func setup(listener net.Listener, sm bootstrap_api.SecretManager) (*http.Server, error) {
 	c := map[string]string{"user": "pass"}
 	azureAuthMock := func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -175,7 +222,7 @@ func setup(listener net.Listener) (*http.Server, error) {
 		})
 	}
 
-	server := &http.Server{Handler: bootstrap_api.Api(c, azureAuthMock)}
+	server := &http.Server{Handler: bootstrap_api.NewApi(c, azureAuthMock, sm, 1*time.Second)}
 	go server.Serve(listener)
 	time.Sleep(1 * time.Second)
 
@@ -187,18 +234,10 @@ func setup(listener net.Listener) (*http.Server, error) {
 	return server, err
 }
 
-func addToken(token string) (*http.Response, error) {
-	request, err := http.NewRequest("POST", tokenUrl, nil)
-	if err != nil {
-		return nil, err
-	}
+type FakeSecretManager struct {
+	secrets []*secretmanager.Secret
+}
 
-	request.Header.Add(bootstrap_api.TokenHeaderKey, token)
-	request.SetBasicAuth("user", "pass")
-	response, err := http.DefaultClient.Do(request)
-	if err != nil {
-		return nil, err
-	}
-
-	return response, nil
+func (sm *FakeSecretManager) ListSecrets(filter map[string]string) ([]*secretmanager.Secret, error) {
+	return sm.secrets, nil
 }

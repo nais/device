@@ -16,7 +16,7 @@ clients: linux-client macos-client windows-client
 controlplane:
 	mkdir -p ./bin/controlplane
 	GOOS=linux GOARCH=amd64 go build -o bin/controlplane/apiserver ./cmd/apiserver
-	GOOS=linux GOARCH=amd64 go build -o bin/controlplane/bootstrap-api ./cmd/bootstrap-api
+	GOOS=linux GOARCH=amd64 go build -o bin/controlplane/bootstrap-api -ldflags "-s $(LDFLAGS)" ./cmd/bootstrap-api
 	GOOS=linux GOARCH=amd64 go build -o bin/controlplane/gateway-agent -ldflags "-s $(LDFLAGS)" ./cmd/gateway-agent
 	GOOS=linux GOARCH=amd64 go build -o bin/controlplane/prometheus-agent ./cmd/prometheus-agent
 

@@ -3,52 +3,40 @@ package bootstrap_api
 import (
 	"encoding/json"
 	"github.com/nais/device/pkg/bootstrap"
+	"github.com/nais/device/pkg/version"
+	"github.com/prometheus/client_golang/prometheus"
 	log "github.com/sirupsen/logrus"
 	"net/http"
 	"sync"
+	"time"
 )
 
 /*
 -> = POST
 <- = GET
 
-0. apiserver -> token         -> bootstrap-api
 1. gateway   -> GatewayInfo   -> bootstrap-api
 2. apiserver <- GatewayInfo   <- bootstrap-api
 3. apiserver -> GatewayConfig -> bootstrap-api
 4. gateway   <- GatewayConfig <- bootstrap-api
 */
 
-const TokenHeaderKey = "x-naisdevice-gateway-token"
+const GatewayNameContextKey = "gateway-name"
 
-var gatewayEnrollments ActiveGatewayEnrollments
+var failedSecretManagerSynchronizations prometheus.Counter
 
 func init() {
-	gatewayEnrollments.init()
-}
-
-//step 0: apiserver posts token
-func postToken(w http.ResponseWriter, r *http.Request) {
-	token := r.Header.Get(TokenHeaderKey)
-	if len(token) == 0 {
-		log.WithField("event", "no_token_header").Info("Error getting token during postGatewayConfig")
-		w.WriteHeader(http.StatusInternalServerError)
-		return
-	}
-
-	gatewayEnrollments.addToken(token)
-	w.WriteHeader(http.StatusCreated)
+	failedSecretManagerSynchronizations = prometheus.NewCounter(prometheus.CounterOpts{
+		Name:        "failed_secret_manager_synchronizations",
+		Help:        "count of failed secret manager synchronizations",
+		Namespace:   "naisdevice",
+		Subsystem:   "bootstrap_api",
+		ConstLabels: prometheus.Labels{"name": "bootstrap-api", "version": version.Version},
+	})
 }
 
 // step 1. gateway posts gateway info
-func postGatewayInfo(w http.ResponseWriter, r *http.Request) {
-	token := r.Header.Get(TokenHeaderKey)
-	if len(token) == 0 {
-		log.WithField("event", "no_token_header").Info("Error getting token during postGatewayConfig")
-		w.WriteHeader(http.StatusInternalServerError)
-		return
-	}
-
+func (api *GatewayApi) postGatewayInfo(w http.ResponseWriter, r *http.Request) {
 	var gatewayInfo bootstrap.GatewayInfo
 	err := json.NewDecoder(r.Body).Decode(&gatewayInfo)
 
@@ -58,23 +46,22 @@ func postGatewayInfo(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	gatewayEnrollments.addGatewayInfo(gatewayInfo)
+	api.enrollments.addGatewayInfo(gatewayInfo)
 
 	log.WithFields(log.Fields{
 		"component": "bootstrap-api",
 		"serial":    gatewayInfo.Name,
 		"public_ip": gatewayInfo.PublicIP,
-	}).Infof("Gateway enrollment request for apiserer queued")
+	}).Infof("Gateway enrollment request for apiserver queued")
 
 	w.WriteHeader(http.StatusCreated)
 }
 
 // step 2: apiserver gets gateway infos
-func getGatewayInfo(w http.ResponseWriter, r *http.Request) {
-	gatewayInfos := gatewayEnrollments.getGatewayInfos()
+func (api *GatewayApi) getGatewayInfo(w http.ResponseWriter, r *http.Request) {
+	gatewayInfos := api.enrollments.getGatewayInfos()
 	log.Infof("%s %s: %v", r.Method, r.URL, gatewayInfos)
 
-	w.WriteHeader(http.StatusOK)
 	err := json.NewEncoder(w).Encode(gatewayInfos)
 	if err != nil {
 		log.Errorf("Encoding json: %v", err)
@@ -84,14 +71,7 @@ func getGatewayInfo(w http.ResponseWriter, r *http.Request) {
 }
 
 // step 3. apiserver posts gateway config
-func postGatewayConfig(w http.ResponseWriter, r *http.Request) {
-	token := r.Header.Get(TokenHeaderKey)
-	if len(token) == 0 {
-		log.WithField("event", "no_token_header").Info("Error getting token during postGatewayConfig")
-		w.WriteHeader(http.StatusInternalServerError)
-		return
-	}
-
+func (api *GatewayApi) postGatewayConfig(w http.ResponseWriter, r *http.Request) {
 	log := log.WithFields(log.Fields{
 		"component": "bootstrap-api",
 	})
@@ -104,7 +84,7 @@ func postGatewayConfig(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	gatewayEnrollments.addGatewayConfig(token, gatewayConfig)
+	api.enrollments.addGatewayConfig(gatewayConfig)
 
 	w.WriteHeader(http.StatusCreated)
 
@@ -112,33 +92,30 @@ func postGatewayConfig(w http.ResponseWriter, r *http.Request) {
 }
 
 // step 4. gateway requests gateway config
-func getGatewayConfig(w http.ResponseWriter, r *http.Request) {
-	token := r.Header.Get(TokenHeaderKey)
-	if len(token) == 0 {
-		log.WithField("event", "no_token_header").Info("Error getting token during getGatewayConfig")
-		w.WriteHeader(http.StatusInternalServerError)
-		return
-	}
+func (api *GatewayApi) getGatewayConfig(w http.ResponseWriter, r *http.Request) {
+	gatewayName := r.Context().Value(GatewayNameContextKey).(string)
 
 	log := log.WithFields(log.Fields{
 		"component": "bootstrap-api",
 	})
 
-	gatewayConfig := gatewayEnrollments.getGatewayConfig(token)
+	gatewayConfig := api.enrollments.getGatewayConfig(gatewayName)
 
 	if gatewayConfig == nil {
 		w.WriteHeader(http.StatusNotFound)
-		log.Warnf("no gateway config for provided token found")
+		log.Warnf("No gateway config for provided token found")
 		return
 	}
 
-	w.WriteHeader(http.StatusOK)
 	err := json.NewEncoder(w).Encode(gatewayConfig)
 	if err != nil {
-		log.Errorf("Unable to get gateway config: Encoding json: %v", err)
+		log.Errorf("Encoding json: %v", err)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
+
+	// TODO disable token
+	// TODO delete token or sync
 
 	log.WithField("event", "retrieved_gateway_config").Infof("Successfully returned gateway config")
 }
@@ -149,13 +126,12 @@ type ActiveGatewayEnrollments struct {
 
 	bootstrapGatewayConfigs     map[string]bootstrap.GatewayConfig
 	bootstrapGatewayConfigsLock sync.Mutex
-
-	tokens     []string
-	tokensLock sync.Mutex
 }
 
-func (a *ActiveGatewayEnrollments) init() {
-	a.bootstrapGatewayConfigs = make(map[string]bootstrap.GatewayConfig)
+func NewActiveGatewayEnrollments() *ActiveGatewayEnrollments {
+	return &ActiveGatewayEnrollments{
+		bootstrapGatewayConfigs: make(map[string]bootstrap.GatewayConfig),
+	}
 }
 
 func (a *ActiveGatewayEnrollments) getGatewayInfos() []bootstrap.GatewayInfo {
@@ -177,52 +153,70 @@ func (a *ActiveGatewayEnrollments) addGatewayInfo(gatewayInfo bootstrap.GatewayI
 	a.gatewayInfos = append(a.gatewayInfos, gatewayInfo)
 }
 
-func (a *ActiveGatewayEnrollments) addGatewayConfig(serial string, bootstrapGatewayConfig bootstrap.GatewayConfig) {
+func (a *ActiveGatewayEnrollments) addGatewayConfig(bootstrapGatewayConfig bootstrap.GatewayConfig) {
 	a.bootstrapGatewayConfigsLock.Lock()
 	defer a.bootstrapGatewayConfigsLock.Unlock()
 
-	a.bootstrapGatewayConfigs[serial] = bootstrapGatewayConfig
+	a.bootstrapGatewayConfigs[bootstrapGatewayConfig.Name] = bootstrapGatewayConfig
 }
 
-func (a *ActiveGatewayEnrollments) getGatewayConfig(serial string) *bootstrap.GatewayConfig {
+func (a *ActiveGatewayEnrollments) getGatewayConfig(gatewayName string) *bootstrap.GatewayConfig {
 	a.bootstrapGatewayConfigsLock.Lock()
 	defer a.bootstrapGatewayConfigsLock.Unlock()
 
-	if val, ok := a.bootstrapGatewayConfigs[serial]; ok {
-		delete(a.bootstrapGatewayConfigs, serial)
+	if val, ok := a.bootstrapGatewayConfigs[gatewayName]; ok {
+		delete(a.bootstrapGatewayConfigs, gatewayName)
 		return &val
 	} else {
 		return nil
 	}
 }
 
-func (a *ActiveGatewayEnrollments) hasToken(token string) bool {
-	a.tokensLock.Lock()
-	defer a.tokensLock.Unlock()
+func (api *GatewayApi) authenticated(providedGatewayName, providedToken string) bool {
+	api.enrollmentTokensLock.Lock()
+	defer api.enrollmentTokensLock.Unlock()
 
-	for _, validToken := range a.tokens {
-		if validToken == token {
-			return true
-		}
+	token, ok := api.enrollmentTokens[providedGatewayName]
+	if !ok {
+		log.Debugf("auth token not found for gateway: %s", providedGatewayName)
+		return false
 	}
-	return false
+
+	return token == providedToken
 }
 
-func (a *ActiveGatewayEnrollments) addToken(token string) {
-	a.tokensLock.Lock()
-	defer a.tokensLock.Unlock()
-
-	a.tokens = append(a.tokens, token)
-}
-
-func (a *ActiveGatewayEnrollments) deleteToken(token string) {
-	a.tokensLock.Lock()
-	defer a.tokensLock.Unlock()
-
-	for i, validToken := range a.tokens {
-		if validToken == token {
-			a.tokens = append(a.tokens[:i], a.tokens[i+1:]...)
+func (api *GatewayApi) syncEnrollmentSecretsLoop(interval time.Duration, stop chan struct{}) {
+	for {
+		select {
+		case <-time.After(interval):
+			api.syncEnrollmentSecrets()
+		case <-stop:
 			return
 		}
 	}
+}
+
+func (api *GatewayApi) syncEnrollmentSecrets() {
+	api.enrollmentTokensLock.Lock()
+	defer api.enrollmentTokensLock.Unlock()
+
+	filter := map[string]string{"type": "enrollment-token"}
+	secrets, err := api.secretManager.ListSecrets(filter)
+	if err != nil {
+		log.Errorf("Listing secrets: %v", err)
+		failedSecretManagerSynchronizations.Inc()
+		return
+	}
+
+	api.enrollmentTokens = make(map[string]string)
+	for _, secret := range secrets {
+		api.enrollmentTokens[secret.Name] = string(secret.Data)
+	}
+}
+
+func (api *GatewayApi) deleteToken(name string) {
+	api.enrollmentTokensLock.Lock()
+	defer api.enrollmentTokensLock.Unlock()
+
+	delete(api.enrollmentTokens, name)
 }

@@ -1,7 +1,9 @@
 package bootstrap_api
 
 import (
+	"context"
 	"fmt"
+	log "github.com/sirupsen/logrus"
 	"net/http"
 	"strings"
 )
@@ -20,15 +22,24 @@ func Credentials(credentialEntries []string) (map[string]string, error) {
 	return credentials, nil
 }
 
-func TokenAuth(next http.Handler) http.Handler {
+func (api *GatewayApi) gatewayAuth(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		token := r.Header.Get(TokenHeaderKey)
+		gatewayName, token, ok := r.BasicAuth()
 
-		if !gatewayEnrollments.hasToken(token) {
+		if !ok {
 			w.WriteHeader(http.StatusUnauthorized)
+			log.Warnf("Unauthorized: no basic auth provided")
 			return
 		}
 
-		next.ServeHTTP(w, r)
+		if !api.authenticated(gatewayName, token) {
+			w.WriteHeader(http.StatusUnauthorized)
+			log.Warnf("Unauthorized: invalid credentials")
+			return
+		}
+
+		ctx := context.WithValue(r.Context(), GatewayNameContextKey, gatewayName)
+
+		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 }
