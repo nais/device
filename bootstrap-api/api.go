@@ -34,7 +34,6 @@ type Api struct {
 }
 
 func (api *Api) Router() chi.Router {
-
 	r := chi.NewRouter()
 
 	r.Get("/isalive", func(w http.ResponseWriter, r *http.Request) {

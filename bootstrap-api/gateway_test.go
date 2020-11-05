@@ -36,7 +36,7 @@ func TestGatewayEnrollHappyPath(t *testing.T) {
 	gatewayName := "test-gateway"
 
 	sm := &FakeSecretManager{secrets: []*secretmanager.Secret{{
-		Name: gatewayName,
+		Name: "/foo/x/y/z" + gatewayName,
 		Data: []byte(token),
 	}}}
 

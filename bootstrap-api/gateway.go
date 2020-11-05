@@ -7,6 +7,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	log "github.com/sirupsen/logrus"
 	"net/http"
+	"strings"
 	"sync"
 	"time"
 )
@@ -176,13 +177,13 @@ func (api *GatewayApi) authenticated(providedGatewayName, providedToken string) 
 	api.enrollmentTokensLock.Lock()
 	defer api.enrollmentTokensLock.Unlock()
 
-	token, ok := api.enrollmentTokens[providedGatewayName]
+	gatewayName, ok := api.enrollmentTokens[providedToken]
 	if !ok {
 		log.Debugf("auth token not found for gateway: %s", providedGatewayName)
 		return false
 	}
 
-	return token == providedToken
+	return strings.HasSuffix(gatewayName, providedGatewayName)
 }
 
 func (api *GatewayApi) syncEnrollmentSecretsLoop(interval time.Duration, stop chan struct{}) {
@@ -210,7 +211,7 @@ func (api *GatewayApi) syncEnrollmentSecrets() {
 
 	api.enrollmentTokens = make(map[string]string)
 	for _, secret := range secrets {
-		api.enrollmentTokens[secret.Name] = string(secret.Data)
+		api.enrollmentTokens[string(secret.Data)] = secret.Name
 	}
 }
 
