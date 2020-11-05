@@ -23,6 +23,7 @@ type Config struct {
 	CredentialEntries      []string
 	LogLevel               string
 	SecretManagerProjectID string
+	DevMode                bool
 }
 
 var cfg = &Config{
@@ -45,6 +46,7 @@ func init() {
 	flag.StringVar(&cfg.Azure.ClientID, "azure-client-id", "", "Azure app client id")
 	flag.StringVar(&cfg.SecretManagerProjectID, "secret-manager-project-id", "nais-device", "Secret Manager Project ID")
 	flag.StringSliceVar(&cfg.CredentialEntries, "credential-entries", nil, "Comma-separated credentials on format: '<user>:<key>'")
+	flag.BoolVar(&cfg.DevMode, "development-mode", cfg.DevMode, "Development mode avoids setting up wireguard and fetching and validating AAD certificates")
 
 	flag.Parse()
 }
@@ -55,9 +57,12 @@ func main() {
 		_ = http.ListenAndServe(cfg.PrometheusAddr, promhttp.Handler())
 	}()
 
+	devMode := true
 	jwtValidator, err := bootstrap_api.CreateJWTValidator(cfg.Azure)
 	if err != nil {
-		log.Fatalf("Creating JWT validator: %v", err)
+		if !devMode {
+			log.Fatalf("Creating JWT validator: %v", err)
+		}
 	}
 
 	apiserverCredentials, err := bootstrap_api.Credentials(cfg.CredentialEntries)
@@ -74,6 +79,6 @@ func main() {
 
 	api := bootstrap_api.NewApi(apiserverCredentials, tokenValidator, sm, SecretSyncInterval)
 
-	log.Info("running @", cfg.BindAddress)
+	log.Info("running @ ", cfg.BindAddress)
 	log.Info(http.ListenAndServe(cfg.BindAddress, api))
 }
