@@ -103,7 +103,7 @@ func (api *DeviceApi) RoutesV2() func(chi.Router) {
 	}
 }
 
-func (api GatewayApi) RoutesV2() func(chi.Router) {
+func (api *GatewayApi) RoutesV2() func(chi.Router) {
 	return func(r chi.Router) {
 		// gateway calls
 		r.Group(func(r chi.Router) {
