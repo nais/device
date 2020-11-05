@@ -4,15 +4,17 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"log"
+	"net"
+	"net/http"
+	"sync"
+	"testing"
+	"time"
+
 	bootstrap_api "github.com/nais/device/bootstrap-api"
 	"github.com/nais/device/pkg/bootstrap"
 	"github.com/nais/device/pkg/secretmanager"
 	"github.com/stretchr/testify/assert"
-	"log"
-	"net"
-	"net/http"
-	"testing"
-	"time"
 )
 
 var gatewayInfoUrl string
@@ -38,7 +40,9 @@ func TestGatewayEnrollHappyPath(t *testing.T) {
 		Data: []byte(token),
 	}}}
 
-	server, err := setup(listener, sm)
+	stop := make(chan struct{}, 1)
+	wg := &sync.WaitGroup{}
+	server, err := setup(listener, sm, stop, wg)
 	assert.NoError(t, err)
 	if err != nil {
 		t.Fatal()
@@ -116,7 +120,9 @@ func TestGatewayEnrollHappyPath(t *testing.T) {
 	if err != nil {
 		t.Fatal()
 	}
-	time.Sleep(1 * time.Second)
+
+	stop <- struct{}{}
+	wg.Wait()
 }
 
 // 1
@@ -213,7 +219,7 @@ func getGatewayConfig(gatewayName, token string) (*bootstrap.GatewayConfig, *htt
 	return &gwConfig, response, err
 }
 
-func setup(listener net.Listener, sm bootstrap_api.SecretManager) (*http.Server, error) {
+func setup(listener net.Listener, sm bootstrap_api.SecretManager, stop chan struct{}, wg *sync.WaitGroup) (*http.Server, error) {
 	c := map[string]string{"user": "pass"}
 	azureAuthMock := func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -222,7 +228,15 @@ func setup(listener net.Listener, sm bootstrap_api.SecretManager) (*http.Server,
 		})
 	}
 
-	server := &http.Server{Handler: bootstrap_api.NewApi(c, azureAuthMock, sm, 1*time.Second)}
+	api := bootstrap_api.NewApi(c, azureAuthMock, sm)
+
+	go func() {
+		wg.Add(1)
+		api.SyncEnrollmentSecretsLoop(1*time.Second, stop)
+		wg.Done()
+	}()
+
+	server := &http.Server{Handler: api.Router()}
 	go server.Serve(listener)
 	time.Sleep(1 * time.Second)
 

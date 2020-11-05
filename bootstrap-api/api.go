@@ -1,12 +1,13 @@
 package bootstrap_api
 
 import (
-	"github.com/go-chi/chi"
-	chi_middleware "github.com/go-chi/chi/middleware"
-	"github.com/nais/device/pkg/secretmanager"
 	"net/http"
 	"sync"
 	"time"
+
+	"github.com/go-chi/chi"
+	chi_middleware "github.com/go-chi/chi/middleware"
+	"github.com/nais/device/pkg/secretmanager"
 )
 
 type DeviceApi struct {
@@ -27,16 +28,35 @@ type GatewayApi struct {
 	apiserverAuth        func(http.Handler) http.Handler
 }
 
-func NewApi(apiserverCredentialEntries map[string]string, azureValidator func(next http.Handler) http.Handler, secretManager SecretManager, syncInterval time.Duration) chi.Router {
+type Api struct {
+	gatewayApi *GatewayApi
+	deviceApi  *DeviceApi
+}
+
+func (api *Api) Router() chi.Router {
+
 	r := chi.NewRouter()
 
 	r.Get("/isalive", func(w http.ResponseWriter, r *http.Request) {
 		return
 	})
 
+	r.Route("/api/v1", api.deviceApi.RoutesV1())
+
+	r.Route("/api/v2", func(r chi.Router) {
+		r.Route("/device", api.deviceApi.RoutesV2())
+		r.Route("/gateway", api.gatewayApi.RoutesV2())
+	})
+
+	return r
+}
+
+func NewApi(apiserverCredentialEntries map[string]string, azureValidator func(next http.Handler) http.Handler, secretManager SecretManager) *Api {
+	api := &Api{}
+
 	apiserverAuth := chi_middleware.BasicAuth("naisdevice", apiserverCredentialEntries)
 
-	gatewayApi := GatewayApi{
+	api.gatewayApi = &GatewayApi{
 		enrollments:          NewActiveGatewayEnrollments(),
 		secretManager:        secretManager,
 		enrollmentTokens:     nil,
@@ -44,29 +64,21 @@ func NewApi(apiserverCredentialEntries map[string]string, azureValidator func(ne
 		apiserverAuth:        apiserverAuth,
 	}
 
-	/*  TODO use this in real world
-	    stop := make(chan struct{})
-		go gatewayApi.syncEnrollmentSecretsLoop(syncInterval, stop)
-	*/
-	gatewayApi.syncEnrollmentSecrets()
-	deviceApi := DeviceApi{
+	api.deviceApi = &DeviceApi{
 		enrollments:    NewActiveDeviceEnrollments(),
 		apiserverAuth:  apiserverAuth,
 		azureValidator: azureValidator,
 	}
 
-	r.Route("/api/v1", deviceApi.RoutesV1())
+	return api
+}
 
-	r.Route("/api/v2", func(r chi.Router) {
-		r.Route("/device", deviceApi.RoutesV2())
-		r.Route("/gateway", gatewayApi.RoutesV2())
-	})
-
-	return r
+func (api *Api) SyncEnrollmentSecretsLoop(syncInterval time.Duration, stop chan struct{}) {
+	api.gatewayApi.syncEnrollmentSecretsLoop(syncInterval, stop)
 }
 
 func (api *DeviceApi) RoutesV1() func(chi.Router) {
-	//state
+	// state
 	return func(r chi.Router) {
 		// device calls
 		r.Group(func(r chi.Router) {
@@ -85,7 +97,7 @@ func (api *DeviceApi) RoutesV1() func(chi.Router) {
 }
 
 func (api *DeviceApi) RoutesV2() func(chi.Router) {
-	//state
+	// state
 	return func(r chi.Router) {
 		// device calls
 		r.Group(func(r chi.Router) {

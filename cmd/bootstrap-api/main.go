@@ -1,12 +1,13 @@
 package main
 
 import (
+	"net/http"
+	"time"
+
 	"github.com/nais/device/bootstrap-api"
 	"github.com/nais/device/pkg/logger"
 	"github.com/nais/device/pkg/secretmanager"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
-	"net/http"
-	"time"
 
 	log "github.com/sirupsen/logrus"
 	flag "github.com/spf13/pflag"
@@ -77,8 +78,11 @@ func main() {
 
 	tokenValidator := bootstrap_api.TokenValidatorMiddleware(jwtValidator)
 
-	api := bootstrap_api.NewApi(apiserverCredentials, tokenValidator, sm, SecretSyncInterval)
+	api := bootstrap_api.NewApi(apiserverCredentials, tokenValidator, sm)
+	router := api.Router()
+	stop := make(chan struct{}, 1)
+	go api.SyncEnrollmentSecretsLoop(SecretSyncInterval, stop)
 
 	log.Info("running @ ", cfg.BindAddress)
-	log.Info(http.ListenAndServe(cfg.BindAddress, api))
+	log.Info(http.ListenAndServe(cfg.BindAddress, router))
 }
