@@ -1,5 +1,5 @@
 - name: ensure iptables dir exists and has correct permissions
-  template:
+  file:
     path: /etc/iptables/
     state: directory
     owner: root
