@@ -2,7 +2,7 @@
   get_url:
     dest: /opt/nais-device/bin/dmesg-to-json
     force: yes
-    url: https://github.com/nais/dmesg-to-json/releases/download/2020-10-06-7d84b8c/dmesg-to-json
+    url: https://github.com/nais/dmesg-to-json/releases/download/2020-09-23-5bbb525/dmesg-to-json
     backup: no
     mode: 0755
   notify:
