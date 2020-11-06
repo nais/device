@@ -1,4 +1,12 @@
-- name: Install default IP Tables rules which we want set at boot
+- name: ensure iptables dir exists and has correct permissions
+  template:
+    path: /etc/iptables/
+    state: directory
+    owner: root
+    group: root
+    mode: '0644'
+
+- name: install default ip tables rules which we want set at boot
   template:
     src: iptables_outset_rules.v4.j2
     dest: /etc/iptables/rules.v4
