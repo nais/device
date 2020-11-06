@@ -1,6 +1,6 @@
 # naisdevice
 
-naisdevice is a mechanism enabling NAVs developers to connect to internal resources in a secure and friendly manner. 
+naisdevice is a mechanism enabling NAVs developers to connect to internal resources in a secure and friendly manner.
 
 Each resource is protected by a gateway, and the developer is only granted access to the gateway if all of the following requirements are met:
 - Has a valid nav.no account
@@ -21,10 +21,10 @@ Each resource is protected by a gateway, and the developer is only granted acces
 todo: simple visual describing:
 - apiserver coordinates configuration
 - device + gateway fetches config on a timer
-- device-health-checker informs apiserver of device health from Kolide
+- [naisdevice-health-checker](https://github.com/nais/naisdevice-health-checker) informs apiserver of device health from Kolide
 - additionally: bootstrap-api used first time user connects/enrolls into the system
 
-### components 
+### components
 
 #### apiserver
 The naisdevice apiserver main responsibility is to serve the [device-agents](#device-agent) and [gateway-agents](#gateway-agent) with configuration through a set of APIs.
@@ -35,15 +35,14 @@ It calculates the appropriate configuration for the peers primarily based on two
 1. Is the device owner authorized to use the gateway?
 2. Is the device in a healthy state?
 
-If both is true, the device-agent and gateway-agent is informed with the necessary information in order for them to communicate. 
+If both is true, the device-agent and gateway-agent is informed with the necessary information in order for them to communicate.
 
 The apiserver also:
-- exposes an endpoint for other trusted processes to inform about the health status of the devices. Currently this is the [device-health-checker](#device-health-checker) components
+- exposes an endpoint for other trusted processes to inform about the health status of the devices. Currently this is the [naisdevice-health-checker](https://github.com/nais/naisdevice-health-checker) components
 - continuously checks the [bootstrap-api](#bootstrap-api) for any pending enrollments requests and adds new devices.
 
 ### device-agent
 ### gateway-agent
-### device-health-checker
 ### bootstrap-api
 
 ## [Kolide](https://www.kolide.com/)
