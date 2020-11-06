@@ -1,4 +1,4 @@
-# do's and don'ts - nais-device
+# do's and don'ts - naisdevice
 
 This document has moved [to the naisdevice-approval repository](https://github.com/nais/naisdevice-approval/blob/master/templates/index.html).
 
