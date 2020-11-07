@@ -1,4 +1,4 @@
-.PHONY: test device-health-checker
+.PHONY: test
 DATE = $(shell date "+%Y-%m-%d")
 LAST_COMMIT = $(shell git --no-pager log -1 --pretty=%h)
 VERSION ?= $(DATE)-$(LAST_COMMIT)
@@ -19,12 +19,6 @@ controlplane:
 	GOOS=linux GOARCH=amd64 go build -o bin/controlplane/bootstrap-api -ldflags "-s $(LDFLAGS)" ./cmd/bootstrap-api
 	GOOS=linux GOARCH=amd64 go build -o bin/controlplane/gateway-agent -ldflags "-s $(LDFLAGS)" ./cmd/gateway-agent
 	GOOS=linux GOARCH=amd64 go build -o bin/controlplane/prometheus-agent ./cmd/prometheus-agent
-
-# Run by GitHub actions on linux
-device-health-checker:
-	mkdir -p ./bin/device-health-checker
-	cd device-health-checker && composer install --prefer-dist --no-progress --no-suggest --no-ansi --no-dev -o
-	php -d phar.readonly=off device-health-checker/create-phar.php device-health-checker/device-health-checker.php bin/device-health-checker/
 
 # Run by GitHub actions on linux
 linux-client:

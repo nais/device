@@ -5,9 +5,6 @@ on:
       - 'Makefile'
       - 'go.mod'
       - '**.go'
-      - 'device-health-checker/**/*.php'
-      - 'device-health-checker/composer.json'
-      - 'device-health-checker/composer.lock'
       - '.github/workflows/master.yml'
 jobs:
   test:
@@ -43,45 +40,13 @@ jobs:
         id: set-version
         run: echo ::set-output name=version::$(date "+%Y-%m-%d")-$(git --no-pager log -1 --pretty=%h)
 
-  test-device-health-checker:
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: ./device-health-checker
-    steps:
-      - uses: actions/checkout@v2
-      - name: Setup PHP
-        uses: shivammathur/setup-php@v2
-        with:
-          php-version: '7.4'
-      - name: Output some debug information about the PHP version
-        run: |
-          php -v
-          php -i
-          php -m
-      - name: Validate composer files
-        run: composer validate --strict
-      - name: Cache Composer packages
-        id: composer-cache
-        uses: actions/cache@v1
-        with:
-          path: vendor
-          key: ${{ runner.os }}-php-node-${{ hashFiles('**/composer.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-php-node-
-      - name: Install dependencies
-        if: steps.composer-cache.outputs.cache-hit != 'true'
-        run: composer install --prefer-dist --no-progress --no-suggest --no-ansi -o
-      - name: Run tests
-        run: composer run ci
-
   build:
     needs:
       - set-version
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        target: [linux-client, windows-client, controlplane, device-health-checker]
+        target: [linux-client, windows-client, controlplane]
     steps:
       - uses: actions/checkout@v2
       - name: build ${{ matrix.target }}
@@ -149,7 +114,6 @@ jobs:
     needs:
       - set-version
       - test
-      - test-device-health-checker
       - build
       - build-macos
       - build-windows
@@ -199,20 +163,6 @@ jobs:
           asset_path: ./bin/controlplane/prometheus-agent
           asset_name: prometheus-agent
           asset_content_type: application/octet-stream
-
-      - name: download device-health-checker artifact
-        uses: actions/download-artifact@v2.0
-        with:
-          name: device-health-checker
-          path: bin/device-health-checker
-      - name: upload device-health-checker.phar archive
-        uses: actions/upload-release-asset@v1.0.2
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./bin/device-health-checker/device-health-checker.phar
-          asset_name: device-health-checker.phar
-          asset_content_type: application/octet-stream
-
       - name: download windows installer
         uses: actions/download-artifact@v2.0
         with:
