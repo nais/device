@@ -19,7 +19,7 @@ func TestBootstrapDevice(t *testing.T) {
 
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch {
-		case r.RequestURI == "/api/v1/deviceinfo" && r.Method == http.MethodPost:
+		case r.RequestURI == "/api/v2/device/info" && r.Method == http.MethodPost:
 			var di bootstrap.DeviceInfo
 			if err := json.NewDecoder(r.Body).Decode(&di); err != nil {
 				assert.NoError(t, err)
@@ -30,7 +30,7 @@ func TestBootstrapDevice(t *testing.T) {
 			assert.Equal(t, platform, di.Platform)
 
 			w.WriteHeader(http.StatusCreated)
-		case strings.HasPrefix(r.RequestURI, "/api/v1/bootstrapconfig") && r.Method == http.MethodGet:
+		case strings.HasPrefix(r.RequestURI, "/api/v2/device/config/") && r.Method == http.MethodGet:
 			bc := bootstrap.Config{
 				DeviceIP:       tunnelIP,
 				PublicKey:      publicKey,

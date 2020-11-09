@@ -13,13 +13,13 @@ import (
 )
 
 func BootstrapDevice(deviceInfo *bootstrap.DeviceInfo, bootstrapAPI string, client *http.Client) (*bootstrap.Config, error) {
-	deviceInfoURL := fmt.Sprintf("%s/api/v1/deviceinfo", bootstrapAPI)
+	deviceInfoURL := fmt.Sprintf("%s/api/v2/device/info", bootstrapAPI)
 	err := postDeviceInfo(deviceInfoURL, deviceInfo, client)
 	if err != nil {
 		return nil, fmt.Errorf("posting device info: %w", err)
 	}
 
-	bootstrapConfigURL := fmt.Sprintf("%s/api/v1/bootstrapconfig/%s", bootstrapAPI, deviceInfo.Serial)
+	bootstrapConfigURL := fmt.Sprintf("%s/api/v2/device/config/%s", bootstrapAPI, deviceInfo.Serial)
 	bootstrapConfig, err := getBootstrapConfig(bootstrapConfigURL, client)
 	if err != nil {
 		return nil, fmt.Errorf("getting bootstrap config: %w", err)

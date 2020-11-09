@@ -70,7 +70,7 @@ func (rc *RuntimeConfig) Write(w io.Writer) (int, error) {
 	return written, err
 }
 
-func New(cfg config.Config, ctx context.Context) (*RuntimeConfig, error) {
+func New(cfg config.Config) (*RuntimeConfig, error) {
 	rc := &RuntimeConfig{
 		Config: cfg,
 	}

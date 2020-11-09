@@ -85,7 +85,7 @@ func onReady() {
 		notify(fmt.Sprintf("Missing prerequisites: %s", err))
 	}
 
-	rc, err := runtimeconfig.New(cfg, context.Background())
+	rc, err := runtimeconfig.New(cfg)
 	if err != nil {
 		log.Errorf("Runtime config: %v", err)
 		notify("Unable to start naisdevice, check logs for details")
