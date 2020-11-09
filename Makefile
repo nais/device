@@ -68,7 +68,7 @@ stop-postgres-test:
 local-gateway-agent:
 	$(eval config_dir := $(shell mktemp -d))
 	wg genkey > $(config_dir)/private.key
-	go run ./cmd/gateway-agent/main.go --api-server-url=http://localhost:8080 --name=gateway-1 --api-server-password=password --prometheus-address=127.0.0.1:3000 --development-mode=true --config-dir $(config_dir) --log-level debug
+	go run ./cmd/gateway-agent/main.go --api-server-url=http://localhost:8080 --name=gateway-1 --prometheus-address=127.0.0.1:3000 --development-mode=true --config-dir $(config_dir) --log-level debug
 
 local-apiserver:
 	$(eval confdir := $(shell mktemp -d))
