@@ -1,6 +1,11 @@
 package prometheus
 
-import "github.com/prometheus/client_golang/prometheus"
+import (
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
+	log "github.com/sirupsen/logrus"
+	"net/http"
+)
 
 var (
 	FailedConfigFetches       prometheus.Counter
@@ -10,7 +15,14 @@ var (
 	CurrentVersion            prometheus.Counter
 )
 
-func InitMetrics(name, version string) {
+func Serve(address string) {
+	go func() {
+		log.Infof("Prometheus serving metrics at %v", address)
+		_ = http.ListenAndServe(address, promhttp.Handler())
+	}()
+}
+
+func InitializeMetrics(name, version string) {
 	CurrentVersion = prometheus.NewCounter(prometheus.CounterOpts{
 		Name:        "current_version",
 		Help:        "current running version",

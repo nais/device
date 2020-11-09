@@ -16,7 +16,6 @@ import (
 
 	"github.com/coreos/go-iptables/iptables"
 	"github.com/nais/device/pkg/version"
-	"github.com/prometheus/client_golang/prometheus/promhttp"
 	log "github.com/sirupsen/logrus"
 	flag "github.com/spf13/pflag"
 )
@@ -44,8 +43,10 @@ func init() {
 	cfg.WireGuardConfigPath = path.Join(cfg.ConfigDir, "wg0.conf")
 	cfg.PrivateKeyPath = path.Join(cfg.ConfigDir, "private.key")
 	cfg.APIServerPasswordPath = path.Join(cfg.ConfigDir, "apiserver_password")
-	prometheus.InitMetrics(cfg.Name, version.Version)
 	log.Infof("Version: %s, Revision: %s", version.Version, version.Revision)
+
+	prometheus.InitializeMetrics(cfg.Name, version.Version)
+	prometheus.Serve(cfg.PrometheusAddr)
 }
 
 type GatewayConfig struct {
@@ -60,11 +61,6 @@ type Device struct {
 }
 
 func main() {
-	go func() {
-		log.Infof("Prometheus serving metrics at %v", cfg.PrometheusAddr)
-		_ = http.ListenAndServe(cfg.PrometheusAddr, promhttp.Handler())
-	}()
-
 	if err := cfg.InitLocalConfig(); err != nil {
 		log.Fatalf("Initializing local configuration: %v", err)
 	}
@@ -75,7 +71,6 @@ func main() {
 		if err := setupInterface(cfg.TunnelIP); err != nil {
 			log.Fatalf("setting up interface: %v", err)
 		}
-
 		var err error
 		cfg.IPTables, err = iptables.New()
 		if err != nil {
