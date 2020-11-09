@@ -1,4 +1,4 @@
-package prometheus
+package gateway_agent
 
 import (
 	"github.com/prometheus/client_golang/prometheus"
@@ -16,10 +16,8 @@ var (
 )
 
 func Serve(address string) {
-	go func() {
-		log.Infof("Prometheus serving metrics at %v", address)
-		_ = http.ListenAndServe(address, promhttp.Handler())
-	}()
+	log.Infof("Prometheus serving metrics at %v", address)
+	_ = http.ListenAndServe(address, promhttp.Handler())
 }
 
 func InitializeMetrics(name, version string) {

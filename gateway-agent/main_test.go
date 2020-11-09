@@ -1,7 +1,7 @@
-package main_test
+package gateway_agent_test
 
 import (
-	main "github.com/nais/device/cmd/gateway-agent"
+	gateway_agent "github.com/nais/device/gateway-agent"
 
 	"github.com/stretchr/testify/assert"
 	"testing"
@@ -12,7 +12,7 @@ func TestParseDefaultInterfaceOutput(t *testing.T) {
     cache
 `)
 
-	ifName, ifIP, err := main.ParseDefaultInterfaceOutput(input)
+	ifName, ifIP, err := gateway_agent.ParseDefaultInterfaceOutput(input)
 
 	assert.NoError(t, err)
 	assert.Equal(t, "ens160", ifName)

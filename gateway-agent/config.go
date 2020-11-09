@@ -1,4 +1,4 @@
-package config
+package gateway_agent
 
 import (
 	"fmt"
@@ -74,10 +74,10 @@ func getDefaultInterfaceInfo() (string, string, error) {
 		return "", "", fmt.Errorf("getting default gateway: %w", err)
 	}
 
-	return parseDefaultInterfaceOutput(out)
+	return ParseDefaultInterfaceOutput(out)
 }
 
-func parseDefaultInterfaceOutput(output []byte) (string, string, error) {
+func ParseDefaultInterfaceOutput(output []byte) (string, string, error) {
 	lines := strings.Split(string(output), "\n")
 	parts := strings.Split(lines[0], " ")
 	if len(parts) != 9 {
