@@ -99,7 +99,7 @@ func (bs *bootstrapper) pushBootstrapConfig(bootstrapURL, serial string, bootstr
 		return fmt.Errorf("marshalling config: %w", err)
 	}
 
-	r, err := bs.Client.Post(bootstrapURL+"/api/v1/bootstrapconfig/"+serial, "application/json", bytes.NewReader(b))
+	r, err := bs.Client.Post(fmt.Sprintf("%s/api/v2/device/config/%s", bootstrapURL, serial), "application/json", bytes.NewReader(b))
 	if err != nil {
 		return fmt.Errorf("posting bootstrap config: %w", err)
 	}
@@ -109,7 +109,7 @@ func (bs *bootstrapper) pushBootstrapConfig(bootstrapURL, serial string, bootstr
 }
 
 func (bs *bootstrapper) fetchDeviceInfos(bootstrapURL string) ([]bootstrap.DeviceInfo, error) {
-	r, err := bs.Client.Get(bootstrapURL + "/api/v1/deviceinfo")
+	r, err := bs.Client.Get(bootstrapURL + "/api/v2/device/info")
 	if err != nil {
 		return nil, fmt.Errorf("getting device infos: %w", err)
 	}
