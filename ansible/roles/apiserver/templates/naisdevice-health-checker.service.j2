@@ -5,9 +5,9 @@ Description=naisdevice-health-checker
 Restart=always
 StandardOutput=append:/var/log/naisdevice/naisdevice-health-checker.json
 StandardError=append:/var/log/naisdevice/naisdevice-health-checker.json
-ExecStart=/bin/bash -c 'KOLIDE_API_TOKEN=$(gcloud secrets versions access latest --secret kolide-api-token) \
-        APISERVER_USERNAME=device-health-checker \
-        APISERVER_PASSWORD=$(gcloud secrets versions access latest --secret nais-device_device-health-checker_api-server-password) \
+ExecStart=/bin/bash -c 'KOLIDE_API_TOKEN="$(gcloud secrets versions access latest --secret kolide-api-token)" \
+        APISERVER_USERNAME="device-health-checker" \
+        APISERVER_PASSWORD="$(gcloud secrets versions access latest --secret nais-device_device-health-checker_api-server-password)" \
         /opt/nais-device/bin/naisdevice-health-checker.phar'
 
 [Install]

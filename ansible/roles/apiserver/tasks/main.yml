@@ -41,6 +41,6 @@
   get_url:
     dest: /opt/nais-device/bin/naisdevice-health-checker.phar
     force: yes
-    url: https://github.com/nais/naisdevice-health-checker/releases/download/2020-11-09-9546a6b/naisdevice-health-checker.phar
+    url: https://github.com/nais/naisdevice-health-checker/releases/download/2020-11-09-33e2140/naisdevice-health-checker.phar
     backup: yes
     mode: 0755
