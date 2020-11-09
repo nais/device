@@ -9,6 +9,7 @@ import (
 	"time"
 
 	_ "github.com/GoogleCloudPlatform/cloudsql-proxy/proxy/dialers/postgres"
+	_ "github.com/lib/pq"
 	"github.com/nais/device/apiserver/cidr"
 	log "github.com/sirupsen/logrus"
 )
@@ -54,8 +55,8 @@ func (si SessionInfo) Expired() bool {
 	return time.Unix(si.Expiry, 0).After(time.Now())
 }
 
-func New(dsn string) (*APIServerDB, error) {
-	db, err := sql.Open("cloudsqlpostgres", dsn)
+func New(dsn, driver string) (*APIServerDB, error) {
+	db, err := sql.Open(driver, dsn)
 	if err != nil {
 		return nil, fmt.Errorf("connecting to database: %s", err)
 	}

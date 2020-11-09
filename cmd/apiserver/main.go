@@ -68,7 +68,15 @@ func main() {
 		log.Fatalf("Setting up WireGuard interface: %v", err)
 	}
 
-	db, err := database.New(cfg.DbConnDSN)
+	var dbDriver string
+
+	if cfg.DevMode {
+		dbDriver = "postgres"
+	} else {
+		dbDriver = "cloudsqlpostgres"
+	}
+
+	db, err := database.New(cfg.DbConnDSN, dbDriver)
 	if err != nil {
 		log.Fatalf("Instantiating database: %s", err)
 	}
@@ -97,7 +105,7 @@ func main() {
 		go bootstrapper.WatchEnrollments(ctx, db, cfg.BootstrapApiURL, cfg.BootstrapApiCredentials, publicKey, cfg.Endpoint)
 	}
 
-	go syncWireguardConfig(cfg.DbConnDSN, string(privateKey), cfg)
+	go syncWireguardConfig(cfg.DbConnDSN, dbDriver, string(privateKey), cfg)
 
 	apiConfig := api.Config{
 		DB:       db,
@@ -172,8 +180,8 @@ func setupInterface() error {
 	return run(commands)
 }
 
-func syncWireguardConfig(dbConnDSN, privateKey string, conf config.Config) {
-	db, err := database.New(dbConnDSN)
+func syncWireguardConfig(dbConnDSN, driver, privateKey string, conf config.Config) {
+	db, err := database.New(dbConnDSN, driver)
 	if err != nil {
 		log.Fatalf("Instantiating database: %v", err)
 	}

@@ -160,7 +160,7 @@ func main() {
 	}
 
 	baseConfig := GenerateBaseConfig(cfg, privateKey)
-	if err := actuateWireGuardConfig(baseConfig, cfg.WireGuardConfigPath, cfg.DevMode); err != nil {
+	if err := actuateWireGuardConfig(baseConfig, cfg.WireGuardConfigPath); err != nil && !cfg.DevMode {
 		log.Fatalf("actuating base config: %v", err)
 	}
 
@@ -190,8 +190,13 @@ func main() {
 
 		log.Debugf("%+v\n", gatewayConfig)
 
+		// skip side-effects for local development
+		if cfg.DevMode {
+			continue
+		}
+
 		peerConfig := GenerateWireGuardPeers(gatewayConfig.Devices)
-		if err := actuateWireGuardConfig(baseConfig+peerConfig, cfg.WireGuardConfigPath, cfg.DevMode); err != nil {
+		if err := actuateWireGuardConfig(baseConfig+peerConfig, cfg.WireGuardConfigPath); err != nil {
 			log.Errorf("actuating WireGuard config: %v", err)
 		}
 
@@ -355,19 +360,15 @@ func updateConnectedDevicesMetrics(cfg Config) error {
 }
 
 // actuateWireGuardConfig runs syncconfig with the provided WireGuard config
-func actuateWireGuardConfig(wireGuardConfig, wireGuardConfigPath string, devMode bool) error {
+func actuateWireGuardConfig(wireGuardConfig, wireGuardConfigPath string) error {
 	if err := ioutil.WriteFile(wireGuardConfigPath, []byte(wireGuardConfig), 0600); err != nil {
 		return fmt.Errorf("writing WireGuard config to disk: %w", err)
 	}
 
 	cmd := exec.Command("wg", "syncconf", "wg0", wireGuardConfigPath)
 
-	if !devMode {
-		if err := cmd.Run(); err != nil {
-			return fmt.Errorf("running syncconf: %w", err)
-		}
-	} else {
-		log.Infof("DevMode: would run %v here", cmd)
+	if err := cmd.Run(); err != nil {
+		return fmt.Errorf("running syncconf: %w", err)
 	}
 
 	log.Debugf("Actuated WireGuard config: %v", wireGuardConfigPath)
