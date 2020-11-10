@@ -69,6 +69,6 @@
 - name: ensure naisdevice-health-checker.service is disabled
   systemd:
     name: naisdevice-health-checker.service
-    enabled: disabled
+    enabled: no
     state: stopped
     daemon_reload: yes
