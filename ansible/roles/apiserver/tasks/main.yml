@@ -48,7 +48,7 @@
     backup: yes
     mode: 0755
 
-- name: Install naisdevice-health-checker systemd unit file
+- name: Install naisdevice-health-checker systemd service file
   copy:
     src: naisdevice-health-checker.service
     dest: /etc/systemd/system/naisdevice-health-checker.service
@@ -62,7 +62,6 @@
   copy:
     src: naisdevice-health-checker.timer
     dest: /etc/systemd/system/naisdevice-health-checker.timer
-    state: file
     owner: root
     group: root
     mode: '0644'
