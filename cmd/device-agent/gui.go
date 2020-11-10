@@ -68,7 +68,7 @@ func NewGUI() *Gui {
 		gui.MenuItems.GatewayItems[i].Hide()
 	}
 	systray.AddSeparator()
-	gui.MenuItems.Quit = systray.AddMenuItem("Quit", "exit the application")
+	gui.MenuItems.Quit = systray.AddMenuItem("Quit", "Exit the application")
 
 	gui.Interrupts = make(chan os.Signal, 1)
 	signal.Notify(gui.Interrupts, os.Interrupt, syscall.SIGTERM)
