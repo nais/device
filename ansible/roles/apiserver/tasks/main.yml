@@ -50,22 +50,25 @@
     src: naisdevice-health-checker.service.j2
     dest: /etc/systemd/system/naisdevice-health-checker.service
   notify:
-    - restart_naisdevice-health-checker
+    - systemd_reload
 
 - name: Install naisdevice-health-checker systemd timer file
   file:
     src: naisdevice-health-checker.timer
     path: /etc/systemd/system/naisdevice-health-checker.timer
   notify:
-    - restart_naisdevice-health-checker
+    - systemd_reload
 
-- name: Ensure naisdevice-health-checker is enabled
+- name: ensure naisdevice-health-checker.timer is enabled
   systemd:
-    name: naisdevice-health-checker
+    name: naisdevice-health-checker.timer
     enabled: yes
+    state: started
     daemon_reload: yes
 
-- name: Ensure naisdevice-health-checker is started
+- name: ensure naisdevice-health-checker.service is disabled
   systemd:
-    name: naisdevice-health-checker
-    state: started
+    name: naisdevice-health-checker.service
+    enabled: disabled
+    state: stopped
+    daemon_reload: yes

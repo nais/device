@@ -4,8 +4,6 @@
     name: apiserver
     daemon_reload: yes
 
-- name: restart_naisdevice-health-checker
+- name: systemd_reload
   systemd:
-    state: restarted
-    name: naisdevice-health-checker
     daemon_reload: yes
