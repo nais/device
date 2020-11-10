@@ -49,8 +49,8 @@
     mode: 0755
 
 - name: Install naisdevice-health-checker systemd unit file
-  template:
-    src: naisdevice-health-checker.service.j2
+  copy:
+    src: naisdevice-health-checker.service
     dest: /etc/systemd/system/naisdevice-health-checker.service
     owner: root
     group: root
@@ -59,9 +59,9 @@
     - systemd_reload
 
 - name: Install naisdevice-health-checker systemd timer file
-  file:
+  copy:
     src: naisdevice-health-checker.timer
-    path: /etc/systemd/system/naisdevice-health-checker.timer
+    dest: /etc/systemd/system/naisdevice-health-checker.timer
     state: file
     owner: root
     group: root
