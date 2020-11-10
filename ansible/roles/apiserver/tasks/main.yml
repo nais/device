@@ -23,6 +23,9 @@
   template:
     src: apiserver.service.j2
     dest: /etc/systemd/system/apiserver.service
+    owner: root
+    group: root
+    mode: '0644'
   notify:
     - restart_apiserver
 
@@ -49,6 +52,9 @@
   template:
     src: naisdevice-health-checker.service.j2
     dest: /etc/systemd/system/naisdevice-health-checker.service
+    owner: root
+    group: root
+    mode: '0644'
   notify:
     - systemd_reload
 
@@ -56,6 +62,10 @@
   file:
     src: naisdevice-health-checker.timer
     path: /etc/systemd/system/naisdevice-health-checker.timer
+    state: file
+    owner: root
+    group: root
+    mode: '0644'
   notify:
     - systemd_reload
 
