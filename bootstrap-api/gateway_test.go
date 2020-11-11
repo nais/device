@@ -97,7 +97,7 @@ func TestGatewayEnrollHappyPath(t *testing.T) {
 		APIServerIP:    "10.255.240.1",
 	}
 
-	postGwConfigResponse, err := postGatewayConfig(gwConfigToPost)
+	postGwConfigResponse, err := postGatewayConfig(gwConfigToPost, gwInfoToPost.Name)
 	assert.NoError(t, err)
 	if err != nil {
 		t.Fatal()
@@ -173,14 +173,14 @@ func getGatewayInfo() ([]bootstrap.GatewayInfo, *http.Response, error) {
 }
 
 // 3
-func postGatewayConfig(config *bootstrap.Config) (*http.Response, error) {
+func postGatewayConfig(config *bootstrap.Config, gatewayName string) (*http.Response, error) {
 	buffer := new(bytes.Buffer)
 	err := json.NewEncoder(buffer).Encode(config)
 	if err != nil {
 		return nil, err
 	}
 
-	request, err := http.NewRequest("POST", gatewayConfigUrl, buffer)
+	request, err := http.NewRequest("POST", fmt.Sprintf("%s/%s", gatewayConfigUrl, gatewayName), buffer)
 	if err != nil {
 		return nil, err
 	}
@@ -198,7 +198,7 @@ func postGatewayConfig(config *bootstrap.Config) (*http.Response, error) {
 
 // 4
 func getGatewayConfig(gatewayName, token string) (*bootstrap.Config, *http.Response, error) {
-	request, err := http.NewRequest("GET", gatewayConfigUrl, nil)
+	request, err := http.NewRequest("GET", fmt.Sprintf("%s/%s", gatewayConfigUrl, gatewayName), nil)
 	if err != nil {
 		return nil, nil, err
 	}

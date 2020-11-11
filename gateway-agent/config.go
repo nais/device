@@ -15,6 +15,7 @@ type Config struct {
 	ConfigDir             string
 	WireGuardConfigPath   string
 	BootstrapConfigPath   string
+	BootstrapApiURL       string
 	PrivateKeyPath        string
 	PrivateKey            string
 	DevMode               bool
@@ -29,12 +30,14 @@ type Config struct {
 	DefaultInterface      string
 	DefaultInterfaceIP    string
 	BootstrapConfig       *bootstrap.Config
+	PublicIP              string
 }
 
 func DefaultConfig() Config {
 	return Config{
 		ConfigDir:      "/usr/local/etc/nais-device",
 		PrometheusAddr: ":3000",
+		BootstrapApiURL: "https://bootstrap.device.nais.io",
 		LogLevel:       "info",
 	}
 }

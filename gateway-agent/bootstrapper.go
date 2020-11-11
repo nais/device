@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"github.com/nais/device/device-agent/wireguard"
 	"github.com/nais/device/pkg/bootstrap"
 	"github.com/nais/device/pkg/secretmanager"
 	log "github.com/sirupsen/logrus"
@@ -39,7 +40,12 @@ func (b *Bootstrapper) GetBootstrapConfig() (*bootstrap.Config, error) {
 		return nil, fmt.Errorf("expected to get a single secret for gateway, exiting")
 	}
 
-	bc, err := BootstrapGateway(&bootstrap.GatewayInfo{Name: b.Config.Name, PublicIP: b.Config.DefaultInterfaceIP}, "", b.HTTPClient)
+	gatewayInfo := &bootstrap.GatewayInfo{
+		Name:      b.Config.Name,
+		PublicIP:  b.Config.PublicIP,
+		PublicKey: string(wireguard.PublicKey([]byte(b.Config.PrivateKey))),
+	}
+	bc, err := BootstrapGateway(gatewayInfo, b.Config.BootstrapApiURL, b.HTTPClient)
 	if err != nil {
 		return nil, fmt.Errorf("bootstrapping gateway: %w", err)
 	}
@@ -54,7 +60,7 @@ func BootstrapGateway(gatewayInfo *bootstrap.GatewayInfo, bootstrapAPI string, c
 		return nil, fmt.Errorf("posting device info: %w", err)
 	}
 
-	bootstrapConfigURL := fmt.Sprintf("%s/api/v2/gateway/config", bootstrapAPI)
+	bootstrapConfigURL := fmt.Sprintf("%s/api/v2/gateway/config/%s", bootstrapAPI, gatewayInfo.Name)
 	bootstrapConfig, err := getBootstrapConfig(bootstrapConfigURL, client)
 	if err != nil {
 		return nil, fmt.Errorf("getting bootstrap config: %w", err)
@@ -70,7 +76,6 @@ func postGatewayInfo(url string, gatewayInfo *bootstrap.GatewayInfo, client *htt
 	}
 
 	resp, err := client.Post(url, "application/json", bytes.NewReader(dib))
-
 	if err != nil {
 		return fmt.Errorf("posting info to bootstrap API (%v): %w", url, err)
 	}

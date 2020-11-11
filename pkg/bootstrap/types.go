@@ -18,6 +18,7 @@ type DeviceInfo struct {
 
 // GatewayInfo is the info provided by the gateway-agent in order to bootstrap a gateway
 type GatewayInfo struct {
-	Name     string `json:"name"`
-	PublicIP string `json:"endpoint"`
+	Name      string `json:"name"`
+	PublicIP  string `json:"endpoint"`
+	PublicKey string `json:"publicKey"`
 }
