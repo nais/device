@@ -2,7 +2,9 @@ package main
 
 import (
 	g "github.com/nais/device/gateway-agent"
+	"github.com/nais/device/pkg/secretmanager"
 	"path"
+	"path/filepath"
 	"time"
 
 	"github.com/nais/device/pkg/logger"
@@ -20,11 +22,7 @@ var (
 func init() {
 	flag.StringVar(&cfg.Name, "name", cfg.Name, "gateway name")
 	flag.StringVar(&cfg.ConfigDir, "config-dir", cfg.ConfigDir, "gateway-agent config directory")
-	flag.StringVar(&cfg.TunnelIP, "tunnel-ip", cfg.TunnelIP, "gateway tunnel ip")
 	flag.StringVar(&cfg.PrometheusAddr, "prometheus-address", cfg.PrometheusAddr, "prometheus listen address")
-	flag.StringVar(&cfg.APIServerURL, "api-server-url", cfg.APIServerURL, "api server URL")
-	flag.StringVar(&cfg.APIServerPublicKey, "api-server-public-key", cfg.APIServerPublicKey, "api server public key")
-	flag.StringVar(&cfg.APIServerWireGuardEndpoint, "api-server-wireguard-endpoint", cfg.APIServerWireGuardEndpoint, "api server WireGuard endpoint")
 	flag.StringVar(&cfg.PrometheusPublicKey, "prometheus-public-key", cfg.PrometheusPublicKey, "prometheus public key")
 	flag.StringVar(&cfg.PrometheusTunnelIP, "prometheus-tunnel-ip", cfg.PrometheusTunnelIP, "prometheus tunnel ip")
 	flag.BoolVar(&cfg.DevMode, "development-mode", cfg.DevMode, "development mode avoids setting up interface and configuring WireGuard")
@@ -36,6 +34,8 @@ func init() {
 	cfg.WireGuardConfigPath = path.Join(cfg.ConfigDir, "wg0.conf")
 	cfg.PrivateKeyPath = path.Join(cfg.ConfigDir, "private.key")
 	cfg.APIServerPasswordPath = path.Join(cfg.ConfigDir, "apiserver_password")
+	cfg.BootstrapConfigPath = filepath.Join(cfg.ConfigDir, "bootstrapconfig.json")
+
 	log.Infof("Version: %s, Revision: %s", version.Version, version.Revision)
 
 	g.InitializeMetrics(cfg.Name, version.Version)
@@ -47,10 +47,27 @@ func main() {
 		log.Fatalf("Initializing local configuration: %v", err)
 	}
 
+	//TODO inputvar
+	secretManager, err := secretmanager.New("nais-device")
+	if err != nil {
+		log.Fatalf("Initializing secret manager: %v", err)
+	}
+
+	bootstrapper := g.Bootstrapper{
+		SecretManager: secretManager,
+		Config:        &cfg,
+	}
+
+	cfg.BootstrapConfig, err = bootstrapper.GetBootstrapConfig()
+
+	if err != nil {
+		log.Fatalf("Ensuring gateway is bootstrapped: %v", err)
+	}
+
 	log.Info("starting gateway-agent")
 
 	if !cfg.DevMode {
-		if err := g.SetupInterface(cfg.TunnelIP); err != nil {
+		if err := g.SetupInterface(cfg.BootstrapConfig.DeviceIP); err != nil {
 			log.Fatalf("setting up interface: %v", err)
 		}
 		var err error

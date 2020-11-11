@@ -79,7 +79,7 @@ func matchesAllLabels(has, need map[string]string) bool {
 	return true
 }
 
-func (sm *SecretManager) ListSecrets(filter map[string]string) ([]*Secret, error) {
+func (sm *SecretManager) GetSecrets(filter map[string]string) ([]*Secret, error) {
 	var secrets []*Secret
 	googleSecrets, err := sm.listSecrets()
 	if err != nil {

@@ -14,7 +14,7 @@ import (
 	"testing"
 )
 
-func TestListSecrets(t *testing.T) {
+func TestGetSecrets(t *testing.T) {
 	fsm := &fakeSecretManager{}
 	sm, err := setup(t, fsm)
 	assert.NoError(t, err)
@@ -28,13 +28,13 @@ func TestListSecrets(t *testing.T) {
 	fsm.addSecretVersion("three", "latest", []byte("3"), gsecretmanagerpb.SecretVersion_DISABLED)
 
 	t.Run("nil filter returns all enabled secrets", func(t *testing.T) {
-		secrets, err := sm.ListSecrets(nil)
+		secrets, err := sm.GetSecrets(nil)
 		assert.NoError(t, err)
 		assert.Len(t, secrets, 2)
 	})
 
 	t.Run("filter works", func(t *testing.T) {
-		secrets, err := sm.ListSecrets(map[string]string{"label1": "value1", "label2": "value2"})
+		secrets, err := sm.GetSecrets(map[string]string{"label1": "value1", "label2": "value2"})
 		assert.NoError(t, err)
 		assert.Len(t, secrets, 1)
 	})

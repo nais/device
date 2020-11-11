@@ -17,7 +17,7 @@ type DeviceApi struct {
 }
 
 type SecretManager interface {
-	ListSecrets(map[string]string) ([]*secretmanager.Secret, error)
+	GetSecrets(map[string]string) ([]*secretmanager.Secret, error)
 }
 
 type GatewayApi struct {

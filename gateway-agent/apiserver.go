@@ -19,7 +19,7 @@ type Device struct {
 }
 
 func GetGatewayConfig(config Config) (*GatewayConfig, error) {
-	gatewayConfigURL := fmt.Sprintf("%s/gatewayconfig", config.APIServerURL)
+	gatewayConfigURL := fmt.Sprintf("http://%s/gatewayconfig", config.BootstrapConfig.APIServerIP)
 	req, err := http.NewRequest(http.MethodGet, gatewayConfigURL, nil)
 	if err != nil {
 		return nil, fmt.Errorf("creating http request: %w", err)

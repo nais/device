@@ -52,7 +52,7 @@ AllowedIPs = %s/32
 
 `
 
-	return fmt.Sprintf(template, cfg.PrivateKey, cfg.APIServerPublicKey, cfg.APIServerTunnelIP, cfg.APIServerWireGuardEndpoint, cfg.PrometheusPublicKey, cfg.PrometheusTunnelIP)
+	return fmt.Sprintf(template, cfg.PrivateKey, cfg.BootstrapConfig.PublicKey, cfg.BootstrapConfig.APIServerIP, cfg.BootstrapConfig.TunnelEndpoint, cfg.PrometheusPublicKey, cfg.PrometheusTunnelIP)
 }
 
 func GenerateWireGuardPeers(devices []Device) string {

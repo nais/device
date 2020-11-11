@@ -21,11 +21,3 @@ type GatewayInfo struct {
 	Name     string `json:"name"`
 	PublicIP string `json:"endpoint"`
 }
-
-// GatewayConfig is the response from the bootstrap-api, produced by the api server and used by the gateway-agent to connect
-type GatewayConfig struct {
-	Name               string `json:"name"`
-	TunnelIP           string `json:"deviceIP"`
-	APIServerPublicKey string `json:"apiServerPublicKey"`
-	APIServerIP        string `json:"apiServerIP"`
-}

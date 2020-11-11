@@ -202,7 +202,7 @@ func (api *GatewayApi) syncEnrollmentSecrets() {
 	defer api.enrollmentTokensLock.Unlock()
 
 	filter := map[string]string{"type": "enrollment-token"}
-	secrets, err := api.secretManager.ListSecrets(filter)
+	secrets, err := api.secretManager.GetSecrets(filter)
 	if err != nil {
 		log.Errorf("Listing secrets: %v", err)
 		failedSecretManagerSynchronizations.Inc()
