@@ -64,7 +64,7 @@ func WatchEnrollments(ctx context.Context, db *database.APIServerDB, bootstrapAp
 					APIServerIP:    "10.255.240.1",
 				}
 
-				err = bs.pushBootstrapConfig(bootstrapApiURL, device.Serial, bootstrapConfig)
+				err = bs.postBootstrapConfig(bootstrapApiURL, device.Serial, bootstrapConfig)
 
 				if err != nil {
 					log.Errorf("bootstrap: Pushing bootstrap config: %v", err)
@@ -80,7 +80,7 @@ func WatchEnrollments(ctx context.Context, db *database.APIServerDB, bootstrapAp
 	}
 }
 
-func (bs *bootstrapper) pushBootstrapConfig(bootstrapURL, serial string, bootstrapConfig bootstrap.Config) error {
+func (bs *bootstrapper) postBootstrapConfig(bootstrapURL, serial string, bootstrapConfig bootstrap.Config) error {
 	b, err := json.Marshal(bootstrapConfig)
 	if err != nil {
 		return fmt.Errorf("marshalling config: %w", err)
