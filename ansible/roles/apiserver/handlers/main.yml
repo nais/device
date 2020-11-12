@@ -3,3 +3,7 @@
     state: restarted
     name: apiserver
     daemon_reload: yes
+
+- name: systemd_reload
+  systemd:
+    daemon_reload: yes
