@@ -35,10 +35,10 @@ type Config struct {
 
 func DefaultConfig() Config {
 	return Config{
-		ConfigDir:      "/usr/local/etc/nais-device",
-		PrometheusAddr: ":3000",
+		ConfigDir:       "/usr/local/etc/nais-device",
+		PrometheusAddr:  ":3000",
 		BootstrapApiURL: "https://bootstrap.device.nais.io",
-		LogLevel:       "info",
+		LogLevel:        "info",
 	}
 }
 

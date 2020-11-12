@@ -74,7 +74,7 @@ func TestGetBootstrapConfig(t *testing.T) {
 		})
 
 		specificGatewayConfigUrl := fmt.Sprintf("/api/v2/gateway/config/%s", gatewayInfo.Name)
-		handler.HandleFunc(specificGatewayConfigUrl, func(w http.ResponseWriter, r *http.Request){
+		handler.HandleFunc(specificGatewayConfigUrl, func(w http.ResponseWriter, r *http.Request) {
 			if r.Method != http.MethodGet {
 				t.Errorf("invalid method for this path")
 			}

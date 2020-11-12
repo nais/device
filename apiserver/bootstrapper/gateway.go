@@ -36,6 +36,8 @@ func WatchGatewayEnrollments(ctx context.Context, db *database.APIServerDB, boot
 			for _, enrollment := range gatewayInfos {
 				err := db.AddGateway(ctx, database.Gateway{
 					PublicKey: enrollment.PublicKey,
+					Name:      enrollment.Name,
+					Endpoint:  enrollment.PublicIP,
 				})
 
 				if err != nil {
@@ -50,7 +52,7 @@ func WatchGatewayEnrollments(ctx context.Context, db *database.APIServerDB, boot
 				}
 
 				bootstrapConfig := bootstrap.Config{
-					DeviceIP:       "x.x.x.x",
+					DeviceIP:       gateway.IP,
 					PublicKey:      string(publicKey),
 					TunnelEndpoint: apiEndpoint,
 					APIServerIP:    "10.255.240.1",
@@ -72,13 +74,13 @@ func WatchGatewayEnrollments(ctx context.Context, db *database.APIServerDB, boot
 	}
 }
 
-func (bs *bootstrapper) postGatewayConfig(bootstrapURL, serial string, bootstrapConfig bootstrap.Config) error {
+func (bs *bootstrapper) postGatewayConfig(bootstrapURL, name string, bootstrapConfig bootstrap.Config) error {
 	b, err := json.Marshal(bootstrapConfig)
 	if err != nil {
 		return fmt.Errorf("marshalling config: %w", err)
 	}
 
-	r, err := bs.Client.Post(fmt.Sprintf("%s/api/v2/gateway/config/%s", bootstrapURL, serial), "application/json", bytes.NewReader(b))
+	r, err := bs.Client.Post(fmt.Sprintf("%s/api/v2/gateway/config/%s", bootstrapURL, name), "application/json", bytes.NewReader(b))
 	if err != nil {
 		return fmt.Errorf("posting bootstrap config: %w", err)
 	}

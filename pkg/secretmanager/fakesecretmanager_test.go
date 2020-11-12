@@ -10,7 +10,7 @@ import (
 type fakeSecretManager struct {
 	gsecretmanagerpb.UnimplementedSecretManagerServiceServer
 
-	Project 		  string
+	Project           string
 	Secrets           []*gsecretmanagerpb.Secret
 	SecretVersions    []*gsecretmanagerpb.SecretVersion
 	SecretVersionData map[string][]byte
@@ -44,14 +44,14 @@ func (f *fakeSecretManager) ListSecrets(ctx context.Context, request *gsecretman
 func (f *fakeSecretManager) GetSecretVersion(ctx context.Context, in *gsecretmanagerpb.GetSecretVersionRequest) (*gsecretmanagerpb.SecretVersion, error) {
 	for _, version := range f.SecretVersions {
 		if version.Name == in.Name {
-				return version, nil
+			return version, nil
 		}
 	}
 
 	return nil, fmt.Errorf("no version found")
 }
 
-func (f *fakeSecretManager) AccessSecretVersion(ctx context.Context, 
+func (f *fakeSecretManager) AccessSecretVersion(ctx context.Context,
 	in *gsecretmanagerpb.AccessSecretVersionRequest) (*gsecretmanagerpb.AccessSecretVersionResponse, error) {
 	if f.SecretVersionData == nil {
 		return nil, fmt.Errorf("no secret payloads available, call addSecret() first")

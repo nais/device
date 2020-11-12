@@ -155,7 +155,8 @@ func (d *APIServerDB) AddGateway(ctx context.Context, gateway Gateway) error {
 
 	statement := `
 INSERT INTO gateway (name, access_group_ids, endpoint, public_key, ip, routes)
-VALUES ($1, $2, $3, $4, $5, $6);`
+VALUES ($1, $2, $3, $4, $5, $6)
+ON CONFLICT (name) DO UPDATE SET access_group_ids = $2, endpoint = $3, public_key = $4, routes = $6;`
 
 	_, err = d.Conn.ExecContext(ctx, statement, gateway.Name, strings.Join(gateway.AccessGroupIDs, ","), gateway.Endpoint, gateway.PublicKey, availableIp, strings.Join(gateway.Routes, ","))
 	if err != nil {
@@ -288,7 +289,7 @@ func (d *APIServerDB) ReadGateway(name string) (*Gateway, error) {
 	ctx := context.Background()
 
 	query := `
-SELECT public_key, access_group_ids, endpoint, ip, routes
+SELECT public_key, access_group_ids, endpoint, ip, routes, name
   FROM gateway
  WHERE name = $1;`
 
@@ -297,7 +298,7 @@ SELECT public_key, access_group_ids, endpoint, ip, routes
 	var gateway Gateway
 	var routes string
 	var accessGroupIDs string
-	err := row.Scan(&gateway.PublicKey, &accessGroupIDs, &gateway.Endpoint, &gateway.IP, &routes)
+	err := row.Scan(&gateway.PublicKey, &accessGroupIDs, &gateway.Endpoint, &gateway.IP, &routes, &gateway.Name)
 	if err != nil {
 		return nil, fmt.Errorf("scanning gateway: %w", err)
 	}

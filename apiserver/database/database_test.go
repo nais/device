@@ -21,7 +21,50 @@ func setup(t *testing.T) *database.APIServerDB {
 	return db
 }
 
-func TestAPIServerDB_AddDevice(t *testing.T) {
+func TestAddGateway(t *testing.T) {
+	db := setup(t)
+
+	ctx := context.Background()
+	g := database.Gateway{
+		Endpoint:  "1.2.3.4:56789",
+		PublicKey: "publicKey",
+		Name:      "gateway",
+	}
+
+	t.Run("adding new gateway works", func(t *testing.T) {
+		err := db.AddGateway(ctx, g)
+		assert.NoError(t, err)
+
+		gateway, err := db.ReadGateway(g.Name)
+		assert.NoError(t, err)
+
+		assert.Equal(t, g.Name, gateway.Name)
+		assert.Equal(t, g.Endpoint, gateway.Endpoint)
+		assert.Equal(t, g.PublicKey, gateway.PublicKey)
+
+	})
+
+	t.Run("updating existing gateway works", func(t *testing.T) {
+		existingGateway, err := db.ReadGateway(g.Name)
+		assert.NoError(t, err)
+
+		assert.Nil(t, existingGateway.Routes)
+		assert.Nil(t, existingGateway.AccessGroupIDs)
+
+		existingGateway.Routes = []string{"r", "o", "u", "t", "e", "s"}
+		existingGateway.AccessGroupIDs = []string{"a1", "b2", "c3"}
+
+		assert.NoError(t, db.AddGateway(ctx, *existingGateway))
+
+		updatedGateway, err := db.ReadGateway(g.Name)
+		assert.NoError(t, err)
+
+		assert.Equal(t, existingGateway.Routes, updatedGateway.Routes)
+		assert.Equal(t, existingGateway.AccessGroupIDs, updatedGateway.AccessGroupIDs)
+	})
+}
+
+func TestAddDevice(t *testing.T) {
 	db := setup(t)
 
 	ctx := context.Background()

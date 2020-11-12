@@ -75,7 +75,7 @@ func setup(t *testing.T, fsm *fakeSecretManager) (*secretmanager.SecretManager, 
 	}
 
 	sm := &secretmanager.SecretManager{
-		Client: client,
+		Client:  client,
 		Project: fsm.Project,
 	}
 
