@@ -57,7 +57,7 @@ run-postgres:
 		postgres
 
 run-postgres-test:
-	docker run -e POSTGRES_PASSWORD=postgres --rm --name postgres-test -p 5433:5432 -d postgres
+	docker run -e POSTGRES_PASSWORD=postgres --rm --name postgres-test -p 127.0.0.1:5433:5432 -d postgres
 
 stop-postgres:
 	docker stop postgres || echo "okidoki"
