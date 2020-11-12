@@ -6,35 +6,23 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/nais/device/apiserver/database"
-	"github.com/nais/device/pkg/basicauth"
 	"github.com/nais/device/pkg/bootstrap"
 	log "github.com/sirupsen/logrus"
-	"strings"
 	"time"
 )
 
-func WatchGatewayEnrollments(ctx context.Context, db *database.APIServerDB, bootstrapBaseApiUrl, bootstrapApiCredentials string, publicKey []byte, apiEndpoint string) {
-	parts := strings.Split(bootstrapApiCredentials, ":")
-	bat := &basicauth.Transport{
-		Username: parts[0],
-		Password: parts[1],
-	}
-
-	bs := enroller{
-		Client: bat.Client(),
-	}
-
+func (e *Enroller) WatchGatewayEnrollments(ctx context.Context) {
 	for {
 		select {
 		case <-time.After(1 * time.Second):
-			gatewayInfos, err := bs.fetchGatewayInfos(bootstrapBaseApiUrl)
+			gatewayInfos, err := e.fetchGatewayInfos()
 			if err != nil {
 				log.Errorf("bootstrap: Fetching gateway infos: %v", err)
 				continue
 			}
 
 			for _, enrollment := range gatewayInfos {
-				err := db.AddGateway(ctx, database.Gateway{
+				err := e.DB.AddGateway(ctx, database.Gateway{
 					PublicKey: enrollment.PublicKey,
 					Name:      enrollment.Name,
 					Endpoint:  enrollment.PublicIP,
@@ -45,7 +33,7 @@ func WatchGatewayEnrollments(ctx context.Context, db *database.APIServerDB, boot
 					continue
 				}
 
-				gateway, err := db.ReadGateway(enrollment.PublicKey)
+				gateway, err := e.DB.ReadGateway(enrollment.Name)
 				if err != nil {
 					log.Errorf("bootstrap: Getting gateway: %v", err)
 					continue
@@ -53,12 +41,12 @@ func WatchGatewayEnrollments(ctx context.Context, db *database.APIServerDB, boot
 
 				bootstrapConfig := bootstrap.Config{
 					DeviceIP:       gateway.IP,
-					PublicKey:      string(publicKey),
-					TunnelEndpoint: apiEndpoint,
+					PublicKey:      e.APIServerPublicKey,
+					TunnelEndpoint: e.APIServerEndpoint,
 					APIServerIP:    "10.255.240.1",
 				}
 
-				err = bs.postGatewayConfig(bootstrapBaseApiUrl, gateway.Name, bootstrapConfig)
+				err = e.postGatewayConfig(e.BootstrapAPIURL, gateway.Name, bootstrapConfig)
 
 				if err != nil {
 					log.Errorf("bootstrap: Pushing bootstrap config: %v", err)
@@ -74,13 +62,13 @@ func WatchGatewayEnrollments(ctx context.Context, db *database.APIServerDB, boot
 	}
 }
 
-func (bs *enroller) postGatewayConfig(bootstrapURL, name string, bootstrapConfig bootstrap.Config) error {
+func (e *Enroller) postGatewayConfig(bootstrapURL, name string, bootstrapConfig bootstrap.Config) error {
 	b, err := json.Marshal(bootstrapConfig)
 	if err != nil {
 		return fmt.Errorf("marshalling config: %w", err)
 	}
 
-	r, err := bs.Client.Post(fmt.Sprintf("%s/api/v2/gateway/config/%s", bootstrapURL, name), "application/json", bytes.NewReader(b))
+	r, err := e.Client.Post(fmt.Sprintf("%s/api/v2/gateway/config/%s", bootstrapURL, name), "application/json", bytes.NewReader(b))
 	if err != nil {
 		return fmt.Errorf("posting bootstrap config: %w", err)
 	}
@@ -89,8 +77,8 @@ func (bs *enroller) postGatewayConfig(bootstrapURL, name string, bootstrapConfig
 	return nil
 }
 
-func (bs *enroller) fetchGatewayInfos(bootstrapURL string) ([]bootstrap.GatewayInfo, error) {
-	r, err := bs.Client.Get(bootstrapURL + "/api/v2/gateway/info")
+func (e *Enroller) fetchGatewayInfos() ([]bootstrap.GatewayInfo, error) {
+	r, err := e.Client.Get(e.BootstrapAPIURL + "/api/v2/gateway/info")
 	if err != nil {
 		return nil, fmt.Errorf("getting gateway infos: %w", err)
 	}

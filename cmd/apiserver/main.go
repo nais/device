@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"github.com/nais/device/pkg/basicauth"
 	"io/ioutil"
 	"net/http"
 	"os"
@@ -33,7 +34,7 @@ var (
 
 func init() {
 	flag.StringVar(&cfg.DbConnDSN, "db-connection-dsn", os.Getenv("DB_CONNECTION_DSN"), "database connection DSN")
-	flag.StringVar(&cfg.BootstrapApiURL, "bootstrap-api-url", "", "bootstrap API URL")
+	flag.StringVar(&cfg.BootstrapAPIURL, "bootstrap-api-url", "", "bootstrap API URL")
 	flag.StringVar(&cfg.BootstrapApiCredentials, "bootstrap-api-credentials", os.Getenv("BOOTSTRAP_API_CREDENTIALS"), "bootstrap API credentials")
 	flag.StringVar(&cfg.PrometheusAddr, "prometheus-address", cfg.PrometheusAddr, "prometheus listen address")
 	flag.StringVar(&cfg.PrometheusPublicKey, "prometheus-public-key", cfg.PrometheusPublicKey, "prometheus public key")
@@ -101,8 +102,20 @@ func main() {
 		log.Fatalf("Generating public key: %v", err)
 	}
 
-	if len(cfg.BootstrapApiURL) > 0 {
-		go enroller.WatchDeviceEnrollments(ctx, db, cfg.BootstrapApiURL, cfg.BootstrapApiCredentials, publicKey, cfg.Endpoint)
+	if len(cfg.BootstrapAPIURL) > 0 {
+		parts := strings.Split(cfg.BootstrapApiCredentials, ":")
+		username, password := parts[0], parts[1]
+
+		enroller := enroller.Enroller{
+			Client:             basicauth.Transport{Username: username, Password: password}.Client(),
+			DB:                 db,
+			BootstrapAPIURL:    cfg.BootstrapAPIURL,
+			APIServerPublicKey: string(publicKey),
+			APIServerEndpoint:  cfg.Endpoint,
+		}
+
+		go enroller.WatchDeviceEnrollments(ctx)
+		go enroller.WatchGatewayEnrollments(ctx)
 	}
 
 	go syncWireguardConfig(cfg.DbConnDSN, dbDriver, string(privateKey), cfg)

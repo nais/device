@@ -6,35 +6,23 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/nais/device/apiserver/database"
-	"github.com/nais/device/pkg/basicauth"
 	"github.com/nais/device/pkg/bootstrap"
 	log "github.com/sirupsen/logrus"
-	"strings"
 	"time"
 )
 
-func WatchDeviceEnrollments(ctx context.Context, db *database.APIServerDB, bootstrapApiURL, bootstrapApiCredentials string, publicKey []byte, apiEndpoint string) {
-	parts := strings.Split(bootstrapApiCredentials, ":")
-	bat := &basicauth.Transport{
-		Username: parts[0],
-		Password: parts[1],
-	}
-
-	bs := enroller{
-		Client: bat.Client(),
-	}
-
+func (e *Enroller) WatchDeviceEnrollments(ctx context.Context) {
 	for {
 		select {
 		case <-time.After(1 * time.Second):
-			deviceInfos, err := bs.fetchDeviceInfos(bootstrapApiURL)
+			deviceInfos, err := e.fetchDeviceInfos(e.BootstrapAPIURL)
 			if err != nil {
 				log.Errorf("bootstrap: Fetching device infos: %v", err)
 				continue
 			}
 
 			for _, enrollment := range deviceInfos {
-				err := db.AddDevice(ctx, database.Device{
+				err := e.DB.AddDevice(ctx, database.Device{
 					Username:  enrollment.Owner,
 					PublicKey: enrollment.PublicKey,
 					Serial:    enrollment.Serial,
@@ -46,7 +34,7 @@ func WatchDeviceEnrollments(ctx context.Context, db *database.APIServerDB, boots
 					continue
 				}
 
-				device, err := db.ReadDevice(enrollment.PublicKey)
+				device, err := e.DB.ReadDevice(enrollment.PublicKey)
 				if err != nil {
 					log.Errorf("bootstrap: Getting device: %v", err)
 					continue
@@ -54,12 +42,12 @@ func WatchDeviceEnrollments(ctx context.Context, db *database.APIServerDB, boots
 
 				bootstrapConfig := bootstrap.Config{
 					DeviceIP:       device.IP,
-					PublicKey:      string(publicKey),
-					TunnelEndpoint: apiEndpoint,
+					PublicKey:      e.APIServerPublicKey,
+					TunnelEndpoint: e.APIServerEndpoint,
 					APIServerIP:    "10.255.240.1",
 				}
 
-				err = bs.postDeviceConfig(bootstrapApiURL, device.Serial, bootstrapConfig)
+				err = e.postDeviceConfig(device.Serial, bootstrapConfig)
 
 				if err != nil {
 					log.Errorf("bootstrap: Pushing bootstrap config: %v", err)
@@ -75,13 +63,13 @@ func WatchDeviceEnrollments(ctx context.Context, db *database.APIServerDB, boots
 	}
 }
 
-func (bs *enroller) postDeviceConfig(bootstrapURL, serial string, bootstrapConfig bootstrap.Config) error {
+func (e *Enroller) postDeviceConfig(serial string, bootstrapConfig bootstrap.Config) error {
 	b, err := json.Marshal(bootstrapConfig)
 	if err != nil {
 		return fmt.Errorf("marshalling config: %w", err)
 	}
 
-	r, err := bs.Client.Post(fmt.Sprintf("%s/api/v2/device/config/%s", bootstrapURL, serial), "application/json", bytes.NewReader(b))
+	r, err := e.Client.Post(fmt.Sprintf("%s/api/v2/device/config/%s", e.BootstrapAPIURL, serial), "application/json", bytes.NewReader(b))
 	if err != nil {
 		return fmt.Errorf("posting bootstrap config: %w", err)
 	}
@@ -90,8 +78,8 @@ func (bs *enroller) postDeviceConfig(bootstrapURL, serial string, bootstrapConfi
 	return nil
 }
 
-func (bs *enroller) fetchDeviceInfos(bootstrapURL string) ([]bootstrap.DeviceInfo, error) {
-	r, err := bs.Client.Get(bootstrapURL + "/api/v2/device/info")
+func (e *Enroller) fetchDeviceInfos(bootstrapURL string) ([]bootstrap.DeviceInfo, error) {
+	r, err := e.Client.Get(bootstrapURL + "/api/v2/device/info")
 	if err != nil {
 		return nil, fmt.Errorf("getting device infos: %w", err)
 	}

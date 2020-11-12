@@ -63,8 +63,8 @@ func TestGetDeviceConfig(t *testing.T) {
 	err := db.UpdateDeviceStatus([]database.Device{device})
 	assert.NoError(t, err)
 
-	authorizedGateway := database.Gateway{AccessGroupIDs: []string{"group1"}, PublicKey: "pubkey1", IP: "1.2.3.4"}
-	unauthorizedGateway := database.Gateway{AccessGroupIDs: []string{"group2"}, PublicKey: "pubkey2", IP: "1.2.3.5"}
+	authorizedGateway := database.Gateway{Name: "gw1", AccessGroupIDs: []string{"group1"}, PublicKey: "pubkey1", IP: "1.2.3.4"}
+	unauthorizedGateway := database.Gateway{Name: "gw2", AccessGroupIDs: []string{"group2"}, PublicKey: "pubkey2", IP: "1.2.3.5"}
 
 	if err := db.AddGateway(ctx, authorizedGateway); err != nil {
 		t.Fatalf("Adding gateway: %v", err)

@@ -21,7 +21,7 @@ type Config struct {
 	PrometheusPublicKey     string
 	PrometheusTunnelIP      string
 	CredentialEntries       []string
-	BootstrapApiURL         string
+	BootstrapAPIURL         string
 	LogLevel                string
 	TokenValidator          jwt.Keyfunc
 }

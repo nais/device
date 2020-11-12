@@ -9,7 +9,7 @@ type Transport struct {
 	Password string
 }
 
-func (bat *Transport) Client() *http.Client {
+func (bat Transport) Client() *http.Client {
 	return &http.Client{Transport: bat}
 }
 
