@@ -131,23 +131,43 @@ func (d *APIServerDB) UpdateDeviceStatus(devices []Device) error {
 	return nil
 }
 
+var mux sync.Mutex
+
 func (d *APIServerDB) AddGateway(ctx context.Context, gateway Gateway) error {
+	mux.Lock()
+	defer mux.Unlock()
+
+	tx, err := d.Conn.Begin()
+	if err != nil {
+		return fmt.Errorf("start transaction: %w", err)
+	}
+
+	defer tx.Rollback()
+	takenIps, err := d.readExistingIPs()
+	if err != nil {
+		return fmt.Errorf("reading existing ips: %w", err)
+	}
+
+	availableIp, err := cidr.FindAvailableIP(TunnelCidr, takenIps)
+	if err != nil {
+		return fmt.Errorf("finding available ip: %w", err)
+	}
+
 	statement := `
 INSERT INTO gateway (name, access_group_ids, endpoint, public_key, ip, routes)
 VALUES ($1, $2, $3, $4, $5, $6);`
 
-	_, err := d.Conn.ExecContext(ctx, statement, gateway.Name, strings.Join(gateway.AccessGroupIDs, ","), gateway.Endpoint, gateway.PublicKey, gateway.IP, strings.Join(gateway.Routes, ","))
-
+	_, err = d.Conn.ExecContext(ctx, statement, gateway.Name, strings.Join(gateway.AccessGroupIDs, ","), gateway.Endpoint, gateway.PublicKey, availableIp, strings.Join(gateway.Routes, ","))
 	if err != nil {
 		return fmt.Errorf("inserting new gateway: %w", err)
 	}
 
+	if err := tx.Commit(); err != nil {
+		return fmt.Errorf("committing transaction: %w", err)
+	}
 	log.Infof("Added gateway: %+v", gateway)
-
 	return nil
 }
-
-var mux sync.Mutex
 
 func (d *APIServerDB) AddDevice(ctx context.Context, device Device) error {
 	mux.Lock()
@@ -159,7 +179,6 @@ func (d *APIServerDB) AddDevice(ctx context.Context, device Device) error {
 	}
 
 	defer tx.Rollback()
-
 	ips, err := d.readExistingIPs()
 	if err != nil {
 		return fmt.Errorf("reading existing ips: %w", err)
@@ -175,7 +194,6 @@ INSERT INTO device (serial, username, public_key, ip, healthy, psk, platform)
 VALUES ($1, $2, $3, $4, false, '', $5)
 ON CONFLICT(serial, platform) DO UPDATE SET username = $2, public_key = $3;`
 	_, err = tx.ExecContext(ctx, statement, device.Serial, device.Username, device.PublicKey, ip, device.Platform)
-
 	if err != nil {
 		return fmt.Errorf("inserting new device: %w", err)
 	}
@@ -183,9 +201,7 @@ ON CONFLICT(serial, platform) DO UPDATE SET username = $2, public_key = $3;`
 	if err := tx.Commit(); err != nil {
 		return fmt.Errorf("commiting transaction: %w", err)
 	}
-
 	log.Infof("Added or updated device: %+v", device)
-
 	return nil
 }
 

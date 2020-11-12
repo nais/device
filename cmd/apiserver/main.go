@@ -102,7 +102,7 @@ func main() {
 	}
 
 	if len(cfg.BootstrapApiURL) > 0 {
-		go bootstrapper.WatchEnrollments(ctx, db, cfg.BootstrapApiURL, cfg.BootstrapApiCredentials, publicKey, cfg.Endpoint)
+		go bootstrapper.WatchDeviceEnrollments(ctx, db, cfg.BootstrapApiURL, cfg.BootstrapApiCredentials, publicKey, cfg.Endpoint)
 	}
 
 	go syncWireguardConfig(cfg.DbConnDSN, dbDriver, string(privateKey), cfg)
