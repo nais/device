@@ -1,4 +1,4 @@
-package bootstrapper
+package enroller
 
 import (
 	"bytes"
@@ -20,7 +20,7 @@ func WatchGatewayEnrollments(ctx context.Context, db *database.APIServerDB, boot
 		Password: parts[1],
 	}
 
-	bs := bootstrapper{
+	bs := enroller{
 		Client: bat.Client(),
 	}
 
@@ -74,7 +74,7 @@ func WatchGatewayEnrollments(ctx context.Context, db *database.APIServerDB, boot
 	}
 }
 
-func (bs *bootstrapper) postGatewayConfig(bootstrapURL, name string, bootstrapConfig bootstrap.Config) error {
+func (bs *enroller) postGatewayConfig(bootstrapURL, name string, bootstrapConfig bootstrap.Config) error {
 	b, err := json.Marshal(bootstrapConfig)
 	if err != nil {
 		return fmt.Errorf("marshalling config: %w", err)
@@ -89,7 +89,7 @@ func (bs *bootstrapper) postGatewayConfig(bootstrapURL, name string, bootstrapCo
 	return nil
 }
 
-func (bs *bootstrapper) fetchGatewayInfos(bootstrapURL string) ([]bootstrap.GatewayInfo, error) {
+func (bs *enroller) fetchGatewayInfos(bootstrapURL string) ([]bootstrap.GatewayInfo, error) {
 	r, err := bs.Client.Get(bootstrapURL + "/api/v2/gateway/info")
 	if err != nil {
 		return nil, fmt.Errorf("getting gateway infos: %w", err)

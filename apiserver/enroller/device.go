@@ -1,4 +1,4 @@
-package bootstrapper
+package enroller
 
 import (
 	"bytes"
@@ -20,7 +20,7 @@ func WatchDeviceEnrollments(ctx context.Context, db *database.APIServerDB, boots
 		Password: parts[1],
 	}
 
-	bs := bootstrapper{
+	bs := enroller{
 		Client: bat.Client(),
 	}
 
@@ -75,7 +75,7 @@ func WatchDeviceEnrollments(ctx context.Context, db *database.APIServerDB, boots
 	}
 }
 
-func (bs *bootstrapper) postDeviceConfig(bootstrapURL, serial string, bootstrapConfig bootstrap.Config) error {
+func (bs *enroller) postDeviceConfig(bootstrapURL, serial string, bootstrapConfig bootstrap.Config) error {
 	b, err := json.Marshal(bootstrapConfig)
 	if err != nil {
 		return fmt.Errorf("marshalling config: %w", err)
@@ -90,7 +90,7 @@ func (bs *bootstrapper) postDeviceConfig(bootstrapURL, serial string, bootstrapC
 	return nil
 }
 
-func (bs *bootstrapper) fetchDeviceInfos(bootstrapURL string) ([]bootstrap.DeviceInfo, error) {
+func (bs *enroller) fetchDeviceInfos(bootstrapURL string) ([]bootstrap.DeviceInfo, error) {
 	r, err := bs.Client.Get(bootstrapURL + "/api/v2/device/info")
 	if err != nil {
 		return nil, fmt.Errorf("getting device infos: %w", err)

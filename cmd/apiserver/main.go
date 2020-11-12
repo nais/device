@@ -16,7 +16,7 @@ import (
 	"github.com/nais/device/apiserver/auth"
 	"github.com/nais/device/apiserver/azure/discovery"
 	"github.com/nais/device/apiserver/azure/validate"
-	"github.com/nais/device/apiserver/bootstrapper"
+	"github.com/nais/device/apiserver/enroller"
 	"github.com/nais/device/pkg/logger"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 
@@ -102,7 +102,7 @@ func main() {
 	}
 
 	if len(cfg.BootstrapApiURL) > 0 {
-		go bootstrapper.WatchDeviceEnrollments(ctx, db, cfg.BootstrapApiURL, cfg.BootstrapApiCredentials, publicKey, cfg.Endpoint)
+		go enroller.WatchDeviceEnrollments(ctx, db, cfg.BootstrapApiURL, cfg.BootstrapApiCredentials, publicKey, cfg.Endpoint)
 	}
 
 	go syncWireguardConfig(cfg.DbConnDSN, dbDriver, string(privateKey), cfg)
