@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/nais/device/device-agent/wireguard"
+	"github.com/nais/device/pkg/basicauth"
 	"github.com/nais/device/pkg/bootstrap"
 	"github.com/nais/device/pkg/secretmanager"
 	log "github.com/sirupsen/logrus"
@@ -13,8 +14,10 @@ import (
 	"time"
 )
 
+const enrollmentTokenPrefix = "enrollment-token"
+
 type SecretManager interface {
-	GetSecrets(map[string]string) ([]*secretmanager.Secret, error)
+	GetSecret(string) (*secretmanager.Secret, error)
 }
 
 type Bootstrapper struct {
@@ -34,11 +37,12 @@ func (b *Bootstrapper) GetBootstrapConfig() (*bootstrap.Config, error) {
 		log.Infof("Attempted to read bootstrap config: %v", err)
 	}
 
-	//TODO make GetSecret method here
-	secrets, err := b.SecretManager.GetSecrets(map[string]string{"gateway": b.Config.Name})
-	if len(secrets) != 1 {
-		return nil, fmt.Errorf("expected to get a single secret for gateway, exiting")
+	secret, err := b.SecretManager.GetSecret(fmt.Sprintf("%s_%s", enrollmentTokenPrefix, b.Config.Name))
+	if err != nil {
+		return nil, fmt.Errorf("getting enrollment token from secret manager: %w", err)
 	}
+
+	b.HTTPClient.Transport = &basicauth.Transport{Username: b.Config.Name, Password: string(secret.Data)}
 
 	gatewayInfo := &bootstrap.GatewayInfo{
 		Name:      b.Config.Name,

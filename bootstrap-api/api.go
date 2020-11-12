@@ -120,14 +120,14 @@ func (api *GatewayApi) RoutesV2() func(chi.Router) {
 		r.Group(func(r chi.Router) {
 			r.Use(api.gatewayAuth)
 			r.Post("/info", api.postGatewayInfo)
-			r.Get("/config", api.getGatewayConfig)
+			r.Get("/config/{name}", api.getGatewayConfig)
 		})
 
 		// apiserver calls
 		r.Group(func(r chi.Router) {
 			r.Use(api.apiserverAuth)
 			r.Get("/info", api.getGatewayInfo)
-			r.Post("/config", api.postGatewayConfig)
+			r.Post("/config/{name}", api.postGatewayConfig)
 		})
 	}
 }

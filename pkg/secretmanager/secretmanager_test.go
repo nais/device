@@ -15,7 +15,7 @@ import (
 )
 
 func TestGetSecrets(t *testing.T) {
-	fsm := &fakeSecretManager{}
+	fsm := &fakeSecretManager{Project: "x"}
 	sm, err := setup(t, fsm)
 	assert.NoError(t, err)
 
@@ -38,6 +38,18 @@ func TestGetSecrets(t *testing.T) {
 		assert.NoError(t, err)
 		assert.Len(t, secrets, 1)
 	})
+
+	t.Run("get secret", func(t *testing.T) {
+		secret, err := sm.GetSecret("one")
+		assert.NoError(t, err)
+		assert.Equal(t, []byte("1"), secret.Data)
+	})
+
+	t.Run("get disabled secret", func(t *testing.T) {
+		_, err := sm.GetSecret("three")
+		assert.Error(t, err)
+	})
+
 }
 
 func setup(t *testing.T, fsm *fakeSecretManager) (*secretmanager.SecretManager, error) {
@@ -64,6 +76,7 @@ func setup(t *testing.T, fsm *fakeSecretManager) (*secretmanager.SecretManager, 
 
 	sm := &secretmanager.SecretManager{
 		Client: client,
+		Project: fsm.Project,
 	}
 
 	return sm, err

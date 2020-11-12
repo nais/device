@@ -16,15 +16,15 @@ import (
 )
 
 type FakeSecretManager struct {
-	secrets []*secretmanager.Secret
+	secret *secretmanager.Secret
 }
 
-func (sm *FakeSecretManager) GetSecrets(_ map[string]string) ([]*secretmanager.Secret, error) {
-	return sm.secrets, nil
+func (sm *FakeSecretManager) GetSecret(name string) (*secretmanager.Secret, error) {
+	return sm.secret, nil
 }
 
 func TestGetBootstrapConfig(t *testing.T) {
-	sm := FakeSecretManager{secrets: []*secretmanager.Secret{{Name: "secret", Data: []byte("s3cr3t")}}}
+	sm := FakeSecretManager{secret: &secretmanager.Secret{Name: "secret", Data: []byte("s3cr3t")}}
 	t.Run("returns existing bootstrapconfig if present", func(t *testing.T) {
 		f, err := ioutil.TempFile(os.TempDir(), "test")
 		assert.NoError(t, err)

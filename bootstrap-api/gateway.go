@@ -2,6 +2,7 @@ package bootstrap_api
 
 import (
 	"encoding/json"
+	"github.com/go-chi/chi"
 	"github.com/nais/device/pkg/bootstrap"
 	"github.com/nais/device/pkg/version"
 	"github.com/prometheus/client_golang/prometheus"
@@ -73,11 +74,13 @@ func (api *GatewayApi) getGatewayInfo(w http.ResponseWriter, r *http.Request) {
 
 // step 3. apiserver posts gateway config
 func (api *GatewayApi) postGatewayConfig(w http.ResponseWriter, r *http.Request) {
+	gatewayName := chi.URLParam(r, "name")
+
 	log := log.WithFields(log.Fields{
 		"component": "bootstrap-api",
 	})
 
-	var gatewayConfig bootstrap.GatewayConfig
+	var gatewayConfig bootstrap.Config
 	err := json.NewDecoder(r.Body).Decode(&gatewayConfig)
 	if err != nil {
 		log.Errorf("Decoding json: %v", err)
@@ -85,7 +88,7 @@ func (api *GatewayApi) postGatewayConfig(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	api.enrollments.addGatewayConfig(gatewayConfig)
+	api.enrollments.addGatewayConfig(gatewayConfig, gatewayName)
 
 	w.WriteHeader(http.StatusCreated)
 
@@ -94,7 +97,7 @@ func (api *GatewayApi) postGatewayConfig(w http.ResponseWriter, r *http.Request)
 
 // step 4. gateway requests gateway config
 func (api *GatewayApi) getGatewayConfig(w http.ResponseWriter, r *http.Request) {
-	gatewayName := r.Context().Value(GatewayNameContextKey).(string)
+	gatewayName := chi.URLParam(r, "name")
 
 	log := log.WithFields(log.Fields{
 		"component": "bootstrap-api",
@@ -125,13 +128,13 @@ type ActiveGatewayEnrollments struct {
 	gatewayInfos     []bootstrap.GatewayInfo
 	gatewayInfosLock sync.Mutex
 
-	bootstrapGatewayConfigs     map[string]bootstrap.GatewayConfig
+	bootstrapGatewayConfigs     map[string]bootstrap.Config
 	bootstrapGatewayConfigsLock sync.Mutex
 }
 
 func NewActiveGatewayEnrollments() *ActiveGatewayEnrollments {
 	return &ActiveGatewayEnrollments{
-		bootstrapGatewayConfigs: make(map[string]bootstrap.GatewayConfig),
+		bootstrapGatewayConfigs: make(map[string]bootstrap.Config),
 	}
 }
 
@@ -154,14 +157,14 @@ func (a *ActiveGatewayEnrollments) addGatewayInfo(gatewayInfo bootstrap.GatewayI
 	a.gatewayInfos = append(a.gatewayInfos, gatewayInfo)
 }
 
-func (a *ActiveGatewayEnrollments) addGatewayConfig(bootstrapGatewayConfig bootstrap.GatewayConfig) {
+func (a *ActiveGatewayEnrollments) addGatewayConfig(bootstrapGatewayConfig bootstrap.Config, name string) {
 	a.bootstrapGatewayConfigsLock.Lock()
 	defer a.bootstrapGatewayConfigsLock.Unlock()
 
-	a.bootstrapGatewayConfigs[bootstrapGatewayConfig.Name] = bootstrapGatewayConfig
+	a.bootstrapGatewayConfigs[name] = bootstrapGatewayConfig
 }
 
-func (a *ActiveGatewayEnrollments) getGatewayConfig(gatewayName string) *bootstrap.GatewayConfig {
+func (a *ActiveGatewayEnrollments) getGatewayConfig(gatewayName string) *bootstrap.Config {
 	a.bootstrapGatewayConfigsLock.Lock()
 	defer a.bootstrapGatewayConfigsLock.Unlock()
 

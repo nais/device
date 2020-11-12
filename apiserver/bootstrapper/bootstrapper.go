@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/nais/device/apiserver/database"
+	"github.com/nais/device/pkg/basicauth"
 	"github.com/nais/device/pkg/bootstrap"
 	log "github.com/sirupsen/logrus"
 	"net/http"
@@ -17,23 +18,9 @@ type bootstrapper struct {
 	Client *http.Client
 }
 
-type BasicAuthTransport struct {
-	Username string
-	Password string
-}
-
-func (bat *BasicAuthTransport) Client() *http.Client {
-	return &http.Client{Transport: bat}
-}
-
-func (bat BasicAuthTransport) RoundTrip(req *http.Request) (*http.Response, error) {
-	req.SetBasicAuth(bat.Username, bat.Password)
-	return http.DefaultTransport.RoundTrip(req)
-}
-
 func WatchEnrollments(ctx context.Context, db *database.APIServerDB, bootstrapApiURL, bootstrapApiCredentials string, publicKey []byte, apiEndpoint string) {
 	parts := strings.Split(bootstrapApiCredentials, ":")
-	bat := BasicAuthTransport{
+	bat := &basicauth.Transport{
 		Username: parts[0],
 		Password: parts[1],
 	}
