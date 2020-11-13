@@ -123,10 +123,7 @@ func (s *Sessions) getToken(ctx context.Context, code, redirectUri string) (*oau
 		return nil, fmt.Errorf("no 'code' query param in auth request")
 	}
 
-	oauthConfig := *s.OAuthConfig // create copy as to not change actual object
-	oauthConfig.RedirectURL = redirectUri
-
-	token, err := oauthConfig.Exchange(ctx, code)
+	token, err := s.OAuthConfig.Exchange(ctx, code, oauth2.SetAuthURLParam("redirect_uri", redirectUri))
 	if err != nil {
 		return nil, fmt.Errorf("exchanging code for token: %w", err)
 	}
