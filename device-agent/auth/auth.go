@@ -99,11 +99,6 @@ func RunFlow(ctx context.Context, urlOpener UrlOpener, exchange SessionInfoGette
 		sessionInfo <- si
 	})
 
-	listener, err := net.Listen("tcp", "localhost:51800")
-	if err != nil {
-		return nil, fmt.Errorf("Error listening on port 51800: %w", err)
-	}
-
 	server := &http.Server{Handler: handler}
 	/* TODO
 	   consider waiting for this to become ready. In the case where Azure AD
@@ -121,7 +116,7 @@ func RunFlow(ctx context.Context, urlOpener UrlOpener, exchange SessionInfoGette
 	}()
 	defer server.Close()
 
-	err = urlOpener()
+	err := urlOpener()
 	if err != nil {
 		log.Errorf("opening browser, err: %v", err)
 		// Don't return, as this is not fatal (user can open browser manually)

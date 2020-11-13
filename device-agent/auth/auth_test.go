@@ -35,7 +35,7 @@ func TestRunFlow(t *testing.T) {
 
 	urlOpener := func(url string) auth.UrlOpener {
 		return func() error {
-			time.Sleep(2 * time.Second)
+			time.Sleep(1 * time.Second)
 			fmt.Println("urlOpener:", url)
 			client := &http.Client{
 				Timeout: 5 * time.Second,
