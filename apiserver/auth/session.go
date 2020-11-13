@@ -39,7 +39,7 @@ func New(cfg config.Config, validator jwt.Keyfunc, db *database.APIServerDB) (*S
 		state:          make(map[string]bool),
 		Active:         make(map[string]*database.SessionInfo),
 		oauthConfig: &oauth2.Config{
-			RedirectURL:  "http://localhost:51800",
+			RedirectURL:  "http://localhost",
 			ClientID:     cfg.Azure.ClientID,
 			ClientSecret: cfg.Azure.ClientSecret,
 			Scopes:       []string{"openid", fmt.Sprintf("%s/.default", cfg.Azure.ClientID)},
@@ -181,17 +181,22 @@ func (s *Sessions) Login(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Sessions) AuthURL(w http.ResponseWriter, r *http.Request) {
-
 	state := random.RandomString(20, random.LettersAndNumbers)
 	s.stateLock.Lock()
 	s.state[state] = true
 	s.stateLock.Unlock()
 
 	var authURL string
+	port := r.Header.Get("x-naisdevice-listen-port")
+	if len(port) == 0 {
+		port = "51800"
+	}
+
 	if !s.devMode {
-		authURL = s.oauthConfig.AuthCodeURL(state, oauth2.AccessTypeOffline)
+		redirectUri := fmt.Sprintf("http://localhost:%s", port)
+		authURL = s.oauthConfig.AuthCodeURL(state, oauth2.AccessTypeOffline, oauth2.SetAuthURLParam("redirect_uri", redirectUri))
 	} else {
-		authURL = fmt.Sprintf("http://localhost:51800/?state=%s&code=dev", state)
+		authURL = fmt.Sprintf("http://localhost:%s/?state=%s&code=dev", port, state)
 	}
 	_, err := w.Write([]byte(authURL))
 	if err != nil {

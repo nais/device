@@ -9,6 +9,7 @@ import (
 	"net"
 	"net/http"
 	"net/url"
+	"strconv"
 	"strings"
 	"time"
 
@@ -37,10 +38,16 @@ func EnsureAuth(existing *SessionInfo, ctx context.Context, apiserverURL, platfo
 		return existing, nil
 	}
 
+	listener, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		return nil, fmt.Errorf("creating listener: %w", err)
+	}
+	port := listener.Addr().(*net.TCPAddr).Port
+
 	var authURL string
 	for attempt := 0; attempt < GetAuthURLMaxAttempts; attempt += 1 {
 		authUrlCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
-		authURL, err = getAuthURL(apiserverURL, authUrlCtx)
+		authURL, err = getAuthURL(apiserverURL, authUrlCtx, port)
 		cancel()
 
 		if err == nil && len(authURL) > 0 {
@@ -55,7 +62,7 @@ func EnsureAuth(existing *SessionInfo, ctx context.Context, apiserverURL, platfo
 		return nil, fmt.Errorf("unable to get auth URL from apiserver after %d attempts", GetAuthURLMaxAttempts)
 	}
 
-	sessionInfo, err := RunFlow(ctx, urlOpener(authURL), MakeSessionInfoGetter(apiserverURL, platform, serial))
+	sessionInfo, err := RunFlow(ctx, urlOpener(authURL), MakeSessionInfoGetter(apiserverURL, platform, serial), listener)
 
 	if err != nil {
 		return nil, fmt.Errorf("ensuring valid session key: %v", err)
@@ -67,7 +74,7 @@ func EnsureAuth(existing *SessionInfo, ctx context.Context, apiserverURL, platfo
 type SessionInfoGetter func(context.Context, string) (*SessionInfo, error)
 type UrlOpener func() error
 
-func RunFlow(ctx context.Context, urlOpener UrlOpener, exchange SessionInfoGetter) (*SessionInfo, error) {
+func RunFlow(ctx context.Context, urlOpener UrlOpener, exchange SessionInfoGetter, listener net.Listener) (*SessionInfo, error) {
 	handler := http.NewServeMux()
 
 	sessionInfo := make(chan *SessionInfo, 1)
@@ -103,7 +110,15 @@ func RunFlow(ctx context.Context, urlOpener UrlOpener, exchange SessionInfoGette
 	   redirects extremely fast the listener won't be ready. We saw this in
 	   unit tests where we mocked AAD.
 	*/
-	go server.Serve(listener)
+
+	go func() {
+		err := server.Serve(listener)
+		if err != nil {
+			log.Errorf("serving: %v", err)
+		} else {
+			log.Debugf("done serving")
+		}
+	}()
 	defer server.Close()
 
 	err = urlOpener()
@@ -128,7 +143,7 @@ func RunFlow(ctx context.Context, urlOpener UrlOpener, exchange SessionInfoGette
 	return si, nil
 }
 
-func urlOpener(url string) func() error {
+func urlOpener(url string) UrlOpener {
 	return func() error {
 		err := open.Open(url)
 
@@ -167,11 +182,12 @@ func MakeSessionInfoGetter(apiserverURL, platform, serial string) SessionInfoGet
 	}
 }
 
-func getAuthURL(apiserverURL string, ctx context.Context) (string, error) {
+func getAuthURL(apiserverURL string, ctx context.Context, port int) (string, error) {
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, apiserverURL+"/authurl", nil)
 	if err != nil {
 		return "", fmt.Errorf("creating request to get Azure auth URL: %v", err)
 	}
+	req.Header.Add("x-naisdevice-listen-port", strconv.Itoa(port))
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		return "", fmt.Errorf("getting Azure auth URL from apiserver: %v", err)
