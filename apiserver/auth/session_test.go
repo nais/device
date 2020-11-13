@@ -19,7 +19,7 @@ func TestSessions_AuthURL(t *testing.T) {
 		DB:     nil,
 		Active: make(map[string]*database.SessionInfo),
 		State:  make(map[string]bool),
-		OauthConfig: &oauth2.Config{
+		OAuthConfig: &oauth2.Config{
 			RedirectURL:  "http://localhost",
 			ClientID:     "{client_id}",
 			ClientSecret: "{client_secret}",

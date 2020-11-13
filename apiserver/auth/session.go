@@ -22,7 +22,7 @@ const SessionDuration = time.Hour * 10
 
 type Sessions struct {
 	DB             *database.APIServerDB
-	OauthConfig    *oauth2.Config
+	OAuthConfig    *oauth2.Config
 	tokenValidator jwt.Keyfunc
 	devMode        bool
 
@@ -40,7 +40,7 @@ func New(cfg config.Config, validator jwt.Keyfunc, db *database.APIServerDB) (*S
 		tokenValidator: validator,
 		State:          make(map[string]bool),
 		Active:         make(map[string]*database.SessionInfo),
-		OauthConfig: &oauth2.Config{
+		OAuthConfig: &oauth2.Config{
 			// RedirectURL:  "http://localhost",  don't set this
 			ClientID:     cfg.Azure.ClientID,
 			ClientSecret: cfg.Azure.ClientSecret,
@@ -107,7 +107,7 @@ func (s *Sessions) getToken(ctx context.Context, code string) (*oauth2.Token, er
 		return nil, fmt.Errorf("no 'code' query param in auth request")
 	}
 
-	token, err := s.OauthConfig.Exchange(ctx, code)
+	token, err := s.OAuthConfig.Exchange(ctx, code)
 	if err != nil {
 		return nil, fmt.Errorf("exchanging code for token: %w", err)
 	}
@@ -202,7 +202,7 @@ func (s *Sessions) AuthURL(w http.ResponseWriter, r *http.Request) {
 	if !s.devMode {
 		redirectUri := fmt.Sprintf("http://localhost:%d", portAsNumber)
 		// Override redirect_url with custom port uri
-		authURL = s.OauthConfig.AuthCodeURL(state, oauth2.AccessTypeOffline, oauth2.SetAuthURLParam("redirect_uri", redirectUri))
+		authURL = s.OAuthConfig.AuthCodeURL(state, oauth2.AccessTypeOffline, oauth2.SetAuthURLParam("redirect_uri", redirectUri))
 	} else {
 		authURL = fmt.Sprintf("http://localhost:%d/?state=%s&code=dev", portAsNumber, state)
 	}
