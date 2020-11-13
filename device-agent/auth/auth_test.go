@@ -33,10 +33,9 @@ func TestRunFlow(t *testing.T) {
 	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
 
-	urlOpener := func(url string) auth.UrlOpener {
+	urlOpener := func(url string, expectedCode int, expectedMsg string) auth.UrlOpener {
 		return func() error {
 			time.Sleep(1 * time.Second)
-			fmt.Println("urlOpener:", url)
 			client := &http.Client{
 				Timeout: 5 * time.Second,
 				CheckRedirect: func(req *http.Request, via []*http.Request) error {
@@ -47,7 +46,7 @@ func TestRunFlow(t *testing.T) {
 			r, err := client.Get(url)
 			if err != nil {
 				err = fmt.Errorf("performing get request: %v", err)
-				fmt.Println(err)
+				t.Error(err)
 				return err
 			}
 			defer r.Body.Close()
@@ -55,11 +54,12 @@ func TestRunFlow(t *testing.T) {
 			b, err := ioutil.ReadAll(r.Body)
 			if err != nil {
 				err = fmt.Errorf("reading response body: %v", err)
-				fmt.Println(err)
+				t.Error(err)
 				return err
 			}
 
-			fmt.Printf("url response: %v\n", string(b))
+			assert.Equal(t, r.StatusCode, expectedCode)
+			assert.Contains(t, string(b), expectedMsg)
 
 			return nil
 		}
@@ -77,14 +77,16 @@ func TestRunFlow(t *testing.T) {
 	assert.NoError(t, err)
 	port := listener.Addr().(*net.TCPAddr).Port
 
-	si, err := auth.RunFlow(ctx, urlOpener(failureUrl(port)), sessionInfoGetter, listener)
+	opener := urlOpener(failureUrl(port), http.StatusSeeOther, "https://naisdevice-approval.nais.io")
+	si, err := auth.RunFlow(ctx, opener, sessionInfoGetter, listener)
 	assert.Error(t, err)
 	assert.Nil(t, si)
 
 	listener, err = net.Listen("tcp", "127.0.0.1:0")
 	assert.NoError(t, err)
 	port = listener.Addr().(*net.TCPAddr).Port
-	si, err = auth.RunFlow(ctx, urlOpener(successUrl(port)), sessionInfoGetter, listener)
+	opener = urlOpener(successUrl(port), http.StatusOK, "Successfully authenticated 👌 Close me pls")
+	si, err = auth.RunFlow(ctx, opener, sessionInfoGetter, listener)
 	assert.NoError(t, err)
 	assert.NotNil(t, si.Key)
 	assert.Equal(t, "key", si.Key)
