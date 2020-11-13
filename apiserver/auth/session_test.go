@@ -38,7 +38,7 @@ func TestSessions_AuthURL(t *testing.T) {
 		response := httptest.NewRecorder()
 		sessions.AuthURL(response, request)
 
-		authUrlFormat := "https://login.microsoftonline.com/{tenant_id}/oauth2/v2.0/authorize?access_type=offline&client_id=%%7Bclient_id%%7D&redirect_uri=http%%3A%%2F%%2Flocalhost%%3A%d&response_type=code&scope=openid+%%7Bclient_id%%7D%%2F.default"
+		authUrlFormat := "https://login.microsoftonline.com/%%7Btenant_id%%7D/oauth2/v2.0/authorize?access_type=offline&client_id=%%7Bclient_id%%7D&redirect_uri=http%%3A%%2F%%2Flocalhost%%3A%d&response_type=code&scope=openid+%%7Bclient_id%%7D%%2F.default"
 
 		authUrl := response.Body.String()
 		authUrlWithoutState := strings.Split(authUrl, "&state=")[0]
