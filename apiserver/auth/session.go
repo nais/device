@@ -12,6 +12,7 @@ import (
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/endpoints"
 	"net/http"
+	"net/url"
 	"sync"
 	"time"
 )
@@ -199,7 +200,13 @@ func (s *Sessions) AuthURL(w http.ResponseWriter, r *http.Request) {
 	} else {
 		authURL = fmt.Sprintf("http://localhost:%s/?state=%s&code=dev", port, state)
 	}
-	_, err := w.Write([]byte(authURL))
+
+	asUrl, err := url.Parse(authURL)
+	if err != nil {
+		log.Errorf("parsing auth url: %v", err)
+	}
+
+	_, err = w.Write([]byte(asUrl.String()))
 	if err != nil {
 		log.Errorf("responding to %v %v : %v", r.Method, r.URL.Path, err)
 	}
