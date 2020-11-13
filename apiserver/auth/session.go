@@ -13,6 +13,7 @@ import (
 	"golang.org/x/oauth2/endpoints"
 	"net/http"
 	"net/url"
+	"strconv"
 	"sync"
 	"time"
 )
@@ -193,12 +194,17 @@ func (s *Sessions) AuthURL(w http.ResponseWriter, r *http.Request) {
 		port = "51800"
 	}
 
+	portAsNumber, err := strconv.Atoi(port)
+	if err != nil {
+		log.Errorf("parsing port '%v': %v", port, err)
+	}
+
 	if !s.devMode {
-		redirectUri := fmt.Sprintf("http://localhost:%s", port)
+		redirectUri := fmt.Sprintf("http://localhost:%d", portAsNumber)
 		// Override redirect_url with custom port uri
 		authURL = s.OauthConfig.AuthCodeURL(state, oauth2.AccessTypeOffline, oauth2.SetAuthURLParam("redirect_uri", redirectUri))
 	} else {
-		authURL = fmt.Sprintf("http://localhost:%s/?state=%s&code=dev", port, state)
+		authURL = fmt.Sprintf("http://localhost:%d/?state=%s&code=dev", portAsNumber, state)
 	}
 
 	asUrl, err := url.Parse(authURL)

@@ -29,7 +29,7 @@ func TestSessions_AuthURL(t *testing.T) {
 	}
 
 	customPort := 51821
-	//defaultPort := 51820
+	defaultPort := 51800
 
 	t.Run("custom port authUrl", func(t *testing.T) {
 		request := httptest.NewRequest(http.MethodGet, "http://whocares", nil)
@@ -43,5 +43,18 @@ func TestSessions_AuthURL(t *testing.T) {
 		authUrl := response.Body.String()
 		authUrlWithoutState := strings.Split(authUrl, "&state=")[0]
 		assert.Equal(t, fmt.Sprintf(authUrlFormat, customPort), authUrlWithoutState)
+	})
+
+	t.Run("default port authUrl", func(t *testing.T) {
+		request := httptest.NewRequest(http.MethodGet, "http://whocares", nil)
+
+		response := httptest.NewRecorder()
+		sessions.AuthURL(response, request)
+
+		authUrlFormat := "https://login.microsoftonline.com/%%7Btenant_id%%7D/oauth2/v2.0/authorize?access_type=offline&client_id=%%7Bclient_id%%7D&redirect_uri=http%%3A%%2F%%2Flocalhost%%3A%d&response_type=code&scope=openid+%%7Bclient_id%%7D%%2F.default"
+
+		authUrl := response.Body.String()
+		authUrlWithoutState := strings.Split(authUrl, "&state=")[0]
+		assert.Equal(t, fmt.Sprintf(authUrlFormat, defaultPort), authUrlWithoutState)
 	})
 }
