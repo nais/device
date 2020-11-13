@@ -17,9 +17,16 @@ import (
 )
 
 const (
-	PublicKey = "pk"
-	Endpoint  = "ep"
-	Timeout   = 3 * time.Second
+	apiServerPublicKey = "pk"
+	endpoint           = "ep"
+	timeout            = 3 * time.Second
+	gatewayName        = "gateway-1"
+	gatewayEndpoint    = "1.2.3.4"
+	gatewayPublicKey   = "publicKey"
+	deviceSerial       = "deviceSerial"
+	devicePublicKey    = "publicKey"
+	devicePlatform     = "linux"
+	deviceOwner        = "me"
 )
 
 func TestWatchGatewayEnrollments(t *testing.T) {
@@ -40,8 +47,8 @@ func TestWatchGatewayEnrollments(t *testing.T) {
 		err := json.NewDecoder(r.Body).Decode(&cfg)
 		assert.NoError(t, err)
 
-		assert.Equal(t, PublicKey, cfg.PublicKey)
-		assert.Equal(t, Endpoint, cfg.TunnelEndpoint)
+		assert.Equal(t, apiServerPublicKey, cfg.PublicKey)
+		assert.Equal(t, endpoint, cfg.TunnelEndpoint)
 
 		success = true
 		w.WriteHeader(http.StatusCreated)
@@ -52,8 +59,17 @@ func TestWatchGatewayEnrollments(t *testing.T) {
 			t.Fatalf("invalid method")
 		}
 
+		gwInfos := []bootstrap.GatewayInfo{{
+			Name:      gatewayName,
+			PublicIP:  gatewayEndpoint,
+			PublicKey: gatewayPublicKey,
+		}}
+
+		b, err := json.Marshal(&gwInfos)
+		assert.NoError(t, err)
+
 		once.Do(func() {
-			fmt.Fprint(w, `[{"name": "gateway-1", "publicKey": "pubkey", "endpoint": "1.2.3.4"}]`)
+			w.Write(b)
 			return
 		})
 
@@ -67,19 +83,19 @@ func TestWatchGatewayEnrollments(t *testing.T) {
 		Client:             server.Client(),
 		DB:                 testDB,
 		BootstrapAPIURL:    server.URL,
-		APIServerPublicKey: PublicKey,
-		APIServerEndpoint:  Endpoint,
+		APIServerPublicKey: apiServerPublicKey,
+		APIServerEndpoint:  endpoint,
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), Timeout)
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 	enroller.WatchGatewayEnrollments(ctx)
 
-	device, err := testDB.ReadGateway("gateway-1")
+	gateway, err := testDB.ReadGateway(gatewayName)
 	assert.NoError(t, err)
 
-	assert.Equal(t, "1.2.3.4", device.Endpoint)
-	assert.Equal(t, "pubkey", device.PublicKey)
+	assert.Equal(t, gatewayEndpoint, gateway.Endpoint)
+	assert.Equal(t, gatewayPublicKey, gateway.PublicKey)
 
 	if !success {
 		t.Errorf("no success")
@@ -94,7 +110,7 @@ func TestWatchDeviceEnrollments(t *testing.T) {
 	success := false
 	mux := http.NewServeMux()
 
-	mux.HandleFunc("/api/v2/device/config/serial", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("/api/v2/device/config/deviceSerial", func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPost {
 			t.Fatalf("invalid method")
 		}
@@ -103,8 +119,8 @@ func TestWatchDeviceEnrollments(t *testing.T) {
 		err := json.NewDecoder(r.Body).Decode(&cfg)
 		assert.NoError(t, err)
 
-		assert.Equal(t, PublicKey, cfg.PublicKey)
-		assert.Equal(t, Endpoint, cfg.TunnelEndpoint)
+		assert.Equal(t, apiServerPublicKey, cfg.PublicKey)
+		assert.Equal(t, endpoint, cfg.TunnelEndpoint)
 
 		success = true
 		w.WriteHeader(http.StatusCreated)
@@ -115,8 +131,18 @@ func TestWatchDeviceEnrollments(t *testing.T) {
 			t.Fatalf("invalid method")
 		}
 
+		deviceInfos := []bootstrap.DeviceInfo{{
+			Serial:    deviceSerial,
+			PublicKey: devicePublicKey,
+			Platform:  devicePlatform,
+			Owner:     deviceOwner,
+		}}
+
+		b, err := json.Marshal(&deviceInfos)
+		assert.NoError(t, err)
+
 		once.Do(func() {
-			fmt.Fprint(w, `[{"serial": "serial", "publicKey": "pubkey", "platform": "linux", "owner": "me"}]`)
+			w.Write(b)
 			return
 		})
 
@@ -130,19 +156,20 @@ func TestWatchDeviceEnrollments(t *testing.T) {
 		Client:             server.Client(),
 		DB:                 testDB,
 		BootstrapAPIURL:    server.URL,
-		APIServerPublicKey: PublicKey,
-		APIServerEndpoint:  Endpoint,
+		APIServerPublicKey: apiServerPublicKey,
+		APIServerEndpoint:  endpoint,
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), Timeout)
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 	enroller.WatchDeviceEnrollments(ctx)
 
-	device, err := testDB.ReadDevice("pubkey")
+	device, err := testDB.ReadDevice(devicePublicKey)
 	assert.NoError(t, err)
 
-	assert.Equal(t, "linux", device.Platform)
-	assert.Equal(t, "me", device.Username)
+	assert.Equal(t, devicePlatform, device.Platform)
+	assert.Equal(t, deviceOwner, device.Username)
+	assert.Equal(t, devicePublicKey, device.PublicKey)
 
 	if !success {
 		t.Errorf("no success")
