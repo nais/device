@@ -18,7 +18,10 @@ import (
 	"time"
 )
 
-const SessionDuration = time.Hour * 10
+const (
+	SessionDuration     = time.Hour * 10
+	HeaderKeyListenPort = "x-naisdevice-listen-port"
+)
 
 type Sessions struct {
 	DB             *database.APIServerDB
@@ -102,12 +105,28 @@ func (s *Sessions) validAuthState(state string) error {
 	return nil
 }
 
-func (s *Sessions) getToken(ctx context.Context, code string) (*oauth2.Token, error) {
+func parseListenPort(port string) (int, error) {
+	if len(port) == 0 {
+		port = "51800"
+	}
+
+	portAsNumber, err := strconv.Atoi(port)
+	if err != nil {
+		return -1, fmt.Errorf("parsing port '%v': %v", port, err)
+	}
+
+	return portAsNumber, err
+}
+
+func (s *Sessions) getToken(ctx context.Context, code, redirectUri string) (*oauth2.Token, error) {
 	if len(code) == 0 {
 		return nil, fmt.Errorf("no 'code' query param in auth request")
 	}
 
-	token, err := s.OAuthConfig.Exchange(ctx, code)
+	oauthConfig := *s.OAuthConfig // create copy as to not change actual object
+	oauthConfig.RedirectURL = redirectUri
+
+	token, err := oauthConfig.Exchange(ctx, code)
 	if err != nil {
 		return nil, fmt.Errorf("exchanging code for token: %w", err)
 	}
@@ -130,7 +149,14 @@ func (s *Sessions) Login(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if !s.devMode {
-		token, err := s.getToken(ctx, r.URL.Query().Get("code"))
+		listenPort, err := parseListenPort(r.Header.Get(HeaderKeyListenPort))
+		if err != nil {
+			authFailed(w, "unable to parse listening port: %v", err)
+			return
+		}
+
+		redirectUri := fmt.Sprintf("http://localhost:%d", listenPort)
+		token, err := s.getToken(ctx, r.URL.Query().Get("code"), redirectUri)
 		if err != nil {
 			authFailed(w, "Exchanging code for token: %v", err)
 			return
@@ -189,22 +215,18 @@ func (s *Sessions) AuthURL(w http.ResponseWriter, r *http.Request) {
 	s.stateLock.Unlock()
 
 	var authURL string
-	port := r.Header.Get("x-naisdevice-listen-port")
-	if len(port) == 0 {
-		port = "51800"
-	}
-
-	portAsNumber, err := strconv.Atoi(port)
+	listenPort, err := parseListenPort(r.Header.Get(HeaderKeyListenPort))
 	if err != nil {
-		log.Errorf("parsing port '%v': %v", port, err)
+		authFailed(w, "unable to parse listening port: %s", err)
+		return
 	}
 
 	if !s.devMode {
-		redirectUri := fmt.Sprintf("http://localhost:%d", portAsNumber)
+		redirectUri := fmt.Sprintf("http://localhost:%d", listenPort)
 		// Override redirect_url with custom port uri
 		authURL = s.OAuthConfig.AuthCodeURL(state, oauth2.AccessTypeOffline, oauth2.SetAuthURLParam("redirect_uri", redirectUri))
 	} else {
-		authURL = fmt.Sprintf("http://localhost:%d/?state=%s&code=dev", portAsNumber, state)
+		authURL = fmt.Sprintf("http://localhost:%d/?state=%s&code=dev", listenPort, state)
 	}
 
 	asUrl, err := url.Parse(authURL)
