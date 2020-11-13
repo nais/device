@@ -12,6 +12,8 @@ import (
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/endpoints"
 	"net/http"
+	"net/url"
+	"strconv"
 	"sync"
 	"time"
 )
@@ -20,11 +22,11 @@ const SessionDuration = time.Hour * 10
 
 type Sessions struct {
 	DB             *database.APIServerDB
-	oauthConfig    *oauth2.Config
+	OAuthConfig    *oauth2.Config
 	tokenValidator jwt.Keyfunc
 	devMode        bool
 
-	state     map[string]bool
+	State     map[string]bool
 	stateLock sync.Mutex
 
 	Active     map[string]*database.SessionInfo
@@ -36,10 +38,10 @@ func New(cfg config.Config, validator jwt.Keyfunc, db *database.APIServerDB) (*S
 		DB:             db,
 		devMode:        cfg.DevMode,
 		tokenValidator: validator,
-		state:          make(map[string]bool),
+		State:          make(map[string]bool),
 		Active:         make(map[string]*database.SessionInfo),
-		oauthConfig: &oauth2.Config{
-			RedirectURL:  "http://localhost:51800",
+		OAuthConfig: &oauth2.Config{
+			// RedirectURL:  "http://localhost",  don't set this
 			ClientID:     cfg.Azure.ClientID,
 			ClientSecret: cfg.Azure.ClientSecret,
 			Scopes:       []string{"openid", fmt.Sprintf("%s/.default", cfg.Azure.ClientID)},
@@ -91,8 +93,8 @@ func (s *Sessions) validAuthState(state string) error {
 	s.stateLock.Lock()
 	defer s.stateLock.Unlock()
 
-	if _, ok := s.state[state]; ok {
-		delete(s.state, state)
+	if _, ok := s.State[state]; ok {
+		delete(s.State, state)
 	} else {
 		return fmt.Errorf("state not found (CSRF attack?): %v", state)
 	}
@@ -105,7 +107,7 @@ func (s *Sessions) getToken(ctx context.Context, code string) (*oauth2.Token, er
 		return nil, fmt.Errorf("no 'code' query param in auth request")
 	}
 
-	token, err := s.oauthConfig.Exchange(ctx, code)
+	token, err := s.OAuthConfig.Exchange(ctx, code)
 	if err != nil {
 		return nil, fmt.Errorf("exchanging code for token: %w", err)
 	}
@@ -181,19 +183,36 @@ func (s *Sessions) Login(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Sessions) AuthURL(w http.ResponseWriter, r *http.Request) {
-
 	state := random.RandomString(20, random.LettersAndNumbers)
 	s.stateLock.Lock()
-	s.state[state] = true
+	s.State[state] = true
 	s.stateLock.Unlock()
 
 	var authURL string
-	if !s.devMode {
-		authURL = s.oauthConfig.AuthCodeURL(state, oauth2.AccessTypeOffline)
-	} else {
-		authURL = fmt.Sprintf("http://localhost:51800/?state=%s&code=dev", state)
+	port := r.Header.Get("x-naisdevice-listen-port")
+	if len(port) == 0 {
+		port = "51800"
 	}
-	_, err := w.Write([]byte(authURL))
+
+	portAsNumber, err := strconv.Atoi(port)
+	if err != nil {
+		log.Errorf("parsing port '%v': %v", port, err)
+	}
+
+	if !s.devMode {
+		redirectUri := fmt.Sprintf("http://localhost:%d", portAsNumber)
+		// Override redirect_url with custom port uri
+		authURL = s.OAuthConfig.AuthCodeURL(state, oauth2.AccessTypeOffline, oauth2.SetAuthURLParam("redirect_uri", redirectUri))
+	} else {
+		authURL = fmt.Sprintf("http://localhost:%d/?state=%s&code=dev", portAsNumber, state)
+	}
+
+	asUrl, err := url.Parse(authURL)
+	if err != nil {
+		log.Errorf("parsing auth url: %v", err)
+	}
+
+	_, err = w.Write([]byte(asUrl.String()))
 	if err != nil {
 		log.Errorf("responding to %v %v : %v", r.Method, r.URL.Path, err)
 	}
