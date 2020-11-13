@@ -19,6 +19,7 @@ import (
 const (
 	PublicKey = "pk"
 	Endpoint  = "ep"
+	Timeout   = 3 * time.Second
 )
 
 func TestWatchGatewayEnrollments(t *testing.T) {
@@ -70,9 +71,15 @@ func TestWatchGatewayEnrollments(t *testing.T) {
 		APIServerEndpoint:  Endpoint,
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), Timeout)
 	defer cancel()
 	enroller.WatchGatewayEnrollments(ctx)
+
+	device, err := testDB.ReadGateway("gateway-1")
+	assert.NoError(t, err)
+
+	assert.Equal(t, "1.2.3.4", device.Endpoint)
+	assert.Equal(t, "pubkey", device.PublicKey)
 
 	if !success {
 		t.Errorf("no success")
@@ -127,9 +134,15 @@ func TestWatchDeviceEnrollments(t *testing.T) {
 		APIServerEndpoint:  Endpoint,
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), Timeout)
 	defer cancel()
 	enroller.WatchDeviceEnrollments(ctx)
+
+	device, err := testDB.ReadDevice("pubkey")
+	assert.NoError(t, err)
+
+	assert.Equal(t, "linux", device.Platform)
+	assert.Equal(t, "me", device.Username)
 
 	if !success {
 		t.Errorf("no success")
