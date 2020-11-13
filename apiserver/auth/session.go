@@ -20,11 +20,11 @@ const SessionDuration = time.Hour * 10
 
 type Sessions struct {
 	DB             *database.APIServerDB
-	oauthConfig    *oauth2.Config
+	OauthConfig    *oauth2.Config
 	tokenValidator jwt.Keyfunc
 	devMode        bool
 
-	state     map[string]bool
+	State     map[string]bool
 	stateLock sync.Mutex
 
 	Active     map[string]*database.SessionInfo
@@ -36,10 +36,10 @@ func New(cfg config.Config, validator jwt.Keyfunc, db *database.APIServerDB) (*S
 		DB:             db,
 		devMode:        cfg.DevMode,
 		tokenValidator: validator,
-		state:          make(map[string]bool),
+		State:          make(map[string]bool),
 		Active:         make(map[string]*database.SessionInfo),
-		oauthConfig: &oauth2.Config{
-			RedirectURL:  "http://localhost",
+		OauthConfig: &oauth2.Config{
+			// RedirectURL:  "http://localhost",  don't set this
 			ClientID:     cfg.Azure.ClientID,
 			ClientSecret: cfg.Azure.ClientSecret,
 			Scopes:       []string{"openid", fmt.Sprintf("%s/.default", cfg.Azure.ClientID)},
@@ -91,8 +91,8 @@ func (s *Sessions) validAuthState(state string) error {
 	s.stateLock.Lock()
 	defer s.stateLock.Unlock()
 
-	if _, ok := s.state[state]; ok {
-		delete(s.state, state)
+	if _, ok := s.State[state]; ok {
+		delete(s.State, state)
 	} else {
 		return fmt.Errorf("state not found (CSRF attack?): %v", state)
 	}
@@ -105,7 +105,7 @@ func (s *Sessions) getToken(ctx context.Context, code string) (*oauth2.Token, er
 		return nil, fmt.Errorf("no 'code' query param in auth request")
 	}
 
-	token, err := s.oauthConfig.Exchange(ctx, code)
+	token, err := s.OauthConfig.Exchange(ctx, code)
 	if err != nil {
 		return nil, fmt.Errorf("exchanging code for token: %w", err)
 	}
@@ -183,7 +183,7 @@ func (s *Sessions) Login(w http.ResponseWriter, r *http.Request) {
 func (s *Sessions) AuthURL(w http.ResponseWriter, r *http.Request) {
 	state := random.RandomString(20, random.LettersAndNumbers)
 	s.stateLock.Lock()
-	s.state[state] = true
+	s.State[state] = true
 	s.stateLock.Unlock()
 
 	var authURL string
@@ -194,7 +194,8 @@ func (s *Sessions) AuthURL(w http.ResponseWriter, r *http.Request) {
 
 	if !s.devMode {
 		redirectUri := fmt.Sprintf("http://localhost:%s", port)
-		authURL = s.oauthConfig.AuthCodeURL(state, oauth2.AccessTypeOffline, oauth2.SetAuthURLParam("redirect_uri", redirectUri))
+		// Override redirect_url with custom port uri
+		authURL = s.OauthConfig.AuthCodeURL(state, oauth2.AccessTypeOffline, oauth2.SetAuthURLParam("redirect_uri", redirectUri))
 	} else {
 		authURL = fmt.Sprintf("http://localhost:%s/?state=%s&code=dev", port, state)
 	}
