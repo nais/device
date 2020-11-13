@@ -62,7 +62,7 @@ func EnsureAuth(existing *SessionInfo, ctx context.Context, apiserverURL, platfo
 		return nil, fmt.Errorf("unable to get auth URL from apiserver after %d attempts", GetAuthURLMaxAttempts)
 	}
 
-	sessionInfo, err := RunFlow(ctx, urlOpener(authURL), MakeSessionInfoGetter(apiserverURL, platform, serial), listener)
+	sessionInfo, err := RunFlow(ctx, urlOpener(authURL), MakeSessionInfoGetter(apiserverURL, platform, serial, port), listener)
 
 	if err != nil {
 		return nil, fmt.Errorf("ensuring valid session key: %v", err)
@@ -150,7 +150,7 @@ func urlOpener(url string) UrlOpener {
 	}
 }
 
-func MakeSessionInfoGetter(apiserverURL, platform, serial string) SessionInfoGetter {
+func MakeSessionInfoGetter(apiserverURL, platform, serial string, port int) SessionInfoGetter {
 	return func(ctx context.Context, queryParams string) (*SessionInfo, error) {
 		codeRequestURL := url.URL{
 			Scheme:   "http",
@@ -162,6 +162,7 @@ func MakeSessionInfoGetter(apiserverURL, platform, serial string) SessionInfoGet
 		codeRequest, _ := http.NewRequest(http.MethodGet, codeRequestURL.String(), nil)
 		codeRequest.Header.Add("x-naisdevice-platform", platform)
 		codeRequest.Header.Add("x-naisdevice-serial", serial)
+		codeRequest.Header.Add("x-naisdevice-listen-port", strconv.Itoa(port))
 
 		resp, err := http.DefaultClient.Do(codeRequest.WithContext(ctx))
 		if err != nil {

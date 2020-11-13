@@ -114,7 +114,7 @@ func TestMakeSessionInfoGetter(t *testing.T) {
 	s := httptest.NewServer(mux)
 	defer s.Close()
 
-	sessionInfoGetter := auth.MakeSessionInfoGetter(s.URL, "linux", "serial")
+	sessionInfoGetter := auth.MakeSessionInfoGetter(s.URL, "linux", "serial", 51800)
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
 	si, err := sessionInfoGetter(ctx, expectedParams)
