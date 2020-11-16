@@ -4,6 +4,7 @@ go 1.13
 
 require (
 	cloud.google.com/go v0.65.0
+	cloud.google.com/go/storage v1.10.0
 	github.com/GoogleCloudPlatform/cloudsql-proxy v1.18.0
 	github.com/coreos/go-iptables v0.4.5
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible

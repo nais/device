@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"github.com/nais/device/apiserver/gatewayconfigurer"
 	"github.com/nais/device/pkg/basicauth"
 	"io/ioutil"
 	"net/http"
@@ -28,6 +29,10 @@ import (
 	flag "github.com/spf13/pflag"
 )
 
+const (
+	gatewayConfigSyncInterval = 1 * time.Minute
+)
+
 var (
 	cfg = config.DefaultConfig()
 )
@@ -48,6 +53,8 @@ func init() {
 	flag.StringVar(&cfg.Azure.ClientID, "azure-client-id", "", "Azure app client id")
 	flag.StringVar(&cfg.Azure.ClientSecret, "azure-client-secret", "", "Azure app client secret")
 	flag.StringSliceVar(&cfg.CredentialEntries, "credential-entries", nil, "Comma-separated credentials on format: '<user>:<key>'")
+	flag.StringVar(&cfg.GatewayConfigBucketName, "gateway-config-bucket-name", "gatewayconfig", "Name of bucket containing gateway config object")
+	flag.StringVar(&cfg.GatewayConfigBucketObjectName, "gateway-config-bucket-object-name", "gatewayconfig.json", "Name of bucket object containing gateway config JSON")
 
 	flag.Parse()
 
@@ -117,6 +124,14 @@ func main() {
 		go enroller.WatchDeviceEnrollments(ctx)
 		go enroller.WatchGatewayEnrollments(ctx)
 	}
+
+	gwc := gatewayconfigurer.GatewayConfigurer{
+		DB:           db,
+		BucketReader: gatewayconfigurer.GoogleBucketReader{BucketName: cfg.GatewayConfigBucketName, BucketObjectName: cfg.GatewayConfigBucketObjectName},
+		SyncInterval: gatewayConfigSyncInterval,
+	}
+
+	go gwc.SyncContinuously(ctx)
 
 	go syncWireguardConfig(cfg.DbConnDSN, dbDriver, string(privateKey), cfg)
 
