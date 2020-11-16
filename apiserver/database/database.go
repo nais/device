@@ -133,6 +133,21 @@ func (d *APIServerDB) UpdateDeviceStatus(devices []Device) error {
 
 var mux sync.Mutex
 
+func (d *APIServerDB) UpdateGateway(ctx context.Context, name string, routes, accessGroupIDs []string) error {
+	statement := `
+UPDATE gateway 
+SET routes = $1, access_group_ids = $2
+WHERE name = $3;`
+
+	_, err := d.Conn.ExecContext(ctx, statement, strings.Join(routes, ","), strings.Join(accessGroupIDs, ","), name)
+	if err != nil {
+		return fmt.Errorf("updating gateway: %w", err)
+	}
+
+	log.Infof("Updated gateway: %s", name)
+	return nil
+}
+
 func (d *APIServerDB) AddGateway(ctx context.Context, gateway Gateway) error {
 	mux.Lock()
 	defer mux.Unlock()
@@ -154,11 +169,10 @@ func (d *APIServerDB) AddGateway(ctx context.Context, gateway Gateway) error {
 	}
 
 	statement := `
-INSERT INTO gateway (name, access_group_ids, endpoint, public_key, ip, routes)
-VALUES ($1, $2, $3, $4, $5, $6)
-ON CONFLICT (name) DO UPDATE SET access_group_ids = $2, endpoint = $3, public_key = $4, routes = $6;`
+INSERT INTO gateway (name, endpoint, public_key, ip)
+VALUES ($1, $2, $3, $4);`
 
-	_, err = d.Conn.ExecContext(ctx, statement, gateway.Name, strings.Join(gateway.AccessGroupIDs, ","), gateway.Endpoint, gateway.PublicKey, availableIp, strings.Join(gateway.Routes, ","))
+	_, err = d.Conn.ExecContext(ctx, statement, gateway.Name, gateway.Endpoint, gateway.PublicKey, availableIp)
 	if err != nil {
 		return fmt.Errorf("inserting new gateway: %w", err)
 	}

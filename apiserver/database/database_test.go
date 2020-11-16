@@ -41,7 +41,12 @@ func TestAddGateway(t *testing.T) {
 		assert.Equal(t, g.Name, gateway.Name)
 		assert.Equal(t, g.Endpoint, gateway.Endpoint)
 		assert.Equal(t, g.PublicKey, gateway.PublicKey)
+	})
 
+	t.Run("adding a gateway with same name as existing fails", func(t *testing.T) {
+		existingGateway, err := db.ReadGateway(g.Name)
+		assert.NoError(t, err)
+		assert.Error(t, db.AddGateway(ctx, *existingGateway))
 	})
 
 	t.Run("updating existing gateway works", func(t *testing.T) {
@@ -51,16 +56,22 @@ func TestAddGateway(t *testing.T) {
 		assert.Nil(t, existingGateway.Routes)
 		assert.Nil(t, existingGateway.AccessGroupIDs)
 
-		existingGateway.Routes = []string{"r", "o", "u", "t", "e", "s"}
-		existingGateway.AccessGroupIDs = []string{"a1", "b2", "c3"}
+		routes := []string{"r", "o", "u", "t", "e", "s"}
+		accessGroupIDs := []string{"a1", "b2", "c3"}
 
-		assert.NoError(t, db.AddGateway(ctx, *existingGateway))
+		assert.NoError(t, db.UpdateGateway(ctx, existingGateway.Name, routes, accessGroupIDs))
 
 		updatedGateway, err := db.ReadGateway(g.Name)
 		assert.NoError(t, err)
 
-		assert.Equal(t, existingGateway.Routes, updatedGateway.Routes)
-		assert.Equal(t, existingGateway.AccessGroupIDs, updatedGateway.AccessGroupIDs)
+		assert.Equal(t, routes, updatedGateway.Routes)
+		assert.Equal(t, accessGroupIDs, updatedGateway.AccessGroupIDs)
+	})
+	t.Run("updating non-existant gateway is ok", func(t *testing.T) {
+		routes := []string{"r", "o", "u", "t", "e", "s"}
+		accessGroupIDs := []string{"a1", "b2", "c3"}
+
+		assert.NoError(t, db.UpdateGateway(ctx, "non-existant", routes, accessGroupIDs))
 	})
 }
 
