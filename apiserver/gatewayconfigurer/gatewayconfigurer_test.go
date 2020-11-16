@@ -1,9 +1,8 @@
 package gatewayconfigurer_test
 
 import (
-	"bytes"
 	"context"
-	"encoding/json"
+	"fmt"
 	"github.com/nais/device/apiserver/database"
 	"github.com/nais/device/apiserver/gatewayconfigurer"
 	"github.com/nais/device/apiserver/testdatabase"
@@ -22,16 +21,12 @@ func TestGatewayConfigurer_SyncConfig(t *testing.T) {
 	t.Run("updates gateway config in database according to bucket definition", func(t *testing.T) {
 		testDB, err := testdatabase.New("user=postgres password=postgres host=localhost port=5433 sslmode=disable", "../database/schema/schema.sql")
 		assert.NoError(t, err)
-		const gatewayName, routes, accessGroupIds = "name", "r,o,u,t,e,s", "a,g,i"
+		const gatewayName, route, accessGroupId = "name", "r", "agid"
 		assert.NoError(t, testDB.AddGateway(context.Background(), database.Gateway{
 			Name: gatewayName,
 		}))
 
-		bucketReader := MockBucketReader{GatewayConfigs: &map[string]gatewayconfigurer.GatewayConfig{
-			gatewayName: {
-				Routes:         routes,
-				AccessGroupIds: accessGroupIds,
-			}}}
+		bucketReader := MockBucketReader{GatewayConfigs: gatewayConfig(gatewayName, route, accessGroupId)}
 
 		gc := gatewayconfigurer.GatewayConfigurer{
 			DB:           testDB,
@@ -48,20 +43,18 @@ func TestGatewayConfigurer_SyncConfig(t *testing.T) {
 
 		updatedGateway, err := testDB.ReadGateway(gatewayName)
 		assert.NoError(t, err)
-		assert.Equal(t, strings.Split(routes, ","), updatedGateway.Routes)
-		assert.Equal(t, strings.Split(accessGroupIds, ","), updatedGateway.AccessGroupIDs)
+		assert.Len(t, updatedGateway.Routes, 1)
+		assert.Equal(t, route, updatedGateway.Routes[0])
+		assert.Len(t, updatedGateway.AccessGroupIDs, 1)
+		assert.Equal(t, accessGroupId, updatedGateway.AccessGroupIDs[0])
 	})
 
 	t.Run("synchronizing gatewayconfig where gateway not in database is ok", func(t *testing.T) {
 		testDB, err := testdatabase.New("user=postgres password=postgres host=localhost port=5433 sslmode=disable", "../database/schema/schema.sql")
 		assert.NoError(t, err)
-		const gatewayName, routes, accessGroupIds = "name", "r,o,u,t,e,s", "a,g,i"
+		const gatewayName, route, accessGroupId = "name", "r", "agid"
 
-		bucketReader := MockBucketReader{GatewayConfigs: &map[string]gatewayconfigurer.GatewayConfig{
-			gatewayName: {
-				Routes:         routes,
-				AccessGroupIds: accessGroupIds,
-			}}}
+		bucketReader := MockBucketReader{GatewayConfigs: gatewayConfig(gatewayName, route, accessGroupId)}
 
 		gc := gatewayconfigurer.GatewayConfigurer{
 			DB:           testDB,
@@ -77,15 +70,21 @@ func TestGatewayConfigurer_SyncConfig(t *testing.T) {
 
 }
 
+func gatewayConfig(gatewayName string, route string, accessGroupId string) string {
+	gatewayConfigs := fmt.Sprintf(
+		`{
+				"%s": {
+					"routes": ["%s"],
+					"access_group_ids": ["%s"]
+				}
+			 }`, gatewayName, route, accessGroupId)
+	return gatewayConfigs
+}
+
 type MockBucketReader struct {
-	GatewayConfigs *map[string]gatewayconfigurer.GatewayConfig
+	GatewayConfigs string
 }
 
 func (m MockBucketReader) ReadBucketObject() (io.Reader, error) {
-	b, err := json.Marshal(m.GatewayConfigs)
-	if err != nil {
-		return nil, err
-	}
-
-	return bytes.NewReader(b), nil
+	return strings.NewReader(m.GatewayConfigs), nil
 }

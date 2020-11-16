@@ -7,7 +7,6 @@ import (
 	"github.com/nais/device/apiserver/database"
 	log "github.com/sirupsen/logrus"
 	"io"
-	"strings"
 	"time"
 )
 
@@ -22,8 +21,8 @@ type GatewayConfigurer struct {
 }
 
 type GatewayConfig struct {
-	Routes         string `json:"routes"`
-	AccessGroupIds string `json:"access_group_ids"`
+	Routes         []string `json:"routes"`
+	AccessGroupIds []string `json:"access_group_ids"`
 }
 
 func (g *GatewayConfigurer) SyncContinuously(ctx context.Context) {
@@ -51,10 +50,8 @@ func (g *GatewayConfigurer) SyncConfig() error {
 	}
 
 	for gatewayName, gatewayConfig := range gatewayConfigs {
-		routes := strings.Split(gatewayConfig.Routes, ",")
-		accessGroupIds := strings.Split(gatewayConfig.AccessGroupIds, ",")
-		if err := g.DB.UpdateGateway(context.Background(), gatewayName, routes, accessGroupIds); err != nil {
-			return fmt.Errorf("updating gateway: %s with routes: %s and accessGroupIds: %s: %v", gatewayName, routes, accessGroupIds, err)
+		if err := g.DB.UpdateGateway(context.Background(), gatewayName, gatewayConfig.Routes, gatewayConfig.AccessGroupIds); err != nil {
+			return fmt.Errorf("updating gateway: %s with routes: %s and accessGroupIds: %s: %v", gatewayName, gatewayConfig.Routes, gatewayConfig.AccessGroupIds, err)
 		}
 	}
 
