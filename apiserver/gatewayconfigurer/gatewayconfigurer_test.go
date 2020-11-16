@@ -3,7 +3,6 @@ package gatewayconfigurer_test
 import (
 	"context"
 	"fmt"
-	"github.com/nais/device/apiserver/database"
 	"github.com/nais/device/apiserver/gatewayconfigurer"
 	"github.com/nais/device/apiserver/testdatabase"
 	"github.com/stretchr/testify/assert"
@@ -22,9 +21,7 @@ func TestGatewayConfigurer_SyncConfig(t *testing.T) {
 		testDB, err := testdatabase.New("user=postgres password=postgres host=localhost port=5433 sslmode=disable", "../database/schema/schema.sql")
 		assert.NoError(t, err)
 		const gatewayName, route, accessGroupId = "name", "r", "agid"
-		assert.NoError(t, testDB.AddGateway(context.Background(), database.Gateway{
-			Name: gatewayName,
-		}))
+		assert.NoError(t, testDB.AddGateway(context.Background(), gatewayName, "", ""))
 
 		bucketReader := MockBucketReader{GatewayConfigs: gatewayConfig(gatewayName, route, accessGroupId)}
 

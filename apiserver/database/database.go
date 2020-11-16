@@ -148,7 +148,7 @@ WHERE name = $3;`
 	return nil
 }
 
-func (d *APIServerDB) AddGateway(ctx context.Context, gateway Gateway) error {
+func (d *APIServerDB) AddGateway(ctx context.Context, name, endpoint, publicKey string) error {
 	mux.Lock()
 	defer mux.Unlock()
 
@@ -172,7 +172,7 @@ func (d *APIServerDB) AddGateway(ctx context.Context, gateway Gateway) error {
 INSERT INTO gateway (name, endpoint, public_key, ip)
 VALUES ($1, $2, $3, $4);`
 
-	_, err = d.Conn.ExecContext(ctx, statement, gateway.Name, gateway.Endpoint, gateway.PublicKey, availableIp)
+	_, err = d.Conn.ExecContext(ctx, statement, name, endpoint, publicKey, availableIp)
 	if err != nil {
 		return fmt.Errorf("inserting new gateway: %w", err)
 	}
@@ -180,7 +180,7 @@ VALUES ($1, $2, $3, $4);`
 	if err := tx.Commit(); err != nil {
 		return fmt.Errorf("committing transaction: %w", err)
 	}
-	log.Infof("Added gateway: %+v", gateway)
+	log.Infof("Added gateway: %+v", name)
 	return nil
 }
 

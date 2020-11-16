@@ -5,7 +5,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/nais/device/apiserver/database"
 	"github.com/nais/device/pkg/bootstrap"
 	log "github.com/sirupsen/logrus"
 	"time"
@@ -22,11 +21,7 @@ func (e *Enroller) WatchGatewayEnrollments(ctx context.Context) {
 			}
 
 			for _, enrollment := range gatewayInfos {
-				err := e.DB.AddGateway(ctx, database.Gateway{
-					PublicKey: enrollment.PublicKey,
-					Name:      enrollment.Name,
-					Endpoint:  enrollment.PublicIP,
-				})
+				err := e.DB.AddGateway(ctx, enrollment.Name, enrollment.PublicIP, enrollment.PublicKey)
 
 				if err != nil {
 					log.Errorf("bootstrap: Adding gateway: %v", err)

@@ -32,7 +32,7 @@ func TestAddGateway(t *testing.T) {
 	}
 
 	t.Run("adding new gateway works", func(t *testing.T) {
-		err := db.AddGateway(ctx, g)
+		err := db.AddGateway(ctx, g.Name, g.Endpoint, g.PublicKey)
 		assert.NoError(t, err)
 
 		gateway, err := db.ReadGateway(g.Name)
@@ -46,7 +46,7 @@ func TestAddGateway(t *testing.T) {
 	t.Run("adding a gateway with same name as existing fails", func(t *testing.T) {
 		existingGateway, err := db.ReadGateway(g.Name)
 		assert.NoError(t, err)
-		assert.Error(t, db.AddGateway(ctx, *existingGateway))
+		assert.Error(t, db.AddGateway(ctx, existingGateway.Name, existingGateway.Endpoint, existingGateway.PublicKey))
 	})
 
 	t.Run("updating existing gateway works", func(t *testing.T) {
