@@ -79,6 +79,29 @@ func matchesAllLabels(has, need map[string]string) bool {
 	return true
 }
 
+func (sm *SecretManager) DisableSecret(name string) error {
+	secret, err := sm.Client.GetSecret(
+		context.Background(), &gsecretmanagerpb.GetSecretRequest{
+			Name: fmt.Sprintf("projects/%s/secrets/%s", sm.Project, name),
+		},
+	)
+	if err != nil {
+		return fmt.Errorf("getting secret from project %s: %w", sm.Project, err)
+	}
+
+	latestVersion, err := sm.getLatestVersion(secret)
+	if err != nil {
+		return fmt.Errorf("getting latest secret version: %w", err)
+	}
+
+	_, err = sm.Client.DisableSecretVersion(context.Background(), &gsecretmanagerpb.DisableSecretVersionRequest{Name: latestVersion.Name})
+	if err != nil {
+		return fmt.Errorf("disabling secret version: %w", err)
+	}
+
+	return nil
+}
+
 func (sm *SecretManager) GetSecret(name string) (*Secret, error) {
 	secret, err := sm.Client.GetSecret(
 		context.Background(), &gsecretmanagerpb.GetSecretRequest{

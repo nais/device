@@ -7,6 +7,7 @@ import (
 	"log"
 	"net"
 	"net/http"
+	"strings"
 	"sync"
 	"testing"
 	"time"
@@ -120,6 +121,8 @@ func TestGatewayEnrollHappyPath(t *testing.T) {
 	if err != nil {
 		t.Fatal()
 	}
+
+	assert.Len(t, sm.secrets, 0, "secret should be disabled")
 
 	stop <- struct{}{}
 	wg.Wait()
@@ -250,6 +253,17 @@ func setup(listener net.Listener, sm bootstrap_api.SecretManager, stop chan stru
 
 type FakeSecretManager struct {
 	secrets []*secretmanager.Secret
+}
+
+func (sm *FakeSecretManager) DisableSecret(name string) error {
+	for i, secret := range sm.secrets {
+		if !strings.HasSuffix(secret.Name, name) {
+			sm.secrets = append(sm.secrets[:i], sm.secrets[i+1:]...)
+			return nil
+		}
+	}
+
+	return fmt.Errorf("secret not found: %v", name)
 }
 
 func (sm *FakeSecretManager) GetSecrets(filter map[string]string) ([]*secretmanager.Secret, error) {

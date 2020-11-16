@@ -2,6 +2,7 @@ package bootstrap_api
 
 import (
 	"encoding/json"
+	"fmt"
 	"github.com/go-chi/chi"
 	"github.com/nais/device/pkg/bootstrap"
 	"github.com/nais/device/pkg/version"
@@ -111,15 +112,18 @@ func (api *GatewayApi) getGatewayConfig(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	err := json.NewEncoder(w).Encode(gatewayConfig)
-	if err != nil {
+	if err := json.NewEncoder(w).Encode(gatewayConfig); err != nil {
 		log.Errorf("Encoding json: %v", err)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 
-	// TODO disable token
-	// TODO delete token or sync
+	secretName := fmt.Sprintf("enrollment-token_%s", gatewayName)
+	if err := api.secretManager.DisableSecret(secretName); err != nil {
+		log.Errorf("Disabling secret: %s: %v", secretName, err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
 
 	log.WithField("event", "retrieved_gateway_config").Infof("Successfully returned gateway config")
 }
