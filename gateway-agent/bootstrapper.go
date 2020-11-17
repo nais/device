@@ -26,7 +26,7 @@ type Bootstrapper struct {
 	HTTPClient    *http.Client
 }
 
-func (b *Bootstrapper) GetBootstrapConfig() (*bootstrap.Config, error) {
+func (b *Bootstrapper) EnsureBootstrapConfig() (*bootstrap.Config, error) {
 	bootstrapConfig, err := readBootstrapConfigFromFile(b.Config.BootstrapConfigPath)
 
 	if bootstrapConfig != nil && err == nil {
@@ -52,6 +52,10 @@ func (b *Bootstrapper) GetBootstrapConfig() (*bootstrap.Config, error) {
 	bc, err := BootstrapGateway(gatewayInfo, b.Config.BootstrapApiURL, b.HTTPClient)
 	if err != nil {
 		return nil, fmt.Errorf("bootstrapping gateway: %w", err)
+	}
+
+	if err := writeToJSONFile(bc, b.Config.BootstrapConfigPath); err != nil {
+		return nil, fmt.Errorf("writing bootstrap config to file: %w", err)
 	}
 
 	return bc, nil

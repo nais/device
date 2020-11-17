@@ -61,7 +61,7 @@ func main() {
 		HTTPClient:    http.DefaultClient,
 	}
 
-	cfg.BootstrapConfig, err = bootstrapper.GetBootstrapConfig()
+	cfg.BootstrapConfig, err = bootstrapper.EnsureBootstrapConfig()
 
 	if err != nil {
 		log.Fatalf("Ensuring gateway is bootstrapped: %v", err)

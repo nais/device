@@ -3,6 +3,7 @@ package gateway_agent_test
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/nais/device/device-agent/filesystem"
 	"github.com/nais/device/device-agent/wireguard"
 	g "github.com/nais/device/gateway-agent"
 	"github.com/nais/device/pkg/bootstrap"
@@ -35,11 +36,11 @@ func TestGetBootstrapConfig(t *testing.T) {
 		f.WriteString(`{"deviceIP":"` + deviceIP + `"}`)
 		cfg := &g.Config{BootstrapConfigPath: f.Name()}
 		bootstrapper := g.Bootstrapper{SecretManager: &sm, Config: cfg}
-		config, err := bootstrapper.GetBootstrapConfig()
+		config, err := bootstrapper.EnsureBootstrapConfig()
 		assert.Equal(t, deviceIP, config.DeviceIP)
 	})
 
-	t.Run("returns new bootstrapconfig if not present", func(t *testing.T) {
+	t.Run("ensures new bootstrapconfig if not present", func(t *testing.T) {
 		privateKey := wireguard.WgGenKey()
 		publicKey := wireguard.PublicKey(privateKey)
 
@@ -85,17 +86,26 @@ func TestGetBootstrapConfig(t *testing.T) {
 
 		server := httptest.NewServer(handler)
 
+		f, err := ioutil.TempDir(os.TempDir(), "test")
+		assert.NoError(t, err)
+		defer os.RemoveAll(f)
+		bootstrapConfigPath := fmt.Sprintf("%s/bootstrapconfig.json", f)
+
 		cfg := &g.Config{
-			PublicIP:        "13.37.13.37",
-			BootstrapApiURL: server.URL,
-			Name:            gatewayInfo.Name,
-			PrivateKey:      string(privateKey),
+			PublicIP:            "13.37.13.37",
+			BootstrapApiURL:     server.URL,
+			Name:                gatewayInfo.Name,
+			PrivateKey:          string(privateKey),
+			BootstrapConfigPath: bootstrapConfigPath,
 		}
 
+		assert.Error(t, filesystem.FileMustExist(bootstrapConfigPath))
 		bootstrapper := g.Bootstrapper{SecretManager: &sm, Config: cfg, HTTPClient: server.Client()}
-		config, err := bootstrapper.GetBootstrapConfig()
+		config, err := bootstrapper.EnsureBootstrapConfig()
 		assert.NoError(t, err)
 
 		assert.Equal(t, expectedGatewayConfig, *config)
+
+		assert.NoError(t, filesystem.FileMustExist(bootstrapConfigPath))
 	})
 }
