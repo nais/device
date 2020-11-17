@@ -8,22 +8,24 @@ import (
 )
 
 type Config struct {
-	DbConnDSN               string
-	BootstrapApiCredentials string
-	BindAddress             string
-	ConfigDir               string
-	PrivateKeyPath          string
-	WireGuardConfigPath     string
-	DevMode                 bool
-	Endpoint                string
-	Azure                   Azure
-	PrometheusAddr          string
-	PrometheusPublicKey     string
-	PrometheusTunnelIP      string
-	CredentialEntries       []string
-	BootstrapApiURL         string
-	LogLevel                string
-	TokenValidator          jwt.Keyfunc
+	DbConnDSN                     string
+	BootstrapApiCredentials       string
+	BindAddress                   string
+	ConfigDir                     string
+	PrivateKeyPath                string
+	WireGuardConfigPath           string
+	DevMode                       bool
+	Endpoint                      string
+	Azure                         Azure
+	PrometheusAddr                string
+	PrometheusPublicKey           string
+	PrometheusTunnelIP            string
+	CredentialEntries             []string
+	BootstrapAPIURL               string
+	LogLevel                      string
+	TokenValidator                jwt.Keyfunc
+	GatewayConfigBucketName       string
+	GatewayConfigBucketObjectName string
 }
 
 type Azure struct {

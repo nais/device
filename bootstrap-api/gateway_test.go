@@ -7,6 +7,7 @@ import (
 	"log"
 	"net"
 	"net/http"
+	"strings"
 	"sync"
 	"testing"
 	"time"
@@ -90,14 +91,14 @@ func TestGatewayEnrollHappyPath(t *testing.T) {
 	assert.Equal(t, gwInfos[0].PublicIP, gwInfoToPost.PublicIP)
 	assert.Equal(t, gwInfos[0].Name, gwInfoToPost.Name)
 
-	gwConfigToPost := &bootstrap.GatewayConfig{
-		Name:               gatewayName,
-		TunnelIP:           "10.255.240.2",
-		APIServerPublicKey: "apiserver-public-key",
-		APIServerIP:        "33.44.55.66",
+	gwConfigToPost := &bootstrap.Config{
+		DeviceIP:       "10.255.240.2",
+		PublicKey:      "apiserver-public-key",
+		TunnelEndpoint: "33.44.55.66:15555",
+		APIServerIP:    "10.255.240.1",
 	}
 
-	postGwConfigResponse, err := postGatewayConfig(gwConfigToPost)
+	postGwConfigResponse, err := postGatewayConfig(gwConfigToPost, gwInfoToPost.Name)
 	assert.NoError(t, err)
 	if err != nil {
 		t.Fatal()
@@ -112,14 +113,16 @@ func TestGatewayEnrollHappyPath(t *testing.T) {
 	assert.Equal(t, http.StatusOK, getGwConfigResponse.StatusCode)
 
 	assert.Equal(t, returnedGwConfig.APIServerIP, gwConfigToPost.APIServerIP)
-	assert.Equal(t, returnedGwConfig.APIServerPublicKey, gwConfigToPost.APIServerPublicKey)
-	assert.Equal(t, returnedGwConfig.TunnelIP, gwConfigToPost.TunnelIP)
+	assert.Equal(t, returnedGwConfig.PublicKey, gwConfigToPost.PublicKey)
+	assert.Equal(t, returnedGwConfig.DeviceIP, gwConfigToPost.DeviceIP)
 
 	err = server.Close()
 	assert.NoError(t, err)
 	if err != nil {
 		t.Fatal()
 	}
+
+	assert.Len(t, sm.secrets, 0, "secret should be disabled")
 
 	stop <- struct{}{}
 	wg.Wait()
@@ -173,14 +176,14 @@ func getGatewayInfo() ([]bootstrap.GatewayInfo, *http.Response, error) {
 }
 
 // 3
-func postGatewayConfig(config *bootstrap.GatewayConfig) (*http.Response, error) {
+func postGatewayConfig(config *bootstrap.Config, gatewayName string) (*http.Response, error) {
 	buffer := new(bytes.Buffer)
 	err := json.NewEncoder(buffer).Encode(config)
 	if err != nil {
 		return nil, err
 	}
 
-	request, err := http.NewRequest("POST", gatewayConfigUrl, buffer)
+	request, err := http.NewRequest("POST", fmt.Sprintf("%s/%s", gatewayConfigUrl, gatewayName), buffer)
 	if err != nil {
 		return nil, err
 	}
@@ -197,8 +200,8 @@ func postGatewayConfig(config *bootstrap.GatewayConfig) (*http.Response, error) 
 }
 
 // 4
-func getGatewayConfig(gatewayName, token string) (*bootstrap.GatewayConfig, *http.Response, error) {
-	request, err := http.NewRequest("GET", gatewayConfigUrl, nil)
+func getGatewayConfig(gatewayName, token string) (*bootstrap.Config, *http.Response, error) {
+	request, err := http.NewRequest("GET", fmt.Sprintf("%s/%s", gatewayConfigUrl, gatewayName), nil)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -210,7 +213,7 @@ func getGatewayConfig(gatewayName, token string) (*bootstrap.GatewayConfig, *htt
 	}
 	defer response.Body.Close()
 
-	var gwConfig bootstrap.GatewayConfig
+	var gwConfig bootstrap.Config
 	err = json.NewDecoder(response.Body).Decode(&gwConfig)
 	if err != nil {
 		return nil, nil, err
@@ -252,6 +255,17 @@ type FakeSecretManager struct {
 	secrets []*secretmanager.Secret
 }
 
-func (sm *FakeSecretManager) ListSecrets(filter map[string]string) ([]*secretmanager.Secret, error) {
+func (sm *FakeSecretManager) DisableSecret(name string) error {
+	for i, secret := range sm.secrets {
+		if !strings.HasSuffix(secret.Name, name) {
+			sm.secrets = append(sm.secrets[:i], sm.secrets[i+1:]...)
+			return nil
+		}
+	}
+
+	return fmt.Errorf("secret not found: %v", name)
+}
+
+func (sm *FakeSecretManager) GetSecrets(filter map[string]string) ([]*secretmanager.Secret, error) {
 	return sm.secrets, nil
 }

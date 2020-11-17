@@ -20,10 +20,12 @@
     - gateway
   vars:
     K8S_CLUSTER_API_IP_ADDRESS: 172.10.0.2
+    onprem: false
 
 - hosts: onprem_gateways
   environment: "{{ proxy_env }}"
   vars:
+    onprem: true
     admin_users:
       - name: m152973
         authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIO7fYA2cjne20QGuDjsVAorHikWPB5iPVzfbh/ej6pWZ vegar@sechmann.no-20190405"

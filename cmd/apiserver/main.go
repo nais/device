@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"github.com/nais/device/apiserver/gatewayconfigurer"
+	"github.com/nais/device/pkg/basicauth"
 	"io/ioutil"
 	"net/http"
 	"os"
@@ -16,7 +18,7 @@ import (
 	"github.com/nais/device/apiserver/auth"
 	"github.com/nais/device/apiserver/azure/discovery"
 	"github.com/nais/device/apiserver/azure/validate"
-	"github.com/nais/device/apiserver/bootstrapper"
+	"github.com/nais/device/apiserver/enroller"
 	"github.com/nais/device/pkg/logger"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 
@@ -27,13 +29,17 @@ import (
 	flag "github.com/spf13/pflag"
 )
 
+const (
+	gatewayConfigSyncInterval = 1 * time.Minute
+)
+
 var (
 	cfg = config.DefaultConfig()
 )
 
 func init() {
 	flag.StringVar(&cfg.DbConnDSN, "db-connection-dsn", os.Getenv("DB_CONNECTION_DSN"), "database connection DSN")
-	flag.StringVar(&cfg.BootstrapApiURL, "bootstrap-api-url", "", "bootstrap API URL")
+	flag.StringVar(&cfg.BootstrapAPIURL, "bootstrap-api-url", "", "bootstrap API URL")
 	flag.StringVar(&cfg.BootstrapApiCredentials, "bootstrap-api-credentials", os.Getenv("BOOTSTRAP_API_CREDENTIALS"), "bootstrap API credentials")
 	flag.StringVar(&cfg.PrometheusAddr, "prometheus-address", cfg.PrometheusAddr, "prometheus listen address")
 	flag.StringVar(&cfg.PrometheusPublicKey, "prometheus-public-key", cfg.PrometheusPublicKey, "prometheus public key")
@@ -47,6 +53,8 @@ func init() {
 	flag.StringVar(&cfg.Azure.ClientID, "azure-client-id", "", "Azure app client id")
 	flag.StringVar(&cfg.Azure.ClientSecret, "azure-client-secret", "", "Azure app client secret")
 	flag.StringSliceVar(&cfg.CredentialEntries, "credential-entries", nil, "Comma-separated credentials on format: '<user>:<key>'")
+	flag.StringVar(&cfg.GatewayConfigBucketName, "gateway-config-bucket-name", "gatewayconfig", "Name of bucket containing gateway config object")
+	flag.StringVar(&cfg.GatewayConfigBucketObjectName, "gateway-config-bucket-object-name", "gatewayconfig.json", "Name of bucket object containing gateway config JSON")
 
 	flag.Parse()
 
@@ -101,9 +109,29 @@ func main() {
 		log.Fatalf("Generating public key: %v", err)
 	}
 
-	if len(cfg.BootstrapApiURL) > 0 {
-		go bootstrapper.WatchEnrollments(ctx, db, cfg.BootstrapApiURL, cfg.BootstrapApiCredentials, publicKey, cfg.Endpoint)
+	if len(cfg.BootstrapAPIURL) > 0 {
+		parts := strings.Split(cfg.BootstrapApiCredentials, ":")
+		username, password := parts[0], parts[1]
+
+		enroller := enroller.Enroller{
+			Client:             basicauth.Transport{Username: username, Password: password}.Client(),
+			DB:                 db,
+			BootstrapAPIURL:    cfg.BootstrapAPIURL,
+			APIServerPublicKey: string(publicKey),
+			APIServerEndpoint:  cfg.Endpoint,
+		}
+
+		go enroller.WatchDeviceEnrollments(ctx)
+		go enroller.WatchGatewayEnrollments(ctx)
 	}
+
+	gwc := gatewayconfigurer.GatewayConfigurer{
+		DB:           db,
+		BucketReader: gatewayconfigurer.GoogleBucketReader{BucketName: cfg.GatewayConfigBucketName, BucketObjectName: cfg.GatewayConfigBucketObjectName},
+		SyncInterval: gatewayConfigSyncInterval,
+	}
+
+	go gwc.SyncContinuously(ctx)
 
 	go syncWireguardConfig(cfg.DbConnDSN, dbDriver, string(privateKey), cfg)
 

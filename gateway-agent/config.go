@@ -3,6 +3,7 @@ package gateway_agent
 import (
 	"fmt"
 	"github.com/coreos/go-iptables/iptables"
+	"github.com/nais/device/pkg/bootstrap"
 	log "github.com/sirupsen/logrus"
 	"io/ioutil"
 	"os/exec"
@@ -10,35 +11,34 @@ import (
 )
 
 type Config struct {
-	APIServerURL               string
-	Name                       string
-	TunnelIP                   string
-	ConfigDir                  string
-	WireGuardConfigPath        string
-	APIServerPublicKey         string
-	APIServerWireGuardEndpoint string
-	PrivateKeyPath             string
-	PrivateKey                 string
-	APIServerTunnelIP          string
-	DevMode                    bool
-	PrometheusAddr             string
-	PrometheusPublicKey        string
-	PrometheusTunnelIP         string
-	APIServerPassword          string
-	APIServerPasswordPath      string
-	LogLevel                   string
-	IPTables                   *iptables.IPTables
-	DefaultInterface           string
-	DefaultInterfaceIP         string
+	Name                  string
+	ConfigDir             string
+	WireGuardConfigPath   string
+	BootstrapConfigPath   string
+	BootstrapApiURL       string
+	PrivateKeyPath        string
+	PrivateKey            string
+	DevMode               bool
+	PrometheusAddr        string
+	PrometheusPublicKey   string
+	PrometheusTunnelIP    string
+	APIServerURL          string
+	APIServerPassword     string
+	APIServerPasswordPath string
+	LogLevel              string
+	IPTables              *iptables.IPTables
+	DefaultInterface      string
+	DefaultInterfaceIP    string
+	BootstrapConfig       *bootstrap.Config
+	PublicIP              string
 }
 
 func DefaultConfig() Config {
 	return Config{
-		APIServerURL:      "http://10.255.240.1",
-		APIServerTunnelIP: "10.255.240.1",
-		ConfigDir:         "/usr/local/etc/nais-device",
-		PrometheusAddr:    ":3000",
-		LogLevel:          "info",
+		ConfigDir:       "/usr/local/etc/nais-device",
+		PrometheusAddr:  ":3000",
+		BootstrapApiURL: "https://bootstrap.device.nais.io",
+		LogLevel:        "info",
 	}
 }
 

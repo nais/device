@@ -18,12 +18,12 @@ CREATE TABLE device
 CREATE TABLE gateway
 (
     id               serial PRIMARY KEY,
-    name             varchar,
-    access_group_ids varchar,
+    name             varchar NOT NULL UNIQUE,
+    access_group_ids varchar DEFAULT '',
     endpoint         varchar(21),
     public_key       varchar(44) NOT NULL UNIQUE,
     ip               varchar(15) UNIQUE,
-    routes           varchar
+    routes           varchar DEFAULT ''
 );
 
 CREATE TABLE session
