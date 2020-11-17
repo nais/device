@@ -77,7 +77,7 @@ func TestWatchGatewayEnrollments(t *testing.T) {
 	testDB, err := testdatabase.New("user=postgres password=postgres host=localhost port=5433 sslmode=disable", "../database/schema/schema.sql")
 	assert.NoError(t, err)
 	server := httptest.NewServer(mux)
-	enroller := enroller.Enroller{
+	enr := enroller.Enroller{
 		Client:             server.Client(),
 		DB:                 testDB,
 		BootstrapAPIURL:    server.URL,
@@ -85,7 +85,7 @@ func TestWatchGatewayEnrollments(t *testing.T) {
 		APIServerEndpoint:  endpoint,
 	}
 
-	assert.NoError(t, enroller.EnrollGateways(context.Background()))
+	assert.NoError(t, enr.EnrollGateways(context.Background()))
 
 	gateway, err := testDB.ReadGateway(gatewayName)
 	assert.NoError(t, err)
@@ -149,7 +149,7 @@ func TestWatchDeviceEnrollments(t *testing.T) {
 	testDB, err := testdatabase.New("user=postgres password=postgres host=localhost port=5433 sslmode=disable", "../database/schema/schema.sql")
 	assert.NoError(t, err)
 	server := httptest.NewServer(mux)
-	enroller := enroller.Enroller{
+	enr := enroller.Enroller{
 		Client:             server.Client(),
 		DB:                 testDB,
 		BootstrapAPIURL:    server.URL,
@@ -157,7 +157,7 @@ func TestWatchDeviceEnrollments(t *testing.T) {
 		APIServerEndpoint:  endpoint,
 	}
 
-	assert.NoError(t, enroller.EnrollDevice(context.Background()))
+	assert.NoError(t, enr.EnrollDevice(context.Background()))
 
 	device, err := testDB.ReadDevice(devicePublicKey)
 	assert.NoError(t, err)
