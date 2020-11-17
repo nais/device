@@ -5,11 +5,11 @@ err='no error'
 latest_tag=''
 
 ok() {
-  echo -e "..[\033[38;5;82mok\033[0;5;82m]"
+  echo -e "..[\033[32mok\033[0m]"
 }
 
 fail() {
-  echo -e "[\033[31;5;82mfail\033[0;5;82m]"
+  echo -e "[\033[31mfail\033[0m]"
   echo $err
   exit 1
 }
