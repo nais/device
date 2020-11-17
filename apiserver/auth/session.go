@@ -12,19 +12,24 @@ import (
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/endpoints"
 	"net/http"
+	"net/url"
+	"strconv"
 	"sync"
 	"time"
 )
 
-const SessionDuration = time.Hour * 10
+const (
+	SessionDuration     = time.Hour * 10
+	HeaderKeyListenPort = "x-naisdevice-listen-port"
+)
 
 type Sessions struct {
 	DB             *database.APIServerDB
-	oauthConfig    *oauth2.Config
+	OAuthConfig    *oauth2.Config
 	tokenValidator jwt.Keyfunc
 	devMode        bool
 
-	state     map[string]bool
+	State     map[string]bool
 	stateLock sync.Mutex
 
 	Active     map[string]*database.SessionInfo
@@ -36,10 +41,10 @@ func New(cfg config.Config, validator jwt.Keyfunc, db *database.APIServerDB) (*S
 		DB:             db,
 		devMode:        cfg.DevMode,
 		tokenValidator: validator,
-		state:          make(map[string]bool),
+		State:          make(map[string]bool),
 		Active:         make(map[string]*database.SessionInfo),
-		oauthConfig: &oauth2.Config{
-			RedirectURL:  "http://localhost:51800",
+		OAuthConfig: &oauth2.Config{
+			// RedirectURL:  "http://localhost",  don't set this
 			ClientID:     cfg.Azure.ClientID,
 			ClientSecret: cfg.Azure.ClientSecret,
 			Scopes:       []string{"openid", fmt.Sprintf("%s/.default", cfg.Azure.ClientID)},
@@ -91,8 +96,8 @@ func (s *Sessions) validAuthState(state string) error {
 	s.stateLock.Lock()
 	defer s.stateLock.Unlock()
 
-	if _, ok := s.state[state]; ok {
-		delete(s.state, state)
+	if _, ok := s.State[state]; ok {
+		delete(s.State, state)
 	} else {
 		return fmt.Errorf("state not found (CSRF attack?): %v", state)
 	}
@@ -100,12 +105,25 @@ func (s *Sessions) validAuthState(state string) error {
 	return nil
 }
 
-func (s *Sessions) getToken(ctx context.Context, code string) (*oauth2.Token, error) {
+func parseListenPort(port string) (int, error) {
+	if len(port) == 0 {
+		port = "51800"
+	}
+
+	portAsNumber, err := strconv.Atoi(port)
+	if err != nil {
+		return -1, fmt.Errorf("parsing port '%v': %v", port, err)
+	}
+
+	return portAsNumber, err
+}
+
+func (s *Sessions) getToken(ctx context.Context, code, redirectUri string) (*oauth2.Token, error) {
 	if len(code) == 0 {
 		return nil, fmt.Errorf("no 'code' query param in auth request")
 	}
 
-	token, err := s.oauthConfig.Exchange(ctx, code)
+	token, err := s.OAuthConfig.Exchange(ctx, code, oauth2.SetAuthURLParam("redirect_uri", redirectUri))
 	if err != nil {
 		return nil, fmt.Errorf("exchanging code for token: %w", err)
 	}
@@ -128,7 +146,14 @@ func (s *Sessions) Login(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if !s.devMode {
-		token, err := s.getToken(ctx, r.URL.Query().Get("code"))
+		listenPort, err := parseListenPort(r.Header.Get(HeaderKeyListenPort))
+		if err != nil {
+			authFailed(w, "unable to parse listening port: %v", err)
+			return
+		}
+
+		redirectUri := fmt.Sprintf("http://localhost:%d", listenPort)
+		token, err := s.getToken(ctx, r.URL.Query().Get("code"), redirectUri)
 		if err != nil {
 			authFailed(w, "Exchanging code for token: %v", err)
 			return
@@ -181,19 +206,32 @@ func (s *Sessions) Login(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Sessions) AuthURL(w http.ResponseWriter, r *http.Request) {
-
 	state := random.RandomString(20, random.LettersAndNumbers)
 	s.stateLock.Lock()
-	s.state[state] = true
+	s.State[state] = true
 	s.stateLock.Unlock()
 
 	var authURL string
-	if !s.devMode {
-		authURL = s.oauthConfig.AuthCodeURL(state, oauth2.AccessTypeOffline)
-	} else {
-		authURL = fmt.Sprintf("http://localhost:51800/?state=%s&code=dev", state)
+	listenPort, err := parseListenPort(r.Header.Get(HeaderKeyListenPort))
+	if err != nil {
+		authFailed(w, "unable to parse listening port: %s", err)
+		return
 	}
-	_, err := w.Write([]byte(authURL))
+
+	if !s.devMode {
+		redirectUri := fmt.Sprintf("http://localhost:%d", listenPort)
+		// Override redirect_url with custom port uri
+		authURL = s.OAuthConfig.AuthCodeURL(state, oauth2.AccessTypeOffline, oauth2.SetAuthURLParam("redirect_uri", redirectUri))
+	} else {
+		authURL = fmt.Sprintf("http://localhost:%d/?state=%s&code=dev", listenPort, state)
+	}
+
+	asUrl, err := url.Parse(authURL)
+	if err != nil {
+		log.Errorf("parsing auth url: %v", err)
+	}
+
+	_, err = w.Write([]byte(asUrl.String()))
 	if err != nil {
 		log.Errorf("responding to %v %v : %v", r.Method, r.URL.Path, err)
 	}
