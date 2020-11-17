@@ -3,6 +3,7 @@ package main
 import (
 	g "github.com/nais/device/gateway-agent"
 	"github.com/nais/device/pkg/secretmanager"
+	"net/http"
 	"path"
 	"path/filepath"
 	"time"
@@ -57,6 +58,7 @@ func main() {
 	bootstrapper := g.Bootstrapper{
 		SecretManager: secretManager,
 		Config:        &cfg,
+		HTTPClient:    http.DefaultClient,
 	}
 
 	cfg.BootstrapConfig, err = bootstrapper.GetBootstrapConfig()
