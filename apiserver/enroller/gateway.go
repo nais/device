@@ -14,47 +14,50 @@ func (e *Enroller) WatchGatewayEnrollments(ctx context.Context) {
 	for {
 		select {
 		case <-time.After(1 * time.Second):
-			gatewayInfos, err := e.fetchGatewayInfos()
-			if err != nil {
-				log.Errorf("bootstrap: Fetching gateway infos: %v", err)
-				continue
+			if err := e.EnrollGateways(ctx); err != nil {
+				log.Errorf("Enrolling gateways: %v", err)
 			}
-
-			for _, enrollment := range gatewayInfos {
-				err := e.DB.AddGateway(ctx, enrollment.Name, enrollment.PublicIP, enrollment.PublicKey)
-
-				if err != nil {
-					log.Errorf("bootstrap: Adding gateway: %v", err)
-					continue
-				}
-
-				gateway, err := e.DB.ReadGateway(enrollment.Name)
-				if err != nil {
-					log.Errorf("bootstrap: Getting gateway: %v", err)
-					continue
-				}
-
-				bootstrapConfig := bootstrap.Config{
-					DeviceIP:       gateway.IP,
-					PublicKey:      e.APIServerPublicKey,
-					TunnelEndpoint: e.APIServerEndpoint,
-					APIServerIP:    "10.255.240.1",
-				}
-
-				err = e.postGatewayConfig(e.BootstrapAPIURL, gateway.Name, bootstrapConfig)
-
-				if err != nil {
-					log.Errorf("bootstrap: Pushing bootstrap config: %v", err)
-					continue
-				}
-
-				log.Infof("bootstrap: Bootstrapped gateway: %+v", bootstrapConfig)
-			}
-
 		case <-ctx.Done():
 			return
 		}
 	}
+}
+
+func (e *Enroller) EnrollGateways(ctx context.Context) error {
+	gatewayInfos, err := e.fetchGatewayInfos()
+	if err != nil {
+		return fmt.Errorf("bootstrap: Fetching gateway infos: %v", err)
+	}
+
+	for _, enrollment := range gatewayInfos {
+		err := e.DB.AddGateway(ctx, enrollment.Name, enrollment.PublicIP, enrollment.PublicKey)
+
+		if err != nil {
+			log.Warnf("bootstrap: Adding gateway: %v", err)
+		}
+
+		gateway, err := e.DB.ReadGateway(enrollment.Name)
+		if err != nil {
+			return fmt.Errorf("bootstrap: Getting gateway: %v", err)
+		}
+
+		bootstrapConfig := bootstrap.Config{
+			DeviceIP:       gateway.IP,
+			PublicKey:      e.APIServerPublicKey,
+			TunnelEndpoint: e.APIServerEndpoint,
+			APIServerIP:    "10.255.240.1",
+		}
+
+		err = e.postGatewayConfig(e.BootstrapAPIURL, gateway.Name, bootstrapConfig)
+
+		if err != nil {
+			return fmt.Errorf("bootstrap: Pushing bootstrap config: %v", err)
+		}
+
+		log.Infof("bootstrap: Bootstrapped gateway: %+v", bootstrapConfig)
+	}
+
+	return nil
 }
 
 func (e *Enroller) postGatewayConfig(bootstrapURL, name string, bootstrapConfig bootstrap.Config) error {

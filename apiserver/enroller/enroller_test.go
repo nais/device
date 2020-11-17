@@ -13,13 +13,11 @@ import (
 	"os"
 	"sync"
 	"testing"
-	"time"
 )
 
 const (
 	apiServerPublicKey = "pk"
 	endpoint           = "ep"
-	timeout            = 3 * time.Second
 	gatewayName        = "gateway-1"
 	gatewayEndpoint    = "1.2.3.4"
 	gatewayPublicKey   = "publicKey"
@@ -87,9 +85,7 @@ func TestWatchGatewayEnrollments(t *testing.T) {
 		APIServerEndpoint:  endpoint,
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), timeout)
-	defer cancel()
-	enroller.WatchGatewayEnrollments(ctx)
+	assert.NoError(t, enroller.EnrollGateways(context.Background()))
 
 	gateway, err := testDB.ReadGateway(gatewayName)
 	assert.NoError(t, err)
@@ -101,6 +97,7 @@ func TestWatchGatewayEnrollments(t *testing.T) {
 		t.Errorf("no success")
 	}
 }
+
 func TestWatchDeviceEnrollments(t *testing.T) {
 	if os.Getenv("RUN_INTEGRATION_TESTS") == "" {
 		t.Skip("Skipping integration test")
@@ -160,9 +157,7 @@ func TestWatchDeviceEnrollments(t *testing.T) {
 		APIServerEndpoint:  endpoint,
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), timeout)
-	defer cancel()
-	enroller.WatchDeviceEnrollments(ctx)
+	assert.NoError(t, enroller.EnrollDevice(context.Background()))
 
 	device, err := testDB.ReadDevice(devicePublicKey)
 	assert.NoError(t, err)

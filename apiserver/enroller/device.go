@@ -15,54 +15,56 @@ func (e *Enroller) WatchDeviceEnrollments(ctx context.Context) {
 	for {
 		select {
 		case <-time.After(1 * time.Second):
-			deviceInfos, err := e.fetchDeviceInfos(e.BootstrapAPIURL)
-			if err != nil {
-				log.Errorf("bootstrap: Fetching device infos: %v", err)
-				continue
+			if err := e.EnrollDevice(ctx); err != nil {
+				log.Errorf("Enrolling devices: %v", err)
 			}
-
-			for _, enrollment := range deviceInfos {
-				err := e.DB.AddDevice(ctx, database.Device{
-					Username:  enrollment.Owner,
-					PublicKey: enrollment.PublicKey,
-					Serial:    enrollment.Serial,
-					Platform:  enrollment.Platform,
-				})
-
-				if err != nil {
-					log.Errorf("bootstrap: Adding device: %v", err)
-					continue
-				}
-
-				device, err := e.DB.ReadDevice(enrollment.PublicKey)
-				if err != nil {
-					log.Errorf("bootstrap: Getting device: %v", err)
-					continue
-				}
-
-				bootstrapConfig := bootstrap.Config{
-					DeviceIP:       device.IP,
-					PublicKey:      e.APIServerPublicKey,
-					TunnelEndpoint: e.APIServerEndpoint,
-					APIServerIP:    "10.255.240.1",
-				}
-
-				err = e.postDeviceConfig(device.Serial, bootstrapConfig)
-
-				if err != nil {
-					log.Errorf("bootstrap: Pushing bootstrap config: %v", err)
-					continue
-				}
-
-				log.Infof("bootstrap: Bootstrapped device: %+v", bootstrapConfig)
-			}
-
 		case <-ctx.Done():
 			return
 		}
 	}
 }
 
+func (e *Enroller) EnrollDevice(ctx context.Context) error {
+	deviceInfos, err := e.fetchDeviceInfos(e.BootstrapAPIURL)
+	if err != nil {
+		return fmt.Errorf("bootstrap: Fetching device infos: %v", err)
+	}
+
+	for _, enrollment := range deviceInfos {
+		err := e.DB.AddDevice(ctx, database.Device{
+			Username:  enrollment.Owner,
+			PublicKey: enrollment.PublicKey,
+			Serial:    enrollment.Serial,
+			Platform:  enrollment.Platform,
+		})
+
+		if err != nil {
+			return fmt.Errorf("bootstrap: Adding device: %v", err)
+		}
+
+		device, err := e.DB.ReadDevice(enrollment.PublicKey)
+		if err != nil {
+			return fmt.Errorf("bootstrap: Getting device: %v", err)
+		}
+
+		bootstrapConfig := bootstrap.Config{
+			DeviceIP:       device.IP,
+			PublicKey:      e.APIServerPublicKey,
+			TunnelEndpoint: e.APIServerEndpoint,
+			APIServerIP:    "10.255.240.1",
+		}
+
+		err = e.postDeviceConfig(device.Serial, bootstrapConfig)
+
+		if err != nil {
+			return fmt.Errorf("bootstrap: Pushing bootstrap config: %v", err)
+		}
+
+		log.Infof("bootstrap: Bootstrapped device: %+v", bootstrapConfig)
+	}
+
+	return nil
+}
 func (e *Enroller) postDeviceConfig(serial string, bootstrapConfig bootstrap.Config) error {
 	b, err := json.Marshal(bootstrapConfig)
 	if err != nil {
