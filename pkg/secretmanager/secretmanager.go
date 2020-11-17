@@ -27,14 +27,14 @@ func New(project string) (*SecretManager, error) {
 
 	return &SecretManager{
 		Client:  client,
-		Project: fmt.Sprintf("projects/%s", project),
+		Project: project,
 	}, nil
 }
 
 func (sm *SecretManager) listSecrets() ([]*gsecretmanagerpb.Secret, error) {
 	var result []*gsecretmanagerpb.Secret
 	ctx := context.Background()
-	request := &gsecretmanagerpb.ListSecretsRequest{Parent: sm.Project}
+	request := &gsecretmanagerpb.ListSecretsRequest{Parent: fmt.Sprintf("projects/%s", sm.Project)}
 	secrets := sm.Client.ListSecrets(ctx, request)
 	for {
 		secret, err := secrets.Next()
