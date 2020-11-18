@@ -12,9 +12,13 @@ type GoogleBucketReader struct {
 	BucketObjectName string
 }
 
-func (g GoogleBucketReader) ReadBucketObject() (io.Reader, error) {
-	client := storage.Client{}
-	reader, err := client.Bucket(g.BucketName).Object(g.BucketObjectName).NewReader(context.Background())
+func (g GoogleBucketReader) ReadBucketObject(ctx context.Context) (io.Reader, error) {
+	client, err := storage.NewClient(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("instantiating storage client: %w", err)
+	}
+
+	reader, err := client.Bucket(g.BucketName).Object(g.BucketObjectName).NewReader(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("creating google bucket reader: %w", err)
 	}

@@ -11,7 +11,7 @@ import (
 )
 
 type BucketReader interface {
-	ReadBucketObject() (io.Reader, error)
+	ReadBucketObject(ctx context.Context) (io.Reader, error)
 }
 
 type GatewayConfigurer struct {
@@ -29,7 +29,7 @@ func (g *GatewayConfigurer) SyncContinuously(ctx context.Context) {
 	for {
 		select {
 		case <-time.After(g.SyncInterval):
-			if err := g.SyncConfig(); err != nil {
+			if err := g.SyncConfig(ctx); err != nil {
 				log.Errorf("Synchronizing gateway configuration: %v", err)
 			}
 		case <-ctx.Done():
@@ -38,8 +38,8 @@ func (g *GatewayConfigurer) SyncContinuously(ctx context.Context) {
 	}
 }
 
-func (g *GatewayConfigurer) SyncConfig() error {
-	reader, err := g.BucketReader.ReadBucketObject()
+func (g *GatewayConfigurer) SyncConfig(ctx context.Context) error {
+	reader, err := g.BucketReader.ReadBucketObject(ctx)
 	if err != nil {
 		return fmt.Errorf("reading bucket object: %v", err)
 	}

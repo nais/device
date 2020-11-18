@@ -36,7 +36,7 @@ func TestGatewayConfigurer_SyncConfig(t *testing.T) {
 		assert.Nil(t, gateway.Routes)
 		assert.Nil(t, gateway.AccessGroupIDs)
 
-		assert.NoError(t, gc.SyncConfig())
+		assert.NoError(t, gc.SyncConfig(context.Background()))
 
 		updatedGateway, err := testDB.ReadGateway(gatewayName)
 		assert.NoError(t, err)
@@ -62,7 +62,7 @@ func TestGatewayConfigurer_SyncConfig(t *testing.T) {
 		assert.Error(t, err)
 		assert.Nil(t, gw)
 
-		assert.NoError(t, gc.SyncConfig())
+		assert.NoError(t, gc.SyncConfig(context.Background()))
 	})
 
 }
@@ -82,6 +82,6 @@ type MockBucketReader struct {
 	GatewayConfigs string
 }
 
-func (m MockBucketReader) ReadBucketObject() (io.Reader, error) {
+func (m MockBucketReader) ReadBucketObject(_ context.Context) (io.Reader, error) {
 	return strings.NewReader(m.GatewayConfigs), nil
 }
