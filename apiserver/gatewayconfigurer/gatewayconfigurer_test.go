@@ -67,11 +67,18 @@ func TestGatewayConfigurer_SyncConfig(t *testing.T) {
 
 }
 
+func TestToCIDRStringSlice(t *testing.T) {
+	cidr := "1.2.3.4"
+	cidrStringSlice := gatewayconfigurer.ToCIDRStringSlice([]gatewayconfigurer.Route{{CIDR: cidr}})
+	assert.Len(t, cidrStringSlice, 1)
+	assert.Equal(t, cidr, cidrStringSlice[0])
+}
+
 func gatewayConfig(gatewayName string, route string, accessGroupId string) string {
 	gatewayConfigs := fmt.Sprintf(
 		`{
 				"%s": {
-					"routes": ["%s"],
+					"routes": [{"cidr": "%s"}],
 					"access_group_ids": ["%s"]
 				}
 			 }`, gatewayName, route, accessGroupId)

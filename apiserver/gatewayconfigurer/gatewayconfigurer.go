@@ -20,8 +20,12 @@ type GatewayConfigurer struct {
 	SyncInterval time.Duration
 }
 
+type Route struct {
+	CIDR string `json:"cidr"`
+}
+
 type GatewayConfig struct {
-	Routes         []string `json:"routes"`
+	Routes         []Route  `json:"routes"`
 	AccessGroupIds []string `json:"access_group_ids"`
 }
 
@@ -50,10 +54,19 @@ func (g *GatewayConfigurer) SyncConfig(ctx context.Context) error {
 	}
 
 	for gatewayName, gatewayConfig := range gatewayConfigs {
-		if err := g.DB.UpdateGateway(context.Background(), gatewayName, gatewayConfig.Routes, gatewayConfig.AccessGroupIds); err != nil {
+		if err := g.DB.UpdateGateway(context.Background(), gatewayName, ToCIDRStringSlice(gatewayConfig.Routes), gatewayConfig.AccessGroupIds); err != nil {
 			return fmt.Errorf("updating gateway: %s with routes: %s and accessGroupIds: %s: %v", gatewayName, gatewayConfig.Routes, gatewayConfig.AccessGroupIds, err)
 		}
 	}
 
 	return nil
+}
+
+func ToCIDRStringSlice(routeObjects []Route) []string {
+	var routes []string
+	for _, route := range routeObjects {
+		routes = append(routes, route.CIDR)
+	}
+
+	return routes
 }
