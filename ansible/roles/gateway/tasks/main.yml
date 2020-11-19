@@ -24,7 +24,7 @@
   get_url:
     dest: /opt/nais-device/bin/gateway-agent
     force: yes
-    url: https://github.com/nais/device/releases/download/2020-11-19-11847c0/gateway-agent
+    url: https://github.com/nais/device/releases/download/2020-11-19-aab3e0a/gateway-agent
     backup: yes
     mode: 0755
   notify:

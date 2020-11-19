@@ -16,15 +16,16 @@ Environment="GOOGLE_APPLICATION_CREDENTIALS=/root/sa.json"
 {% endif %}
 StandardOutput=append:/var/log/naisdevice/gateway-agent.json
 StandardError=append:/var/log/naisdevice/gateway-agent.json
-ExecStart=/opt/nais-device/bin/gateway-agent \
+ExecStart=/bin/bash -c '/opt/nais-device/bin/gateway-agent \
 	--name="{{ name }}" \
 	{% if onprem %}
-    --public-ip="$(ip -4 -o address show ens160 | awk '{print $4}' | cut -d '/' -f 1):51820" \
+    --public-ip="$(ip -4 -o address show ens160 | awk "{print $4}" | cut -d "/" -f 1):51820" \
     {% else %}
     --public-ip="$(curl -H "Metadata-Flavor: Google" http://metadata.google.internal/computeMetadata/v1/instance/network-interfaces/0/access-configs/0/external-ip):51820" \
     {% endif %}
+    --enrollment-token="$(gcloud secrets --project nais-device versions access latest --secret enrollment-token_{{ name }})"
 	--prometheus-public-key="MN9B/ZgAQdgCXH3/KUaUiObwrzHv6zF2P6M4ySTx81M=" \
-	--prometheus-tunnel-ip="10.255.247.254"
+	--prometheus-tunnel-ip="10.255.247.254"'
 
 [Install]
 WantedBy=multi-user.target
