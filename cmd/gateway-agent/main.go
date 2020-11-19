@@ -3,7 +3,6 @@ package main
 import (
 	g "github.com/nais/device/gateway-agent"
 	"github.com/nais/device/pkg/basicauth"
-	"github.com/nais/device/pkg/secretmanager"
 	"net/http"
 	"path"
 	"path/filepath"
@@ -30,7 +29,7 @@ func init() {
 	flag.StringVar(&cfg.PrometheusTunnelIP, "prometheus-tunnel-ip", cfg.PrometheusTunnelIP, "prometheus tunnel ip")
 	flag.BoolVar(&cfg.DevMode, "development-mode", cfg.DevMode, "development mode avoids setting up interface and configuring WireGuard")
 	flag.StringVar(&cfg.LogLevel, "log-level", "info", "log level")
-	flag.StringVar(&cfg.EnrollmentToken, "enrollment-token", "is not set", "enrollment token")
+	flag.StringVar(&cfg.EnrollmentToken, "enrollment-token", "is not set", "bootstrap-api enrollment token")
 
 	flag.Parse()
 
@@ -51,18 +50,12 @@ func main() {
 		log.Fatalf("Initializing local configuration: %v", err)
 	}
 
-	//TODO inputvar
-	secretManager, err := secretmanager.New("nais-device")
-	if err != nil {
-		log.Fatalf("Initializing secret manager: %v", err)
-	}
-
 	bootstrapper := g.Bootstrapper{
-		SecretManager: secretManager,
-		Config:        &cfg,
-		HTTPClient:    &http.Client{Transport: &basicauth.Transport{Username: cfg.Name, Password: cfg.EnrollmentToken}},
+		Config:     &cfg,
+		HTTPClient: &http.Client{Transport: &basicauth.Transport{Username: cfg.Name, Password: cfg.EnrollmentToken}},
 	}
 
+	var err error
 	cfg.BootstrapConfig, err = bootstrapper.EnsureBootstrapConfig()
 
 	if err != nil {

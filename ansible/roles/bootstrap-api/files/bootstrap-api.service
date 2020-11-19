@@ -13,4 +13,3 @@ ExecStart=/bin/bash -c '/opt/naisdevice/bin/bootstrap-api \
 
 [Install]
 WantedBy=multi-user.target
-

@@ -6,23 +6,15 @@ import (
 	"fmt"
 	"github.com/nais/device/device-agent/wireguard"
 	"github.com/nais/device/pkg/bootstrap"
-	"github.com/nais/device/pkg/secretmanager"
 	log "github.com/sirupsen/logrus"
 	"io/ioutil"
 	"net/http"
 	"time"
 )
 
-const enrollmentTokenPrefix = "enrollment-token"
-
-type SecretManager interface {
-	GetSecret(string) (*secretmanager.Secret, error)
-}
-
 type Bootstrapper struct {
-	SecretManager SecretManager
-	Config        *Config
-	HTTPClient    *http.Client
+	Config     *Config
+	HTTPClient *http.Client
 }
 
 func (b *Bootstrapper) EnsureBootstrapConfig() (*bootstrap.Config, error) {
@@ -41,6 +33,7 @@ func (b *Bootstrapper) EnsureBootstrapConfig() (*bootstrap.Config, error) {
 		PublicIP:  b.Config.PublicIP,
 		PublicKey: string(wireguard.PublicKey([]byte(b.Config.PrivateKey))),
 	}
+
 	bc, err := BootstrapGateway(gatewayInfo, b.Config.BootstrapApiURL, b.HTTPClient)
 	if err != nil {
 		return nil, fmt.Errorf("bootstrapping gateway: %w", err)

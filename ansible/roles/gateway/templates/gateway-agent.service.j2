@@ -23,7 +23,7 @@ ExecStart=/bin/bash -c '/opt/nais-device/bin/gateway-agent \
     {% else %}
     --public-ip="$(curl -H "Metadata-Flavor: Google" http://metadata.google.internal/computeMetadata/v1/instance/network-interfaces/0/access-configs/0/external-ip):51820" \
     {% endif %}
-    --enrollment-token="$(gcloud secrets --project nais-device versions access latest --secret enrollment-token_{{ name }})" \
+    --enrollment-token="$(gcloud secrets --project nais-device versions access latest --secret enrollment-token_{{ name }} || echo not_set)" \
 	--prometheus-public-key="MN9B/ZgAQdgCXH3/KUaUiObwrzHv6zF2P6M4ySTx81M=" \
 	--prometheus-tunnel-ip="10.255.247.254"'
 

@@ -7,7 +7,6 @@ import (
 	"github.com/nais/device/device-agent/wireguard"
 	g "github.com/nais/device/gateway-agent"
 	"github.com/nais/device/pkg/bootstrap"
-	"github.com/nais/device/pkg/secretmanager"
 	"github.com/stretchr/testify/assert"
 	"io/ioutil"
 	"net/http"
@@ -16,16 +15,7 @@ import (
 	"testing"
 )
 
-type FakeSecretManager struct {
-	secret *secretmanager.Secret
-}
-
-func (sm *FakeSecretManager) GetSecret(name string) (*secretmanager.Secret, error) {
-	return sm.secret, nil
-}
-
 func TestGetBootstrapConfig(t *testing.T) {
-	sm := FakeSecretManager{secret: &secretmanager.Secret{Name: "secret", Data: []byte("s3cr3t")}}
 	t.Run("returns existing bootstrapconfig if present", func(t *testing.T) {
 		f, err := ioutil.TempFile(os.TempDir(), "test")
 		assert.NoError(t, err)
@@ -35,7 +25,7 @@ func TestGetBootstrapConfig(t *testing.T) {
 		deviceIP := "10.255.240.31"
 		f.WriteString(`{"deviceIP":"` + deviceIP + `"}`)
 		cfg := &g.Config{BootstrapConfigPath: f.Name()}
-		bootstrapper := g.Bootstrapper{SecretManager: &sm, Config: cfg}
+		bootstrapper := g.Bootstrapper{Config: cfg}
 		config, err := bootstrapper.EnsureBootstrapConfig()
 		assert.Equal(t, deviceIP, config.DeviceIP)
 	})
@@ -100,7 +90,7 @@ func TestGetBootstrapConfig(t *testing.T) {
 		}
 
 		assert.Error(t, filesystem.FileMustExist(bootstrapConfigPath))
-		bootstrapper := g.Bootstrapper{SecretManager: &sm, Config: cfg, HTTPClient: server.Client()}
+		bootstrapper := g.Bootstrapper{Config: cfg, HTTPClient: server.Client()}
 		config, err := bootstrapper.EnsureBootstrapConfig()
 		assert.NoError(t, err)
 
