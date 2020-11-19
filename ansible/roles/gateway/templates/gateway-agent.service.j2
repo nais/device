@@ -11,6 +11,9 @@ Restart=always
 {% if proxy_env is defined and proxy_env|length %}
 Environment="HTTPS_PROXY={{ proxy_env.https_proxy }}"
 {% endif %}
+{% if onprem %}
+Environment="GOOGLE_APPLICATION_CREDENTIALS=/root/sa.json"
+{% endif %}
 StandardOutput=append:/var/log/naisdevice/gateway-agent.json
 StandardError=append:/var/log/naisdevice/gateway-agent.json
 ExecStart=/opt/nais-device/bin/gateway-agent \
