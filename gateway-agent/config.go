@@ -31,6 +31,7 @@ type Config struct {
 	DefaultInterfaceIP    string
 	BootstrapConfig       *bootstrap.Config
 	PublicIP              string
+	EnrollmentToken       string
 }
 
 func DefaultConfig() Config {

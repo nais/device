@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/nais/device/device-agent/wireguard"
-	"github.com/nais/device/pkg/basicauth"
 	"github.com/nais/device/pkg/bootstrap"
 	"github.com/nais/device/pkg/secretmanager"
 	log "github.com/sirupsen/logrus"
@@ -36,13 +35,6 @@ func (b *Bootstrapper) EnsureBootstrapConfig() (*bootstrap.Config, error) {
 	if err != nil {
 		log.Infof("Attempted to read bootstrap config: %v", err)
 	}
-
-	secret, err := b.SecretManager.GetSecret(fmt.Sprintf("%s_%s", enrollmentTokenPrefix, b.Config.Name))
-	if err != nil {
-		return nil, fmt.Errorf("getting enrollment token from secret manager: %w", err)
-	}
-
-	b.HTTPClient.Transport = &basicauth.Transport{Username: b.Config.Name, Password: string(secret.Data)}
 
 	gatewayInfo := &bootstrap.GatewayInfo{
 		Name:      b.Config.Name,

@@ -30,6 +30,7 @@ func init() {
 	flag.StringVar(&cfg.PrometheusTunnelIP, "prometheus-tunnel-ip", cfg.PrometheusTunnelIP, "prometheus tunnel ip")
 	flag.BoolVar(&cfg.DevMode, "development-mode", cfg.DevMode, "development mode avoids setting up interface and configuring WireGuard")
 	flag.StringVar(&cfg.LogLevel, "log-level", "info", "log level")
+	flag.StringVar(&cfg.EnrollmentToken, "enrollment-token", "is not set", "enrollment token")
 
 	flag.Parse()
 
@@ -59,7 +60,7 @@ func main() {
 	bootstrapper := g.Bootstrapper{
 		SecretManager: secretManager,
 		Config:        &cfg,
-		HTTPClient:    http.DefaultClient,
+		HTTPClient:    &http.Client{Transport: &basicauth.Transport{Username: cfg.Name, Password: cfg.EnrollmentToken}},
 	}
 
 	cfg.BootstrapConfig, err = bootstrapper.EnsureBootstrapConfig()
