@@ -18,16 +18,14 @@ type Device struct {
 	IP        string `json:"ip"`
 }
 
-func GetGatewayConfig(config Config) (*GatewayConfig, error) {
+func GetGatewayConfig(config Config, client http.Client) (*GatewayConfig, error) {
 	gatewayConfigURL := fmt.Sprintf("http://%s/gatewayconfig", config.BootstrapConfig.APIServerIP)
 	req, err := http.NewRequest(http.MethodGet, gatewayConfigURL, nil)
 	if err != nil {
 		return nil, fmt.Errorf("creating http request: %w", err)
 	}
 
-	req.SetBasicAuth(config.Name, config.APIServerPassword)
-
-	resp, err := http.DefaultClient.Do(req)
+	resp, err := client.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("getting peer config from apiserver: %w", err)
 	}

@@ -2,6 +2,7 @@ package main
 
 import (
 	g "github.com/nais/device/gateway-agent"
+	"github.com/nais/device/pkg/basicauth"
 	"github.com/nais/device/pkg/secretmanager"
 	"net/http"
 	"path"
@@ -92,10 +93,11 @@ func main() {
 	if err := g.ActuateWireGuardConfig(baseConfig, cfg.WireGuardConfigPath); err != nil && !cfg.DevMode {
 		log.Fatalf("actuating base config: %v", err)
 	}
+	client := http.Client{Transport: &basicauth.Transport{Username: cfg.Name, Password: cfg.APIServerPassword}}
 
 	for range time.NewTicker(10 * time.Second).C {
 		log.Infof("getting config")
-		gatewayConfig, err := g.GetGatewayConfig(cfg)
+		gatewayConfig, err := g.GetGatewayConfig(cfg, client)
 		if err != nil {
 			log.Error(err)
 			g.FailedConfigFetches.Inc()
