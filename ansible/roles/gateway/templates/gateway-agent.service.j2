@@ -15,9 +15,11 @@ StandardOutput=append:/var/log/naisdevice/gateway-agent.json
 StandardError=append:/var/log/naisdevice/gateway-agent.json
 ExecStart=/opt/nais-device/bin/gateway-agent \
 	--name="{{ name }}" \
-	--tunnel-ip="{{ tunnel_ip }}" \
-	--api-server-wireguard-endpoint="35.228.142.96:51820" \
-	--api-server-public-key="FUwVtyvs8nIRx9RpUUEopkfV8idmHz9g9K/vf9MFOXI=" \
+	{% if onprem %}
+    --public-ip="$(ip -4 -o address show ens160 | awk '{print $4}' | cut -d '/' -f 1):51820" \
+    {% else %}
+    --public-ip="$(curl -H "Metadata-Flavor: Google" http://metadata.google.internal/computeMetadata/v1/instance/network-interfaces/0/access-configs/0/external-ip):51820" \
+    {% endif %}
 	--prometheus-public-key="MN9B/ZgAQdgCXH3/KUaUiObwrzHv6zF2P6M4ySTx81M=" \
 	--prometheus-tunnel-ip="10.255.247.254"
 
