@@ -1,6 +1,7 @@
 package api
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -23,10 +24,11 @@ type GatewayConfig struct {
 func (a *api) gatewayConfig(w http.ResponseWriter, r *http.Request) {
 	gatewayName, _, _ := r.BasicAuth()
 
-	devices, err := a.db.ReadDevices()
+	ctx := context.Background()
+	sessionInfos, err := a.db.ReadSessionInfos(ctx)
 
 	if err != nil {
-		log.Errorf("reading devices from database: %v", err)
+		log.Errorf("reading session infos from database: %v", err)
 		respondf(w, http.StatusInternalServerError, "failed getting gateway config")
 		return
 	}
@@ -161,17 +163,6 @@ func (a *api) UserGateways(userGroups []string) (*[]database.Gateway, error) {
 		return nil, fmt.Errorf("reading gateways from db: %v", err)
 	}
 
-	userIsAuthorized := func(gatewayGroups []string, userGroups []string) bool {
-		for _, userGroup := range userGroups {
-			for _, gatewayGroup := range gatewayGroups {
-				if userGroup == gatewayGroup {
-					return true
-				}
-			}
-		}
-		return false
-	}
-
 	var filtered []database.Gateway
 	for _, gw := range gateways {
 		if userIsAuthorized(gw.AccessGroupIDs, userGroups) {
@@ -180,6 +171,17 @@ func (a *api) UserGateways(userGroups []string) (*[]database.Gateway, error) {
 	}
 
 	return &filtered, nil
+}
+
+func userIsAuthorized(gatewayGroups []string, userGroups []string) bool {
+		for _, userGroup := range userGroups {
+			for _, gatewayGroup := range gatewayGroups {
+				if userGroup == gatewayGroup {
+					return true
+				}
+			}
+		}
+		return false
 }
 
 func respondf(w http.ResponseWriter, statusCode int, format string, args ...interface{}) {
