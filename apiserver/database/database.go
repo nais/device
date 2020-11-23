@@ -36,12 +36,13 @@ type Device struct {
 }
 
 type Gateway struct {
-	Endpoint       string   `json:"endpoint"`
-	PublicKey      string   `json:"publicKey"`
-	IP             string   `json:"ip"`
-	Routes         []string `json:"routes"`
-	Name           string   `json:"name"`
-	AccessGroupIDs []string `json:"-"`
+	Endpoint                 string   `json:"endpoint"`
+	PublicKey                string   `json:"publicKey"`
+	IP                       string   `json:"ip"`
+	Routes                   []string `json:"routes"`
+	Name                     string   `json:"name"`
+	AccessGroupIDs           []string `json:"-"`
+	RequiresPrivilegedAccess bool     `json:"requires_privileged_access"`
 }
 
 type SessionInfo struct {
@@ -133,13 +134,13 @@ func (d *APIServerDB) UpdateDeviceStatus(devices []Device) error {
 
 var mux sync.Mutex
 
-func (d *APIServerDB) UpdateGateway(ctx context.Context, name string, routes, accessGroupIDs []string) error {
+func (d *APIServerDB) UpdateGateway(ctx context.Context, name string, routes, accessGroupIDs []string, requiresPrivilegedAccess bool) error {
 	statement := `
 UPDATE gateway 
-SET routes = $1, access_group_ids = $2
-WHERE name = $3;`
+SET routes = $1, access_group_ids = $2, requires_privileged_access = $3
+WHERE name = $4;`
 
-	_, err := d.Conn.ExecContext(ctx, statement, strings.Join(routes, ","), strings.Join(accessGroupIDs, ","), name)
+	_, err := d.Conn.ExecContext(ctx, statement, strings.Join(routes, ","), strings.Join(accessGroupIDs, ","), requiresPrivilegedAccess, name)
 	if err != nil {
 		return fmt.Errorf("updating gateway: %w", err)
 	}
@@ -262,7 +263,7 @@ func (d *APIServerDB) ReadGateways() ([]Gateway, error) {
 	ctx := context.Background()
 
 	query := `
-SELECT public_key, access_group_ids, endpoint, ip, routes, name
+SELECT public_key, access_group_ids, endpoint, ip, routes, name, requires_privileged_access
   FROM gateway;`
 
 	rows, err := d.Conn.QueryContext(ctx, query)
@@ -275,7 +276,7 @@ SELECT public_key, access_group_ids, endpoint, ip, routes, name
 		var gateway Gateway
 		var routes string
 		var accessGroupIDs string
-		err := rows.Scan(&gateway.PublicKey, &accessGroupIDs, &gateway.Endpoint, &gateway.IP, &routes, &gateway.Name)
+		err := rows.Scan(&gateway.PublicKey, &accessGroupIDs, &gateway.Endpoint, &gateway.IP, &routes, &gateway.Name, &gateway.RequiresPrivilegedAccess)
 		if err != nil {
 			return nil, fmt.Errorf("scanning gateway: %w", err)
 		}
@@ -303,7 +304,7 @@ func (d *APIServerDB) ReadGateway(name string) (*Gateway, error) {
 	ctx := context.Background()
 
 	query := `
-SELECT public_key, access_group_ids, endpoint, ip, routes, name
+SELECT public_key, access_group_ids, endpoint, ip, routes, name, requires_privileged_access
   FROM gateway
  WHERE name = $1;`
 
@@ -312,7 +313,7 @@ SELECT public_key, access_group_ids, endpoint, ip, routes, name
 	var gateway Gateway
 	var routes string
 	var accessGroupIDs string
-	err := row.Scan(&gateway.PublicKey, &accessGroupIDs, &gateway.Endpoint, &gateway.IP, &routes, &gateway.Name)
+	err := row.Scan(&gateway.PublicKey, &accessGroupIDs, &gateway.Endpoint, &gateway.IP, &routes, &gateway.Name, &gateway.RequiresPrivilegedAccess)
 	if err != nil {
 		return nil, fmt.Errorf("scanning gateway: %w", err)
 	}

@@ -69,7 +69,7 @@ func TestGetDeviceConfig(t *testing.T) {
 		t.Fatalf("Adding gateway: %v", err)
 	}
 
-	assert.NoError(t, db.UpdateGateway(ctx, authorizedGateway.Name, nil, []string{"group1"}))
+	assert.NoError(t, db.UpdateGateway(ctx, authorizedGateway.Name, nil, []string{"group1"}, false))
 
 	if err := db.AddGateway(ctx, unauthorizedGateway.Name, unauthorizedGateway.Endpoint, unauthorizedGateway.PublicKey); err != nil {
 		t.Fatalf("Adding gateway: %v", err)

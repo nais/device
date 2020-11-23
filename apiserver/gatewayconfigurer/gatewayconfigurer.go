@@ -25,8 +25,9 @@ type Route struct {
 }
 
 type GatewayConfig struct {
-	Routes         []Route  `json:"routes"`
-	AccessGroupIds []string `json:"access_group_ids"`
+	Routes                   []Route  `json:"routes"`
+	AccessGroupIds           []string `json:"access_group_ids"`
+	RequiresPrivilegedAccess bool     `json:"requires_privileged_access"`
 }
 
 func (g *GatewayConfigurer) SyncContinuously(ctx context.Context) {
@@ -54,7 +55,7 @@ func (g *GatewayConfigurer) SyncConfig(ctx context.Context) error {
 	}
 
 	for gatewayName, gatewayConfig := range gatewayConfigs {
-		if err := g.DB.UpdateGateway(context.Background(), gatewayName, ToCIDRStringSlice(gatewayConfig.Routes), gatewayConfig.AccessGroupIds); err != nil {
+		if err := g.DB.UpdateGateway(context.Background(), gatewayName, ToCIDRStringSlice(gatewayConfig.Routes), gatewayConfig.AccessGroupIds, gatewayConfig.RequiresPrivilegedAccess); err != nil {
 			return fmt.Errorf("updating gateway: %s with routes: %s and accessGroupIds: %s: %v", gatewayName, gatewayConfig.Routes, gatewayConfig.AccessGroupIds, err)
 		}
 	}

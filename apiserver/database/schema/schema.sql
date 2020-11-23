@@ -17,13 +17,14 @@ CREATE TABLE device
 
 CREATE TABLE gateway
 (
-    id               serial PRIMARY KEY,
-    name             varchar NOT NULL UNIQUE,
-    access_group_ids varchar DEFAULT '',
-    endpoint         varchar(21),
-    public_key       varchar(44) NOT NULL UNIQUE,
-    ip               varchar(15) UNIQUE,
-    routes           varchar DEFAULT ''
+    id                         serial PRIMARY KEY,
+    name                       varchar     NOT NULL UNIQUE,
+    access_group_ids           varchar DEFAULT '',
+    endpoint                   varchar(21),
+    public_key                 varchar(44) NOT NULL UNIQUE,
+    ip                         varchar(15) UNIQUE,
+    routes                     varchar DEFAULT '',
+    requires_privileged_access boolean DEFAULT false
 );
 
 CREATE TABLE session

@@ -23,7 +23,7 @@ func TestGatewayConfigurer_SyncConfig(t *testing.T) {
 		const gatewayName, route, accessGroupId = "name", "r", "agid"
 		assert.NoError(t, testDB.AddGateway(context.Background(), gatewayName, "", ""))
 
-		bucketReader := MockBucketReader{GatewayConfigs: gatewayConfig(gatewayName, route, accessGroupId)}
+		bucketReader := MockBucketReader{GatewayConfigs: gatewayConfig(gatewayName, route, accessGroupId, true)}
 
 		gc := gatewayconfigurer.GatewayConfigurer{
 			DB:           testDB,
@@ -35,6 +35,7 @@ func TestGatewayConfigurer_SyncConfig(t *testing.T) {
 		assert.Equal(t, gatewayName, gateway.Name)
 		assert.Nil(t, gateway.Routes)
 		assert.Nil(t, gateway.AccessGroupIDs)
+		assert.False(t, gateway.RequiresPrivilegedAccess)
 
 		assert.NoError(t, gc.SyncConfig(context.Background()))
 
@@ -44,6 +45,7 @@ func TestGatewayConfigurer_SyncConfig(t *testing.T) {
 		assert.Equal(t, route, updatedGateway.Routes[0])
 		assert.Len(t, updatedGateway.AccessGroupIDs, 1)
 		assert.Equal(t, accessGroupId, updatedGateway.AccessGroupIDs[0])
+		assert.True(t, updatedGateway.RequiresPrivilegedAccess)
 	})
 
 	t.Run("synchronizing gatewayconfig where gateway not in database is ok", func(t *testing.T) {
@@ -51,7 +53,7 @@ func TestGatewayConfigurer_SyncConfig(t *testing.T) {
 		assert.NoError(t, err)
 		const gatewayName, route, accessGroupId = "name", "r", "agid"
 
-		bucketReader := MockBucketReader{GatewayConfigs: gatewayConfig(gatewayName, route, accessGroupId)}
+		bucketReader := MockBucketReader{GatewayConfigs: gatewayConfig(gatewayName, route, accessGroupId, true)}
 
 		gc := gatewayconfigurer.GatewayConfigurer{
 			DB:           testDB,
@@ -74,14 +76,15 @@ func TestToCIDRStringSlice(t *testing.T) {
 	assert.Equal(t, cidr, cidrStringSlice[0])
 }
 
-func gatewayConfig(gatewayName string, route string, accessGroupId string) string {
+func gatewayConfig(gatewayName string, route string, accessGroupId string, requiresPrivilegedAccess bool) string {
 	gatewayConfigs := fmt.Sprintf(
 		`{
 				"%s": {
 					"routes": [{"cidr": "%s"}],
-					"access_group_ids": ["%s"]
+					"access_group_ids": ["%s"],
+					"requires_privileged_access": %t
 				}
-			 }`, gatewayName, route, accessGroupId)
+			 }`, gatewayName, route, accessGroupId, requiresPrivilegedAccess)
 	return gatewayConfigs
 }
 
