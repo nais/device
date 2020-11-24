@@ -41,7 +41,7 @@ func (a *api) gatewayConfig(w http.ResponseWriter, r *http.Request) {
 	}
 
 	gatewayConfig := GatewayConfig{
-		Devices: healthy(devices),
+		Devices: healthy(authorized(gateway.AccessGroupIDs, sessionInfos)),
 		Routes:  gateway.Routes,
 	}
 
@@ -60,6 +60,20 @@ func healthy(devices []database.Device) []database.Device {
 	}
 
 	return healthyDevices
+}
+
+func authorized(gatewayGroups []string, sessions []*database.SessionInfo) []database.Device {
+	var authorizedDevices []database.Device
+
+	for _, session := range sessions {
+		if userIsAuthorized(gatewayGroups, session.Groups) {
+			authorizedDevices = append(authorizedDevices, *session.Device)
+		} else {
+			log.Tracef("Skipping unauthorized session: %s", session.Device.Serial)
+		}
+	}
+
+	return authorizedDevices
 }
 
 func (a *api) devices(w http.ResponseWriter, r *http.Request) {
@@ -174,14 +188,14 @@ func (a *api) UserGateways(userGroups []string) (*[]database.Gateway, error) {
 }
 
 func userIsAuthorized(gatewayGroups []string, userGroups []string) bool {
-		for _, userGroup := range userGroups {
-			for _, gatewayGroup := range gatewayGroups {
-				if userGroup == gatewayGroup {
-					return true
-				}
+	for _, userGroup := range userGroups {
+		for _, gatewayGroup := range gatewayGroups {
+			if userGroup == gatewayGroup {
+				return true
 			}
 		}
-		return false
+	}
+	return false
 }
 
 func respondf(w http.ResponseWriter, statusCode int, format string, args ...interface{}) {
