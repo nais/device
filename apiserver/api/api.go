@@ -1,6 +1,7 @@
 package api
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -18,15 +19,15 @@ type GatewayConfig struct {
 	Routes  []string
 }
 
-// TODO(jhrv): do actual filtering of the devices.
 // gatewayConfig returns the devices for the gateway that has the group membership required
 func (a *api) gatewayConfig(w http.ResponseWriter, r *http.Request) {
 	gatewayName, _, _ := r.BasicAuth()
 
-	devices, err := a.db.ReadDevices()
+	ctx := context.Background()
+	sessionInfos, err := a.db.ReadSessionInfos(ctx)
 
 	if err != nil {
-		log.Errorf("reading devices from database: %v", err)
+		log.Errorf("reading session infos from database: %v", err)
 		respondf(w, http.StatusInternalServerError, "failed getting gateway config")
 		return
 	}
@@ -39,7 +40,7 @@ func (a *api) gatewayConfig(w http.ResponseWriter, r *http.Request) {
 	}
 
 	gatewayConfig := GatewayConfig{
-		Devices: healthy(devices),
+		Devices: healthy(authorized(gateway.AccessGroupIDs, sessionInfos)),
 		Routes:  gateway.Routes,
 	}
 
@@ -58,6 +59,20 @@ func healthy(devices []database.Device) []database.Device {
 	}
 
 	return healthyDevices
+}
+
+func authorized(gatewayGroups []string, sessions []*database.SessionInfo) []database.Device {
+	var authorizedDevices []database.Device
+
+	for _, session := range sessions {
+		if userIsAuthorized(gatewayGroups, session.Groups) {
+			authorizedDevices = append(authorizedDevices, *session.Device)
+		} else {
+			log.Tracef("Skipping unauthorized session: %s", session.Device.Serial)
+		}
+	}
+
+	return authorizedDevices
 }
 
 func (a *api) devices(w http.ResponseWriter, r *http.Request) {
@@ -161,17 +176,6 @@ func (a *api) UserGateways(userGroups []string) (*[]database.Gateway, error) {
 		return nil, fmt.Errorf("reading gateways from db: %v", err)
 	}
 
-	userIsAuthorized := func(gatewayGroups []string, userGroups []string) bool {
-		for _, userGroup := range userGroups {
-			for _, gatewayGroup := range gatewayGroups {
-				if userGroup == gatewayGroup {
-					return true
-				}
-			}
-		}
-		return false
-	}
-
 	var filtered []database.Gateway
 	for _, gw := range gateways {
 		if userIsAuthorized(gw.AccessGroupIDs, userGroups) {
@@ -180,6 +184,17 @@ func (a *api) UserGateways(userGroups []string) (*[]database.Gateway, error) {
 	}
 
 	return &filtered, nil
+}
+
+func userIsAuthorized(gatewayGroups []string, userGroups []string) bool {
+	for _, userGroup := range userGroups {
+		for _, gatewayGroup := range gatewayGroups {
+			if userGroup == gatewayGroup {
+				return true
+			}
+		}
+	}
+	return false
 }
 
 func respondf(w http.ResponseWriter, statusCode int, format string, args ...interface{}) {

@@ -4,13 +4,14 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"github.com/nais/device/apiserver/database"
-	"github.com/nais/device/apiserver/testdatabase"
 	"net/http"
 	"net/http/httptest"
 	"os"
 	"testing"
 	"time"
+
+	"github.com/nais/device/apiserver/database"
+	"github.com/nais/device/apiserver/testdatabase"
 
 	"github.com/nais/device/apiserver/auth"
 
@@ -79,6 +80,79 @@ func TestGetDeviceConfig(t *testing.T) {
 
 	assert.Len(t, gateways, 1)
 	assert.Equal(t, gateways[0].PublicKey, authorizedGateway.PublicKey)
+}
+
+func TestGatewayConfig(t *testing.T) {
+	db, router := setup(t)
+
+	ctx := context.Background()
+
+	healthyDevice := addDevice(t, db, ctx, "serial1", "healthyUser", "pubKey1", true)
+	healthyDevice2 := addDevice(t, db, ctx, "serial2", "healthyUser2", "pubKey2", true)
+	unhealthyDevice := addDevice(t, db, ctx, "serial3", "unhealthyUser", "pubKey3", false)
+
+	_ = addSessionInfo(t, db, ctx, healthyDevice, []string{"authorized"})
+	_ = addSessionInfo(t, db, ctx, healthyDevice2, []string{"unauthorized"})
+	_ = addSessionInfo(t, db, ctx, unhealthyDevice, []string{"authorized"})
+	_ = addSessionInfo(t, db, ctx, unhealthyDevice, []string{"unauthorized"})
+	_ = addSessionInfo(t, db, ctx, healthyDevice2, []string{""})
+
+	// todo don't use username as gateway
+	authorizedGateway := database.Gateway{Name: "username", Endpoint: "ep1", PublicKey: "pubkey1"}
+	if err := db.AddGateway(ctx, authorizedGateway.Name, authorizedGateway.Endpoint, authorizedGateway.PublicKey); err != nil {
+		t.Fatalf("Adding gateway: %v", err)
+	}
+	assert.NoError(t, db.UpdateGateway(ctx, authorizedGateway.Name, nil, []string{"authorized"}, false))
+
+	gatewayConfig := getGatewayConfig(t, router, "username", "password")
+	devices := gatewayConfig.Devices
+
+	assert.Len(t, devices, 1)
+	assert.Equal(t, devices[0].PublicKey, healthyDevice.PublicKey)
+}
+
+func addDevice(t *testing.T, db *database.APIServerDB, ctx context.Context, serial, username, publicKey string, healthy bool) *database.Device {
+	device := database.Device{
+		Serial:    serial,
+		PublicKey: publicKey,
+		Username:  username,
+		Platform:  "darwin",
+	}
+
+	if err := db.AddDevice(ctx, device); err != nil {
+		t.Fatalf("Adding device: %v", err)
+		return nil
+	}
+
+	if healthy {
+		device.Healthy = boolp(true)
+
+		if err := db.UpdateDeviceStatus([]database.Device{device}); err != nil {
+			t.Fatalf("Updating device status: %v", err)
+			return nil
+		}
+	}
+
+	deviceWithId, err := db.ReadDevice(device.PublicKey)
+	if err != nil {
+		t.Fatalf("Reading device: %v", err)
+	}
+
+	return deviceWithId
+}
+
+func addSessionInfo(t *testing.T, db *database.APIServerDB, ctx context.Context, databaseDevice *database.Device, groups []string) *database.SessionInfo {
+	databaseSessionInfo := database.SessionInfo{
+		Key:    "dbSessionKey",
+		Expiry: time.Now().Add(time.Minute).Unix(),
+		Device: databaseDevice,
+		Groups: groups,
+	}
+	if err := db.AddSessionInfo(ctx, &databaseSessionInfo); err != nil {
+		t.Fatalf("Adding SessionInfo: %v", err)
+	}
+
+	return &databaseSessionInfo
 }
 
 func TestUpdateDeviceHealth(t *testing.T) {
@@ -197,6 +271,20 @@ func getDeviceConfig(t *testing.T, router chi.Router, sessionKey string) (gatewa
 	}
 
 	return gateways
+}
+
+func getGatewayConfig(t *testing.T, router chi.Router, username, password string) api.GatewayConfig {
+	req, _ := http.NewRequest("GET", "/gatewayconfig", nil)
+	req.SetBasicAuth(username, password)
+	resp := executeRequest(req, router)
+	assert.Equal(t, http.StatusOK, resp.Code)
+
+	var gatewayConfig api.GatewayConfig
+	if err := json.NewDecoder(resp.Body).Decode(&gatewayConfig); err != nil {
+		t.Fatalf("Unmarshaling response body: %v", err)
+	}
+
+	return gatewayConfig
 }
 
 func getDevices(t *testing.T, router chi.Router) (devices []database.Device) {

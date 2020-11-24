@@ -418,3 +418,42 @@ WHERE key = $1;
 
 	return &si, nil
 }
+
+func (d *APIServerDB) ReadSessionInfos(ctx context.Context) ([]*SessionInfo, error) {
+	query := `
+SELECT DISTINCT device_id, groups
+FROM session;
+`
+
+	rows, err := d.Conn.QueryContext(ctx, query)
+	if err != nil {
+		return nil, fmt.Errorf("querying rows: %w", err)
+	}
+
+	var sessionInfos []*SessionInfo
+	for rows.Next() {
+		if rows.Err() != nil {
+			return nil, fmt.Errorf("reading row: %w", rows.Err())
+		}
+
+		var si SessionInfo
+		var groups string
+		var deviceID int
+		err := rows.Scan(&deviceID, &groups)
+		if err != nil {
+			return nil, fmt.Errorf("scanning row: %w", err)
+		}
+
+		si.Groups = strings.Split(groups, ",")
+		si.Device, err = d.ReadDeviceById(ctx, deviceID)
+
+		if err != nil {
+			return nil, fmt.Errorf("reading device: %w", err)
+		}
+		sessionInfos = append(sessionInfos, &si)
+	}
+
+	log.Infof("retrieved session infos from db")
+
+	return sessionInfos, nil
+}
