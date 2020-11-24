@@ -46,10 +46,11 @@ type Gateway struct {
 }
 
 type SessionInfo struct {
-	Key    string `json:"key"`
-	Expiry int64  `json:"expiry"`
-	Device *Device
-	Groups []string
+	Key      string `json:"key"`
+	Expiry   int64  `json:"expiry"`
+	Device   *Device
+	Groups   []string
+	ObjectId string
 }
 
 func (si SessionInfo) Expired() bool {
@@ -376,11 +377,11 @@ SELECT id, username, serial, psk, platform, healthy, last_updated, kolide_last_s
 
 func (d *APIServerDB) AddSessionInfo(ctx context.Context, si *SessionInfo) error {
 	query := `
-INSERT INTO session (key, expiry, device_id, groups)
-             VALUES ($1, $2, $3, $4);
+INSERT INTO session (key, expiry, device_id, groups, object_id)
+             VALUES ($1, $2, $3, $4, $5);
 `
 
-	_, err := d.Conn.ExecContext(ctx, query, si.Key, si.Expiry, si.Device.ID, strings.Join(si.Groups, ","))
+	_, err := d.Conn.ExecContext(ctx, query, si.Key, si.Expiry, si.Device.ID, strings.Join(si.Groups, ","), si.ObjectId)
 	if err != nil {
 		return fmt.Errorf("scanning row: %s", err)
 	}
@@ -392,7 +393,7 @@ INSERT INTO session (key, expiry, device_id, groups)
 
 func (d *APIServerDB) ReadSessionInfo(ctx context.Context, key string) (*SessionInfo, error) {
 	query := `
-SELECT key, expiry, device_id, groups
+SELECT key, expiry, device_id, groups, object_id
 FROM session
 WHERE key = $1;
 `
@@ -402,7 +403,7 @@ WHERE key = $1;
 	var si SessionInfo
 	var groups string
 	var deviceID int
-	err := row.Scan(&si.Key, &si.Expiry, &deviceID, &groups)
+	err := row.Scan(&si.Key, &si.Expiry, &deviceID, &groups, &si.ObjectId)
 	if err != nil {
 		return nil, fmt.Errorf("scanning row: %w", err)
 	}
@@ -419,9 +420,9 @@ WHERE key = $1;
 	return &si, nil
 }
 
-func (d *APIServerDB) ReadSessionInfos(ctx context.Context) ([]*SessionInfo, error) {
+func (d *APIServerDB) ReadSessionInfos(ctx context.Context) ([]SessionInfo, error) {
 	query := `
-SELECT DISTINCT device_id, groups
+SELECT key, expiry, device_id, groups, object_id
 FROM session;
 `
 
@@ -430,7 +431,7 @@ FROM session;
 		return nil, fmt.Errorf("querying rows: %w", err)
 	}
 
-	var sessionInfos []*SessionInfo
+	var sessionInfos []SessionInfo
 	for rows.Next() {
 		if rows.Err() != nil {
 			return nil, fmt.Errorf("reading row: %w", rows.Err())
@@ -439,7 +440,7 @@ FROM session;
 		var si SessionInfo
 		var groups string
 		var deviceID int
-		err := rows.Scan(&deviceID, &groups)
+		err := rows.Scan(&si.Key, &si.Expiry, &deviceID, &groups, &si.ObjectId)
 		if err != nil {
 			return nil, fmt.Errorf("scanning row: %w", err)
 		}
@@ -450,7 +451,7 @@ FROM session;
 		if err != nil {
 			return nil, fmt.Errorf("reading device: %w", err)
 		}
-		sessionInfos = append(sessionInfos, &si)
+		sessionInfos = append(sessionInfos, si)
 	}
 
 	log.Infof("retrieved session infos from db")

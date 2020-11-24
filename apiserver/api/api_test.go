@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"fmt"
+	"github.com/nais/device/apiserver/jita"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -109,6 +111,36 @@ func TestGatewayConfig(t *testing.T) {
 
 	assert.Len(t, devices, 1)
 	assert.Equal(t, devices[0].PublicKey, healthyDevice.PublicKey)
+}
+
+func TestPrivilegedGatewayConfig(t *testing.T) {
+	db, router := setup(t)
+
+	ctx := context.Background()
+
+	healthyDevice := addDevice(t, db, ctx, "serial1", "healthyUser", "pubKey1", true)
+
+	_ = addSessionInfo(t, db, ctx, healthyDevice, []string{"authorized"})
+
+	// todo don't use username as gateway
+	privilegedGateway := database.Gateway{Name: "privileged", Endpoint: "ep1", PublicKey: "pubkey1"}
+	if err := db.AddGateway(ctx, privilegedGateway.Name, privilegedGateway.Endpoint, privilegedGateway.PublicKey); err != nil {
+		t.Fatalf("Adding gateway: %v", err)
+	}
+	assert.NoError(t, db.UpdateGateway(ctx, privilegedGateway.Name, nil, []string{"authorized"}, true))
+
+	unprivilegedGateway := database.Gateway{Name: "unprivileged", Endpoint: "ep1", PublicKey: "pubkey2"}
+	if err := db.AddGateway(ctx, unprivilegedGateway.Name, unprivilegedGateway.Endpoint, unprivilegedGateway.PublicKey); err != nil {
+		t.Fatalf("Adding gateway: %v", err)
+	}
+	assert.NoError(t, db.UpdateGateway(ctx, unprivilegedGateway.Name, nil, []string{"authorized"}, false))
+
+	privilegedGatewayConfig := getGatewayConfig(t, router, "privileged", "password")
+	assert.Len(t, privilegedGatewayConfig.Devices, 1)
+	assert.Equal(t, privilegedGatewayConfig.Devices[0].PublicKey, healthyDevice.PublicKey)
+
+	unprivilegedGatewayConfig := getGatewayConfig(t, router, "unprivileged", "password")
+	assert.Len(t, unprivilegedGatewayConfig.Devices, 0)
 }
 
 func addDevice(t *testing.T, db *database.APIServerDB, ctx context.Context, serial, username, publicKey string, healthy bool) *database.Device {
@@ -225,6 +257,25 @@ func TestGetDeviceConfigSessionNotInCache(t *testing.T) {
 	assert.Len(t, gateways, 0)
 }
 
+func mockJita(t *testing.T, gatewayName string, ctx context.Context) *http.ServeMux {
+	mux := http.NewServeMux()
+
+	mux.HandleFunc(fmt.Sprintf("/api/v1/gatewayAccess/%s", gatewayName), func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodGet {
+			t.Fatalf("invalid method")
+		}
+
+		privilegedUsers := []jita.PrivilegedUser{{
+			UserId: "userId",
+		}}
+		err := json.NewEncoder(w).Encode(&privilegedUsers)
+		assert.NoError(t, err)
+		ctx.Done()
+
+	})
+	return mux
+}
+
 func setup(t *testing.T) (*database.APIServerDB, chi.Router) {
 	if os.Getenv("RUN_INTEGRATION_TESTS") == "" {
 		t.Skip("Skipping integration test")
@@ -251,8 +302,13 @@ func setup(t *testing.T) (*database.APIServerDB, chi.Router) {
 
 	assert.NoError(t, err)
 
+	server := httptest.NewServer(mockJita(t, "gateway1"))
+
+	go server.Start()
+
 	return db, api.New(api.Config{
-		DB: db,
+		DB:   db,
+		Jita: jita.New("username", "password", "url"),
 		Sessions: &auth.Sessions{
 			DB:     db,
 			Active: map[string]*database.SessionInfo{sessionInfo.Key: &sessionInfo},

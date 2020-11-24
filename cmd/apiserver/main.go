@@ -5,6 +5,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/nais/device/apiserver/gatewayconfigurer"
+	"github.com/nais/device/apiserver/jita"
 	"github.com/nais/device/pkg/basicauth"
 	"io/ioutil"
 	"net/http"
@@ -39,6 +40,9 @@ var (
 
 func init() {
 	flag.StringVar(&cfg.DbConnDSN, "db-connection-dsn", os.Getenv("DB_CONNECTION_DSN"), "database connection DSN")
+	flag.StringVar(&cfg.JitaUsername, "jita-username", os.Getenv("JITA_USERNAME"), "jita username")
+	flag.StringVar(&cfg.JitaPassword, "jita-password", os.Getenv("JITA_PASSWORD"), "jita password")
+	flag.StringVar(&cfg.JitaUrl, "jita-url", os.Getenv("JITA_URL"), "jita URL")
 	flag.StringVar(&cfg.BootstrapAPIURL, "bootstrap-api-url", "", "bootstrap API URL")
 	flag.StringVar(&cfg.BootstrapApiCredentials, "bootstrap-api-credentials", os.Getenv("BOOTSTRAP_API_CREDENTIALS"), "bootstrap API credentials")
 	flag.StringVar(&cfg.PrometheusAddr, "prometheus-address", cfg.PrometheusAddr, "prometheus listen address")
@@ -137,6 +141,7 @@ func main() {
 
 	apiConfig := api.Config{
 		DB:       db,
+		Jita:     jita.New(cfg.JitaUsername, cfg.JitaPassword, cfg.JitaUrl),
 		Sessions: sessions,
 	}
 

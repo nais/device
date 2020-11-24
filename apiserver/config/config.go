@@ -26,6 +26,9 @@ type Config struct {
 	TokenValidator                jwt.Keyfunc
 	GatewayConfigBucketName       string
 	GatewayConfigBucketObjectName string
+	JitaUsername                  string
+	JitaPassword                  string
+	JitaUrl                       string
 }
 
 type Azure struct {

@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/nais/device/apiserver/jita"
 	"net/http"
 
 	"github.com/nais/device/apiserver/database"
@@ -11,7 +12,8 @@ import (
 )
 
 type api struct {
-	db *database.APIServerDB
+	db   *database.APIServerDB
+	jita *jita.Jita
 }
 
 type GatewayConfig struct {
@@ -40,12 +42,33 @@ func (a *api) gatewayConfig(w http.ResponseWriter, r *http.Request) {
 	}
 
 	gatewayConfig := GatewayConfig{
-		Devices: healthy(authorized(gateway.AccessGroupIDs, sessionInfos)),
+		Devices: healthy(authorized(gateway.AccessGroupIDs, a.privileged(*gateway, sessionInfos))),
 		Routes:  gateway.Routes,
 	}
 
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(gatewayConfig)
+}
+
+func (api *api) privileged(gateway database.Gateway, sessions []database.SessionInfo) []database.SessionInfo {
+	if !gateway.RequiresPrivilegedAccess {
+		return sessions
+	}
+	privilegedUsers, err := api.jita.GetPrivilegedUsersForGateway(gateway.Name)
+	if err != nil {
+		log.Errorf("Gateway retrieving privileged users, %s", err)
+	}
+	PrivilegedUsersPerGateway.WithLabelValues(gateway.Name).Set(float64(len(privilegedUsers)))
+
+	var sessionsToReturn []database.SessionInfo
+	for _, session := range sessions {
+		if userIsPrivileged(privilegedUsers, session.ObjectId) {
+			sessions = append(sessionsToReturn, session)
+		} else {
+			log.Tracef("Skipping unauthorized session: %s", session.Device.Serial)
+		}
+	}
+	return sessionsToReturn
 }
 
 func healthy(devices []database.Device) []database.Device {
@@ -61,7 +84,7 @@ func healthy(devices []database.Device) []database.Device {
 	return healthyDevices
 }
 
-func authorized(gatewayGroups []string, sessions []*database.SessionInfo) []database.Device {
+func authorized(gatewayGroups []string, sessions []database.SessionInfo) []database.Device {
 	var authorizedDevices []database.Device
 
 	for _, session := range sessions {
@@ -184,6 +207,15 @@ func (a *api) UserGateways(userGroups []string) (*[]database.Gateway, error) {
 	}
 
 	return &filtered, nil
+}
+
+func userIsPrivileged(privilegedUsers []jita.PrivilegedUser, users string) bool {
+	for _, privilegedUser := range privilegedUsers {
+		if privilegedUser.UserId == users {
+			return true
+		}
+	}
+	return false
 }
 
 func userIsAuthorized(gatewayGroups []string, userGroups []string) bool {
