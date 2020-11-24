@@ -19,7 +19,6 @@ type GatewayConfig struct {
 	Routes  []string
 }
 
-// TODO(jhrv): do actual filtering of the devices.
 // gatewayConfig returns the devices for the gateway that has the group membership required
 func (a *api) gatewayConfig(w http.ResponseWriter, r *http.Request) {
 	gatewayName, _, _ := r.BasicAuth()
