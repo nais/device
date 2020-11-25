@@ -121,7 +121,7 @@ func TestPrivilegedGatewayConfig(t *testing.T) {
 		UserId: "userId",
 	}}
 	server := httptest.NewServer(mockJita(t, "privileged1", privilegedUsers))
-	db, router := setup(t, jita.New("username", "password", fmt.Sprintf("%s/%s", server.URL, "api/v1/gatewayAccess")))
+	db, router := setup(t, jita.New("username", "password", server.URL))
 
 	healthyDevice := addDevice(t, db, ctx, "serial1", "healthyUser", "pubKey1", true)
 

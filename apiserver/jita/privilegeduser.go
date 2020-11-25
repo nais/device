@@ -11,7 +11,7 @@ type PrivilegedUser struct {
 
 func (j *Jita) GetPrivilegedUsersForGateway(gateway string) ([]PrivilegedUser, error) {
 
-	resp, err := j.HTTPClient.Get(fmt.Sprintf("%s/%s", j.Url, gateway))
+	resp, err := j.HTTPClient.Get(fmt.Sprintf("%s/%s/%s", j.Url, "gatewayAccess", gateway))
 	if err != nil {
 		return nil, fmt.Errorf("getting privileged users: %w", err)
 	}

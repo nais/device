@@ -1,6 +1,7 @@
 package jita
 
 import (
+	"fmt"
 	"github.com/nais/device/pkg/basicauth"
 	"net/http"
 )
@@ -15,6 +16,6 @@ func New(username, password, url string) *Jita {
 		HTTPClient: &http.Client{
 			Transport: basicauth.Transport{Password: password, Username: username},
 		},
-		Url: url,
+		Url: fmt.Sprintf("%s/%s", url, "api/v1"),
 	}
 }
