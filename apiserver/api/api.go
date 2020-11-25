@@ -63,7 +63,7 @@ func (api *api) privileged(gateway database.Gateway, sessions []database.Session
 	var sessionsToReturn []database.SessionInfo
 	for _, session := range sessions {
 		if userIsPrivileged(privilegedUsers, session.ObjectId) {
-			sessions = append(sessionsToReturn, session)
+			sessionsToReturn = append(sessionsToReturn, session)
 		} else {
 			log.Tracef("Skipping unauthorized session: %s", session.Device.Serial)
 		}
