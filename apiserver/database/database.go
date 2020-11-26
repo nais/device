@@ -63,7 +63,15 @@ func New(dsn, driver string) (*APIServerDB, error) {
 		return nil, fmt.Errorf("connecting to database: %s", err)
 	}
 
-	return &APIServerDB{Conn: db}, nil
+	apiServerDB := APIServerDB{Conn: db}
+
+	ctx := context.Background()
+	err = apiServerDB.Migrate(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("migrating database: %w", err)
+	}
+
+	return &apiServerDB, nil
 }
 
 func (d *APIServerDB) ReadDevices() ([]Device, error) {
