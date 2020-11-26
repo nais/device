@@ -184,7 +184,7 @@ VALUES ($1, $2, $3, $4);`
 
 	_, err = d.Conn.ExecContext(ctx, statement, name, endpoint, publicKey, availableIp)
 	if err != nil {
-		return fmt.Errorf("inserting new gateway: %w", err)
+		return fmt.Errorf("inserting new gateway, statement: '%s', error: %w", statement, err)
 	}
 
 	if err := tx.Commit(); err != nil {
