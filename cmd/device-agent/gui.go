@@ -1,6 +1,9 @@
 package main
 
 import (
+	"fmt"
+	"github.com/nais/device/device-agent/open"
+	log "github.com/sirupsen/logrus"
 	"os"
 	"os/signal"
 	"syscall"
@@ -82,11 +85,13 @@ func NewGUI() *Gui {
 }
 
 func (gui *Gui) EventLoop() {
+	var previousGateways apiserver.Gateways
 	for {
 		select {
 		case progstate := <-gui.ProgramState:
 			gui.handleProgramState(progstate)
 		case gateways := <-gui.Gateways:
+			previousGateways = gateways
 			gui.handleGateways(gateways)
 		case <-gui.NewVersionAvailable:
 			gui.handleNewVersion()
@@ -104,6 +109,12 @@ func (gui *Gui) EventLoop() {
 			gui.Events <- DeviceLogClicked
 		case <-gui.MenuItems.HelperLog.ClickedCh:
 			gui.Events <- HelperLogClicked
+		case name := <-gui.anyGatewayClicked(&previousGateways):
+			log.Infof("prevGW: %v", previousGateways)
+			err := open.Open(fmt.Sprintf("https://naisdevice-jita.prod-gcp.nais.io/?gateway=%s", name))
+			if err != nil {
+				log.Errorf("opening browser: %v", err)
+			}
 		}
 	}
 }
@@ -122,6 +133,7 @@ func (gui *Gui) handleGateways(gateways apiserver.Gateways) {
 			gui.MenuItems.GatewayItems[i].Uncheck()
 		}
 		gui.MenuItems.GatewayItems[i].Show()
+		gui.MenuItems.GatewayItems[i].Enable()
 	}
 	for i := max; i < maxGateways; i++ {
 		gui.MenuItems.GatewayItems[i].Hide()
@@ -152,4 +164,54 @@ func (gui *Gui) handleProgramState(state ProgramState) {
 
 func (gui *Gui) handleNewVersion() {
 	gui.MenuItems.Version.Show()
+}
+
+//stop scrolling here
+func (gui *Gui) anyGatewayClicked(gateways *apiserver.Gateways) <-chan string {
+	returnChan := make(chan string)
+	go func() {
+		select {
+		case <-gui.MenuItems.GatewayItems[0].ClickedCh:
+			returnChan <- (*gateways)[0].Name
+		case <-gui.MenuItems.GatewayItems[1].ClickedCh:
+			returnChan <- (*gateways)[1].Name
+		case <-gui.MenuItems.GatewayItems[2].ClickedCh:
+			returnChan <- (*gateways)[2].Name
+		case <-gui.MenuItems.GatewayItems[3].ClickedCh:
+			returnChan <- (*gateways)[3].Name
+		case <-gui.MenuItems.GatewayItems[4].ClickedCh:
+			returnChan <- (*gateways)[4].Name
+		case <-gui.MenuItems.GatewayItems[5].ClickedCh:
+			returnChan <- (*gateways)[5].Name
+		case <-gui.MenuItems.GatewayItems[6].ClickedCh:
+			returnChan <- (*gateways)[6].Name
+		case <-gui.MenuItems.GatewayItems[7].ClickedCh:
+			returnChan <- (*gateways)[7].Name
+		case <-gui.MenuItems.GatewayItems[8].ClickedCh:
+			returnChan <- (*gateways)[8].Name
+		case <-gui.MenuItems.GatewayItems[9].ClickedCh:
+			returnChan <- (*gateways)[9].Name
+		case <-gui.MenuItems.GatewayItems[10].ClickedCh:
+			returnChan <- (*gateways)[10].Name
+		case <-gui.MenuItems.GatewayItems[11].ClickedCh:
+			returnChan <- (*gateways)[11].Name
+		case <-gui.MenuItems.GatewayItems[12].ClickedCh:
+			returnChan <- (*gateways)[12].Name
+		case <-gui.MenuItems.GatewayItems[13].ClickedCh:
+			returnChan <- (*gateways)[13].Name
+		case <-gui.MenuItems.GatewayItems[14].ClickedCh:
+			returnChan <- (*gateways)[14].Name
+		case <-gui.MenuItems.GatewayItems[15].ClickedCh:
+			returnChan <- (*gateways)[15].Name
+		case <-gui.MenuItems.GatewayItems[16].ClickedCh:
+			returnChan <- (*gateways)[16].Name
+		case <-gui.MenuItems.GatewayItems[17].ClickedCh:
+			returnChan <- (*gateways)[17].Name
+		case <-gui.MenuItems.GatewayItems[18].ClickedCh:
+			returnChan <- (*gateways)[18].Name
+		case <-gui.MenuItems.GatewayItems[19].ClickedCh:
+			returnChan <- (*gateways)[19].Name
+		}
+	}()
+	return returnChan
 }
