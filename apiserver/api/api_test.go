@@ -114,7 +114,7 @@ func TestGatewayConfig(t *testing.T) {
 }
 
 func TestPrivilegedGatewayConfig(t *testing.T) {
-	api.InitializeMetrics("test")
+	api.InitializeMetrics()
 	ctx := context.Background()
 
 	privilegedUsers := []jita.PrivilegedUser{{

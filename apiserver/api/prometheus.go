@@ -16,7 +16,7 @@ func Serve(address string) {
 	_ = http.ListenAndServe(address, promhttp.Handler())
 }
 
-func InitializeMetrics(name string) {
+func InitializeMetrics() {
 
 	PrivilegedUsersPerGateway = prometheus.NewGaugeVec(prometheus.GaugeOpts{
 		Name:      "privileged_users",

@@ -71,6 +71,7 @@ func main() {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
+	api.InitializeMetrics()
 	go func() {
 		log.Infof("Prometheus serving metrics at %v", cfg.PrometheusAddr)
 		_ = http.ListenAndServe(cfg.PrometheusAddr, promhttp.Handler())
