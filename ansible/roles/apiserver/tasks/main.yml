@@ -13,7 +13,7 @@
   get_url:
     dest: /opt/nais-device/bin/apiserver
     force: yes
-    url: https://github.com/nais/device/releases/download/2020-11-26-7c1a7d1/apiserver
+    url: https://github.com/nais/device/releases/download/2020-11-26-6e6043d/apiserver
     backup: yes
     mode: 0755
   notify:
