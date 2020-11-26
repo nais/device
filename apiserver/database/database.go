@@ -458,3 +458,29 @@ FROM session;
 
 	return sessionInfos, nil
 }
+func (db *APIServerDB) Migrate(ctx context.Context) error {
+	var version int
+
+	query := `SELECT MAX(version) FROM migrations`
+	row := db.Conn.QueryRowContext(ctx, query)
+	err := row.Scan(&version)
+
+	if err != nil {
+		// error might be due to no schema.
+		// no way to detect this, so log error and continue with migrations.
+		log.Warnf("unable to get current migration version: %s", err)
+	}
+
+	for version < len(migrations) {
+		log.Infof("migrating database schema to version %d", version+1)
+
+		_, err = db.Conn.ExecContext(ctx, migrations[version])
+		if err != nil {
+			return fmt.Errorf("migrating to version %d: %s", version+1, err)
+		}
+
+		version++
+	}
+
+	return nil
+}

@@ -73,8 +73,9 @@ func TestWatchGatewayEnrollments(t *testing.T) {
 
 		fmt.Fprint(w, `[]`)
 	})
+	ctx := context.Background()
 
-	testDB, err := testdatabase.New("user=postgres password=postgres host=localhost port=5433 sslmode=disable", "../database/schema/schema.sql")
+	testDB, err := testdatabase.New(ctx, "user=postgres password=postgres host=localhost port=5433 sslmode=disable")
 	assert.NoError(t, err)
 	server := httptest.NewServer(mux)
 	enr := enroller.Enroller{
@@ -145,8 +146,8 @@ func TestWatchDeviceEnrollments(t *testing.T) {
 
 		fmt.Fprint(w, `[]`)
 	})
-
-	testDB, err := testdatabase.New("user=postgres password=postgres host=localhost port=5433 sslmode=disable", "../database/schema/schema.sql")
+	ctx := context.Background()
+	testDB, err := testdatabase.New(ctx, "user=postgres password=postgres host=localhost port=5433 sslmode=disable")
 	assert.NoError(t, err)
 	server := httptest.NewServer(mux)
 	enr := enroller.Enroller{

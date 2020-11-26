@@ -13,8 +13,8 @@ func setup(t *testing.T) *database.APIServerDB {
 	if os.Getenv("RUN_INTEGRATION_TESTS") == "" {
 		t.Skip("Skipping integration test")
 	}
-
-	db, err := testdatabase.New("user=postgres password=postgres host=localhost port=5433 sslmode=disable", "../database/schema/schema.sql")
+	ctx := context.Background()
+	db, err := testdatabase.New(ctx, "user=postgres password=postgres host=localhost port=5433 sslmode=disable")
 	if err != nil {
 		t.Fatalf("Instantiating database: %v", err)
 	}

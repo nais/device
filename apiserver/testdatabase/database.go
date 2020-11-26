@@ -1,18 +1,18 @@
 package testdatabase
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
 	_ "github.com/lib/pq"
 	"github.com/nais/device/apiserver/database"
 	"github.com/nais/device/pkg/random"
 	log "github.com/sirupsen/logrus"
-	"io/ioutil"
 	"time"
 )
 
 // NewTestDatabase creates and returns a new nais device database within the provided database instance
-func New(dsn, schema string) (*database.APIServerDB, error) {
+func New(ctx context.Context, dsn string) (*database.APIServerDB, error) {
 	databaseName, err := createDatabase(dsn)
 	if err != nil {
 		return nil, fmt.Errorf("creating database: %w", err)
@@ -23,17 +23,12 @@ func New(dsn, schema string) (*database.APIServerDB, error) {
 		return nil, fmt.Errorf("connecting to database: %v", err)
 	}
 
-	b, err := ioutil.ReadFile(schema)
+	db := database.APIServerDB{Conn: conn}
+	err = db.Migrate(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("reading schema file from disk: %w", err)
+		return nil, fmt.Errorf("migrating: %w", err)
 	}
-
-	_, err = conn.Exec(string(b))
-	if err != nil {
-		return nil, fmt.Errorf("executing schema for db %v:  %v", databaseName, err)
-	}
-
-	return &database.APIServerDB{Conn: conn}, nil
+	return &db, nil
 }
 
 func createDatabase(dsn string) (string, error) {

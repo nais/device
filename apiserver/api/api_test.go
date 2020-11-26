@@ -283,10 +283,11 @@ func setup(t *testing.T, j *jita.Jita) (*database.APIServerDB, chi.Router) {
 	if os.Getenv("RUN_INTEGRATION_TESTS") == "" {
 		t.Skip("Skipping integration test")
 	}
+	ctx := context.Background()
 
 	testDBDSN := "user=postgres password=postgres host=localhost port=5433 sslmode=disable"
 
-	db, err := testdatabase.New(testDBDSN, "../database/schema/schema.sql")
+	db, err := testdatabase.New(ctx, testDBDSN)
 	if err != nil {
 		t.Fatalf("Instantiating database: %v", err)
 	}

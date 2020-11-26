@@ -18,7 +18,8 @@ func TestGatewayConfigurer_SyncConfig(t *testing.T) {
 	}
 
 	t.Run("updates gateway config in database according to bucket definition", func(t *testing.T) {
-		testDB, err := testdatabase.New("user=postgres password=postgres host=localhost port=5433 sslmode=disable", "../database/schema/schema.sql")
+		ctx := context.Background()
+		testDB, err := testdatabase.New(ctx, "user=postgres password=postgres host=localhost port=5433 sslmode=disable")
 		assert.NoError(t, err)
 		const gatewayName, route, accessGroupId = "name", "r", "agid"
 		assert.NoError(t, testDB.AddGateway(context.Background(), gatewayName, "", ""))
@@ -49,7 +50,9 @@ func TestGatewayConfigurer_SyncConfig(t *testing.T) {
 	})
 
 	t.Run("synchronizing gatewayconfig where gateway not in database is ok", func(t *testing.T) {
-		testDB, err := testdatabase.New("user=postgres password=postgres host=localhost port=5433 sslmode=disable", "../database/schema/schema.sql")
+		ctx := context.Background()
+		testDB, err := testdatabase.New(ctx, "user=postgres password=postgres host=localhost port=5433 sslmode=disable")
+
 		assert.NoError(t, err)
 		const gatewayName, route, accessGroupId = "name", "r", "agid"
 
