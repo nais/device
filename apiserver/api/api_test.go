@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"fmt"
+	"github.com/nais/device/apiserver/jita"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -21,7 +23,7 @@ import (
 )
 
 func TestGetDevices(t *testing.T) {
-	db, router := setup(t)
+	db, router := setup(t, nil)
 
 	ctx := context.Background()
 
@@ -44,7 +46,7 @@ func TestGetDevices(t *testing.T) {
 }
 
 func TestGetDeviceConfig(t *testing.T) {
-	db, router := setup(t)
+	db, router := setup(t, nil)
 
 	ctx := context.Background()
 
@@ -83,7 +85,7 @@ func TestGetDeviceConfig(t *testing.T) {
 }
 
 func TestGatewayConfig(t *testing.T) {
-	db, router := setup(t)
+	db, router := setup(t, nil)
 
 	ctx := context.Background()
 
@@ -91,11 +93,11 @@ func TestGatewayConfig(t *testing.T) {
 	healthyDevice2 := addDevice(t, db, ctx, "serial2", "healthyUser2", "pubKey2", true)
 	unhealthyDevice := addDevice(t, db, ctx, "serial3", "unhealthyUser", "pubKey3", false)
 
-	_ = addSessionInfo(t, db, ctx, healthyDevice, []string{"authorized"})
-	_ = addSessionInfo(t, db, ctx, healthyDevice2, []string{"unauthorized"})
-	_ = addSessionInfo(t, db, ctx, unhealthyDevice, []string{"authorized"})
-	_ = addSessionInfo(t, db, ctx, unhealthyDevice, []string{"unauthorized"})
-	_ = addSessionInfo(t, db, ctx, healthyDevice2, []string{""})
+	_ = addSessionInfo(t, db, ctx, healthyDevice, "userId", []string{"authorized"})
+	_ = addSessionInfo(t, db, ctx, healthyDevice2, "userId", []string{"unauthorized"})
+	_ = addSessionInfo(t, db, ctx, unhealthyDevice, "userId", []string{"authorized"})
+	_ = addSessionInfo(t, db, ctx, unhealthyDevice, "userId", []string{"unauthorized"})
+	_ = addSessionInfo(t, db, ctx, healthyDevice2, "userId", []string{""})
 
 	// todo don't use username as gateway
 	authorizedGateway := database.Gateway{Name: "username", Endpoint: "ep1", PublicKey: "pubkey1"}
@@ -109,6 +111,43 @@ func TestGatewayConfig(t *testing.T) {
 
 	assert.Len(t, devices, 1)
 	assert.Equal(t, devices[0].PublicKey, healthyDevice.PublicKey)
+}
+
+func TestPrivilegedGatewayConfig(t *testing.T) {
+	api.InitializeMetrics("test")
+	ctx := context.Background()
+
+	privilegedUsers := []jita.PrivilegedUser{{
+		UserId: "userId",
+	}}
+	server := httptest.NewServer(mockJita(t, "privileged1", privilegedUsers))
+	db, router := setup(t, jita.New("username", "password", server.URL))
+
+	healthyDevice := addDevice(t, db, ctx, "serial1", "healthyUser", "pubKey1", true)
+
+	_ = addSessionInfo(t, db, ctx, healthyDevice, privilegedUsers[0].UserId, []string{"authorized"})
+
+	// todo don't use username as gateway
+	privilegedGateway1 := database.Gateway{Name: "privileged1", Endpoint: "ep1", PublicKey: "pubkey1"}
+	if err := db.AddGateway(ctx, privilegedGateway1.Name, privilegedGateway1.Endpoint, privilegedGateway1.PublicKey); err != nil {
+		t.Fatalf("Adding gateway: %v", err)
+	}
+	assert.NoError(t, db.UpdateGateway(ctx, privilegedGateway1.Name, nil, []string{"authorized"}, true))
+
+	privilegedGateway2 := database.Gateway{Name: "privileged2", Endpoint: "ep1", PublicKey: "pubkey2"}
+	if err := db.AddGateway(ctx, privilegedGateway2.Name, privilegedGateway2.Endpoint, privilegedGateway2.PublicKey); err != nil {
+		t.Fatalf("Adding gateway: %v", err)
+	}
+	assert.NoError(t, db.UpdateGateway(ctx, privilegedGateway2.Name, nil, []string{"authorized"}, true))
+
+	privilegedGatewayConfig := getGatewayConfig(t, router, "privileged1", "password")
+	assert.Len(t, privilegedGatewayConfig.Devices, 1)
+	assert.Equal(t, privilegedGatewayConfig.Devices[0].PublicKey, healthyDevice.PublicKey)
+
+	unprivilegedGatewayConfig := getGatewayConfig(t, router, "privileged2", "password")
+	assert.Len(t, unprivilegedGatewayConfig.Devices, 0)
+
+	server.Close()
 }
 
 func addDevice(t *testing.T, db *database.APIServerDB, ctx context.Context, serial, username, publicKey string, healthy bool) *database.Device {
@@ -141,12 +180,13 @@ func addDevice(t *testing.T, db *database.APIServerDB, ctx context.Context, seri
 	return deviceWithId
 }
 
-func addSessionInfo(t *testing.T, db *database.APIServerDB, ctx context.Context, databaseDevice *database.Device, groups []string) *database.SessionInfo {
+func addSessionInfo(t *testing.T, db *database.APIServerDB, ctx context.Context, databaseDevice *database.Device, userId string, groups []string) *database.SessionInfo {
 	databaseSessionInfo := database.SessionInfo{
-		Key:    "dbSessionKey",
-		Expiry: time.Now().Add(time.Minute).Unix(),
-		Device: databaseDevice,
-		Groups: groups,
+		Key:      "dbSessionKey",
+		Expiry:   time.Now().Add(time.Minute).Unix(),
+		Device:   databaseDevice,
+		Groups:   groups,
+		ObjectId: userId,
 	}
 	if err := db.AddSessionInfo(ctx, &databaseSessionInfo); err != nil {
 		t.Fatalf("Adding SessionInfo: %v", err)
@@ -156,7 +196,7 @@ func addSessionInfo(t *testing.T, db *database.APIServerDB, ctx context.Context,
 }
 
 func TestUpdateDeviceHealth(t *testing.T) {
-	db, router := setup(t)
+	db, router := setup(t, nil)
 	device := database.Device{Username: "user@acme.org", Serial: "serial", PublicKey: "pubkey", Platform: "darwin", Healthy: boolp(true)}
 	ctx := context.Background()
 	if err := db.AddDevice(ctx, device); err != nil {
@@ -184,7 +224,7 @@ func TestUpdateDeviceHealth(t *testing.T) {
 }
 
 func TestGetDeviceConfigSessionNotInCache(t *testing.T) {
-	db, router := setup(t)
+	db, router := setup(t, nil)
 
 	ctx := context.Background()
 
@@ -225,7 +265,21 @@ func TestGetDeviceConfigSessionNotInCache(t *testing.T) {
 	assert.Len(t, gateways, 0)
 }
 
-func setup(t *testing.T) (*database.APIServerDB, chi.Router) {
+func mockJita(t *testing.T, gatewayName string, privilegedUsers []jita.PrivilegedUser) *http.ServeMux {
+	mux := http.NewServeMux()
+
+	mux.HandleFunc(fmt.Sprintf("/api/v1/gatewayAccess/%s", gatewayName), func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodGet {
+			t.Fatalf("invalid method")
+		}
+
+		err := json.NewEncoder(w).Encode(privilegedUsers)
+		assert.NoError(t, err)
+	})
+	return mux
+}
+
+func setup(t *testing.T, j *jita.Jita) (*database.APIServerDB, chi.Router) {
 	if os.Getenv("RUN_INTEGRATION_TESTS") == "" {
 		t.Skip("Skipping integration test")
 	}
@@ -252,7 +306,8 @@ func setup(t *testing.T) (*database.APIServerDB, chi.Router) {
 	assert.NoError(t, err)
 
 	return db, api.New(api.Config{
-		DB: db,
+		DB:   db,
+		Jita: j,
 		Sessions: &auth.Sessions{
 			DB:     db,
 			Active: map[string]*database.SessionInfo{sessionInfo.Key: &sessionInfo},

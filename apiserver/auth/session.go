@@ -159,11 +159,12 @@ func (s *Sessions) Login(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		username, groups, err := s.parseToken(token)
+		username, objectId, groups, err := s.parseToken(token)
 		if err != nil {
 			authFailed(w, "Parsing token: %v", err)
 			return
 		}
+		sessionInfo.ObjectId = objectId
 
 		serial := r.Header.Get("x-naisdevice-serial")
 		platform := r.Header.Get("x-naisdevice-platform")
@@ -177,6 +178,7 @@ func (s *Sessions) Login(w http.ResponseWriter, r *http.Request) {
 		sessionInfo.Device = device
 	} else {
 		sessionInfo.Groups = []string{"group1", "group2"}
+		sessionInfo.ObjectId = "objectId1"
 		sessionInfo.Device = &database.Device{ID: 0, Serial: "serial1", Username: "username1", Platform: "platform1"}
 	}
 
@@ -237,11 +239,11 @@ func (s *Sessions) AuthURL(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (s *Sessions) parseToken(token *oauth2.Token) (string, []string, error) {
+func (s *Sessions) parseToken(token *oauth2.Token) (string, string, []string, error) {
 	var claims jwt.MapClaims
 	_, err := jwt.ParseWithClaims(token.AccessToken, &claims, s.tokenValidator)
 	if err != nil {
-		return "", nil, fmt.Errorf("parsing token with claims: %v", err)
+		return "", "", nil, fmt.Errorf("parsing token with claims: %v", err)
 	}
 
 	var groups []string
@@ -252,8 +254,9 @@ func (s *Sessions) parseToken(token *oauth2.Token) (string, []string, error) {
 	}
 
 	username := claims["preferred_username"].(string)
+	objectId := claims["oid"].(string)
 
-	return username, groups, nil
+	return username, objectId, groups, nil
 }
 
 func authFailed(w http.ResponseWriter, format string, args ...interface{}) {
