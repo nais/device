@@ -28,4 +28,4 @@ temp_pkg=$(mktemp).pkg
 err=$(curl --show-error --silent --fail -L "$pkg_url" -o "$temp_pkg") && ok || fail
 
 echo -n "installing package..........."
-err=$(/usr/bin/osascript -e "do shell script \"pkill device-agent; pkill device-agent-helper; installer -target / -pkg '$temp_pkg'\" with administrator privileges") && ok || fail
+err=$(/usr/bin/osascript -e "do shell script \"pkill device-agent; pkill device-agent-helper; installer -target / -pkg '$temp_pkg'\" with prompt \"naisdevice wonders if anyone ever reads this message\" with administrator privileges") && ok || fail
