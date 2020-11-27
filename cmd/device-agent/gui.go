@@ -131,20 +131,22 @@ func (gui *Gui) handleGateways(gateways apiserver.Gateways) {
 	}
 	for i, gateway := range gateways {
 		gui.MenuItems.GatewayItems[i].Gateway = *gateway
-		gui.MenuItems.GatewayItems[i].MenuItem.SetTitle(gateway.Name)
-		gui.MenuItems.GatewayItems[i].MenuItem.SetTooltip(gateway.Endpoint)
+
+		menuItem := gui.MenuItems.GatewayItems[i].MenuItem
+		menuItem.SetTitle(gateway.Name)
+		menuItem.SetTooltip(gateway.Endpoint)
 
 		if gateway.Healthy {
-			gui.MenuItems.GatewayItems[i].MenuItem.Check()
+			menuItem.Check()
 		} else {
-			gui.MenuItems.GatewayItems[i].MenuItem.Uncheck()
+			menuItem.Uncheck()
 		}
-		gui.MenuItems.GatewayItems[i].MenuItem.Show()
+		menuItem.Show()
 
-		if gui.MenuItems.GatewayItems[i].Gateway.RequiresPrivilegedAccess {
-			gui.MenuItems.GatewayItems[i].MenuItem.Enable()
+		if gateway.RequiresPrivilegedAccess {
+			menuItem.Enable()
 		} else {
-			gui.MenuItems.GatewayItems[i].MenuItem.Disable()
+			menuItem.Disable()
 		}
 	}
 	for i := max; i < maxGateways; i++ {
