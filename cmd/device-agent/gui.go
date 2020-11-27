@@ -15,12 +15,13 @@ import (
 type GuiEvent int
 
 type Gui struct {
-	ProgramState        chan ProgramState
-	Gateways            chan apiserver.Gateways
-	Events              chan GuiEvent
-	Interrupts          chan os.Signal
-	NewVersionAvailable chan bool
-	MenuItems           struct {
+	ProgramState             chan ProgramState
+	Gateways                 chan apiserver.Gateways
+	Events                   chan GuiEvent
+	Interrupts               chan os.Signal
+	NewVersionAvailable      chan bool
+	PrivilegedGatewayClicked chan string
+	MenuItems                struct {
 		Connect      *systray.MenuItem
 		Quit         *systray.MenuItem
 		State        *systray.MenuItem
@@ -86,6 +87,7 @@ func NewGUI() *Gui {
 
 func (gui *Gui) EventLoop() {
 	var previousGateways apiserver.Gateways
+	go gui.anyGatewayClicked(&previousGateways)
 	for {
 		select {
 		case progstate := <-gui.ProgramState:
@@ -109,8 +111,7 @@ func (gui *Gui) EventLoop() {
 			gui.Events <- DeviceLogClicked
 		case <-gui.MenuItems.HelperLog.ClickedCh:
 			gui.Events <- HelperLogClicked
-		case name := <-gui.anyGatewayClicked(&previousGateways):
-			log.Infof("prevGW: %v", previousGateways)
+		case name := <-gui.PrivilegedGatewayClicked:
 			err := open.Open(fmt.Sprintf("https://naisdevice-jita.prod-gcp.nais.io/?gateway=%s", name))
 			if err != nil {
 				log.Errorf("opening browser: %v", err)
@@ -166,52 +167,50 @@ func (gui *Gui) handleNewVersion() {
 	gui.MenuItems.Version.Show()
 }
 
-//stop scrolling here
-func (gui *Gui) anyGatewayClicked(gateways *apiserver.Gateways) <-chan string {
-	returnChan := make(chan string)
-	go func() {
+// stop scrolling here
+func (gui *Gui) anyGatewayClicked(gateways *apiserver.Gateways) {
+	for {
 		select {
 		case <-gui.MenuItems.GatewayItems[0].ClickedCh:
-			returnChan <- (*gateways)[0].Name
+			gui.PrivilegedGatewayClicked <- (*gateways)[0].Name
 		case <-gui.MenuItems.GatewayItems[1].ClickedCh:
-			returnChan <- (*gateways)[1].Name
+			gui.PrivilegedGatewayClicked <- (*gateways)[1].Name
 		case <-gui.MenuItems.GatewayItems[2].ClickedCh:
-			returnChan <- (*gateways)[2].Name
+			gui.PrivilegedGatewayClicked <- (*gateways)[2].Name
 		case <-gui.MenuItems.GatewayItems[3].ClickedCh:
-			returnChan <- (*gateways)[3].Name
+			gui.PrivilegedGatewayClicked <- (*gateways)[3].Name
 		case <-gui.MenuItems.GatewayItems[4].ClickedCh:
-			returnChan <- (*gateways)[4].Name
+			gui.PrivilegedGatewayClicked <- (*gateways)[4].Name
 		case <-gui.MenuItems.GatewayItems[5].ClickedCh:
-			returnChan <- (*gateways)[5].Name
+			gui.PrivilegedGatewayClicked <- (*gateways)[5].Name
 		case <-gui.MenuItems.GatewayItems[6].ClickedCh:
-			returnChan <- (*gateways)[6].Name
+			gui.PrivilegedGatewayClicked <- (*gateways)[6].Name
 		case <-gui.MenuItems.GatewayItems[7].ClickedCh:
-			returnChan <- (*gateways)[7].Name
+			gui.PrivilegedGatewayClicked <- (*gateways)[7].Name
 		case <-gui.MenuItems.GatewayItems[8].ClickedCh:
-			returnChan <- (*gateways)[8].Name
+			gui.PrivilegedGatewayClicked <- (*gateways)[8].Name
 		case <-gui.MenuItems.GatewayItems[9].ClickedCh:
-			returnChan <- (*gateways)[9].Name
+			gui.PrivilegedGatewayClicked <- (*gateways)[9].Name
 		case <-gui.MenuItems.GatewayItems[10].ClickedCh:
-			returnChan <- (*gateways)[10].Name
+			gui.PrivilegedGatewayClicked <- (*gateways)[10].Name
 		case <-gui.MenuItems.GatewayItems[11].ClickedCh:
-			returnChan <- (*gateways)[11].Name
+			gui.PrivilegedGatewayClicked <- (*gateways)[11].Name
 		case <-gui.MenuItems.GatewayItems[12].ClickedCh:
-			returnChan <- (*gateways)[12].Name
+			gui.PrivilegedGatewayClicked <- (*gateways)[12].Name
 		case <-gui.MenuItems.GatewayItems[13].ClickedCh:
-			returnChan <- (*gateways)[13].Name
+			gui.PrivilegedGatewayClicked <- (*gateways)[13].Name
 		case <-gui.MenuItems.GatewayItems[14].ClickedCh:
-			returnChan <- (*gateways)[14].Name
+			gui.PrivilegedGatewayClicked <- (*gateways)[14].Name
 		case <-gui.MenuItems.GatewayItems[15].ClickedCh:
-			returnChan <- (*gateways)[15].Name
+			gui.PrivilegedGatewayClicked <- (*gateways)[15].Name
 		case <-gui.MenuItems.GatewayItems[16].ClickedCh:
-			returnChan <- (*gateways)[16].Name
+			gui.PrivilegedGatewayClicked <- (*gateways)[16].Name
 		case <-gui.MenuItems.GatewayItems[17].ClickedCh:
-			returnChan <- (*gateways)[17].Name
+			gui.PrivilegedGatewayClicked <- (*gateways)[17].Name
 		case <-gui.MenuItems.GatewayItems[18].ClickedCh:
-			returnChan <- (*gateways)[18].Name
+			gui.PrivilegedGatewayClicked <- (*gateways)[18].Name
 		case <-gui.MenuItems.GatewayItems[19].ClickedCh:
-			returnChan <- (*gateways)[19].Name
+			gui.PrivilegedGatewayClicked <- (*gateways)[19].Name
 		}
-	}()
-	return returnChan
+	}
 }
