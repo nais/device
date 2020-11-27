@@ -81,19 +81,21 @@ func NewGUI() *Gui {
 	gui.Gateways = make(chan apiserver.Gateways, 8)
 	gui.Events = make(chan GuiEvent, 8)
 	gui.NewVersionAvailable = make(chan bool, 8)
+	gui.PrivilegedGatewayClicked = make(chan string)
 
 	return gui
 }
 
 func (gui *Gui) EventLoop() {
-	var previousGateways apiserver.Gateways
-	go gui.anyGatewayClicked(&previousGateways)
+	var currentGateways apiserver.Gateways
+	gui.aggregateGatewayButtonClicks(&currentGateways)
+
 	for {
 		select {
 		case progstate := <-gui.ProgramState:
 			gui.handleProgramState(progstate)
 		case gateways := <-gui.Gateways:
-			previousGateways = gateways
+			currentGateways = gateways
 			gui.handleGateways(gateways)
 		case <-gui.NewVersionAvailable:
 			gui.handleNewVersion()
@@ -112,10 +114,7 @@ func (gui *Gui) EventLoop() {
 		case <-gui.MenuItems.HelperLog.ClickedCh:
 			gui.Events <- HelperLogClicked
 		case name := <-gui.PrivilegedGatewayClicked:
-			err := open.Open(fmt.Sprintf("https://naisdevice-jita.prod-gcp.nais.io/?gateway=%s", name))
-			if err != nil {
-				log.Errorf("opening browser: %v", err)
-			}
+			accessPrivilegedGateway(name)
 		}
 	}
 }
@@ -167,50 +166,20 @@ func (gui *Gui) handleNewVersion() {
 	gui.MenuItems.Version.Show()
 }
 
-// stop scrolling here
-func (gui *Gui) anyGatewayClicked(gateways *apiserver.Gateways) {
-	for {
-		select {
-		case <-gui.MenuItems.GatewayItems[0].ClickedCh:
-			gui.PrivilegedGatewayClicked <- (*gateways)[0].Name
-		case <-gui.MenuItems.GatewayItems[1].ClickedCh:
-			gui.PrivilegedGatewayClicked <- (*gateways)[1].Name
-		case <-gui.MenuItems.GatewayItems[2].ClickedCh:
-			gui.PrivilegedGatewayClicked <- (*gateways)[2].Name
-		case <-gui.MenuItems.GatewayItems[3].ClickedCh:
-			gui.PrivilegedGatewayClicked <- (*gateways)[3].Name
-		case <-gui.MenuItems.GatewayItems[4].ClickedCh:
-			gui.PrivilegedGatewayClicked <- (*gateways)[4].Name
-		case <-gui.MenuItems.GatewayItems[5].ClickedCh:
-			gui.PrivilegedGatewayClicked <- (*gateways)[5].Name
-		case <-gui.MenuItems.GatewayItems[6].ClickedCh:
-			gui.PrivilegedGatewayClicked <- (*gateways)[6].Name
-		case <-gui.MenuItems.GatewayItems[7].ClickedCh:
-			gui.PrivilegedGatewayClicked <- (*gateways)[7].Name
-		case <-gui.MenuItems.GatewayItems[8].ClickedCh:
-			gui.PrivilegedGatewayClicked <- (*gateways)[8].Name
-		case <-gui.MenuItems.GatewayItems[9].ClickedCh:
-			gui.PrivilegedGatewayClicked <- (*gateways)[9].Name
-		case <-gui.MenuItems.GatewayItems[10].ClickedCh:
-			gui.PrivilegedGatewayClicked <- (*gateways)[10].Name
-		case <-gui.MenuItems.GatewayItems[11].ClickedCh:
-			gui.PrivilegedGatewayClicked <- (*gateways)[11].Name
-		case <-gui.MenuItems.GatewayItems[12].ClickedCh:
-			gui.PrivilegedGatewayClicked <- (*gateways)[12].Name
-		case <-gui.MenuItems.GatewayItems[13].ClickedCh:
-			gui.PrivilegedGatewayClicked <- (*gateways)[13].Name
-		case <-gui.MenuItems.GatewayItems[14].ClickedCh:
-			gui.PrivilegedGatewayClicked <- (*gateways)[14].Name
-		case <-gui.MenuItems.GatewayItems[15].ClickedCh:
-			gui.PrivilegedGatewayClicked <- (*gateways)[15].Name
-		case <-gui.MenuItems.GatewayItems[16].ClickedCh:
-			gui.PrivilegedGatewayClicked <- (*gateways)[16].Name
-		case <-gui.MenuItems.GatewayItems[17].ClickedCh:
-			gui.PrivilegedGatewayClicked <- (*gateways)[17].Name
-		case <-gui.MenuItems.GatewayItems[18].ClickedCh:
-			gui.PrivilegedGatewayClicked <- (*gateways)[18].Name
-		case <-gui.MenuItems.GatewayItems[19].ClickedCh:
-			gui.PrivilegedGatewayClicked <- (*gateways)[19].Name
-		}
+func (gui *Gui) aggregateGatewayButtonClicks(gateways *apiserver.Gateways) {
+	// Start a forwarder for each buttons click-channel and aggregates to a single channel
+	for buttonPosition, gatewayItem := range gui.MenuItems.GatewayItems {
+		go func(c chan struct{}, buttonPosition int) {
+			for range c {
+				gui.PrivilegedGatewayClicked <- (*gateways)[buttonPosition].Name
+			}
+		}(gatewayItem.ClickedCh, buttonPosition)
+	}
+}
+
+func accessPrivilegedGateway(gatewayName string) {
+	err := open.Open(fmt.Sprintf("https://naisdevice-jita.prod-gcp.nais.io/?gateway=%s", gatewayName))
+	if err != nil {
+		log.Errorf("opening browser: %v", err)
 	}
 }
