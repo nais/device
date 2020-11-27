@@ -133,13 +133,19 @@ func (gui *Gui) handleGateways(gateways apiserver.Gateways) {
 		gui.MenuItems.GatewayItems[i].Gateway = *gateway
 		gui.MenuItems.GatewayItems[i].MenuItem.SetTitle(gateway.Name)
 		gui.MenuItems.GatewayItems[i].MenuItem.SetTooltip(gateway.Endpoint)
+
 		if gateway.Healthy {
 			gui.MenuItems.GatewayItems[i].MenuItem.Check()
 		} else {
 			gui.MenuItems.GatewayItems[i].MenuItem.Uncheck()
 		}
 		gui.MenuItems.GatewayItems[i].MenuItem.Show()
-		gui.MenuItems.GatewayItems[i].MenuItem.Enable()
+
+		if gui.MenuItems.GatewayItems[i].Gateway.RequiresPrivilegedAccess {
+			gui.MenuItems.GatewayItems[i].MenuItem.Enable()
+		} else {
+			gui.MenuItems.GatewayItems[i].MenuItem.Disable()
+		}
 	}
 	for i := max; i < maxGateways; i++ {
 		gui.MenuItems.GatewayItems[i].MenuItem.Hide()
