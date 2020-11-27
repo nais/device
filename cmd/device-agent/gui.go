@@ -1,6 +1,9 @@
 package main
 
 import (
+	"fmt"
+	"github.com/nais/device/device-agent/open"
+	log "github.com/sirupsen/logrus"
 	"os"
 	"os/signal"
 	"syscall"
@@ -11,13 +14,19 @@ import (
 
 type GuiEvent int
 
+type GatewayItem struct {
+	Gateway  apiserver.Gateway
+	MenuItem *systray.MenuItem
+}
+
 type Gui struct {
-	ProgramState        chan ProgramState
-	Gateways            chan apiserver.Gateways
-	Events              chan GuiEvent
-	Interrupts          chan os.Signal
-	NewVersionAvailable chan bool
-	MenuItems           struct {
+	ProgramState             chan ProgramState
+	Gateways                 chan apiserver.Gateways
+	Events                   chan GuiEvent
+	Interrupts               chan os.Signal
+	NewVersionAvailable      chan bool
+	PrivilegedGatewayClicked chan string
+	MenuItems                struct {
 		Connect      *systray.MenuItem
 		Quit         *systray.MenuItem
 		State        *systray.MenuItem
@@ -26,7 +35,7 @@ type Gui struct {
 		DeviceLog    *systray.MenuItem
 		HelperLog    *systray.MenuItem
 		Version      *systray.MenuItem
-		GatewayItems []*systray.MenuItem
+		GatewayItems []*GatewayItem
 	}
 }
 
@@ -60,13 +69,15 @@ func NewGUI() *Gui {
 	systray.AddSeparator()
 	gui.MenuItems.Connect = systray.AddMenuItem("Connect", "Bootstrap the nais device")
 	systray.AddSeparator()
-	gui.MenuItems.GatewayItems = make([]*systray.MenuItem, maxGateways)
+	gui.MenuItems.GatewayItems = make([]*GatewayItem, maxGateways)
 
 	for i := range gui.MenuItems.GatewayItems {
-		gui.MenuItems.GatewayItems[i] = systray.AddMenuItem("", "")
-		gui.MenuItems.GatewayItems[i].Disable()
-		gui.MenuItems.GatewayItems[i].Hide()
+		gui.MenuItems.GatewayItems[i] = &GatewayItem{}
+		gui.MenuItems.GatewayItems[i].MenuItem = systray.AddMenuItem("", "")
+		gui.MenuItems.GatewayItems[i].MenuItem.Disable()
+		gui.MenuItems.GatewayItems[i].MenuItem.Hide()
 	}
+
 	systray.AddSeparator()
 	gui.MenuItems.Quit = systray.AddMenuItem("Quit", "Exit the application")
 
@@ -77,11 +88,14 @@ func NewGUI() *Gui {
 	gui.Gateways = make(chan apiserver.Gateways, 8)
 	gui.Events = make(chan GuiEvent, 8)
 	gui.NewVersionAvailable = make(chan bool, 8)
+	gui.PrivilegedGatewayClicked = make(chan string)
 
 	return gui
 }
 
 func (gui *Gui) EventLoop() {
+	gui.aggregateGatewayButtonClicks()
+
 	for {
 		select {
 		case progstate := <-gui.ProgramState:
@@ -104,6 +118,8 @@ func (gui *Gui) EventLoop() {
 			gui.Events <- DeviceLogClicked
 		case <-gui.MenuItems.HelperLog.ClickedCh:
 			gui.Events <- HelperLogClicked
+		case name := <-gui.PrivilegedGatewayClicked:
+			accessPrivilegedGateway(name)
 		}
 	}
 }
@@ -114,17 +130,27 @@ func (gui *Gui) handleGateways(gateways apiserver.Gateways) {
 		panic("twenty wasn't enough, was it??????")
 	}
 	for i, gateway := range gateways {
-		gui.MenuItems.GatewayItems[i].SetTitle(gateway.Name)
-		gui.MenuItems.GatewayItems[i].SetTooltip(gateway.Endpoint)
+		gui.MenuItems.GatewayItems[i].Gateway = *gateway
+
+		menuItem := gui.MenuItems.GatewayItems[i].MenuItem
+		menuItem.SetTitle(gateway.Name)
+		menuItem.SetTooltip(gateway.Endpoint)
+
 		if gateway.Healthy {
-			gui.MenuItems.GatewayItems[i].Check()
+			menuItem.Check()
 		} else {
-			gui.MenuItems.GatewayItems[i].Uncheck()
+			menuItem.Uncheck()
 		}
-		gui.MenuItems.GatewayItems[i].Show()
+		menuItem.Show()
+
+		if gateway.RequiresPrivilegedAccess {
+			menuItem.Enable()
+		} else {
+			menuItem.Disable()
+		}
 	}
 	for i := max; i < maxGateways; i++ {
-		gui.MenuItems.GatewayItems[i].Hide()
+		gui.MenuItems.GatewayItems[i].MenuItem.Hide()
 	}
 }
 
@@ -152,4 +178,22 @@ func (gui *Gui) handleProgramState(state ProgramState) {
 
 func (gui *Gui) handleNewVersion() {
 	gui.MenuItems.Version.Show()
+}
+
+func (gui *Gui) aggregateGatewayButtonClicks() {
+	// Start a forwarder for each buttons click-channel and aggregates to a single channel
+	for _, gatewayItem := range gui.MenuItems.GatewayItems {
+		go func(gw *GatewayItem) {
+			for range gw.MenuItem.ClickedCh {
+				gui.PrivilegedGatewayClicked <- gw.Gateway.Name
+			}
+		}(gatewayItem)
+	}
+}
+
+func accessPrivilegedGateway(gatewayName string) {
+	err := open.Open(fmt.Sprintf("https://naisdevice-jita.prod-gcp.nais.io/?gateway=%s", gatewayName))
+	if err != nil {
+		log.Errorf("opening browser: %v", err)
+	}
 }

@@ -13,12 +13,13 @@ import (
 type Gateways []*Gateway
 
 type Gateway struct {
-	PublicKey string   `json:"publicKey"`
-	Endpoint  string   `json:"endpoint"`
-	IP        string   `json:"ip"`
-	Routes    []string `json:"routes"`
-	Name      string   `json:"name"`
-	Healthy   bool     `json:"-"`
+	PublicKey                string   `json:"publicKey"`
+	Endpoint                 string   `json:"endpoint"`
+	IP                       string   `json:"ip"`
+	Routes                   []string `json:"routes"`
+	Name                     string   `json:"name"`
+	RequiresPrivilegedAccess bool     `json:"requires_privileged_access"`
+	Healthy                  bool     `json:"-"`
 }
 
 type UnauthorizedError struct{}
