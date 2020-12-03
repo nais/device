@@ -192,7 +192,7 @@ func (gui *Gui) aggregateGatewayButtonClicks() {
 }
 
 func accessPrivilegedGateway(gatewayName string) {
-	err := open.Open(fmt.Sprintf("https://naisdevice-jita.prod-gcp.nais.io/?gateway=%s", gatewayName))
+	err := open.Open(fmt.Sprintf("https://naisdevice-jita.nais.io/?gateway=%s", gatewayName))
 	if err != nil {
 		log.Errorf("opening browser: %v", err)
 	}
