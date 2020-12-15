@@ -22,7 +22,7 @@ COMMIT
 :INPUT ACCEPT [8:448]
 :OUTPUT ACCEPT [229:17447]
 :POSTROUTING ACCEPT [229:17447]
-{% if not onprem and tunnel_ip %}
+{% if not onprem and tunnel_ip is defined %}
 -A PREROUTING -i wg0 -d {{ tunnel_ip }} -p tcp -m tcp --dport 443 -j DNAT --to-destination {{ K8S_CLUSTER_API_IP_ADDRESS }}
 -A POSTROUTING -d {{ K8S_CLUSTER_API_IP_ADDRESS }}/32 -o ens4 -p tcp -m tcp --dport 443 -j SNAT --to-source {{ ansible_default_ipv4.address }}
 {% endif %}
