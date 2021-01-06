@@ -102,7 +102,7 @@ jobs:
           path: bin/windows
       - name: create windows installer
         run: |
-          msbuild windows\naisdevice.wixproj
+          msbuild packaging\windows\naisdevice.wixproj
       - name: upload windows installer
         uses: actions/upload-artifact@v2
         with:
