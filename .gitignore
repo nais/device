@@ -11,4 +11,3 @@ cmd/device-agent/main_windows.syso
 cmd/device-agent-helper/main_windows.syso
 packaging/windows/obj
 /device-agent.log
-.linux-init
