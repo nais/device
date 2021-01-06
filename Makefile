@@ -12,6 +12,11 @@ dev-apiserver: local-postgres local-apiserver stop-postgres
 integration-test: stop-postgres-test run-postgres-test run-integration-test stop-postgres-test
 clients: linux-client macos-client windows-client
 
+# Before building linux-client, these are needed
+linux-init:
+	sudo apt update
+	sudo apt install build-essential libgtk-3-dev libappindicator3-dev
+
 # Run by GitHub actions
 controlplane:
 	mkdir -p ./bin/controlplane
@@ -23,8 +28,6 @@ controlplane:
 # Run by GitHub actions on linux
 linux-client:
 	mkdir -p ./bin/linux-client
-	sudo apt update
-	sudo apt-get install --yes build-essential libgtk-3-dev libappindicator3-dev
 	GOOS=linux GOARCH=amd64 go build -o bin/linux-client/device-agent ./cmd/device-agent
 	GOOS=linux GOARCH=amd64 go build -o bin/linux-client/device-agent-helper ./cmd/device-agent-helper
 
@@ -38,7 +41,7 @@ macos-client:
 windows-client:
 	mkdir -p ./bin/windows-client
 	go get github.com/akavel/rsrc
-	${GOPATH}/bin/rsrc -arch amd64 -manifest ./windows/admin_manifest.xml -ico assets/nais-logo-blue.ico -o ./cmd/device-agent-helper/main_windows.syso
+	${GOPATH}/bin/rsrc -arch amd64 -manifest ./packaging/windows/admin_manifest.xml -ico assets/nais-logo-blue.ico -o ./cmd/device-agent-helper/main_windows.syso
 	${GOPATH}/bin/rsrc -ico assets/nais-logo-blue.ico -o ./cmd/device-agent/main_windows.syso
 	GOOS=windows GOARCH=amd64 go build -o bin/windows-client/device-agent.exe -ldflags "-s $(LDFLAGS) -H=windowsgui" ./cmd/device-agent
 	GOOS=windows GOARCH=amd64 go build -o bin/windows-client/device-agent-helper.exe ./cmd/device-agent-helper
@@ -114,8 +117,8 @@ app: wg wireguard-go icon macos-client
 	mkdir -p naisdevice.app/Contents/{MacOS,Resources}
 	cp bin/macos-client/* naisdevice.app/Contents/MacOS
 	cp assets/naisdevice.icns naisdevice.app/Contents/Resources
-	sed 's/VERSIONSTRING/${VERSION}/' Info.plist.tpl > naisdevice.app/Contents/Info.plist
-	gon --log-level=debug gon-app.json
+	sed 's/VERSIONSTRING/${VERSION}/' packaging/macos/Info.plist.tpl > naisdevice.app/Contents/Info.plist
+	gon --log-level=debug packaging/macos/gon-app.json
 
 test:
 	go test ./... -count=1
@@ -129,13 +132,13 @@ pkg: app
 	rm -rf ./pkgtemp
 	mkdir -p ./pkgtemp/{scripts,pkgroot/Applications}
 	cp -r ./naisdevice.app ./pkgtemp/pkgroot/Applications/
-	cp ./scripts/postinstall ./pkgtemp/scripts/postinstall
+	cp ./packaging/macos/postinstall ./pkgtemp/scripts/postinstall
 	pkgbuild --root ./pkgtemp/pkgroot --identifier ${PKGID} --scripts ./pkgtemp/scripts --version ${VERSION} --ownership recommended ./component.pkg
 	productbuild --identifier ${PKGID}.${VERSION} --package ./component.pkg ./unsigned.pkg
 	productsign --sign "Developer ID Installer: Torbjorn Hallenberg" unsigned.pkg naisdevice.pkg
 	rm -f ./component.pkg ./unsigned.pkg
 	rm -rf ./pkgtemp ./naisdevice.app
-	# gon --log-level=debug gon-pkg.json
+	# gon --log-level=debug packaging/macos/gon-pkg.json
 
 clean:
 	rm -rf wireguard-go-*

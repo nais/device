@@ -22,7 +22,7 @@
         <MajorUpgrade DowngradeErrorMessage="A newer version of [ProductName] is already installed."/>
         <MediaTemplate EmbedCab="yes"/>
 
-        <Icon Id="NaisLogoBlue.ico" SourceFile="../assets/nais-logo-blue.ico"/>
+        <Icon Id="NaisLogoBlue.ico" SourceFile="../../assets/nais-logo-blue.ico"/>
 
         <!-- Properties used to provide information for the Add or Remove Programs in Control Panel -->
         <Property Id="ARPPRODUCTICON" Value="NaisLogoBlue.ico"/>
@@ -86,7 +86,7 @@
         <Component Id="NaisDeviceComponent" Win64="yes" Directory="INSTALLFOLDER">
             <RemoveFolder Id="RemoveAppRootDirectory" On="uninstall"/>
 
-            <File Id="DeviceAgent.exe" Source="../bin/windows/device-agent.exe" KeyPath="yes">
+            <File Id="DeviceAgent.exe" Source="../../bin/windows/device-agent.exe" KeyPath="yes">
                 <!-- Install shortcut in the start menu -->
                 <Shortcut Id="ApplicationStartMenuShortcut"
                           Name="naisdevice"
@@ -110,7 +110,7 @@
         </Component>
 
         <Component Id="NaisDeviceHelperComponent" Win64="yes" Directory="INSTALLFOLDER">
-            <File Id='NaisDeviceHelper.exe' Source='../bin/windows/device-agent-helper.exe' KeyPath="yes"/>
+            <File Id='NaisDeviceHelper.exe' Source='../../bin/windows/device-agent-helper.exe' KeyPath="yes"/>
 
             <ServiceInstall
                     Id="ServiceInstaller"
