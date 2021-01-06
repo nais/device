@@ -114,8 +114,8 @@ app: wg wireguard-go icon macos-client
 	mkdir -p naisdevice.app/Contents/{MacOS,Resources}
 	cp bin/macos-client/* naisdevice.app/Contents/MacOS
 	cp assets/naisdevice.icns naisdevice.app/Contents/Resources
-	sed 's/VERSIONSTRING/${VERSION}/' Info.plist.tpl > naisdevice.app/Contents/Info.plist
-	gon --log-level=debug gon-app.json
+	sed 's/VERSIONSTRING/${VERSION}/' packaging/macosx/Info.plist.tpl > naisdevice.app/Contents/Info.plist
+	gon --log-level=debug packaging/macosx/gon-app.json
 
 test:
 	go test ./... -count=1
@@ -129,13 +129,13 @@ pkg: app
 	rm -rf ./pkgtemp
 	mkdir -p ./pkgtemp/{scripts,pkgroot/Applications}
 	cp -r ./naisdevice.app ./pkgtemp/pkgroot/Applications/
-	cp ./scripts/postinstall ./pkgtemp/scripts/postinstall
+	cp ./packaging/macosx/postinstall ./pkgtemp/scripts/postinstall
 	pkgbuild --root ./pkgtemp/pkgroot --identifier ${PKGID} --scripts ./pkgtemp/scripts --version ${VERSION} --ownership recommended ./component.pkg
 	productbuild --identifier ${PKGID}.${VERSION} --package ./component.pkg ./unsigned.pkg
 	productsign --sign "Developer ID Installer: Torbjorn Hallenberg" unsigned.pkg naisdevice.pkg
 	rm -f ./component.pkg ./unsigned.pkg
 	rm -rf ./pkgtemp ./naisdevice.app
-	# gon --log-level=debug gon-pkg.json
+	# gon --log-level=debug packaging/macosx/gon-pkg.json
 
 clean:
 	rm -rf wireguard-go-*
