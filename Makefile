@@ -12,6 +12,12 @@ dev-apiserver: local-postgres local-apiserver stop-postgres
 integration-test: stop-postgres-test run-postgres-test run-integration-test stop-postgres-test
 clients: linux-client macos-client windows-client
 
+# Ensures build tools are installed on linux
+.linux-init:
+	sudo apt update
+	sudo apt-get install --yes build-essential libgtk-3-dev libappindicator3-dev
+	touch .linux-init
+
 # Run by GitHub actions
 controlplane:
 	mkdir -p ./bin/controlplane
@@ -21,10 +27,8 @@ controlplane:
 	GOOS=linux GOARCH=amd64 go build -o bin/controlplane/prometheus-agent ./cmd/prometheus-agent
 
 # Run by GitHub actions on linux
-linux-client:
+linux-client: .linux-init
 	mkdir -p ./bin/linux-client
-	sudo apt update
-	sudo apt-get install --yes build-essential libgtk-3-dev libappindicator3-dev
 	GOOS=linux GOARCH=amd64 go build -o bin/linux-client/device-agent ./cmd/device-agent
 	GOOS=linux GOARCH=amd64 go build -o bin/linux-client/device-agent-helper ./cmd/device-agent-helper
 
