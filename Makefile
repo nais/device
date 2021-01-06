@@ -12,6 +12,11 @@ dev-apiserver: local-postgres local-apiserver stop-postgres
 integration-test: stop-postgres-test run-postgres-test run-integration-test stop-postgres-test
 clients: linux-client macos-client windows-client
 
+# Before building linux-client, these are needed
+linux-init:
+	sudo apt update
+	sudo apt install build-essential libgtk-3-dev libappindicator3-dev
+
 # Run by GitHub actions
 controlplane:
 	mkdir -p ./bin/controlplane
