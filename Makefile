@@ -27,10 +27,13 @@ controlplane:
 	GOOS=linux GOARCH=amd64 go build -o bin/controlplane/prometheus-agent ./cmd/prometheus-agent
 
 # Run by GitHub actions on linux
-linux-client:
+linux-client: bin/linux-client/device-agent bin/linux-client/device-agent-helper
+bin/linux-client/device-agent-helper:
+	mkdir -p ./bin/linux-client
+	GOOS=linux GOARCH=amd64 go build -o bin/linux-client/device-agent-helper ./cmd/device-agent-helper
+bin/linux-client/device-agent:
 	mkdir -p ./bin/linux-client
 	GOOS=linux GOARCH=amd64 go build -o bin/linux-client/device-agent ./cmd/device-agent
-	GOOS=linux GOARCH=amd64 go build -o bin/linux-client/device-agent-helper ./cmd/device-agent-helper
 
 # Run by GitHub actions on macos
 macos-client:
