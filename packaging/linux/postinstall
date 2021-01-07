@@ -1,0 +1,9 @@
+#!/bin/bash
+
+user=$(loginctl list-users --output json | jq -r ".[0].user")
+home=$(getent passwd "${user}" | cut -d: -f 6)
+
+config_dir="${home}/.config/naisdevice/"
+unit_file=/lib/systemd/system/device-agent-helper.service
+
+sed -i "s%@@CONFIG_DIR@@%${config_dir}%" "${unit_file}"

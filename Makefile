@@ -140,6 +140,10 @@ pkg: app
 	rm -rf ./pkgtemp ./naisdevice.app
 	# gon --log-level=debug packaging/macos/gon-pkg.json
 
+# Run by GitHub actions on linux
+deb: linux-client
+	./packaging/linux/build-deb $(VERSION)
+
 clean:
 	rm -rf wireguard-go-*
 	rm -rf wireguard-tools-*

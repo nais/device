@@ -1,0 +1,20 @@
+#!/bin/bash
+
+rm -f ./naisdevice*.deb
+
+docker run -v "$(pwd):/src/" cdrx/fpm-ubuntu fpm \
+    --verbose \
+    --output-type deb \
+    --input-type dir \
+    --name naisdevice \
+    --version "${1:-Unknown}" \
+    --vendor "NAV / Platformteamet" \
+    --maintainer "NAV / Platformteamet" \
+    --description "naisdevice is a mechanism enabling NAVs developers to connect to internal resources in a secure and friendly manner." \
+    --url https://doc.nais.io/device \
+    --depends jq \
+    --depends sed \
+    --after-install packaging/linux/postinstall \
+    --deb-systemd packaging/linux/device-agent-helper.service \
+    bin/linux-client/device-agent-helper=/usr/sbin/device-agent-helper \
+    bin/linux-client/device-agent=/usr/bin/naisdevice
