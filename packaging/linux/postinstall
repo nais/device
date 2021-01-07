@@ -7,3 +7,5 @@ config_dir="${home}/.config/naisdevice/"
 unit_file=/lib/systemd/system/device-agent-helper.service
 
 sed -i "s%@@CONFIG_DIR@@%${config_dir}%" "${unit_file}"
+
+cp /sys/devices/virtual/dmi/id/product_serial "${config_dir}"

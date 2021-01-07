@@ -14,8 +14,7 @@ import (
 )
 
 const (
-	WireGuardBinary   = "/usr/bin/wg"
-	ProductSerialPath = "/sys/devices/virtual/dmi/id/product_serial"
+	WireGuardBinary = "/usr/bin/wg"
 )
 
 func prerequisites() error {
@@ -27,10 +26,6 @@ func prerequisites() error {
 
 func platformInit(cfg *Config) {
 	logger.SetupDeviceLogger(cfg.LogLevel, filepath.Join("/", "var", "log", "device-agent-helper.log"))
-	if err := extractProductSerial(ProductSerialPath); err != nil {
-		log.Error(err)
-	}
-
 }
 
 func syncConf(cfg Config, ctx context.Context) error {
@@ -95,20 +90,6 @@ func teardownInterface(ctx context.Context, cfg Config) {
 	if err := cmd.Run(); err != nil {
 		log.Errorf("Tearing down interface: %v", err)
 	}
-}
-
-func extractProductSerial(cfgpath string) error {
-	target := filepath.Join(cfg.ConfigPath, "product_serial")
-	serialBytes, err := ioutil.ReadFile(ProductSerialPath)
-	if err != nil {
-		return fmt.Errorf("reading file: %w", err)
-	}
-	if err := ioutil.WriteFile(target, serialBytes, 0644); err != nil {
-		return fmt.Errorf("Writing product serial to disk: %v", err)
-	} else {
-		log.Debugf("Successfully wrote product serial to: %v", target)
-	}
-	return nil
 }
 
 func uninstallService()         {}
