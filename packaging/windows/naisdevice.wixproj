@@ -11,7 +11,7 @@
     <DefineSolutionProperties>false</DefineSolutionProperties>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|x64' ">
-    <OutputPath>..\bin\windows</OutputPath>
+    <OutputPath>..\..\bin\windows</OutputPath>
     <IntermediateOutputPath>obj\$(Configuration)\</IntermediateOutputPath>
     <DefineConstants>BUILD_NUMBER=$(GITHUB_RUN_NUMBER)</DefineConstants>
   </PropertyGroup>
