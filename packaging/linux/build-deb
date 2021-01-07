@@ -2,7 +2,7 @@
 
 rm -f ./naisdevice*.deb
 
-docker run -v "$(pwd):/src/" cdrx/fpm-ubuntu fpm \
+fpm \
     --verbose \
     --output-type deb \
     --input-type dir \
