@@ -64,6 +64,7 @@ jobs:
         with:
           name: ${{ matrix.target }}
           path: bin/${{ matrix.target }}
+          if-no-files-found: error
 
   # Also builds, should probably download artifact instead
   build-macos:
@@ -92,6 +93,7 @@ jobs:
       with:
         name: pkg
         path: naisdevice.pkg
+        if-no-files-found: error
 
   build-windows:
     needs:
@@ -114,6 +116,7 @@ jobs:
         with:
           name: windows-installer
           path: bin/windows/naisdevice.msi
+          if-no-files-found: error
 
   release:
     if: ${{ github.ref == 'refs/heads/master' }}
