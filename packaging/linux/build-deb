@@ -1,5 +1,9 @@
 #!/bin/bash
 
+set -o errexit
+set -o pipefail
+set -o nounset
+
 rm -f ./naisdevice*.deb
 
 fpm \
@@ -17,4 +21,6 @@ fpm \
     --after-install packaging/linux/postinstall \
     --deb-systemd packaging/linux/device-agent-helper.service \
     bin/linux-client/device-agent-helper=/usr/sbin/device-agent-helper \
-    bin/linux-client/device-agent=/usr/bin/naisdevice
+    bin/linux-client/device-agent=/usr/bin/naisdevice \
+    packaging/linux/naisdevice.desktop=/usr/share/applications/ \
+    packaging/linux/icons/=/usr/share/icons/hicolor/
