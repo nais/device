@@ -18,6 +18,7 @@ fpm \
     --url https://doc.nais.io/device \
     --depends jq \
     --depends sed \
+    --depends wireguard \
     --after-install packaging/linux/postinstall \
     --deb-systemd packaging/linux/device-agent-helper.service \
     bin/linux-client/device-agent-helper=/usr/sbin/device-agent-helper \
