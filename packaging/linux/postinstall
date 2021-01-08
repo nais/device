@@ -1,4 +1,5 @@
 #!/bin/bash
+set -o errexit
 
 user=$(loginctl list-users --output json | jq -r ".[0].user")
 home=$(getent passwd "${user}" | cut -d: -f 6)
