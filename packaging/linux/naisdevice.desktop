@@ -1,0 +1,7 @@
+[Desktop Entry]
+Name=Naisdevice
+Exec=naisdevice
+Terminal=false
+Type=Application
+Icon=naisdevice
+Categories=Network

@@ -6,6 +6,7 @@ on:
       - 'go.mod'
       - '**.go'
       - '.github/workflows/master.yml'
+      - 'packaging/**'
 jobs:
   test:
     runs-on: ubuntu-latest
@@ -118,6 +119,31 @@ jobs:
           path: bin/windows/naisdevice.msi
           if-no-files-found: error
 
+  build-linux:
+    needs:
+      - set-version
+      - build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: download linux binaries
+        uses: actions/download-artifact@v2
+        with:
+          name: linux-client
+          path: bin/linux-client
+      - name: create debian package
+        run: |
+          sudo apt update
+          sudo apt install --yes build-essential ruby ruby-dev rubygems
+          sudo gem install --no-document fpm
+          make deb VERSION=${{ needs.set-version.outputs.version }}
+      - name: upload debian package
+        uses: actions/upload-artifact@v2
+        with:
+          name: deb
+          path: naisdevice*.deb
+          if-no-files-found: error
+
   release:
     if: ${{ github.ref == 'refs/heads/master' }}
     needs:
@@ -126,6 +152,7 @@ jobs:
       - build
       - build-macos
       - build-windows
+      - build-linux
     runs-on: ubuntu-latest
     env:
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -172,6 +199,7 @@ jobs:
           asset_path: ./bin/controlplane/prometheus-agent
           asset_name: prometheus-agent
           asset_content_type: application/octet-stream
+
       - name: download windows installer
         uses: actions/download-artifact@v2
         with:
@@ -195,5 +223,17 @@ jobs:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
           asset_path: ./naisdevice.pkg
           asset_name: naisdevice.pkg
+          asset_content_type: application/octet-stream
+
+      - name: download deb
+        uses: actions/download-artifact@v2
+        with:
+          name: deb
+      - name: upload debian package to release
+        uses: actions/upload-release-asset@v1
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./naisdevice*.deb
+          asset_name: naisdevice.deb
           asset_content_type: application/octet-stream
 

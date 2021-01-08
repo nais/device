@@ -1,0 +1,26 @@
+#!/bin/bash
+
+set -o errexit
+set -o pipefail
+set -o nounset
+
+rm -f ./naisdevice*.deb
+
+fpm \
+    --verbose \
+    --output-type deb \
+    --input-type dir \
+    --name naisdevice \
+    --version "${1:-Unknown}" \
+    --vendor "NAV / Platformteamet" \
+    --maintainer "NAV / Platformteamet" \
+    --description "naisdevice is a mechanism enabling NAVs developers to connect to internal resources in a secure and friendly manner." \
+    --url https://doc.nais.io/device \
+    --depends jq \
+    --depends sed \
+    --after-install packaging/linux/postinstall \
+    --deb-systemd packaging/linux/device-agent-helper.service \
+    bin/linux-client/device-agent-helper=/usr/sbin/device-agent-helper \
+    bin/linux-client/device-agent=/usr/bin/naisdevice \
+    packaging/linux/naisdevice.desktop=/usr/share/applications/ \
+    packaging/linux/icons/=/usr/share/icons/hicolor/

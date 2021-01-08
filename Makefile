@@ -12,10 +12,11 @@ dev-apiserver: local-postgres local-apiserver stop-postgres
 integration-test: stop-postgres-test run-postgres-test run-integration-test stop-postgres-test
 clients: linux-client macos-client windows-client
 
-# Before building linux-client, these are needed
+# Before building linux-client and debian package, these are needed
 linux-init:
 	sudo apt update
-	sudo apt install build-essential libgtk-3-dev libappindicator3-dev
+	sudo apt install build-essential libgtk-3-dev libappindicator3-dev ruby ruby-dev rubygems
+	sudo gem install --no-document fpm
 
 # Run by GitHub actions
 controlplane:
@@ -26,19 +27,22 @@ controlplane:
 	GOOS=linux GOARCH=amd64 go build -o bin/controlplane/prometheus-agent ./cmd/prometheus-agent
 
 # Run by GitHub actions on linux
-linux-client:
+linux-client: bin/linux-client/device-agent bin/linux-client/device-agent-helper
+bin/linux-client/device-agent-helper:
 	mkdir -p ./bin/linux-client
-	GOOS=linux GOARCH=amd64 go build -o bin/linux-client/device-agent ./cmd/device-agent
 	GOOS=linux GOARCH=amd64 go build -o bin/linux-client/device-agent-helper ./cmd/device-agent-helper
+bin/linux-client/device-agent: cmd/device-agent/icons.go
+	mkdir -p ./bin/linux-client
+	GOOS=linux GOARCH=amd64 go build -o bin/linux-client/device-agent -ldflags "-s $(LDFLAGS)" ./cmd/device-agent
 
 # Run by GitHub actions on macos
-macos-client:
+macos-client: cmd/device-agent/icons.go
 	mkdir -p ./bin/macos-client
 	GOOS=darwin GOARCH=amd64 go build -o bin/macos-client/device-agent -ldflags "-s $(LDFLAGS)" ./cmd/device-agent
 	GOOS=darwin GOARCH=amd64 go build -o bin/macos-client/device-agent-helper ./cmd/device-agent-helper
 
 # Run by GitHub actions on linux
-windows-client:
+windows-client: cmd/device-agent/icons.go
 	mkdir -p ./bin/windows-client
 	go get github.com/akavel/rsrc
 	${GOPATH}/bin/rsrc -arch amd64 -manifest ./packaging/windows/admin_manifest.xml -ico assets/nais-logo-blue.ico -o ./cmd/device-agent-helper/main_windows.syso
@@ -79,9 +83,18 @@ local-apiserver:
 	go run ./cmd/apiserver/main.go --db-connection-uri=postgresql://postgres:postgres@localhost/postgres --bind-address=127.0.0.1:8080 --config-dir=${confdir} --development-mode=true --prometheus-address=127.0.0.1:3000 --credential-entries="nais:device,gateway-1:password"
 	echo ${confdir}
 
-icon: assets/naisdevice.icns
-assets/naisdevice.icns:
+cmd/device-agent/icons.go: assets/*.ico assets/icon.go
 	cd assets && go run icon.go | gofmt -s > ../cmd/device-agent/icons.go
+
+linux-icon: packaging/linux/icons/*/apps/naisdevice.png
+packaging/linux/icons/*/apps/naisdevice.png: assets/nais-logo-blue.png
+	for size in 16x16 32x32 64x64 128x128 256x256 512x512 ; do \
+		mkdir -p packaging/linux/icons/$$size/apps/ ; \
+		convert assets/nais-logo-blue.png -scale $$size^ -background none -gravity center -extent $$size packaging/linux/icons/$$size/apps/naisdevice.png ; \
+  	done
+
+macos-icon: assets/naisdevice.icns
+assets/naisdevice.icns:
 	rm -rf MyIcon.iconset
 	mkdir -p MyIcon.iconset
 	sips -z 16 16     assets/nais-logo-blue.png --out MyIcon.iconset/icon_16x16.png
@@ -112,7 +125,7 @@ bin/macos-client/wireguard-go:
 	cd wireguard-go-*/ && make && cp wireguard-go ../bin/macos-client/
 	rm -rf ./wireguard-go-*
 
-app: wg wireguard-go icon macos-client
+app: wg wireguard-go macos-icon macos-client
 	rm -rf naisdevice.app
 	mkdir -p naisdevice.app/Contents/{MacOS,Resources}
 	cp bin/macos-client/* naisdevice.app/Contents/MacOS
@@ -140,9 +153,15 @@ pkg: app
 	rm -rf ./pkgtemp ./naisdevice.app
 	# gon --log-level=debug packaging/macos/gon-pkg.json
 
+# Run by GitHub actions on linux
+deb: linux-client linux-icon
+	./packaging/linux/build-deb $(VERSION)
+
 clean:
 	rm -rf wireguard-go-*
 	rm -rf wireguard-tools-*
 	rm -rf naisdevice.app
 	rm -f naisdevice-*.pkg
 	rm -rf ./bin
+	rm -rf ./packaging/linux/icons
+
