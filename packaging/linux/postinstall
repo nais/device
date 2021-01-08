@@ -17,5 +17,3 @@ systemctl restart device-agent-helper
 cp /sys/devices/virtual/dmi/id/product_serial "${config_dir}"
 
 chown -R "${user}:" "${config_dir}"
-
-update-desktop-database
