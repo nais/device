@@ -229,6 +229,12 @@ jobs:
         uses: actions/download-artifact@v2
         with:
           name: deb
+      - name: Debug
+        run: |
+          echo "== All debs"
+          ls -la naisdevice*.deb
+          echo "== Selected deb"
+          ls -la naisdevice_${{ needs.set-version.outputs.version }}.deb
       - name: upload debian package to release
         uses: actions/upload-release-asset@v1
         with:
