@@ -1,12 +1,10 @@
 #!/bin/bash
 
-set -o errexit
-
 user=$(loginctl list-users --output json | jq -r ".[0].user")
 home=$(getent passwd "${user}" | cut -d: -f 6)
 
 config_dir="${home}/.config/naisdevice/"
-unit_file=/usr/lib/systemd/system/device-agent-helper.service
+unit_file=/lib/systemd/system/device-agent-helper.service
 
 mkdir -p "${config_dir}"
 
