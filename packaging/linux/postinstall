@@ -1,6 +1,12 @@
 #!/bin/bash
 set -o errexit
 
+# Assert just _one_ logged-in user
+if [ ! "$(loginctl list-users --output json | jq -r ".[].user" | wc -l)" == "1" ]; then
+	echo -e "\nMore than 1 user logged in! This naisdevice only permits _one_ user account!\n"
+	exit 1
+fi
+
 user=$(loginctl list-users --output json | jq -r ".[0].user")
 home=$(getent passwd "${user}" | cut -d: -f 6)
 
