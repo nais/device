@@ -66,10 +66,15 @@ func runAuthFlow(ctx context.Context, conf oauth2.Config) (*oauth2.Token, error)
 		tokenChan <- t
 	})
 
-	listener, err := net.Listen("tcp", "127.0.0.1:51800")
+	listener, err := net.Listen("tcp", "127.0.0.1:0")
+
 	if err != nil {
-		return nil, fmt.Errorf("Error listening on port 51800: %w", err)
+		return nil, fmt.Errorf("creating listener: %w", err)
 	}
+
+	port := listener.Addr().(*net.TCPAddr).Port
+	conf.RedirectURL = fmt.Sprintf("http://localhost:%d/", port)
+
 
 	server := &http.Server{Handler: handler}
 	go server.Serve(listener)
