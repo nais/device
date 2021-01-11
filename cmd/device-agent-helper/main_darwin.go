@@ -26,7 +26,7 @@ func prerequisites() error {
 }
 
 func platformInit(cfg *Config) {
-	logger.SetupDeviceLogger(cfg.LogLevel, filepath.Join("/", "Library", "Logs", "device-agent-helper.log"))
+	logger.SetupDeviceLogger(cfg.LogLevel, logger.DeviceAgentHelperLogFilePath())
 }
 
 func syncConf(cfg Config, ctx context.Context) error {

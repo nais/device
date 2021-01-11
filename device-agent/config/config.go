@@ -2,6 +2,7 @@ package config
 
 import (
 	"errors"
+	"github.com/nais/device/pkg/logger"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -36,17 +37,7 @@ func (c *Config) SetDefaults() {
 	c.WireGuardConfigPath = filepath.Join(c.ConfigDir, c.Interface+".conf")
 	c.BootstrapConfigPath = filepath.Join(c.ConfigDir, "bootstrapconfig.json")
 	c.SerialPath = filepath.Join(c.ConfigDir, "product_serial")
-	switch c.Platform {
-	case "darwin":
-		home, err := os.UserHomeDir()
-		if err != nil {
-			log.Errorf("opening the user's home directory: %v", err)
-		}
-		c.LogFilePath = filepath.Join(home, "Library", "Logs", "device-agent.log")
-	default:
-		c.LogFilePath = "device-agent.log"
-	}
-
+	c.LogFilePath = logger.DeviceAgentLogFilePath(c.ConfigDir)
 }
 
 func ConfigDir() (string, error) {

@@ -6,11 +6,10 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/nais/device/pkg/logger"
 	"io/ioutil"
 	"net"
 	"net/http"
-	"os"
-	"path/filepath"
 	"time"
 
 	"github.com/nais/device/device-agent/auth"
@@ -122,17 +121,13 @@ func handleGuiEvent(guiEvent GuiEvent, state ProgramState, stateChange chan Prog
 		}
 
 	case HelperLogClicked:
-		err := open.Open("/Library/Logs/device-agent-helper-err.log")
+		err := open.Open(logger.DeviceAgentHelperLogFilePath())
 		if err != nil {
 			log.Warn("opening device agent helper log: %w", err)
 		}
 
 	case DeviceLogClicked:
-		homedir, err := os.UserHomeDir()
-		if err != nil {
-			log.Warn("finding user's home directory", err)
-		}
-		err = open.Open(filepath.Join(homedir, "Library", "Logs", "device-agent.log"))
+		err := open.Open(logger.DeviceAgentLogFilePath(cfg.ConfigDir))
 		if err != nil {
 			log.Warn("opening device agent log: %w", err)
 		}
