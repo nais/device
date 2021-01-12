@@ -30,11 +30,7 @@ func (service *MyService) ControlChannel() <-chan ControlEvent {
 }
 
 func platformInit(cfg *Config) {
-	logdir := os.Getenv("PROGRAMDATA") + "\\NAV\\naisdevice"
-	if _, err := os.Stat(logdir); err != nil {
-		log.Fatalf("Error opening application data folder: %v", err)
-	}
-	logger.SetupDeviceLogger(cfg.LogLevel, filepath.Join(logdir, "device-agent-helper.log"))
+	logger.SetupDeviceLogger(cfg.LogLevel, logger.DeviceAgentHelperLogFilePath())
 
 	interactive, err := svc.IsAnInteractiveSession()
 	if err != nil {

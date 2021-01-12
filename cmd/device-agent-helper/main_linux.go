@@ -7,7 +7,6 @@ import (
 	"github.com/nais/device/pkg/logger"
 	"io/ioutil"
 	"os/exec"
-	"path/filepath"
 	"strings"
 
 	log "github.com/sirupsen/logrus"
@@ -25,7 +24,7 @@ func prerequisites() error {
 }
 
 func platformInit(cfg *Config) {
-	logger.SetupDeviceLogger(cfg.LogLevel, filepath.Join("/", "var", "log", "device-agent-helper.log"))
+	logger.SetupDeviceLogger(cfg.LogLevel, logger.DeviceAgentHelperLogFilePath())
 }
 
 func syncConf(cfg Config, ctx context.Context) error {
