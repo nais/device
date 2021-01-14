@@ -1,4 +1,6 @@
 #!/usr/bin/env bash
+# shellcheck disable=SC2015
+
 set -o pipefail
 
 err='no error'
@@ -10,7 +12,7 @@ ok() {
 
 fail() {
   echo -e "[\033[31mfail\033[0m]"
-  echo $err
+  echo "$err"
   exit 1
 }
 
@@ -26,7 +28,7 @@ case "$(uname -s)" in
      installer_ext=deb
      install() {
        pkill naisdevice
-       sudo apt-get install "${temp_installer}"
+       sudo apt-get install --assume-yes "${temp_installer}"
      }
      ;;
 
