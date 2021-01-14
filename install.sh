@@ -28,6 +28,8 @@ case "$(uname -s)" in
      installer_ext=deb
      install() {
        pkill naisdevice
+       sudo chown _apt:root "${temp_installer}"
+       sudo chmod 400 "${temp_installer}"
        sudo apt-get install --assume-yes "${temp_installer}"
      }
      ;;
