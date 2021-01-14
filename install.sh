@@ -47,7 +47,7 @@ latest_tag=$(curl --show-error --silent --fail --location "https://api.github.co
 echo -n "downloading latest installer......."
 installer_url="https://github.com/nais/device/releases/download/${latest_tag}/naisdevice.${installer_ext}"
 temp_installer="$(mktemp --suffix=.${installer_ext})"
-err=$(curl --show-error --silent --fail -L "$installer_url" -o "$temp_installer") && ok || fail
+err=$(curl --show-error --silent --fail --location "$installer_url" --output "$temp_installer") && ok || fail
 
 echo -n "installing package..........."
 err=$(install) && ok || fail
