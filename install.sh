@@ -6,6 +6,8 @@ set -o pipefail
 err='no error'
 latest_tag=''
 
+message="Would you like to install naisdevice? 😎"
+
 ok() {
   echo -e "..[\033[32mok\033[0m]"
 }
@@ -20,17 +22,30 @@ case "$(uname -s)" in
    Darwin)
      installer_ext=pkg
      install() {
-       /usr/bin/osascript -e "do shell script \"pkill device-agent; pkill device-agent-helper; installer -target / -pkg '$temp_installer'\" with prompt \"naisdevice wonders if anyone ever reads this message? also it would like to install itself 😎\" with administrator privileges"
+       /usr/bin/osascript -e "do shell script \"pkill device-agent; pkill device-agent-helper; installer -target / -pkg '$temp_installer'\" with prompt \"${message}\" with administrator privileges"
      }
      ;;
 
    Linux)
      installer_ext=deb
+
+     askpass=$(mktemp)
+     cat <<-EOF > "$askpass"
+				#!/bin/bash
+				set -o pipefail
+				echo -e "SETPROMPT ${message}\nGETPIN" | pinentry | grep "^D " | sed "s/^D //"
+				EOF
+		 chmod a+x "$askpass"
+
+     guisudo() {
+       err=$(SUDO_ASKPASS="$askpass" sudo -A "$@")
+     }
+
      install() {
        pkill naisdevice
-       sudo chown _apt:root "${temp_installer}"
-       sudo chmod 400 "${temp_installer}"
-       sudo apt-get install --assume-yes "${temp_installer}"
+       guisudo chown _apt:root "${temp_installer}" || fail
+       guisudo chmod 400 "${temp_installer}" || fail|
+       guisudo apt-get install --assume-yes "${temp_installer}" || fail
      }
      ;;
 
