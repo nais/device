@@ -12,8 +12,8 @@ fpm \
     --input-type dir \
     --name naisdevice \
     --version "${1:-Unknown}" \
-    --vendor "NAV / Platformteamet" \
-    --maintainer "NAV / Platformteamet" \
+    --vendor "NAV / nais team" \
+    --maintainer "NAV / nais team" \
     --description "naisdevice is a mechanism enabling NAVs developers to connect to internal resources in a secure and friendly manner." \
     --url https://doc.nais.io/device \
     --depends jq \
