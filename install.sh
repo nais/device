@@ -46,11 +46,11 @@ echo "##################################"
 echo
 
 echo -n "determining latest version..."
-latest_tag=$(curl --show-error --silent --fail --location "https://api.github.com/repos/nais/device/releases/latest" | grep --only-matching --perl-regexp '^\s+"tag_name": "\K([^"]+)(?=",$)') && ok || fail
+latest_tag=$(curl --show-error --silent --fail --location "https://api.github.com/repos/nais/device/releases/latest" | grep 'tag_name' | sed -E 's/.*"([^"]+)".*/\1/') && ok || fail
 
 echo -n "downloading latest installer......."
 installer_url="https://github.com/nais/device/releases/download/${latest_tag}/naisdevice.${installer_ext}"
-temp_installer="$(mktemp --suffix=.${installer_ext})"
+temp_installer="$(mktemp).${installer_ext}"
 err=$(curl --show-error --silent --fail --location "$installer_url" --output "$temp_installer") && ok || fail
 
 echo -n "installing package..........."
