@@ -28,6 +28,7 @@ type Config struct {
 	OAuth2Config        oauth2.Config
 	Platform            string
 	BootstrapAPI        string
+	AutoConnect         bool
 }
 
 func (c *Config) SetDefaults() {

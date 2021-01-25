@@ -79,6 +79,9 @@ var (
 
 func onReady() {
 	gui := NewGUI()
+	if cfg.AutoConnect {
+		gui.Events <- ConnectClicked
+	}
 
 	if err := filesystem.EnsurePrerequisites(&cfg); err != nil {
 		notify(fmt.Sprintf("Missing prerequisites: %s", err))
