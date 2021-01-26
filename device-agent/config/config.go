@@ -1,15 +1,12 @@
 package config
 
 import (
-	"errors"
+	"github.com/nais/device/pkg/config"
 	"github.com/nais/device/pkg/logger"
-	"os"
-	"path/filepath"
-	"runtime"
-
 	log "github.com/sirupsen/logrus"
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/endpoints"
+	"path/filepath"
 )
 
 type Config struct {
@@ -41,31 +38,9 @@ func (c *Config) SetDefaults() {
 	c.LogFilePath = logger.DeviceAgentLogFilePath(c.ConfigDir)
 }
 
-func ConfigDir() (string, error) {
-	switch runtime.GOOS {
-	case "windows":
-		var dir string
-
-		dir = os.Getenv("PROGRAMDATA")
-		if dir == "" {
-			return "", errors.New("%PROGRAMDATA% is not defined")
-		}
-		dir += "\\NAV\\naisdevice"
-
-		return dir, nil
-
-	default:
-		userConfigDir, err := os.UserConfigDir()
-		if err != nil {
-			return "", err
-		} else {
-			return filepath.Join(userConfigDir, "naisdevice"), err
-		}
-	}
-}
 
 func DefaultConfig() Config {
-	userConfigDir, err := ConfigDir()
+	userConfigDir, err := config.UserConfigDir()
 	if err != nil {
 		log.Fatal("Getting user config dir: %w", err)
 	}

@@ -19,8 +19,16 @@ type GatewayItem struct {
 	MenuItem *systray.MenuItem
 }
 
+type GuiState int
+const(
+	GuiStateConnected GuiState = iota
+	GuiStateDisconnected
+	GuiStateAwaitingAgent
+	GuiStateConnecting
+	GuiStateError
+)
+
 type Gui struct {
-	ProgramState             chan ProgramState
 	Gateways                 chan apiserver.Gateways
 	Events                   chan GuiEvent
 	Interrupts               chan os.Signal
@@ -84,7 +92,6 @@ func NewGUI() *Gui {
 	gui.Interrupts = make(chan os.Signal, 1)
 	signal.Notify(gui.Interrupts, os.Interrupt, syscall.SIGTERM)
 
-	gui.ProgramState = make(chan ProgramState, 8)
 	gui.Gateways = make(chan apiserver.Gateways, 8)
 	gui.Events = make(chan GuiEvent, 8)
 	gui.NewVersionAvailable = make(chan bool, 8)
@@ -96,10 +103,11 @@ func NewGUI() *Gui {
 func (gui *Gui) EventLoop() {
 	gui.aggregateGatewayButtonClicks()
 
+	currentState := GuiStateDisconnected
 	for {
 		select {
-		case progstate := <-gui.ProgramState:
-			gui.handleProgramState(progstate)
+		case guiEvent := <-gui.Events:
+			handleGuiEvent(guiEvent, currentState)
 		case gateways := <-gui.Gateways:
 			gui.handleGateways(gateways)
 		case <-gui.NewVersionAvailable:
@@ -154,28 +162,6 @@ func (gui *Gui) handleGateways(gateways apiserver.Gateways) {
 	}
 }
 
-func (gui *Gui) handleProgramState(state ProgramState) {
-	gui.MenuItems.State.SetTitle("Status: " + state.String())
-	gui.MenuItems.StateInfo.Hide()
-	switch state {
-	case StateNewVersion:
-		gui.MenuItems.Version.Show()
-	case StateDisconnected:
-		gui.MenuItems.Connect.SetTitle("Connect")
-		systray.SetIcon(NaisLogoRed)
-	case StateConnected:
-		systray.SetIcon(NaisLogoGreen)
-	case StateUnhealthy:
-		gui.MenuItems.StateInfo.SetTitle("slack: /msg @kolide status")
-		gui.MenuItems.StateInfo.Show()
-		systray.SetIcon(NaisLogoYellow)
-	}
-
-	if state != StateDisconnected {
-		gui.MenuItems.Connect.SetTitle("Disconnect")
-	}
-}
-
 func (gui *Gui) handleNewVersion() {
 	gui.MenuItems.Version.Show()
 }
@@ -195,5 +181,6 @@ func accessPrivilegedGateway(gatewayName string) {
 	err := open.Open(fmt.Sprintf("https://naisdevice-jita.nais.io/?gateway=%s", gatewayName))
 	if err != nil {
 		log.Errorf("opening browser: %v", err)
+		// TODO: show error in gui (systray)
 	}
 }
