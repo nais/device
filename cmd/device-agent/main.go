@@ -2,11 +2,14 @@ package main
 
 import (
 	"fmt"
-	"io"
-	"io/ioutil"
-	"os"
+	"github.com/gen2brain/beeep"
+	"github.com/nais/device/device-agent/filesystem"
+	"github.com/nais/device/device-agent/runtimeconfig"
+	device_agent "github.com/nais/device/pkg/device-agent"
+	pb "github.com/nais/device/pkg/protobuf"
+	"google.golang.org/grpc"
+	"net"
 
-	"github.com/getlantern/systray"
 	"github.com/nais/device/device-agent/config"
 	"github.com/nais/device/pkg/logger"
 	"github.com/nais/device/pkg/version"
@@ -33,29 +36,45 @@ func init() {
 func main() {
 	log.Infof("Starting device-agent with config:\n%+v", cfg)
 	log.Infof("Version: %s, Revision: %s", version.Version, version.Revision)
-	systray.Run(onReady, onExit)
+	startDeviceAgent()
 }
 
-func DeleteConfigFile(path string) error {
-	err := os.Remove(path)
-	if err != nil && err != os.ErrNotExist {
-		return err
+func startDeviceAgent() {
+	if err := filesystem.EnsurePrerequisites(&cfg); err != nil {
+		notify(fmt.Sprintf("Missing prerequisites: %s", err))
 	}
-	log.Debugf("Removed WireGuard configuration file at %s", path)
-	lastConfigurationFile = ""
-	return nil
+
+	rc, err := runtimeconfig.New(cfg)
+	if err != nil {
+		log.Errorf("Runtime config: %v", err)
+		notify("Unable to start naisdevice, check logs for details")
+		return
+	}
+
+	listener, err := net.Listen("tcp", fmt.Sprintf("127.0.0.1:%d", 0))
+	if err != nil {
+		log.Fatalf("failed to listen: %v", err)
+	}
+	var opts []grpc.ServerOption
+
+	stateChange := make(chan device_agent.ProgramState, 64)
+
+	grpcServer := grpc.NewServer(opts...)
+	pb.RegisterDeviceAgentServer(grpcServer, device_agent.NewServer(stateChange))
+	go func() {
+		if err := grpcServer.Serve(listener); err != nil {
+			log.Fatalf("failed to start grpc webserver: %v", err)
+		}
+	}()
+
+	device_agent.EventLoop(rc, stateChange)
 }
 
-func WriteConfigFile(path string, r io.Reader) error {
-	cfg, err := ioutil.ReadAll(r)
+func notify(format string, args ...interface{}) {
+	message := fmt.Sprintf(format, args...)
+	err := beeep.Notify("NAIS device", message, "../Resources/nais-logo-red.png")
+	log.Infof("sending message to notification centre: %s", message)
 	if err != nil {
-		return err
+		log.Errorf("failed sending message due to error: %s", err)
 	}
-	err = ioutil.WriteFile(path, cfg, 0600)
-	if err != nil {
-		return fmt.Errorf("writing WireGuard config to disk: %w", err)
-	}
-
-	log.Debugf("Wrote WireGuard config to disk")
-	return nil
 }

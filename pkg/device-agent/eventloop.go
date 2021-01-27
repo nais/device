@@ -1,160 +1,40 @@
-package main
+package device_agent
 
 import (
 	"bytes"
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/nais/device/pkg/logger"
-	"io/ioutil"
-	"net"
-	"net/http"
-	"time"
-
-	"github.com/nais/device/device-agent/auth"
-	"github.com/nais/device/device-agent/filesystem"
-	"github.com/nais/device/device-agent/open"
-
 	"github.com/gen2brain/beeep"
 	"github.com/getlantern/systray"
 	"github.com/nais/device/device-agent/apiserver"
+	"github.com/nais/device/device-agent/auth"
 	"github.com/nais/device/device-agent/runtimeconfig"
-	"github.com/nais/device/pkg/version"
 	log "github.com/sirupsen/logrus"
+	"io"
+	"io/ioutil"
+	"net"
+	"os"
+	"time"
 )
 
-type ProgramState int
-
-const (
-	StateDisconnected ProgramState = iota
-	StateNewVersion
-	StateBootstrapping
-	StateConnected
-	StateDisconnecting
-	StateUnhealthy
-	StateQuitting
-	StateAuthenticating
-	StateSyncConfig
-	StateHealthCheck
-)
-
-const (
-	versionCheckInterval      = 1 * time.Hour
-	syncConfigInterval        = 5 * time.Minute
-	initialGatewayRefreshWait = 2 * time.Second
-	initialConnectWait        = initialGatewayRefreshWait
-	healthCheckInterval       = 20 * time.Second
-)
-
-func (state ProgramState) String() string {
-	switch state {
-	case StateDisconnected:
-		return "Disconnected"
-	case StateBootstrapping:
-		return "Bootstrapping..."
-	case StateAuthenticating:
-		return "Authenticating..."
-	case StateSyncConfig:
-		return "Synchronizing configuration..."
-	case StateHealthCheck:
-		return "Checking gateway health..."
-	case StateConnected:
-		return fmt.Sprintf("Connected since %s", connectedTime.Format(time.Kitchen))
-	case StateUnhealthy:
-		return "Device is unhealthy >_<"
-	case StateDisconnecting:
-		return "Disconnecting..."
-	case StateQuitting:
-		return "Quitting..."
-	default:
-		return "Unknown state >_<"
-	}
-}
 
 var (
-	connectedTime         = time.Now()
+	connectedTime		 = time.Now()
 	lastConfigurationFile string
 )
 
-func onReady() {
-	gui := NewGUI()
-	if cfg.AutoConnect {
-		gui.Events <- ConnectClicked
-	}
-
-	if err := filesystem.EnsurePrerequisites(&cfg); err != nil {
-		notify(fmt.Sprintf("Missing prerequisites: %s", err))
-	}
-
-	rc, err := runtimeconfig.New(cfg)
-	if err != nil {
-		log.Errorf("Runtime config: %v", err)
-		notify("Unable to start naisdevice, check logs for details")
-		return
-	}
-
-	_ = DeleteConfigFile(rc.Config.WireGuardConfigPath)
-
-	go gui.EventLoop()
-	go checkVersion(versionCheckInterval, gui)
-	mainloop(gui, rc)
-}
-
-func handleGuiEvent(guiEvent GuiEvent, state ProgramState, stateChange chan ProgramState) {
-	switch guiEvent {
-	case VersionClicked:
-		err := open.Open(softwareReleasePage)
-		if err != nil {
-			log.Warn("opening latest release url: %w", err)
-		}
-
-	case StateInfoClicked:
-		err := open.Open(slackURL)
-		if err != nil {
-			log.Warnf("opening slack: %v", err)
-		}
-
-	case ConnectClicked:
-		log.Infof("Connect button clicked")
-		if state == StateDisconnected {
-			stateChange <- StateBootstrapping
-		} else {
-			stateChange <- StateDisconnecting
-		}
-
-	case HelperLogClicked:
-		err := open.Open(logger.DeviceAgentHelperLogFilePath())
-		if err != nil {
-			log.Warn("opening device agent helper log: %w", err)
-		}
-
-	case DeviceLogClicked:
-		err := open.Open(logger.DeviceAgentLogFilePath(cfg.ConfigDir))
-		if err != nil {
-			log.Warn("opening device agent log: %w", err)
-		}
-
-	case QuitClicked:
-		stateChange <- StateQuitting
-	}
-}
-
-func mainloop(gui *Gui, rc *runtimeconfig.RuntimeConfig) {
+func EventLoop(rc *runtimeconfig.RuntimeConfig, stateChange chan ProgramState) {
 	var err error
 
 	syncConfigTicker := time.NewTicker(syncConfigInterval)
 	healthCheckTicker := time.NewTicker(healthCheckInterval)
 
-	state := StateDisconnected
-	stateChange := make(chan ProgramState, 64)
-	gui.ProgramState <- state
+	state := StateBootstrapping
+	stateChange <- state
 
 	for {
 		select {
-		case guiEvent := <-gui.Events:
-			handleGuiEvent(guiEvent, state, stateChange)
-
 		case <-syncConfigTicker.C:
 			if state == StateConnected {
 				stateChange <- StateSyncConfig
@@ -166,7 +46,6 @@ func mainloop(gui *Gui, rc *runtimeconfig.RuntimeConfig) {
 			}
 
 		case state = <-stateChange:
-			gui.ProgramState <- state
 			log.Infof("state changed to %s", state)
 
 			switch state {
@@ -217,6 +96,9 @@ func mainloop(gui *Gui, rc *runtimeconfig.RuntimeConfig) {
 
 			case StateConnected:
 			case StateDisconnected:
+				log.Info("making sure no previous WireGuard config exists")
+				_ = DeleteConfigFile(rc.Config.WireGuardConfigPath)
+
 			case StateQuitting:
 				_ = DeleteConfigFile(rc.Config.WireGuardConfigPath)
 				//noinspection GoDeferInLoop
@@ -224,8 +106,6 @@ func mainloop(gui *Gui, rc *runtimeconfig.RuntimeConfig) {
 				return
 
 			case StateDisconnecting:
-				rc.Gateways = make(apiserver.Gateways, 0)
-				gui.Gateways <- rc.GetGateways()
 				err := DeleteConfigFile(rc.Config.WireGuardConfigPath)
 				if err != nil {
 					notify("error synchronizing WireGuard config: %s", err)
@@ -243,7 +123,6 @@ func mainloop(gui *Gui, rc *runtimeconfig.RuntimeConfig) {
 						log.Errorf("unable to ping host %s: %v", gw.IP, err)
 					}
 				}
-				gui.Gateways <- rc.GetGateways()
 				stateChange <- StateConnected
 				// trigger configuration save here if health checks are supposed to alter routes
 
@@ -261,8 +140,10 @@ func mainloop(gui *Gui, rc *runtimeconfig.RuntimeConfig) {
 					continue
 
 				case errors.Is(err, &apiserver.UnhealthyError{}):
-					gui.ProgramState <- StateUnhealthy
+					// TODO produce unhealthy status message to "even watcher" stream
+
 					log.Errorf("Device is not healthy: %v", err)
+					// TODO consider moving all notify calls to systray code
 					notify("No access as your device is unhealthy. Run '/msg @Kolide status' on Slack and fix the errors")
 					stateChange <- StateUnhealthy
 					continue
@@ -274,7 +155,6 @@ func mainloop(gui *Gui, rc *runtimeconfig.RuntimeConfig) {
 				}
 
 				rc.UpdateGateways(gateways)
-				gui.Gateways <- rc.GetGateways()
 
 				err = saveConfig(*rc)
 				if err != nil {
@@ -309,7 +189,7 @@ func saveConfig(rc runtimeconfig.RuntimeConfig) error {
 	lastConfigurationFile = newConfigurationFile
 	return nil
 }
-
+/*
 func checkVersion(interval time.Duration, gui *Gui) {
 	type response struct {
 		Tag string `json:"tag_name"`
@@ -334,16 +214,13 @@ func checkVersion(interval time.Duration, gui *Gui) {
 			continue
 		}
 		if version.Version != res.Tag {
-			gui.NewVersionAvailable <- true
+			// gui.NewVersionAvailable <- true
 			notify("New version of device agent available: https://doc.nais.io/device/install#installation")
 			return
 		}
 	}
 }
-
-func onExit() {
-	// This is where we clean up
-}
+*/
 
 func ping(addr string) error {
 	c, err := net.DialTimeout("tcp", fmt.Sprintf("%s:%s", addr, "3000"), 2*time.Second)
@@ -362,4 +239,28 @@ func notify(format string, args ...interface{}) {
 	if err != nil {
 		log.Errorf("failed sending message due to error: %s", err)
 	}
+}
+
+func DeleteConfigFile(path string) error {
+	err := os.Remove(path)
+	if err != nil && err != os.ErrNotExist {
+		return err
+	}
+	log.Debugf("Removed WireGuard configuration file at %s", path)
+	lastConfigurationFile = ""
+	return nil
+}
+
+func WriteConfigFile(path string, r io.Reader) error {
+	cfg, err := ioutil.ReadAll(r)
+	if err != nil {
+		return err
+	}
+	err = ioutil.WriteFile(path, cfg, 0600)
+	if err != nil {
+		return fmt.Errorf("writing WireGuard config to disk: %w", err)
+	}
+
+	log.Debugf("Wrote WireGuard config to disk")
+	return nil
 }

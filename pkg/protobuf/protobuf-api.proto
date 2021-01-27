@@ -1,0 +1,22 @@
+syntax = "proto3";
+
+option go_package = "github.com/nais/device/pkg/protobuf";
+package protobuf;
+
+service DeviceAgent {
+  rpc Connect(Empty) returns (Error) {}
+  rpc Disconnect(Empty) returns (Error) {}
+  rpc WatchGateways(Empty) returns (stream Gateway) {}
+  rpc GatewayClicked(Gateway) returns (Error) {}
+}
+
+message Empty {}
+
+message Gateway {
+  string name = 1;
+  bool healthy = 2;
+}
+
+message Error {
+  string message = 1;
+}
