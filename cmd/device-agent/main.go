@@ -44,6 +44,14 @@ func startDeviceAgent() {
 		notify(fmt.Sprintf("Missing prerequisites: %s", err))
 	}
 
+	listener, err := net.Listen("tcp", fmt.Sprintf("127.0.0.1:%d", 0))
+	if err != nil {
+		log.Fatalf("failed to listen: %v", err)
+	}
+	port := listener.Addr().(*net.TCPAddr).Port
+	log.Infof("listening on port %d", port)
+	cfg.GrpcPort = port
+
 	rc, err := runtimeconfig.New(cfg)
 	if err != nil {
 		log.Errorf("Runtime config: %v", err)
@@ -51,10 +59,6 @@ func startDeviceAgent() {
 		return
 	}
 
-	listener, err := net.Listen("tcp", fmt.Sprintf("127.0.0.1:%d", 0))
-	if err != nil {
-		log.Fatalf("failed to listen: %v", err)
-	}
 	var opts []grpc.ServerOption
 
 	stateChange := make(chan device_agent.ProgramState, 64)

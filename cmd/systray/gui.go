@@ -1,8 +1,11 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"github.com/nais/device/device-agent/open"
+	"github.com/nais/device/pkg/logger"
+	pb "github.com/nais/device/pkg/protobuf"
 	log "github.com/sirupsen/logrus"
 	"os"
 	"os/signal"
@@ -29,6 +32,7 @@ const(
 )
 
 type Gui struct {
+	DeviceAgentClient        pb.DeviceAgentClient
 	Gateways                 chan apiserver.Gateways
 	Events                   chan GuiEvent
 	Interrupts               chan os.Signal
@@ -60,8 +64,10 @@ const (
 	softwareReleasePage = "https://doc.nais.io/device/install"
 )
 
-func NewGUI() *Gui {
-	gui := &Gui{}
+func NewGUI(client pb.DeviceAgentClient) *Gui {
+	gui := &Gui{
+		DeviceAgentClient: client,
+	}
 	systray.SetIcon(NaisLogoBlue)
 
 	gui.MenuItems.Version = systray.AddMenuItem("Update to latest version...", "Click to open browser")
@@ -101,17 +107,29 @@ func NewGUI() *Gui {
 }
 
 func (gui *Gui) EventLoop() {
-	gui.aggregateGatewayButtonClicks()
-
 	currentState := GuiStateDisconnected
+
 	for {
 		select {
 		case guiEvent := <-gui.Events:
-			handleGuiEvent(guiEvent, currentState)
+			gui.handleGuiEvent(guiEvent, currentState)
+			if guiEvent == QuitClicked {
+				systray.Quit()
+				return
+			}
 		case gateways := <-gui.Gateways:
 			gui.handleGateways(gateways)
 		case <-gui.NewVersionAvailable:
 			gui.handleNewVersion()
+		}
+	}
+}
+
+func (gui *Gui) handleButtonClicks() {
+	gui.aggregateGatewayButtonClicks()
+
+	for {
+		select {
 		case <-gui.MenuItems.Version.ClickedCh:
 			gui.Events <- VersionClicked
 		case <-gui.MenuItems.StateInfo.ClickedCh:
@@ -120,8 +138,10 @@ func (gui *Gui) EventLoop() {
 			gui.Events <- ConnectClicked
 		case <-gui.MenuItems.Quit.ClickedCh:
 			gui.Events <- QuitClicked
+			return
 		case <-gui.Interrupts:
 			gui.Events <- QuitClicked
+			return
 		case <-gui.MenuItems.DeviceLog.ClickedCh:
 			gui.Events <- DeviceLogClicked
 		case <-gui.MenuItems.HelperLog.ClickedCh:
@@ -159,6 +179,54 @@ func (gui *Gui) handleGateways(gateways apiserver.Gateways) {
 	}
 	for i := max; i < maxGateways; i++ {
 		gui.MenuItems.GatewayItems[i].MenuItem.Hide()
+	}
+}
+
+func (gui *Gui) handleGuiEvent(guiEvent GuiEvent, state GuiState) {
+	switch guiEvent {
+	case VersionClicked:
+		err := open.Open(softwareReleasePage)
+		if err != nil {
+			log.Warn("opening latest release url: %w", err)
+		}
+
+	case StateInfoClicked:
+		err := open.Open(slackURL)
+		if err != nil {
+			log.Warnf("opening slack: %v", err)
+		}
+
+	case ConnectClicked:
+		log.Infof("Connect button clicked")
+		if state == GuiStateDisconnected {
+			_, err := gui.DeviceAgentClient.Connect(context.Background(), &pb.Empty{})
+			if err != nil {
+				log.Fatalf("while connecting: %v", err)
+			}
+		} else {
+			_, err := gui.DeviceAgentClient.Disconnect(context.Background(), &pb.Empty{})
+			if err != nil {
+				log.Fatalf("while disconnecting: %v", err)
+			}
+		}
+
+	case HelperLogClicked:
+		err := open.Open(logger.DeviceAgentHelperLogFilePath())
+		if err != nil {
+			log.Warn("opening device agent helper log: %w", err)
+		}
+
+	case DeviceLogClicked:
+		err := open.Open(logger.DeviceAgentLogFilePath(cfg.configDir))
+		if err != nil {
+			log.Warn("opening device agent log: %w", err)
+		}
+
+	case QuitClicked:
+		_, err := gui.DeviceAgentClient.Disconnect(context.Background(), &pb.Empty{})
+		if err != nil {
+			log.Fatalf("while disconnecting: %v", err)
+		}
 	}
 }
 

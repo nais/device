@@ -2,61 +2,33 @@ package main
 
 import (
 	"fmt"
-	"github.com/nais/device/device-agent/open"
-	"github.com/nais/device/pkg/logger"
+	"google.golang.org/grpc"
 
 	"github.com/gen2brain/beeep"
+	pb "github.com/nais/device/pkg/protobuf"
 	log "github.com/sirupsen/logrus"
 )
 
 
 func onReady() {
-	gui := NewGUI()
+	connection, err := grpc.Dial(
+		fmt.Sprintf("127.0.0.1:%d", cfg.grpcPort),
+		grpc.WithBlock(),
+		grpc.WithInsecure(),
+	)
+	if err != nil {
+		log.Fatal("unable to connect to naisdevice-agent grpc serve %v", err)
+	}
+	client := pb.NewDeviceAgentClient(connection)
+
+	gui := NewGUI(client)
 	if cfg.autoConnect {
 		gui.Events <- ConnectClicked
 	}
 
+	go gui.handleButtonClicks()
 	go gui.EventLoop()
 	//TODO: go checkVersion(versionCheckInterval, gui)
-}
-
-func handleGuiEvent(guiEvent GuiEvent, state GuiState) {
-	switch guiEvent {
-	case VersionClicked:
-		err := open.Open(softwareReleasePage)
-		if err != nil {
-			log.Warn("opening latest release url: %w", err)
-		}
-
-	case StateInfoClicked:
-		err := open.Open(slackURL)
-		if err != nil {
-			log.Warnf("opening slack: %v", err)
-		}
-
-	case ConnectClicked:
-		log.Infof("Connect button clicked")
-		if state == GuiStateDisconnected {
-			// TODO: RPC call to initiate connection
-		} else {
-			// TODO: RPC call to disconnect current connection
-		}
-
-	case HelperLogClicked:
-		err := open.Open(logger.DeviceAgentHelperLogFilePath())
-		if err != nil {
-			log.Warn("opening device agent helper log: %w", err)
-		}
-
-	case DeviceLogClicked:
-		err := open.Open(logger.DeviceAgentLogFilePath(cfg.configDir))
-		if err != nil {
-			log.Warn("opening device agent log: %w", err)
-		}
-
-	case QuitClicked:
-		// TODO: RPC call to quit device-agent
-	}
 }
 
 func onExit() {

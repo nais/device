@@ -30,7 +30,7 @@ func EventLoop(rc *runtimeconfig.RuntimeConfig, stateChange chan ProgramState) {
 	syncConfigTicker := time.NewTicker(syncConfigInterval)
 	healthCheckTicker := time.NewTicker(healthCheckInterval)
 
-	state := StateBootstrapping
+	state := StateDisconnected
 	stateChange <- state
 
 	for {

@@ -26,6 +26,7 @@ type Config struct {
 	Platform            string
 	BootstrapAPI        string
 	AutoConnect         bool
+	GrpcPort            int
 }
 
 func (c *Config) SetDefaults() {
