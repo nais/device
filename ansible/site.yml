@@ -19,7 +19,7 @@
     - logging
     - gateway
   vars:
-    K8S_CLUSTER_API_IP_ADDRESS: 172.10.0.2
+    K8S_CLUSTER_API_IP_ADDRESS: 172.16.0.2
     onprem: false
 
 - hosts: onprem_gateways
