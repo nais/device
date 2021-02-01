@@ -15,7 +15,7 @@ func main() {
 		return
 	}
 
-	fmt.Print("package main\n\n")
+	fmt.Print("package systray\n\n")
 	for _, file := range files {
 		if filepath.Ext(file.Name()) == ".ico" {
 			b, err := ioutil.ReadFile(file.Name())

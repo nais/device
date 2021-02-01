@@ -86,7 +86,7 @@ local-apiserver:
 	echo ${confdir}
 
 cmd/device-agent/icons.go: assets/*.ico assets/icon.go
-	cd assets && go run icon.go | gofmt -s > ../cmd/device-agent/icons.go
+	cd assets && go run icon.go | gofmt -s > ../pkg/systray/icons.go
 
 linux-icon: packaging/linux/icons/*/apps/naisdevice.png
 packaging/linux/icons/*/apps/naisdevice.png: assets/nais-logo-blue.png
