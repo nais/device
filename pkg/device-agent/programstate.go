@@ -1,9 +1,9 @@
 package device_agent
 
 import (
+	"fmt"
 	"time"
-    "fmt"
-	)
+)
 
 type ProgramState int
 
@@ -21,11 +21,11 @@ const (
 )
 
 const (
-	versionCheckInterval	  = 1 * time.Hour
-	syncConfigInterval		= 5 * time.Minute
+	versionCheckInterval      = 1 * time.Hour
+	syncConfigInterval        = 5 * time.Minute
 	initialGatewayRefreshWait = 2 * time.Second
-	initialConnectWait		= initialGatewayRefreshWait
-	healthCheckInterval	   = 20 * time.Second
+	initialConnectWait        = initialGatewayRefreshWait
+	healthCheckInterval       = 20 * time.Second
 )
 
 func (state ProgramState) String() string {
@@ -52,4 +52,3 @@ func (state ProgramState) String() string {
 		return "Unknown state >_<"
 	}
 }
-

@@ -1,18 +1,33 @@
-package main
+package systray
 
 import (
 	"fmt"
+	"github.com/getlantern/systray"
+	"net"
 
 	"google.golang.org/grpc"
 
-	"github.com/gen2brain/beeep"
 	pb "github.com/nais/device/pkg/protobuf"
 	log "github.com/sirupsen/logrus"
 )
 
+type Config struct {
+	GrpcPort   uint16
+	GrpcServer net.IP
+
+	ConfigDir string
+
+	LogLevel    string
+	LogFilePath string
+
+	AutoConnect bool
+}
+
+var cfg Config
+
 func onReady() {
 	connection, err := grpc.Dial(
-		fmt.Sprintf("127.0.0.1:%d", cfg.grpcPort),
+		fmt.Sprintf("127.0.0.1:%d", cfg.GrpcPort),
 		grpc.WithBlock(),
 		grpc.WithInsecure(),
 	)
@@ -22,7 +37,7 @@ func onReady() {
 	client := pb.NewDeviceAgentClient(connection)
 
 	gui := NewGUI(client)
-	if cfg.autoConnect {
+	if cfg.AutoConnect {
 		gui.Events <- ConnectClicked
 	}
 
@@ -35,11 +50,8 @@ func onExit() {
 	// This is where we clean up
 }
 
-func notify(format string, args ...interface{}) {
-	message := fmt.Sprintf(format, args...)
-	err := beeep.Notify("NAIS device", message, "../Resources/nais-logo-red.png")
-	log.Infof("sending message to notification centre: %s", message)
-	if err != nil {
-		log.Errorf("failed sending message due to error: %s", err)
-	}
+func Spawn(systrayConfig Config) {
+	cfg = systrayConfig
+
+	systray.Run(onReady, onExit)
 }

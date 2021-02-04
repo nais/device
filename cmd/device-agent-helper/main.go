@@ -139,7 +139,7 @@ func main() {
 		if err != nil {
 			log.Errorf("Syncing WireGuard config: %v", err)
 		}
-		
+
 		up = true
 	}
 

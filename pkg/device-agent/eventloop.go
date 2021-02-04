@@ -18,9 +18,8 @@ import (
 	"time"
 )
 
-
 var (
-	connectedTime		 = time.Now()
+	connectedTime         = time.Now()
 	lastConfigurationFile string
 )
 
@@ -189,6 +188,7 @@ func saveConfig(rc runtimeconfig.RuntimeConfig) error {
 	lastConfigurationFile = newConfigurationFile
 	return nil
 }
+
 /*
 func checkVersion(interval time.Duration, gui *Gui) {
 	type response struct {

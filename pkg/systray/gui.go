@@ -1,4 +1,4 @@
-package main
+package systray
 
 import (
 	"context"
@@ -219,7 +219,7 @@ func (gui *Gui) handleGuiEvent(guiEvent GuiEvent, state GuiState) {
 		}
 
 	case DeviceLogClicked:
-		err := open.Open(logger.DeviceAgentLogFilePath(cfg.configDir))
+		err := open.Open(logger.DeviceAgentLogFilePath(cfg.ConfigDir))
 		if err != nil {
 			log.Warn("opening device agent log: %w", err)
 		}

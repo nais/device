@@ -39,7 +39,6 @@ func (c *Config) SetDefaults() {
 	c.LogFilePath = logger.DeviceAgentLogFilePath(c.ConfigDir)
 }
 
-
 func DefaultConfig() Config {
 	userConfigDir, err := config.UserConfigDir()
 	if err != nil {

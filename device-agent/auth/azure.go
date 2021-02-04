@@ -75,7 +75,6 @@ func runAuthFlow(ctx context.Context, conf oauth2.Config) (*oauth2.Token, error)
 	port := listener.Addr().(*net.TCPAddr).Port
 	conf.RedirectURL = fmt.Sprintf("http://localhost:%d/", port)
 
-
 	server := &http.Server{Handler: handler}
 	go server.Serve(listener)
 	defer server.Close()
