@@ -3,13 +3,14 @@ package main
 import (
 	"context"
 	"fmt"
+	"os"
+	"os/signal"
+	"syscall"
+
 	"github.com/nais/device/device-agent/open"
 	"github.com/nais/device/pkg/logger"
 	pb "github.com/nais/device/pkg/protobuf"
 	log "github.com/sirupsen/logrus"
-	"os"
-	"os/signal"
-	"syscall"
 
 	"github.com/getlantern/systray"
 	"github.com/nais/device/device-agent/apiserver"
@@ -23,7 +24,8 @@ type GatewayItem struct {
 }
 
 type GuiState int
-const(
+
+const (
 	GuiStateConnected GuiState = iota
 	GuiStateDisconnected
 	GuiStateAwaitingAgent
@@ -199,12 +201,12 @@ func (gui *Gui) handleGuiEvent(guiEvent GuiEvent, state GuiState) {
 	case ConnectClicked:
 		log.Infof("Connect button clicked")
 		if state == GuiStateDisconnected {
-			_, err := gui.DeviceAgentClient.Connect(context.Background(), &pb.Empty{})
+			_, err := gui.DeviceAgentClient.Login(context.Background(), &pb.LoginRequest{})
 			if err != nil {
 				log.Fatalf("while connecting: %v", err)
 			}
 		} else {
-			_, err := gui.DeviceAgentClient.Disconnect(context.Background(), &pb.Empty{})
+			_, err := gui.DeviceAgentClient.Logout(context.Background(), &pb.LogoutRequest{})
 			if err != nil {
 				log.Fatalf("while disconnecting: %v", err)
 			}
@@ -223,7 +225,7 @@ func (gui *Gui) handleGuiEvent(guiEvent GuiEvent, state GuiState) {
 		}
 
 	case QuitClicked:
-		_, err := gui.DeviceAgentClient.Disconnect(context.Background(), &pb.Empty{})
+		_, err := gui.DeviceAgentClient.Logout(context.Background(), &pb.LogoutRequest{})
 		if err != nil {
 			log.Fatalf("while disconnecting: %v", err)
 		}

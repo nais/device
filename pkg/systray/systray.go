@@ -2,13 +2,13 @@ package main
 
 import (
 	"fmt"
+
 	"google.golang.org/grpc"
 
 	"github.com/gen2brain/beeep"
 	pb "github.com/nais/device/pkg/protobuf"
 	log "github.com/sirupsen/logrus"
 )
-
 
 func onReady() {
 	connection, err := grpc.Dial(
@@ -17,7 +17,7 @@ func onReady() {
 		grpc.WithInsecure(),
 	)
 	if err != nil {
-		log.Fatal("unable to connect to naisdevice-agent grpc serve %v", err)
+		log.Fatalf("unable to connect to naisdevice-agent grpc server: %v", err)
 	}
 	client := pb.NewDeviceAgentClient(connection)
 
@@ -28,7 +28,7 @@ func onReady() {
 
 	go gui.handleButtonClicks()
 	go gui.EventLoop()
-	//TODO: go checkVersion(versionCheckInterval, gui)
+	// TODO: go checkVersion(versionCheckInterval, gui)
 }
 
 func onExit() {

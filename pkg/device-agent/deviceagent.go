@@ -2,8 +2,10 @@ package device_agent
 
 import (
 	"context"
+
 	pb "github.com/nais/device/pkg/protobuf"
-	"github.com/prometheus/common/log"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 type DeviceAgentServer struct {
@@ -11,26 +13,23 @@ type DeviceAgentServer struct {
 	stateChange chan ProgramState
 }
 
-func (d DeviceAgentServer) Connect(ctx context.Context, empty *pb.Empty) (*pb.Error, error) {
+func (d DeviceAgentServer) Login(ctx context.Context, request *pb.LoginRequest) (*pb.LoginResponse, error) {
 	d.stateChange <- StateBootstrapping
-	return &pb.Error{Message: "no error"}, nil
+	return &pb.LoginResponse{}, nil
 }
 
-func (d DeviceAgentServer) Disconnect(ctx context.Context, empty *pb.Empty) (*pb.Error, error) {
+func (d DeviceAgentServer) Logout(ctx context.Context, request *pb.LogoutRequest) (*pb.LogoutResponse, error) {
 	d.stateChange <- StateDisconnecting
-	return &pb.Error{Message: "no error"}, nil
+	return &pb.LogoutResponse{}, nil
 }
 
-func (d DeviceAgentServer) WatchGateways(empty *pb.Empty, server pb.DeviceAgent_WatchGatewaysServer) error {
-	log.Error("not implemented")
-	return nil
+func (d DeviceAgentServer) Status(*pb.AgentStatusRequest, pb.DeviceAgent_StatusServer) error {
+	return status.Errorf(codes.Unimplemented, "method Status not implemented")
 }
 
-func (d DeviceAgentServer) GatewayClicked(ctx context.Context, gateway *pb.Gateway) (*pb.Error, error) {
-	log.Error("not implemented")
-	return &pb.Error{Message: "no error"}, nil
+func (d DeviceAgentServer) ConfigureJITA(context.Context, *pb.ConfigureJITARequest) (*pb.ConfigureJITAResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ConfigureJITA not implemented")
 }
-
 
 func NewServer(stateChange chan ProgramState) pb.DeviceAgentServer {
 	return &DeviceAgentServer{
