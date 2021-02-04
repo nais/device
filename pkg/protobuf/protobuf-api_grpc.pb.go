@@ -20,9 +20,9 @@ const _ = grpc.SupportPackageIsVersion7
 type DeviceHelperClient interface {
 	// todo: shut down all connections on error
 	// Push and apply new VPN configuration.
-	Configure(ctx context.Context, in *Configuration, opts ...grpc.CallOption) (*Error, error)
+	Configure(ctx context.Context, in *Configuration, opts ...grpc.CallOption) (*ConfigureResponse, error)
 	// Install the newest version of naisdevice.
-	Upgrade(ctx context.Context, in *UpgradeRequest, opts ...grpc.CallOption) (*Error, error)
+	Upgrade(ctx context.Context, in *UpgradeRequest, opts ...grpc.CallOption) (*UpgradeResponse, error)
 }
 
 type deviceHelperClient struct {
@@ -33,8 +33,8 @@ func NewDeviceHelperClient(cc grpc.ClientConnInterface) DeviceHelperClient {
 	return &deviceHelperClient{cc}
 }
 
-func (c *deviceHelperClient) Configure(ctx context.Context, in *Configuration, opts ...grpc.CallOption) (*Error, error) {
-	out := new(Error)
+func (c *deviceHelperClient) Configure(ctx context.Context, in *Configuration, opts ...grpc.CallOption) (*ConfigureResponse, error) {
+	out := new(ConfigureResponse)
 	err := c.cc.Invoke(ctx, "/protobuf.DeviceHelper/Configure", in, out, opts...)
 	if err != nil {
 		return nil, err
@@ -42,8 +42,8 @@ func (c *deviceHelperClient) Configure(ctx context.Context, in *Configuration, o
 	return out, nil
 }
 
-func (c *deviceHelperClient) Upgrade(ctx context.Context, in *UpgradeRequest, opts ...grpc.CallOption) (*Error, error) {
-	out := new(Error)
+func (c *deviceHelperClient) Upgrade(ctx context.Context, in *UpgradeRequest, opts ...grpc.CallOption) (*UpgradeResponse, error) {
+	out := new(UpgradeResponse)
 	err := c.cc.Invoke(ctx, "/protobuf.DeviceHelper/Upgrade", in, out, opts...)
 	if err != nil {
 		return nil, err
@@ -57,9 +57,9 @@ func (c *deviceHelperClient) Upgrade(ctx context.Context, in *UpgradeRequest, op
 type DeviceHelperServer interface {
 	// todo: shut down all connections on error
 	// Push and apply new VPN configuration.
-	Configure(context.Context, *Configuration) (*Error, error)
+	Configure(context.Context, *Configuration) (*ConfigureResponse, error)
 	// Install the newest version of naisdevice.
-	Upgrade(context.Context, *UpgradeRequest) (*Error, error)
+	Upgrade(context.Context, *UpgradeRequest) (*UpgradeResponse, error)
 	mustEmbedUnimplementedDeviceHelperServer()
 }
 
@@ -67,10 +67,10 @@ type DeviceHelperServer interface {
 type UnimplementedDeviceHelperServer struct {
 }
 
-func (UnimplementedDeviceHelperServer) Configure(context.Context, *Configuration) (*Error, error) {
+func (UnimplementedDeviceHelperServer) Configure(context.Context, *Configuration) (*ConfigureResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Configure not implemented")
 }
-func (UnimplementedDeviceHelperServer) Upgrade(context.Context, *UpgradeRequest) (*Error, error) {
+func (UnimplementedDeviceHelperServer) Upgrade(context.Context, *UpgradeRequest) (*UpgradeResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Upgrade not implemented")
 }
 func (UnimplementedDeviceHelperServer) mustEmbedUnimplementedDeviceHelperServer() {}
@@ -150,11 +150,11 @@ type DeviceAgentClient interface {
 	// Use Status() to continuously monitor the current Agent status.
 	Status(ctx context.Context, in *AgentStatusRequest, opts ...grpc.CallOption) (DeviceAgent_StatusClient, error)
 	// Open the JITA form in a web browser.
-	ConfigureJITA(ctx context.Context, in *ConfigureJITARequest, opts ...grpc.CallOption) (*Error, error)
+	ConfigureJITA(ctx context.Context, in *ConfigureJITARequest, opts ...grpc.CallOption) (*ConfigureJITAResponse, error)
 	// Log in to API server, enabling access to protected resources.
-	Login(ctx context.Context, in *LoginRequest, opts ...grpc.CallOption) (*Error, error)
+	Login(ctx context.Context, in *LoginRequest, opts ...grpc.CallOption) (*LoginResponse, error)
 	// Log out of API server, shutting down all VPN connections.
-	Logout(ctx context.Context, in *LogoutRequest, opts ...grpc.CallOption) (*Error, error)
+	Logout(ctx context.Context, in *LogoutRequest, opts ...grpc.CallOption) (*LogoutResponse, error)
 }
 
 type deviceAgentClient struct {
@@ -197,8 +197,8 @@ func (x *deviceAgentStatusClient) Recv() (*AgentStatus, error) {
 	return m, nil
 }
 
-func (c *deviceAgentClient) ConfigureJITA(ctx context.Context, in *ConfigureJITARequest, opts ...grpc.CallOption) (*Error, error) {
-	out := new(Error)
+func (c *deviceAgentClient) ConfigureJITA(ctx context.Context, in *ConfigureJITARequest, opts ...grpc.CallOption) (*ConfigureJITAResponse, error) {
+	out := new(ConfigureJITAResponse)
 	err := c.cc.Invoke(ctx, "/protobuf.DeviceAgent/ConfigureJITA", in, out, opts...)
 	if err != nil {
 		return nil, err
@@ -206,8 +206,8 @@ func (c *deviceAgentClient) ConfigureJITA(ctx context.Context, in *ConfigureJITA
 	return out, nil
 }
 
-func (c *deviceAgentClient) Login(ctx context.Context, in *LoginRequest, opts ...grpc.CallOption) (*Error, error) {
-	out := new(Error)
+func (c *deviceAgentClient) Login(ctx context.Context, in *LoginRequest, opts ...grpc.CallOption) (*LoginResponse, error) {
+	out := new(LoginResponse)
 	err := c.cc.Invoke(ctx, "/protobuf.DeviceAgent/Login", in, out, opts...)
 	if err != nil {
 		return nil, err
@@ -215,8 +215,8 @@ func (c *deviceAgentClient) Login(ctx context.Context, in *LoginRequest, opts ..
 	return out, nil
 }
 
-func (c *deviceAgentClient) Logout(ctx context.Context, in *LogoutRequest, opts ...grpc.CallOption) (*Error, error) {
-	out := new(Error)
+func (c *deviceAgentClient) Logout(ctx context.Context, in *LogoutRequest, opts ...grpc.CallOption) (*LogoutResponse, error) {
+	out := new(LogoutResponse)
 	err := c.cc.Invoke(ctx, "/protobuf.DeviceAgent/Logout", in, out, opts...)
 	if err != nil {
 		return nil, err
@@ -232,11 +232,11 @@ type DeviceAgentServer interface {
 	// Use Status() to continuously monitor the current Agent status.
 	Status(*AgentStatusRequest, DeviceAgent_StatusServer) error
 	// Open the JITA form in a web browser.
-	ConfigureJITA(context.Context, *ConfigureJITARequest) (*Error, error)
+	ConfigureJITA(context.Context, *ConfigureJITARequest) (*ConfigureJITAResponse, error)
 	// Log in to API server, enabling access to protected resources.
-	Login(context.Context, *LoginRequest) (*Error, error)
+	Login(context.Context, *LoginRequest) (*LoginResponse, error)
 	// Log out of API server, shutting down all VPN connections.
-	Logout(context.Context, *LogoutRequest) (*Error, error)
+	Logout(context.Context, *LogoutRequest) (*LogoutResponse, error)
 	mustEmbedUnimplementedDeviceAgentServer()
 }
 
@@ -247,13 +247,13 @@ type UnimplementedDeviceAgentServer struct {
 func (UnimplementedDeviceAgentServer) Status(*AgentStatusRequest, DeviceAgent_StatusServer) error {
 	return status.Errorf(codes.Unimplemented, "method Status not implemented")
 }
-func (UnimplementedDeviceAgentServer) ConfigureJITA(context.Context, *ConfigureJITARequest) (*Error, error) {
+func (UnimplementedDeviceAgentServer) ConfigureJITA(context.Context, *ConfigureJITARequest) (*ConfigureJITAResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method ConfigureJITA not implemented")
 }
-func (UnimplementedDeviceAgentServer) Login(context.Context, *LoginRequest) (*Error, error) {
+func (UnimplementedDeviceAgentServer) Login(context.Context, *LoginRequest) (*LoginResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Login not implemented")
 }
-func (UnimplementedDeviceAgentServer) Logout(context.Context, *LogoutRequest) (*Error, error) {
+func (UnimplementedDeviceAgentServer) Logout(context.Context, *LogoutRequest) (*LogoutResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Logout not implemented")
 }
 func (UnimplementedDeviceAgentServer) mustEmbedUnimplementedDeviceAgentServer() {}
