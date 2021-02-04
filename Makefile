@@ -1,4 +1,6 @@
 .PHONY: test
+PROTOC = $(shell which protoc)
+PROTOC_GEN_GO = $(shell which protoc-gen-go)
 DATE = $(shell date "+%Y-%m-%d")
 LAST_COMMIT = $(shell git --no-pager log -1 --pretty=%h)
 VERSION ?= $(DATE)-$(LAST_COMMIT)
@@ -165,3 +167,9 @@ clean:
 	rm -rf ./bin
 	rm -rf ./packaging/linux/icons
 
+install-protobuf-go:
+	go install google.golang.org/protobuf/cmd/protoc-gen-go
+	go install google.golang.org/grpc/cmd/protoc-gen-go-grpc
+
+proto:
+	$(PROTOC) --go-grpc_opt=paths=source_relative --go_opt=paths=source_relative --go_out=. --go-grpc_out=. pkg/protobuf/protobuf-api.proto
