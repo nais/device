@@ -14,14 +14,147 @@ import (
 // Requires gRPC-Go v1.32.0 or later.
 const _ = grpc.SupportPackageIsVersion7
 
+// DeviceHelperClient is the client API for DeviceHelper service.
+//
+// For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
+type DeviceHelperClient interface {
+	// todo: shut down all connections on error
+	// Push and apply new VPN configuration.
+	Configure(ctx context.Context, in *Configuration, opts ...grpc.CallOption) (*Error, error)
+	// Install the newest version of naisdevice.
+	Upgrade(ctx context.Context, in *UpgradeRequest, opts ...grpc.CallOption) (*Error, error)
+}
+
+type deviceHelperClient struct {
+	cc grpc.ClientConnInterface
+}
+
+func NewDeviceHelperClient(cc grpc.ClientConnInterface) DeviceHelperClient {
+	return &deviceHelperClient{cc}
+}
+
+func (c *deviceHelperClient) Configure(ctx context.Context, in *Configuration, opts ...grpc.CallOption) (*Error, error) {
+	out := new(Error)
+	err := c.cc.Invoke(ctx, "/protobuf.DeviceHelper/Configure", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *deviceHelperClient) Upgrade(ctx context.Context, in *UpgradeRequest, opts ...grpc.CallOption) (*Error, error) {
+	out := new(Error)
+	err := c.cc.Invoke(ctx, "/protobuf.DeviceHelper/Upgrade", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+// DeviceHelperServer is the server API for DeviceHelper service.
+// All implementations must embed UnimplementedDeviceHelperServer
+// for forward compatibility
+type DeviceHelperServer interface {
+	// todo: shut down all connections on error
+	// Push and apply new VPN configuration.
+	Configure(context.Context, *Configuration) (*Error, error)
+	// Install the newest version of naisdevice.
+	Upgrade(context.Context, *UpgradeRequest) (*Error, error)
+	mustEmbedUnimplementedDeviceHelperServer()
+}
+
+// UnimplementedDeviceHelperServer must be embedded to have forward compatible implementations.
+type UnimplementedDeviceHelperServer struct {
+}
+
+func (UnimplementedDeviceHelperServer) Configure(context.Context, *Configuration) (*Error, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Configure not implemented")
+}
+func (UnimplementedDeviceHelperServer) Upgrade(context.Context, *UpgradeRequest) (*Error, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Upgrade not implemented")
+}
+func (UnimplementedDeviceHelperServer) mustEmbedUnimplementedDeviceHelperServer() {}
+
+// UnsafeDeviceHelperServer may be embedded to opt out of forward compatibility for this service.
+// Use of this interface is not recommended, as added methods to DeviceHelperServer will
+// result in compilation errors.
+type UnsafeDeviceHelperServer interface {
+	mustEmbedUnimplementedDeviceHelperServer()
+}
+
+func RegisterDeviceHelperServer(s grpc.ServiceRegistrar, srv DeviceHelperServer) {
+	s.RegisterService(&DeviceHelper_ServiceDesc, srv)
+}
+
+func _DeviceHelper_Configure_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(Configuration)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(DeviceHelperServer).Configure(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/protobuf.DeviceHelper/Configure",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(DeviceHelperServer).Configure(ctx, req.(*Configuration))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _DeviceHelper_Upgrade_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UpgradeRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(DeviceHelperServer).Upgrade(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/protobuf.DeviceHelper/Upgrade",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(DeviceHelperServer).Upgrade(ctx, req.(*UpgradeRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+// DeviceHelper_ServiceDesc is the grpc.ServiceDesc for DeviceHelper service.
+// It's only intended for direct use with grpc.RegisterService,
+// and not to be introspected or modified (even as a copy)
+var DeviceHelper_ServiceDesc = grpc.ServiceDesc{
+	ServiceName: "protobuf.DeviceHelper",
+	HandlerType: (*DeviceHelperServer)(nil),
+	Methods: []grpc.MethodDesc{
+		{
+			MethodName: "Configure",
+			Handler:    _DeviceHelper_Configure_Handler,
+		},
+		{
+			MethodName: "Upgrade",
+			Handler:    _DeviceHelper_Upgrade_Handler,
+		},
+	},
+	Streams:  []grpc.StreamDesc{},
+	Metadata: "pkg/protobuf/protobuf-api.proto",
+}
+
 // DeviceAgentClient is the client API for DeviceAgent service.
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type DeviceAgentClient interface {
-	Connect(ctx context.Context, in *Empty, opts ...grpc.CallOption) (*Error, error)
-	Disconnect(ctx context.Context, in *Empty, opts ...grpc.CallOption) (*Error, error)
-	WatchGateways(ctx context.Context, in *Empty, opts ...grpc.CallOption) (DeviceAgent_WatchGatewaysClient, error)
-	GatewayClicked(ctx context.Context, in *Gateway, opts ...grpc.CallOption) (*Error, error)
+	// DeviceAgent will stream all state changes on this endpoint.
+	// Use Status() to continuously monitor the current Agent status.
+	Status(ctx context.Context, in *AgentStatusRequest, opts ...grpc.CallOption) (DeviceAgent_StatusClient, error)
+	// Open the JITA form in a web browser.
+	ConfigureJITA(ctx context.Context, in *ConfigureJITARequest, opts ...grpc.CallOption) (*Error, error)
+	// Log in to API server, enabling access to protected resources.
+	Login(ctx context.Context, in *LoginRequest, opts ...grpc.CallOption) (*Error, error)
+	// Log out of API server, shutting down all VPN connections.
+	Logout(ctx context.Context, in *LogoutRequest, opts ...grpc.CallOption) (*Error, error)
 }
 
 type deviceAgentClient struct {
@@ -32,30 +165,12 @@ func NewDeviceAgentClient(cc grpc.ClientConnInterface) DeviceAgentClient {
 	return &deviceAgentClient{cc}
 }
 
-func (c *deviceAgentClient) Connect(ctx context.Context, in *Empty, opts ...grpc.CallOption) (*Error, error) {
-	out := new(Error)
-	err := c.cc.Invoke(ctx, "/protobuf.DeviceAgent/Connect", in, out, opts...)
+func (c *deviceAgentClient) Status(ctx context.Context, in *AgentStatusRequest, opts ...grpc.CallOption) (DeviceAgent_StatusClient, error) {
+	stream, err := c.cc.NewStream(ctx, &DeviceAgent_ServiceDesc.Streams[0], "/protobuf.DeviceAgent/Status", opts...)
 	if err != nil {
 		return nil, err
 	}
-	return out, nil
-}
-
-func (c *deviceAgentClient) Disconnect(ctx context.Context, in *Empty, opts ...grpc.CallOption) (*Error, error) {
-	out := new(Error)
-	err := c.cc.Invoke(ctx, "/protobuf.DeviceAgent/Disconnect", in, out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *deviceAgentClient) WatchGateways(ctx context.Context, in *Empty, opts ...grpc.CallOption) (DeviceAgent_WatchGatewaysClient, error) {
-	stream, err := c.cc.NewStream(ctx, &DeviceAgent_ServiceDesc.Streams[0], "/protobuf.DeviceAgent/WatchGateways", opts...)
-	if err != nil {
-		return nil, err
-	}
-	x := &deviceAgentWatchGatewaysClient{stream}
+	x := &deviceAgentStatusClient{stream}
 	if err := x.ClientStream.SendMsg(in); err != nil {
 		return nil, err
 	}
@@ -65,26 +180,44 @@ func (c *deviceAgentClient) WatchGateways(ctx context.Context, in *Empty, opts .
 	return x, nil
 }
 
-type DeviceAgent_WatchGatewaysClient interface {
-	Recv() (*Gateway, error)
+type DeviceAgent_StatusClient interface {
+	Recv() (*AgentStatus, error)
 	grpc.ClientStream
 }
 
-type deviceAgentWatchGatewaysClient struct {
+type deviceAgentStatusClient struct {
 	grpc.ClientStream
 }
 
-func (x *deviceAgentWatchGatewaysClient) Recv() (*Gateway, error) {
-	m := new(Gateway)
+func (x *deviceAgentStatusClient) Recv() (*AgentStatus, error) {
+	m := new(AgentStatus)
 	if err := x.ClientStream.RecvMsg(m); err != nil {
 		return nil, err
 	}
 	return m, nil
 }
 
-func (c *deviceAgentClient) GatewayClicked(ctx context.Context, in *Gateway, opts ...grpc.CallOption) (*Error, error) {
+func (c *deviceAgentClient) ConfigureJITA(ctx context.Context, in *ConfigureJITARequest, opts ...grpc.CallOption) (*Error, error) {
 	out := new(Error)
-	err := c.cc.Invoke(ctx, "/protobuf.DeviceAgent/GatewayClicked", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/protobuf.DeviceAgent/ConfigureJITA", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *deviceAgentClient) Login(ctx context.Context, in *LoginRequest, opts ...grpc.CallOption) (*Error, error) {
+	out := new(Error)
+	err := c.cc.Invoke(ctx, "/protobuf.DeviceAgent/Login", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *deviceAgentClient) Logout(ctx context.Context, in *LogoutRequest, opts ...grpc.CallOption) (*Error, error) {
+	out := new(Error)
+	err := c.cc.Invoke(ctx, "/protobuf.DeviceAgent/Logout", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -95,10 +228,15 @@ func (c *deviceAgentClient) GatewayClicked(ctx context.Context, in *Gateway, opt
 // All implementations must embed UnimplementedDeviceAgentServer
 // for forward compatibility
 type DeviceAgentServer interface {
-	Connect(context.Context, *Empty) (*Error, error)
-	Disconnect(context.Context, *Empty) (*Error, error)
-	WatchGateways(*Empty, DeviceAgent_WatchGatewaysServer) error
-	GatewayClicked(context.Context, *Gateway) (*Error, error)
+	// DeviceAgent will stream all state changes on this endpoint.
+	// Use Status() to continuously monitor the current Agent status.
+	Status(*AgentStatusRequest, DeviceAgent_StatusServer) error
+	// Open the JITA form in a web browser.
+	ConfigureJITA(context.Context, *ConfigureJITARequest) (*Error, error)
+	// Log in to API server, enabling access to protected resources.
+	Login(context.Context, *LoginRequest) (*Error, error)
+	// Log out of API server, shutting down all VPN connections.
+	Logout(context.Context, *LogoutRequest) (*Error, error)
 	mustEmbedUnimplementedDeviceAgentServer()
 }
 
@@ -106,17 +244,17 @@ type DeviceAgentServer interface {
 type UnimplementedDeviceAgentServer struct {
 }
 
-func (UnimplementedDeviceAgentServer) Connect(context.Context, *Empty) (*Error, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method Connect not implemented")
+func (UnimplementedDeviceAgentServer) Status(*AgentStatusRequest, DeviceAgent_StatusServer) error {
+	return status.Errorf(codes.Unimplemented, "method Status not implemented")
 }
-func (UnimplementedDeviceAgentServer) Disconnect(context.Context, *Empty) (*Error, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method Disconnect not implemented")
+func (UnimplementedDeviceAgentServer) ConfigureJITA(context.Context, *ConfigureJITARequest) (*Error, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ConfigureJITA not implemented")
 }
-func (UnimplementedDeviceAgentServer) WatchGateways(*Empty, DeviceAgent_WatchGatewaysServer) error {
-	return status.Errorf(codes.Unimplemented, "method WatchGateways not implemented")
+func (UnimplementedDeviceAgentServer) Login(context.Context, *LoginRequest) (*Error, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Login not implemented")
 }
-func (UnimplementedDeviceAgentServer) GatewayClicked(context.Context, *Gateway) (*Error, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method GatewayClicked not implemented")
+func (UnimplementedDeviceAgentServer) Logout(context.Context, *LogoutRequest) (*Error, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Logout not implemented")
 }
 func (UnimplementedDeviceAgentServer) mustEmbedUnimplementedDeviceAgentServer() {}
 
@@ -131,77 +269,77 @@ func RegisterDeviceAgentServer(s grpc.ServiceRegistrar, srv DeviceAgentServer) {
 	s.RegisterService(&DeviceAgent_ServiceDesc, srv)
 }
 
-func _DeviceAgent_Connect_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(Empty)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(DeviceAgentServer).Connect(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/protobuf.DeviceAgent/Connect",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(DeviceAgentServer).Connect(ctx, req.(*Empty))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _DeviceAgent_Disconnect_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(Empty)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(DeviceAgentServer).Disconnect(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/protobuf.DeviceAgent/Disconnect",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(DeviceAgentServer).Disconnect(ctx, req.(*Empty))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _DeviceAgent_WatchGateways_Handler(srv interface{}, stream grpc.ServerStream) error {
-	m := new(Empty)
+func _DeviceAgent_Status_Handler(srv interface{}, stream grpc.ServerStream) error {
+	m := new(AgentStatusRequest)
 	if err := stream.RecvMsg(m); err != nil {
 		return err
 	}
-	return srv.(DeviceAgentServer).WatchGateways(m, &deviceAgentWatchGatewaysServer{stream})
+	return srv.(DeviceAgentServer).Status(m, &deviceAgentStatusServer{stream})
 }
 
-type DeviceAgent_WatchGatewaysServer interface {
-	Send(*Gateway) error
+type DeviceAgent_StatusServer interface {
+	Send(*AgentStatus) error
 	grpc.ServerStream
 }
 
-type deviceAgentWatchGatewaysServer struct {
+type deviceAgentStatusServer struct {
 	grpc.ServerStream
 }
 
-func (x *deviceAgentWatchGatewaysServer) Send(m *Gateway) error {
+func (x *deviceAgentStatusServer) Send(m *AgentStatus) error {
 	return x.ServerStream.SendMsg(m)
 }
 
-func _DeviceAgent_GatewayClicked_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(Gateway)
+func _DeviceAgent_ConfigureJITA_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ConfigureJITARequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(DeviceAgentServer).GatewayClicked(ctx, in)
+		return srv.(DeviceAgentServer).ConfigureJITA(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/protobuf.DeviceAgent/GatewayClicked",
+		FullMethod: "/protobuf.DeviceAgent/ConfigureJITA",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(DeviceAgentServer).GatewayClicked(ctx, req.(*Gateway))
+		return srv.(DeviceAgentServer).ConfigureJITA(ctx, req.(*ConfigureJITARequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _DeviceAgent_Login_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(LoginRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(DeviceAgentServer).Login(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/protobuf.DeviceAgent/Login",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(DeviceAgentServer).Login(ctx, req.(*LoginRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _DeviceAgent_Logout_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(LogoutRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(DeviceAgentServer).Logout(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/protobuf.DeviceAgent/Logout",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(DeviceAgentServer).Logout(ctx, req.(*LogoutRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -214,24 +352,24 @@ var DeviceAgent_ServiceDesc = grpc.ServiceDesc{
 	HandlerType: (*DeviceAgentServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
-			MethodName: "Connect",
-			Handler:    _DeviceAgent_Connect_Handler,
+			MethodName: "ConfigureJITA",
+			Handler:    _DeviceAgent_ConfigureJITA_Handler,
 		},
 		{
-			MethodName: "Disconnect",
-			Handler:    _DeviceAgent_Disconnect_Handler,
+			MethodName: "Login",
+			Handler:    _DeviceAgent_Login_Handler,
 		},
 		{
-			MethodName: "GatewayClicked",
-			Handler:    _DeviceAgent_GatewayClicked_Handler,
+			MethodName: "Logout",
+			Handler:    _DeviceAgent_Logout_Handler,
 		},
 	},
 	Streams: []grpc.StreamDesc{
 		{
-			StreamName:    "WatchGateways",
-			Handler:       _DeviceAgent_WatchGateways_Handler,
+			StreamName:    "Status",
+			Handler:       _DeviceAgent_Status_Handler,
 			ServerStreams: true,
 		},
 	},
-	Metadata: "protobuf-api.proto",
+	Metadata: "pkg/protobuf/protobuf-api.proto",
 }
