@@ -15,6 +15,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/mitchellh/go-ps"
 	"github.com/rjeczalik/notify"
 	log "github.com/sirupsen/logrus"
 	flag "github.com/spf13/pflag"
@@ -101,8 +102,14 @@ func main() {
 		log.Fatalf("Monitoring WireGuard configuration file: %v", err)
 	}
 
+	up := false
+
 	ensureUp := func() {
 		log.Info("WireGuard configuration updated")
+		if !isDeviceAgentRunning() {
+			log.Error("device-agent not running, abort ensureUp.")
+			return
+		}
 
 		var bootstrapConfig *bootstrap.Config
 		bootstrapConfig, err = parseBootstrapConfig(cfg)
@@ -132,11 +139,14 @@ func main() {
 		if err != nil {
 			log.Errorf("Syncing WireGuard config: %v", err)
 		}
+		
+		up = true
 	}
 
 	ensureDown := func() {
 		log.Info("WireGuard configuration deleted; tearing down interface")
 		teardownInterface(ctx, cfg)
+		up = false
 	}
 
 	handleEvent := func(ev notify.EventInfo) {
@@ -159,6 +169,8 @@ func main() {
 	}
 
 	controlChannel := myService.ControlChannel()
+	deviceAgentCheckTicker := time.NewTicker(10 * time.Second)
+
 	for {
 		select {
 		case <-interrupt:
@@ -166,6 +178,11 @@ func main() {
 			return
 		case ev := <-notifyEvents:
 			handleEvent(ev)
+		case <-deviceAgentCheckTicker.C:
+			if up && !isDeviceAgentRunning() {
+				log.Info("no device agent running, shutting down")
+				ensureDown()
+			}
 		case ce := <-controlChannel:
 			switch ce {
 			case Stop:
@@ -175,6 +192,32 @@ func main() {
 			}
 		}
 	}
+}
+
+// TODO: remove when grpc between device-agent and helper
+func isDeviceAgentRunning() bool {
+	processList, err := ps.Processes()
+	if err != nil {
+		log.Errorf("failed to list processes: %v", err)
+		return false
+	}
+
+	deviceAgentNames := []string{"naisdevice", "device-agent"}
+	ignore := "device-agent-he"
+
+	for _, process := range processList {
+		if strings.Contains(process.Executable(), ignore) {
+			continue
+		}
+
+		for _, match := range deviceAgentNames {
+			if strings.Contains(process.Executable(), match) {
+				return true
+			}
+		}
+	}
+
+	return false
 }
 
 func parseBootstrapConfig(cfg Config) (*bootstrap.Config, error) {

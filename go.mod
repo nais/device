@@ -18,6 +18,7 @@ require (
 	github.com/golang/protobuf v1.4.3
 	github.com/gopherjs/gopherjs v0.0.0-20200217142428-fce0ec30dd00 // indirect
 	github.com/lib/pq v1.9.0
+	github.com/mitchellh/go-ps v1.0.0
 	github.com/nirasan/go-oauth-pkce-code-verifier v0.0.0-20170819232839-0fbfe93532da
 	github.com/prometheus/client_golang v1.9.0
 	github.com/prometheus/common v0.15.0
