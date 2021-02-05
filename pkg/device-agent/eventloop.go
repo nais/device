@@ -25,6 +25,14 @@ var (
 	lastConfigurationFile string
 )
 
+const (
+	versionCheckInterval      = 1 * time.Hour
+	syncConfigInterval        = 5 * time.Minute
+	initialGatewayRefreshWait = 2 * time.Second
+	initialConnectWait        = initialGatewayRefreshWait
+	healthCheckInterval       = 20 * time.Second
+)
+
 func (das *DeviceAgentServer) EventLoop(rc *runtimeconfig.RuntimeConfig) {
 	var err error
 
@@ -35,6 +43,8 @@ func (das *DeviceAgentServer) EventLoop(rc *runtimeconfig.RuntimeConfig) {
 	das.stateChange <- status.ConnectionState
 
 	for {
+		das.UpdateAgentStatus(status)
+
 		select {
 		case <-syncConfigTicker.C:
 			if status.ConnectionState == pb.AgentState_Connected {
@@ -99,7 +109,7 @@ func (das *DeviceAgentServer) EventLoop(rc *runtimeconfig.RuntimeConfig) {
 			case pb.AgentState_Disconnected:
 				log.Info("making sure no previous WireGuard config exists")
 				_ = DeleteConfigFile(rc.Config.WireGuardConfigPath)
-				das.UpdateAgentStatusGateways(nil)
+				status.Gateways = make([]*pb.Gateway, 0)
 
 			case pb.AgentState_Quitting:
 				_ = DeleteConfigFile(rc.Config.WireGuardConfigPath)
@@ -112,7 +122,7 @@ func (das *DeviceAgentServer) EventLoop(rc *runtimeconfig.RuntimeConfig) {
 				if err != nil {
 					notify("error synchronizing WireGuard config: %s", err)
 				}
-				das.stateChange <- pb.AgentState_Disconnecting
+				das.stateChange <- pb.AgentState_Disconnected
 
 			case pb.AgentState_HealthCheck:
 				for _, gw := range rc.GetGateways() {
@@ -126,7 +136,8 @@ func (das *DeviceAgentServer) EventLoop(rc *runtimeconfig.RuntimeConfig) {
 					}
 				}
 				das.stateChange <- pb.AgentState_Connected
-				das.UpdateAgentStatusGateways(ApiGatewaysToProtobufGateways(rc.Gateways))
+				status.Gateways = ApiGatewaysToProtobufGateways(rc.Gateways)
+				das.UpdateAgentStatus(status)
 				// trigger configuration save here if health checks are supposed to alter routes
 
 			case pb.AgentState_SyncConfig:
@@ -158,7 +169,8 @@ func (das *DeviceAgentServer) EventLoop(rc *runtimeconfig.RuntimeConfig) {
 				}
 
 				rc.UpdateGateways(gateways)
-				das.UpdateAgentStatusGateways(ApiGatewaysToProtobufGateways(gateways))
+				status.Gateways = ApiGatewaysToProtobufGateways(rc.Gateways)
+				das.UpdateAgentStatus(status)
 
 				err = saveConfig(*rc)
 				if err != nil {

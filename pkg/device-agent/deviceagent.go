@@ -18,7 +18,7 @@ type DeviceAgentServer struct {
 	stateChange  chan pb.AgentState
 	statusChange chan *pb.AgentStatus
 	streams      map[uuid.UUID]pb.DeviceAgent_StatusServer
-	AgentStatus  pb.AgentStatus
+	AgentStatus  *pb.AgentStatus
 	lock         sync.Mutex
 }
 
@@ -39,23 +39,33 @@ func (das *DeviceAgentServer) Status(request *pb.AgentStatusRequest, statusServe
 	das.streams[id] = statusServer
 	das.lock.Unlock()
 
-	<-statusServer.Context().Done()
+	defer func() {
+		das.lock.Lock()
+		delete(das.streams, id)
+		das.lock.Unlock()
+	}()
 
-	das.lock.Lock()
-	delete(das.streams, id)
-	das.lock.Unlock()
+	err := statusServer.Send(das.AgentStatus)
+	if err != nil {
+		return err
+	}
+
+	<-statusServer.Context().Done()
 
 	return nil
 }
 
 func (das *DeviceAgentServer) BroadcastAgentStatus(agentStatus *pb.AgentStatus) error {
 	var errors *multierror.Error
+
+	das.lock.Lock()
 	for _, stream := range das.streams {
 		err := stream.Send(agentStatus)
 		if err != nil {
 			errors = multierror.Append(errors, fmt.Errorf("forwarding agentStatus: %v", err))
 		}
 	}
+	das.lock.Unlock()
 
 	//goland:noinspection ALL
 	return errors.ErrorOrNil()
@@ -65,10 +75,10 @@ func (das *DeviceAgentServer) ConfigureJITA(context.Context, *pb.ConfigureJITARe
 	return nil, status.Errorf(codes.Unimplemented, "method ConfigureJITA not implemented")
 }
 
-func (das *DeviceAgentServer) UpdateAgentStatusGateways(gateways []*pb.Gateway) {
-	das.AgentStatus.Gateways = gateways
+func (das *DeviceAgentServer) UpdateAgentStatus(status *pb.AgentStatus) {
+	das.AgentStatus = status
 
-	err := das.BroadcastAgentStatus(&das.AgentStatus)
+	err := das.BroadcastAgentStatus(das.AgentStatus)
 	if err != nil {
 		log.Errorf("while broadcasting agent status")
 	}

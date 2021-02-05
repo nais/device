@@ -35,7 +35,7 @@ const (
 
 type Gui struct {
 	DeviceAgentClient        pb.DeviceAgentClient
-	Gateways                 chan []*pb.Gateway
+	AgentStatus              chan *pb.AgentStatus
 	Events                   chan GuiEvent
 	Interrupts               chan os.Signal
 	NewVersionAvailable      chan bool
@@ -101,7 +101,7 @@ func NewGUI(client pb.DeviceAgentClient) *Gui {
 	gui.Interrupts = make(chan os.Signal, 1)
 	signal.Notify(gui.Interrupts, os.Interrupt, syscall.SIGTERM)
 
-	gui.Gateways = make(chan []*pb.Gateway, 8)
+	gui.AgentStatus = make(chan *pb.AgentStatus, 8)
 	gui.Events = make(chan GuiEvent, 8)
 	gui.NewVersionAvailable = make(chan bool, 8)
 	gui.PrivilegedGatewayClicked = make(chan string)
@@ -120,8 +120,8 @@ func (gui *Gui) EventLoop() {
 				systray.Quit()
 				return
 			}
-		case gateways := <-gui.Gateways:
-			gui.handleGateways(gateways)
+		case agentStatus := <-gui.AgentStatus:
+			gui.handleAgentStatus(agentStatus)
 		case <-gui.NewVersionAvailable:
 			gui.handleNewVersion()
 		}
@@ -155,7 +155,12 @@ func (gui *Gui) handleButtonClicks() {
 	}
 }
 
-func (gui *Gui) handleGateways(gateways []*pb.Gateway) {
+func (gui *Gui) handleAgentStatus(agentStatus *pb.AgentStatus) {
+	log.Debugf("received agent status: %v", agentStatus)
+
+	gui.MenuItems.State.SetTitle(agentStatus.GetConnectionState().String())
+
+	gateways := agentStatus.GetGateways()
 	max := len(gateways)
 	if max > maxGateways {
 		panic("twenty wasn't enough, was it??????")
@@ -234,15 +239,20 @@ func (gui *Gui) handleGuiEvent(guiEvent GuiEvent, state GuiState) {
 }
 
 func (gui *Gui) handleStatusStream() {
-	ctx := context.Background()
+
 	for {
-		time.Sleep(requestBackoff)
+		ctx := context.Background()
+
+		log.Infof("Connecting to device-agent...")
 
 		statusStream, err := gui.DeviceAgentClient.Status(ctx, &pb.AgentStatusRequest{})
 		if err != nil {
 			log.Errorf("getting status stream")
+			time.Sleep(requestBackoff)
 			continue
 		}
+
+		log.Infof("Connected to device-agent")
 
 		for {
 			status, err := statusStream.Recv()
@@ -251,7 +261,7 @@ func (gui *Gui) handleStatusStream() {
 				break
 			}
 
-			gui.Gateways <- status.Gateways
+			gui.AgentStatus <- status
 		}
 	}
 }
