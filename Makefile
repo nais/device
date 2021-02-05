@@ -45,6 +45,7 @@ macos-client: cmd/device-agent/icons.go
 	mkdir -p ./bin/macos-client
 	GOOS=darwin GOARCH=amd64 go build -o bin/macos-client/device-agent -ldflags "-s $(LDFLAGS)" ./cmd/device-agent
 	GOOS=darwin GOARCH=amd64 go build -o bin/macos-client/device-agent-helper ./cmd/device-agent-helper
+	GOOS=darwin GOARCH=amd64 go build -o bin/macos-client/naisdevice-systray ./cmd/systray
 
 # Run by GitHub actions on linux
 windows-client: cmd/device-agent/icons.go
