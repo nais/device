@@ -1,4 +1,5 @@
-.PHONY: test
+.PHONY: test macos-client
+
 PROTOC = $(shell which protoc)
 PROTOC_GEN_GO = $(shell which protoc-gen-go)
 DATE = $(shell date "+%Y-%m-%d")
@@ -41,7 +42,7 @@ bin/linux-client/device-agent: cmd/device-agent/icons.go
 	GOOS=linux GOARCH=amd64 go build -o bin/linux-client/device-agent -ldflags "-s $(LDFLAGS)" ./cmd/device-agent
 
 # Run by GitHub actions on macos
-macos-client: cmd/device-agent/icons.go
+macos-client:
 	mkdir -p ./bin/macos-client
 	GOOS=darwin GOARCH=amd64 go build -o bin/macos-client/device-agent -ldflags "-s $(LDFLAGS)" ./cmd/device-agent
 	GOOS=darwin GOARCH=amd64 go build -o bin/macos-client/device-agent-helper ./cmd/device-agent-helper
