@@ -64,14 +64,15 @@ func startDeviceAgent() {
 	stateChange := make(chan device_agent.ProgramState, 64)
 
 	grpcServer := grpc.NewServer(opts...)
-	pb.RegisterDeviceAgentServer(grpcServer, device_agent.NewServer(stateChange))
+	das := device_agent.NewServer(stateChange)
+	pb.RegisterDeviceAgentServer(grpcServer, das)
 	go func() {
 		if err := grpcServer.Serve(listener); err != nil {
 			log.Fatalf("failed to start grpc webserver: %v", err)
 		}
 	}()
 
-	device_agent.EventLoop(rc, stateChange)
+	das.EventLoop(rc)
 }
 
 func notify(format string, args ...interface{}) {

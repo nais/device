@@ -10,6 +10,7 @@ import (
 	"github.com/nais/device/device-agent/apiserver"
 	"github.com/nais/device/device-agent/auth"
 	"github.com/nais/device/device-agent/runtimeconfig"
+	"github.com/nais/device/pkg/protobuf"
 	log "github.com/sirupsen/logrus"
 	"io"
 	"io/ioutil"
@@ -23,28 +24,28 @@ var (
 	lastConfigurationFile string
 )
 
-func EventLoop(rc *runtimeconfig.RuntimeConfig, stateChange chan ProgramState) {
+func (das *DeviceAgentServer) EventLoop(rc *runtimeconfig.RuntimeConfig) {
 	var err error
 
 	syncConfigTicker := time.NewTicker(syncConfigInterval)
 	healthCheckTicker := time.NewTicker(healthCheckInterval)
 
 	state := StateDisconnected
-	stateChange <- state
+	das.stateChange <- state
 
 	for {
 		select {
 		case <-syncConfigTicker.C:
 			if state == StateConnected {
-				stateChange <- StateSyncConfig
+				das.stateChange <- StateSyncConfig
 			}
 
 		case <-healthCheckTicker.C:
 			if state == StateConnected {
-				stateChange <- StateHealthCheck
+				das.stateChange <- StateHealthCheck
 			}
 
-		case state = <-stateChange:
+		case state = <-das.stateChange:
 			log.Infof("state changed to %s", state)
 
 			switch state {
@@ -57,7 +58,7 @@ func EventLoop(rc *runtimeconfig.RuntimeConfig, stateChange chan ProgramState) {
 					cancel()
 					if err != nil {
 						notify(fmt.Sprintf("Error during bootstrap: %v", err))
-						stateChange <- StateDisconnecting
+						das.stateChange <- StateDisconnecting
 						continue
 					}
 				}
@@ -66,12 +67,12 @@ func EventLoop(rc *runtimeconfig.RuntimeConfig, stateChange chan ProgramState) {
 				if err != nil {
 					log.Error(err.Error())
 					notify(err.Error())
-					stateChange <- StateDisconnecting
+					das.stateChange <- StateDisconnecting
 					continue
 				}
 
 				time.Sleep(initialConnectWait) // allow wireguard to syncconf
-				stateChange <- StateAuthenticating
+				das.stateChange <- StateAuthenticating
 
 			case StateAuthenticating:
 				if rc.SessionInfo != nil && !rc.SessionInfo.Expired() {
@@ -85,18 +86,19 @@ func EventLoop(rc *runtimeconfig.RuntimeConfig, stateChange chan ProgramState) {
 						notify(fmt.Sprintf("Error during authentication: %v", err))
 
 						log.Errorf("Authenticating with apiserver: %v", err)
-						stateChange <- StateDisconnecting
+						das.stateChange <- StateDisconnecting
 						continue
 					}
 				}
 				connectedTime = time.Now()
-				stateChange <- StateSyncConfig
+				das.stateChange <- StateSyncConfig
 				continue
 
 			case StateConnected:
 			case StateDisconnected:
 				log.Info("making sure no previous WireGuard config exists")
 				_ = DeleteConfigFile(rc.Config.WireGuardConfigPath)
+				das.UpdateAgentStatusGateways(nil)
 
 			case StateQuitting:
 				_ = DeleteConfigFile(rc.Config.WireGuardConfigPath)
@@ -109,7 +111,7 @@ func EventLoop(rc *runtimeconfig.RuntimeConfig, stateChange chan ProgramState) {
 				if err != nil {
 					notify("error synchronizing WireGuard config: %s", err)
 				}
-				stateChange <- StateDisconnected
+				das.stateChange <- StateDisconnected
 
 			case StateHealthCheck:
 				for _, gw := range rc.GetGateways() {
@@ -119,10 +121,11 @@ func EventLoop(rc *runtimeconfig.RuntimeConfig, stateChange chan ProgramState) {
 						log.Debugf("Successfully pinged gateway %v with ip: %v", gw.Name, gw.IP)
 					} else {
 						gw.Healthy = false
-						log.Errorf("unable to ping host %s: %v", gw.IP, err)
+						log.Infof("unable to ping host %s: %v", gw.IP, err)
 					}
 				}
-				stateChange <- StateConnected
+				das.stateChange <- StateConnected
+				das.UpdateAgentStatusGateways(ApiGatewaysToProtobufGateways(rc.Gateways))
 				// trigger configuration save here if health checks are supposed to alter routes
 
 			case StateSyncConfig:
@@ -135,7 +138,7 @@ func EventLoop(rc *runtimeconfig.RuntimeConfig, stateChange chan ProgramState) {
 					log.Errorf("Unauthorized access from apiserver: %v", err)
 					log.Errorf("Assuming invalid session; disconnecting.")
 					rc.SessionInfo = nil
-					stateChange <- StateDisconnecting
+					das.stateChange <- StateDisconnecting
 					continue
 
 				case errors.Is(err, &apiserver.UnhealthyError{}):
@@ -144,30 +147,50 @@ func EventLoop(rc *runtimeconfig.RuntimeConfig, stateChange chan ProgramState) {
 					log.Errorf("Device is not healthy: %v", err)
 					// TODO consider moving all notify calls to systray code
 					notify("No access as your device is unhealthy. Run '/msg @Kolide status' on Slack and fix the errors")
-					stateChange <- StateUnhealthy
+					das.stateChange <- StateUnhealthy
 					continue
 
 				case err != nil:
 					log.Errorf("Unable to get gateway config: %v", err)
-					stateChange <- StateHealthCheck
+					das.stateChange <- StateHealthCheck
 					continue
 				}
 
 				rc.UpdateGateways(gateways)
+				das.UpdateAgentStatusGateways(ApiGatewaysToProtobufGateways(gateways))
 
 				err = saveConfig(*rc)
 				if err != nil {
 					log.Error(err.Error())
 					notify(err.Error())
-					stateChange <- StateDisconnecting
+					das.stateChange <- StateDisconnecting
 				} else {
-					stateChange <- StateHealthCheck
+					das.stateChange <- StateHealthCheck
 				}
 
 			case StateUnhealthy:
 			}
 		}
 	}
+}
+
+func ApiGatewaysToProtobufGateways(apigws apiserver.Gateways) []*protobuf.Gateway {
+	var pbgws []*protobuf.Gateway
+
+	for _, apigw := range apigws {
+		pbgws = append(pbgws, &protobuf.Gateway{
+			Name:                     apigw.Name,
+			Healthy:                  apigw.Healthy,
+			PublicKey:                apigw.PublicKey,
+			Endpoint:                 apigw.Endpoint,
+			Ip:                       apigw.IP,
+			Routes:                   apigw.Routes,
+			RequiresPrivilegedAccess: apigw.RequiresPrivilegedAccess,
+			AccessGroupIDs:           nil,
+		})
+	}
+
+	return pbgws
 }
 
 func saveConfig(rc runtimeconfig.RuntimeConfig) error {

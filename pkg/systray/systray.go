@@ -2,8 +2,9 @@ package systray
 
 import (
 	"fmt"
-	"github.com/getlantern/systray"
 	"net"
+
+	"github.com/getlantern/systray"
 
 	"google.golang.org/grpc"
 
@@ -41,6 +42,7 @@ func onReady() {
 		gui.Events <- ConnectClicked
 	}
 
+	go gui.handleStatusStream()
 	go gui.handleButtonClicks()
 	go gui.EventLoop()
 	// TODO: go checkVersion(versionCheckInterval, gui)

@@ -6,6 +6,7 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
 	"github.com/nais/device/device-agent/open"
 	"github.com/nais/device/pkg/logger"
@@ -13,13 +14,12 @@ import (
 	log "github.com/sirupsen/logrus"
 
 	"github.com/getlantern/systray"
-	"github.com/nais/device/device-agent/apiserver"
 )
 
 type GuiEvent int
 
 type GatewayItem struct {
-	Gateway  apiserver.Gateway
+	Gateway  *pb.Gateway
 	MenuItem *systray.MenuItem
 }
 
@@ -35,7 +35,7 @@ const (
 
 type Gui struct {
 	DeviceAgentClient        pb.DeviceAgentClient
-	Gateways                 chan apiserver.Gateways
+	Gateways                 chan []*pb.Gateway
 	Events                   chan GuiEvent
 	Interrupts               chan os.Signal
 	NewVersionAvailable      chan bool
@@ -64,6 +64,7 @@ const (
 	maxGateways         = 20
 	slackURL            = "slack://channel?team=T5LNAMWNA&id=D011T20LDHD"
 	softwareReleasePage = "https://doc.nais.io/device/install"
+	requestBackoff      = 5 * time.Second
 )
 
 func NewGUI(client pb.DeviceAgentClient) *Gui {
@@ -100,7 +101,7 @@ func NewGUI(client pb.DeviceAgentClient) *Gui {
 	gui.Interrupts = make(chan os.Signal, 1)
 	signal.Notify(gui.Interrupts, os.Interrupt, syscall.SIGTERM)
 
-	gui.Gateways = make(chan apiserver.Gateways, 8)
+	gui.Gateways = make(chan []*pb.Gateway, 8)
 	gui.Events = make(chan GuiEvent, 8)
 	gui.NewVersionAvailable = make(chan bool, 8)
 	gui.PrivilegedGatewayClicked = make(chan string)
@@ -154,13 +155,13 @@ func (gui *Gui) handleButtonClicks() {
 	}
 }
 
-func (gui *Gui) handleGateways(gateways apiserver.Gateways) {
+func (gui *Gui) handleGateways(gateways []*pb.Gateway) {
 	max := len(gateways)
 	if max > maxGateways {
 		panic("twenty wasn't enough, was it??????")
 	}
 	for i, gateway := range gateways {
-		gui.MenuItems.GatewayItems[i].Gateway = *gateway
+		gui.MenuItems.GatewayItems[i].Gateway = gateway
 
 		menuItem := gui.MenuItems.GatewayItems[i].MenuItem
 		menuItem.SetTitle(gateway.Name)
@@ -228,6 +229,29 @@ func (gui *Gui) handleGuiEvent(guiEvent GuiEvent, state GuiState) {
 		_, err := gui.DeviceAgentClient.Logout(context.Background(), &pb.LogoutRequest{})
 		if err != nil {
 			log.Fatalf("while disconnecting: %v", err)
+		}
+	}
+}
+
+func (gui *Gui) handleStatusStream() {
+	ctx := context.Background()
+	for {
+		time.Sleep(requestBackoff)
+
+		statusStream, err := gui.DeviceAgentClient.Status(ctx, &pb.AgentStatusRequest{})
+		if err != nil {
+			log.Errorf("getting status stream")
+			continue
+		}
+
+		for {
+			status, err := statusStream.Recv()
+			if err != nil {
+				log.Errorf("receiving status from stream: %v", err)
+				break
+			}
+
+			gui.Gateways <- status.Gateways
 		}
 	}
 }
