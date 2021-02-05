@@ -61,7 +61,7 @@ func startDeviceAgent() {
 
 	var opts []grpc.ServerOption
 
-	stateChange := make(chan device_agent.ProgramState, 64)
+	stateChange := make(chan pb.AgentState, 64)
 
 	grpcServer := grpc.NewServer(opts...)
 	das := device_agent.NewServer(stateChange)

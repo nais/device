@@ -5,18 +5,19 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/gen2brain/beeep"
-	"github.com/getlantern/systray"
-	"github.com/nais/device/device-agent/apiserver"
-	"github.com/nais/device/device-agent/auth"
-	"github.com/nais/device/device-agent/runtimeconfig"
-	"github.com/nais/device/pkg/protobuf"
-	log "github.com/sirupsen/logrus"
 	"io"
 	"io/ioutil"
 	"net"
 	"os"
 	"time"
+
+	"github.com/gen2brain/beeep"
+	"github.com/getlantern/systray"
+	"github.com/nais/device/device-agent/apiserver"
+	"github.com/nais/device/device-agent/auth"
+	"github.com/nais/device/device-agent/runtimeconfig"
+	pb "github.com/nais/device/pkg/protobuf"
+	log "github.com/sirupsen/logrus"
 )
 
 var (
@@ -30,26 +31,26 @@ func (das *DeviceAgentServer) EventLoop(rc *runtimeconfig.RuntimeConfig) {
 	syncConfigTicker := time.NewTicker(syncConfigInterval)
 	healthCheckTicker := time.NewTicker(healthCheckInterval)
 
-	state := StateDisconnected
-	das.stateChange <- state
+	status := &pb.AgentStatus{}
+	das.stateChange <- status.ConnectionState
 
 	for {
 		select {
 		case <-syncConfigTicker.C:
-			if state == StateConnected {
-				das.stateChange <- StateSyncConfig
+			if status.ConnectionState == pb.AgentState_Connected {
+				das.stateChange <- pb.AgentState_SyncConfig
 			}
 
 		case <-healthCheckTicker.C:
-			if state == StateConnected {
-				das.stateChange <- StateHealthCheck
+			if status.ConnectionState == pb.AgentState_Connected {
+				das.stateChange <- pb.AgentState_HealthCheck
 			}
 
-		case state = <-das.stateChange:
-			log.Infof("state changed to %s", state)
+		case status.ConnectionState = <-das.stateChange:
+			log.Infof("state changed to %s", status.ConnectionState)
 
-			switch state {
-			case StateBootstrapping:
+			switch status.ConnectionState {
+			case pb.AgentState_Bootstrapping:
 				if rc.BootstrapConfig != nil {
 					log.Infof("Already bootstrapped")
 				} else {
@@ -58,7 +59,7 @@ func (das *DeviceAgentServer) EventLoop(rc *runtimeconfig.RuntimeConfig) {
 					cancel()
 					if err != nil {
 						notify(fmt.Sprintf("Error during bootstrap: %v", err))
-						das.stateChange <- StateDisconnecting
+						das.stateChange <- pb.AgentState_Disconnecting
 						continue
 					}
 				}
@@ -67,14 +68,14 @@ func (das *DeviceAgentServer) EventLoop(rc *runtimeconfig.RuntimeConfig) {
 				if err != nil {
 					log.Error(err.Error())
 					notify(err.Error())
-					das.stateChange <- StateDisconnecting
+					das.stateChange <- pb.AgentState_Disconnecting
 					continue
 				}
 
 				time.Sleep(initialConnectWait) // allow wireguard to syncconf
-				das.stateChange <- StateAuthenticating
+				das.stateChange <- pb.AgentState_Authenticating
 
-			case StateAuthenticating:
+			case pb.AgentState_Authenticating:
 				if rc.SessionInfo != nil && !rc.SessionInfo.Expired() {
 					log.Infof("Already have a valid session")
 				} else {
@@ -86,34 +87,34 @@ func (das *DeviceAgentServer) EventLoop(rc *runtimeconfig.RuntimeConfig) {
 						notify(fmt.Sprintf("Error during authentication: %v", err))
 
 						log.Errorf("Authenticating with apiserver: %v", err)
-						das.stateChange <- StateDisconnecting
+						das.stateChange <- pb.AgentState_Disconnecting
 						continue
 					}
 				}
 				connectedTime = time.Now()
-				das.stateChange <- StateSyncConfig
+				das.stateChange <- pb.AgentState_SyncConfig
 				continue
 
-			case StateConnected:
-			case StateDisconnected:
+			case pb.AgentState_Connected:
+			case pb.AgentState_Disconnected:
 				log.Info("making sure no previous WireGuard config exists")
 				_ = DeleteConfigFile(rc.Config.WireGuardConfigPath)
 				das.UpdateAgentStatusGateways(nil)
 
-			case StateQuitting:
+			case pb.AgentState_Quitting:
 				_ = DeleteConfigFile(rc.Config.WireGuardConfigPath)
 				//noinspection GoDeferInLoop
 				defer systray.Quit()
 				return
 
-			case StateDisconnecting:
+			case pb.AgentState_Disconnecting:
 				err := DeleteConfigFile(rc.Config.WireGuardConfigPath)
 				if err != nil {
 					notify("error synchronizing WireGuard config: %s", err)
 				}
-				das.stateChange <- StateDisconnected
+				das.stateChange <- pb.AgentState_Disconnecting
 
-			case StateHealthCheck:
+			case pb.AgentState_HealthCheck:
 				for _, gw := range rc.GetGateways() {
 					err := ping(gw.IP)
 					if err == nil {
@@ -124,11 +125,11 @@ func (das *DeviceAgentServer) EventLoop(rc *runtimeconfig.RuntimeConfig) {
 						log.Infof("unable to ping host %s: %v", gw.IP, err)
 					}
 				}
-				das.stateChange <- StateConnected
+				das.stateChange <- pb.AgentState_Connected
 				das.UpdateAgentStatusGateways(ApiGatewaysToProtobufGateways(rc.Gateways))
 				// trigger configuration save here if health checks are supposed to alter routes
 
-			case StateSyncConfig:
+			case pb.AgentState_SyncConfig:
 				ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 				gateways, err := apiserver.GetDeviceConfig(rc.SessionInfo.Key, rc.Config.APIServer, ctx)
 				cancel()
@@ -138,7 +139,7 @@ func (das *DeviceAgentServer) EventLoop(rc *runtimeconfig.RuntimeConfig) {
 					log.Errorf("Unauthorized access from apiserver: %v", err)
 					log.Errorf("Assuming invalid session; disconnecting.")
 					rc.SessionInfo = nil
-					das.stateChange <- StateDisconnecting
+					das.stateChange <- pb.AgentState_Disconnecting
 					continue
 
 				case errors.Is(err, &apiserver.UnhealthyError{}):
@@ -147,12 +148,12 @@ func (das *DeviceAgentServer) EventLoop(rc *runtimeconfig.RuntimeConfig) {
 					log.Errorf("Device is not healthy: %v", err)
 					// TODO consider moving all notify calls to systray code
 					notify("No access as your device is unhealthy. Run '/msg @Kolide status' on Slack and fix the errors")
-					das.stateChange <- StateUnhealthy
+					das.stateChange <- pb.AgentState_Unhealthy
 					continue
 
 				case err != nil:
 					log.Errorf("Unable to get gateway config: %v", err)
-					das.stateChange <- StateHealthCheck
+					das.stateChange <- pb.AgentState_HealthCheck
 					continue
 				}
 
@@ -163,22 +164,22 @@ func (das *DeviceAgentServer) EventLoop(rc *runtimeconfig.RuntimeConfig) {
 				if err != nil {
 					log.Error(err.Error())
 					notify(err.Error())
-					das.stateChange <- StateDisconnecting
+					das.stateChange <- pb.AgentState_Disconnecting
 				} else {
-					das.stateChange <- StateHealthCheck
+					das.stateChange <- pb.AgentState_HealthCheck
 				}
 
-			case StateUnhealthy:
+			case pb.AgentState_Unhealthy:
 			}
 		}
 	}
 }
 
-func ApiGatewaysToProtobufGateways(apigws apiserver.Gateways) []*protobuf.Gateway {
-	var pbgws []*protobuf.Gateway
+func ApiGatewaysToProtobufGateways(apigws apiserver.Gateways) []*pb.Gateway {
+	var pbgws []*pb.Gateway
 
 	for _, apigw := range apigws {
-		pbgws = append(pbgws, &protobuf.Gateway{
+		pbgws = append(pbgws, &pb.Gateway{
 			Name:                     apigw.Name,
 			Healthy:                  apigw.Healthy,
 			PublicKey:                apigw.PublicKey,

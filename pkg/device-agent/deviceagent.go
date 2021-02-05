@@ -15,7 +15,7 @@ import (
 
 type DeviceAgentServer struct {
 	pb.UnimplementedDeviceAgentServer
-	stateChange  chan ProgramState
+	stateChange  chan pb.AgentState
 	statusChange chan *pb.AgentStatus
 	streams      map[uuid.UUID]pb.DeviceAgent_StatusServer
 	AgentStatus  pb.AgentStatus
@@ -23,12 +23,12 @@ type DeviceAgentServer struct {
 }
 
 func (das *DeviceAgentServer) Login(ctx context.Context, request *pb.LoginRequest) (*pb.LoginResponse, error) {
-	das.stateChange <- StateBootstrapping
+	das.stateChange <- pb.AgentState_Bootstrapping
 	return &pb.LoginResponse{}, nil
 }
 
 func (das *DeviceAgentServer) Logout(ctx context.Context, request *pb.LogoutRequest) (*pb.LogoutResponse, error) {
-	das.stateChange <- StateDisconnecting
+	das.stateChange <- pb.AgentState_Disconnecting
 	return &pb.LogoutResponse{}, nil
 }
 
@@ -57,6 +57,7 @@ func (das *DeviceAgentServer) BroadcastAgentStatus(agentStatus *pb.AgentStatus) 
 		}
 	}
 
+	//goland:noinspection ALL
 	return errors.ErrorOrNil()
 }
 
@@ -73,7 +74,7 @@ func (das *DeviceAgentServer) UpdateAgentStatusGateways(gateways []*pb.Gateway) 
 	}
 }
 
-func NewServer(stateChange chan ProgramState) *DeviceAgentServer {
+func NewServer(stateChange chan pb.AgentState) *DeviceAgentServer {
 	return &DeviceAgentServer{
 		stateChange: stateChange,
 		streams:     make(map[uuid.UUID]pb.DeviceAgent_StatusServer, 0),
