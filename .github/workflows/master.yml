@@ -56,6 +56,10 @@ jobs:
           sudo apt update
           sudo apt install --yes build-essential libgtk-3-dev libappindicator3-dev
 
+      - uses: actions/setup-go@v2
+        with:
+          go-version: '1.15' # The Go version to download (if necessary) and use.
+
       - name: build ${{ matrix.target }}
         run: |
           make ${{ matrix.target }} VERSION=${{ needs.set-version.outputs.version }}
