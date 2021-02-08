@@ -30,15 +30,9 @@ controlplane:
 	GOOS=linux GOARCH=amd64 go build -o bin/controlplane/prometheus-agent ./cmd/prometheus-agent
 
 # Run by GitHub actions on linux
-linux-client: bin/linux-client/device-agent bin/linux-client/device-agent-helper bin/linux-client/naisdevice-systray
-bin/linux-client/naisdevice-systray:
-	mkdir -p ./bin/linux-client
-	GOOS=linux GOARCH=amd64 go build -o $@ ./cmd/systray
-bin/linux-client/device-agent-helper:
-	mkdir -p ./bin/linux-client
+linux-client:
+	GOOS=linux GOARCH=amd64 go build -o bin/linux-client/naisdevice-systray ./cmd/systray
 	GOOS=linux GOARCH=amd64 go build -o bin/linux-client/device-agent-helper ./cmd/device-agent-helper
-bin/linux-client/device-agent: cmd/device-agent/icons.go
-	mkdir -p ./bin/linux-client
 	GOOS=linux GOARCH=amd64 go build -o bin/linux-client/device-agent -ldflags "-s $(LDFLAGS)" ./cmd/device-agent
 
 # Run by GitHub actions on macos
@@ -54,6 +48,7 @@ windows-client: cmd/device-agent/icons.go
 	go get github.com/akavel/rsrc
 	${GOPATH}/bin/rsrc -arch amd64 -manifest ./packaging/windows/admin_manifest.xml -ico assets/nais-logo-blue.ico -o ./cmd/device-agent-helper/main_windows.syso
 	${GOPATH}/bin/rsrc -ico assets/nais-logo-blue.ico -o ./cmd/device-agent/main_windows.syso
+	GOOS=windows GOARCH=amd64 go build -o bin/windows-client/naisdevice-systray.exe -ldflags "-s $(LDFLAGS) -H=windowsgui" ./cmd/systray
 	GOOS=windows GOARCH=amd64 go build -o bin/windows-client/device-agent.exe -ldflags "-s $(LDFLAGS) -H=windowsgui" ./cmd/device-agent
 	GOOS=windows GOARCH=amd64 go build -o bin/windows-client/device-agent-helper.exe ./cmd/device-agent-helper
 
@@ -154,9 +149,11 @@ pkg: app
 	cp -r ./naisdevice.app ./pkgtemp/pkgroot/Applications/
 	cp ./packaging/macos/postinstall ./pkgtemp/scripts/postinstall
 	pkgbuild --root ./pkgtemp/pkgroot --identifier ${PKGID} --scripts ./pkgtemp/scripts --version ${VERSION} --ownership recommended ./component.pkg
-	productbuild --identifier ${PKGID}.${VERSION} --package ./component.pkg ./unsigned.pkg
-	productsign --sign "Developer ID Installer: Torbjorn Hallenberg" unsigned.pkg naisdevice.pkg
-	rm -f ./component.pkg ./unsigned.pkg
+	productbuild --identifier ${PKGID}.${VERSION} --package ./component.pkg ./naisdevice.pkg
+	rm -f ./component.pkg
+	#productbuild --identifier ${PKGID}.${VERSION} --package ./component.pkg ./unsigned.pkg
+	#productsign --sign "Developer ID Installer: Torbjorn Hallenberg" unsigned.pkg naisdevice.pkg
+	#rm -f ./component.pkg ./unsigned.pkg
 	rm -rf ./pkgtemp ./naisdevice.app
 	# gon --log-level=debug packaging/macos/gon-pkg.json
 
