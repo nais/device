@@ -1,12 +1,13 @@
 package config
 
 import (
+	"path/filepath"
+
 	"github.com/nais/device/pkg/config"
 	"github.com/nais/device/pkg/logger"
 	log "github.com/sirupsen/logrus"
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/endpoints"
-	"path/filepath"
 )
 
 type Config struct {
@@ -26,7 +27,7 @@ type Config struct {
 	Platform            string
 	BootstrapAPI        string
 	AutoConnect         bool
-	GrpcPort            int
+	GrpcAddress         string
 }
 
 func (c *Config) SetDefaults() {
@@ -50,6 +51,7 @@ func DefaultConfig() Config {
 		BootstrapAPI: "https://bootstrap.device.nais.io",
 		ConfigDir:    userConfigDir,
 		LogLevel:     "info",
+		GrpcAddress:  filepath.Join(userConfigDir, "agent.sock"),
 		OAuth2Config: oauth2.Config{
 			ClientID:    "8086d321-c6d3-4398-87da-0d54e3d93967",
 			Scopes:      []string{"openid", "6e45010d-2637-4a40-b91d-d4cbb451fb57/.default", "offline_access"},

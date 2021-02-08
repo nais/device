@@ -1,9 +1,6 @@
 package systray
 
 import (
-	"fmt"
-	"net"
-
 	"github.com/getlantern/systray"
 
 	"google.golang.org/grpc"
@@ -13,8 +10,7 @@ import (
 )
 
 type Config struct {
-	GrpcPort   uint16
-	GrpcServer net.IP
+	GrpcAddress string
 
 	ConfigDir string
 
@@ -26,15 +22,22 @@ type Config struct {
 
 var cfg Config
 
+var connection *grpc.ClientConn
+
 func onReady() {
-	connection, err := grpc.Dial(
-		fmt.Sprintf("127.0.0.1:%d", cfg.GrpcPort),
+	var err error
+
+	log.Infof("connecting to device-agent on unix socket %s...", cfg.GrpcAddress)
+	connection, err = grpc.Dial(
+		"unix:"+cfg.GrpcAddress,
 		grpc.WithBlock(),
 		grpc.WithInsecure(),
 	)
 	if err != nil {
 		log.Fatalf("unable to connect to naisdevice-agent grpc server: %v", err)
 	}
+
+	log.Info("connection to device-agent established")
 	client := pb.NewDeviceAgentClient(connection)
 
 	gui := NewGUI(client)
@@ -48,8 +51,11 @@ func onReady() {
 	// TODO: go checkVersion(versionCheckInterval, gui)
 }
 
+// This is where we clean up
 func onExit() {
-	// This is where we clean up
+	if connection != nil {
+		connection.Close()
+	}
 }
 
 func Spawn(systrayConfig Config) {

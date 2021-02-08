@@ -2,30 +2,33 @@ package main
 
 import (
 	"fmt"
+	"os"
+	"path/filepath"
+
 	"github.com/gen2brain/beeep"
 	"github.com/nais/device/pkg/config"
 	"github.com/nais/device/pkg/logger"
-	"net"
-
 	"github.com/nais/device/pkg/systray"
 	log "github.com/sirupsen/logrus"
 	flag "github.com/spf13/pflag"
 )
 
 func main() {
-	cfg := systray.Config{
-		GrpcServer: net.ParseIP("127.0.0.1"),
-	}
-
-	flag.Uint16Var(&cfg.GrpcPort, "device-agent-grpc-port", 51801, "port for local (headless) device-agent")
-	flag.StringVar(&cfg.LogLevel, "log-level", "warning", "which log level to output")
-	flag.BoolVar(&cfg.AutoConnect, "connect", false, "auto connect")
-	flag.Parse()
-
 	configDir, err := config.UserConfigDir()
 	if err != nil {
-		notify("Unable to set up logging: %+v", err)
+		notify("Can't start naisdevice: unable to find configuration directory: %v", err)
+		os.Exit(1)
 	}
+
+	cfg := systray.Config{
+		GrpcAddress: filepath.Join(configDir, "agent.sock"),
+		ConfigDir:   configDir,
+	}
+
+	flag.StringVar(&cfg.LogLevel, "log-level", "warning", "which log level to output")
+	flag.BoolVar(&cfg.AutoConnect, "connect", false, "auto connect")
+	flag.StringVar(&cfg.GrpcAddress, "grpc-address", cfg.GrpcAddress, "path to device-agent unix socket")
+	flag.Parse()
 
 	cfg.ConfigDir = configDir
 

@@ -2,13 +2,14 @@ package main
 
 import (
 	"fmt"
+	"net"
+
 	"github.com/gen2brain/beeep"
 	"github.com/nais/device/device-agent/filesystem"
 	"github.com/nais/device/device-agent/runtimeconfig"
 	device_agent "github.com/nais/device/pkg/device-agent"
 	pb "github.com/nais/device/pkg/protobuf"
 	"google.golang.org/grpc"
-	"net"
 
 	"github.com/nais/device/device-agent/config"
 	"github.com/nais/device/pkg/logger"
@@ -27,6 +28,7 @@ func init() {
 	flag.StringVar(&cfg.ConfigDir, "config-dir", cfg.ConfigDir, "path to agent config directory")
 	flag.StringVar(&cfg.Interface, "interface", cfg.Interface, "name of tunnel interface")
 	flag.StringVar(&cfg.LogLevel, "log-level", cfg.LogLevel, "which log level to output")
+	flag.StringVar(&cfg.GrpcAddress, "grpc-address", cfg.GrpcAddress, "unix socket for gRPC server")
 	flag.BoolVar(&cfg.AutoConnect, "connect", false, "auto connect")
 	flag.Parse()
 	cfg.SetDefaults()
@@ -44,20 +46,18 @@ func startDeviceAgent() {
 		notify(fmt.Sprintf("Missing prerequisites: %s", err))
 	}
 
-	listener, err := net.Listen("tcp", fmt.Sprintf("127.0.0.1:%d", 0))
-	if err != nil {
-		log.Fatalf("failed to listen: %v", err)
-	}
-	port := listener.Addr().(*net.TCPAddr).Port
-	log.Infof("listening on port %d", port)
-	cfg.GrpcPort = port
-
 	rc, err := runtimeconfig.New(cfg)
 	if err != nil {
 		log.Errorf("Runtime config: %v", err)
 		notify("Unable to start naisdevice, check logs for details")
 		return
 	}
+
+	listener, err := net.Listen("unix", cfg.GrpcAddress)
+	if err != nil {
+		log.Fatalf("failed to listen on unix socket %s: %v", cfg.GrpcAddress, err)
+	}
+	log.Infof("accepting network connections on unix socket %s", cfg.GrpcAddress)
 
 	var opts []grpc.ServerOption
 

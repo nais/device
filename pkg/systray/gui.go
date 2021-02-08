@@ -243,7 +243,7 @@ func (gui *Gui) handleStatusStream() {
 	for {
 		ctx := context.Background()
 
-		log.Infof("Connecting to device-agent...")
+		log.Infof("Requesting status updates from device-agent...")
 
 		statusStream, err := gui.DeviceAgentClient.Status(ctx, &pb.AgentStatusRequest{})
 		if err != nil {
@@ -252,7 +252,7 @@ func (gui *Gui) handleStatusStream() {
 			continue
 		}
 
-		log.Infof("Connected to device-agent")
+		log.Infof("Status update stream established")
 
 		for {
 			status, err := statusStream.Recv()
