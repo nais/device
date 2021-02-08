@@ -152,7 +152,7 @@ jobs:
       - name: create debian package
         run: |
           sudo apt update
-          sudo apt install --yes build-essential ruby ruby-dev rubygems
+          sudo apt install --yes build-essential ruby ruby-dev rubygems libgtk-3-dev libappindicator3-dev
           sudo gem install --no-document fpm -v 1.11.0
           chmod a+x bin/linux-client/device-agent*
           make deb VERSION=${{ needs.set-version.outputs.version }}
