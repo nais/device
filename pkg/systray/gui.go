@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
+	"sort"
 	"syscall"
 	"time"
 
@@ -161,6 +162,10 @@ func (gui *Gui) handleAgentStatus(agentStatus *pb.AgentStatus) {
 	gui.MenuItems.State.SetTitle(agentStatus.ConnectionStateString())
 
 	gateways := agentStatus.GetGateways()
+	sort.Slice(gateways, func(i, j int) bool {
+		return gateways[i].GetName() < gateways[j].GetName()
+	})
+
 	max := len(gateways)
 	if max > maxGateways {
 		panic("twenty wasn't enough, was it??????")

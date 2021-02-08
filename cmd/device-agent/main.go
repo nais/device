@@ -54,6 +54,8 @@ func startDeviceAgent() {
 		return
 	}
 
+	// fixme: socket is not cleaned up when process is killed with SIGKILL,
+	// fixme: and requires manual removal.
 	listener, err := net.Listen("unix", cfg.GrpcAddress)
 	if err != nil {
 		log.Fatalf("failed to listen on unix socket %s: %v", cfg.GrpcAddress, err)
