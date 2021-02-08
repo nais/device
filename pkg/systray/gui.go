@@ -36,7 +36,8 @@ const (
 
 type Gui struct {
 	DeviceAgentClient        pb.DeviceAgentClient
-	AgentStatus              chan *pb.AgentStatus
+	AgentStatusChannel       chan *pb.AgentStatus
+	AgentStatus              *pb.AgentStatus
 	Events                   chan GuiEvent
 	Interrupts               chan os.Signal
 	NewVersionAvailable      chan bool
@@ -72,7 +73,7 @@ func NewGUI(client pb.DeviceAgentClient) *Gui {
 	gui := &Gui{
 		DeviceAgentClient: client,
 	}
-	systray.SetIcon(NaisLogoBlue)
+	systray.SetIcon(NaisLogoRed)
 
 	gui.MenuItems.Version = systray.AddMenuItem("Update to latest version...", "Click to open browser")
 	gui.MenuItems.Version.Hide()
@@ -102,7 +103,7 @@ func NewGUI(client pb.DeviceAgentClient) *Gui {
 	gui.Interrupts = make(chan os.Signal, 1)
 	signal.Notify(gui.Interrupts, os.Interrupt, syscall.SIGTERM)
 
-	gui.AgentStatus = make(chan *pb.AgentStatus, 8)
+	gui.AgentStatusChannel = make(chan *pb.AgentStatus, 8)
 	gui.Events = make(chan GuiEvent, 8)
 	gui.NewVersionAvailable = make(chan bool, 8)
 	gui.PrivilegedGatewayClicked = make(chan string)
@@ -111,17 +112,15 @@ func NewGUI(client pb.DeviceAgentClient) *Gui {
 }
 
 func (gui *Gui) EventLoop() {
-	currentState := GuiStateDisconnected
-
 	for {
 		select {
 		case guiEvent := <-gui.Events:
-			gui.handleGuiEvent(guiEvent, currentState)
+			gui.handleGuiEvent(guiEvent)
 			if guiEvent == QuitClicked {
 				systray.Quit()
 				return
 			}
-		case agentStatus := <-gui.AgentStatus:
+		case agentStatus := <-gui.AgentStatusChannel:
 			gui.handleAgentStatus(agentStatus)
 		case <-gui.NewVersionAvailable:
 			gui.handleNewVersion()
@@ -159,7 +158,26 @@ func (gui *Gui) handleButtonClicks() {
 func (gui *Gui) handleAgentStatus(agentStatus *pb.AgentStatus) {
 	log.Debugf("received agent status: %v", agentStatus)
 
+	gui.AgentStatus = agentStatus
+
+	switch agentStatus.GetConnectionState() {
+	case pb.AgentState_Bootstrapping:
+		gui.MenuItems.Connect.SetTitle("Disconnect")
+	case pb.AgentState_Connected:
+		systray.SetIcon(NaisLogoGreen)
+	case pb.AgentState_Unhealthy:
+		systray.SetIcon(NaisLogoYellow)
+	case pb.AgentState_Disconnected:
+		systray.SetIcon(NaisLogoRed)
+		gui.MenuItems.Connect.SetTitle("Connect")
+	}
+
 	gui.MenuItems.State.SetTitle(agentStatus.ConnectionStateString())
+	if agentStatus.NewVersionAvailable {
+		gui.MenuItems.Version.Show()
+	} else {
+		gui.MenuItems.Version.Hide()
+	}
 
 	gateways := agentStatus.GetGateways()
 	sort.Slice(gateways, func(i, j int) bool {
@@ -195,7 +213,7 @@ func (gui *Gui) handleAgentStatus(agentStatus *pb.AgentStatus) {
 	}
 }
 
-func (gui *Gui) handleGuiEvent(guiEvent GuiEvent, state GuiState) {
+func (gui *Gui) handleGuiEvent(guiEvent GuiEvent) {
 	switch guiEvent {
 	case VersionClicked:
 		err := open.Open(softwareReleasePage)
@@ -211,7 +229,7 @@ func (gui *Gui) handleGuiEvent(guiEvent GuiEvent, state GuiState) {
 
 	case ConnectClicked:
 		log.Infof("Connect button clicked")
-		if state == GuiStateDisconnected {
+		if gui.AgentStatus.GetConnectionState() == pb.AgentState_Disconnected {
 			_, err := gui.DeviceAgentClient.Login(context.Background(), &pb.LoginRequest{})
 			if err != nil {
 				log.Fatalf("while connecting: %v", err)
@@ -266,7 +284,7 @@ func (gui *Gui) handleStatusStream() {
 				break
 			}
 
-			gui.AgentStatus <- status
+			gui.AgentStatusChannel <- status
 		}
 	}
 }

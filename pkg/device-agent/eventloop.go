@@ -3,11 +3,13 @@ package device_agent
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
 	"net"
+	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
@@ -18,6 +20,7 @@ import (
 	"github.com/nais/device/device-agent/auth"
 	"github.com/nais/device/device-agent/runtimeconfig"
 	pb "github.com/nais/device/pkg/protobuf"
+	"github.com/nais/device/pkg/version"
 	log "github.com/sirupsen/logrus"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
@@ -32,6 +35,7 @@ const (
 	initialGatewayRefreshWait = 2 * time.Second
 	initialConnectWait        = initialGatewayRefreshWait
 	healthCheckInterval       = 20 * time.Second
+	versionCheckTimeout       = 3 * time.Second
 )
 
 func (das *DeviceAgentServer) EventLoop(rc *runtimeconfig.RuntimeConfig) {
@@ -42,6 +46,7 @@ func (das *DeviceAgentServer) EventLoop(rc *runtimeconfig.RuntimeConfig) {
 
 	syncConfigTicker := time.NewTicker(syncConfigInterval)
 	healthCheckTicker := time.NewTicker(healthCheckInterval)
+	versionCheckTicker := time.NewTicker(5 * time.Second)
 
 	status := &pb.AgentStatus{}
 	das.stateChange <- status.ConnectionState
@@ -53,6 +58,18 @@ func (das *DeviceAgentServer) EventLoop(rc *runtimeconfig.RuntimeConfig) {
 		case sig := <-signals:
 			log.Infof("Received signal %s, exiting...", sig)
 			return
+
+		case <-versionCheckTicker.C:
+			ctx, cancel := context.WithTimeout(context.Background(), versionCheckTimeout)
+			status.NewVersionAvailable, err = newVersionAvailable(ctx)
+			cancel()
+
+			if status.NewVersionAvailable {
+				notify("New version of device agent available: https://doc.nais.io/device/install#installation")
+				versionCheckTicker.Stop()
+			} else {
+				versionCheckTicker.Reset(versionCheckInterval)
+			}
 
 		case <-syncConfigTicker.C:
 			if status.ConnectionState == pb.AgentState_Connected {
@@ -231,38 +248,36 @@ func saveConfig(rc runtimeconfig.RuntimeConfig) error {
 	return nil
 }
 
-/*
-func checkVersion(interval time.Duration, gui *Gui) {
+func newVersionAvailable(ctx context.Context) (bool, error) {
 	type response struct {
 		Tag string `json:"tag_name"`
 	}
 
-	ticker := time.NewTicker(1 * time.Nanosecond)
-	for range ticker.C {
-		ticker.Stop()
-		ticker = time.NewTicker(interval)
-		log.Info("Checking release version on github")
-		resp, err := http.Get("https://api.github.com/repos/nais/device/releases/latest")
-		if err != nil {
-			log.Errorf("Unable to retrieve current release version %s", err)
-			continue
-		}
-		body, err := ioutil.ReadAll(resp.Body)
-		resp.Body.Close()
-		res := response{}
-		err = json.Unmarshal(body, &res)
-		if err != nil {
-			log.Errorf("unable to unmarshall response: %s", err)
-			continue
-		}
-		if version.Version != res.Tag {
-			// gui.NewVersionAvailable <- true
-			notify("New version of device agent available: https://doc.nais.io/device/install#installation")
-			return
-		}
+	log.Info("Checking release version on github")
+
+	req, err := http.NewRequestWithContext(ctx, "GET", "https://api.github.com/repos/nais/device/releases/latest", nil)
+	if err != nil {
+		return false, err
 	}
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return false, fmt.Errorf("retrieve current release version: %s", err)
+	}
+
+	defer resp.Body.Close()
+	res := &response{}
+	decoder := json.NewDecoder(resp.Body)
+	err = decoder.Decode(res)
+	if err != nil {
+		return false, fmt.Errorf("unmarshal response: %s", err)
+	}
+
+	if version.Version != res.Tag {
+		return true, nil
+	}
+
+	return false, nil
 }
-*/
 
 func ping(addr string) error {
 	c, err := net.DialTimeout("tcp", fmt.Sprintf("%s:%s", addr, "3000"), 2*time.Second)
