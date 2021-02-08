@@ -64,6 +64,11 @@ func (das *DeviceAgentServer) EventLoop(rc *runtimeconfig.RuntimeConfig) {
 			status.NewVersionAvailable, err = newVersionAvailable(ctx)
 			cancel()
 
+			if err != nil {
+				log.Errorf("check for new version: %s", err)
+				continue
+			}
+
 			if status.NewVersionAvailable {
 				notify("New version of device agent available: https://doc.nais.io/device/install#installation")
 				versionCheckTicker.Stop()
