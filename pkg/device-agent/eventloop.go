@@ -9,10 +9,11 @@ import (
 	"io/ioutil"
 	"net"
 	"os"
+	"os/signal"
+	"syscall"
 	"time"
 
 	"github.com/gen2brain/beeep"
-	"github.com/getlantern/systray"
 	"github.com/nais/device/device-agent/apiserver"
 	"github.com/nais/device/device-agent/auth"
 	"github.com/nais/device/device-agent/runtimeconfig"
@@ -36,6 +37,9 @@ const (
 func (das *DeviceAgentServer) EventLoop(rc *runtimeconfig.RuntimeConfig) {
 	var err error
 
+	signals := make(chan os.Signal, 1)
+	signal.Notify(signals, syscall.SIGINT, syscall.SIGTERM)
+
 	syncConfigTicker := time.NewTicker(syncConfigInterval)
 	healthCheckTicker := time.NewTicker(healthCheckInterval)
 
@@ -46,6 +50,10 @@ func (das *DeviceAgentServer) EventLoop(rc *runtimeconfig.RuntimeConfig) {
 		das.UpdateAgentStatus(status)
 
 		select {
+		case sig := <-signals:
+			log.Infof("Received signal %s, exiting...", sig)
+			return
+
 		case <-syncConfigTicker.C:
 			if status.ConnectionState == pb.AgentState_Connected {
 				das.stateChange <- pb.AgentState_SyncConfig
@@ -113,8 +121,6 @@ func (das *DeviceAgentServer) EventLoop(rc *runtimeconfig.RuntimeConfig) {
 
 			case pb.AgentState_Quitting:
 				_ = DeleteConfigFile(rc.Config.WireGuardConfigPath)
-				//noinspection GoDeferInLoop
-				defer systray.Quit()
 				return
 
 			case pb.AgentState_Disconnecting:

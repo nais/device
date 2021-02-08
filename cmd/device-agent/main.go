@@ -7,7 +7,7 @@ import (
 	"github.com/gen2brain/beeep"
 	"github.com/nais/device/device-agent/filesystem"
 	"github.com/nais/device/device-agent/runtimeconfig"
-	device_agent "github.com/nais/device/pkg/device-agent"
+	"github.com/nais/device/pkg/device-agent"
 	pb "github.com/nais/device/pkg/protobuf"
 	"google.golang.org/grpc"
 
@@ -39,6 +39,7 @@ func main() {
 	log.Infof("Starting device-agent with config:\n%+v", cfg)
 	log.Infof("Version: %s, Revision: %s", version.Version, version.Revision)
 	startDeviceAgent()
+	log.Infof("device-agent shutting down.")
 }
 
 func startDeviceAgent() {
@@ -73,6 +74,9 @@ func startDeviceAgent() {
 	}()
 
 	das.EventLoop(rc)
+
+	grpcServer.Stop()
+	listener.Close()
 }
 
 func notify(format string, args ...interface{}) {
