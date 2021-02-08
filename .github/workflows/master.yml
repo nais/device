@@ -25,6 +25,9 @@ jobs:
           --health-retries 5
     steps:
     - uses: actions/checkout@v2
+    - uses: actions/setup-go@v2
+      with:
+        go-version: '1.15' # The Go version to download (if necessary) and use.
     - name: run tests
       run: |
         sudo apt update
@@ -78,6 +81,9 @@ jobs:
     runs-on: macos-latest
     steps:
     - uses: actions/checkout@v2
+    - uses: actions/setup-go@v2
+      with:
+        go-version: '1.15' # The Go version to download (if necessary) and use.
     - name: Import Code-Signing Certificates
       uses: Apple-Actions/import-codesign-certs@v1
       with:
@@ -106,6 +112,9 @@ jobs:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v2
+      - uses: actions/setup-go@v2
+        with:
+          go-version: '1.15' # The Go version to download (if necessary) and use.
       - name: Add msbuild to PATH
         uses: microsoft/setup-msbuild@v1
       - name: download windows binaries
@@ -130,6 +139,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
+      - uses: actions/setup-go@v2
+        with:
+          go-version: '1.15' # The Go version to download (if necessary) and use.
       - name: download linux binaries
         uses: actions/download-artifact@v2
         with:
