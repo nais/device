@@ -18,10 +18,10 @@ import (
 	"github.com/nais/device/device-agent/runtimeconfig"
 	pb "github.com/nais/device/pkg/protobuf"
 	log "github.com/sirupsen/logrus"
+	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 var (
-	connectedTime         = time.Now()
 	lastConfigurationFile string
 )
 
@@ -101,7 +101,7 @@ func (das *DeviceAgentServer) EventLoop(rc *runtimeconfig.RuntimeConfig) {
 						continue
 					}
 				}
-				connectedTime = time.Now()
+				status.ConnectedSince = timestamppb.Now()
 				das.stateChange <- pb.AgentState_SyncConfig
 				continue
 

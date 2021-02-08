@@ -3,6 +3,8 @@ syntax = "proto3";
 option go_package = "github.com/nais/device/pkg/protobuf";
 package protobuf;
 
+import "google/protobuf/timestamp.proto";
+
 service DeviceHelper {
     // todo: shut down all connections on error
     // Push and apply new VPN configuration.
@@ -86,7 +88,7 @@ message AgentStatusRequest {
 
 message AgentStatus {
     AgentState connectionState = 1;
-    string stateMessage = 2;
+    google.protobuf.Timestamp connectedSince = 2;
     bool newVersionAvailable = 3;
     repeated Gateway Gateways = 4;
 }

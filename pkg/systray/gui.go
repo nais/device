@@ -158,7 +158,7 @@ func (gui *Gui) handleButtonClicks() {
 func (gui *Gui) handleAgentStatus(agentStatus *pb.AgentStatus) {
 	log.Debugf("received agent status: %v", agentStatus)
 
-	gui.MenuItems.State.SetTitle(agentStatus.GetConnectionState().String())
+	gui.MenuItems.State.SetTitle(agentStatus.ConnectionStateString())
 
 	gateways := agentStatus.GetGateways()
 	max := len(gateways)
