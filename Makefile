@@ -134,7 +134,7 @@ app: wg wireguard-go macos-icon macos-client
 	cp bin/macos-client/* naisdevice.app/Contents/MacOS
 	cp assets/naisdevice.icns naisdevice.app/Contents/Resources
 	sed 's/VERSIONSTRING/${VERSION}/' packaging/macos/Info.plist.tpl > naisdevice.app/Contents/Info.plist
-	gon --log-level=debug packaging/macos/gon-app.json
+	# gon --log-level=debug packaging/macos/gon-app.json
 
 test:
 	go test ./... -count=1
