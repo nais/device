@@ -168,7 +168,7 @@ func (gui *Gui) handleAgentStatus(agentStatus *pb.AgentStatus) {
 
 	max := len(gateways)
 	if max > maxGateways {
-		panic("twenty wasn't enough, was it??????")
+		panic(fmt.Sprintf("cannot exceed %d gateways", maxGateways))
 	}
 	for i, gateway := range gateways {
 		gui.MenuItems.GatewayItems[i].Gateway = gateway
