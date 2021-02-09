@@ -1,11 +1,10 @@
 package config
 
 import (
+	"errors"
 	"os"
 	"path/filepath"
 	"runtime"
-
-	"errors"
 )
 
 func UserConfigDir() (string, error) {

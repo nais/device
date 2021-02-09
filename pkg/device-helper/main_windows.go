@@ -1,19 +1,21 @@
-package main
+package device_helper
 
 import (
 	"bytes"
 	"context"
 	"fmt"
-	"github.com/nais/device/pkg/bootstrap"
-	"github.com/nais/device/pkg/logger"
-	log "github.com/sirupsen/logrus"
-	"golang.org/x/sys/windows/svc"
-	"golang.org/x/sys/windows/svc/mgr"
 	"io/ioutil"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"time"
+
+	"github.com/nais/device/cmd/device-agent-helper"
+	"github.com/nais/device/pkg/bootstrap"
+	"github.com/nais/device/pkg/logger"
+	log "github.com/sirupsen/logrus"
+	"golang.org/x/sys/windows/svc"
+	"golang.org/x/sys/windows/svc/mgr"
 )
 
 const (
@@ -22,16 +24,14 @@ const (
 )
 
 type MyService struct {
-	controlChannel chan ControlEvent
+	controlChannel chan main.ControlEvent
 }
 
-func (service *MyService) ControlChannel() <-chan ControlEvent {
+func (service *MyService) ControlChannel() <-chan main.ControlEvent {
 	return service.controlChannel
 }
 
-func platformInit(cfg *Config) {
-	logger.SetupDeviceLogger(cfg.LogLevel, logger.DeviceAgentHelperLogFilePath())
-
+func PlatformInit(cfg *main.Config) {
 	interactive, err := svc.IsAnInteractiveSession()
 	if err != nil {
 		log.Fatalf("Checking if session is interactive: %v", err)
@@ -42,7 +42,7 @@ func platformInit(cfg *Config) {
 	}
 
 	s := NewService()
-	myService = s
+	main.myService = s
 	go func() {
 		err := svc.Run(ServiceName, s)
 		if err != nil {
@@ -51,7 +51,7 @@ func platformInit(cfg *Config) {
 	}()
 }
 
-func interfaceExists(ctx context.Context, cfg Config) bool {
+func interfaceExists(ctx context.Context, cfg main.Config) bool {
 	queryService := exec.CommandContext(ctx, "sc", "query", serviceName(cfg.Interface))
 	if err := queryService.Run(); err != nil {
 		return false
@@ -60,7 +60,7 @@ func interfaceExists(ctx context.Context, cfg Config) bool {
 	}
 }
 
-func setupInterface(ctx context.Context, cfg Config, bootstrapConfig *bootstrap.Config) error {
+func setupInterface(ctx context.Context, cfg main.Config, bootstrapConfig *bootstrap.Config) error {
 	if interfaceExists(ctx, cfg) {
 		return nil
 	}
@@ -79,7 +79,7 @@ func setupInterface(ctx context.Context, cfg Config, bootstrapConfig *bootstrap.
 
 var oldWireGuardConfig []byte
 
-func syncConf(cfg Config, ctx context.Context) error {
+func syncConf(cfg main.Config, ctx context.Context) error {
 	newWireGuardConfig, err := ioutil.ReadFile(cfg.WireGuardConfigPath)
 	if err != nil {
 		return fmt.Errorf("reading WireGuard config file: %w", err)
@@ -93,13 +93,13 @@ func syncConf(cfg Config, ctx context.Context) error {
 			{"net", "start", serviceName(cfg.Interface)},
 		}
 
-		return runCommands(ctx, commands)
+		return main.runCommands(ctx, commands)
 	}
 
 	return nil
 }
 
-func teardownInterface(ctx context.Context, cfg Config) {
+func teardownInterface(ctx context.Context, cfg main.Config) {
 	if !interfaceExists(ctx, cfg) {
 		log.Info("no interface")
 		return
@@ -116,7 +116,7 @@ func teardownInterface(ctx context.Context, cfg Config) {
 }
 
 func prerequisites() error {
-	if err := filesExist(WireGuardBinary); err != nil {
+	if err := main.filesExist(WireGuardBinary); err != nil {
 		return fmt.Errorf("verifying if file exists: %w", err)
 	}
 
@@ -186,7 +186,7 @@ func uninstallService() {
 }
 
 func NewService() *MyService {
-	return &MyService{controlChannel: make(chan ControlEvent, 100)}
+	return &MyService{controlChannel: make(chan main.ControlEvent, 100)}
 }
 
 func (service *MyService) Execute(args []string, r <-chan svc.ChangeRequest, changes chan<- svc.Status) (ssec bool, errno uint32) {
@@ -204,7 +204,7 @@ loop:
 				time.Sleep(100 * time.Millisecond)
 				changes <- c.CurrentStatus
 			case svc.Stop, svc.Shutdown:
-				service.controlChannel <- Stop
+				service.controlChannel <- main.Stop
 				break loop
 			default:
 				log.Errorf("unexpected control request #%d", c)

@@ -1,13 +1,10 @@
 package device_agent
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io"
-	"io/ioutil"
 	"net"
 	"net/http"
 	"os"
@@ -36,7 +33,16 @@ const (
 	initialConnectWait        = initialGatewayRefreshWait
 	healthCheckInterval       = 20 * time.Second
 	versionCheckTimeout       = 3 * time.Second
+	agentHelperCallTimeout    = 3 * time.Second
 )
+
+func (das *DeviceAgentServer) ConfigureHelper(rc *runtimeconfig.RuntimeConfig, gateways []*pb.Gateway) error {
+	return das.HelperConfigStream.Send(&pb.Configuration{
+		PrivateKey: string(rc.PrivateKey),
+		DeviceIP:   rc.BootstrapConfig.DeviceIP,
+		Gateways:   gateways,
+	})
+}
 
 func (das *DeviceAgentServer) EventLoop(rc *runtimeconfig.RuntimeConfig) {
 	var err error
@@ -104,15 +110,23 @@ func (das *DeviceAgentServer) EventLoop(rc *runtimeconfig.RuntimeConfig) {
 					}
 				}
 
-				err := saveConfig(*rc)
+				das.HelperConfigStream, err = das.DeviceHelper.Configure(context.Background())
 				if err != nil {
-					log.Error(err.Error())
 					notify(err.Error())
 					das.stateChange <- pb.AgentState_Disconnecting
 					continue
 				}
 
-				time.Sleep(initialConnectWait) // allow wireguard to syncconf
+				err = das.ConfigureHelper(rc, []*pb.Gateway{
+					rc.BootstrapConfig.Gateway(),
+				})
+
+				if err != nil {
+					notify(err.Error())
+					das.stateChange <- pb.AgentState_Disconnecting
+					continue
+				}
+
 				das.stateChange <- pb.AgentState_Authenticating
 
 			case pb.AgentState_Authenticating:
@@ -136,19 +150,22 @@ func (das *DeviceAgentServer) EventLoop(rc *runtimeconfig.RuntimeConfig) {
 				continue
 
 			case pb.AgentState_Connected:
+				// noop
+
 			case pb.AgentState_Disconnected:
-				log.Info("making sure no previous WireGuard config exists")
-				_ = DeleteConfigFile(rc.Config.WireGuardConfigPath)
 				status.Gateways = make([]*pb.Gateway, 0)
 
 			case pb.AgentState_Quitting:
-				_ = DeleteConfigFile(rc.Config.WireGuardConfigPath)
+				log.Info("closing device-helper configuration stream")
+				_, err = das.HelperConfigStream.CloseAndRecv()
+				status.Gateways = make([]*pb.Gateway, 0)
 				return
 
 			case pb.AgentState_Disconnecting:
-				err := DeleteConfigFile(rc.Config.WireGuardConfigPath)
+				log.Info("closing device-helper configuration stream")
+				_, err = das.HelperConfigStream.CloseAndRecv()
 				if err != nil {
-					notify("error synchronizing WireGuard config: %s", err)
+					notify(err.Error())
 				}
 				das.stateChange <- pb.AgentState_Disconnected
 
@@ -198,9 +215,8 @@ func (das *DeviceAgentServer) EventLoop(rc *runtimeconfig.RuntimeConfig) {
 
 				rc.UpdateGateways(gateways)
 				status.Gateways = ApiGatewaysToProtobufGateways(rc.Gateways)
-				das.UpdateAgentStatus(status)
 
-				err = saveConfig(*rc)
+				err = das.ConfigureHelper(rc, status.GetGateways())
 				if err != nil {
 					log.Error(err.Error())
 					notify(err.Error())
@@ -232,25 +248,6 @@ func ApiGatewaysToProtobufGateways(apigws apiserver.Gateways) []*pb.Gateway {
 	}
 
 	return pbgws
-}
-
-func saveConfig(rc runtimeconfig.RuntimeConfig) error {
-	cfgbuf := new(bytes.Buffer)
-	_, err := rc.Write(cfgbuf)
-	if err != nil {
-		return fmt.Errorf("unable to create WireGuard configuration: %w", err)
-	}
-	newConfigurationFile := cfgbuf.String()
-	if newConfigurationFile == lastConfigurationFile {
-		log.Debugf("skip writing identical configuration file")
-		return nil
-	}
-	err = WriteConfigFile(rc.Config.WireGuardConfigPath, cfgbuf)
-	if err != nil {
-		return fmt.Errorf("unable to create WireGuard configuration file %s: %w", rc.Config.WireGuardConfigPath, err)
-	}
-	lastConfigurationFile = newConfigurationFile
-	return nil
 }
 
 func newVersionAvailable(ctx context.Context) (bool, error) {
@@ -301,28 +298,4 @@ func notify(format string, args ...interface{}) {
 	if err != nil {
 		log.Errorf("failed sending message due to error: %s", err)
 	}
-}
-
-func DeleteConfigFile(path string) error {
-	err := os.Remove(path)
-	if err != nil && err != os.ErrNotExist {
-		return err
-	}
-	log.Debugf("Removed WireGuard configuration file at %s", path)
-	lastConfigurationFile = ""
-	return nil
-}
-
-func WriteConfigFile(path string, r io.Reader) error {
-	cfg, err := ioutil.ReadAll(r)
-	if err != nil {
-		return err
-	}
-	err = ioutil.WriteFile(path, cfg, 0600)
-	if err != nil {
-		return fmt.Errorf("writing WireGuard config to disk: %w", err)
-	}
-
-	log.Debugf("Wrote WireGuard config to disk")
-	return nil
 }

@@ -15,11 +15,13 @@ import (
 
 type DeviceAgentServer struct {
 	pb.UnimplementedDeviceAgentServer
-	stateChange  chan pb.AgentState
-	statusChange chan *pb.AgentStatus
-	streams      map[uuid.UUID]pb.DeviceAgent_StatusServer
-	AgentStatus  *pb.AgentStatus
-	lock         sync.Mutex
+	AgentStatus        *pb.AgentStatus
+	DeviceHelper       pb.DeviceHelperClient
+	HelperConfigStream pb.DeviceHelper_ConfigureClient
+	lock               sync.Mutex
+	stateChange        chan pb.AgentState
+	statusChange       chan *pb.AgentStatus
+	streams            map[uuid.UUID]pb.DeviceAgent_StatusServer
 }
 
 func (das *DeviceAgentServer) Login(ctx context.Context, request *pb.LoginRequest) (*pb.LoginResponse, error) {
@@ -84,9 +86,10 @@ func (das *DeviceAgentServer) UpdateAgentStatus(status *pb.AgentStatus) {
 	}
 }
 
-func NewServer(stateChange chan pb.AgentState) *DeviceAgentServer {
+func NewServer(stateChange chan pb.AgentState, helper pb.DeviceHelperClient) *DeviceAgentServer {
 	return &DeviceAgentServer{
-		stateChange: stateChange,
-		streams:     make(map[uuid.UUID]pb.DeviceAgent_StatusServer, 0),
+		DeviceHelper: helper,
+		stateChange:  stateChange,
+		streams:      make(map[uuid.UUID]pb.DeviceAgent_StatusServer, 0),
 	}
 }

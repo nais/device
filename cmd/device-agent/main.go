@@ -29,6 +29,7 @@ func init() {
 	flag.StringVar(&cfg.Interface, "interface", cfg.Interface, "name of tunnel interface")
 	flag.StringVar(&cfg.LogLevel, "log-level", cfg.LogLevel, "which log level to output")
 	flag.StringVar(&cfg.GrpcAddress, "grpc-address", cfg.GrpcAddress, "unix socket for gRPC server")
+	flag.StringVar(&cfg.DeviceAgentHelperAddress, "device-agent-helper-address", cfg.DeviceAgentHelperAddress, "device-agent-helper unix socket")
 	flag.BoolVar(&cfg.AutoConnect, "connect", false, "auto connect")
 	flag.Parse()
 	cfg.SetDefaults()
@@ -61,13 +62,29 @@ func startDeviceAgent() {
 		log.Fatalf("failed to listen on unix socket %s: %v", cfg.GrpcAddress, err)
 	}
 	log.Infof("accepting network connections on unix socket %s", cfg.GrpcAddress)
+	defer listener.Close()
 
 	var opts []grpc.ServerOption
 
 	stateChange := make(chan pb.AgentState, 64)
 
+	log.Infof("connecting to device-agent-helper on unix socket %s...", cfg.DeviceAgentHelperAddress)
+	connection, err := grpc.Dial(
+		"unix:"+cfg.DeviceAgentHelperAddress,
+		grpc.WithBlock(),
+		grpc.WithInsecure(),
+	)
+	if err != nil {
+		log.Fatalf("unable to connect to device-agent-helper grpc server: %v", err)
+	}
+	defer connection.Close()
+
+	log.Info("connection to device-agent-helper established")
+	client := pb.NewDeviceHelperClient(connection)
+
 	grpcServer := grpc.NewServer(opts...)
-	das := device_agent.NewServer(stateChange)
+	defer grpcServer.Stop()
+	das := device_agent.NewServer(stateChange, client)
 	pb.RegisterDeviceAgentServer(grpcServer, das)
 	go func() {
 		if err := grpcServer.Serve(listener); err != nil {
@@ -76,9 +93,6 @@ func startDeviceAgent() {
 	}()
 
 	das.EventLoop(rc)
-
-	grpcServer.Stop()
-	listener.Close()
 }
 
 func notify(format string, args ...interface{}) {

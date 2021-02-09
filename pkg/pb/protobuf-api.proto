@@ -9,7 +9,7 @@ import "google/protobuf/timestamp.proto";
 service DeviceHelper {
     // todo: shut down all connections on error
     // Push and apply new VPN configuration.
-    rpc Configure (Configuration) returns (ConfigureResponse) {
+    rpc Configure (stream Configuration) returns (ConfigureResponse) {
     }
 
     // Install the newest version of naisdevice.

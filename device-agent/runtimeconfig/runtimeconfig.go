@@ -4,12 +4,12 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
+
 	"github.com/nais/device/device-agent/apiserver"
 	"github.com/nais/device/device-agent/bootstrapper"
 	"github.com/nais/device/pkg/bootstrap"
 	log "github.com/sirupsen/logrus"
-	"io"
-	"io/ioutil"
 
 	"github.com/nais/device/device-agent/auth"
 	"github.com/nais/device/device-agent/config"
@@ -50,23 +50,6 @@ func (rc *RuntimeConfig) UpdateGateways(new apiserver.Gateways) {
 	}
 
 	rc.Gateways = new
-}
-
-// Write configuration file into a Writer
-func (rc *RuntimeConfig) Write(w io.Writer) (int, error) {
-	var written int
-	baseConfig := wireguard.GenerateBaseConfig(rc.BootstrapConfig, rc.PrivateKey)
-	wt, err := w.Write([]byte(baseConfig))
-	written += wt
-	if err != nil {
-		return written, err
-	}
-
-	wireGuardPeers := rc.Gateways.MarshalIni()
-	wt, err = w.Write(wireGuardPeers)
-	written += wt
-
-	return written, err
 }
 
 func New(cfg config.Config) (*RuntimeConfig, error) {

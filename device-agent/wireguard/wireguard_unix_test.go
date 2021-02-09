@@ -3,30 +3,53 @@
 package wireguard_test
 
 import (
-	"github.com/nais/device/pkg/bootstrap"
+	"bytes"
 	"testing"
 
 	"github.com/nais/device/device-agent/wireguard"
+	"github.com/nais/device/pkg/pb"
 	"github.com/stretchr/testify/assert"
 )
 
-func TestGenerateWGConfig(t *testing.T) {
-	bootstrapConfig := &bootstrap.Config{
-		DeviceIP:       "10.1.1.1",
-		PublicKey:      "PQKmraPOPye5CJq1x7njpl8rRu5RSrIKyHvZXtLvS0E=",
-		TunnelEndpoint: "69.1.1.1:51820",
-		APIServerIP:    "10.1.1.2",
+func TestMarshalConfiguration(t *testing.T) {
+	cfg := &pb.Configuration{
+		PrivateKey: "abc",
+		DeviceIP:   "127.0.0.1",
+		Gateways: []*pb.Gateway{
+			{
+				PublicKey: "PQKmraPOPye5CJq1x7njpl8rRu5RSrIKyHvZXtLvS0E=",
+				Endpoint:  "13.37.13.37:51820",
+				Ip:        "10.255.240.2",
+				Routes:    []string{"13.37.69.0/24", "13.37.59.69/32"},
+			},
+			{
+				PublicKey: "foobar",
+				Endpoint:  "14.37.13.37:51820",
+				Ip:        "11.255.240.2",
+				Routes:    []string{"14.37.69.0/24", "14.37.59.69/32"},
+			},
+		},
 	}
-	privateKey := []byte("wFTAVe1stJPp0xQ+FE9so56uKh0jaHkPxJ4d2x9jPmU=")
 
-	wgConfig := wireguard.GenerateBaseConfig(bootstrapConfig, privateKey)
-	expected := `[Interface]
-PrivateKey = d0ZUQVZlMXN0SlBwMHhRK0ZFOXNvNTZ1S2gwamFIa1B4SjRkMng5alBtVT0=
+	buf := new(bytes.Buffer)
+	_, err := wireguard.Marshal(buf, cfg)
+
+	assert.NoError(t, err)
+
+	expected :=
+		`[Interface]
+PrivateKey = YWJj
 
 [Peer]
 PublicKey = PQKmraPOPye5CJq1x7njpl8rRu5RSrIKyHvZXtLvS0E=
-AllowedIPs = 10.1.1.2/32
-Endpoint = 69.1.1.1:51820
+AllowedIPs = 13.37.69.0/24,13.37.59.69/32,10.255.240.2/32
+Endpoint = 13.37.13.37:51820
+
+[Peer]
+PublicKey = foobar
+AllowedIPs = 14.37.69.0/24,14.37.59.69/32,11.255.240.2/32
+Endpoint = 14.37.13.37:51820
+
 `
-	assert.Equal(t, expected, wgConfig)
+	assert.Equal(t, expected, buf.String())
 }

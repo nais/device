@@ -1,13 +1,15 @@
-package main
+package device_helper
 
 import (
 	"context"
 	"fmt"
-	"github.com/nais/device/pkg/bootstrap"
-	"github.com/nais/device/pkg/logger"
 	"io/ioutil"
 	"os/exec"
 	"strings"
+
+	"github.com/nais/device/cmd/device-agent-helper"
+	"github.com/nais/device/pkg/bootstrap"
+	"github.com/nais/device/pkg/logger"
 
 	log "github.com/sirupsen/logrus"
 )
@@ -17,17 +19,16 @@ const (
 )
 
 func prerequisites() error {
-	if err := filesExist(WireGuardBinary); err != nil {
+	if err := main.filesExist(WireGuardBinary); err != nil {
 		return fmt.Errorf("verifying if file exists: %w", err)
 	}
 	return nil
 }
 
-func platformInit(cfg *Config) {
-	logger.SetupDeviceLogger(cfg.LogLevel, logger.DeviceAgentHelperLogFilePath())
+func PlatformInit(cfg *main.Config) {
 }
 
-func syncConf(cfg Config, ctx context.Context) error {
+func syncConf(cfg main.Config, ctx context.Context) error {
 	cmd := exec.CommandContext(ctx, WireGuardBinary, "syncconf", cfg.Interface, cfg.WireGuardConfigPath)
 	if b, err := cmd.CombinedOutput(); err != nil {
 		return fmt.Errorf("running syncconf: %w: %v", err, string(b))
@@ -38,7 +39,7 @@ func syncConf(cfg Config, ctx context.Context) error {
 		return fmt.Errorf("reading file: %w", err)
 	}
 
-	cidrs, err := ParseConfig(string(configFileBytes))
+	cidrs, err := main.ParseConfig(string(configFileBytes))
 	if err != nil {
 		return fmt.Errorf("parsing WireGuard config: %w", err)
 	}
@@ -70,7 +71,7 @@ func setupRoutes(ctx context.Context, cidrs []string, interfaceName string) erro
 	return nil
 }
 
-func setupInterface(ctx context.Context, cfg Config, bootstrapConfig *bootstrap.Config) error {
+func setupInterface(ctx context.Context, cfg main.Config, bootstrapConfig *bootstrap.Config) error {
 	if err := exec.Command("ip", "link", "del", cfg.Interface).Run(); err != nil {
 		log.Infof("pre-deleting WireGuard interface (ok if this fails): %v", err)
 	}
@@ -81,15 +82,15 @@ func setupInterface(ctx context.Context, cfg Config, bootstrapConfig *bootstrap.
 		{"ip", "address", "add", "dev", cfg.Interface, bootstrapConfig.DeviceIP + "/21"},
 	}
 
-	return runCommands(ctx, commands)
+	return main.runCommands(ctx, commands)
 }
 
-func teardownInterface(ctx context.Context, cfg Config) {
+func teardownInterface(ctx context.Context, cfg main.Config) {
 	cmd := exec.CommandContext(ctx, "ip", "link", "del", cfg.Interface)
 	if err := cmd.Run(); err != nil {
 		log.Errorf("Tearing down interface: %v", err)
 	}
 }
 
-func uninstallService()         {}
-func installService(cfg Config) {}
+func uninstallService()              {}
+func installService(cfg main.Config) {}

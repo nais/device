@@ -2,21 +2,18 @@ package main
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
-	"github.com/nais/device/pkg/bootstrap"
-	"io/ioutil"
+	"net"
 	"os"
-	"os/exec"
 	"os/signal"
 	"path/filepath"
-	"regexp"
-	"strings"
 	"syscall"
-	"time"
 
-	"github.com/mitchellh/go-ps"
-	"github.com/rjeczalik/notify"
+	"github.com/nais/device/pkg/device-helper"
+	"github.com/nais/device/pkg/logger"
+	"github.com/nais/device/pkg/pb"
+	"google.golang.org/grpc"
+
 	log "github.com/sirupsen/logrus"
 	flag "github.com/spf13/pflag"
 )
@@ -33,22 +30,11 @@ type Controllable interface {
 	ControlChannel() <-chan ControlEvent
 }
 
-type Config struct {
-	Interface           string
-	WireGuardConfigPath string
-	ConfigPath          string
-	LogLevel            string
-	BootstrapConfigPath string
-}
-
 var (
-	cfg                    = Config{}
-	myService Controllable = &MockService{}
+	cfg = device_helper.Config{}
 )
 
 const (
-	TunnelNetworkPrefix = "10.255.24"
-
 	Stop ControlEvent = iota
 	Pause
 	Continue
@@ -58,229 +44,59 @@ func init() {
 	flag.StringVar(&cfg.LogLevel, "log-level", "info", "which log level to output")
 	flag.StringVar(&cfg.ConfigPath, "config-dir", "", "path to naisdevice config dir (required)")
 	flag.StringVar(&cfg.Interface, "interface", "utun69", "interface name")
+	flag.StringVar(&cfg.GrpcAddress, "grpc-address", "", "interface name")
 
 	flag.Parse()
 
 	cfg.WireGuardConfigPath = filepath.Join(cfg.ConfigPath, cfg.Interface+".conf")
-	cfg.BootstrapConfigPath = filepath.Join(cfg.ConfigPath, "bootstrapconfig.json")
 }
 
-// device-agent-helper is responsible for:
-// - running the WireGuard process
-// - configuring the network tunnel interface
-// - synchronizing WireGuard with the provided config
-// - setting up the required routes
 func main() {
 	if len(cfg.ConfigPath) == 0 {
 		fmt.Println("--config-dir is required")
 		os.Exit(1)
 	}
 
-	platformInit(&cfg)
-	log.Infof("Starting device-agent-helper with config:\n%+v", cfg)
+	if len(cfg.GrpcAddress) == 0 {
+		cfg.GrpcAddress = filepath.Join(cfg.ConfigPath, "helper.sock")
+	}
 
-	var err error
+	logger.SetupDeviceLogger(cfg.LogLevel, logger.DeviceAgentHelperLogFilePath())
+
+	log.Infof("Starting device-agent-helper with config:\n%+v", cfg)
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	if err := prerequisites(); err != nil {
+	if err := device_helper.Prerequisites(); err != nil {
 		log.Fatalf("Checking prerequisites: %v", err)
 	}
 
 	// Deprecated service, new one is installed via msi intaller
-	uninstallService()
+	device_helper.UninstallService()
 
-	defer teardownInterface(ctx, cfg)
+	defer device_helper.TeardownInterface(ctx, cfg.Interface)
 
 	interrupt := make(chan os.Signal, 1)
 	signal.Notify(interrupt, os.Interrupt, syscall.SIGTERM)
 
-	notifyEvents := make(chan notify.EventInfo, 100)
-	err = notify.Watch(cfg.ConfigPath, notifyEvents, notify.Remove, notify.Write)
+	// fixme: socket is not cleaned up when process is killed with SIGKILL,
+	// fixme: and requires manual removal.
+	listener, err := net.Listen("unix", cfg.GrpcAddress)
 	if err != nil {
-		log.Fatalf("Monitoring WireGuard configuration file: %v", err)
+		log.Fatalf("failed to listen on unix socket %s: %v", cfg.GrpcAddress, err)
 	}
+	log.Infof("accepting network connections on unix socket %s", cfg.GrpcAddress)
 
-	up := false
-
-	ensureUp := func() {
-		log.Info("WireGuard configuration updated")
-		if !isDeviceAgentRunning() {
-			log.Error("device-agent not running, abort ensureUp.")
-			return
+	grpcServer := grpc.NewServer()
+	dhs := &device_helper.DeviceHelperServer{}
+	pb.RegisterDeviceHelperServer(grpcServer, dhs)
+	go func() {
+		if err := grpcServer.Serve(listener); err != nil {
+			log.Fatalf("failed to start grpc webserver: %v", err)
 		}
+	}()
 
-		var bootstrapConfig *bootstrap.Config
-		bootstrapConfig, err = parseBootstrapConfig(cfg)
-		if err != nil {
-			log.Fatal("Parsing bootstrap config", err)
-			return
-		}
-
-		if len(bootstrapConfig.DeviceIP) == 0 ||
-			len(bootstrapConfig.PublicKey) == 0 ||
-			len(bootstrapConfig.APIServerIP) == 0 ||
-			len(bootstrapConfig.TunnelEndpoint) == 0 {
-			err = os.Remove(cfg.BootstrapConfigPath)
-			if err != nil {
-				log.Fatalf("deleting invalid bootstrap config: %v", err)
-			}
-
-			log.Fatalf("Invalid bootstrap config (%+v), so i deleted it", bootstrapConfig)
-			return
-		}
-
-		if err := setupInterface(ctx, cfg, bootstrapConfig); err != nil {
-			log.Errorf("Setting up interface: %v", err)
-			return
-		}
-		err = syncConf(cfg, ctx)
-		if err != nil {
-			log.Errorf("Syncing WireGuard config: %v", err)
-		}
-
-		up = true
-	}
-
-	ensureDown := func() {
-		log.Info("WireGuard configuration deleted; tearing down interface")
-		teardownInterface(ctx, cfg)
-		up = false
-	}
-
-	handleEvent := func(ev notify.EventInfo) {
-		log.Debugf("%#v", ev)
-		if ev.Path() != cfg.WireGuardConfigPath {
-			return
-		}
-		switch ev.Event() {
-		case notify.Remove:
-			ensureDown()
-		case notify.Write:
-			ensureUp()
-		}
-	}
-
-	if RegularFileExists(cfg.WireGuardConfigPath) == nil {
-		ensureUp()
-	} else {
-		ensureDown()
-	}
-
-	controlChannel := myService.ControlChannel()
-	deviceAgentCheckTicker := time.NewTicker(10 * time.Second)
-
-	for {
-		select {
-		case <-interrupt:
-			log.Info("Received interrupt, shutting down gracefully.")
-			return
-		case ev := <-notifyEvents:
-			handleEvent(ev)
-		case <-deviceAgentCheckTicker.C:
-			if up && !isDeviceAgentRunning() {
-				log.Info("no device agent running, shutting down")
-				ensureDown()
-			}
-		case ce := <-controlChannel:
-			switch ce {
-			case Stop:
-				return
-			default:
-				log.Errorf("Unrecognized control event: %v", ce)
-			}
-		}
-	}
-}
-
-// TODO: remove when grpc between device-agent and helper
-func isDeviceAgentRunning() bool {
-	processList, err := ps.Processes()
-	if err != nil {
-		log.Errorf("failed to list processes: %v", err)
-		return false
-	}
-
-	deviceAgentNames := []string{"naisdevice", "device-agent"}
-	ignore := "device-agent-he"
-
-	for _, process := range processList {
-		if strings.Contains(process.Executable(), ignore) {
-			continue
-		}
-
-		for _, match := range deviceAgentNames {
-			if strings.Contains(process.Executable(), match) {
-				return true
-			}
-		}
-	}
-
-	return false
-}
-
-func parseBootstrapConfig(cfg Config) (*bootstrap.Config, error) {
-	b, err := ioutil.ReadFile(cfg.BootstrapConfigPath)
-	if err != nil {
-		return nil, fmt.Errorf("reading bootstrapconfig.json: %w", err)
-	}
-
-	var bootstrapConfig bootstrap.Config
-	err = json.Unmarshal(b, &bootstrapConfig)
-	if err != nil {
-		return nil, fmt.Errorf("unmarshalling bootstrapconfig.json: %w", err)
-	}
-
-	return &bootstrapConfig, nil
-}
-
-func ParseConfig(wireGuardConfig string) ([]string, error) {
-	re := regexp.MustCompile(`AllowedIPs = (.+)`)
-	allAllowedIPs := re.FindAllStringSubmatch(wireGuardConfig, -1)
-
-	var cidrs []string
-
-	for _, allowedIPs := range allAllowedIPs {
-		cidrs = append(cidrs, strings.Split(allowedIPs[1], ",")...)
-	}
-
-	return cidrs, nil
-}
-
-func filesExist(files ...string) error {
-	for _, file := range files {
-		if err := RegularFileExists(file); err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
-
-func RegularFileExists(filepath string) error {
-	info, err := os.Stat(filepath)
-	if err != nil {
-		return err
-	}
-	if info.IsDir() {
-		return fmt.Errorf("%v is a directory", filepath)
-	}
-
-	return nil
-}
-
-func runCommands(ctx context.Context, commands [][]string) error {
-	for _, s := range commands {
-		cmd := exec.CommandContext(ctx, s[0], s[1:]...)
-
-		if out, err := cmd.CombinedOutput(); err != nil {
-			return fmt.Errorf("running %v: %w: %v", cmd, err, string(out))
-		} else {
-			log.Debugf("cmd: %v: %v\n", cmd, string(out))
-		}
-
-		time.Sleep(100 * time.Millisecond) // avoid serializable race conditions with kernel
-	}
-	return nil
+	sig := <-interrupt
+	log.Infof("Received %s, shutting down gracefully.", sig)
 }

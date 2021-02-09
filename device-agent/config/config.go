@@ -11,23 +11,24 @@ import (
 )
 
 type Config struct {
-	APIServer           string
-	Interface           string
-	ConfigDir           string
-	BootstrapToken      string
-	WireGuardBinary     string
-	WireGuardGoBinary   string
-	PrivateKeyPath      string
-	WireGuardConfigPath string
-	BootstrapConfigPath string
-	SerialPath          string
-	LogLevel            string
-	LogFilePath         string
-	OAuth2Config        oauth2.Config
-	Platform            string
-	BootstrapAPI        string
-	AutoConnect         bool
-	GrpcAddress         string
+	APIServer                string
+	Interface                string
+	ConfigDir                string
+	BootstrapToken           string
+	WireGuardBinary          string
+	WireGuardGoBinary        string
+	PrivateKeyPath           string
+	WireGuardConfigPath      string
+	BootstrapConfigPath      string
+	SerialPath               string
+	LogLevel                 string
+	LogFilePath              string
+	OAuth2Config             oauth2.Config
+	Platform                 string
+	BootstrapAPI             string
+	AutoConnect              bool
+	GrpcAddress              string
+	DeviceAgentHelperAddress string
 }
 
 func (c *Config) SetDefaults() {
@@ -47,11 +48,12 @@ func DefaultConfig() Config {
 	}
 
 	return Config{
-		APIServer:    "http://10.255.240.1",
-		BootstrapAPI: "https://bootstrap.device.nais.io",
-		ConfigDir:    userConfigDir,
-		LogLevel:     "info",
-		GrpcAddress:  filepath.Join(userConfigDir, "agent.sock"),
+		APIServer:                "http://10.255.240.1",
+		BootstrapAPI:             "https://bootstrap.device.nais.io",
+		ConfigDir:                userConfigDir,
+		LogLevel:                 "info",
+		GrpcAddress:              filepath.Join(userConfigDir, "agent.sock"),
+		DeviceAgentHelperAddress: filepath.Join(userConfigDir, "helper.sock"),
 		OAuth2Config: oauth2.Config{
 			ClientID:    "8086d321-c6d3-4398-87da-0d54e3d93967",
 			Scopes:      []string{"openid", "6e45010d-2637-4a40-b91d-d4cbb451fb57/.default", "offline_access"},
