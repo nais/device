@@ -19,7 +19,7 @@ import (
 	"github.com/nais/device/device-agent/apiserver"
 	"github.com/nais/device/device-agent/auth"
 	"github.com/nais/device/device-agent/runtimeconfig"
-	pb "github.com/nais/device/pkg/protobuf"
+	"github.com/nais/device/pkg/pb"
 	"github.com/nais/device/pkg/version"
 	log "github.com/sirupsen/logrus"
 	"google.golang.org/protobuf/types/known/timestamppb"

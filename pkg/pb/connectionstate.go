@@ -1,4 +1,4 @@
-package protobuf
+package pb
 
 // see time.Format for format documentation, equals %H:%M:%S
 const timeFormat = "15:04:05"

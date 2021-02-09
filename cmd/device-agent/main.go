@@ -8,7 +8,7 @@ import (
 	"github.com/nais/device/device-agent/filesystem"
 	"github.com/nais/device/device-agent/runtimeconfig"
 	"github.com/nais/device/pkg/device-agent"
-	pb "github.com/nais/device/pkg/protobuf"
+	"github.com/nais/device/pkg/pb"
 	"google.golang.org/grpc"
 
 	"github.com/nais/device/device-agent/config"

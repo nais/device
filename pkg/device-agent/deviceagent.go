@@ -7,7 +7,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/hashicorp/go-multierror"
-	pb "github.com/nais/device/pkg/protobuf"
+	"github.com/nais/device/pkg/pb"
 	log "github.com/sirupsen/logrus"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"

@@ -1,7 +1,8 @@
 syntax = "proto3";
 
-option go_package = "github.com/nais/device/pkg/protobuf";
-package protobuf;
+option go_package = "github.com/nais/device/pkg/pb";
+
+package naisdevice;
 
 import "google/protobuf/timestamp.proto";
 

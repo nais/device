@@ -5,7 +5,7 @@ import (
 
 	"google.golang.org/grpc"
 
-	pb "github.com/nais/device/pkg/protobuf"
+	"github.com/nais/device/pkg/pb"
 	log "github.com/sirupsen/logrus"
 )
 

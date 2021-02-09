@@ -175,4 +175,4 @@ install-protobuf-go:
 	go install google.golang.org/grpc/cmd/protoc-gen-go-grpc
 
 proto:
-	$(PROTOC) --go-grpc_opt=paths=source_relative --go_opt=paths=source_relative --go_out=. --go-grpc_out=. pkg/protobuf/protobuf-api.proto
+	$(PROTOC) --go-grpc_opt=paths=source_relative --go_opt=paths=source_relative --go_out=. --go-grpc_out=. pkg/pb/protobuf-api.proto

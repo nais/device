@@ -11,7 +11,7 @@ import (
 
 	"github.com/nais/device/device-agent/open"
 	"github.com/nais/device/pkg/logger"
-	pb "github.com/nais/device/pkg/protobuf"
+	"github.com/nais/device/pkg/pb"
 	log "github.com/sirupsen/logrus"
 
 	"github.com/getlantern/systray"
