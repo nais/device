@@ -1,24 +1,30 @@
 package logger
 
 import (
+	"fmt"
 	"io"
 	"os"
+	"path/filepath"
 
 	log "github.com/sirupsen/logrus"
 	easy "github.com/t-tomalak/logrus-easy-formatter"
 )
 
-func SetupDeviceLogger(level, path string) {
-	file, err := os.OpenFile(path, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0664)
+func SetupLogger(level, configDir, filename string) {
+	logDirPath := filepath.Join(configDir, "logs")
+	err := ensureLogFileDir(logDirPath)
+
+	logFilePath := filepath.Join(logDirPath, filename)
+	logFile, err := os.OpenFile(logFilePath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0664)
 	if err != nil {
-		log.Fatalf("unable to open log file %s, error: %v", path, err)
+		log.Fatalf("unable to open log file %s, error: %v", logFilePath, err)
 	}
 
 	// file must be before os.Stdout here because when running as windows service writes to stdout fail.
-	mw := io.MultiWriter(file, os.Stdout)
+	mw := io.MultiWriter(logFile, os.Stdout)
 	log.SetOutput(mw)
 
-	log.Infof("Path: %s", path)
+	log.Infof("Path: %s", configDir)
 	loglevel, err := log.ParseLevel(level)
 	if err != nil {
 		log.Errorf("unable to parse log level %s, error: %v", level, err)
@@ -40,4 +46,21 @@ func Setup(level string) {
 	}
 
 	log.SetLevel(l)
+}
+
+func ensureLogFileDir(logDirPath string) error {
+	_, err := os.Stat(logDirPath)
+	if err != nil {
+		if os.IsNotExist(err) {
+			err = os.MkdirAll(logDirPath, 0777) // TODO This doesnt work, needs correct permissions
+			log.Infof("made log dir")
+			if err != nil {
+				return fmt.Errorf("creating logs directory: %v", err)
+			}
+		} else {
+			return fmt.Errorf("stat'ing logs directory: %v", err)
+		}
+	}
+
+	return nil
 }

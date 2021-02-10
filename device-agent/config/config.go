@@ -4,7 +4,6 @@ import (
 	"path/filepath"
 
 	"github.com/nais/device/pkg/config"
-	"github.com/nais/device/pkg/logger"
 	log "github.com/sirupsen/logrus"
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/endpoints"
@@ -38,7 +37,6 @@ func (c *Config) SetDefaults() {
 	c.WireGuardConfigPath = filepath.Join(c.ConfigDir, c.Interface+".conf")
 	c.BootstrapConfigPath = filepath.Join(c.ConfigDir, "bootstrapconfig.json")
 	c.SerialPath = filepath.Join(c.ConfigDir, "product_serial")
-	c.LogFilePath = logger.DeviceAgentLogFilePath(c.ConfigDir)
 }
 
 func DefaultConfig() Config {

@@ -24,26 +24,26 @@ var (
 
 func init() {
 	flag.StringVar(&cfg.LogLevel, "log-level", "info", "which log level to output")
-	flag.StringVar(&cfg.ConfigPath, "config-dir", "", "path to naisdevice config dir (required)")
+	flag.StringVar(&cfg.ConfigDir, "config-dir", "", "path to naisdevice config dir (required)")
 	flag.StringVar(&cfg.Interface, "interface", "utun69", "interface name")
 	flag.StringVar(&cfg.GrpcAddress, "grpc-address", "", "interface name")
 
 	flag.Parse()
 
-	cfg.WireGuardConfigPath = filepath.Join(cfg.ConfigPath, cfg.Interface+".conf")
+	cfg.WireGuardConfigPath = filepath.Join(cfg.ConfigDir, cfg.Interface+".conf")
 }
 
 func main() {
-	if len(cfg.ConfigPath) == 0 {
+	if len(cfg.ConfigDir) == 0 {
 		fmt.Println("--config-dir is required")
 		os.Exit(1)
 	}
 
 	if len(cfg.GrpcAddress) == 0 {
-		cfg.GrpcAddress = filepath.Join(cfg.ConfigPath, "helper.sock")
+		cfg.GrpcAddress = filepath.Join(cfg.ConfigDir, "helper.sock")
 	}
 
-	logger.SetupDeviceLogger(cfg.LogLevel, logger.DeviceAgentHelperLogFilePath())
+	logger.SetupLogger(cfg.LogLevel, cfg.ConfigDir, "helper.log")
 
 	log.Infof("Starting device-agent-helper with config:\n%+v", cfg)
 

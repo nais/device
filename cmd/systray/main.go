@@ -25,6 +25,8 @@ func main() {
 		ConfigDir:   configDir,
 	}
 
+	logger.SetupLogger(cfg.LogLevel, cfg.ConfigDir, "systray.log")
+
 	flag.StringVar(&cfg.LogLevel, "log-level", "warning", "which log level to output")
 	flag.BoolVar(&cfg.AutoConnect, "connect", false, "auto connect")
 	flag.StringVar(&cfg.GrpcAddress, "grpc-address", cfg.GrpcAddress, "path to device-agent unix socket")
@@ -32,8 +34,6 @@ func main() {
 
 	cfg.ConfigDir = configDir
 
-	cfg.LogFilePath = logger.DeviceAgentLogFilePath(cfg.ConfigDir)
-	logger.SetupDeviceLogger(cfg.LogLevel, cfg.LogFilePath)
 	log.Infof("Starting systray with device-agent %+v", &cfg)
 
 	systray.Spawn(cfg)

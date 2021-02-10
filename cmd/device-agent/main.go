@@ -32,10 +32,11 @@ func init() {
 	flag.BoolVar(&cfg.AutoConnect, "connect", false, "auto connect")
 	flag.Parse()
 	cfg.SetDefaults()
-	logger.SetupDeviceLogger(cfg.LogLevel, cfg.LogFilePath)
 }
 
 func main() {
+	logger.SetupLogger(cfg.LogLevel, cfg.ConfigDir, "agent.log")
+
 	log.Infof("Starting device-agent with config:\n%+v", cfg)
 	log.Infof("Version: %s, Revision: %s", version.Version, version.Revision)
 	startDeviceAgent()

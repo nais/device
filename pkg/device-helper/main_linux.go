@@ -15,6 +15,12 @@ const (
 	WireGuardBinary = "/usr/bin/wg"
 )
 
+func New(helperConfig Config) *LinuxConfigurator {
+	return &LinuxConfigurator{
+		helperConfig: helperConfig,
+	}
+}
+
 type LinuxConfigurator struct {
 	helperConfig Config
 }

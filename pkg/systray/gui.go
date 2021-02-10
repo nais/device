@@ -5,12 +5,12 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"sort"
 	"syscall"
 	"time"
 
 	"github.com/nais/device/device-agent/open"
-	"github.com/nais/device/pkg/logger"
 	"github.com/nais/device/pkg/pb"
 	log "github.com/sirupsen/logrus"
 
@@ -50,6 +50,7 @@ type Gui struct {
 		Logs         *systray.MenuItem
 		DeviceLog    *systray.MenuItem
 		HelperLog    *systray.MenuItem
+		SystrayLog   *systray.MenuItem
 		Version      *systray.MenuItem
 		GatewayItems []*GatewayItem
 	}
@@ -62,6 +63,7 @@ const (
 	QuitClicked
 	DeviceLogClicked
 	HelperLogClicked
+	SystrayLogClicked
 
 	maxGateways         = 20
 	slackURL            = "slack://channel?team=T5LNAMWNA&id=D011T20LDHD"
@@ -83,8 +85,9 @@ func NewGUI(client pb.DeviceAgentClient) *Gui {
 	gui.MenuItems.StateInfo.Hide()
 	gui.MenuItems.State.Disable()
 	gui.MenuItems.Logs = systray.AddMenuItem("Logs", "")
-	gui.MenuItems.DeviceLog = gui.MenuItems.Logs.AddSubMenuItem("Device Agent", "")
-	gui.MenuItems.HelperLog = gui.MenuItems.Logs.AddSubMenuItem("Device Agent helper", "")
+	gui.MenuItems.DeviceLog = gui.MenuItems.Logs.AddSubMenuItem("Agent", "")
+	gui.MenuItems.HelperLog = gui.MenuItems.Logs.AddSubMenuItem("Helper", "")
+	gui.MenuItems.SystrayLog = gui.MenuItems.Logs.AddSubMenuItem("Systray", "")
 	systray.AddSeparator()
 	gui.MenuItems.Connect = systray.AddMenuItem("Connect", "Bootstrap the nais device")
 	systray.AddSeparator()
@@ -149,6 +152,8 @@ func (gui *Gui) handleButtonClicks() {
 			gui.Events <- DeviceLogClicked
 		case <-gui.MenuItems.HelperLog.ClickedCh:
 			gui.Events <- HelperLogClicked
+		case <-gui.MenuItems.SystrayLog.ClickedCh:
+			gui.Events <- SystrayLogClicked
 		case name := <-gui.PrivilegedGatewayClicked:
 			accessPrivilegedGateway(name)
 		}
@@ -257,13 +262,19 @@ func (gui *Gui) handleGuiEvent(guiEvent GuiEvent) {
 		}
 
 	case HelperLogClicked:
-		err := open.Open(logger.DeviceAgentHelperLogFilePath())
+		err := open.Open(filepath.Join(cfg.ConfigDir, "logs", "agent.log"))
 		if err != nil {
 			log.Warn("opening device agent helper log: %w", err)
 		}
 
 	case DeviceLogClicked:
-		err := open.Open(logger.DeviceAgentLogFilePath(cfg.ConfigDir))
+		err := open.Open(filepath.Join(cfg.ConfigDir, "logs", "helper.log"))
+		if err != nil {
+			log.Warn("opening device agent log: %w", err)
+		}
+
+	case SystrayLogClicked:
+		err := open.Open(filepath.Join(cfg.ConfigDir, "logs", "systray.log"))
 		if err != nil {
 			log.Warn("opening device agent log: %w", err)
 		}
