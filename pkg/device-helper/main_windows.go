@@ -59,13 +59,15 @@ func (configurator *WindowsConfigurator) Prerequisites() error {
 		return nil
 	}
 
-	s := NewService()
-	log.Infof("Running windows service")
-	err = svc.Run(ServiceName, s)
-	log.Infof("Ran windows service")
-	if err != nil {
-		log.Fatalf("Running service: %v", err)
-	}
+	go func() {
+		s := NewService()
+		err = svc.Run(ServiceName, s)
+		if err != nil {
+			log.Fatalf("Running service: %v", err)
+		}
+	}()
+
+	log.Infof("ran service")
 
 	return nil
 }
