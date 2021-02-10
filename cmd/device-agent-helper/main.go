@@ -18,26 +18,8 @@ import (
 	"google.golang.org/grpc"
 )
 
-type MockService struct{}
-
-func (service *MockService) ControlChannel() <-chan ControlEvent {
-	return make(chan ControlEvent, 1)
-}
-
-type ControlEvent int
-
-type Controllable interface {
-	ControlChannel() <-chan ControlEvent
-}
-
 var (
 	cfg = device_helper.Config{}
-)
-
-const (
-	Stop ControlEvent = iota
-	Pause
-	Continue
 )
 
 func init() {
@@ -65,13 +47,18 @@ func main() {
 
 	log.Infof("Starting device-agent-helper with config:\n%+v", cfg)
 
+	osConfigurator := device_helper.New(cfg)
+
 	defer func() {
 		ctx, cancel := context.WithTimeout(context.Background(), time.Second*2)
-		device_helper.TeardownInterface(ctx, cfg.Interface)
+		err := osConfigurator.TeardownInterface(ctx)
+		if err != nil {
+			log.Warnf("Tearing down interface: %v", err)
+		}
 		cancel()
 	}()
 
-	if err := device_helper.Prerequisites(); err != nil {
+	if err := osConfigurator.Prerequisites(); err != nil {
 		log.Fatalf("Checking prerequisites: %v", err)
 	}
 
@@ -83,7 +70,8 @@ func main() {
 
 	grpcServer := grpc.NewServer()
 	dhs := &device_helper.DeviceHelperServer{
-		Config: cfg,
+		Config:         cfg,
+		OSConfigurator: osConfigurator,
 	}
 	pb.RegisterDeviceHelperServer(grpcServer, dhs)
 

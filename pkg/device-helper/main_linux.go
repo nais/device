@@ -19,10 +19,8 @@ func Prerequisites() error {
 	if err := filesExist(WireGuardBinary); err != nil {
 		return fmt.Errorf("verifying if file exists: %w", err)
 	}
-	return nil
-}
 
-func PlatformInit(cfg *Config) {
+	return nil
 }
 
 func syncConf(ctx context.Context, cfg Config) error {

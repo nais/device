@@ -5,17 +5,12 @@ import (
 	"context"
 	"fmt"
 	"io/ioutil"
-	"os"
 	"os/exec"
-	"path/filepath"
 	"time"
 
-	"github.com/nais/device/cmd/device-agent-helper"
-	"github.com/nais/device/pkg/bootstrap"
-	"github.com/nais/device/pkg/logger"
+	"github.com/nais/device/pkg/pb"
 	log "github.com/sirupsen/logrus"
 	"golang.org/x/sys/windows/svc"
-	"golang.org/x/sys/windows/svc/mgr"
 )
 
 const (
@@ -24,35 +19,63 @@ const (
 )
 
 type MyService struct {
-	controlChannel chan main.ControlEvent
+	controlChannel chan ControlEvent
 }
 
-func (service *MyService) ControlChannel() <-chan main.ControlEvent {
-	return service.controlChannel
+type ControlEvent int
+
+type Controllable interface {
+	ControlChannel() <-chan ControlEvent
 }
 
-func PlatformInit(cfg *main.Config) {
-	interactive, err := svc.IsAnInteractiveSession()
-	if err != nil {
-		log.Fatalf("Checking if session is interactive: %v", err)
+type WindowsConfigurator struct {
+	helperConfig       Config
+	oldWireGuardConfig []byte
+}
+
+func New(helperConfig Config) *WindowsConfigurator {
+	return &WindowsConfigurator{
+		helperConfig: helperConfig,
+	}
+}
+
+const (
+	Stop ControlEvent = iota
+	Pause
+	Continue
+)
+
+func (configurator *WindowsConfigurator) Prerequisites() error {
+	if err := filesExist(WireGuardBinary); err != nil {
+		return fmt.Errorf("verifying if file exists: %w", err)
 	}
 
-	if interactive {
-		return
+	isWindowsService, err := svc.IsWindowsService()
+	if err != nil {
+		log.Fatalf("Checking if session is windows service: %v", err)
+	}
+
+	if !isWindowsService {
+		return nil
 	}
 
 	s := NewService()
-	main.myService = s
-	go func() {
-		err := svc.Run(ServiceName, s)
-		if err != nil {
-			log.Fatalf("Running service: %v", err)
-		}
-	}()
+	log.Infof("Running windows service")
+	err = svc.Run(ServiceName, s)
+	log.Infof("Ran windows service")
+	if err != nil {
+		log.Fatalf("Running service: %v", err)
+	}
+
+	return nil
 }
 
-func interfaceExists(ctx context.Context, cfg main.Config) bool {
-	queryService := exec.CommandContext(ctx, "sc", "query", serviceName(cfg.Interface))
+func (service *MyService) ControlChannel() <-chan ControlEvent {
+	return service.controlChannel
+}
+
+func interfaceExists(ctx context.Context, iface string) bool {
+	queryService := exec.CommandContext(ctx, "sc", "query", serviceName(iface))
 	if err := queryService.Run(); err != nil {
 		return false
 	} else {
@@ -60,12 +83,12 @@ func interfaceExists(ctx context.Context, cfg main.Config) bool {
 	}
 }
 
-func setupInterface(ctx context.Context, cfg main.Config, bootstrapConfig *bootstrap.Config) error {
-	if interfaceExists(ctx, cfg) {
+func (configurator *WindowsConfigurator) SetupInterface(ctx context.Context, cfg *pb.Configuration) error {
+	if interfaceExists(ctx, configurator.helperConfig.Interface) {
 		return nil
 	}
 
-	installService := exec.CommandContext(ctx, WireGuardBinary, "/installtunnelservice", cfg.WireGuardConfigPath)
+	installService := exec.CommandContext(ctx, WireGuardBinary, "/installtunnelservice", configurator.helperConfig.WireGuardConfigPath)
 	if b, err := installService.CombinedOutput(); err != nil {
 		return fmt.Errorf("installing tunnel service: %v: %v", err, string(b))
 	} else {
@@ -77,47 +100,45 @@ func setupInterface(ctx context.Context, cfg main.Config, bootstrapConfig *boots
 	return nil
 }
 
-var oldWireGuardConfig []byte
+func (configurator *WindowsConfigurator) SetupRoutes(ctx context.Context, gateways []*pb.Gateway) error {
+	return nil
+}
 
-func syncConf(cfg main.Config, ctx context.Context) error {
-	newWireGuardConfig, err := ioutil.ReadFile(cfg.WireGuardConfigPath)
+func (configurator *WindowsConfigurator) SyncConf(ctx context.Context, cfg *pb.Configuration) error {
+	newWireGuardConfig, err := ioutil.ReadFile(configurator.helperConfig.WireGuardConfigPath)
 	if err != nil {
 		return fmt.Errorf("reading WireGuard config file: %w", err)
 	}
 
-	if fileActuallyChanged(oldWireGuardConfig, newWireGuardConfig) {
-		oldWireGuardConfig = newWireGuardConfig
+	if fileActuallyChanged(configurator.oldWireGuardConfig, newWireGuardConfig) {
+		configurator.oldWireGuardConfig = newWireGuardConfig
 
 		commands := [][]string{
-			{"net", "stop", serviceName(cfg.Interface)},
-			{"net", "start", serviceName(cfg.Interface)},
+			{"net", "stop", serviceName(configurator.helperConfig.Interface)},
+			{"net", "start", serviceName(configurator.helperConfig.Interface)},
 		}
 
-		return main.runCommands(ctx, commands)
+		return runCommands(ctx, commands)
 	}
 
 	return nil
 }
 
-func teardownInterface(ctx context.Context, cfg main.Config) {
-	if !interfaceExists(ctx, cfg) {
+func (configurator *WindowsConfigurator) TeardownInterface(ctx context.Context) error {
+	if !interfaceExists(ctx, configurator.helperConfig.Interface) {
 		log.Info("no interface")
-		return
+		return nil
 	}
 
-	uninstallService := exec.CommandContext(ctx, WireGuardBinary, "/uninstalltunnelservice", cfg.Interface)
-	if b, err := uninstallService.CombinedOutput(); err != nil {
-		log.Warnf("uninstalling tunnel service: %v: %v", err, string(b))
+	uninstallService := exec.CommandContext(ctx, WireGuardBinary, "/uninstalltunnelservice", configurator.helperConfig.Interface)
+
+	b, err := uninstallService.CombinedOutput()
+	if err != nil {
+		return fmt.Errorf("uninstalling tunnel service: %v: %v", err, string(b))
 	} else {
 		log.Infof("uninstalled tunnel service (sleeping 3 sec to let it finish)")
 		time.Sleep(3 * time.Second)
 		log.Infof("resuming")
-	}
-}
-
-func prerequisites() error {
-	if err := main.filesExist(WireGuardBinary); err != nil {
-		return fmt.Errorf("verifying if file exists: %w", err)
 	}
 
 	return nil
@@ -135,58 +156,8 @@ func fileActuallyChanged(old, new []byte) bool {
 	return !bytes.Equal(old, new)
 }
 
-func exePath() (string, error) {
-	program := os.Args[0]
-	absoluteProgramPath, err := filepath.Abs(program)
-	if err != nil {
-		return "", fmt.Errorf("getting absolute program path: %w", err)
-	}
-
-	if filepath.Ext(absoluteProgramPath) == "" {
-		absoluteProgramPath += ".exe"
-	}
-
-	fi, err := os.Stat(absoluteProgramPath)
-	if err != nil {
-		return "", fmt.Errorf("getting file stats: %w", err)
-	}
-
-	if fi.Mode().IsDir() {
-		return "", fmt.Errorf("%v is a directory", absoluteProgramPath)
-	}
-
-	return absoluteProgramPath, nil
-}
-
-func uninstallService() {
-	log.Info("Uninstalling service: %s", ServiceName)
-	m, err := mgr.Connect()
-	if err != nil {
-		log.Error("Connecting to Service Manager: %v", err)
-		return
-	}
-	defer m.Disconnect()
-
-	s, err := m.OpenService(ServiceName)
-	if err != nil {
-		log.Infof("Opening service \"%v\": %v", ServiceName, err)
-		return
-	}
-	defer s.Close()
-
-	_, err = s.Control(svc.Stop)
-	if err != nil {
-		log.Warnf("Stopping service: %v", err)
-	}
-
-	err = s.Delete()
-	if err != nil {
-		log.Warnf("Deleting service: %v", err)
-	}
-}
-
 func NewService() *MyService {
-	return &MyService{controlChannel: make(chan main.ControlEvent, 100)}
+	return &MyService{controlChannel: make(chan ControlEvent, 100)}
 }
 
 func (service *MyService) Execute(args []string, r <-chan svc.ChangeRequest, changes chan<- svc.Status) (ssec bool, errno uint32) {
@@ -204,7 +175,7 @@ loop:
 				time.Sleep(100 * time.Millisecond)
 				changes <- c.CurrentStatus
 			case svc.Stop, svc.Shutdown:
-				service.controlChannel <- main.Stop
+				service.controlChannel <- Stop
 				break loop
 			default:
 				log.Errorf("unexpected control request #%d", c)

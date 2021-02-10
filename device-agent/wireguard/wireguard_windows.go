@@ -2,6 +2,9 @@ package wireguard
 
 import (
 	"fmt"
+	"io"
+
+	"github.com/nais/device/pkg/pb"
 )
 
 /*

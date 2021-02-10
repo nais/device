@@ -6,6 +6,7 @@ require (
 	cloud.google.com/go v0.75.0
 	cloud.google.com/go/storage v1.12.0
 	github.com/GoogleCloudPlatform/cloudsql-proxy v1.19.1
+	github.com/akavel/rsrc v0.10.1 // indirect
 	github.com/coreos/go-iptables v0.5.0
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
 	github.com/gen2brain/beeep v0.0.0-20200526185328-e9c15c258e28
