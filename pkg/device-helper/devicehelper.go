@@ -21,13 +21,20 @@ import (
 
 type DeviceHelperServer struct {
 	pb.UnimplementedDeviceHelperServer
-	cfg Config
+	Config Config
 }
 
 func (dhs *DeviceHelperServer) Configure(server pb.DeviceHelper_ConfigureServer) error {
 	// fixme: locking/singleton
 
-	defer TeardownInterface(context.Background(), dhs.cfg.Interface)
+	defer func() {
+		log.Infof("Flushing WireGuard configuration from disk")
+		TeardownInterface(context.Background(), dhs.Config.Interface)
+		err := os.Remove(dhs.Config.WireGuardConfigPath)
+		if err != nil {
+			log.Error(err)
+		}
+	}()
 
 	for {
 		cfg, err := server.Recv()
@@ -35,7 +42,7 @@ func (dhs *DeviceHelperServer) Configure(server pb.DeviceHelper_ConfigureServer)
 			return err
 		}
 
-		log.Info("WireGuard configuration received")
+		log.Infof("New configuration received from device-agent")
 
 		err = dhs.writeConfigFile(cfg)
 		if err != nil {
@@ -44,17 +51,17 @@ func (dhs *DeviceHelperServer) Configure(server pb.DeviceHelper_ConfigureServer)
 
 		log.Infof("Wrote WireGuard config to disk")
 
-		err = setupInterface(server.Context(), dhs.cfg.Interface, cfg)
+		err = setupInterface(server.Context(), dhs.Config.Interface, cfg)
 		if err != nil {
 			return status.Errorf(codes.FailedPrecondition, "setup interface and routes: %s", err)
 		}
 
-		err = syncConf(server.Context(), dhs.cfg)
+		err = syncConf(server.Context(), dhs.Config)
 		if err != nil {
 			return status.Errorf(codes.FailedPrecondition, "synchronize WireGuard configuration: %s", err)
 		}
 
-		err = setupRoutes(server.Context(), cfg.GetGateways(), dhs.cfg.Interface)
+		err = setupRoutes(server.Context(), cfg.GetGateways(), dhs.Config.Interface)
 		if err != nil {
 			return status.Errorf(codes.FailedPrecondition, "setting up routes: %s", err)
 		}
@@ -69,7 +76,7 @@ func (dhs *DeviceHelperServer) writeConfigFile(cfg *pb.Configuration) error {
 		return fmt.Errorf("render configuration: %s", err)
 	}
 
-	fd, err := os.OpenFile(dhs.cfg.WireGuardConfigPath, os.O_CREATE|os.O_RDWR|os.O_TRUNC, 0600)
+	fd, err := os.OpenFile(dhs.Config.WireGuardConfigPath, os.O_CREATE|os.O_RDWR|os.O_TRUNC, 0600)
 	if err != nil {
 		return fmt.Errorf("open file: %s", err)
 	}

@@ -2,13 +2,13 @@ package main
 
 import (
 	"fmt"
-	"net"
 
 	"github.com/gen2brain/beeep"
 	"github.com/nais/device/device-agent/filesystem"
 	"github.com/nais/device/device-agent/runtimeconfig"
 	"github.com/nais/device/pkg/device-agent"
 	"github.com/nais/device/pkg/pb"
+	"github.com/nais/device/pkg/unixsocket"
 	"google.golang.org/grpc"
 
 	"github.com/nais/device/device-agent/config"
@@ -55,44 +55,38 @@ func startDeviceAgent() {
 		return
 	}
 
-	// fixme: socket is not cleaned up when process is killed with SIGKILL,
-	// fixme: and requires manual removal.
-	listener, err := net.Listen("unix", cfg.GrpcAddress)
-	if err != nil {
-		log.Fatalf("failed to listen on unix socket %s: %v", cfg.GrpcAddress, err)
-	}
-	log.Infof("accepting network connections on unix socket %s", cfg.GrpcAddress)
-	defer listener.Close()
-
-	var opts []grpc.ServerOption
-
-	stateChange := make(chan pb.AgentState, 64)
-
-	log.Infof("connecting to device-agent-helper on unix socket %s...", cfg.DeviceAgentHelperAddress)
+	log.Infof("device-agent-helper connection on unix socket %s", cfg.DeviceAgentHelperAddress)
 	connection, err := grpc.Dial(
 		"unix:"+cfg.DeviceAgentHelperAddress,
-		grpc.WithBlock(),
 		grpc.WithInsecure(),
 	)
 	if err != nil {
 		log.Fatalf("unable to connect to device-agent-helper grpc server: %v", err)
 	}
+
+	client := pb.NewDeviceHelperClient(connection)
 	defer connection.Close()
 
-	log.Info("connection to device-agent-helper established")
-	client := pb.NewDeviceHelperClient(connection)
+	listener, err := unixsocket.ListenWithFileMode(cfg.GrpcAddress, 0666)
+	if err != nil {
+		log.Fatal(err)
+	}
+	log.Infof("accepting network connections on unix socket %s", cfg.GrpcAddress)
 
-	grpcServer := grpc.NewServer(opts...)
-	defer grpcServer.Stop()
-	das := device_agent.NewServer(stateChange, client)
+	grpcServer := grpc.NewServer()
+	das := device_agent.NewServer(client)
 	pb.RegisterDeviceAgentServer(grpcServer, das)
+
 	go func() {
-		if err := grpcServer.Serve(listener); err != nil {
-			log.Fatalf("failed to start grpc webserver: %v", err)
-		}
+		das.EventLoop(rc)
+		grpcServer.Stop()
 	}()
 
-	das.EventLoop(rc)
+	err = grpcServer.Serve(listener)
+	if err != nil {
+		log.Fatalf("failed to start gRPC server: %v", err)
+	}
+	log.Infof("gRPC server shut down.")
 }
 
 func notify(format string, args ...interface{}) {

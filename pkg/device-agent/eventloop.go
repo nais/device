@@ -2,6 +2,7 @@ package device_agent
 
 import (
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -36,9 +37,17 @@ const (
 	agentHelperCallTimeout    = 3 * time.Second
 )
 
+func (das *DeviceAgentServer) CloseHelper() error {
+	if das.HelperConfigStream == nil {
+		return nil
+	}
+	_, err := das.HelperConfigStream.CloseAndRecv()
+	return err
+}
+
 func (das *DeviceAgentServer) ConfigureHelper(rc *runtimeconfig.RuntimeConfig, gateways []*pb.Gateway) error {
 	return das.HelperConfigStream.Send(&pb.Configuration{
-		PrivateKey: string(rc.PrivateKey),
+		PrivateKey: base64.StdEncoding.EncodeToString(rc.PrivateKey),
 		DeviceIP:   rc.BootstrapConfig.DeviceIP,
 		Gateways:   gateways,
 	})
@@ -156,14 +165,12 @@ func (das *DeviceAgentServer) EventLoop(rc *runtimeconfig.RuntimeConfig) {
 				status.Gateways = make([]*pb.Gateway, 0)
 
 			case pb.AgentState_Quitting:
-				log.Info("closing device-helper configuration stream")
-				_, err = das.HelperConfigStream.CloseAndRecv()
-				status.Gateways = make([]*pb.Gateway, 0)
+				_ = das.CloseHelper()
 				return
 
 			case pb.AgentState_Disconnecting:
 				log.Info("closing device-helper configuration stream")
-				_, err = das.HelperConfigStream.CloseAndRecv()
+				err := das.CloseHelper()
 				if err != nil {
 					notify(err.Error())
 				}
@@ -180,10 +187,10 @@ func (das *DeviceAgentServer) EventLoop(rc *runtimeconfig.RuntimeConfig) {
 						log.Infof("unable to ping host %s: %v", gw.IP, err)
 					}
 				}
-				das.stateChange <- pb.AgentState_Connected
 				status.Gateways = ApiGatewaysToProtobufGateways(rc.Gateways)
-				das.UpdateAgentStatus(status)
 				// trigger configuration save here if health checks are supposed to alter routes
+
+				das.stateChange <- pb.AgentState_Connected
 
 			case pb.AgentState_SyncConfig:
 				ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)

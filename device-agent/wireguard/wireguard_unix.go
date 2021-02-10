@@ -3,7 +3,6 @@
 package wireguard
 
 import (
-	"encoding/base64"
 	"fmt"
 	"io"
 
@@ -16,6 +15,5 @@ PrivateKey = %s
 `
 
 func MarshalHeader(w io.Writer, x *pb.Configuration) (int, error) {
-	return fmt.Fprintf(w, wireGuardTemplateHeader, base64.StdEncoding.EncodeToString([]byte(x.GetPrivateKey())))
+	return fmt.Fprintf(w, wireGuardTemplateHeader, x.GetPrivateKey())
 }
-

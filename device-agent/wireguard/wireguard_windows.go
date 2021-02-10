@@ -17,5 +17,5 @@ Address = %s
 const mtu = 1360
 
 func MarshalHeader(w io.Writer, x *pb.Configuration) (int, error) {
-	return fmt.Fprintf(w, wireGuardTemplateHeader, base64.StdEncoding.EncodeToString([]byte(x.GetPrivateKey())), mtu, x.GetDeviceIP())
+	return fmt.Fprintf(w, wireGuardTemplateHeader, x.GetPrivateKey(), mtu, x.GetDeviceIP())
 }

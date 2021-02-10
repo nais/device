@@ -86,10 +86,10 @@ func (das *DeviceAgentServer) UpdateAgentStatus(status *pb.AgentStatus) {
 	}
 }
 
-func NewServer(stateChange chan pb.AgentState, helper pb.DeviceHelperClient) *DeviceAgentServer {
+func NewServer(helper pb.DeviceHelperClient) *DeviceAgentServer {
 	return &DeviceAgentServer{
 		DeviceHelper: helper,
-		stateChange:  stateChange,
+		stateChange:  make(chan pb.AgentState, 32),
 		streams:      make(map[uuid.UUID]pb.DeviceAgent_StatusServer, 0),
 	}
 }

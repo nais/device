@@ -3,15 +3,16 @@ package main
 import (
 	"context"
 	"fmt"
-	"net"
 	"os"
 	"os/signal"
 	"path/filepath"
 	"syscall"
+	"time"
 
 	"github.com/nais/device/pkg/device-helper"
 	"github.com/nais/device/pkg/logger"
 	"github.com/nais/device/pkg/pb"
+	"github.com/nais/device/pkg/unixsocket"
 	"google.golang.org/grpc"
 
 	log "github.com/sirupsen/logrus"
@@ -65,8 +66,11 @@ func main() {
 
 	log.Infof("Starting device-agent-helper with config:\n%+v", cfg)
 
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	defer func() {
+		ctx, cancel := context.WithTimeout(context.Background(), time.Second*2)
+		device_helper.TeardownInterface(ctx, cfg.Interface)
+		cancel()
+	}()
 
 	if err := device_helper.Prerequisites(); err != nil {
 		log.Fatalf("Checking prerequisites: %v", err)
@@ -75,28 +79,29 @@ func main() {
 	// Deprecated service, new one is installed via msi intaller
 	device_helper.UninstallService()
 
-	defer device_helper.TeardownInterface(ctx, cfg.Interface)
-
-	interrupt := make(chan os.Signal, 1)
-	signal.Notify(interrupt, os.Interrupt, syscall.SIGTERM)
-
-	// fixme: socket is not cleaned up when process is killed with SIGKILL,
-	// fixme: and requires manual removal.
-	listener, err := net.Listen("unix", cfg.GrpcAddress)
+	listener, err := unixsocket.ListenWithFileMode(cfg.GrpcAddress, 0666)
 	if err != nil {
-		log.Fatalf("failed to listen on unix socket %s: %v", cfg.GrpcAddress, err)
+		log.Fatal(err)
 	}
 	log.Infof("accepting network connections on unix socket %s", cfg.GrpcAddress)
 
 	grpcServer := grpc.NewServer()
-	dhs := &device_helper.DeviceHelperServer{}
+	dhs := &device_helper.DeviceHelperServer{
+		Config: cfg,
+	}
 	pb.RegisterDeviceHelperServer(grpcServer, dhs)
+
 	go func() {
-		if err := grpcServer.Serve(listener); err != nil {
-			log.Fatalf("failed to start grpc webserver: %v", err)
-		}
+		interrupt := make(chan os.Signal, 1)
+		signal.Notify(interrupt, os.Interrupt, syscall.SIGTERM)
+		sig := <-interrupt
+		log.Infof("Received %s, shutting down gracefully.", sig)
+		grpcServer.Stop()
 	}()
 
-	sig := <-interrupt
-	log.Infof("Received %s, shutting down gracefully.", sig)
+	err = grpcServer.Serve(listener)
+	if err != nil {
+		log.Fatalf("failed to start gRPC server: %v", err)
+	}
+	log.Infof("gRPC server shut down.")
 }

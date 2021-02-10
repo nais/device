@@ -155,6 +155,20 @@ func (gui *Gui) handleButtonClicks() {
 	}
 }
 
+func (gui *Gui) handleAgentConnect() {
+	gui.MenuItems.State.SetTitle("Refreshing Device Agent state...")
+	gui.MenuItems.Connect.Enable()
+}
+
+func (gui *Gui) handleAgentDisconnect() {
+	gui.MenuItems.State.SetTitle("Device Agent not running")
+	gui.MenuItems.Connect.Disable()
+	for i := range gui.MenuItems.GatewayItems {
+		gui.MenuItems.GatewayItems[i].MenuItem.Disable()
+		gui.MenuItems.GatewayItems[i].MenuItem.Hide()
+	}
+}
+
 func (gui *Gui) handleAgentStatus(agentStatus *pb.AgentStatus) {
 	log.Debugf("received agent status: %v", agentStatus)
 
@@ -262,8 +276,9 @@ func (gui *Gui) handleGuiEvent(guiEvent GuiEvent) {
 }
 
 func (gui *Gui) handleStatusStream() {
-
 	for {
+		gui.handleAgentDisconnect()
+
 		ctx := context.Background()
 
 		log.Infof("Requesting status updates from device-agent...")
@@ -276,6 +291,7 @@ func (gui *Gui) handleStatusStream() {
 		}
 
 		log.Infof("Status update stream established")
+		gui.handleAgentConnect()
 
 		for {
 			status, err := statusStream.Recv()
@@ -286,6 +302,7 @@ func (gui *Gui) handleStatusStream() {
 
 			gui.AgentStatusChannel <- status
 		}
+
 	}
 }
 

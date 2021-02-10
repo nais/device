@@ -27,17 +27,15 @@ var connection *grpc.ClientConn
 func onReady() {
 	var err error
 
-	log.Infof("connecting to device-agent on unix socket %s...", cfg.GrpcAddress)
+	log.Infof("device-agent on unix socket %s", cfg.GrpcAddress)
 	connection, err = grpc.Dial(
 		"unix:"+cfg.GrpcAddress,
-		grpc.WithBlock(),
 		grpc.WithInsecure(),
 	)
 	if err != nil {
 		log.Fatalf("unable to connect to naisdevice-agent grpc server: %v", err)
 	}
 
-	log.Info("connection to device-agent established")
 	client := pb.NewDeviceAgentClient(connection)
 
 	gui := NewGUI(client)
