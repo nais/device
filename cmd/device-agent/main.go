@@ -4,18 +4,17 @@ import (
 	"fmt"
 
 	"github.com/gen2brain/beeep"
+	"github.com/nais/device/device-agent/config"
 	"github.com/nais/device/device-agent/filesystem"
 	"github.com/nais/device/device-agent/runtimeconfig"
 	"github.com/nais/device/pkg/device-agent"
+	"github.com/nais/device/pkg/logger"
 	"github.com/nais/device/pkg/pb"
 	"github.com/nais/device/pkg/unixsocket"
-	"google.golang.org/grpc"
-
-	"github.com/nais/device/device-agent/config"
-	"github.com/nais/device/pkg/logger"
 	"github.com/nais/device/pkg/version"
 	log "github.com/sirupsen/logrus"
 	flag "github.com/spf13/pflag"
+	"google.golang.org/grpc"
 )
 
 var (
@@ -59,6 +58,7 @@ func startDeviceAgent() {
 	connection, err := grpc.Dial(
 		"unix:"+cfg.DeviceAgentHelperAddress,
 		grpc.WithInsecure(),
+
 	)
 	if err != nil {
 		log.Fatalf("unable to connect to device-agent-helper grpc server: %v", err)

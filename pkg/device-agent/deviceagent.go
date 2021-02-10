@@ -37,11 +37,18 @@ func (das *DeviceAgentServer) Logout(ctx context.Context, request *pb.LogoutRequ
 func (das *DeviceAgentServer) Status(request *pb.AgentStatusRequest, statusServer pb.DeviceAgent_StatusServer) error {
 	id := uuid.New()
 
+	log.Infof("grpc: client connection established")
+
 	das.lock.Lock()
 	das.streams[id] = statusServer
 	das.lock.Unlock()
 
 	defer func() {
+		log.Infof("grpc: client connection closed")
+		if !request.GetKeepConnectionOnComplete() {
+			log.Infof("grpc: keepalive not requested, tearing down connections...")
+			das.stateChange <- pb.AgentState_Disconnecting
+		}
 		das.lock.Lock()
 		delete(das.streams, id)
 		das.lock.Unlock()

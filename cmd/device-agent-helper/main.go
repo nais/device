@@ -13,10 +13,9 @@ import (
 	"github.com/nais/device/pkg/logger"
 	"github.com/nais/device/pkg/pb"
 	"github.com/nais/device/pkg/unixsocket"
-	"google.golang.org/grpc"
-
 	log "github.com/sirupsen/logrus"
 	flag "github.com/spf13/pflag"
+	"google.golang.org/grpc"
 )
 
 type MockService struct{}

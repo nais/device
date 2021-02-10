@@ -161,6 +161,7 @@ func (gui *Gui) handleAgentConnect() {
 }
 
 func (gui *Gui) handleAgentDisconnect() {
+	systray.SetIcon(NaisLogoRed)
 	gui.MenuItems.State.SetTitle("Device Agent not running")
 	gui.MenuItems.Connect.Disable()
 	for i := range gui.MenuItems.GatewayItems {

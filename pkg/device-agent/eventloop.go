@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"sync"
 	"syscall"
 	"time"
 
@@ -28,13 +29,12 @@ var (
 )
 
 const (
-	versionCheckInterval      = 1 * time.Hour
-	syncConfigInterval        = 5 * time.Minute
-	initialGatewayRefreshWait = 2 * time.Second
-	initialConnectWait        = initialGatewayRefreshWait
-	healthCheckInterval       = 20 * time.Second
-	versionCheckTimeout       = 3 * time.Second
-	agentHelperCallTimeout    = 3 * time.Second
+	healthCheckInterval  = 20 * time.Second // how often to healthcheck gateways
+	syncConfigBackoff    = 15 * time.Second // re-queue interval when config synchronization times out
+	syncConfigInterval   = 5 * time.Minute  // how often to synchronize config with apiserver
+	syncConfigTimeout    = 5 * time.Second  // timeout for config synchronization
+	versionCheckInterval = 1 * time.Hour    // how often to check for a new version of naisdevice
+	versionCheckTimeout  = 3 * time.Second  // timeout for new version check
 )
 
 func (das *DeviceAgentServer) CloseHelper() error {
@@ -177,23 +177,34 @@ func (das *DeviceAgentServer) EventLoop(rc *runtimeconfig.RuntimeConfig) {
 				das.stateChange <- pb.AgentState_Disconnected
 
 			case pb.AgentState_HealthCheck:
-				for _, gw := range rc.GetGateways() {
-					err := ping(gw.IP)
-					if err == nil {
-						gw.Healthy = true
-						log.Debugf("Successfully pinged gateway %v with ip: %v", gw.Name, gw.IP)
-					} else {
-						gw.Healthy = false
-						log.Infof("unable to ping host %s: %v", gw.IP, err)
-					}
+				wg := &sync.WaitGroup{}
+
+				total := len(rc.GetGateways())
+				log.Infof("Ping %d gateways...", total)
+				for i, gw := range rc.GetGateways() {
+					go func(i int, gw *apiserver.Gateway) {
+						wg.Add(1)
+						err := ping(gw.IP)
+						pos := fmt.Sprintf("[%02d/%02d]", i+1, total)
+						if err == nil {
+							gw.Healthy = true
+							log.Debugf("%s Successfully pinged gateway %v with ip: %v", pos, gw.Name, gw.IP)
+						} else {
+							gw.Healthy = false
+							log.Infof("%s unable to ping host %s: %v", pos, gw.IP, err)
+						}
+						wg.Done()
+					}(i, gw)
 				}
+				wg.Wait()
+
 				status.Gateways = ApiGatewaysToProtobufGateways(rc.Gateways)
 				// trigger configuration save here if health checks are supposed to alter routes
 
 				das.stateChange <- pb.AgentState_Connected
 
 			case pb.AgentState_SyncConfig:
-				ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+				ctx, cancel := context.WithTimeout(context.Background(), syncConfigTimeout)
 				gateways, err := apiserver.GetDeviceConfig(rc.SessionInfo.Key, rc.Config.APIServer, ctx)
 				cancel()
 
@@ -216,8 +227,12 @@ func (das *DeviceAgentServer) EventLoop(rc *runtimeconfig.RuntimeConfig) {
 
 				case err != nil:
 					log.Errorf("Unable to get gateway config: %v", err)
+					syncConfigTicker.Reset(syncConfigBackoff)
 					das.stateChange <- pb.AgentState_HealthCheck
 					continue
+
+				default:
+					syncConfigTicker.Reset(syncConfigInterval)
 				}
 
 				rc.UpdateGateways(gateways)
