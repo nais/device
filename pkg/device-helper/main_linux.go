@@ -15,7 +15,13 @@ const (
 	WireGuardBinary = "/usr/bin/wg"
 )
 
-func Prerequisites() error {
+type LinuxConfigurator struct {
+	helperConfig Config
+}
+
+var _ OSConfigurator = &LinuxConfigurator{}
+
+func (c *LinuxConfigurator) Prerequisites() error {
 	if err := filesExist(WireGuardBinary); err != nil {
 		return fmt.Errorf("verifying if file exists: %w", err)
 	}
@@ -23,8 +29,8 @@ func Prerequisites() error {
 	return nil
 }
 
-func syncConf(ctx context.Context, cfg Config) error {
-	cmd := exec.CommandContext(ctx, WireGuardBinary, "syncconf", cfg.Interface, cfg.WireGuardConfigPath)
+func (c *LinuxConfigurator) SyncConf(ctx context.Context, cfg *pb.Configuration) error {
+	cmd := exec.CommandContext(ctx, WireGuardBinary, "syncconf", c.helperConfig.Interface, c.helperConfig.WireGuardConfigPath)
 	if b, err := cmd.CombinedOutput(); err != nil {
 		return fmt.Errorf("running syncconf: %w: %v", err, string(b))
 	}
@@ -32,7 +38,7 @@ func syncConf(ctx context.Context, cfg Config) error {
 	return nil
 }
 
-func setupRoutes(ctx context.Context, gateways []*pb.Gateway, iface string) error {
+func (c *LinuxConfigurator) SetupRoutes(ctx context.Context, gateways []*pb.Gateway) error {
 	for _, gw := range gateways {
 		for _, cidr := range gw.GetRoutes() {
 			if strings.HasPrefix(cidr, TunnelNetworkPrefix) {
@@ -40,7 +46,7 @@ func setupRoutes(ctx context.Context, gateways []*pb.Gateway, iface string) erro
 				continue
 			}
 
-			cmd := exec.CommandContext(ctx, "ip", "-4", "route", "add", cidr, "dev", iface)
+			cmd := exec.CommandContext(ctx, "ip", "-4", "route", "add", cidr, "dev", c.helperConfig.Interface)
 			output, err := cmd.CombinedOutput()
 			if exitErr, ok := err.(*exec.ExitError); ok {
 				log.Debugf("Command: %v, exit code: %v, output: %v", cmd, exitErr.ExitCode(), string(output))
@@ -57,35 +63,37 @@ func setupRoutes(ctx context.Context, gateways []*pb.Gateway, iface string) erro
 	return nil
 }
 
-func setupInterface(ctx context.Context, iface string, cfg *pb.Configuration) error {
-	if interfaceExists(ctx, iface) {
+func (c *LinuxConfigurator) SetupInterface(ctx context.Context, cfg *pb.Configuration) error {
+	if c.interfaceExists(ctx) {
 		return nil
 	}
 
 	commands := [][]string{
-		{"ip", "link", "add", "dev", iface, "type", "wireguard"},
-		{"ip", "link", "set", "mtu", "1360", "up", "dev", iface},
-		{"ip", "address", "add", "dev", iface, cfg.DeviceIP + "/21"},
+		{"ip", "link", "add", "dev", c.helperConfig.Interface, "type", "wireguard"},
+		{"ip", "link", "set", "mtu", "1360", "up", "dev", c.helperConfig.Interface},
+		{"ip", "address", "add", "dev", c.helperConfig.Interface, cfg.DeviceIP + "/21"},
 	}
 
 	return runCommands(ctx, commands)
 }
 
-func TeardownInterface(ctx context.Context, iface string) {
-	if !interfaceExists(ctx, iface) {
-		return
+func (c *LinuxConfigurator) TeardownInterface(ctx context.Context) error {
+	if !c.interfaceExists(ctx) {
+		return nil
 	}
 
-	cmd := exec.CommandContext(ctx, "ip", "link", "del", iface)
+	cmd := exec.CommandContext(ctx, "ip", "link", "del", c.helperConfig.Interface)
 	out, err := cmd.CombinedOutput()
 
 	if err != nil {
-		log.Errorf("tearing down interface failed: %v: %v", cmd, err)
 		log.Errorf("teardown output: %v", string(out))
+		return err
 	}
+
+	return nil
 }
 
-func interfaceExists(ctx context.Context, iface string) bool {
-	cmd := exec.CommandContext(ctx, "ip", "link", "show", "dev", iface)
+func (c *LinuxConfigurator) interfaceExists(ctx context.Context) bool {
+	cmd := exec.CommandContext(ctx, "ip", "link", "show", "dev", c.helperConfig.Interface)
 	return cmd.Run() == nil
 }
