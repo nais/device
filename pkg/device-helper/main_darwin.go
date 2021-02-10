@@ -17,7 +17,13 @@ var (
 	WireGuardBinary   = filepath.Join("/", "Applications", "naisdevice.app", "Contents", "MacOS", "wg")
 )
 
-func Prerequisites() error {
+type DarwinConfigurator struct {
+	helperConfig Config
+}
+
+var _ OSConfigurator = &DarwinConfigurator{}
+
+func (c *DarwinConfigurator) Prerequisites() error {
 	if err := filesExist(WireGuardBinary, WireGuardGoBinary); err != nil {
 		return fmt.Errorf("verifying if file exists: %w", err)
 	}
@@ -25,8 +31,8 @@ func Prerequisites() error {
 	return nil
 }
 
-func syncConf(ctx context.Context, cfg Config) error {
-	cmd := exec.CommandContext(ctx, WireGuardBinary, "syncconf", cfg.Interface, cfg.WireGuardConfigPath)
+func (c *DarwinConfigurator) SyncConf(ctx context.Context, cfg *pb.Configuration) error {
+	cmd := exec.CommandContext(ctx, WireGuardBinary, "syncconf", c.helperConfig.Interface, c.helperConfig.WireGuardConfigPath)
 	if b, err := cmd.CombinedOutput(); err != nil {
 		return fmt.Errorf("running syncconf: %w: %v", err, string(b))
 	}
@@ -34,7 +40,7 @@ func syncConf(ctx context.Context, cfg Config) error {
 	return nil
 }
 
-func setupRoutes(ctx context.Context, gateways []*pb.Gateway, iface string) error {
+func (c *DarwinConfigurator) SetupRoutes(ctx context.Context, gateways []*pb.Gateway) error {
 	for _, gw := range gateways {
 		for _, cidr := range gw.GetRoutes() {
 			if strings.HasPrefix(cidr, TunnelNetworkPrefix) {
@@ -42,7 +48,7 @@ func setupRoutes(ctx context.Context, gateways []*pb.Gateway, iface string) erro
 				continue
 			}
 
-			cmd := exec.CommandContext(ctx, "route", "-q", "-n", "add", "-inet", cidr, "-interface", iface)
+			cmd := exec.CommandContext(ctx, "route", "-q", "-n", "add", "-inet", cidr, "-interface", c.helperConfig.Interface)
 			output, err := cmd.CombinedOutput()
 			if err != nil {
 				log.Errorf("%v: %v", cmd, string(output))
@@ -54,39 +60,39 @@ func setupRoutes(ctx context.Context, gateways []*pb.Gateway, iface string) erro
 	return nil
 }
 
-func setupInterface(ctx context.Context, iface string, cfg *pb.Configuration) error {
-	if interfaceExists(ctx, iface) {
+func (c *DarwinConfigurator) SetupInterface(ctx context.Context, cfg *pb.Configuration) error {
+	if c.interfaceExists(ctx) {
 		return nil
 	}
 
 	commands := [][]string{
-		{WireGuardGoBinary, iface},
-		{"ifconfig", iface, "inet", cfg.GetDeviceIP() + "/21", cfg.GetDeviceIP(), "add"},
-		{"ifconfig", iface, "mtu", "1360"},
-		{"ifconfig", iface, "up"},
-		{"route", "-q", "-n", "add", "-inet", cfg.GetDeviceIP() + "/21", "-interface", iface},
+		{WireGuardGoBinary, c.helperConfig.Interface},
+		{"ifconfig", c.helperConfig.Interface, "inet", cfg.GetDeviceIP() + "/21", cfg.GetDeviceIP(), "add"},
+		{"ifconfig", c.helperConfig.Interface, "mtu", "1360"},
+		{"ifconfig", c.helperConfig.Interface, "up"},
+		{"route", "-q", "-n", "add", "-inet", cfg.GetDeviceIP() + "/21", "-interface", c.helperConfig.Interface},
 	}
 
 	return runCommands(ctx, commands)
 }
 
-func TeardownInterface(ctx context.Context, iface string) {
-	if !interfaceExists(ctx, iface) {
-		return
+func (c *DarwinConfigurator) TeardownInterface(ctx context.Context) error {
+	if !c.interfaceExists(ctx) {
+		return nil
 	}
 
-	cmd := exec.CommandContext(ctx, "pkill", "-f", fmt.Sprintf("%s %s", WireGuardGoBinary, iface))
+	cmd := exec.CommandContext(ctx, "pkill", "-f", fmt.Sprintf("%s %s", WireGuardGoBinary, c.helperConfig.Interface))
 	out, err := cmd.CombinedOutput()
 
 	if err != nil {
-		log.Errorf("tearing down interface failed: %v: %v", cmd, err)
 		log.Errorf("teardown output: %v", string(out))
+		return err
 	}
 
-	return
+	return nil
 }
 
-func interfaceExists(ctx context.Context, iface string) bool {
-	cmd := exec.CommandContext(ctx, "pgrep", "-f", fmt.Sprintf("%s %s", WireGuardGoBinary, iface))
+func (c *DarwinConfigurator) interfaceExists(ctx context.Context) bool {
+	cmd := exec.CommandContext(ctx, "pgrep", "-f", fmt.Sprintf("%s %s", WireGuardGoBinary, c.helperConfig.Interface))
 	return cmd.Run() == nil
 }
