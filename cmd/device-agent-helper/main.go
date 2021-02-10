@@ -75,9 +75,6 @@ func main() {
 		log.Fatalf("Checking prerequisites: %v", err)
 	}
 
-	// Deprecated service, new one is installed via msi intaller
-	device_helper.UninstallService()
-
 	listener, err := unixsocket.ListenWithFileMode(cfg.GrpcAddress, 0666)
 	if err != nil {
 		log.Fatal(err)
