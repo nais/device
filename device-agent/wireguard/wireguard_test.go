@@ -20,7 +20,7 @@ func TestMarshalGateway(t *testing.T) {
 	gw := &pb.Gateway{
 		PublicKey: "PQKmraPOPye5CJq1x7njpl8rRu5RSrIKyHvZXtLvS0E=",
 		Endpoint:  "13.37.13.37:51820",
-		Ip:        "10.255.240.2",
+		Ip:        "10.255.240.2/32",
 		Routes:    []string{"13.37.69.0/24", "13.37.59.69/32"},
 	}
 

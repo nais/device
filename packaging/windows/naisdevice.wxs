@@ -109,6 +109,23 @@
             </File>
         </Component>
 
+        <Component Id="NaisDeviceAgentComponent" Win64="yes" Directory="INSTALLFOLDER">
+            <File Id='NaisDeviceAgent.exe' Source='../../bin/windows/device-agent.exe' KeyPath="yes"/>
+
+            <ServiceInstall
+                    Id="ServiceInstaller"
+                    Type="ownProcess"
+                    Name="NaisDeviceAgent"
+                    DisplayName="naisdevice agent"
+                    Description="Controls the naisdevice controlplane connection"
+                    Start="auto"
+                    Account="NT AUTHORITY\LocalService"
+                    ErrorControl="normal"
+                    Arguments=""
+            />
+            <ServiceControl Id="StartService" Start="install" Stop="both" Remove="uninstall" Name="NaisDeviceHelper" Wait="yes"/>
+        </Component>
+
         <Component Id="NaisDeviceHelperComponent" Win64="yes" Directory="INSTALLFOLDER">
             <File Id='NaisDeviceHelper.exe' Source='../../bin/windows/device-agent-helper.exe' KeyPath="yes"/>
 

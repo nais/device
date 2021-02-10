@@ -19,13 +19,13 @@ func TestMarshalConfiguration(t *testing.T) {
 			{
 				PublicKey: "PQKmraPOPye5CJq1x7njpl8rRu5RSrIKyHvZXtLvS0E=",
 				Endpoint:  "13.37.13.37:51820",
-				Ip:        "10.255.240.2",
+				Ip:        "10.255.240.2/32",
 				Routes:    []string{"13.37.69.0/24", "13.37.59.69/32"},
 			},
 			{
 				PublicKey: "foobar",
 				Endpoint:  "14.37.13.37:51820",
-				Ip:        "11.255.240.2",
+				Ip:        "11.255.240.2/32",
 				Routes:    []string{"14.37.69.0/24", "14.37.59.69/32"},
 			},
 		},
@@ -38,7 +38,7 @@ func TestMarshalConfiguration(t *testing.T) {
 
 	expected :=
 		`[Interface]
-PrivateKey = YWJj
+PrivateKey = abc
 
 [Peer]
 PublicKey = PQKmraPOPye5CJq1x7njpl8rRu5RSrIKyHvZXtLvS0E=

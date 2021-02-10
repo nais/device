@@ -81,8 +81,8 @@ func TeardownInterface(ctx context.Context, iface string) {
 	out, err := cmd.CombinedOutput()
 
 	if err != nil {
-		log.Infof("tearing down interface failed: %v: %v", cmd, err)
-		log.Infof("teardown output: %v", string(out))
+		log.Errorf("tearing down interface failed: %v: %v", cmd, err)
+		log.Errorf("teardown output: %v", string(out))
 	}
 
 	return
@@ -92,6 +92,3 @@ func interfaceExists(ctx context.Context, iface string) bool {
 	cmd := exec.CommandContext(ctx, "pgrep", "-f", fmt.Sprintf("%s %s", WireGuardGoBinary, iface))
 	return cmd.Run() == nil
 }
-
-func UninstallService()         {}
-func InstallService(cfg Config) {}

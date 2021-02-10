@@ -3,13 +3,10 @@ package device_helper
 import (
 	"context"
 	"fmt"
-	"io/ioutil"
 	"os/exec"
 	"strings"
 
-	"github.com/nais/device/cmd/device-agent-helper"
-	"github.com/nais/device/pkg/bootstrap"
-	"github.com/nais/device/pkg/logger"
+	"github.com/nais/device/pkg/pb"
 
 	log "github.com/sirupsen/logrus"
 )
@@ -18,79 +15,79 @@ const (
 	WireGuardBinary = "/usr/bin/wg"
 )
 
-func prerequisites() error {
-	if err := main.filesExist(WireGuardBinary); err != nil {
+func Prerequisites() error {
+	if err := filesExist(WireGuardBinary); err != nil {
 		return fmt.Errorf("verifying if file exists: %w", err)
 	}
 	return nil
 }
 
-func PlatformInit(cfg *main.Config) {
+func PlatformInit(cfg *Config) {
 }
 
-func syncConf(cfg main.Config, ctx context.Context) error {
+func syncConf(ctx context.Context, cfg Config) error {
 	cmd := exec.CommandContext(ctx, WireGuardBinary, "syncconf", cfg.Interface, cfg.WireGuardConfigPath)
 	if b, err := cmd.CombinedOutput(); err != nil {
 		return fmt.Errorf("running syncconf: %w: %v", err, string(b))
 	}
 
-	configFileBytes, err := ioutil.ReadFile(cfg.WireGuardConfigPath)
-	if err != nil {
-		return fmt.Errorf("reading file: %w", err)
-	}
-
-	cidrs, err := main.ParseConfig(string(configFileBytes))
-	if err != nil {
-		return fmt.Errorf("parsing WireGuard config: %w", err)
-	}
-
-	if err := setupRoutes(ctx, cidrs, cfg.Interface); err != nil {
-		return fmt.Errorf("setting up routes: %w", err)
-	}
-
 	return nil
 }
 
-func setupRoutes(ctx context.Context, cidrs []string, interfaceName string) error {
-	for _, cidr := range cidrs {
-		cmd := exec.CommandContext(ctx, "ip", "-4", "route", "add", cidr, "dev", interfaceName)
-		output, err := cmd.CombinedOutput()
-		if err != nil {
+func setupRoutes(ctx context.Context, gateways []*pb.Gateway, iface string) error {
+	for _, gw := range gateways {
+		for _, cidr := range gw.GetRoutes() {
+			if strings.HasPrefix(cidr, TunnelNetworkPrefix) {
+				// Don't add routes for the tunnel network, as the whole /21 net is already routed to utun
+				continue
+			}
+
+			cmd := exec.CommandContext(ctx, "ip", "-4", "route", "add", cidr, "dev", iface)
+			output, err := cmd.CombinedOutput()
 			if exitErr, ok := err.(*exec.ExitError); ok {
 				log.Debugf("Command: %v, exit code: %v, output: %v", cmd, exitErr.ExitCode(), string(output))
 				if exitErr.ExitCode() == 2 && strings.Contains(string(output), "File exists") {
 					log.Debug("Assuming route already exists")
 					continue
 				}
+				return fmt.Errorf("executing %v: %w", cmd, err)
 			}
-
-			return fmt.Errorf("executing %v: %w", cmd, err)
+			log.Debugf("%v: %v", cmd, string(output))
 		}
-		log.Debugf("%v: %v", cmd, string(output))
 	}
+
 	return nil
 }
 
-func setupInterface(ctx context.Context, cfg main.Config, bootstrapConfig *bootstrap.Config) error {
-	if err := exec.Command("ip", "link", "del", cfg.Interface).Run(); err != nil {
-		log.Infof("pre-deleting WireGuard interface (ok if this fails): %v", err)
+func setupInterface(ctx context.Context, iface string, cfg *pb.Configuration) error {
+	if interfaceExists(ctx, iface) {
+		return nil
 	}
 
 	commands := [][]string{
-		{"ip", "link", "add", "dev", cfg.Interface, "type", "wireguard"},
-		{"ip", "link", "set", "mtu", "1360", "up", "dev", cfg.Interface},
-		{"ip", "address", "add", "dev", cfg.Interface, bootstrapConfig.DeviceIP + "/21"},
+		{"ip", "link", "add", "dev", iface, "type", "wireguard"},
+		{"ip", "link", "set", "mtu", "1360", "up", "dev", iface},
+		{"ip", "address", "add", "dev", iface, cfg.DeviceIP + "/21"},
 	}
 
-	return main.runCommands(ctx, commands)
+	return runCommands(ctx, commands)
 }
 
-func teardownInterface(ctx context.Context, cfg main.Config) {
-	cmd := exec.CommandContext(ctx, "ip", "link", "del", cfg.Interface)
-	if err := cmd.Run(); err != nil {
-		log.Errorf("Tearing down interface: %v", err)
+func TeardownInterface(ctx context.Context, iface string) {
+	if !interfaceExists(ctx, iface) {
+		return
+	}
+
+	cmd := exec.CommandContext(ctx, "ip", "link", "del", iface)
+	out, err := cmd.CombinedOutput()
+
+	if err != nil {
+		log.Errorf("tearing down interface failed: %v: %v", cmd, err)
+		log.Errorf("teardown output: %v", string(out))
 	}
 }
 
-func uninstallService()              {}
-func installService(cfg main.Config) {}
+func interfaceExists(ctx context.Context, iface string) bool {
+	cmd := exec.CommandContext(ctx, "ip", "link", "show", "dev", iface)
+	return cmd.Run() == nil
+}
