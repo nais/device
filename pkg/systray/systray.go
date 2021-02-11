@@ -51,6 +51,8 @@ func onReady() {
 
 // This is where we clean up
 func onExit() {
+	log.Infof("Shutting down.")
+
 	if connection != nil {
 		connection.Close()
 	}

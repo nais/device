@@ -154,16 +154,6 @@ func (das *DeviceAgentServer) EventLoop(rc *runtimeconfig.RuntimeConfig) {
 				status.Gateways = make([]*pb.Gateway, 0)
 
 			case pb.AgentState_Quitting:
-				log.Info("Tearing down network connections through device-helper...")
-				ctx, cancel := context.WithTimeout(context.Background(), helperTimeout)
-				_, err = das.DeviceHelper.Teardown(ctx, &pb.TeardownRequest{})
-				cancel()
-
-				if err != nil {
-					notify(err.Error())
-				}
-
-				log.Info("Shutting down.")
 				return
 
 			case pb.AgentState_Disconnecting:
