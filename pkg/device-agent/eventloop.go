@@ -24,10 +24,6 @@ import (
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
-var (
-	lastConfigurationFile string
-)
-
 const (
 	healthCheckInterval  = 20 * time.Second // how often to healthcheck gateways
 	syncConfigBackoff    = 15 * time.Second // re-queue interval when config synchronization times out
@@ -35,7 +31,6 @@ const (
 	syncConfigTimeout    = 5 * time.Second  // timeout for config synchronization
 	versionCheckInterval = 1 * time.Hour    // how often to check for a new version of naisdevice
 	versionCheckTimeout  = 3 * time.Second  // timeout for new version check
-	helperTimeout        = 4 * time.Second
 )
 
 func (das *DeviceAgentServer) ConfigureHelper(ctx context.Context, rc *runtimeconfig.RuntimeConfig, gateways []*pb.Gateway) error {

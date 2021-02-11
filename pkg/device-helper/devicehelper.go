@@ -11,17 +11,12 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"time"
 
 	"github.com/nais/device/device-agent/wireguard"
 	"github.com/nais/device/pkg/pb"
 	log "github.com/sirupsen/logrus"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
-)
-
-const (
-	syncConfigWait = 2 * time.Second // wg syncconf is non-blocking; allow this much time for changes to propagate
 )
 
 type OSConfigurator interface {
@@ -78,8 +73,6 @@ func (dhs *DeviceHelperServer) Configure(ctx context.Context, cfg *pb.Configurat
 	if err != nil {
 		return nil, status.Errorf(codes.FailedPrecondition, "setting up routes: %s", err)
 	}
-
-	time.Sleep(syncConfigWait)
 
 	return &pb.ConfigureResponse{}, nil
 }
