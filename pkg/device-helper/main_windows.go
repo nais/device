@@ -31,6 +31,7 @@ type Controllable interface {
 type WindowsConfigurator struct {
 	helperConfig       Config
 	oldWireGuardConfig []byte
+	wgNeedsRestart     bool
 }
 
 func New(helperConfig Config) *WindowsConfigurator {
@@ -99,6 +100,8 @@ func (configurator *WindowsConfigurator) SetupInterface(ctx context.Context, cfg
 		log.Infof("resuming")
 	}
 
+	configurator.wgNeedsRestart = false
+
 	return nil
 }
 
@@ -112,8 +115,16 @@ func (configurator *WindowsConfigurator) SyncConf(ctx context.Context, cfg *pb.C
 		return fmt.Errorf("reading WireGuard config file: %w", err)
 	}
 
-	if fileActuallyChanged(configurator.oldWireGuardConfig, newWireGuardConfig) {
+	defer func() {
 		configurator.oldWireGuardConfig = newWireGuardConfig
+		configurator.wgNeedsRestart = true
+	}()
+
+	if !configurator.wgNeedsRestart {
+		return nil
+	}
+
+	if fileActuallyChanged(configurator.oldWireGuardConfig, newWireGuardConfig) {
 
 		commands := [][]string{
 			{"net", "stop", serviceName(configurator.helperConfig.Interface)},
