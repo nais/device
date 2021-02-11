@@ -3,7 +3,7 @@
 <assemblyIdentity
     version="0.0.0.1"
     processorArchitecture="x86"
-    name="device-agent-helper.exe"
+    name="naisdevice-helper.exe"
     type="win32"
 />
 <description>naisdevice agent helper</description>

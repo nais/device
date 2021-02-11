@@ -27,21 +27,21 @@ controlplane:
 	GOOS=linux GOARCH=amd64 go build -o bin/controlplane/apiserver ./cmd/apiserver
 	GOOS=linux GOARCH=amd64 go build -o bin/controlplane/bootstrap-api -ldflags "-s $(LDFLAGS)" ./cmd/bootstrap-api
 	GOOS=linux GOARCH=amd64 go build -o bin/controlplane/gateway-agent -ldflags "-s $(LDFLAGS)" ./cmd/gateway-agent
-	GOOS=linux GOARCH=amd64 go build -o bin/controlplane/prometheus-agent ./cmd/prometheus-agent
+	GOOS=linux GOARCH=amd64 go build -o bin/controlplane/prometheus-agent -ldflags "-s $(LDFLAGS)" ./cmd/prometheus-agent
 
 # Run by GitHub actions on linux
 linux-client: cmd/device-agent/icons.go
 	mkdir -p ./bin/linux-client
-	GOOS=linux GOARCH=amd64 go build -o bin/linux-client/naisdevice-systray ./cmd/systray
-	GOOS=linux GOARCH=amd64 go build -o bin/linux-client/naisdevice-helper ./cmd/device-agent-helper
+	GOOS=linux GOARCH=amd64 go build -o bin/linux-client/naisdevice-systray -ldflags "-s $(LDFLAGS)" ./cmd/systray
 	GOOS=linux GOARCH=amd64 go build -o bin/linux-client/naisdevice-agent -ldflags "-s $(LDFLAGS)" ./cmd/device-agent
+	GOOS=linux GOARCH=amd64 go build -o bin/linux-client/naisdevice-helper -ldflags "-s $(LDFLAGS)" ./cmd/device-agent-helper
 
 # Run by GitHub actions on macos
 macos-client: cmd/device-agent/icons.go
 	mkdir -p ./bin/macos-client
 	GOOS=darwin GOARCH=amd64 go build -o bin/macos-client/device-agent -ldflags "-s $(LDFLAGS)" ./cmd/device-agent
-	GOOS=darwin GOARCH=amd64 go build -o bin/macos-client/device-agent-helper ./cmd/device-agent-helper
-	GOOS=darwin GOARCH=amd64 go build -o bin/macos-client/naisdevice-systray ./cmd/systray
+	GOOS=darwin GOARCH=amd64 go build -o bin/macos-client/naisdevice-systray -ldflags "-s $(LDFLAGS)" ./cmd/systray
+	GOOS=darwin GOARCH=amd64 go build -o bin/macos-client/device-agent-helper -ldflags "-s $(LDFLAGS)" ./cmd/device-agent-helper
 
 # Run by GitHub actions on linux
 windows-client: cmd/device-agent/icons.go
@@ -50,8 +50,8 @@ windows-client: cmd/device-agent/icons.go
 	${GOPATH}/bin/rsrc -arch amd64 -manifest ./packaging/windows/admin_manifest.xml -ico assets/nais-logo-blue.ico -o ./cmd/device-agent-helper/main_windows.syso
 	${GOPATH}/bin/rsrc -ico assets/nais-logo-blue.ico -o ./cmd/device-agent/main_windows.syso
 	GOOS=windows GOARCH=amd64 go build -o bin/windows-client/naisdevice-systray.exe -ldflags "-s $(LDFLAGS) -H=windowsgui" ./cmd/systray
-	GOOS=windows GOARCH=amd64 go build -o bin/windows-client/device-agent.exe -ldflags "-s $(LDFLAGS) -H=windowsgui" ./cmd/device-agent
-	GOOS=windows GOARCH=amd64 go build -o bin/windows-client/device-agent-helper.exe ./cmd/device-agent-helper
+	GOOS=windows GOARCH=amd64 go build -o bin/windows-client/naisdevice-agent.exe -ldflags "-s $(LDFLAGS)" ./cmd/device-agent
+	GOOS=windows GOARCH=amd64 go build -o bin/windows-client/naisdevice-helper.exe -ldflags "-s $(LDFLAGS)" ./cmd/device-agent-helper
 
 local:
 	mkdir -p ./bin/local

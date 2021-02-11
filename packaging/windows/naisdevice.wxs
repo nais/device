@@ -43,7 +43,8 @@
         </Property>
 
         <Feature Id="ProductFeature" Title="NaisDevice" Level="1">
-            <ComponentRef Id="NaisDeviceComponent"/>
+            <ComponentRef Id="NaisDeviceAgentComponent"/>
+            <ComponentRef Id="NaisDeviceSystrayComponent"/>
             <ComponentRef Id="NaisDeviceHelperComponent"/>
             <!--<ComponentRef Id="ApplicationShortcutComponent"/>-->
 
@@ -95,10 +96,10 @@
             <Directory Id="StartupFolder"/>
         </Directory>
 
-        <Component Id="NaisDeviceComponent" Win64="yes" Directory="INSTALLFOLDER">
+        <Component Id="NaisDeviceSystrayComponent" Win64="yes" Directory="INSTALLFOLDER">
             <RemoveFolder Id="RemoveAppRootDirectory" On="uninstall"/>
 
-            <File Id="DeviceAgent.exe" Source="../../bin/windows/device-agent.exe" KeyPath="yes">
+            <File Id="naisdevice-systray.exe" Source="../../bin/windows/naisdevice-systray.exe" KeyPath="yes">
                 <!-- Install shortcut in the start menu -->
                 <Shortcut Id="ApplicationStartMenuShortcut"
                           Name="naisdevice"
@@ -121,14 +122,20 @@
             </File>
         </Component>
 
+        <Component Id="NaisDeviceAgentComponent" Win64="yes" Directory="INSTALLFOLDER">
+            <RemoveFolder Id="RemoveAppRootDirectory" On="uninstall"/>
+
+            <File Id="naisdevice-agent.exe" Source="../../bin/windows/naisdevice-agent.exe" KeyPath="yes" />
+        </Component>
+
         <Component Id="NaisDeviceHelperComponent" Win64="yes" Directory="INSTALLFOLDER">
-            <File Id='NaisDeviceHelper.exe' Source='../../bin/windows/device-agent-helper.exe' KeyPath="yes"/>
+            <File Id='naisdevice-helper.exe' Source='../../bin/windows/naisdevice-helper.exe' KeyPath="yes"/>
 
             <ServiceInstall
                     Id="ServiceInstaller"
                     Type="ownProcess"
                     Name="NaisDeviceHelper"
-                    DisplayName="naisdevice Helper"
+                    DisplayName="naisdevice helper"
                     Description="Controls the Wireguard VPN connection"
                     Start="auto"
                     Account="NT AUTHORITY\SYSTEM"
