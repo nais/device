@@ -35,22 +35,16 @@ const (
 	syncConfigTimeout    = 5 * time.Second  // timeout for config synchronization
 	versionCheckInterval = 1 * time.Hour    // how often to check for a new version of naisdevice
 	versionCheckTimeout  = 3 * time.Second  // timeout for new version check
+	helperTimeout        = 4 * time.Second
 )
 
-func (das *DeviceAgentServer) CloseHelper() error {
-	if das.HelperConfigStream == nil {
-		return nil
-	}
-	_, err := das.HelperConfigStream.CloseAndRecv()
-	return err
-}
-
-func (das *DeviceAgentServer) ConfigureHelper(rc *runtimeconfig.RuntimeConfig, gateways []*pb.Gateway) error {
-	return das.HelperConfigStream.Send(&pb.Configuration{
+func (das *DeviceAgentServer) ConfigureHelper(ctx context.Context, rc *runtimeconfig.RuntimeConfig, gateways []*pb.Gateway) error {
+	_, err := das.DeviceHelper.Configure(ctx, &pb.Configuration{
 		PrivateKey: base64.StdEncoding.EncodeToString(rc.PrivateKey),
 		DeviceIP:   rc.BootstrapConfig.DeviceIP,
 		Gateways:   gateways,
 	})
+	return err
 }
 
 func (das *DeviceAgentServer) EventLoop(rc *runtimeconfig.RuntimeConfig) {
@@ -119,16 +113,11 @@ func (das *DeviceAgentServer) EventLoop(rc *runtimeconfig.RuntimeConfig) {
 					}
 				}
 
-				das.HelperConfigStream, err = das.DeviceHelper.Configure(context.Background())
-				if err != nil {
-					notify(err.Error())
-					das.stateChange <- pb.AgentState_Disconnecting
-					continue
-				}
-
-				err = das.ConfigureHelper(rc, []*pb.Gateway{
+				ctx, cancel := context.WithTimeout(context.Background(), helperTimeout)
+				err = das.ConfigureHelper(ctx, rc, []*pb.Gateway{
 					rc.BootstrapConfig.Gateway(),
 				})
+				cancel()
 
 				if err != nil {
 					notify(err.Error())
@@ -165,12 +154,24 @@ func (das *DeviceAgentServer) EventLoop(rc *runtimeconfig.RuntimeConfig) {
 				status.Gateways = make([]*pb.Gateway, 0)
 
 			case pb.AgentState_Quitting:
-				_ = das.CloseHelper()
+				log.Info("Tearing down network connections through device-helper...")
+				ctx, cancel := context.WithTimeout(context.Background(), helperTimeout)
+				_, err = das.DeviceHelper.Teardown(ctx, &pb.TeardownRequest{})
+				cancel()
+
+				if err != nil {
+					notify(err.Error())
+				}
+
+				log.Info("Shutting down.")
 				return
 
 			case pb.AgentState_Disconnecting:
-				log.Info("closing device-helper configuration stream")
-				err := das.CloseHelper()
+				log.Info("Tearing down network connections through device-helper...")
+				ctx, cancel := context.WithTimeout(context.Background(), helperTimeout)
+				_, err = das.DeviceHelper.Teardown(ctx, &pb.TeardownRequest{})
+				cancel()
+
 				if err != nil {
 					notify(err.Error())
 				}
@@ -238,7 +239,15 @@ func (das *DeviceAgentServer) EventLoop(rc *runtimeconfig.RuntimeConfig) {
 				rc.UpdateGateways(gateways)
 				status.Gateways = ApiGatewaysToProtobufGateways(rc.Gateways)
 
-				err = das.ConfigureHelper(rc, status.GetGateways())
+				ctx, cancel = context.WithTimeout(context.Background(), helperTimeout)
+				err = das.ConfigureHelper(ctx, rc, append(
+					[]*pb.Gateway{
+						rc.BootstrapConfig.Gateway(),
+					},
+					status.GetGateways()...,
+				))
+				cancel()
+
 				if err != nil {
 					log.Error(err.Error())
 					notify(err.Error())

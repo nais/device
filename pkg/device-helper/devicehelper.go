@@ -38,55 +38,50 @@ type DeviceHelperServer struct {
 	OSConfigurator OSConfigurator
 }
 
-func (dhs *DeviceHelperServer) Configure(server pb.DeviceHelper_ConfigureServer) error {
-	// fixme: locking/singleton
-
-	defer func() {
-		log.Infof("Removing network interface '%s' and all routes", dhs.Config.Interface)
-		err := dhs.OSConfigurator.TeardownInterface(context.Background())
-		if err != nil {
-			log.Errorf("Tearing down interface: %v", err)
-		}
-
-		log.Infof("Flushing WireGuard configuration from disk")
-		err = os.Remove(dhs.Config.WireGuardConfigPath)
-		if err != nil {
-			log.Error(err)
-		}
-	}()
-
-	for {
-		cfg, err := server.Recv()
-		if err != nil {
-			return err
-		}
-
-		log.Infof("New configuration received from device-agent")
-
-		err = dhs.writeConfigFile(cfg)
-		if err != nil {
-			return status.Errorf(codes.ResourceExhausted, "write WireGuard configuration: %s", err)
-		}
-
-		log.Infof("Wrote WireGuard config to disk")
-
-		err = dhs.OSConfigurator.SetupInterface(server.Context(), cfg)
-		if err != nil {
-			return status.Errorf(codes.FailedPrecondition, "setup interface and routes: %s", err)
-		}
-
-		err = dhs.OSConfigurator.SyncConf(server.Context(), cfg)
-		if err != nil {
-			return status.Errorf(codes.FailedPrecondition, "synchronize WireGuard configuration: %s", err)
-		}
-
-		err = dhs.OSConfigurator.SetupRoutes(server.Context(), cfg.GetGateways())
-		if err != nil {
-			return status.Errorf(codes.FailedPrecondition, "setting up routes: %s", err)
-		}
-
-		time.Sleep(syncConfigWait)
+func (dhs *DeviceHelperServer) Teardown(ctx context.Context, req *pb.TeardownRequest) (*pb.TeardownResponse, error) {
+	log.Infof("Removing network interface '%s' and all routes", dhs.Config.Interface)
+	err := dhs.OSConfigurator.TeardownInterface(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("tearing down interface: %v", err)
 	}
+
+	log.Infof("Flushing WireGuard configuration from disk")
+	err = os.Remove(dhs.Config.WireGuardConfigPath)
+	if err != nil {
+		return nil, fmt.Errorf("flush WireGuard configuration from disk: %v", err)
+	}
+
+	return &pb.TeardownResponse{}, nil
+}
+
+func (dhs *DeviceHelperServer) Configure(ctx context.Context, cfg *pb.Configuration) (*pb.ConfigureResponse, error) {
+	log.Infof("New configuration received from device-agent")
+
+	err := dhs.writeConfigFile(cfg)
+	if err != nil {
+		return nil, status.Errorf(codes.ResourceExhausted, "write WireGuard configuration: %s", err)
+	}
+
+	log.Infof("Wrote WireGuard config to disk")
+
+	err = dhs.OSConfigurator.SetupInterface(ctx, cfg)
+	if err != nil {
+		return nil, status.Errorf(codes.FailedPrecondition, "setup interface and routes: %s", err)
+	}
+
+	err = dhs.OSConfigurator.SyncConf(ctx, cfg)
+	if err != nil {
+		return nil, status.Errorf(codes.FailedPrecondition, "synchronize WireGuard configuration: %s", err)
+	}
+
+	err = dhs.OSConfigurator.SetupRoutes(ctx, cfg.GetGateways())
+	if err != nil {
+		return nil, status.Errorf(codes.FailedPrecondition, "setting up routes: %s", err)
+	}
+
+	time.Sleep(syncConfigWait)
+
+	return &pb.ConfigureResponse{}, nil
 }
 
 func (dhs *DeviceHelperServer) writeConfigFile(cfg *pb.Configuration) error {

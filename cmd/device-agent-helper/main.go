@@ -49,18 +49,6 @@ func main() {
 
 	osConfigurator := device_helper.New(cfg)
 
-	teardown := func() {
-		log.Infof("Removing network interface '%s' and all routes", cfg.Interface)
-		ctx, cancel := context.WithTimeout(context.Background(), time.Second*2)
-		defer cancel()
-		err := osConfigurator.TeardownInterface(ctx)
-		if err != nil {
-			log.Warnf("Tearing down interface: %v", err)
-		}
-	}
-
-	defer teardown()
-
 	if err := osConfigurator.Prerequisites(); err != nil {
 		log.Fatalf("Checking prerequisites: %v", err)
 	}
@@ -79,6 +67,17 @@ func main() {
 		OSConfigurator: osConfigurator,
 	}
 	pb.RegisterDeviceHelperServer(grpcServer, dhs)
+
+	teardown := func() {
+		ctx, cancel := context.WithTimeout(context.Background(), time.Second*2)
+		defer cancel()
+		_, err := dhs.Teardown(ctx, &pb.TeardownRequest{})
+		if err != nil {
+			log.Warn(err)
+		}
+	}
+
+	defer teardown()
 
 	go func() {
 		for {

@@ -7,9 +7,12 @@ package naisdevice;
 import "google/protobuf/timestamp.proto";
 
 service DeviceHelper {
-    // todo: shut down all connections on error
     // Push and apply new VPN configuration.
-    rpc Configure (stream Configuration) returns (ConfigureResponse) {
+    rpc Configure (Configuration) returns (ConfigureResponse) {
+    }
+
+    // Delete VPN configuration and shut down connections.
+    rpc Teardown (TeardownRequest) returns (TeardownResponse) {
     }
 
     // Install the newest version of naisdevice.
@@ -34,6 +37,14 @@ service DeviceAgent {
     // Log out of API server, shutting down all VPN connections.
     rpc Logout (LogoutRequest) returns (LogoutResponse) {
     }
+}
+
+message TeardownRequest {
+
+}
+
+message TeardownResponse {
+
 }
 
 message ConfigureResponse {

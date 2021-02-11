@@ -297,7 +297,7 @@ func (gui *Gui) handleStatusStream() {
 
 		statusStream, err := gui.DeviceAgentClient.Status(ctx, &pb.AgentStatusRequest{})
 		if err != nil {
-			log.Errorf("getting status stream")
+			log.Errorf("Request status stream: %s", err)
 			time.Sleep(requestBackoff)
 			continue
 		}
@@ -308,7 +308,7 @@ func (gui *Gui) handleStatusStream() {
 		for {
 			status, err := statusStream.Recv()
 			if err != nil {
-				log.Errorf("receiving status from stream: %v", err)
+				log.Errorf("Receive status from device-agent stream: %v", err)
 				break
 			}
 

@@ -18,9 +18,10 @@ const _ = grpc.SupportPackageIsVersion7
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type DeviceHelperClient interface {
-	// todo: shut down all connections on error
 	// Push and apply new VPN configuration.
-	Configure(ctx context.Context, opts ...grpc.CallOption) (DeviceHelper_ConfigureClient, error)
+	Configure(ctx context.Context, in *Configuration, opts ...grpc.CallOption) (*ConfigureResponse, error)
+	// Delete VPN configuration and shut down connections.
+	Teardown(ctx context.Context, in *TeardownRequest, opts ...grpc.CallOption) (*TeardownResponse, error)
 	// Install the newest version of naisdevice.
 	Upgrade(ctx context.Context, in *UpgradeRequest, opts ...grpc.CallOption) (*UpgradeResponse, error)
 }
@@ -33,38 +34,22 @@ func NewDeviceHelperClient(cc grpc.ClientConnInterface) DeviceHelperClient {
 	return &deviceHelperClient{cc}
 }
 
-func (c *deviceHelperClient) Configure(ctx context.Context, opts ...grpc.CallOption) (DeviceHelper_ConfigureClient, error) {
-	stream, err := c.cc.NewStream(ctx, &DeviceHelper_ServiceDesc.Streams[0], "/naisdevice.DeviceHelper/Configure", opts...)
+func (c *deviceHelperClient) Configure(ctx context.Context, in *Configuration, opts ...grpc.CallOption) (*ConfigureResponse, error) {
+	out := new(ConfigureResponse)
+	err := c.cc.Invoke(ctx, "/naisdevice.DeviceHelper/Configure", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
-	x := &deviceHelperConfigureClient{stream}
-	return x, nil
+	return out, nil
 }
 
-type DeviceHelper_ConfigureClient interface {
-	Send(*Configuration) error
-	CloseAndRecv() (*ConfigureResponse, error)
-	grpc.ClientStream
-}
-
-type deviceHelperConfigureClient struct {
-	grpc.ClientStream
-}
-
-func (x *deviceHelperConfigureClient) Send(m *Configuration) error {
-	return x.ClientStream.SendMsg(m)
-}
-
-func (x *deviceHelperConfigureClient) CloseAndRecv() (*ConfigureResponse, error) {
-	if err := x.ClientStream.CloseSend(); err != nil {
+func (c *deviceHelperClient) Teardown(ctx context.Context, in *TeardownRequest, opts ...grpc.CallOption) (*TeardownResponse, error) {
+	out := new(TeardownResponse)
+	err := c.cc.Invoke(ctx, "/naisdevice.DeviceHelper/Teardown", in, out, opts...)
+	if err != nil {
 		return nil, err
 	}
-	m := new(ConfigureResponse)
-	if err := x.ClientStream.RecvMsg(m); err != nil {
-		return nil, err
-	}
-	return m, nil
+	return out, nil
 }
 
 func (c *deviceHelperClient) Upgrade(ctx context.Context, in *UpgradeRequest, opts ...grpc.CallOption) (*UpgradeResponse, error) {
@@ -80,9 +65,10 @@ func (c *deviceHelperClient) Upgrade(ctx context.Context, in *UpgradeRequest, op
 // All implementations must embed UnimplementedDeviceHelperServer
 // for forward compatibility
 type DeviceHelperServer interface {
-	// todo: shut down all connections on error
 	// Push and apply new VPN configuration.
-	Configure(DeviceHelper_ConfigureServer) error
+	Configure(context.Context, *Configuration) (*ConfigureResponse, error)
+	// Delete VPN configuration and shut down connections.
+	Teardown(context.Context, *TeardownRequest) (*TeardownResponse, error)
 	// Install the newest version of naisdevice.
 	Upgrade(context.Context, *UpgradeRequest) (*UpgradeResponse, error)
 	mustEmbedUnimplementedDeviceHelperServer()
@@ -92,8 +78,11 @@ type DeviceHelperServer interface {
 type UnimplementedDeviceHelperServer struct {
 }
 
-func (UnimplementedDeviceHelperServer) Configure(DeviceHelper_ConfigureServer) error {
-	return status.Errorf(codes.Unimplemented, "method Configure not implemented")
+func (UnimplementedDeviceHelperServer) Configure(context.Context, *Configuration) (*ConfigureResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Configure not implemented")
+}
+func (UnimplementedDeviceHelperServer) Teardown(context.Context, *TeardownRequest) (*TeardownResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Teardown not implemented")
 }
 func (UnimplementedDeviceHelperServer) Upgrade(context.Context, *UpgradeRequest) (*UpgradeResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Upgrade not implemented")
@@ -111,30 +100,40 @@ func RegisterDeviceHelperServer(s grpc.ServiceRegistrar, srv DeviceHelperServer)
 	s.RegisterService(&DeviceHelper_ServiceDesc, srv)
 }
 
-func _DeviceHelper_Configure_Handler(srv interface{}, stream grpc.ServerStream) error {
-	return srv.(DeviceHelperServer).Configure(&deviceHelperConfigureServer{stream})
-}
-
-type DeviceHelper_ConfigureServer interface {
-	SendAndClose(*ConfigureResponse) error
-	Recv() (*Configuration, error)
-	grpc.ServerStream
-}
-
-type deviceHelperConfigureServer struct {
-	grpc.ServerStream
-}
-
-func (x *deviceHelperConfigureServer) SendAndClose(m *ConfigureResponse) error {
-	return x.ServerStream.SendMsg(m)
-}
-
-func (x *deviceHelperConfigureServer) Recv() (*Configuration, error) {
-	m := new(Configuration)
-	if err := x.ServerStream.RecvMsg(m); err != nil {
+func _DeviceHelper_Configure_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(Configuration)
+	if err := dec(in); err != nil {
 		return nil, err
 	}
-	return m, nil
+	if interceptor == nil {
+		return srv.(DeviceHelperServer).Configure(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/naisdevice.DeviceHelper/Configure",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(DeviceHelperServer).Configure(ctx, req.(*Configuration))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _DeviceHelper_Teardown_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(TeardownRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(DeviceHelperServer).Teardown(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/naisdevice.DeviceHelper/Teardown",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(DeviceHelperServer).Teardown(ctx, req.(*TeardownRequest))
+	}
+	return interceptor(ctx, in, info, handler)
 }
 
 func _DeviceHelper_Upgrade_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
@@ -163,17 +162,19 @@ var DeviceHelper_ServiceDesc = grpc.ServiceDesc{
 	HandlerType: (*DeviceHelperServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
+			MethodName: "Configure",
+			Handler:    _DeviceHelper_Configure_Handler,
+		},
+		{
+			MethodName: "Teardown",
+			Handler:    _DeviceHelper_Teardown_Handler,
+		},
+		{
 			MethodName: "Upgrade",
 			Handler:    _DeviceHelper_Upgrade_Handler,
 		},
 	},
-	Streams: []grpc.StreamDesc{
-		{
-			StreamName:    "Configure",
-			Handler:       _DeviceHelper_Configure_Handler,
-			ClientStreams: true,
-		},
-	},
+	Streams:  []grpc.StreamDesc{},
 	Metadata: "pkg/pb/protobuf-api.proto",
 }
 

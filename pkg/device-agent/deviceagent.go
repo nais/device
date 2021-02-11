@@ -15,13 +15,12 @@ import (
 
 type DeviceAgentServer struct {
 	pb.UnimplementedDeviceAgentServer
-	AgentStatus        *pb.AgentStatus
-	DeviceHelper       pb.DeviceHelperClient
-	HelperConfigStream pb.DeviceHelper_ConfigureClient
-	lock               sync.Mutex
-	stateChange        chan pb.AgentState
-	statusChange       chan *pb.AgentStatus
-	streams            map[uuid.UUID]pb.DeviceAgent_StatusServer
+	AgentStatus  *pb.AgentStatus
+	DeviceHelper pb.DeviceHelperClient
+	lock         sync.Mutex
+	stateChange  chan pb.AgentState
+	statusChange chan *pb.AgentStatus
+	streams      map[uuid.UUID]pb.DeviceAgent_StatusServer
 }
 
 func (das *DeviceAgentServer) Login(ctx context.Context, request *pb.LoginRequest) (*pb.LoginResponse, error) {
