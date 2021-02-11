@@ -262,13 +262,13 @@ func (gui *Gui) handleGuiEvent(guiEvent GuiEvent) {
 		}
 
 	case HelperLogClicked:
-		err := open.Open(filepath.Join(cfg.ConfigDir, "logs", "agent.log"))
+		err := open.Open(filepath.Join(cfg.ConfigDir, "logs", "helper.log"))
 		if err != nil {
 			log.Warn("opening device agent helper log: %w", err)
 		}
 
 	case DeviceLogClicked:
-		err := open.Open(filepath.Join(cfg.ConfigDir, "logs", "helper.log"))
+		err := open.Open(filepath.Join(cfg.ConfigDir, "logs", "agent.log"))
 		if err != nil {
 			log.Warn("opening device agent log: %w", err)
 		}
