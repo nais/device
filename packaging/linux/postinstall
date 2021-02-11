@@ -7,7 +7,7 @@ if loginctl list-users --output json | jq -e 'length != 1' > /dev/null; then
 	exit 1
 fi
 
-ln -sf /usr/bin/naisdevice{-systray,}
+ln -sf /usr/bin/naisdevice-systray /usr/bin/naisdevice
 
 user=$(loginctl list-users --output json | jq -r ".[0].user")
 home=$(getent passwd "${user}" | cut -d: -f 6)
