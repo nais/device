@@ -36,7 +36,7 @@ func main() {
 		ctx, cancel := context.WithCancel(context.Background())
 		err = exec.CommandContext(ctx, AgentPath).Start()
 		if err != nil {
-			log.Fatal("spawning naisdevice-agent: %v", err)
+			log.Fatalf("spawning naisdevice-agent: %v", err)
 		}
 		defer cancel()
 	} else {
