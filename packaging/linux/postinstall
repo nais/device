@@ -7,7 +7,7 @@ if loginctl list-users --output json | jq -e 'length != 1' > /dev/null; then
 	exit 1
 fi
 
-ln -sf /usr/loca/bin/naisdevice{-systray,}
+ln -sf /usr/bin/naisdevice{-systray,}
 
 user=$(loginctl list-users --output json | jq -r ".[0].user")
 home=$(getent passwd "${user}" | cut -d: -f 6)
@@ -27,4 +27,4 @@ chown -R "${user}:" "${config_dir}"
 
 set +e
 killall naisdevice-systray || true
-killall device-agent-helper || true
+killall naisdevice-agent || true
