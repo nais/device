@@ -63,7 +63,7 @@
                 <util:RemoveFolderEx On='uninstall' Property="APP_DATA_FOLDER"/>
             </Component>
 
-            <Component Directory='LOG_FOLDER' Name="logs">
+            <Component Id="LogFolder" Directory='LOG_FOLDER'>
                 <CreateFolder>
                     <util:PermissionEx User="[WIX_ACCOUNT_USERS]" GenericAll="yes"/>
                 </CreateFolder>
@@ -115,23 +115,6 @@
                           Icon="NaisLogoBlue.ico"
                 />
             </File>
-        </Component>
-
-        <Component Id="NaisDeviceAgentComponent" Win64="yes" Directory="INSTALLFOLDER">
-            <File Id='NaisDeviceAgent.exe' Source='../../bin/windows/device-agent.exe' KeyPath="yes"/>
-
-            <ServiceInstall
-                    Id="ServiceInstaller"
-                    Type="ownProcess"
-                    Name="NaisDeviceAgent"
-                    DisplayName="naisdevice agent"
-                    Description="Controls the naisdevice controlplane connection"
-                    Start="auto"
-                    Account="NT AUTHORITY\LocalService"
-                    ErrorControl="normal"
-                    Arguments=""
-            />
-            <ServiceControl Id="StartService" Start="install" Stop="both" Remove="uninstall" Name="NaisDeviceHelper" Wait="yes"/>
         </Component>
 
         <Component Id="NaisDeviceHelperComponent" Win64="yes" Directory="INSTALLFOLDER">
