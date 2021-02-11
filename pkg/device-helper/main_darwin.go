@@ -23,6 +23,12 @@ type DarwinConfigurator struct {
 
 var _ OSConfigurator = &DarwinConfigurator{}
 
+func New(helperConfig Config) *DarwinConfigurator {
+	return &DarwinConfigurator{
+		helperConfig: helperConfig,
+	}
+}
+
 func (c *DarwinConfigurator) Prerequisites() error {
 	if err := filesExist(WireGuardBinary, WireGuardGoBinary); err != nil {
 		return fmt.Errorf("verifying if file exists: %w", err)
