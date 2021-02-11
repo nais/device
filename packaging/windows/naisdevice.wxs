@@ -61,12 +61,11 @@
                 </CreateFolder>
 
                 <util:RemoveFolderEx On='uninstall' Property="APP_DATA_FOLDER"/>
-            </Component>
-
-            <Component Directory='APP_DATA_FOLDER\logs'>
-                <CreateFolder>
-                    <util:PermissionEx User="[WIX_ACCOUNT_USERS]" GenericAll="yes"/>
-                </CreateFolder>
+                <Component Directory='LOGS_FOLDER' Name='logs'>
+                    <CreateFolder>
+                        <util:PermissionEx User="[WIX_ACCOUNT_USERS]" GenericAll="yes"/>
+                    </CreateFolder>
+                </Component>
             </Component>
         </Feature>
 
