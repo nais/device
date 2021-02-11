@@ -1,8 +1,11 @@
 package main
 
 import (
+	"context"
 	"fmt"
+	"net"
 	"os"
+	"os/exec"
 	"path/filepath"
 
 	"github.com/gen2brain/beeep"
@@ -26,6 +29,22 @@ func main() {
 	}
 
 	logger.SetupLogger(cfg.LogLevel, cfg.ConfigDir, "systray.log")
+
+	conn, err := net.Dial("unix", cfg.GrpcAddress)
+	if err != nil {
+		// TODO: remove when agent runs as service
+		ctx, cancel := context.WithCancel(context.Background())
+		err = exec.CommandContext(ctx, AgentPath).Start()
+		if err != nil {
+			log.Fatal("spawning naisdevice-agent: %v", err)
+		}
+		defer cancel()
+	} else {
+		err := conn.Close()
+		if err != nil {
+			log.Fatalf("closing connection: %v", err)
+		}
+	}
 
 	flag.StringVar(&cfg.LogLevel, "log-level", "warning", "which log level to output")
 	flag.BoolVar(&cfg.AutoConnect, "connect", false, "auto connect")
