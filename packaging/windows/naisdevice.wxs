@@ -99,7 +99,7 @@
         <Component Id="NaisDeviceSystrayComponent" Win64="yes" Directory="INSTALLFOLDER">
             <RemoveFolder Id="RemoveAppRootDirectory" On="uninstall"/>
 
-            <File Id="naisdevice-systray.exe" Source="../../bin/windows/naisdevice-systray.exe" KeyPath="yes">
+            <File Id="naisdevice_systray" Name="naisdevice-systray.exe" Source="../../bin/windows/naisdevice-systray.exe" KeyPath="yes">
                 <!-- Install shortcut in the start menu -->
                 <Shortcut Id="ApplicationStartMenuShortcut"
                           Name="naisdevice"
@@ -125,11 +125,11 @@
         <Component Id="NaisDeviceAgentComponent" Win64="yes" Directory="INSTALLFOLDER">
             <RemoveFolder Id="RemoveAppRootDirectory" On="uninstall"/>
 
-            <File Id="naisdevice-agent.exe" Source="../../bin/windows/naisdevice-agent.exe" KeyPath="yes" />
+            <File Id="naisdevice_agent" Name="naisdevice-agent.exe" Source="../../bin/windows/naisdevice-agent.exe" KeyPath="yes" />
         </Component>
 
         <Component Id="NaisDeviceHelperComponent" Win64="yes" Directory="INSTALLFOLDER">
-            <File Id='naisdevice-helper.exe' Source='../../bin/windows/naisdevice-helper.exe' KeyPath="yes"/>
+            <File Id="naisdevice_helper" Name="naisdevice-helper.exe" Source='../../bin/windows/naisdevice-helper.exe' KeyPath="yes"/>
 
             <ServiceInstall
                     Id="ServiceInstaller"
