@@ -1,9 +1,9 @@
 [Unit]
-Description=Naisdevice agent helper
+Description=Naisdevice helper
 Documentation=https://doc.nais.io/device
 
 [Service]
-ExecStart=/usr/sbin/device-agent-helper --config-dir @@CONFIG_DIR@@
+ExecStart=/usr/sbin/naisdevice-helper --config-dir @@CONFIG_DIR@@
 Restart=always
 
 [Install]

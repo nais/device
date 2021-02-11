@@ -33,8 +33,8 @@ controlplane:
 linux-client: cmd/device-agent/icons.go
 	mkdir -p ./bin/linux-client
 	GOOS=linux GOARCH=amd64 go build -o bin/linux-client/naisdevice-systray ./cmd/systray
-	GOOS=linux GOARCH=amd64 go build -o bin/linux-client/device-agent-helper ./cmd/device-agent-helper
-	GOOS=linux GOARCH=amd64 go build -o bin/linux-client/device-agent -ldflags "-s $(LDFLAGS)" ./cmd/device-agent
+	GOOS=linux GOARCH=amd64 go build -o bin/linux-client/naisdevice-helper ./cmd/device-agent-helper
+	GOOS=linux GOARCH=amd64 go build -o bin/linux-client/naisdevice-agent -ldflags "-s $(LDFLAGS)" ./cmd/device-agent
 
 # Run by GitHub actions on macos
 macos-client: cmd/device-agent/icons.go
