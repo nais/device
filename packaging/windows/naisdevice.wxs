@@ -64,6 +64,10 @@
             </Component>
 
             <Component Id="LogFolder" Directory='LOG_FOLDER'>
+                <RegistryValue Root='HKLM' Key='SOFTWARE\NAV\naisdevice'
+                               Name='LogsFolder' Value='[APP_DATA_FOLDER]\logs'
+                               Type='string'/>
+
                 <CreateFolder>
                     <util:PermissionEx User="[WIX_ACCOUNT_USERS]" GenericAll="yes"/>
                 </CreateFolder>
