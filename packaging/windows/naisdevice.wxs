@@ -61,8 +61,12 @@
                 </CreateFolder>
 
                 <util:RemoveFolderEx On='uninstall' Property="APP_DATA_FOLDER"/>
+            </Component>
 
-                <Directory Id='LOGS_FOLDER' Name='logs'/>
+            <Component Directory='APP_DATA_FOLDER' Name='logs'>
+                <CreateFolder>
+                    <util:PermissionEx User="[WIX_ACCOUNT_USERS]" GenericAll="yes"/>
+                </CreateFolder>
             </Component>
         </Feature>
 
@@ -76,7 +80,9 @@
             <!-- App folder for configuration files and logs files -->
             <Directory Id="CommonAppDataFolder">
                 <Directory Id="AppDataCompany" Name="NAV">
-                    <Directory Id="APP_DATA_FOLDER" Name="naisdevice"/>
+                    <Directory Id="APP_DATA_FOLDER" Name="naisdevice">
+                        <Directory Id='LOG_FOLDER' Name='logs'/>
+                    </Directory>
                 </Directory>
             </Directory>
 
