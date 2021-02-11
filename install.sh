@@ -22,7 +22,7 @@ case "$(uname -s)" in
    Darwin)
      installer_ext=pkg
      install() {
-       /usr/bin/osascript -e "do shell script \"pkill device-agent; pkill device-agent-helper; installer -target / -pkg '$temp_installer'\" with prompt \"${message}\" with administrator privileges"
+       /usr/bin/osascript -e "do shell script \"pkill device-agent; pkill device-agent-helper; pkill naisdevice-systray; pkill naisdevice-agent; pkill naisdevice-helper; installer -target / -pkg '$temp_installer'\" with prompt \"${message}\" with administrator privileges"
      }
      ;;
 
