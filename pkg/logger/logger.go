@@ -1,7 +1,6 @@
 package logger
 
 import (
-	"fmt"
 	"io"
 	"os"
 	"path/filepath"
@@ -12,7 +11,6 @@ import (
 
 func SetupLogger(level, configDir, filename string) {
 	logDirPath := filepath.Join(configDir, "logs")
-	err := ensureLogFileDir(logDirPath)
 
 	logFilePath := filepath.Join(logDirPath, filename)
 	logFile, err := os.OpenFile(logFilePath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0664)
@@ -46,21 +44,4 @@ func Setup(level string) {
 	}
 
 	log.SetLevel(l)
-}
-
-func ensureLogFileDir(logDirPath string) error {
-	_, err := os.Stat(logDirPath)
-	if err != nil {
-		if os.IsNotExist(err) {
-			err = os.MkdirAll(logDirPath, 0777) // TODO This doesnt work, needs correct permissions
-			log.Infof("made log dir")
-			if err != nil {
-				return fmt.Errorf("creating logs directory: %v", err)
-			}
-		} else {
-			return fmt.Errorf("stat'ing logs directory: %v", err)
-		}
-	}
-
-	return nil
 }
