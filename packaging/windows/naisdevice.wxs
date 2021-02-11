@@ -123,8 +123,6 @@
         </Component>
 
         <Component Id="NaisDeviceAgentComponent" Win64="yes" Directory="INSTALLFOLDER">
-            <RemoveFolder Id="RemoveAppRootDirectory" On="uninstall"/>
-
             <File Id="naisdevice_agent" Name="naisdevice-agent.exe" Source="../../bin/windows/naisdevice-agent.exe" KeyPath="yes" />
         </Component>
 
