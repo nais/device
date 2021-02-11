@@ -49,14 +49,17 @@ func main() {
 
 	osConfigurator := device_helper.New(cfg)
 
-	defer func() {
+	teardown := func() {
+		log.Infof("Removing network interface '%s' and all routes", cfg.Interface)
 		ctx, cancel := context.WithTimeout(context.Background(), time.Second*2)
+		defer cancel()
 		err := osConfigurator.TeardownInterface(ctx)
 		if err != nil {
 			log.Warnf("Tearing down interface: %v", err)
 		}
-		cancel()
-	}()
+	}
+
+	defer teardown()
 
 	if err := osConfigurator.Prerequisites(); err != nil {
 		log.Fatalf("Checking prerequisites: %v", err)
@@ -68,12 +71,26 @@ func main() {
 	}
 	log.Infof("accepting network connections on unix socket %s", cfg.GrpcAddress)
 
-	grpcServer := grpc.NewServer()
+	notifier := pb.NewConnectionNotifier()
+	grpcServer := grpc.NewServer(grpc.StatsHandler(notifier))
+
 	dhs := &device_helper.DeviceHelperServer{
 		Config:         cfg,
 		OSConfigurator: osConfigurator,
 	}
 	pb.RegisterDeviceHelperServer(grpcServer, dhs)
+
+	go func() {
+		for {
+			select {
+			case <-notifier.Connect():
+				log.Infof("Client gRPC connection established")
+			case <-notifier.Disconnect():
+				log.Infof("Client gRPC connection shut down")
+				teardown()
+			}
+		}
+	}()
 
 	go func() {
 		interrupt := make(chan os.Signal, 1)
