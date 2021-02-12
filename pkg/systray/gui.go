@@ -228,7 +228,7 @@ func (gui *Gui) handleGuiEvent(guiEvent GuiEvent) {
 	case VersionClicked:
 		err := open.Open(softwareReleasePage)
 		if err != nil {
-			log.Warnf("opening latest release url: %w", err)
+			log.Warnf("opening latest release url: %v", err)
 		}
 
 	case StateInfoClicked:
