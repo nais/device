@@ -13,6 +13,7 @@ import (
 	"github.com/nais/device/pkg/logger"
 	"github.com/nais/device/pkg/pb"
 	"github.com/nais/device/pkg/unixsocket"
+	"github.com/nais/device/pkg/version"
 	log "github.com/sirupsen/logrus"
 	flag "github.com/spf13/pflag"
 	"google.golang.org/grpc"
@@ -45,7 +46,8 @@ func main() {
 
 	logger.SetupLogger(cfg.LogLevel, cfg.ConfigDir, "helper.log")
 
-	log.Infof("Starting device-agent-helper with config:\n%+v", cfg)
+	log.Infof("naisdevice-helper %s starting up", version.Version)
+	log.Infof("configuration: %+v", cfg)
 
 	osConfigurator := device_helper.New(cfg)
 

@@ -2,13 +2,14 @@ package main
 
 import (
 	"fmt"
+	"os"
 
-	"github.com/gen2brain/beeep"
 	"github.com/nais/device/device-agent/config"
 	"github.com/nais/device/device-agent/filesystem"
 	"github.com/nais/device/device-agent/runtimeconfig"
 	"github.com/nais/device/pkg/device-agent"
 	"github.com/nais/device/pkg/logger"
+	"github.com/nais/device/pkg/notify"
 	"github.com/nais/device/pkg/pb"
 	"github.com/nais/device/pkg/unixsocket"
 	"github.com/nais/device/pkg/version"
@@ -37,32 +38,38 @@ func init() {
 func main() {
 	logger.SetupLogger(cfg.LogLevel, cfg.ConfigDir, "agent.log")
 
-	log.Infof("Starting device-agent with config:\n%+v", cfg)
-	log.Infof("Version: %s, Revision: %s", version.Version, version.Revision)
-	startDeviceAgent()
-	log.Infof("device-agent shutting down.")
+	log.Infof("naisdevice-agent %s starting up", version.Version)
+	log.Infof("configuration: %+v", cfg)
+
+	err := startDeviceAgent()
+	if err != nil {
+		notify.Errorf(err.Error())
+		log.Errorf("naisdevice-agent terminated with error.")
+		os.Exit(1)
+	}
+
+	log.Infof("naisdevice-agent shutting down.")
 }
 
-func startDeviceAgent() {
+func startDeviceAgent() error {
 	if err := filesystem.EnsurePrerequisites(&cfg); err != nil {
-		notify(fmt.Sprintf("Missing prerequisites: %s", err))
+		return fmt.Errorf("missing prerequisites: %s", err)
 	}
 
 	rc, err := runtimeconfig.New(cfg)
 	if err != nil {
-		log.Errorf("Runtime config: %v", err)
-		notify("Unable to start naisdevice, check logs for details")
-		return
+		log.Errorf("instantiate runtime config: %v", err)
+		return fmt.Errorf("unable to start naisdevice-agent, check logs for details")
 	}
 
-	log.Infof("device-agent-helper connection on unix socket %s", cfg.DeviceAgentHelperAddress)
+	log.Infof("naisdevice-helper connection on unix socket %s", cfg.DeviceAgentHelperAddress)
 	connection, err := grpc.Dial(
 		"unix:"+cfg.DeviceAgentHelperAddress,
 		grpc.WithInsecure(),
 
 	)
 	if err != nil {
-		log.Fatalf("unable to connect to device-agent-helper grpc server: %v", err)
+		return fmt.Errorf("connect to naisdevice-helper: %v", err)
 	}
 
 	client := pb.NewDeviceHelperClient(connection)
@@ -70,7 +77,7 @@ func startDeviceAgent() {
 
 	listener, err := unixsocket.ListenWithFileMode(cfg.GrpcAddress, 0666)
 	if err != nil {
-		log.Fatal(err)
+		return err
 	}
 	log.Infof("accepting network connections on unix socket %s", cfg.GrpcAddress)
 
@@ -85,16 +92,10 @@ func startDeviceAgent() {
 
 	err = grpcServer.Serve(listener)
 	if err != nil {
-		log.Fatalf("failed to start gRPC server: %v", err)
+		return fmt.Errorf("failed to start gRPC server: %v", err)
 	}
-	log.Infof("gRPC server shut down.")
-}
 
-func notify(format string, args ...interface{}) {
-	message := fmt.Sprintf(format, args...)
-	err := beeep.Notify("NAIS device", message, "../Resources/nais-logo-red.png")
-	log.Infof("sending message to notification centre: %s", message)
-	if err != nil {
-		log.Errorf("failed sending message due to error: %s", err)
-	}
+	log.Infof("gRPC server shut down.")
+
+	return nil
 }

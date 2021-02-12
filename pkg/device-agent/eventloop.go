@@ -14,10 +14,10 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/gen2brain/beeep"
 	"github.com/nais/device/device-agent/apiserver"
 	"github.com/nais/device/device-agent/auth"
 	"github.com/nais/device/device-agent/runtimeconfig"
+	"github.com/nais/device/pkg/notify"
 	"github.com/nais/device/pkg/pb"
 	"github.com/nais/device/pkg/version"
 	log "github.com/sirupsen/logrus"
@@ -74,7 +74,7 @@ func (das *DeviceAgentServer) EventLoop(rc *runtimeconfig.RuntimeConfig) {
 			}
 
 			if status.NewVersionAvailable {
-				notify("New version of device agent available: https://doc.nais.io/device/install#installation")
+				notify.Infof("New version of device agent available: https://doc.nais.io/device/install#installation")
 				versionCheckTicker.Stop()
 			} else {
 				versionCheckTicker.Reset(versionCheckInterval)
@@ -102,7 +102,7 @@ func (das *DeviceAgentServer) EventLoop(rc *runtimeconfig.RuntimeConfig) {
 					rc.BootstrapConfig, err = runtimeconfig.EnsureBootstrapping(rc, ctx)
 					cancel()
 					if err != nil {
-						notify(fmt.Sprintf("Error during bootstrap: %v", err))
+						notify.Errorf("Bootstrap: %v", err)
 						das.stateChange <- pb.AgentState_Disconnecting
 						continue
 					}
@@ -115,7 +115,7 @@ func (das *DeviceAgentServer) EventLoop(rc *runtimeconfig.RuntimeConfig) {
 				cancel()
 
 				if err != nil {
-					notify(err.Error())
+					notify.Errorf(err.Error())
 					das.stateChange <- pb.AgentState_Disconnecting
 					continue
 				}
@@ -131,9 +131,7 @@ func (das *DeviceAgentServer) EventLoop(rc *runtimeconfig.RuntimeConfig) {
 					rc.SessionInfo, err = auth.EnsureAuth(rc.SessionInfo, ctx, rc.Config.APIServer, rc.Config.Platform, rc.Serial)
 					cancel()
 					if err != nil {
-						notify(fmt.Sprintf("Error during authentication: %v", err))
-
-						log.Errorf("Authenticating with apiserver: %v", err)
+						notify.Errorf("Authenticate with API server: %v", err)
 						das.stateChange <- pb.AgentState_Disconnecting
 						continue
 					}
@@ -158,7 +156,7 @@ func (das *DeviceAgentServer) EventLoop(rc *runtimeconfig.RuntimeConfig) {
 				cancel()
 
 				if err != nil {
-					notify(err.Error())
+					notify.Errorf(err.Error())
 				}
 				das.stateChange <- pb.AgentState_Disconnected
 
@@ -207,7 +205,7 @@ func (das *DeviceAgentServer) EventLoop(rc *runtimeconfig.RuntimeConfig) {
 
 					log.Errorf("Device is not healthy: %v", err)
 					// TODO consider moving all notify calls to systray code
-					notify("No access as your device is unhealthy. Run '/msg @Kolide status' on Slack and fix the errors")
+					notify.Errorf("No access as your device is unhealthy. Run '/msg @Kolide status' on Slack and fix the errors")
 					das.stateChange <- pb.AgentState_Unhealthy
 					continue
 
@@ -234,8 +232,7 @@ func (das *DeviceAgentServer) EventLoop(rc *runtimeconfig.RuntimeConfig) {
 				cancel()
 
 				if err != nil {
-					log.Error(err.Error())
-					notify(err.Error())
+					notify.Errorf(err.Error())
 					das.stateChange <- pb.AgentState_Disconnecting
 				} else {
 					das.stateChange <- pb.AgentState_HealthCheck
@@ -305,13 +302,4 @@ func ping(addr string) error {
 	c.Close()
 
 	return nil
-}
-
-func notify(format string, args ...interface{}) {
-	message := fmt.Sprintf(format, args...)
-	err := beeep.Notify("NAIS device", message, "../Resources/nais-logo-red.png")
-	log.Infof("sending message to notification centre: %s", message)
-	if err != nil {
-		log.Errorf("failed sending message due to error: %s", err)
-	}
 }

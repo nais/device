@@ -2,16 +2,16 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"net"
 	"os"
 	"os/exec"
 	"path/filepath"
 
-	"github.com/gen2brain/beeep"
 	"github.com/nais/device/pkg/config"
 	"github.com/nais/device/pkg/logger"
+	"github.com/nais/device/pkg/notify"
 	"github.com/nais/device/pkg/systray"
+	"github.com/nais/device/pkg/version"
 	log "github.com/sirupsen/logrus"
 	flag "github.com/spf13/pflag"
 )
@@ -19,7 +19,7 @@ import (
 func main() {
 	configDir, err := config.UserConfigDir()
 	if err != nil {
-		notify("Can't start naisdevice: unable to find configuration directory: %v", err)
+		notify.Errorf("start naisdevice-systray: unable to find configuration directory: %v", err)
 		os.Exit(1)
 	}
 
@@ -52,17 +52,8 @@ func main() {
 		}
 	}
 
-	log.Infof("Starting systray")
-	log.Infof("Systray startup configuration: %#v", cfg)
+	log.Infof("naisdevice-systray %s starting up", version.Version)
+	log.Infof("configuration: %+v", cfg)
 
 	systray.Spawn(cfg)
-}
-
-func notify(format string, args ...interface{}) {
-	message := fmt.Sprintf(format, args...)
-	err := beeep.Notify("NAIS device", message, "../Resources/nais-logo-red.png")
-	log.Infof("sending message to notification centre: %s", message)
-	if err != nil {
-		log.Errorf("failed sending message due to error: %s", err)
-	}
 }
