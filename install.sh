@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# vi: set tabstop=4 softtabstop=4 noexpandtab shiftwidth=4:
 # shellcheck disable=SC2015
 
 set -o pipefail
@@ -9,50 +10,47 @@ latest_tag=''
 message="Would you like to install naisdevice? 😎"
 
 ok() {
-  echo -e "..[\033[32mok\033[0m]"
+	echo -e "..[\033[32mok\033[0m]"
 }
 
 fail() {
-  echo -e "[\033[31mfail\033[0m]"
-  echo "$err"
-  exit 1
+	echo -e "[\033[31mfail\033[0m]"
+	echo "$err"
+	exit 1
 }
 
 case "$(uname -s)" in
-   Darwin)
-     installer_ext=pkg
-     install() {
-       /usr/bin/osascript -e "do shell script \"pkill device-agent; pkill device-agent-helper; installer -target / -pkg '$temp_installer'\" with prompt \"${message}\" with administrator privileges"
-     }
-     ;;
+	Darwin)
+		installer_ext=pkg
+		install() {
+			/usr/bin/osascript -e "do shell script \"pkill device-agent; pkill device-agent-helper; pkill naisdevice-systray; pkill naisdevice-agent; pkill naisdevice-helper; installer -target / -pkg '$temp_installer'\" with prompt \"${message}\" with administrator privileges"
+		}
+	;;
+	Linux)
+		installer_ext=deb
+		askpass=$(mktemp)
+		cat <<-EOF > "$askpass"
+			#!/bin/bash
+			set -o pipefail
+			echo -e "SETPROMPT ${message}\nGETPIN" | pinentry | grep "^D " | sed "s/^D //"
+		EOF
+		chmod a+x "$askpass"
 
-   Linux)
-     installer_ext=deb
+		guisudo() {
+			err=$(SUDO_ASKPASS="$askpass" sudo -A "$@")
+		}
 
-     askpass=$(mktemp)
-     cat <<-EOF > "$askpass"
-				#!/bin/bash
-				set -o pipefail
-				echo -e "SETPROMPT ${message}\nGETPIN" | pinentry | grep "^D " | sed "s/^D //"
-				EOF
-		 chmod a+x "$askpass"
-
-     guisudo() {
-       err=$(SUDO_ASKPASS="$askpass" sudo -A "$@")
-     }
-
-     install() {
-       pkill naisdevice
-       guisudo chown _apt:root "${temp_installer}" || fail
-       guisudo chmod 400 "${temp_installer}" || fail
-       guisudo apt-get install --assume-yes "${temp_installer}" || fail
-     }
-     ;;
-
-   *)
-     err="This install script does not support your OS :("
-     fail
-     ;;
+		install() {
+			pkill naisdevice
+			guisudo chown _apt:root "${temp_installer}" || fail
+			guisudo chmod 400 "${temp_installer}" || fail
+			guisudo apt-get install --assume-yes "${temp_installer}" || fail
+		}
+	;;
+	*)
+		err="This install script does not support your OS :("
+		fail
+	;;
 esac
 
 echo "##################################"

@@ -3,7 +3,7 @@
 <plist version="1.0">
 <dict>
 	<key>CFBundleExecutable</key>
-	<string>device-agent</string>
+	<string>naisdevice-systray</string>
 	<key>CFBundleIconFile</key>
 	<string>naisdevice.icns</string>
 	<key>CFBundleIdentifier</key>

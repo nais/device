@@ -2,24 +2,23 @@ package wireguard
 
 import (
 	"fmt"
+	"io"
 
-	"github.com/nais/device/pkg/bootstrap"
+	"github.com/nais/device/pkg/pb"
 )
 
 /*
 On windows we use "WireGuard-windows" client, which is basically a GUI wrapper of wg-quick. This config file requires
 MTU and Address as additional fields because this also sets up the WireGuard interface for us.
 */
-func GenerateBaseConfig(bootstrapConfig *bootstrap.Config, privateKey []byte) string {
-	template := `[Interface]
+var wireGuardTemplateHeader = `[Interface]
 PrivateKey = %s
-MTU = 1360
+MTU = %d
 Address = %s
-
-[Peer]
-PublicKey = %s
-AllowedIPs = %s/32
-Endpoint = %s
 `
-	return fmt.Sprintf(template, KeyToBase64(privateKey), bootstrapConfig.DeviceIP, bootstrapConfig.PublicKey, bootstrapConfig.APIServerIP, bootstrapConfig.TunnelEndpoint)
+
+const mtu = 1360
+
+func MarshalHeader(w io.Writer, x *pb.Configuration) (int, error) {
+	return fmt.Fprintf(w, wireGuardTemplateHeader, x.GetPrivateKey(), mtu, x.GetDeviceIP())
 }

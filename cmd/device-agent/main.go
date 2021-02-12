@@ -2,16 +2,20 @@ package main
 
 import (
 	"fmt"
-	"io"
-	"io/ioutil"
 	"os"
 
-	"github.com/getlantern/systray"
 	"github.com/nais/device/device-agent/config"
+	"github.com/nais/device/device-agent/filesystem"
+	"github.com/nais/device/device-agent/runtimeconfig"
+	"github.com/nais/device/pkg/device-agent"
 	"github.com/nais/device/pkg/logger"
+	"github.com/nais/device/pkg/notify"
+	"github.com/nais/device/pkg/pb"
+	"github.com/nais/device/pkg/unixsocket"
 	"github.com/nais/device/pkg/version"
 	log "github.com/sirupsen/logrus"
 	flag "github.com/spf13/pflag"
+	"google.golang.org/grpc"
 )
 
 var (
@@ -24,38 +28,74 @@ func init() {
 	flag.StringVar(&cfg.ConfigDir, "config-dir", cfg.ConfigDir, "path to agent config directory")
 	flag.StringVar(&cfg.Interface, "interface", cfg.Interface, "name of tunnel interface")
 	flag.StringVar(&cfg.LogLevel, "log-level", cfg.LogLevel, "which log level to output")
+	flag.StringVar(&cfg.GrpcAddress, "grpc-address", cfg.GrpcAddress, "unix socket for gRPC server")
+	flag.StringVar(&cfg.DeviceAgentHelperAddress, "device-agent-helper-address", cfg.DeviceAgentHelperAddress, "device-agent-helper unix socket")
 	flag.BoolVar(&cfg.AutoConnect, "connect", false, "auto connect")
 	flag.Parse()
 	cfg.SetDefaults()
-	logger.SetupDeviceLogger(cfg.LogLevel, cfg.LogFilePath)
 }
 
 func main() {
-	log.Infof("Starting device-agent with config:\n%+v", cfg)
-	log.Infof("Version: %s, Revision: %s", version.Version, version.Revision)
-	systray.Run(onReady, onExit)
-}
+	logger.SetupLogger(cfg.LogLevel, cfg.ConfigDir, "agent.log")
 
-func DeleteConfigFile(path string) error {
-	err := os.Remove(path)
-	if err != nil && err != os.ErrNotExist {
-		return err
+	log.Infof("naisdevice-agent %s starting up", version.Version)
+	log.Infof("configuration: %+v", cfg)
+
+	err := startDeviceAgent()
+	if err != nil {
+		notify.Errorf(err.Error())
+		log.Errorf("naisdevice-agent terminated with error.")
+		os.Exit(1)
 	}
-	log.Debugf("Removed WireGuard configuration file at %s", path)
-	lastConfigurationFile = ""
-	return nil
+
+	log.Infof("naisdevice-agent shutting down.")
 }
 
-func WriteConfigFile(path string, r io.Reader) error {
-	cfg, err := ioutil.ReadAll(r)
+func startDeviceAgent() error {
+	if err := filesystem.EnsurePrerequisites(&cfg); err != nil {
+		return fmt.Errorf("missing prerequisites: %s", err)
+	}
+
+	rc, err := runtimeconfig.New(cfg)
+	if err != nil {
+		log.Errorf("instantiate runtime config: %v", err)
+		return fmt.Errorf("unable to start naisdevice-agent, check logs for details")
+	}
+
+	log.Infof("naisdevice-helper connection on unix socket %s", cfg.DeviceAgentHelperAddress)
+	connection, err := grpc.Dial(
+		"unix:"+cfg.DeviceAgentHelperAddress,
+		grpc.WithInsecure(),
+
+	)
+	if err != nil {
+		return fmt.Errorf("connect to naisdevice-helper: %v", err)
+	}
+
+	client := pb.NewDeviceHelperClient(connection)
+	defer connection.Close()
+
+	listener, err := unixsocket.ListenWithFileMode(cfg.GrpcAddress, 0666)
 	if err != nil {
 		return err
 	}
-	err = ioutil.WriteFile(path, cfg, 0600)
+	log.Infof("accepting network connections on unix socket %s", cfg.GrpcAddress)
+
+	grpcServer := grpc.NewServer()
+	das := device_agent.NewServer(client)
+	pb.RegisterDeviceAgentServer(grpcServer, das)
+
+	go func() {
+		das.EventLoop(rc)
+		grpcServer.Stop()
+	}()
+
+	err = grpcServer.Serve(listener)
 	if err != nil {
-		return fmt.Errorf("writing WireGuard config to disk: %w", err)
+		return fmt.Errorf("failed to start gRPC server: %v", err)
 	}
 
-	log.Debugf("Wrote WireGuard config to disk")
+	log.Infof("gRPC server shut down.")
+
 	return nil
 }

@@ -4,18 +4,16 @@ package wireguard
 
 import (
 	"fmt"
+	"io"
 
-	"github.com/nais/device/pkg/bootstrap"
+	"github.com/nais/device/pkg/pb"
 )
 
-func GenerateBaseConfig(bootstrapConfig *bootstrap.Config, privateKey []byte) string {
-	template := `[Interface]
+var wireGuardTemplateHeader = `[Interface]
 PrivateKey = %s
 
-[Peer]
-PublicKey = %s
-AllowedIPs = %s/32
-Endpoint = %s
 `
-	return fmt.Sprintf(template, KeyToBase64(privateKey), bootstrapConfig.PublicKey, bootstrapConfig.APIServerIP, bootstrapConfig.TunnelEndpoint)
+
+func MarshalHeader(w io.Writer, x *pb.Configuration) (int, error) {
+	return fmt.Fprintf(w, wireGuardTemplateHeader, x.GetPrivateKey())
 }

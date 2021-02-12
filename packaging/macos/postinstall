@@ -7,6 +7,12 @@ destination="/Library/LaunchDaemons/${daemon_name}.plist"
 launchctl list | grep -q "$daemon_name" && launchctl unload "$destination"
 
 config_dir="/Users/${user}/Library/Application Support/naisdevice"
+log_dir="${config_dir}/logs"
+
+mkdir -p -m 0700 "${config_dir}"
+mkdir -p -m 0700 "${log_dir}"
+
+chown -R "${user}:" "${config_dir}"
 
 cat << EOF > "$destination"
 <?xml version="1.0" encoding="UTF-8"?>
@@ -21,7 +27,7 @@ cat << EOF > "$destination"
         <integer>0</integer>
         <key>ProgramArguments</key>
         <array>
-                <string>/Applications/naisdevice.app/Contents/MacOS/device-agent-helper</string>
+                <string>/Applications/naisdevice.app/Contents/MacOS/naisdevice-helper</string>
                 <string>--interface</string>
                 <string>utun69</string>
                 <string>--config-dir</string>

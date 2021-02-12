@@ -1,34 +1,39 @@
-package wireguard
+package wireguard_test
 
 import (
+	"bytes"
 	"testing"
 
-	"github.com/nais/device/device-agent/apiserver"
+	"github.com/nais/device/device-agent/wireguard"
+	"github.com/nais/device/pkg/pb"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestWGGenKey(t *testing.T) {
-	privateKey := WgGenKey()
+	privateKey := wireguard.WgGenKey()
 	assert.Len(t, privateKey, 32)
-	privateKeyB64 := KeyToBase64(privateKey)
+	privateKeyB64 := wireguard.KeyToBase64(privateKey)
 	assert.Len(t, privateKeyB64, 44)
 }
 
-func TestGenerateWireGuardPeers(t *testing.T) {
-	gateway := apiserver.Gateway{
+func TestMarshalGateway(t *testing.T) {
+	gw := &pb.Gateway{
 		PublicKey: "PQKmraPOPye5CJq1x7njpl8rRu5RSrIKyHvZXtLvS0E=",
 		Endpoint:  "13.37.13.37:51820",
-		IP:        "10.255.240.2",
-		Healthy:   true,
+		Ip:        "10.255.240.2/32",
 		Routes:    []string{"13.37.69.0/24", "13.37.59.69/32"},
 	}
-	gateways := apiserver.Gateways{&gateway}
 
-	config := gateways.MarshalIni()
+	buf := new(bytes.Buffer)
+	_, err := wireguard.MarshalGateway(buf, gw)
+
+	assert.NoError(t, err)
+
 	expected := `[Peer]
 PublicKey = PQKmraPOPye5CJq1x7njpl8rRu5RSrIKyHvZXtLvS0E=
-AllowedIPs = 10.255.240.2/32,13.37.69.0/24,13.37.59.69/32
+AllowedIPs = 13.37.69.0/24,13.37.59.69/32,10.255.240.2/32
 Endpoint = 13.37.13.37:51820
+
 `
-	assert.Equal(t, expected, string(config))
+	assert.Equal(t, expected, buf.String())
 }

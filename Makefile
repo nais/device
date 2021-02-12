@@ -1,4 +1,7 @@
-.PHONY: test
+.PHONY: test macos-client
+
+PROTOC = $(shell which protoc)
+PROTOC_GEN_GO = $(shell which protoc-gen-go)
 DATE = $(shell date "+%Y-%m-%d")
 LAST_COMMIT = $(shell git --no-pager log -1 --pretty=%h)
 VERSION ?= $(DATE)-$(LAST_COMMIT)
@@ -24,22 +27,21 @@ controlplane:
 	GOOS=linux GOARCH=amd64 go build -o bin/controlplane/apiserver ./cmd/apiserver
 	GOOS=linux GOARCH=amd64 go build -o bin/controlplane/bootstrap-api -ldflags "-s $(LDFLAGS)" ./cmd/bootstrap-api
 	GOOS=linux GOARCH=amd64 go build -o bin/controlplane/gateway-agent -ldflags "-s $(LDFLAGS)" ./cmd/gateway-agent
-	GOOS=linux GOARCH=amd64 go build -o bin/controlplane/prometheus-agent ./cmd/prometheus-agent
+	GOOS=linux GOARCH=amd64 go build -o bin/controlplane/prometheus-agent -ldflags "-s $(LDFLAGS)" ./cmd/prometheus-agent
 
 # Run by GitHub actions on linux
-linux-client: bin/linux-client/device-agent bin/linux-client/device-agent-helper
-bin/linux-client/device-agent-helper:
+linux-client: cmd/device-agent/icons.go
 	mkdir -p ./bin/linux-client
-	GOOS=linux GOARCH=amd64 go build -o bin/linux-client/device-agent-helper ./cmd/device-agent-helper
-bin/linux-client/device-agent: cmd/device-agent/icons.go
-	mkdir -p ./bin/linux-client
-	GOOS=linux GOARCH=amd64 go build -o bin/linux-client/device-agent -ldflags "-s $(LDFLAGS)" ./cmd/device-agent
+	GOOS=linux GOARCH=amd64 go build -o bin/linux-client/naisdevice-systray -ldflags "-s $(LDFLAGS)" ./cmd/systray
+	GOOS=linux GOARCH=amd64 go build -o bin/linux-client/naisdevice-agent -ldflags "-s $(LDFLAGS)" ./cmd/device-agent
+	GOOS=linux GOARCH=amd64 go build -o bin/linux-client/naisdevice-helper -ldflags "-s $(LDFLAGS)" ./cmd/device-agent-helper
 
 # Run by GitHub actions on macos
 macos-client: cmd/device-agent/icons.go
 	mkdir -p ./bin/macos-client
-	GOOS=darwin GOARCH=amd64 go build -o bin/macos-client/device-agent -ldflags "-s $(LDFLAGS)" ./cmd/device-agent
-	GOOS=darwin GOARCH=amd64 go build -o bin/macos-client/device-agent-helper ./cmd/device-agent-helper
+	GOOS=darwin GOARCH=amd64 go build -o bin/macos-client/naisdevice-agent -ldflags "-s $(LDFLAGS)" ./cmd/device-agent
+	GOOS=darwin GOARCH=amd64 go build -o bin/macos-client/naisdevice-systray -ldflags "-s $(LDFLAGS)" ./cmd/systray
+	GOOS=darwin GOARCH=amd64 go build -o bin/macos-client/naisdevice-helper -ldflags "-s $(LDFLAGS)" ./cmd/device-agent-helper
 
 # Run by GitHub actions on linux
 windows-client: cmd/device-agent/icons.go
@@ -47,8 +49,9 @@ windows-client: cmd/device-agent/icons.go
 	go get github.com/akavel/rsrc
 	${GOPATH}/bin/rsrc -arch amd64 -manifest ./packaging/windows/admin_manifest.xml -ico assets/nais-logo-blue.ico -o ./cmd/device-agent-helper/main_windows.syso
 	${GOPATH}/bin/rsrc -ico assets/nais-logo-blue.ico -o ./cmd/device-agent/main_windows.syso
-	GOOS=windows GOARCH=amd64 go build -o bin/windows-client/device-agent.exe -ldflags "-s $(LDFLAGS) -H=windowsgui" ./cmd/device-agent
-	GOOS=windows GOARCH=amd64 go build -o bin/windows-client/device-agent-helper.exe ./cmd/device-agent-helper
+	GOOS=windows GOARCH=amd64 go build -o bin/windows-client/naisdevice-systray.exe -ldflags "-s $(LDFLAGS) -H=windowsgui" ./cmd/systray
+	GOOS=windows GOARCH=amd64 go build -o bin/windows-client/naisdevice-agent.exe -ldflags "-s $(LDFLAGS) -H=windowsgui" ./cmd/device-agent
+	GOOS=windows GOARCH=amd64 go build -o bin/windows-client/naisdevice-helper.exe -ldflags "-s $(LDFLAGS)" ./cmd/device-agent-helper
 
 local:
 	mkdir -p ./bin/local
@@ -84,7 +87,7 @@ local-apiserver:
 	echo ${confdir}
 
 cmd/device-agent/icons.go: assets/*.ico assets/icon.go
-	cd assets && go run icon.go | gofmt -s > ../cmd/device-agent/icons.go
+	cd assets && go run icon.go | gofmt -s > ../pkg/systray/icons.go
 
 linux-icon: packaging/linux/icons/*/apps/naisdevice.png
 packaging/linux/icons/*/apps/naisdevice.png: assets/nais-logo-blue.png
@@ -131,7 +134,7 @@ app: wg wireguard-go macos-icon macos-client
 	cp bin/macos-client/* naisdevice.app/Contents/MacOS
 	cp assets/naisdevice.icns naisdevice.app/Contents/Resources
 	sed 's/VERSIONSTRING/${VERSION}/' packaging/macos/Info.plist.tpl > naisdevice.app/Contents/Info.plist
-	gon --log-level=debug packaging/macos/gon-app.json
+	# gon --log-level=debug packaging/macos/gon-app.json
 
 test:
 	go test ./... -count=1
@@ -147,9 +150,11 @@ pkg: app
 	cp -r ./naisdevice.app ./pkgtemp/pkgroot/Applications/
 	cp ./packaging/macos/postinstall ./pkgtemp/scripts/postinstall
 	pkgbuild --root ./pkgtemp/pkgroot --identifier ${PKGID} --scripts ./pkgtemp/scripts --version ${VERSION} --ownership recommended ./component.pkg
-	productbuild --identifier ${PKGID}.${VERSION} --package ./component.pkg ./unsigned.pkg
-	productsign --sign "Developer ID Installer: Torbjorn Hallenberg" unsigned.pkg naisdevice.pkg
-	rm -f ./component.pkg ./unsigned.pkg
+	productbuild --identifier ${PKGID}.${VERSION} --package ./component.pkg ./naisdevice.pkg
+	rm -f ./component.pkg
+	#productbuild --identifier ${PKGID}.${VERSION} --package ./component.pkg ./unsigned.pkg
+	#productsign --sign "Developer ID Installer: Torbjorn Hallenberg" unsigned.pkg naisdevice.pkg
+	#rm -f ./component.pkg ./unsigned.pkg
 	rm -rf ./pkgtemp ./naisdevice.app
 	# gon --log-level=debug packaging/macos/gon-pkg.json
 
@@ -165,3 +170,9 @@ clean:
 	rm -rf ./bin
 	rm -rf ./packaging/linux/icons
 
+install-protobuf-go:
+	go install google.golang.org/protobuf/cmd/protoc-gen-go
+	go install google.golang.org/grpc/cmd/protoc-gen-go-grpc
+
+proto:
+	$(PROTOC) --go-grpc_opt=paths=source_relative --go_opt=paths=source_relative --go_out=. --go-grpc_out=. pkg/pb/protobuf-api.proto

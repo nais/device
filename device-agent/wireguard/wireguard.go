@@ -4,10 +4,13 @@ import (
 	"crypto/rand"
 	"encoding/base64"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"os"
+	"strings"
 
 	"github.com/nais/device/device-agent/filesystem"
+	"github.com/nais/device/pkg/pb"
 	"golang.org/x/crypto/curve25519"
 )
 
@@ -76,4 +79,27 @@ func EnsurePrivateKey(keyPath string) ([]byte, error) {
 
 func PublicKey(privateKey []byte) []byte {
 	return KeyToBase64(WGPubKey(privateKey))
+}
+
+var wireGuardTemplateGateway = `[Peer]
+PublicKey = %s
+AllowedIPs = %s
+Endpoint = %s
+
+`
+
+func MarshalGateway(w io.Writer, x *pb.Gateway) (int, error) {
+	routes := append(x.GetRoutes(), x.GetIp())
+	return fmt.Fprintf(w, wireGuardTemplateGateway, x.GetPublicKey(), strings.Join(routes, ","), x.GetEndpoint())
+}
+
+func Marshal(w io.Writer, x *pb.Configuration) (int, error) {
+	mw := multiWriter{w: w}
+
+	_, _ = MarshalHeader(w, x)
+	for _, gw := range x.GetGateways() {
+		_, _ = MarshalGateway(mw, gw)
+	}
+
+	return mw.Status()
 }

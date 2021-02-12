@@ -21,8 +21,9 @@ fpm \
     --depends wireguard \
     --after-install packaging/linux/postinstall \
     --after-upgrade packaging/linux/postinstall \
-    --deb-systemd packaging/linux/device-agent-helper.service \
-    bin/linux-client/device-agent-helper=/usr/sbin/device-agent-helper \
-    bin/linux-client/device-agent=/usr/bin/naisdevice \
+    --deb-systemd packaging/linux/naisdevice-helper.service \
+    bin/linux-client/naisdevice-helper=/usr/sbin/naisdevice-helper \
+    bin/linux-client/naisdevice-agent=/usr/bin/naisdevice-agent \
+    bin/linux-client/naisdevice-systray=/usr/bin/naisdevice-systray \
     packaging/linux/naisdevice.desktop=/usr/share/applications/ \
     packaging/linux/icons/=/usr/share/icons/hicolor/
