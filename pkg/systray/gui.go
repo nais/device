@@ -53,7 +53,7 @@ const (
 	QuitClicked
 	DeviceLogClicked
 	HelperLogClicked
-	SystrayLogClicked
+	LogClicked
 
 	maxGateways         = 20
 	slackURL            = "slack://channel?team=T5LNAMWNA&id=D011T20LDHD"
@@ -143,7 +143,7 @@ func (gui *Gui) handleButtonClicks() {
 		case <-gui.MenuItems.HelperLog.ClickedCh:
 			gui.Events <- HelperLogClicked
 		case <-gui.MenuItems.SystrayLog.ClickedCh:
-			gui.Events <- SystrayLogClicked
+			gui.Events <- LogClicked
 		case name := <-gui.PrivilegedGatewayClicked:
 			accessPrivilegedGateway(name)
 		}
@@ -263,7 +263,7 @@ func (gui *Gui) handleGuiEvent(guiEvent GuiEvent) {
 			log.Warn("opening device agent log: %w", err)
 		}
 
-	case SystrayLogClicked:
+	case LogClicked:
 		err := open.Open(filepath.Join(cfg.ConfigDir, "logs", "systray.log"))
 		if err != nil {
 			log.Warn("opening device agent log: %w", err)
