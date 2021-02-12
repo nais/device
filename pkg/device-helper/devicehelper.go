@@ -43,7 +43,10 @@ func (dhs *DeviceHelperServer) Teardown(ctx context.Context, req *pb.TeardownReq
 	log.Infof("Flushing WireGuard configuration from disk")
 	err = os.Remove(dhs.Config.WireGuardConfigPath)
 	if err != nil {
-		return nil, fmt.Errorf("flush WireGuard configuration from disk: %v", err)
+		if !os.IsNotExist(err) {
+			return nil, fmt.Errorf("flush WireGuard configuration from disk: %v", err)
+		}
+		log.Infof("WireGuard configuration file does not exist on disk")
 	}
 
 	return &pb.TeardownResponse{}, nil
