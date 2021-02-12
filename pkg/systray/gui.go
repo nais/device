@@ -24,16 +24,6 @@ type GatewayItem struct {
 	MenuItem *systray.MenuItem
 }
 
-type GuiState int
-
-const (
-	GuiStateConnected GuiState = iota
-	GuiStateDisconnected
-	GuiStateAwaitingAgent
-	GuiStateConnecting
-	GuiStateError
-)
-
 type Gui struct {
 	DeviceAgentClient        pb.DeviceAgentClient
 	AgentStatusChannel       chan *pb.AgentStatus
@@ -238,7 +228,7 @@ func (gui *Gui) handleGuiEvent(guiEvent GuiEvent) {
 	case VersionClicked:
 		err := open.Open(softwareReleasePage)
 		if err != nil {
-			log.Warn("opening latest release url: %w", err)
+			log.Warnf("opening latest release url: %w", err)
 		}
 
 	case StateInfoClicked:
@@ -252,12 +242,12 @@ func (gui *Gui) handleGuiEvent(guiEvent GuiEvent) {
 		if gui.AgentStatus.GetConnectionState() == pb.AgentState_Disconnected {
 			_, err := gui.DeviceAgentClient.Login(context.Background(), &pb.LoginRequest{})
 			if err != nil {
-				log.Fatalf("while connecting: %v", err)
+				log.Errorf("connect: %v", err)
 			}
 		} else {
 			_, err := gui.DeviceAgentClient.Logout(context.Background(), &pb.LogoutRequest{})
 			if err != nil {
-				log.Fatalf("while disconnecting: %v", err)
+				log.Errorf("while disconnecting: %v", err)
 			}
 		}
 
@@ -293,7 +283,7 @@ func (gui *Gui) handleStatusStream() {
 
 		ctx := context.Background()
 
-		log.Infof("Requesting status updates from device-agent...")
+		log.Infof("Requesting status updates from naisdevice-agent...")
 
 		statusStream, err := gui.DeviceAgentClient.Status(ctx, &pb.AgentStatusRequest{})
 		if err != nil {
@@ -302,7 +292,7 @@ func (gui *Gui) handleStatusStream() {
 			continue
 		}
 
-		log.Infof("Status update stream established")
+		log.Infof("naisdevice-agent status stream established")
 		gui.handleAgentConnect()
 
 		for {

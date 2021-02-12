@@ -27,7 +27,7 @@ var connection *grpc.ClientConn
 func onReady() {
 	var err error
 
-	log.Infof("device-agent on unix socket %s", cfg.GrpcAddress)
+	log.Debugf("naisdevice-agent on unix socket %s", cfg.GrpcAddress)
 	connection, err = grpc.Dial(
 		"unix:"+cfg.GrpcAddress,
 		grpc.WithInsecure(),
