@@ -41,7 +41,6 @@ case "$(uname -s)" in
 		}
 
 		install() {
-			pkill naisdevice
 			guisudo chown _apt:root "${temp_installer}" || fail
 			guisudo chmod 400 "${temp_installer}" || fail
 			guisudo apt-get install --assume-yes "${temp_installer}" || fail
