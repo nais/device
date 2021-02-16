@@ -163,9 +163,9 @@ func (das *DeviceAgentServer) EventLoop(rc *runtimeconfig.RuntimeConfig) {
 			case pb.AgentState_HealthCheck:
 				wg := &sync.WaitGroup{}
 
-				total := len(rc.GetGateways())
+				total := len(status.GetGateways())
 				log.Infof("Ping %d gateways...", total)
-				for i, gw := range rc.GetGateways() {
+				for i, gw := range status.GetGateways() {
 					go func(i int, gw *pb.Gateway) {
 						wg.Add(1)
 						err := ping(gw.Ip)
@@ -181,9 +181,6 @@ func (das *DeviceAgentServer) EventLoop(rc *runtimeconfig.RuntimeConfig) {
 					}(i, gw)
 				}
 				wg.Wait()
-
-				status.Gateways = rc.Gateways
-				// trigger configuration save here if health checks are supposed to alter routes
 
 				das.stateChange <- pb.AgentState_Connected
 
@@ -219,8 +216,8 @@ func (das *DeviceAgentServer) EventLoop(rc *runtimeconfig.RuntimeConfig) {
 					syncConfigTicker.Reset(syncConfigInterval)
 				}
 
-				rc.UpdateGateways(gateways)
-				status.Gateways = rc.Gateways
+				pb.MergeGatewayHealth(gateways, status.GetGateways())
+				status.Gateways = gateways
 
 				ctx, cancel = context.WithTimeout(context.Background(), helperTimeout)
 				err = das.ConfigureHelper(ctx, rc, append(

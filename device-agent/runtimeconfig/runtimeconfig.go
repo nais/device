@@ -8,7 +8,6 @@ import (
 
 	"github.com/nais/device/device-agent/bootstrapper"
 	"github.com/nais/device/pkg/bootstrap"
-	"github.com/nais/device/pkg/pb"
 	log "github.com/sirupsen/logrus"
 
 	"github.com/nais/device/device-agent/auth"
@@ -23,33 +22,6 @@ type RuntimeConfig struct {
 	Config          config.Config
 	PrivateKey      []byte
 	SessionInfo     *auth.SessionInfo
-	Gateways        []*pb.Gateway
-}
-
-func (rc *RuntimeConfig) GetGateways() []*pb.Gateway {
-	if rc == nil {
-		return make([]*pb.Gateway, 0)
-	}
-	return rc.Gateways
-}
-
-// UpdateGateways sets a slice of gateways on the RuntimeConfig but preserves the previous healthstatus
-func (rc *RuntimeConfig) UpdateGateways(new []*pb.Gateway) {
-	old := rc.Gateways
-	previousHealthState := func(name string, gws []*pb.Gateway) bool {
-		for _, gw := range gws {
-			if gw.Name == name {
-				return gw.Healthy
-			}
-		}
-		return false
-	}
-
-	for _, gw := range new {
-		gw.Healthy = previousHealthState(gw.Name, old)
-	}
-
-	rc.Gateways = new
 }
 
 func New(cfg config.Config) (*RuntimeConfig, error) {
