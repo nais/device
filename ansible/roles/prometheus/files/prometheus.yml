@@ -44,6 +44,6 @@ scrape_configs:
 
   - job_name: apiserver
     static_configs:
-      targets:
-        - 10.255.240.1:9100
-        - 10.255.240.1:3000
+    - targets:
+      - 10.255.240.1:9100
+      - 10.255.240.1:3000
