@@ -5,9 +5,10 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"time"
+
 	"github.com/nais/device/pkg/bootstrap"
 	log "github.com/sirupsen/logrus"
-	"time"
 )
 
 func (e *Enroller) WatchGatewayEnrollments(ctx context.Context) {
@@ -42,7 +43,7 @@ func (e *Enroller) EnrollGateways(ctx context.Context) error {
 		}
 
 		bootstrapConfig := bootstrap.Config{
-			DeviceIP:       gateway.IP,
+			DeviceIP:       gateway.Ip,
 			PublicKey:      e.APIServerPublicKey,
 			TunnelEndpoint: e.APIServerEndpoint,
 			APIServerIP:    "10.255.240.1",

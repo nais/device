@@ -11,6 +11,7 @@ import (
 	_ "github.com/GoogleCloudPlatform/cloudsql-proxy/proxy/dialers/postgres"
 	_ "github.com/lib/pq"
 	"github.com/nais/device/apiserver/cidr"
+	"github.com/nais/device/pkg/pb"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -33,16 +34,6 @@ type Device struct {
 	IP             string `json:"ip"`
 	Username       string `json:"username"`
 	Platform       string `json:"platform"`
-}
-
-type Gateway struct {
-	Endpoint                 string   `json:"endpoint"`
-	PublicKey                string   `json:"publicKey"`
-	IP                       string   `json:"ip"`
-	Routes                   []string `json:"routes"`
-	Name                     string   `json:"name"`
-	AccessGroupIDs           []string `json:"-"`
-	RequiresPrivilegedAccess bool     `json:"requires_privileged_access"`
 }
 
 type SessionInfo struct {
@@ -268,7 +259,7 @@ SELECT id, serial, username, psk, platform, last_updated, kolide_last_seen, heal
 	return &device, nil
 }
 
-func (d *APIServerDB) ReadGateways() ([]Gateway, error) {
+func (d *APIServerDB) ReadGateways() ([]pb.Gateway, error) {
 	ctx := context.Background()
 
 	query := `
@@ -280,12 +271,12 @@ SELECT public_key, access_group_ids, endpoint, ip, routes, name, requires_privil
 		return nil, fmt.Errorf("querying for gateways %w", err)
 	}
 
-	var gateways []Gateway
+	var gateways []pb.Gateway
 	for rows.Next() {
-		var gateway Gateway
+		var gateway pb.Gateway
 		var routes string
 		var accessGroupIDs string
-		err := rows.Scan(&gateway.PublicKey, &accessGroupIDs, &gateway.Endpoint, &gateway.IP, &routes, &gateway.Name, &gateway.RequiresPrivilegedAccess)
+		err := rows.Scan(&gateway.PublicKey, &accessGroupIDs, &gateway.Endpoint, &gateway.Ip, &routes, &gateway.Name, &gateway.RequiresPrivilegedAccess)
 		if err != nil {
 			return nil, fmt.Errorf("scanning gateway: %w", err)
 		}
@@ -309,7 +300,7 @@ SELECT public_key, access_group_ids, endpoint, ip, routes, name, requires_privil
 
 }
 
-func (d *APIServerDB) ReadGateway(name string) (*Gateway, error) {
+func (d *APIServerDB) ReadGateway(name string) (*pb.Gateway, error) {
 	ctx := context.Background()
 
 	query := `
@@ -319,10 +310,10 @@ SELECT public_key, access_group_ids, endpoint, ip, routes, name, requires_privil
 
 	row := d.Conn.QueryRowContext(ctx, query, name)
 
-	var gateway Gateway
+	var gateway pb.Gateway
 	var routes string
 	var accessGroupIDs string
-	err := row.Scan(&gateway.PublicKey, &accessGroupIDs, &gateway.Endpoint, &gateway.IP, &routes, &gateway.Name, &gateway.RequiresPrivilegedAccess)
+	err := row.Scan(&gateway.PublicKey, &accessGroupIDs, &gateway.Endpoint, &gateway.Ip, &routes, &gateway.Name, &gateway.RequiresPrivilegedAccess)
 	if err != nil {
 		return nil, fmt.Errorf("scanning gateway: %w", err)
 	}
@@ -355,7 +346,7 @@ func (d *APIServerDB) readExistingIPs() ([]string, error) {
 		return nil, fmt.Errorf("reading gateways: %w", err)
 	} else {
 		for _, gateway := range gateways {
-			ips = append(ips, gateway.IP)
+			ips = append(ips, gateway.Ip)
 		}
 	}
 

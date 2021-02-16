@@ -4,9 +4,6 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"github.com/nais/device/apiserver/gatewayconfigurer"
-	"github.com/nais/device/apiserver/jita"
-	"github.com/nais/device/pkg/basicauth"
 	"io/ioutil"
 	"net/http"
 	"os"
@@ -14,6 +11,11 @@ import (
 	"path/filepath"
 	"strings"
 	"time"
+
+	"github.com/nais/device/apiserver/gatewayconfigurer"
+	"github.com/nais/device/apiserver/jita"
+	"github.com/nais/device/pkg/basicauth"
+	"github.com/nais/device/pkg/pb"
 
 	"github.com/dgrijalva/jwt-go"
 	"github.com/nais/device/apiserver/auth"
@@ -118,7 +120,7 @@ func main() {
 		parts := strings.Split(cfg.BootstrapApiCredentials, ":")
 		username, password := parts[0], parts[1]
 
-		enroller := enroller.Enroller{
+		en := enroller.Enroller{
 			Client:             basicauth.Transport{Username: username, Password: password}.Client(),
 			DB:                 db,
 			BootstrapAPIURL:    cfg.BootstrapAPIURL,
@@ -126,8 +128,8 @@ func main() {
 			APIServerEndpoint:  cfg.Endpoint,
 		}
 
-		go enroller.WatchDeviceEnrollments(ctx)
-		go enroller.WatchGatewayEnrollments(ctx)
+		go en.WatchDeviceEnrollments(ctx)
+		go en.WatchGatewayEnrollments(ctx)
 	}
 
 	gwc := gatewayconfigurer.GatewayConfigurer{
@@ -250,7 +252,7 @@ func syncWireguardConfig(dbConnDSN, driver, privateKey string, conf config.Confi
 	}
 }
 
-func GenerateWGConfig(devices []database.Device, gateways []database.Gateway, privateKey string, conf config.Config) []byte {
+func GenerateWGConfig(devices []database.Device, gateways []pb.Gateway, privateKey string, conf config.Config) []byte {
 	interfaceTemplate := `[Interface]
 PrivateKey = %s
 ListenPort = 51820
@@ -270,7 +272,7 @@ PublicKey = %s
 	}
 
 	for _, gateway := range gateways {
-		wgConfig += fmt.Sprintf(peerTemplate, gateway.IP, gateway.PublicKey)
+		wgConfig += fmt.Sprintf(peerTemplate, gateway.Ip, gateway.PublicKey)
 	}
 
 	return []byte(wgConfig)

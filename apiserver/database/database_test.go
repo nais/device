@@ -2,11 +2,13 @@ package database_test
 
 import (
 	"context"
-	"github.com/nais/device/apiserver/database"
-	"github.com/nais/device/apiserver/testdatabase"
-	"github.com/stretchr/testify/assert"
 	"os"
 	"testing"
+
+	"github.com/nais/device/apiserver/database"
+	"github.com/nais/device/apiserver/testdatabase"
+	"github.com/nais/device/pkg/pb"
+	"github.com/stretchr/testify/assert"
 )
 
 func setup(t *testing.T) *database.APIServerDB {
@@ -25,7 +27,7 @@ func TestAddGateway(t *testing.T) {
 	db := setup(t)
 
 	ctx := context.Background()
-	g := database.Gateway{
+	g := pb.Gateway{
 		Endpoint:  "1.2.3.4:56789",
 		PublicKey: "publicKey",
 		Name:      "gateway",
