@@ -41,3 +41,9 @@ scrape_configs:
     file_sd_configs:
       - files:
           - /etc/prometheus/gateway-targets.json
+
+  - job_name: apiserver
+    static_configs:
+      targets:
+        - 10.255.240.1:9100
+        - 10.255.240.1:3000
