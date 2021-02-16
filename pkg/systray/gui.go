@@ -12,6 +12,7 @@ import (
 
 	"github.com/nais/device/device-agent/open"
 	"github.com/nais/device/pkg/pb"
+	"github.com/nais/device/pkg/version"
 	log "github.com/sirupsen/logrus"
 
 	"github.com/getlantern/systray"
@@ -42,6 +43,7 @@ type Gui struct {
 		HelperLog    *systray.MenuItem
 		SystrayLog   *systray.MenuItem
 		Version      *systray.MenuItem
+		Upgrade      *systray.MenuItem
 		GatewayItems []*GatewayItem
 	}
 }
@@ -67,8 +69,10 @@ func NewGUI(client pb.DeviceAgentClient) *Gui {
 	}
 	systray.SetIcon(NaisLogoRed)
 
-	gui.MenuItems.Version = systray.AddMenuItem("Update to latest version...", "Click to open browser")
-	gui.MenuItems.Version.Hide()
+	gui.MenuItems.Version = systray.AddMenuItem("naisdevice "+version.Version, "")
+	gui.MenuItems.Version.Disable()
+	gui.MenuItems.Upgrade = systray.AddMenuItem("Update to latest version...", "Click to open browser")
+	gui.MenuItems.Upgrade.Hide()
 	systray.AddSeparator()
 	gui.MenuItems.State = systray.AddMenuItem("", "")
 	gui.MenuItems.StateInfo = systray.AddMenuItem("", "")
@@ -126,7 +130,7 @@ func (gui *Gui) handleButtonClicks() {
 
 	for {
 		select {
-		case <-gui.MenuItems.Version.ClickedCh:
+		case <-gui.MenuItems.Upgrade.ClickedCh:
 			gui.Events <- VersionClicked
 		case <-gui.MenuItems.StateInfo.ClickedCh:
 			gui.Events <- StateInfoClicked
@@ -184,9 +188,9 @@ func (gui *Gui) handleAgentStatus(agentStatus *pb.AgentStatus) {
 
 	gui.MenuItems.State.SetTitle(agentStatus.ConnectionStateString())
 	if agentStatus.NewVersionAvailable {
-		gui.MenuItems.Version.Show()
+		gui.MenuItems.Upgrade.Show()
 	} else {
-		gui.MenuItems.Version.Hide()
+		gui.MenuItems.Upgrade.Hide()
 	}
 
 	gateways := agentStatus.GetGateways()
@@ -309,7 +313,7 @@ func (gui *Gui) handleStatusStream() {
 }
 
 func (gui *Gui) handleNewVersion() {
-	gui.MenuItems.Version.Show()
+	gui.MenuItems.Upgrade.Show()
 }
 
 func (gui *Gui) aggregateGatewayButtonClicks() {
