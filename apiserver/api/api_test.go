@@ -5,20 +5,19 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/nais/device/apiserver/jita"
 	"net/http"
 	"net/http/httptest"
 	"os"
 	"testing"
 	"time"
 
-	"github.com/nais/device/apiserver/database"
-	"github.com/nais/device/apiserver/testdatabase"
-
-	"github.com/nais/device/apiserver/auth"
-
 	"github.com/go-chi/chi"
 	"github.com/nais/device/apiserver/api"
+	"github.com/nais/device/apiserver/auth"
+	"github.com/nais/device/apiserver/database"
+	"github.com/nais/device/apiserver/jita"
+	"github.com/nais/device/apiserver/testdatabase"
+	"github.com/nais/device/pkg/pb"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -66,8 +65,8 @@ func TestGetDeviceConfig(t *testing.T) {
 	err := db.UpdateDeviceStatus([]database.Device{device})
 	assert.NoError(t, err)
 
-	authorizedGateway := database.Gateway{Name: "gw1", Endpoint: "ep1", PublicKey: "pubkey1"}
-	unauthorizedGateway := database.Gateway{Name: "gw2", Endpoint: "ep2", PublicKey: "pubkey2"}
+	authorizedGateway := pb.Gateway{Name: "gw1", Endpoint: "ep1", PublicKey: "pubkey1"}
+	unauthorizedGateway := pb.Gateway{Name: "gw2", Endpoint: "ep2", PublicKey: "pubkey2"}
 	if err := db.AddGateway(ctx, authorizedGateway.Name, authorizedGateway.Endpoint, authorizedGateway.PublicKey); err != nil {
 		t.Fatalf("Adding gateway: %v", err)
 	}
@@ -100,7 +99,7 @@ func TestGatewayConfig(t *testing.T) {
 	_ = addSessionInfo(t, db, ctx, healthyDevice2, "userId", []string{""})
 
 	// todo don't use username as gateway
-	authorizedGateway := database.Gateway{Name: "username", Endpoint: "ep1", PublicKey: "pubkey1"}
+	authorizedGateway := pb.Gateway{Name: "username", Endpoint: "ep1", PublicKey: "pubkey1"}
 	if err := db.AddGateway(ctx, authorizedGateway.Name, authorizedGateway.Endpoint, authorizedGateway.PublicKey); err != nil {
 		t.Fatalf("Adding gateway: %v", err)
 	}
@@ -128,13 +127,13 @@ func TestPrivilegedGatewayConfig(t *testing.T) {
 	_ = addSessionInfo(t, db, ctx, healthyDevice, privilegedUsers[0].UserId, []string{"authorized"})
 
 	// todo don't use username as gateway
-	privilegedGateway1 := database.Gateway{Name: "privileged1", Endpoint: "ep1", PublicKey: "pubkey1"}
+	privilegedGateway1 := pb.Gateway{Name: "privileged1", Endpoint: "ep1", PublicKey: "pubkey1"}
 	if err := db.AddGateway(ctx, privilegedGateway1.Name, privilegedGateway1.Endpoint, privilegedGateway1.PublicKey); err != nil {
 		t.Fatalf("Adding gateway: %v", err)
 	}
 	assert.NoError(t, db.UpdateGateway(ctx, privilegedGateway1.Name, nil, []string{"authorized"}, true))
 
-	privilegedGateway2 := database.Gateway{Name: "privileged2", Endpoint: "ep1", PublicKey: "pubkey2"}
+	privilegedGateway2 := pb.Gateway{Name: "privileged2", Endpoint: "ep1", PublicKey: "pubkey2"}
 	if err := db.AddGateway(ctx, privilegedGateway2.Name, privilegedGateway2.Endpoint, privilegedGateway2.PublicKey); err != nil {
 		t.Fatalf("Adding gateway: %v", err)
 	}
@@ -316,7 +315,7 @@ func setup(t *testing.T, j *jita.Jita) (*database.APIServerDB, chi.Router) {
 	})
 }
 
-func getDeviceConfig(t *testing.T, router chi.Router, sessionKey string) (gateways []database.Gateway) {
+func getDeviceConfig(t *testing.T, router chi.Router, sessionKey string) (gateways []pb.Gateway) {
 	req, _ := http.NewRequest("GET", "/deviceconfig", nil)
 	req.Header.Add("x-naisdevice-session-key", sessionKey)
 	resp := executeRequest(req, router)

@@ -5,6 +5,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/nais/device/apiserver/jita"
+	"github.com/nais/device/pkg/pb"
+
 	"net/http"
 
 	"github.com/nais/device/apiserver/database"
@@ -50,7 +52,7 @@ func (a *api) gatewayConfig(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(gatewayConfig)
 }
 
-func (api *api) privileged(gateway database.Gateway, sessions []database.SessionInfo) []database.SessionInfo {
+func (api *api) privileged(gateway pb.Gateway, sessions []database.SessionInfo) []database.SessionInfo {
 	if !gateway.RequiresPrivilegedAccess {
 		return sessions
 	}
@@ -193,13 +195,13 @@ func (a *api) deviceConfig(w http.ResponseWriter, r *http.Request) {
 	log.Infof("Successfully returned config to device")
 }
 
-func (a *api) UserGateways(userGroups []string) (*[]database.Gateway, error) {
+func (a *api) UserGateways(userGroups []string) (*[]pb.Gateway, error) {
 	gateways, err := a.db.ReadGateways()
 	if err != nil {
 		return nil, fmt.Errorf("reading gateways from db: %v", err)
 	}
 
-	var filtered []database.Gateway
+	var filtered []pb.Gateway
 	for _, gw := range gateways {
 		if userIsAuthorized(gw.AccessGroupIDs, userGroups) {
 			filtered = append(filtered, gw)

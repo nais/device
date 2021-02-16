@@ -1,26 +1,14 @@
 package apiserver
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"strings"
 	"time"
+
+	"github.com/nais/device/pkg/pb"
 )
-
-type Gateways []*Gateway
-
-type Gateway struct {
-	PublicKey                string   `json:"publicKey"`
-	Endpoint                 string   `json:"endpoint"`
-	IP                       string   `json:"ip"`
-	Routes                   []string `json:"routes"`
-	Name                     string   `json:"name"`
-	RequiresPrivilegedAccess bool     `json:"requires_privileged_access"`
-	Healthy                  bool     `json:"-"`
-}
 
 type UnauthorizedError struct{}
 
@@ -34,34 +22,7 @@ func (e *UnhealthyError) Error() string {
 	return "device is in unhealthy state"
 }
 
-func (gws Gateways) MarshalIni() []byte {
-	output := bytes.NewBufferString("")
-	for _, gw := range gws {
-		payload := gw.MarshalIni()
-		output.Write(payload)
-	}
-	return output.Bytes()
-}
-
-func (gw *Gateway) MarshalIni() []byte {
-	peerTemplate := `[Peer]
-PublicKey = %s
-AllowedIPs = %s
-Endpoint = %s
-`
-	allowedIPs := make([]string, 0)
-	allowedIPs = append(allowedIPs, gw.IP+"/32")
-
-	// TODO: re-implement when health checks are fixed?
-	if true || gw.Healthy {
-		allowedIPs = append(allowedIPs, gw.Routes...)
-	}
-
-	s := fmt.Sprintf(peerTemplate, gw.PublicKey, strings.Join(allowedIPs, ","), gw.Endpoint)
-	return []byte(s)
-}
-
-func GetDeviceConfig(sessionKey, apiServerURL string, ctx context.Context) (Gateways, error) {
+func GetDeviceConfig(sessionKey, apiServerURL string, ctx context.Context) ([]*pb.Gateway, error) {
 	ctx, cancel := context.WithTimeout(ctx, 3*time.Second)
 	defer cancel()
 
@@ -87,7 +48,7 @@ func GetDeviceConfig(sessionKey, apiServerURL string, ctx context.Context) (Gate
 		return nil, fmt.Errorf("http response %v: %w", http.StatusText(resp.StatusCode), &UnhealthyError{})
 	}
 
-	var gateways Gateways
+	var gateways []*pb.Gateway
 	if err := json.NewDecoder(resp.Body).Decode(&gateways); err != nil {
 		return nil, fmt.Errorf("unmarshalling response body into gateways: %w", err)
 	}

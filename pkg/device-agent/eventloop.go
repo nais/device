@@ -166,23 +166,23 @@ func (das *DeviceAgentServer) EventLoop(rc *runtimeconfig.RuntimeConfig) {
 				total := len(rc.GetGateways())
 				log.Infof("Ping %d gateways...", total)
 				for i, gw := range rc.GetGateways() {
-					go func(i int, gw *apiserver.Gateway) {
+					go func(i int, gw *pb.Gateway) {
 						wg.Add(1)
-						err := ping(gw.IP)
+						err := ping(gw.Ip)
 						pos := fmt.Sprintf("[%02d/%02d]", i+1, total)
 						if err == nil {
 							gw.Healthy = true
-							log.Debugf("%s Successfully pinged gateway %v with ip: %v", pos, gw.Name, gw.IP)
+							log.Debugf("%s Successfully pinged gateway %v with ip: %v", pos, gw.Name, gw.Ip)
 						} else {
 							gw.Healthy = false
-							log.Infof("%s unable to ping host %s: %v", pos, gw.IP, err)
+							log.Infof("%s unable to ping host %s: %v", pos, gw.Ip, err)
 						}
 						wg.Done()
 					}(i, gw)
 				}
 				wg.Wait()
 
-				status.Gateways = ApiGatewaysToProtobufGateways(rc.Gateways)
+				status.Gateways = rc.Gateways
 				// trigger configuration save here if health checks are supposed to alter routes
 
 				das.stateChange <- pb.AgentState_Connected
@@ -220,7 +220,7 @@ func (das *DeviceAgentServer) EventLoop(rc *runtimeconfig.RuntimeConfig) {
 				}
 
 				rc.UpdateGateways(gateways)
-				status.Gateways = ApiGatewaysToProtobufGateways(rc.Gateways)
+				status.Gateways = rc.Gateways
 
 				ctx, cancel = context.WithTimeout(context.Background(), helperTimeout)
 				err = das.ConfigureHelper(ctx, rc, append(
@@ -242,25 +242,6 @@ func (das *DeviceAgentServer) EventLoop(rc *runtimeconfig.RuntimeConfig) {
 			}
 		}
 	}
-}
-
-func ApiGatewaysToProtobufGateways(apigws apiserver.Gateways) []*pb.Gateway {
-	var pbgws []*pb.Gateway
-
-	for _, apigw := range apigws {
-		pbgws = append(pbgws, &pb.Gateway{
-			Name:                     apigw.Name,
-			Healthy:                  apigw.Healthy,
-			PublicKey:                apigw.PublicKey,
-			Endpoint:                 apigw.Endpoint,
-			Ip:                       apigw.IP,
-			Routes:                   apigw.Routes,
-			RequiresPrivilegedAccess: apigw.RequiresPrivilegedAccess,
-			AccessGroupIDs:           nil,
-		})
-	}
-
-	return pbgws
 }
 
 func newVersionAvailable(ctx context.Context) (bool, error) {
