@@ -70,8 +70,8 @@ func NewGUI(client pb.DeviceAgentClient) *Gui {
 	gui.MenuItems.Version = systray.AddMenuItem("Update to latest version...", "Click to open browser")
 	gui.MenuItems.Version.Hide()
 	systray.AddSeparator()
-	gui.MenuItems.State = systray.AddMenuItem("", "State")
-	gui.MenuItems.StateInfo = systray.AddMenuItem("", "StateExtra")
+	gui.MenuItems.State = systray.AddMenuItem("", "")
+	gui.MenuItems.StateInfo = systray.AddMenuItem("", "")
 	gui.MenuItems.StateInfo.Hide()
 	gui.MenuItems.State.Disable()
 	gui.MenuItems.Logs = systray.AddMenuItem("Logs", "")
@@ -79,7 +79,7 @@ func NewGUI(client pb.DeviceAgentClient) *Gui {
 	gui.MenuItems.HelperLog = gui.MenuItems.Logs.AddSubMenuItem("Helper", "")
 	gui.MenuItems.SystrayLog = gui.MenuItems.Logs.AddSubMenuItem("Systray", "")
 	systray.AddSeparator()
-	gui.MenuItems.Connect = systray.AddMenuItem("Connect", "Bootstrap the nais device")
+	gui.MenuItems.Connect = systray.AddMenuItem("Connect", "")
 	systray.AddSeparator()
 	gui.MenuItems.GatewayItems = make([]*GatewayItem, maxGateways)
 
@@ -157,7 +157,7 @@ func (gui *Gui) handleAgentConnect() {
 
 func (gui *Gui) handleAgentDisconnect() {
 	systray.SetIcon(NaisLogoRed)
-	gui.MenuItems.State.SetTitle("Device Agent not running")
+	gui.MenuItems.State.SetTitle("Waiting for Device Agent...")
 	gui.MenuItems.Connect.Disable()
 	for i := range gui.MenuItems.GatewayItems {
 		gui.MenuItems.GatewayItems[i].MenuItem.Disable()
