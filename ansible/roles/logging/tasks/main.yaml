@@ -53,7 +53,7 @@
     state: directory
     owner: fluentd
     group: syslog
-    mode: 0775
+    mode: 0755
 
 - name: Start and enable fluentd
   systemd:

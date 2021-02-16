@@ -81,3 +81,11 @@
     enabled: no
     state: stopped
     daemon_reload: yes
+
+- name: Add logrotate config
+  template:
+    owner: root
+    mode: root
+    mode: 640
+    src: logrotate-apiserver.j2
+    dest: /etc/logrotate.d/naisdevice-apiserver

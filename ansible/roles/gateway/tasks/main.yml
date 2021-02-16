@@ -68,3 +68,11 @@
     state: started
 - include_tasks: install_dmesg_to_json.yml
 - include_tasks: set_iptables_rulesv4_outset.yml
+
+- name: Add logrotate config
+  template:
+    owner: root
+    mode: root
+    mode: 640
+    src: logrotate-gateway-agent.j2
+    dest: /etc/logrotate.d/naisdevice-gateway-agent

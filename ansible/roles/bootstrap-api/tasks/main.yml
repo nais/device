@@ -37,3 +37,11 @@
   systemd:
     name: bootstrap-api
     state: started
+
+- name: Add logrotate config
+  template:
+    owner: root
+    mode: root
+    mode: 640
+    src: logrotate-bootstrap-api.j2
+    dest: /etc/logrotate.d/naisdevice-bootstrap-api

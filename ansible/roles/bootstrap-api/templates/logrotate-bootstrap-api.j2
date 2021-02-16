@@ -1,0 +1,16 @@
+/var/log/naisdevice/*.log /var/log/naisdevice/*.json {
+        daily
+        missingok
+        rotate 7
+        compress
+        notifempty
+        create 640 root google-sudoers
+
+        postrotate
+                systemctl start bootstrap-api
+        endscript
+
+        prerotate
+                systemctl stop bootstrap-api
+        endscript
+}

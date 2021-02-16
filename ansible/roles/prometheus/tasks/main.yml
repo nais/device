@@ -48,3 +48,11 @@
   systemd:
     name: prometheus-agent
     state: started
+
+- name: Add logrotate config
+  template:
+    owner: root
+    mode: root
+    mode: 640
+    src: logrotate-prometheus-agent.j2
+    dest: /etc/logrotate.d/naisdevice-prometheus-agent

@@ -53,3 +53,11 @@
     state: present
   when: admin_users is defined and item.authorized_key is defined
   loop: "{{ admin_users }}"
+
+- name: Add logrotate config
+  template:
+    owner: root
+    mode: root
+    mode: 640
+    src: logrotate-gateway-agent.j2
+    dest: /etc/logrotate.d/naisdevice-gateway-agent
