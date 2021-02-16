@@ -31,6 +31,8 @@ const (
 	syncConfigTimeout    = 5 * time.Second  // timeout for config synchronization
 	versionCheckInterval = 1 * time.Hour    // how often to check for a new version of naisdevice
 	versionCheckTimeout  = 3 * time.Second  // timeout for new version check
+	authenticateTimeout  = 3 * time.Second  // timeout for apiserver authentication call
+	authenticateBackoff  = 10 * time.Second // time to wait between authentication attempts
 )
 
 func (das *DeviceAgentServer) ConfigureHelper(ctx context.Context, rc *runtimeconfig.RuntimeConfig, gateways []*pb.Gateway) error {
@@ -51,6 +53,8 @@ func (das *DeviceAgentServer) EventLoop(rc *runtimeconfig.RuntimeConfig) {
 	syncConfigTicker := time.NewTicker(syncConfigInterval)
 	healthCheckTicker := time.NewTicker(healthCheckInterval)
 	versionCheckTicker := time.NewTicker(5 * time.Second)
+	authenticateTimer := time.NewTimer(1 * time.Hour)
+	authenticateTimer.Stop()
 
 	status := &pb.AgentStatus{}
 	das.stateChange <- status.ConnectionState
@@ -90,6 +94,16 @@ func (das *DeviceAgentServer) EventLoop(rc *runtimeconfig.RuntimeConfig) {
 				das.stateChange <- pb.AgentState_HealthCheck
 			}
 
+		case <-authenticateTimer.C:
+			switch status.ConnectionState {
+			case pb.AgentState_AuthenticateBackoff:
+				fallthrough
+			case pb.AgentState_Bootstrapping:
+				das.stateChange <- pb.AgentState_Authenticating
+			default:
+				break
+			}
+
 		case status.ConnectionState = <-das.stateChange:
 			log.Infof("state changed to %s", status.ConnectionState)
 
@@ -120,25 +134,31 @@ func (das *DeviceAgentServer) EventLoop(rc *runtimeconfig.RuntimeConfig) {
 					continue
 				}
 
-				das.stateChange <- pb.AgentState_Authenticating
+				authenticateTimer.Reset(1 * time.Microsecond)
 
 			case pb.AgentState_Authenticating:
 				if rc.SessionInfo != nil && !rc.SessionInfo.Expired() {
 					log.Infof("Already have a valid session")
 				} else {
 					log.Infof("No valid session, authenticating")
-					ctx, cancel := context.WithTimeout(context.Background(), 3*time.Minute)
+					ctx, cancel := context.WithTimeout(context.Background(), authenticateTimeout)
 					rc.SessionInfo, err = auth.EnsureAuth(rc.SessionInfo, ctx, rc.Config.APIServer, rc.Config.Platform, rc.Serial)
 					cancel()
+
 					if err != nil {
 						notify.Errorf("Authenticate with API server: %v", err)
-						das.stateChange <- pb.AgentState_Disconnecting
+						das.stateChange <- pb.AgentState_AuthenticateBackoff
 						continue
 					}
 				}
+
 				status.ConnectedSince = timestamppb.Now()
 				das.stateChange <- pb.AgentState_SyncConfig
 				continue
+
+			case pb.AgentState_AuthenticateBackoff:
+				log.Infof("Re-authenticating in %s...", authenticateBackoff)
+				authenticateTimer.Reset(authenticateBackoff)
 
 			case pb.AgentState_Connected:
 				// noop
@@ -150,6 +170,7 @@ func (das *DeviceAgentServer) EventLoop(rc *runtimeconfig.RuntimeConfig) {
 				return
 
 			case pb.AgentState_Disconnecting:
+				authenticateTimer.Stop()
 				log.Info("Tearing down network connections through device-helper...")
 				ctx, cancel := context.WithTimeout(context.Background(), helperTimeout)
 				_, err = das.DeviceHelper.Teardown(ctx, &pb.TeardownRequest{})

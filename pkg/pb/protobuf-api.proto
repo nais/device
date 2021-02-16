@@ -92,6 +92,7 @@ enum AgentState {
     Authenticating = 6;
     SyncConfig = 7;
     HealthCheck = 8;
+    AuthenticateBackoff = 9;
 }
 
 message AgentStatusRequest {

@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/nais/device/device-agent/open"
 	"io/ioutil"
 	"net"
 	"net/http"
@@ -12,6 +11,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/nais/device/device-agent/open"
 
 	"github.com/nais/device/apiserver/kekw"
 	log "github.com/sirupsen/logrus"
@@ -42,24 +43,15 @@ func EnsureAuth(existing *SessionInfo, ctx context.Context, apiserverURL, platfo
 	if err != nil {
 		return nil, fmt.Errorf("creating listener: %w", err)
 	}
+	defer listener.Close()
+
 	port := listener.Addr().(*net.TCPAddr).Port
 
 	var authURL string
-	for attempt := 0; attempt < GetAuthURLMaxAttempts; attempt += 1 {
-		authUrlCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
-		authURL, err = getAuthURL(apiserverURL, authUrlCtx, port)
-		cancel()
+	authURL, err = getAuthURL(apiserverURL, ctx, port)
 
-		if err == nil && len(authURL) > 0 {
-			break
-		}
-
-		log.Warnf("[attempt %d/%d]: getting Azure auth URL from apiserver: %v", attempt, GetAuthURLMaxAttempts, err)
-		time.Sleep(1 * time.Second)
-	}
-
-	if len(authURL) == 0 {
-		return nil, fmt.Errorf("unable to get auth URL from apiserver after %d attempts", GetAuthURLMaxAttempts)
+	if err != nil {
+		return nil, fmt.Errorf("getting Azure auth URL from apiserver: %w", err)
 	}
 
 	sessionInfo, err := RunFlow(ctx, urlOpener(authURL), MakeSessionInfoGetter(apiserverURL, platform, serial, port), listener)
@@ -197,6 +189,11 @@ func getAuthURL(apiserverURL string, ctx context.Context, port int) (string, err
 	if err != nil {
 		return "", fmt.Errorf("unable to read response body: %v", err)
 	}
+
+	if len(authURL) == 0 {
+		return "", fmt.Errorf("server returned empty auth URL")
+	}
+
 	return string(authURL), nil
 }
 
