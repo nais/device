@@ -6,7 +6,6 @@ require (
 	cloud.google.com/go v0.75.0
 	cloud.google.com/go/storage v1.12.0
 	github.com/GoogleCloudPlatform/cloudsql-proxy v1.19.1
-	github.com/akavel/rsrc v0.10.1 // indirect
 	github.com/coreos/go-iptables v0.5.0
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
 	github.com/gen2brain/beeep v0.0.0-20200526185328-e9c15c258e28
@@ -21,11 +20,9 @@ require (
 	github.com/gopherjs/gopherjs v0.0.0-20200217142428-fce0ec30dd00 // indirect
 	github.com/hashicorp/go-multierror v1.0.0
 	github.com/lib/pq v1.9.0
-	github.com/mitchellh/go-ps v1.0.0
 	github.com/nirasan/go-oauth-pkce-code-verifier v0.0.0-20170819232839-0fbfe93532da
 	github.com/prometheus/client_golang v1.9.0
 	github.com/prometheus/procfs v0.3.0 // indirect
-	github.com/rjeczalik/notify v0.9.3-0.20181126183243-629144ba06a1
 	github.com/sirupsen/logrus v1.7.0
 	github.com/spf13/pflag v1.0.5
 	github.com/stretchr/testify v1.5.1
@@ -40,6 +37,5 @@ require (
 	google.golang.org/api v0.37.0
 	google.golang.org/genproto v0.0.0-20210126160654-44e461bb6506
 	google.golang.org/grpc v1.35.0
-	google.golang.org/grpc/cmd/protoc-gen-go-grpc v1.1.0 // indirect
 	google.golang.org/protobuf v1.25.0
 )

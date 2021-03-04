@@ -88,15 +88,17 @@ func TestGatewayConfig(t *testing.T) {
 
 	ctx := context.Background()
 
-	healthyDevice := addDevice(t, db, ctx, "serial1", "healthyUser", "pubKey1", true)
-	healthyDevice2 := addDevice(t, db, ctx, "serial2", "healthyUser2", "pubKey2", true)
-	unhealthyDevice := addDevice(t, db, ctx, "serial3", "unhealthyUser", "pubKey3", false)
+	healthyDevice := addDevice(t, db, ctx, "serial1", "healthyUser", "pubKey1", true, time.Now().Unix())
+	healthyDevice2 := addDevice(t, db, ctx, "serial2", "healthyUser2", "pubKey2", true, time.Now().Unix())
+	healthyDeviceOutOfDate := addDevice(t, db, ctx, "serial2", "healthyUser2", "pubKey2", true, time.Now().Add(-api.MaxTimeSinceKolideLastSeen).Unix())
+	unhealthyDevice := addDevice(t, db, ctx, "serial3", "unhealthyUser", "pubKey3", false, time.Now().Unix())
 
 	_ = addSessionInfo(t, db, ctx, healthyDevice, "userId", []string{"authorized"})
 	_ = addSessionInfo(t, db, ctx, healthyDevice2, "userId", []string{"unauthorized"})
 	_ = addSessionInfo(t, db, ctx, unhealthyDevice, "userId", []string{"authorized"})
 	_ = addSessionInfo(t, db, ctx, unhealthyDevice, "userId", []string{"unauthorized"})
 	_ = addSessionInfo(t, db, ctx, healthyDevice2, "userId", []string{""})
+	_ = addSessionInfo(t, db, ctx, healthyDeviceOutOfDate, "userId", []string{"authorized"})
 
 	// todo don't use username as gateway
 	authorizedGateway := pb.Gateway{Name: "username", Endpoint: "ep1", PublicKey: "pubkey1"}
@@ -122,7 +124,7 @@ func TestPrivilegedGatewayConfig(t *testing.T) {
 	server := httptest.NewServer(mockJita(t, "privileged1", privilegedUsers))
 	db, router := setup(t, jita.New("username", "password", server.URL))
 
-	healthyDevice := addDevice(t, db, ctx, "serial1", "healthyUser", "pubKey1", true)
+	healthyDevice := addDevice(t, db, ctx, "serial1", "healthyUser", "pubKey1", true, time.Now().Unix())
 
 	_ = addSessionInfo(t, db, ctx, healthyDevice, privilegedUsers[0].UserId, []string{"authorized"})
 
@@ -149,12 +151,13 @@ func TestPrivilegedGatewayConfig(t *testing.T) {
 	server.Close()
 }
 
-func addDevice(t *testing.T, db *database.APIServerDB, ctx context.Context, serial, username, publicKey string, healthy bool) *database.Device {
+func addDevice(t *testing.T, db *database.APIServerDB, ctx context.Context, serial, username, publicKey string, healthy bool, lastSeen int64) *database.Device {
 	device := database.Device{
 		Serial:    serial,
 		PublicKey: publicKey,
 		Username:  username,
 		Platform:  "darwin",
+		KolideLastSeen: &lastSeen,
 	}
 
 	if err := db.AddDevice(ctx, device); err != nil {

@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github.com/nais/device/apiserver/jita"
 	"github.com/nais/device/pkg/pb"
+	"time"
 
 	"net/http"
 
@@ -17,6 +18,10 @@ type api struct {
 	db   *database.APIServerDB
 	jita *jita.Jita
 }
+
+const (
+	MaxTimeSinceKolideLastSeen = 1 * time.Hour
+)
 
 type GatewayConfig struct {
 	Devices []database.Device
@@ -75,8 +80,14 @@ func (api *api) privileged(gateway pb.Gateway, sessions []database.SessionInfo) 
 
 func healthy(devices []database.Device) []database.Device {
 	var healthyDevices []database.Device
+	timeNow := time.Now()
 	for _, device := range devices {
-		if *device.Healthy {
+		kolideLastSeenDevice := time.Unix(0, 0)
+		if device.KolideLastSeen != nil {
+			kolideLastSeenDevice = time.Unix(*device.KolideLastSeen, 0)
+		}
+
+		if *device.Healthy && timeNow.Before(kolideLastSeenDevice.Add(MaxTimeSinceKolideLastSeen)) {
 			healthyDevices = append(healthyDevices, device)
 		} else {
 			log.Tracef("Skipping unhealthy device: %s", device.Serial)

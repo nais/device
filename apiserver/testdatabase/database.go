@@ -33,6 +33,9 @@ func New(ctx context.Context, dsn string) (*database.APIServerDB, error) {
 
 func createDatabase(dsn string) (string, error) {
 	initialConn, err := connect(dsn)
+	if err != nil {
+		log.Fatal("unable to connect to database")
+	}
 
 	defer initialConn.Close()
 
