@@ -153,10 +153,10 @@ func TestPrivilegedGatewayConfig(t *testing.T) {
 
 func addDevice(t *testing.T, db *database.APIServerDB, ctx context.Context, serial, username, publicKey string, healthy bool, lastSeen int64) *database.Device {
 	device := database.Device{
-		Serial:    serial,
-		PublicKey: publicKey,
-		Username:  username,
-		Platform:  "darwin",
+		Serial:         serial,
+		PublicKey:      publicKey,
+		Username:       username,
+		Platform:       "darwin",
 		KolideLastSeen: &lastSeen,
 	}
 
