@@ -7,11 +7,13 @@ import (
 	"io"
 	"io/ioutil"
 	"os"
+	"sort"
 	"strings"
+
+	"golang.org/x/crypto/curve25519"
 
 	"github.com/nais/device/device-agent/filesystem"
 	"github.com/nais/device/pkg/pb"
-	"golang.org/x/crypto/curve25519"
 )
 
 func KeyToBase64(key []byte) []byte {
@@ -94,10 +96,18 @@ func MarshalGateway(w io.Writer, x *pb.Gateway) (int, error) {
 }
 
 func Marshal(w io.Writer, x *pb.Configuration) (int, error) {
+	gateways := x.GetGateways()[:]
+	if gateways != nil {
+		// Sort gateways here to let windows helper detect changes in, and prevent unnecessary restarts
+		sort.Slice(gateways, func(i, j int) bool {
+			return strings.Compare(gateways[i].Name, gateways[j].Name) < 0
+		})
+	}
+
 	mw := multiWriter{w: w}
 
 	_, _ = MarshalHeader(w, x)
-	for _, gw := range x.GetGateways() {
+	for _, gw := range gateways {
 		_, _ = MarshalGateway(mw, gw)
 	}
 
