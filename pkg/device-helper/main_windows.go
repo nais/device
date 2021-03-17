@@ -125,6 +125,8 @@ func (configurator *WindowsConfigurator) SyncConf(ctx context.Context, cfg *pb.C
 	}
 
 	if fileActuallyChanged(configurator.oldWireGuardConfig, newWireGuardConfig) {
+		log.Debugf("old: %s", string(configurator.oldWireGuardConfig))
+		log.Debugf("new: %s", string(newWireGuardConfig))
 
 		commands := [][]string{
 			{"net", "stop", serviceName(configurator.helperConfig.Interface)},
