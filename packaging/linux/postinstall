@@ -1,15 +1,16 @@
-#!/bin/bash
+#!/bin/sh
 set -o errexit
 
 # Assert just _one_ logged-in user
-if loginctl list-users --output json | jq -e 'length != 1' > /dev/null; then
+users=$(loginctl list-users --output json | jq -e '[.[] | select(.uid >= 1000)]')
+if echo "$users" | jq -e 'length != 1' > /dev/null; then
 	echo -e "\nMore than 1 user logged in! naisdevice only permits _one_ user account!\n"
 	exit 1
 fi
 
 ln -sf /usr/bin/naisdevice-systray /usr/bin/naisdevice
 
-user=$(loginctl list-users --output json | jq -r ".[0].user")
+user=$(echo "$users" | jq -r ".[0].user")
 home=$(getent passwd "${user}" | cut -d: -f 6)
 
 config_dir="${home}/.config/naisdevice/"
