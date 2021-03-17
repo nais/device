@@ -66,7 +66,6 @@ func startDeviceAgent() error {
 	connection, err := grpc.Dial(
 		"unix:"+cfg.DeviceAgentHelperAddress,
 		grpc.WithInsecure(),
-
 	)
 	if err != nil {
 		return fmt.Errorf("connect to naisdevice-helper: %v", err)
