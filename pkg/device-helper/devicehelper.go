@@ -12,11 +12,12 @@ import (
 	"io"
 	"os"
 
-	"github.com/nais/device/device-agent/wireguard"
-	"github.com/nais/device/pkg/pb"
 	log "github.com/sirupsen/logrus"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+
+	"github.com/nais/device/device-agent/wireguard"
+	"github.com/nais/device/pkg/pb"
 )
 
 type OSConfigurator interface {
