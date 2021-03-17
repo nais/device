@@ -95,8 +95,8 @@ func (configurator *WindowsConfigurator) SetupInterface(ctx context.Context, cfg
 	if b, err := installService.CombinedOutput(); err != nil {
 		return fmt.Errorf("installing tunnel service: %v: %v", err, string(b))
 	} else {
-		log.Infof("installed tunnel service, sleeping 3 sec to let it finish")
-		time.Sleep(3 * time.Second)
+		log.Infof("installed tunnel service, sleeping 6 sec to let it finish")
+		time.Sleep(6 * time.Second)
 		log.Infof("resuming")
 	}
 
