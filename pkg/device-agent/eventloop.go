@@ -31,7 +31,7 @@ const (
 	syncConfigTimeout    = 5 * time.Second  // timeout for config synchronization
 	versionCheckInterval = 1 * time.Hour    // how often to check for a new version of naisdevice
 	versionCheckTimeout  = 3 * time.Second  // timeout for new version check
-	authenticateTimeout  = 3 * time.Second  // timeout for apiserver authentication call
+	authFlowTimeout      = 30 * time.Second // total timeout for authenticating user (AAD login in browser, redirect to localhost, exchange code for token)
 	authenticateBackoff  = 10 * time.Second // time to wait between authentication attempts
 )
 
@@ -141,7 +141,7 @@ func (das *DeviceAgentServer) EventLoop(rc *runtimeconfig.RuntimeConfig) {
 					log.Infof("Already have a valid session")
 				} else {
 					log.Infof("No valid session, authenticating")
-					ctx, cancel := context.WithTimeout(context.Background(), authenticateTimeout)
+					ctx, cancel := context.WithTimeout(context.Background(), authFlowTimeout)
 					rc.SessionInfo, err = auth.EnsureAuth(rc.SessionInfo, ctx, rc.Config.APIServer, rc.Config.Platform, rc.Serial)
 					cancel()
 
