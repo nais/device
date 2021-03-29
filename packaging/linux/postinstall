@@ -1,23 +1,46 @@
-#!/bin/sh
+#!/bin/bash
 set -o errexit
 
 # Assert just _one_ logged-in user
-users=$(loginctl list-users --output json | jq -e '[.[] | select(.uid >= 1000)]')
-if echo "$users" | jq -e 'length != 1' > /dev/null; then
-	echo -e "\nMore than 1 user logged in! naisdevice only permits _one_ user account!\n"
+user_accounts=$(loginctl list-users --output json | jq -e '[.[] | select(.uid >= 1000)]')
+if echo "$user_accounts" | jq -e 'length != 1' > /dev/null; then
+	echo -e "\nMore than 1 user account logged in! naisdevice only permits _one_ user account!\n"
 	exit 1
+fi
+
+# Assert only whitelisted service accounts "logged in" (if logged in at all)
+service_accounts=$(loginctl list-users --output  json | jq -e '[.[] | select(.uid < 1000)]')
+if echo "$service_accounts" | jq -e 'length > 0' > /dev/null; then
+	is_whitelisted=0
+
+	whitelisted_service_accounts="gdm,"
+	for account in $(echo "$service_accounts" | jq -e '.[].user'); do
+		if echo "$whitelisted_service_accounts" | grep --quiet --silent --perl-regexp "(^|,)$account(,|$)"; then
+			is_whitelisted=1
+			break
+		fi
+	done
+
+	if [[ "$is_whitelisted" != "1" ]]; then
+		echo -e "\nYou've got service-users running on your system which require being logged in."
+		echo -e "\tThis is the list of whitelisted service_accounts: $whitelisted_service_accounts"
+		echo "Are you perhaps running an unsupported display manager/desktop environment? Ref: https://doc.nais.io/device/install/#ubuntu-installation"
+		exit 1
+	fi
 fi
 
 ln -sf /usr/bin/naisdevice-systray /usr/bin/naisdevice
 
-user=$(echo "$users" | jq -r ".[0].user")
+user=$(echo "$user_accounts" | jq -r ".[0].user")
 home=$(getent passwd "${user}" | cut -d: -f 6)
 
 config_dir="${home}/.config/naisdevice/"
 log_dir="${config_dir}/logs"
 unit_file=/lib/systemd/system/naisdevice-helper.service
 
+# shellcheck disable=SC2174
 mkdir -p --mode 700 "${config_dir}"
+# shellcheck disable=SC2174
 mkdir -p --mode 700 "${log_dir}"
 
 sed -i "s%@@CONFIG_DIR@@%${config_dir}%" "${unit_file}"
