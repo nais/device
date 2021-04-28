@@ -20,10 +20,11 @@ require (
 	github.com/gopherjs/gopherjs v0.0.0-20200217142428-fce0ec30dd00 // indirect
 	github.com/hashicorp/go-multierror v1.0.0
 	github.com/lib/pq v1.9.0
+	github.com/nais/kolide-event-handler v0.0.0-20210427150637-543a5c728b10
 	github.com/nirasan/go-oauth-pkce-code-verifier v0.0.0-20170819232839-0fbfe93532da
 	github.com/prometheus/client_golang v1.9.0
 	github.com/prometheus/procfs v0.3.0 // indirect
-	github.com/sirupsen/logrus v1.7.0
+	github.com/sirupsen/logrus v1.8.0
 	github.com/spf13/pflag v1.0.5
 	github.com/stretchr/testify v1.5.1
 	github.com/t-tomalak/logrus-easy-formatter v0.0.0-20190827215021-c074f06c5816

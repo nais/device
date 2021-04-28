@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"github.com/nais/device/apiserver/kolide"
 	"io/ioutil"
 	"net/http"
 	"os"
@@ -72,6 +73,23 @@ func init() {
 func main() {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
+
+	kolideApiToken := os.Getenv("KOLIDE_API_TOKEN")
+	if len(kolideApiToken) == 0 {
+		log.Errorf("env KOLIDE_API_TOKEN not found, aborting")
+		return
+	}
+
+	grpcToken := os.Getenv("GRPC_AUTH_TOKEN")
+	if len(grpcToken) == 0 {
+		log.Errorf("env GRPC_AUTH_TOKEN not found, aborting")
+		return
+	}
+
+	kolideHandler := kolide.New(kolideApiToken, grpcToken)
+
+	go kolideHandler.Cron(ctx)
+	go kolideHandler.DeviceEventHandler(ctx)
 
 	api.InitializeMetrics()
 	go func() {
