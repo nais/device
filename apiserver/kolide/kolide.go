@@ -19,6 +19,10 @@ import (
 	"github.com/nais/kolide-event-handler/pkg/pb"
 )
 
+var (
+	server string
+)
+
 type ClientInterceptor struct {
 	RequireTLS bool
 	Token      string
@@ -37,6 +41,7 @@ func (c *ClientInterceptor) RequireTransportSecurity() bool {
 type Handler struct {
 	kolideClient *kolideclient.KolideClient
 	grpcToken    string
+	checkDevices chan <- []*kolideclient.Device
 	grpcAddress  string
 	db           *database.APIServerDB
 }
@@ -46,6 +51,7 @@ func New(kolideApiToken, grpcToken, grpcAddress string, db *database.APIServerDB
 		kolideClient: kolideclient.New(kolideApiToken),
 		grpcToken:    grpcToken,
 		grpcAddress:  grpcAddress,
+		checkDevices: make(chan []*kolideclient.Device, 50),
 		db:           db,
 	}
 }
@@ -105,6 +111,8 @@ func (handler *Handler) DeviceEventHandler(ctx context.Context) {
 			if err != nil {
 				log.Warningf("update device health: %v", err)
 			}
+
+			handler.checkDevices <- []*kolideclient.Device{device}
 		}
 	}
 
