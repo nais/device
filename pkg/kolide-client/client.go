@@ -44,7 +44,7 @@ func GetRetryAfter(header http.Header) time.Duration {
 		return 0
 	}
 
-	log.Infof("rate-limited: limit: %s, remaining: %s, reset: %s, retry-after: %s", limit, remaining, reset, retryAfter)
+	log.Debugf("rate-limited: limit: %s, remaining: %s, reset: %s, retry-after: %s", limit, remaining, reset, retryAfter)
 
 	seconds, err := strconv.Atoi(retryAfter)
 
@@ -69,7 +69,7 @@ func respectTheirAuthority(sleep time.Duration) {
 	time.Sleep(sleep + (time.Second * time.Duration(n)))
 }
 
-func (kc *KolideClient) Get(ctx context.Context, path string) (*http.Response, error) {
+func (kc *KolideClient) get(ctx context.Context, path string) (*http.Response, error) {
 	for attempt := 0; attempt < MaxHttpRetries; attempt++ {
 		req, err := http.NewRequestWithContext(ctx, http.MethodGet, path, nil)
 		if err != nil {
@@ -108,8 +108,8 @@ func (kc *KolideClient) GetApiPathf(path string, args ...interface{}) string {
 	return kc.GetApiPath(fmt.Sprintf(path, args...))
 }
 
-func (kc *KolideClient) GetDevice(ctx context.Context, deviceId int) (*Device, error) {
-	response, err := kc.Get(ctx, kc.GetApiPathf("devices/%d", deviceId))
+func (kc *KolideClient) GetDevice(ctx context.Context, deviceId uint64) (*Device, error) {
+	response, err := kc.get(ctx, kc.GetApiPathf("devices/%d", deviceId))
 
 	if err != nil {
 		return nil, fmt.Errorf("getting client: %w", err)
@@ -123,11 +123,19 @@ func (kc *KolideClient) GetDevice(ctx context.Context, deviceId int) (*Device, e
 		return nil, fmt.Errorf("decoding device: %w", err)
 	}
 
+	multiError := kc.PopulateDeviceFailures(ctx, &device)
+
+	if len(multiError) > 0 {
+		log.Debugf("multiple errors occurred: %+v", multiError)
+
+		return nil, fmt.Errorf("%d error(s) occurred while populating failures on devices", len(multiError))
+	}
+
 	return &device, nil
 }
 
 func (kc *KolideClient) GetCheck(ctx context.Context, checkId int) (*Check, error) {
-	response, err := kc.Get(ctx, kc.GetApiPathf("checks/%d", checkId))
+	response, err := kc.get(ctx, kc.GetApiPathf("checks/%d", checkId))
 	if err != nil {
 		return nil, fmt.Errorf("getting check: %w", err)
 	}
@@ -155,7 +163,7 @@ func (kc *KolideClient) GetPaginated(ctx context.Context, path string) ([]json.R
 	apiUrl.RawQuery = q.Encode()
 
 	for {
-		response, err := kc.Get(ctx, apiUrl.String())
+		response, err := kc.get(ctx, apiUrl.String())
 		if err != nil {
 			return nil, fmt.Errorf("getting paginated response: %w", err)
 		}

@@ -60,10 +60,7 @@ local:
 	go build -o bin/local/bootstrap-api ./cmd/bootstrap-api
 
 run-postgres:
-	docker run -e POSTGRES_PASSWORD=postgres --rm --name postgres -p 5432:5432 -d \
-	  -v ${PWD}/apiserver/database/schema/schema.sql:/docker-entrypoint-initdb.d/schema.sql \
-	  -v ${PWD}/testdata.sql:/docker-entrypoint-initdb.d/testdata.sql \
-		postgres:12
+	docker run -e POSTGRES_PASSWORD=postgres --rm --name postgres -p 5432:5432 -d postgres:12
 
 run-postgres-test:
 	docker run -e POSTGRES_PASSWORD=postgres --rm --name postgres-test -p 5433:5432 -d postgres:12
@@ -82,7 +79,7 @@ local-gateway-agent:
 local-apiserver:
 	$(eval confdir := $(shell mktemp -d))
 	wg genkey > ${confdir}/private.key
-	go run ./cmd/apiserver/main.go --db-connection-uri=postgresql://postgres:postgres@localhost/postgres --bind-address=127.0.0.1:8080 --config-dir=${confdir} --development-mode=true --prometheus-address=127.0.0.1:3000 --credential-entries="nais:device,gateway-1:password"
+	go run ./cmd/apiserver/main.go --db-connection-dsn=postgresql://postgres:postgres@localhost/postgres?sslmode=disable --bind-address=127.0.0.1:8080 --config-dir=${confdir} --development-mode=true --prometheus-address=127.0.0.1:3000 --credential-entries="nais:device,gateway-1:password" --kolide-event-handler-address=kolide-event-handler.prod-gcp.nais.io:443
 	echo ${confdir}
 
 cmd/device-agent/icons.go: assets/*.ico assets/icon.go
