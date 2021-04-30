@@ -142,7 +142,7 @@ func (a *api) updateHealth(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	if err := a.db.UpdateDeviceStatus(healthUpdates); err != nil {
+	if err := a.db.UpdateDevice(healthUpdates); err != nil {
 		log.Error(err)
 		respondf(w, http.StatusInternalServerError, "unable to persist device statuses\n")
 		return

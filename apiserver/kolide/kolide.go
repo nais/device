@@ -4,8 +4,10 @@ import (
 	"context"
 	"crypto/tls"
 	"encoding/json"
+	"fmt"
 	"github.com/nais/device/apiserver/database"
 	kolideclient "github.com/nais/device/pkg/kolide-client"
+	"strings"
 	"time"
 
 	log "github.com/sirupsen/logrus"
@@ -36,15 +38,15 @@ type Handler struct {
 	kolideClient *kolideclient.KolideClient
 	grpcToken    string
 	grpcAddress  string
-	checkDevices chan <- []*kolideclient.Device
+	db *database.APIServerDB
 }
 
-func New(kolideApiToken, grpcToken, grpcAddress string) *Handler {
+func New(kolideApiToken, grpcToken, grpcAddress string, db *database.APIServerDB) *Handler {
 	return &Handler{
 		kolideClient: kolideclient.New(kolideApiToken),
 		grpcToken:    grpcToken,
 		grpcAddress:  grpcAddress,
-		checkDevices: make(chan []*kolideclient.Device, 50),
+		db: db,
 	}
 }
 
@@ -99,15 +101,14 @@ func (handler *Handler) DeviceEventHandler(ctx context.Context) {
 				continue
 			}
 
-			handler.checkDevices <- []*kolideclient.Device{device}
+			err = handler.updateDeviceHealth(ctx, device)
+			if err != nil {
+				log.Warningf("update device health: %v", err)
+			}
 		}
 	}
 
 	log.Info("bye")
-}
-
-func (handler *Handler) UpdateDeviceHealth(db *database.APIServerDB) {
-	// TODO
 }
 
 const FullSyncInterval = 5 * time.Minute
@@ -138,5 +139,46 @@ func (handler *Handler) Cron(programContext context.Context) {
 			log.Infof("stopping cron")
 			return
 		}
+	}
+}
+
+func (handler *Handler) updateDeviceHealth(ctx context.Context, device *kolideclient.Device) error {
+	existingDevice, err := handler.db.ReadDeviceBySerialPlatformUsername(ctx, device.Serial, platform(device.Platform), device.AssignedOwner.Email)
+	if err != nil {
+		return fmt.Errorf("read device: %w", err)
+	}
+
+	existingDevice.Healthy = DeviceHealthy(device)
+
+	err = handler.db.UpdateDevice([]database.Device{*existingDevice})
+
+	if err != nil {
+		return fmt.Errorf("update device: %w", err)
+	}
+
+	return nil
+}
+
+func DeviceHealthy(device *kolideclient.Device) *bool {
+	healthy := true
+
+	for _, failure := range device.Failures {
+		if kolideclient.AfterGracePeriod(*failure) {
+			healthy = false
+			break
+		}
+	}
+
+	return &healthy
+}
+
+func platform(platform string) string {
+	switch strings.ToLower(platform) {
+	case "darwin":
+		return "darwin"
+	case "windows":
+		return "windows"
+	default:
+		return "linux"
 	}
 }

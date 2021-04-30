@@ -75,26 +75,6 @@ func main() {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	kolideApiToken := os.Getenv("KOLIDE_API_TOKEN")
-	if len(kolideApiToken) == 0 {
-		log.Errorf("env KOLIDE_API_TOKEN not found, aborting")
-		return
-	}
-
-	grpcToken := os.Getenv("GRPC_AUTH_TOKEN")
-	if cfg.KolideEventHandlerAddress != "" && len(grpcToken) == 0 {
-		log.Errorf("env GRPC_AUTH_TOKEN not found, aborting")
-		return
-	}
-
-	kolideHandler := kolide.New(kolideApiToken, grpcToken, cfg.KolideEventHandlerAddress)
-
-	go kolideHandler.Cron(ctx)
-
-	if cfg.KolideEventHandlerAddress != "" {
-		go kolideHandler.DeviceEventHandler(ctx)
-	}
-
 	api.InitializeMetrics()
 	go func() {
 		log.Infof("Prometheus serving metrics at %v", cfg.PrometheusAddr)
@@ -138,6 +118,26 @@ func main() {
 		log.Fatalf("Generating public key: %v", err)
 	}
 
+	kolideApiToken := os.Getenv("KOLIDE_API_TOKEN")
+	if len(kolideApiToken) == 0 {
+		log.Errorf("env KOLIDE_API_TOKEN not found, aborting")
+		return
+	}
+
+	grpcToken := os.Getenv("GRPC_AUTH_TOKEN")
+	if cfg.KolideEventHandlerAddress != "" && len(grpcToken) == 0 {
+		log.Errorf("env GRPC_AUTH_TOKEN not found, aborting")
+		return
+	}
+
+	kolideHandler := kolide.New(kolideApiToken, grpcToken, cfg.KolideEventHandlerAddress, db)
+
+	go kolideHandler.Cron(ctx)
+
+	if cfg.KolideEventHandlerAddress != "" {
+		go kolideHandler.DeviceEventHandler(ctx)
+	}
+
 	if len(cfg.BootstrapAPIURL) > 0 {
 		parts := strings.Split(cfg.BootstrapApiCredentials, ":")
 		username, password := parts[0], parts[1]
@@ -163,8 +163,6 @@ func main() {
 	go gwc.SyncContinuously(ctx)
 
 	go syncWireguardConfig(cfg.DbConnDSN, dbDriver, string(privateKey), cfg)
-
-	go kolideHandler.UpdateDeviceHealth(db)
 
 	apiConfig := api.Config{
 		DB:       db,

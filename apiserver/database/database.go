@@ -100,7 +100,7 @@ FROM device;`
 	return devices, nil
 }
 
-func (d *APIServerDB) UpdateDeviceStatus(devices []Device) error {
+func (d *APIServerDB) UpdateDevice(devices []Device) error {
 	ctx := context.Background()
 
 	tx, err := d.Conn.BeginTx(ctx, nil)
