@@ -39,6 +39,9 @@ type Gui struct {
 		State        *systray.MenuItem
 		StateInfo    *systray.MenuItem
 		Logs         *systray.MenuItem
+		Settings     *systray.MenuItem
+		AutoConnect *systray.MenuItem
+		BlackAndWhite *systray.MenuItem
 		DeviceLog    *systray.MenuItem
 		HelperLog    *systray.MenuItem
 		SystrayLog   *systray.MenuItem
@@ -56,6 +59,8 @@ const (
 	DeviceLogClicked
 	HelperLogClicked
 	LogClicked
+	AutoConnectClicked
+	BlackAndWhiteClicked
 
 	maxGateways         = 20
 	slackURL            = "slack://channel?team=T5LNAMWNA&id=D011T20LDHD"
@@ -67,7 +72,7 @@ func NewGUI(client pb.DeviceAgentClient) *Gui {
 	gui := &Gui{
 		DeviceAgentClient: client,
 	}
-	systray.SetIcon(NaisLogoRed)
+	applyDisconnectedIcon()
 
 	gui.MenuItems.Version = systray.AddMenuItem("naisdevice "+version.Version, "")
 	gui.MenuItems.Version.Disable()
@@ -79,6 +84,9 @@ func NewGUI(client pb.DeviceAgentClient) *Gui {
 	gui.MenuItems.StateInfo.Hide()
 	gui.MenuItems.State.Disable()
 	gui.MenuItems.Logs = systray.AddMenuItem("Logs", "")
+	gui.MenuItems.Settings = systray.AddMenuItem("Settings", "")
+	gui.MenuItems.AutoConnect = gui.MenuItems.Settings.AddSubMenuItemCheckbox("Connect automatically on startup", "", cfg.AutoConnect)
+	gui.MenuItems.BlackAndWhite = gui.MenuItems.Settings.AddSubMenuItemCheckbox("Black and white icons", "", cfg.BlackAndWhiteIcons)
 	gui.MenuItems.DeviceLog = gui.MenuItems.Logs.AddSubMenuItem("Agent", "")
 	gui.MenuItems.HelperLog = gui.MenuItems.Logs.AddSubMenuItem("Helper", "")
 	gui.MenuItems.SystrayLog = gui.MenuItems.Logs.AddSubMenuItem("Systray", "")
@@ -134,6 +142,10 @@ func (gui *Gui) handleButtonClicks() {
 			gui.Events <- VersionClicked
 		case <-gui.MenuItems.StateInfo.ClickedCh:
 			gui.Events <- StateInfoClicked
+		case <-gui.MenuItems.AutoConnect.ClickedCh:
+			gui.Events <- AutoConnectClicked
+		case <-gui.MenuItems.BlackAndWhite.ClickedCh:
+			gui.Events <- BlackAndWhiteClicked
 		case <-gui.MenuItems.Connect.ClickedCh:
 			gui.Events <- ConnectClicked
 		case <-gui.MenuItems.Quit.ClickedCh:
@@ -160,7 +172,8 @@ func (gui *Gui) handleAgentConnect() {
 }
 
 func (gui *Gui) handleAgentDisconnect() {
-	systray.SetIcon(NaisLogoRed)
+	applyDisconnectedIcon()
+
 	gui.MenuItems.State.SetTitle("Waiting for Device Agent...")
 	gui.MenuItems.Connect.Disable()
 	for i := range gui.MenuItems.GatewayItems {
@@ -178,11 +191,11 @@ func (gui *Gui) handleAgentStatus(agentStatus *pb.AgentStatus) {
 	case pb.AgentState_Bootstrapping:
 		gui.MenuItems.Connect.SetTitle("Disconnect")
 	case pb.AgentState_Connected:
-		systray.SetIcon(NaisLogoGreen)
+		gui.updateIcons()
 	case pb.AgentState_Unhealthy:
-		systray.SetIcon(NaisLogoYellow)
+		gui.updateIcons()
 	case pb.AgentState_Disconnected:
-		systray.SetIcon(NaisLogoRed)
+		gui.updateIcons()
 		gui.MenuItems.Connect.SetTitle("Connect")
 	}
 
@@ -227,6 +240,35 @@ func (gui *Gui) handleAgentStatus(agentStatus *pb.AgentStatus) {
 	}
 }
 
+func applyDisconnectedIcon() {
+	if cfg.BlackAndWhiteIcons {
+		systray.SetIcon(NaisLogoBwDisconnected)
+	} else {
+		systray.SetIcon(NaisLogoRed)
+	}
+}
+
+func (gui* Gui) updateIcons() {
+	if gui.AgentStatus.GetConnectionState() == pb.AgentState_Disconnected {
+		applyDisconnectedIcon()
+	} else if gui.AgentStatus.GetConnectionState() == pb.AgentState_Connected {
+		if cfg.BlackAndWhiteIcons {
+			systray.SetIcon(NaisLogoBwConnected)
+		} else {
+			systray.SetIcon(NaisLogoGreen)
+		}
+	} else if gui.AgentStatus.GetConnectionState() == pb.AgentState_Unhealthy {
+		systray.SetIcon(NaisLogoYellow)
+	}
+}
+
+func (gui* Gui) saveConfig() {
+	err := WriteToJSONFile(cfg, cfg.ConfigDir + ConfigFile)
+	if err != nil {
+		log.Errorf("Error writing config to disk: %w", err)
+	}
+}
+
 func (gui *Gui) handleGuiEvent(guiEvent GuiEvent) {
 	switch guiEvent {
 	case VersionClicked:
@@ -240,6 +282,25 @@ func (gui *Gui) handleGuiEvent(guiEvent GuiEvent) {
 		if err != nil {
 			log.Warnf("opening slack: %v", err)
 		}
+
+	case AutoConnectClicked:
+		if cfg.AutoConnect {
+			gui.MenuItems.AutoConnect.Uncheck()
+		} else {
+			gui.MenuItems.AutoConnect.Check()
+		}
+		cfg.AutoConnect = !cfg.AutoConnect
+		gui.saveConfig()
+
+	case BlackAndWhiteClicked:
+		if cfg.BlackAndWhiteIcons {
+			gui.MenuItems.BlackAndWhite.Uncheck()
+		} else {
+			gui.MenuItems.BlackAndWhite.Check()
+		}
+		cfg.BlackAndWhiteIcons = !cfg.BlackAndWhiteIcons
+		gui.updateIcons()
+		gui.saveConfig()
 
 	case ConnectClicked:
 		log.Infof("Connect button clicked")

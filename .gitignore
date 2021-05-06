@@ -13,3 +13,4 @@ packaging/windows/obj
 packaging/linux/icons
 device-agent.log
 naisdevice*.deb
+pkg/systray/icons.go
