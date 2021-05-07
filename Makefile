@@ -138,7 +138,7 @@ app: wg wireguard-go macos-icon macos-client
 test:
 	go test ./... -count=1
 
-run-integration-test:
+run-integration-test: cmd/device-agent/icons.go
 	RUN_INTEGRATION_TESTS="true" go test ./... -count=1
 
 # Run by GitHub actions on macos
