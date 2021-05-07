@@ -23,28 +23,16 @@ func main() {
 		os.Exit(1)
 	}
 
-	var cfg *systray.Config
-	if _, err := os.Stat(configDir + systray.ConfigFile); err == nil {
-		cfg, err = systray.ReadFromJSONFile(configDir + systray.ConfigFile)
-		if err != nil {
-			log.Infof("Unable to read systray config from file: %v", err)
-		} else {
-			log.Infof("Read bootstrap config from file: %v", configDir + systray.ConfigFile)
-		}
+	// Default config
+	cfg := &systray.Config{
+		GrpcAddress: filepath.Join(configDir, "agent.sock"),
+		ConfigDir:   configDir,
+		LogLevel:    log.InfoLevel.String(),
+		AutoConnect: false,
+		BlackAndWhiteIcons: false,
 	}
-
-	if cfg == nil {
-		// Create initial config file
-		cfg := systray.Config{
-			GrpcAddress: filepath.Join(configDir, "agent.sock"),
-			ConfigDir:   configDir,
-			LogLevel:    log.InfoLevel.String(),
-			AutoConnect: false,
-			BlackAndWhiteIcons: false,
-		}
-
-		systray.WriteToJSONFile(cfg, cfg.ConfigDir + systray.ConfigFile)
-	}
+	cfg.Populate()
+	cfg.Persist()
 
 	flag.StringVar(&cfg.LogLevel, "log-level", cfg.LogLevel, "which log level to output")
 	flag.BoolVar(&cfg.AutoConnect, "connect", cfg.AutoConnect, "auto connect")
