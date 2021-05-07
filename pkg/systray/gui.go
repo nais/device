@@ -262,13 +262,6 @@ func (gui* Gui) updateIcons() {
 	}
 }
 
-func (gui* Gui) saveConfig() {
-	err := WriteToJSONFile(cfg, cfg.ConfigDir + ConfigFile)
-	if err != nil {
-		log.Errorf("Error writing config to disk: %v", err)
-	}
-}
-
 func (gui *Gui) handleGuiEvent(guiEvent GuiEvent) {
 	switch guiEvent {
 	case VersionClicked:
@@ -290,7 +283,7 @@ func (gui *Gui) handleGuiEvent(guiEvent GuiEvent) {
 			gui.MenuItems.AutoConnect.Check()
 		}
 		cfg.AutoConnect = !cfg.AutoConnect
-		gui.saveConfig()
+		cfg.Persist()
 
 	case BlackAndWhiteClicked:
 		if cfg.BlackAndWhiteIcons {
@@ -300,7 +293,7 @@ func (gui *Gui) handleGuiEvent(guiEvent GuiEvent) {
 		}
 		cfg.BlackAndWhiteIcons = !cfg.BlackAndWhiteIcons
 		gui.updateIcons()
-		gui.saveConfig()
+		cfg.Persist()
 
 	case ConnectClicked:
 		log.Infof("Connect button clicked")

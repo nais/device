@@ -2,10 +2,9 @@ package systray
 
 import (
 	"encoding/json"
-	"fmt"
-	"io/ioutil"
-
 	"github.com/getlantern/systray"
+	"os"
+	"path/filepath"
 
 	"google.golang.org/grpc"
 
@@ -71,29 +70,31 @@ func Spawn(systrayConfig Config) {
 	systray.Run(onReady, onExit)
 }
 
-
-func WriteToJSONFile(strct interface{}, path string) error {
-	b, err := json.Marshal(&strct)
+func (cfg *Config) Persist() {
+	configFile, err := os.Create(filepath.Join(cfg.ConfigDir, "systray-config.json"))
 	if err != nil {
-		return fmt.Errorf("marshaling struct into json: %w", err)
-	}
-	if err := ioutil.WriteFile(path, b, 0600); err != nil {
-		return err
+		log.Infof("opening file: %v", err)
 	}
 
-	log.Infof("Wrote config %+v to %s", strct, path)
-	return nil
+	err = json.NewEncoder(configFile).Encode(cfg)
+	if err != nil {
+		log.Warnf("encoding json to file: %v", err)
+	}
 }
 
+func (cfg *Config) Populate() {
+	var tempCfg Config
 
-func ReadFromJSONFile(path string) (*Config, error) {
-	var config Config
-	b, err := ioutil.ReadFile(path)
+	configFile, err := os.Open(filepath.Join(cfg.ConfigDir, "systray-config.json"))
 	if err != nil {
-		return nil, fmt.Errorf("reading systray config from disk: %w", err)
+		log.Infof("opening file: %v", err)
 	}
-	if err := json.Unmarshal(b, &config); err != nil {
-		return nil, fmt.Errorf("unmarshaling systray config: %w", err)
+
+	err = json.NewDecoder(configFile).Decode(&tempCfg)
+	if err != nil {
+		log.Warnf("decoding json from file: %v", err)
+		return
 	}
-	return &config, nil
+
+	*cfg = tempCfg
 }
