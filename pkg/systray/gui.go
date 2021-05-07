@@ -265,7 +265,7 @@ func (gui* Gui) updateIcons() {
 func (gui* Gui) saveConfig() {
 	err := WriteToJSONFile(cfg, cfg.ConfigDir + ConfigFile)
 	if err != nil {
-		log.Errorf("Error writing config to disk: %w", err)
+		log.Errorf("Error writing config to disk: %v", err)
 	}
 }
 
