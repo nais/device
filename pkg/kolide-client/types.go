@@ -25,7 +25,7 @@ type Device struct {
 	Name            string           `json:"name"`
 	OwnedBy         string           `json:"owned_by"`
 	Platform        string           `json:"platform"`
-	LastSeenAt      *time.Time        `json:"last_seen_at"`
+	LastSeenAt      *time.Time       `json:"last_seen_at"`
 	FailureCount    int              `json:"failure_count"`
 	PrimaryUserName string           `json:"primary_user_name"`
 	Serial          string           `json:"serial"`

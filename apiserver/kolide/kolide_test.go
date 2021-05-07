@@ -9,31 +9,31 @@ import (
 
 func TestDeviceHealthy(t *testing.T) {
 	tests := []struct {
-		name string
+		name   string
 		device *kolideclient.Device
-		want *bool
+		want   *bool
 	}{
 		// ignored failure
 		// failure already resolved
 		{
 			name: "healthy device",
 			device: &kolideclient.Device{
-				LastSeenAt:      time.Now(),
-				Failures: nil,
+				LastSeenAt: timep(time.Now()),
+				Failures:   nil,
 			},
 			want: boolp(true),
 		},
 		{
 			name: "unhealthy device (after grace period)",
 			device: &kolideclient.Device{
-				LastSeenAt:      time.Now(),
+				LastSeenAt: timep(time.Now()),
 				Failures: []*kolideclient.DeviceFailure{
 					{
-						Timestamp:  time.Now(),
+						Timestamp:  timep(time.Now().Add(-2 * time.Hour)),
 						ResolvedAt: nil,
 						Ignored:    false,
 						Check: &kolideclient.Check{
-							Tags: nil,
+							Tags: []string{"DANGER"},
 						},
 					},
 				},
@@ -52,4 +52,8 @@ func TestDeviceHealthy(t *testing.T) {
 
 func boolp(b bool) *bool {
 	return &b
+}
+
+func timep(t time.Time) *time.Time {
+	return &t
 }
