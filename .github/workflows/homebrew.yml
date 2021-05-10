@@ -3,6 +3,7 @@ name: Update Homebrew cask
 on:
   release:
     types: [published]
+  workflow_dispatch:
 
 jobs:
   update-cask:
