@@ -27,4 +27,5 @@ fpm \
     bin/linux-client/naisdevice-agent=/usr/bin/naisdevice-agent \
     bin/linux-client/naisdevice-systray=/usr/bin/naisdevice-systray \
     packaging/linux/naisdevice.desktop=/usr/share/applications/ \
+    packaging/linux/import_cert.sh=/usr/share/naisdevice/ \
     packaging/linux/icons/=/usr/share/icons/hicolor/
