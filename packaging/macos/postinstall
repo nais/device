@@ -3,7 +3,6 @@ user=$( echo "show State:/Users/ConsoleUser" | scutil | awk '/Name :/ && ! /logi
 
 daemon_name="io.nais.device.helper"
 destination="/Library/LaunchDaemons/${daemon_name}.plist"
-
 launchctl list | grep -q "$daemon_name" && launchctl unload "$destination"
 
 config_dir="/Users/${user}/Library/Application Support/naisdevice"
@@ -44,8 +43,8 @@ cat << EOF > "$destination"
 
 EOF
 
-launchctl load "$destination"
-
 chmod 600 "$destination"
+
+launchctl load "$destination"
 
 echo "Installed service $daemon_name"
