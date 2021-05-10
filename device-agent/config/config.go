@@ -28,6 +28,7 @@ type Config struct {
 	AutoConnect              bool
 	GrpcAddress              string
 	DeviceAgentHelperAddress string
+	RenewMicrosoftCert       bool
 }
 
 func (c *Config) SetDefaults() {

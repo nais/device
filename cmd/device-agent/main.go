@@ -26,6 +26,7 @@ func init() {
 	flag.StringVar(&cfg.APIServer, "apiserver", cfg.APIServer, "base url to apiserver")
 	flag.StringVar(&cfg.BootstrapAPI, "bootstrap-api", cfg.BootstrapAPI, "url to bootstrap API")
 	flag.StringVar(&cfg.ConfigDir, "config-dir", cfg.ConfigDir, "path to agent config directory")
+	flag.BoolVar(&cfg.RenewMicrosoftCert, "microsoft-cert", cfg.RenewMicrosoftCert, "enable renewal of NAV Microsoft client cert")
 	flag.StringVar(&cfg.Interface, "interface", cfg.Interface, "name of tunnel interface")
 	flag.StringVar(&cfg.LogLevel, "log-level", cfg.LogLevel, "which log level to output")
 	flag.StringVar(&cfg.GrpcAddress, "grpc-address", cfg.GrpcAddress, "unix socket for gRPC server")
@@ -81,7 +82,7 @@ func startDeviceAgent() error {
 	log.Infof("accepting network connections on unix socket %s", cfg.GrpcAddress)
 
 	grpcServer := grpc.NewServer()
-	das := device_agent.NewServer(client)
+	das := device_agent.NewServer(client, cfg.RenewMicrosoftCert)
 	pb.RegisterDeviceAgentServer(grpcServer, das)
 
 	go func() {
