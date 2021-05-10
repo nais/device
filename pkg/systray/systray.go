@@ -28,7 +28,7 @@ var cfg Config
 
 var connection *grpc.ClientConn
 
-const ConfigFile = "/systray-config.json"
+const ConfigFile = "systray-config.json"
 
 func onReady() {
 	var err error
@@ -71,7 +71,7 @@ func Spawn(systrayConfig Config) {
 }
 
 func (cfg *Config) Persist() {
-	configFile, err := os.Create(filepath.Join(cfg.ConfigDir, "systray-config.json"))
+	configFile, err := os.Create(filepath.Join(cfg.ConfigDir, ConfigFile))
 	if err != nil {
 		log.Infof("opening file: %v", err)
 	}
@@ -85,7 +85,7 @@ func (cfg *Config) Persist() {
 func (cfg *Config) Populate() {
 	var tempCfg Config
 
-	configFile, err := os.Open(filepath.Join(cfg.ConfigDir, "systray-config.json"))
+	configFile, err := os.Open(filepath.Join(cfg.ConfigDir, ConfigFile))
 	if err != nil {
 		log.Infof("opening file: %v", err)
 	}
