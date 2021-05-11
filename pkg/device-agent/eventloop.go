@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	client_cert "github.com/nais/device/pkg/client-cert"
 	"net"
 	"net/http"
 	"os"
@@ -34,6 +35,9 @@ const (
 	versionCheckTimeout  = 3 * time.Second  // timeout for new version check
 	authFlowTimeout      = 30 * time.Second // total timeout for authenticating user (AAD login in browser, redirect to localhost, exchange code for token)
 	authenticateBackoff  = 10 * time.Second // time to wait between authentication attempts
+	approximateInfinity = time.Hour * 69_420 // Name describes purpose. Used for renewing microsoft client certs automatically
+	CertRenewalInterval = time.Hour * 23 // Microsoft Client certificate validity/renewal interval
+	certRenewalRetryTimeout = time.Second * 10 // Self-explanatory (Microsoft Client certificate)
 )
 
 func (das *DeviceAgentServer) ConfigureHelper(ctx context.Context, rc *runtimeconfig.RuntimeConfig, gateways []*pb.Gateway) error {
@@ -54,6 +58,7 @@ func (das *DeviceAgentServer) EventLoop(rc *runtimeconfig.RuntimeConfig) {
 	syncConfigTicker := time.NewTicker(syncConfigInterval)
 	healthCheckTicker := time.NewTicker(healthCheckInterval)
 	versionCheckTicker := time.NewTicker(5 * time.Second)
+	certRenewalTicker := time.NewTicker(approximateInfinity)
 	authenticateTimer := time.NewTimer(1 * time.Hour)
 	authenticateTimer.Stop()
 
@@ -90,6 +95,21 @@ func (das *DeviceAgentServer) EventLoop(rc *runtimeconfig.RuntimeConfig) {
 				das.stateChange <- pb.AgentState_SyncConfig
 			}
 
+		case <-certRenewalTicker.C:
+			certRenewalTicker.Reset(CertRenewalInterval)
+			log.Infof("State: %v", status.ConnectionState)
+			if status.ConnectionState == pb.AgentState_Connected {
+				err := client_cert.Renew()
+				if err != nil {
+					certRenewalTicker.Reset(certRenewalRetryTimeout)
+					log.Errorf("renewing NAV microsoft client certificate: %v", err)
+				}
+				log.Info("NAV Microsoft Client Certificate renewed")
+			} else {
+				log.Infof("Cert renewal skipped, agent not connected")
+				certRenewalTicker.Reset(certRenewalRetryTimeout)
+			}
+
 		case <-healthCheckTicker.C:
 			if status.ConnectionState == pb.AgentState_Connected {
 				das.stateChange <- pb.AgentState_HealthCheck
@@ -105,9 +125,10 @@ func (das *DeviceAgentServer) EventLoop(rc *runtimeconfig.RuntimeConfig) {
 				break
 			}
 
-		case status.ConnectionState = <-das.stateChange:
+		case newState := <-das.stateChange:
+			previousState := status.ConnectionState
+			status.ConnectionState = newState
 			log.Infof("state changed to %s", status.ConnectionState)
-
 			switch status.ConnectionState {
 			case pb.AgentState_Bootstrapping:
 				if rc.BootstrapConfig != nil {
@@ -180,6 +201,9 @@ func (das *DeviceAgentServer) EventLoop(rc *runtimeconfig.RuntimeConfig) {
 				if err != nil {
 					notify.Errorf(err.Error())
 				}
+
+				certRenewalTicker.Reset(approximateInfinity)
+
 				das.stateChange <- pb.AgentState_Disconnected
 
 			case pb.AgentState_HealthCheck:
@@ -258,6 +282,14 @@ func (das *DeviceAgentServer) EventLoop(rc *runtimeconfig.RuntimeConfig) {
 				}
 
 			case pb.AgentState_Unhealthy:
+
+			case pb.AgentState_EnableClientCertRenewal:
+				certRenewalTicker.Reset(time.Second * 1)
+				das.stateChange <- previousState
+
+			case pb.AgentState_DisableClientCertRenewal:
+				certRenewalTicker.Reset(approximateInfinity)
+				das.stateChange <- previousState
 			}
 		}
 	}
