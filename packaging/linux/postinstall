@@ -15,7 +15,7 @@ if echo "$service_accounts" | jq -e 'length > 0' > /dev/null; then
 
 	whitelisted_service_accounts="gdm,"
 	for account in $(echo "$service_accounts" | jq -e '.[].user'); do
-		if ! echo "$whitelisted_service_accounts" | grep --quiet --silent --perl-regexp "(^|,)$account(,|$)"; then
+		if ! echo "$whitelisted_service_accounts" | grep --quiet --silent --perl-regexp "(^|,)\"?$account\"?(,|$)"; then
 			is_not_whitelisted=1
 			break
 		fi
