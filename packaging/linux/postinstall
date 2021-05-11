@@ -2,7 +2,7 @@
 set -o errexit
 
 # Assert just _one_ logged-in user
-user_accounts=$(loginctl list-users --output json | jq -e '[.[] | select(.uid >= 1000)]')
+user_accounts=$(loginctl list-users --output json | jq '[.[] | select(.uid >= 1000)]')
 if echo "$user_accounts" | jq -e 'length != 1' > /dev/null; then
 	printf "\nMore than 1 user account logged in! naisdevice only permits _one_ user account!\n"
 	exit 1
@@ -14,8 +14,8 @@ if echo "$service_accounts" | jq -e 'length > 0' > /dev/null; then
 	is_not_whitelisted=0
 
 	whitelisted_service_accounts="gdm,"
-	for account in $(echo "$service_accounts" | jq -e '.[].user'); do
-		if ! echo "$whitelisted_service_accounts" | grep --quiet --silent --perl-regexp "(^|,)\"?$account\"?(,|$)"; then
+	for account in $(echo "$service_accounts" | jq -r '.[].user'); do
+		if ! echo "$whitelisted_service_accounts" | grep --quiet --silent --perl-regexp "(^|,)$account(,|$)"; then
 			is_not_whitelisted=1
 			break
 		fi
