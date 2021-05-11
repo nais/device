@@ -38,7 +38,7 @@ type Handler struct {
 	kolideClient *kolideclient.KolideClient
 	grpcToken    string
 	grpcAddress  string
-	db *database.APIServerDB
+	db           *database.APIServerDB
 }
 
 func New(kolideApiToken, grpcToken, grpcAddress string, db *database.APIServerDB) *Handler {
@@ -46,7 +46,7 @@ func New(kolideApiToken, grpcToken, grpcAddress string, db *database.APIServerDB
 		kolideClient: kolideclient.New(kolideApiToken),
 		grpcToken:    grpcToken,
 		grpcAddress:  grpcAddress,
-		db: db,
+		db:           db,
 	}
 }
 
@@ -148,7 +148,7 @@ func (handler *Handler) updateDeviceHealth(ctx context.Context, device *kolidecl
 		return fmt.Errorf("read device: %w", err)
 	}
 
-	existingDevice.Healthy = DeviceHealthy(device)
+	existingDevice.Healthy = boolp(DeviceHealthy(device))
 
 	err = handler.db.UpdateDevice([]database.Device{*existingDevice})
 
@@ -159,17 +159,21 @@ func (handler *Handler) updateDeviceHealth(ctx context.Context, device *kolidecl
 	return nil
 }
 
-func DeviceHealthy(device *kolideclient.Device) *bool {
+func DeviceHealthy(device *kolideclient.Device) bool {
 	healthy := true
 
 	for _, failure := range device.Failures {
+		if failure == nil || failure.Ignored {
+			continue
+		}
+
 		if kolideclient.AfterGracePeriod(*failure) {
 			healthy = false
 			break
 		}
 	}
 
-	return &healthy
+	return healthy
 }
 
 func platform(platform string) string {
@@ -181,4 +185,8 @@ func platform(platform string) string {
 	default:
 		return "linux"
 	}
+}
+
+func boolp(b bool) *bool {
+	return &b
 }

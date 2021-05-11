@@ -11,7 +11,7 @@ func TestDeviceHealthy(t *testing.T) {
 	tests := []struct {
 		name   string
 		device *kolideclient.Device
-		want   *bool
+		want   bool
 	}{
 		// ignored failure
 		// failure already resolved
@@ -21,7 +21,41 @@ func TestDeviceHealthy(t *testing.T) {
 				LastSeenAt: timep(time.Now()),
 				Failures:   nil,
 			},
-			want: boolp(true),
+			want: true,
+		},
+		{
+			name: "unhealthy device (after grace period), but ignored failure",
+			device: &kolideclient.Device{
+				LastSeenAt: timep(time.Now()),
+				Failures: []*kolideclient.DeviceFailure{
+					{
+						Timestamp:  timep(time.Now().Add(-2 * time.Hour)),
+						ResolvedAt: nil,
+						Ignored:    true,
+						Check: &kolideclient.Check{
+							Tags: []string{"DANGER"},
+						},
+					},
+				},
+			},
+			want: true,
+		},
+		{
+			name: "unhealthy device (before grace period)",
+			device: &kolideclient.Device{
+				LastSeenAt: timep(time.Now()),
+				Failures: []*kolideclient.DeviceFailure{
+					{
+						Timestamp:  timep(time.Now().Add(-30 * time.Minute)),
+						ResolvedAt: nil,
+						Ignored:    false,
+						Check: &kolideclient.Check{
+							Tags: []string{"DANGER"},
+						},
+					},
+				},
+			},
+			want: true,
 		},
 		{
 			name: "unhealthy device (after grace period)",
@@ -38,7 +72,24 @@ func TestDeviceHealthy(t *testing.T) {
 					},
 				},
 			},
-			want: boolp(true),
+			want: false,
+		},
+		{
+			name: "unhealthy device (danger failure without timestamp)",
+			device: &kolideclient.Device{
+				LastSeenAt: timep(time.Now()),
+				Failures: []*kolideclient.DeviceFailure{
+					{
+						Timestamp:  nil,
+						ResolvedAt: nil,
+						Ignored:    false,
+						Check: &kolideclient.Check{
+							Tags: []string{"DANGER"},
+						},
+					},
+				},
+			},
+			want: false,
 		},
 	}
 	for _, tt := range tests {
@@ -48,10 +99,6 @@ func TestDeviceHealthy(t *testing.T) {
 			}
 		})
 	}
-}
-
-func boolp(b bool) *bool {
-	return &b
 }
 
 func timep(t time.Time) *time.Time {

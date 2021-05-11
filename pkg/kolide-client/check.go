@@ -56,7 +56,11 @@ func AfterGracePeriod(failure DeviceFailure) bool {
 	severity := GetSeverity(*failure.Check)
 	graceTime := GetGraceTime(severity)
 
-	if failure.Timestamp.After(time.Now().Add(graceTime)) {
+	if failure.Timestamp == nil {
+		return true
+	}
+
+	if time.Now().After(failure.Timestamp.Add(graceTime)) {
 		return true
 	} else {
 		return false

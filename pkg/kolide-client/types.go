@@ -10,8 +10,8 @@ type DeviceFailure struct {
 	CheckId    int                    `json:"check_id"`
 	Value      map[string]interface{} `json:"value"`
 	Title      string                 `json:"title"`
-	Timestamp  *time.Time              `json:"timestamp"`
-	ResolvedAt *time.Time              `json:"resolved_at"`
+	Timestamp  *time.Time             `json:"timestamp"`
+	ResolvedAt *time.Time             `json:"resolved_at"`
 	Ignored    bool                   `json:"ignored"`
 	Check      *Check                 `json:"check"`
 }
