@@ -163,7 +163,7 @@ func DeviceHealthy(device *kolideclient.Device) bool {
 	healthy := true
 
 	for _, failure := range device.Failures {
-		if failure == nil || failure.Ignored {
+		if failure == nil || failure.Ignored || failure.ResolvedAt != nil {
 			continue
 		}
 

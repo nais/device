@@ -13,8 +13,6 @@ func TestDeviceHealthy(t *testing.T) {
 		device *kolideclient.Device
 		want   bool
 	}{
-		// ignored failure
-		// failure already resolved
 		{
 			name: "healthy device",
 			device: &kolideclient.Device{
@@ -107,6 +105,23 @@ func TestDeviceHealthy(t *testing.T) {
 				},
 			},
 			want: false,
+		},
+		{
+			name: "healthy device (failure resolved)",
+			device: &kolideclient.Device{
+				LastSeenAt: timep(time.Now()),
+				Failures: []*kolideclient.DeviceFailure{
+					{
+						Timestamp:  timep(time.Now().Add(-3*time.Hour)),
+						ResolvedAt: timep(time.Now()),
+						Ignored:    false,
+						Check: &kolideclient.Check{
+							Tags: []string{"DANGER", "INFO"},
+						},
+					},
+				},
+			},
+			want: true,
 		},
 	}
 	for _, tt := range tests {
