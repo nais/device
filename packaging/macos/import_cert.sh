@@ -27,7 +27,7 @@ EOF
 
 if [ ! -f "$pubkey_path" ]; then
   (
-    set -e
+    set -eo pipefail
     cd "$(mktemp -d)"
     openssl genrsa -out key.pem 4096
     openssl rsa -in key.pem -pubout -outform PEM > "$pubkey_path"
@@ -36,10 +36,10 @@ if [ ! -f "$pubkey_path" ]; then
     ## join returned cert and key as .p12 bundle and import in keychain - Delete .p12 when done
     openssl pkcs12 -export -out certificate.pfx -inkey key.pem -in cert.pem -passout pass:"$serial"
     security import certificate.pfx -P "$serial" -A #/dev/null 2>&1
-  ) || rm "$pubkey_path"
+    ) || (rm -f "$pubkey_path"; echo "failed aquiring cert (first time run)"; exit 1)
 else
   ( 
-    set -e
+    set -eo pipefail
     cd "$(mktemp -d)"
     ## delete expired cert
     security delete-certificate -c "$cn"
@@ -52,5 +52,5 @@ else
 
     ## set identity preference to use this cert automaticlaly for specified domains
     security set-identity-preference -Z "$certhash" -s "https://nav-no.managed.us2.access-control.cas.ms/aad_login"
-  )
+  ) || (echo "failed renewing cert"; exit 1)
 fi
