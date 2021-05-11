@@ -1,6 +1,7 @@
 package systray
 
 import (
+	"context"
 	"encoding/json"
 	"github.com/getlantern/systray"
 	"os"
@@ -20,8 +21,9 @@ type Config struct {
 	LogLevel    string
 	LogFilePath string
 
-	AutoConnect bool
+	AutoConnect        bool
 	BlackAndWhiteIcons bool
+	ClientCert         bool
 }
 
 var cfg Config
@@ -47,6 +49,10 @@ func onReady() {
 	gui := NewGUI(client)
 	if cfg.AutoConnect {
 		gui.Events <- ConnectClicked
+	}
+
+	if cfg.ClientCert {
+		gui.DeviceAgentClient.EnableClientCertRenewal(context.Background(), &pb.EnableCertRenewalRequest{Enable: true})
 	}
 
 	go gui.handleStatusStream()

@@ -42,6 +42,7 @@ type Gui struct {
 		Settings     *systray.MenuItem
 		AutoConnect *systray.MenuItem
 		BlackAndWhite *systray.MenuItem
+		ClientCert *systray.MenuItem
 		DeviceLog    *systray.MenuItem
 		HelperLog    *systray.MenuItem
 		SystrayLog   *systray.MenuItem
@@ -61,6 +62,7 @@ const (
 	LogClicked
 	AutoConnectClicked
 	BlackAndWhiteClicked
+	ClientCertClicked
 
 	maxGateways         = 20
 	slackURL            = "slack://channel?team=T5LNAMWNA&id=D011T20LDHD"
@@ -87,6 +89,7 @@ func NewGUI(client pb.DeviceAgentClient) *Gui {
 	gui.MenuItems.Settings = systray.AddMenuItem("Settings", "")
 	gui.MenuItems.AutoConnect = gui.MenuItems.Settings.AddSubMenuItemCheckbox("Connect automatically on startup", "", cfg.AutoConnect)
 	gui.MenuItems.BlackAndWhite = gui.MenuItems.Settings.AddSubMenuItemCheckbox("Black and white icons", "", cfg.BlackAndWhiteIcons)
+	gui.MenuItems.ClientCert = gui.MenuItems.Settings.AddSubMenuItemCheckbox("Make me NAV-compliant (beta)", "", cfg.ClientCert)
 	gui.MenuItems.DeviceLog = gui.MenuItems.Logs.AddSubMenuItem("Agent", "")
 	gui.MenuItems.HelperLog = gui.MenuItems.Logs.AddSubMenuItem("Helper", "")
 	gui.MenuItems.SystrayLog = gui.MenuItems.Logs.AddSubMenuItem("Systray", "")
@@ -160,6 +163,8 @@ func (gui *Gui) handleButtonClicks() {
 			gui.Events <- HelperLogClicked
 		case <-gui.MenuItems.SystrayLog.ClickedCh:
 			gui.Events <- LogClicked
+		case <-gui.MenuItems.ClientCert.ClickedCh:
+			gui.Events <- ClientCertClicked
 		case name := <-gui.PrivilegedGatewayClicked:
 			accessPrivilegedGateway(name)
 		}
@@ -293,6 +298,20 @@ func (gui *Gui) handleGuiEvent(guiEvent GuiEvent) {
 		}
 		cfg.BlackAndWhiteIcons = !cfg.BlackAndWhiteIcons
 		gui.updateIcons()
+		cfg.Persist()
+
+	case ClientCertClicked:
+		_, err := gui.DeviceAgentClient.EnableClientCertRenewal(context.Background(), &pb.EnableCertRenewalRequest{Enable: !cfg.ClientCert})
+		if err != nil {
+			log.Errorf("Toggle client cert renewal: %v", err)
+			break
+		}
+		if cfg.ClientCert {
+			gui.MenuItems.ClientCert.Uncheck()
+		} else {
+			gui.MenuItems.ClientCert.Check()
+		}
+		cfg.ClientCert = !cfg.ClientCert
 		cfg.Persist()
 
 	case ConnectClicked:

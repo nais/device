@@ -191,6 +191,8 @@ type DeviceAgentClient interface {
 	Login(ctx context.Context, in *LoginRequest, opts ...grpc.CallOption) (*LoginResponse, error)
 	// Log out of API server, shutting down all VPN connections.
 	Logout(ctx context.Context, in *LogoutRequest, opts ...grpc.CallOption) (*LogoutResponse, error)
+	// Start background renewal of client cert for NAV MS services
+	EnableClientCertRenewal(ctx context.Context, in *EnableCertRenewalRequest, opts ...grpc.CallOption) (*EnableCertRenewalResponse, error)
 }
 
 type deviceAgentClient struct {
@@ -260,6 +262,15 @@ func (c *deviceAgentClient) Logout(ctx context.Context, in *LogoutRequest, opts 
 	return out, nil
 }
 
+func (c *deviceAgentClient) EnableClientCertRenewal(ctx context.Context, in *EnableCertRenewalRequest, opts ...grpc.CallOption) (*EnableCertRenewalResponse, error) {
+	out := new(EnableCertRenewalResponse)
+	err := c.cc.Invoke(ctx, "/naisdevice.DeviceAgent/EnableClientCertRenewal", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // DeviceAgentServer is the server API for DeviceAgent service.
 // All implementations must embed UnimplementedDeviceAgentServer
 // for forward compatibility
@@ -273,6 +284,8 @@ type DeviceAgentServer interface {
 	Login(context.Context, *LoginRequest) (*LoginResponse, error)
 	// Log out of API server, shutting down all VPN connections.
 	Logout(context.Context, *LogoutRequest) (*LogoutResponse, error)
+	// Start background renewal of client cert for NAV MS services
+	EnableClientCertRenewal(context.Context, *EnableCertRenewalRequest) (*EnableCertRenewalResponse, error)
 	mustEmbedUnimplementedDeviceAgentServer()
 }
 
@@ -291,6 +304,9 @@ func (UnimplementedDeviceAgentServer) Login(context.Context, *LoginRequest) (*Lo
 }
 func (UnimplementedDeviceAgentServer) Logout(context.Context, *LogoutRequest) (*LogoutResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Logout not implemented")
+}
+func (UnimplementedDeviceAgentServer) EnableClientCertRenewal(context.Context, *EnableCertRenewalRequest) (*EnableCertRenewalResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method EnableClientCertRenewal not implemented")
 }
 func (UnimplementedDeviceAgentServer) mustEmbedUnimplementedDeviceAgentServer() {}
 
@@ -380,6 +396,24 @@ func _DeviceAgent_Logout_Handler(srv interface{}, ctx context.Context, dec func(
 	return interceptor(ctx, in, info, handler)
 }
 
+func _DeviceAgent_EnableClientCertRenewal_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(EnableCertRenewalRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(DeviceAgentServer).EnableClientCertRenewal(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/naisdevice.DeviceAgent/EnableClientCertRenewal",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(DeviceAgentServer).EnableClientCertRenewal(ctx, req.(*EnableCertRenewalRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // DeviceAgent_ServiceDesc is the grpc.ServiceDesc for DeviceAgent service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -398,6 +432,10 @@ var DeviceAgent_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "Logout",
 			Handler:    _DeviceAgent_Logout_Handler,
+		},
+		{
+			MethodName: "EnableClientCertRenewal",
+			Handler:    _DeviceAgent_EnableClientCertRenewal_Handler,
 		},
 	},
 	Streams: []grpc.StreamDesc{

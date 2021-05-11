@@ -93,6 +93,15 @@ func (das *DeviceAgentServer) UpdateAgentStatus(status *pb.AgentStatus) {
 	}
 }
 
+func (das *DeviceAgentServer) EnableClientCertRenewal(ctx context.Context, req *pb.EnableCertRenewalRequest) (*pb.EnableCertRenewalResponse, error) {
+	if req.Enable {
+		das.stateChange <-pb.AgentState_EnableClientCertRenewal
+	} else {
+		das.stateChange <-pb.AgentState_DisableClientCertRenewal
+	}
+	return &pb.EnableCertRenewalResponse{}, nil
+}
+
 func NewServer(helper pb.DeviceHelperClient, enableMicrosoftCertificateRenewal bool) *DeviceAgentServer {
 	return &DeviceAgentServer{
 		DeviceHelper: helper,

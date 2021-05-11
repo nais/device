@@ -37,6 +37,10 @@ service DeviceAgent {
     // Log out of API server, shutting down all VPN connections.
     rpc Logout (LogoutRequest) returns (LogoutResponse) {
     }
+
+    // Start background renewal of client cert for NAV MS services
+    rpc EnableClientCertRenewal (EnableCertRenewalRequest) returns (EnableCertRenewalResponse) {
+    }
 }
 
 message TeardownRequest {
@@ -82,6 +86,14 @@ message LogoutRequest {
 
 }
 
+message EnableCertRenewalRequest {
+    bool enable = 1;
+}
+
+message EnableCertRenewalResponse {
+
+}
+
 enum AgentState {
     Disconnected = 0;
     Bootstrapping = 1;
@@ -93,6 +105,8 @@ enum AgentState {
     SyncConfig = 7;
     HealthCheck = 8;
     AuthenticateBackoff = 9;
+    EnableClientCertRenewal = 10;
+    DisableClientCertRenewal = 11;
 }
 
 message AgentStatusRequest {
