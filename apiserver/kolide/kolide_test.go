@@ -91,6 +91,23 @@ func TestDeviceHealthy(t *testing.T) {
 			},
 			want: false,
 		},
+		{
+			name: "unhealthy device (multiple tags, use most severe)",
+			device: &kolideclient.Device{
+				LastSeenAt: timep(time.Now()),
+				Failures: []*kolideclient.DeviceFailure{
+					{
+						Timestamp:  timep(time.Now().Add(-3*time.Hour)),
+						ResolvedAt: nil,
+						Ignored:    false,
+						Check: &kolideclient.Check{
+							Tags: []string{"DANGER", "INFO"},
+						},
+					},
+				},
+			},
+			want: false,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
