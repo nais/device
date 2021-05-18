@@ -20,6 +20,7 @@ fpm \
     --depends sed \
     --depends wireguard \
     --depends libnss3-tools \
+    --pre-install packaging/linux/preinstall \
     --after-install packaging/linux/postinstall \
     --after-upgrade packaging/linux/postinstall \
     --deb-systemd packaging/linux/naisdevice-helper.service \
