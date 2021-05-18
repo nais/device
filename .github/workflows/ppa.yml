@@ -41,7 +41,7 @@ jobs:
           apt-ftparchive release . > Release
 
           echo ${PPA_GPG_PRIVATE_KEY} | base64 -d > /dev/shm/private-key.asc
-          echo ${PPA_GPG_PASSPHRASE} | > /dev/shm/phrase
+          echo ${PPA_GPG_PASSPHRASE} > /dev/shm/phrase
           gpg --import /dev/shm/private-key.asc
           gpg --default-key --passphrase-file /dev/shm/phrase "${EMAIL}" -abs -o - Release > Release.gpg
           gpg --default-key --passphrase-file /dev/shm/phrase "${EMAIL}" --clearsign -o - Release > InRelease
