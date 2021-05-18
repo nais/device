@@ -30,7 +30,7 @@ jobs:
           git clone git@github.com:nais/nais-ppa.git pparepo
           cd pparepo
 
-          git config user.email "aura@nav.no"
+          git config user.email "${EMAIL}"
           git config user.name "naisdevice pipeline"
 
           apt update
