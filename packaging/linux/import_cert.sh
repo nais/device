@@ -11,7 +11,7 @@ EOF
 }
 
 main() {
-  for profile in "$HOME"/.mozilla/firefox/*.default-release/; do
+  for profile in "sql:$HOME/.pki/nssdb" "$HOME"/.mozilla/firefox/*.default-release/; do
     echo "updating profile: $profile"
     # If key already enrolled:
     if certutil -d "$profile" -K -n naisdevice &> /dev/null; then
