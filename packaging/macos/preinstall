@@ -1,0 +1,9 @@
+#!/bin/sh
+
+pkill device-agent
+pkill device-agent-helper
+pkill naisdevice-systray
+pkill naisdevice-agent
+pkill naisdevice-helper
+
+exit 0

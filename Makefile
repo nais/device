@@ -147,6 +147,7 @@ pkg: app
 	mkdir -p ./pkgtemp/{scripts,pkgroot/Applications}
 	cp -r ./naisdevice.app ./pkgtemp/pkgroot/Applications/
 	cp ./packaging/macos/postinstall ./pkgtemp/scripts/postinstall
+	cp ./packaging/macos/preinstall ./pkgtemp/scripts/preinstall
 	pkgbuild --root ./pkgtemp/pkgroot --identifier ${PKGID} --scripts ./pkgtemp/scripts --version ${VERSION} --ownership recommended ./component.pkg
 	productbuild --identifier ${PKGID}.${VERSION} --package ./component.pkg ./naisdevice.pkg
 	rm -f ./component.pkg
