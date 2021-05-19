@@ -35,9 +35,6 @@ jobs:
           git clone git@github.com:nais/nais-ppa.git pparepo
           cd pparepo
 
-          git config user.email "${EMAIL}"
-          git config user.name "naisdevice pipeline"
-
           # 'Unpack' deb file for PPA purposes
           sudo apt update
           sudo apt install dpkg-dev apt-utils
@@ -46,18 +43,15 @@ jobs:
           gzip -k -f Packages
           apt-ftparchive release . > Release
 
-          # Set-up GPG for non-interactive mode
-          mkdir "$HOME"/.gnupg
-          echo 'allow-loopback-pinentry' > "$HOME"/.gnupg/gpg-agent.conf
-          export GPG_TTY=$(tty)
-          echo RELOADAGENT | gpg-connect-agent
+          # Set-up GPG and sign repo artifacts
+          echo -n ${PPA_GPG_PRIVATE_KEY} | base64 -d > /tmp/private.key
+          gpg --import /tmp/private.key
+          echo ${PPA_GPG_PASSPHRASE} | gpg --batch --yes --passphrase-fd 0 --default-key "${EMAIL}" -abs -o - Release > Release.gpg
+          echo ${PPA_GPG_PASSPHRASE} | gpg --batch --yes --passphrase-fd 0 --default-key "${EMAIL}" --clearsign -o - Release > InRelease
 
-          # Set-up GPG key for signing (ppa) release (read: version)
-          echo ${PPA_GPG_PRIVATE_KEY} | base64 -d > /tmp/private-key.asc
-          gpg --import /tmp/private-key.asc
-          gpg --default-key --batch --pinentry-mode loopback --no-tty --passphrase "${PPA_GPG_PASSPHRASE}" "${EMAIL}" -abs -o - Release > Release.gpg
-          gpg --default-key --batch --pinentry-mode loopback --no-tty --passphrase "${PPA_GPG_PASSPHRASE}" "${EMAIL}" --clearsign -o - Release > InRelease
-
+          # Commit and push changes
+          git config user.email "${EMAIL}"
+          git config user.name "naisdevice pipeline"
           git add .
           git --no-pager diff --cached
           git commit -a -m "Add version ${LATEST} of naisdevice.deb"
