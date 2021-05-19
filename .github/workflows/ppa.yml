@@ -43,9 +43,16 @@ jobs:
           gzip -k -f Packages
           apt-ftparchive release . > Release
 
-          # Set-up GPG and sign repo artifacts
+          # Set-up GPG
+          mkdir -p ~/.gnupg
+          echo "use-agent" >> ~/.gnupg/gpg.conf
+          echo "pinentry-mode loopback" >> ~/.gnupg/gpg.conf
+          echo "allow-loopback-pinentry" >> ~/.gnupg/gpg-agent.conf
+          echo RELOADAGENT | gpg-connect-agent
           echo -n ${PPA_GPG_PRIVATE_KEY} | base64 -d > /tmp/private.key
           gpg --import /tmp/private.key
+
+          # Sign repo artifacts
           echo ${PPA_GPG_PASSPHRASE} | gpg --batch --yes --passphrase-fd 0 --default-key "${EMAIL}" -abs -o - Release > Release.gpg
           echo ${PPA_GPG_PASSPHRASE} | gpg --batch --yes --passphrase-fd 0 --default-key "${EMAIL}" --clearsign -o - Release > InRelease
 
