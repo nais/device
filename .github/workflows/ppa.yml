@@ -1,6 +1,11 @@
 name: Update PPA repo
 
 on:
+  workflow_run:
+    workflows: [ "Test, build and release" ]
+    branches: [ master ]
+    types:
+      - completed
   workflow_dispatch:
 
 jobs:
