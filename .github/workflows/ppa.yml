@@ -42,6 +42,7 @@ jobs:
           apt-ftparchive release . > Release
 
           # Set-up GPG for non-interactive mode
+          mkdir "$HOME"/.gnupg
           echo 'allow-loopback-pinentry' > "$HOME"/.gnupg/gpg-agent.conf
           echo RELOADAGENT | gpg-connect-agent
 
