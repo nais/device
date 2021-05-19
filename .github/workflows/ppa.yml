@@ -42,10 +42,9 @@ jobs:
           apt-ftparchive release . > Release
 
           # Set-up GPG for non-interactive mode
-          OLDDISPLAY=$DISPLAY
-          unset DISPLAY
           mkdir "$HOME"/.gnupg
           echo 'allow-loopback-pinentry' > "$HOME"/.gnupg/gpg-agent.conf
+          export GPG_TTY=$(tty)
           echo RELOADAGENT | gpg-connect-agent
 
           # Set-up GPG key for signing (ppa) release (read: version)
@@ -53,7 +52,6 @@ jobs:
           gpg --import /dev/shm/private-key.asc
           gpg --default-key --batch --pinentry-mode loopback --no-tty --passphrase "${PPA_GPG_PASSPHRASE}" "${EMAIL}" -abs -o - Release > Release.gpg
           gpg --default-key --batch --pinentry-mode loopback --no-tty --passphrase "${PPA_GPG_PASSPHRASE}" "${EMAIL}" --clearsign -o - Release > InRelease
-          DISPLAY=$OLDDISPLAY
 
           git add .
           git --no-pager diff --cached
