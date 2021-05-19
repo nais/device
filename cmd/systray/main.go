@@ -28,14 +28,12 @@ func main() {
 		GrpcAddress: filepath.Join(configDir, "agent.sock"),
 		ConfigDir:   configDir,
 		LogLevel:    log.InfoLevel.String(),
-		AutoConnect: false,
 		BlackAndWhiteIcons: false,
 	}
 	cfg.Populate()
 	cfg.Persist()
 
 	flag.StringVar(&cfg.LogLevel, "log-level", cfg.LogLevel, "which log level to output")
-	flag.BoolVar(&cfg.AutoConnect, "connect", cfg.AutoConnect, "auto connect")
 	flag.StringVar(&cfg.GrpcAddress, "grpc-address", cfg.GrpcAddress, "path to device-agent unix socket")
 	flag.Parse()
 

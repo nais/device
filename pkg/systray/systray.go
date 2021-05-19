@@ -2,37 +2,19 @@ package systray
 
 import (
 	"context"
-	"encoding/json"
 	"github.com/getlantern/systray"
-	"os"
-	"path/filepath"
-
 	"google.golang.org/grpc"
 
 	"github.com/nais/device/pkg/pb"
 	log "github.com/sirupsen/logrus"
 )
 
-type Config struct {
-	GrpcAddress string
-
-	ConfigDir string
-
-	LogLevel    string
-	LogFilePath string
-
-	AutoConnect        bool
-	BlackAndWhiteIcons bool
-	ClientCert         bool
-}
-
-var cfg Config
-
 var connection *grpc.ClientConn
 
 const ConfigFile = "systray-config.json"
 
-func onReady() {
+func onReady(cfg Config) {
+	programContext := context.Background()
 	var err error
 
 	log.Debugf("naisdevice-agent on unix socket %s", cfg.GrpcAddress)
@@ -46,14 +28,7 @@ func onReady() {
 
 	client := pb.NewDeviceAgentClient(connection)
 
-	gui := NewGUI(client)
-	if cfg.AutoConnect {
-		gui.Events <- ConnectClicked
-	}
-
-	if cfg.ClientCert {
-		gui.DeviceAgentClient.EnableClientCertRenewal(context.Background(), &pb.EnableCertRenewalRequest{Enable: true})
-	}
+	gui := NewGUI(programContext, client, cfg)
 
 	go gui.handleStatusStream()
 	go gui.handleButtonClicks()
@@ -71,36 +46,6 @@ func onExit() {
 }
 
 func Spawn(systrayConfig Config) {
-	cfg = systrayConfig
-
-	systray.Run(onReady, onExit)
+	systray.Run(func() {onReady(systrayConfig)}, onExit)
 }
 
-func (cfg *Config) Persist() {
-	configFile, err := os.Create(filepath.Join(cfg.ConfigDir, ConfigFile))
-	if err != nil {
-		log.Infof("opening file: %v", err)
-	}
-
-	err = json.NewEncoder(configFile).Encode(cfg)
-	if err != nil {
-		log.Warnf("encoding json to file: %v", err)
-	}
-}
-
-func (cfg *Config) Populate() {
-	var tempCfg Config
-
-	configFile, err := os.Open(filepath.Join(cfg.ConfigDir, ConfigFile))
-	if err != nil {
-		log.Infof("opening file: %v", err)
-	}
-
-	err = json.NewDecoder(configFile).Decode(&tempCfg)
-	if err != nil {
-		log.Warnf("decoding json from file: %v", err)
-		return
-	}
-
-	*cfg = tempCfg
-}
