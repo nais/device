@@ -3,6 +3,7 @@ package systray
 import (
 	"context"
 	"fmt"
+	"github.com/nais/device/pkg/notify"
 	"os"
 	"os/signal"
 	"path/filepath"
@@ -33,23 +34,25 @@ type Gui struct {
 	Interrupts               chan os.Signal
 	NewVersionAvailable      chan bool
 	PrivilegedGatewayClicked chan string
+	ProgramContext           context.Context
 	MenuItems                struct {
-		Connect      *systray.MenuItem
-		Quit         *systray.MenuItem
-		State        *systray.MenuItem
-		StateInfo    *systray.MenuItem
-		Logs         *systray.MenuItem
-		Settings     *systray.MenuItem
-		AutoConnect *systray.MenuItem
+		Connect       *systray.MenuItem
+		Quit          *systray.MenuItem
+		State         *systray.MenuItem
+		StateInfo     *systray.MenuItem
+		Logs          *systray.MenuItem
+		Settings      *systray.MenuItem
+		AutoConnect   *systray.MenuItem
 		BlackAndWhite *systray.MenuItem
-		ClientCert *systray.MenuItem
-		DeviceLog    *systray.MenuItem
-		HelperLog    *systray.MenuItem
-		SystrayLog   *systray.MenuItem
-		Version      *systray.MenuItem
-		Upgrade      *systray.MenuItem
-		GatewayItems []*GatewayItem
+		CertRenewal   *systray.MenuItem
+		DeviceLog     *systray.MenuItem
+		HelperLog     *systray.MenuItem
+		SystrayLog    *systray.MenuItem
+		Version       *systray.MenuItem
+		Upgrade       *systray.MenuItem
+		GatewayItems  []*GatewayItem
 	}
+	Config Config
 }
 
 const (
@@ -70,11 +73,13 @@ const (
 	requestBackoff      = 5 * time.Second
 )
 
-func NewGUI(client pb.DeviceAgentClient) *Gui {
+func NewGUI(ctx context.Context, client pb.DeviceAgentClient, cfg Config) *Gui {
 	gui := &Gui{
 		DeviceAgentClient: client,
+		Config: cfg,
+		ProgramContext: ctx,
 	}
-	applyDisconnectedIcon()
+	gui.applyDisconnectedIcon()
 
 	gui.MenuItems.Version = systray.AddMenuItem("naisdevice "+version.Version, "")
 	gui.MenuItems.Version.Disable()
@@ -87,9 +92,9 @@ func NewGUI(client pb.DeviceAgentClient) *Gui {
 	gui.MenuItems.State.Disable()
 	gui.MenuItems.Logs = systray.AddMenuItem("Logs", "")
 	gui.MenuItems.Settings = systray.AddMenuItem("Settings", "")
-	gui.MenuItems.AutoConnect = gui.MenuItems.Settings.AddSubMenuItemCheckbox("Connect automatically on startup", "", cfg.AutoConnect)
+	gui.MenuItems.AutoConnect = gui.MenuItems.Settings.AddSubMenuItemCheckbox("Connect automatically on startup", "", false)
 	gui.MenuItems.BlackAndWhite = gui.MenuItems.Settings.AddSubMenuItemCheckbox("Black and white icons", "", cfg.BlackAndWhiteIcons)
-	gui.MenuItems.ClientCert = gui.MenuItems.Settings.AddSubMenuItemCheckbox("Make me NAV-compliant (beta)", "", cfg.ClientCert)
+	gui.MenuItems.CertRenewal = gui.MenuItems.Settings.AddSubMenuItemCheckbox("Make me NAV-compliant (beta)", "", false)
 	gui.MenuItems.DeviceLog = gui.MenuItems.Logs.AddSubMenuItem("Agent", "")
 	gui.MenuItems.HelperLog = gui.MenuItems.Logs.AddSubMenuItem("Helper", "")
 	gui.MenuItems.SystrayLog = gui.MenuItems.Logs.AddSubMenuItem("Systray", "")
@@ -163,7 +168,7 @@ func (gui *Gui) handleButtonClicks() {
 			gui.Events <- HelperLogClicked
 		case <-gui.MenuItems.SystrayLog.ClickedCh:
 			gui.Events <- LogClicked
-		case <-gui.MenuItems.ClientCert.ClickedCh:
+		case <-gui.MenuItems.CertRenewal.ClickedCh:
 			gui.Events <- ClientCertClicked
 		case name := <-gui.PrivilegedGatewayClicked:
 			accessPrivilegedGateway(name)
@@ -171,15 +176,41 @@ func (gui *Gui) handleButtonClicks() {
 	}
 }
 
+func (gui *Gui) updateGuiAgentConfig(config *pb.AgentConfiguration) {
+	gui.MenuItems.AutoConnect.Enable()
+	if config.AutoConnect {
+		gui.MenuItems.AutoConnect.Check()
+	}
+
+	gui.MenuItems.CertRenewal.Enable()
+	if config.CertRenewal {
+		gui.MenuItems.CertRenewal.Check()
+	}
+}
+
+func (gui *Gui) resetGuiAgentConfig() {
+	gui.MenuItems.AutoConnect.Disable()
+	gui.MenuItems.AutoConnect.Uncheck()
+	gui.MenuItems.CertRenewal.Disable()
+	gui.MenuItems.CertRenewal.Uncheck()
+}
+
 func (gui *Gui) handleAgentConnect() {
 	gui.MenuItems.State.SetTitle("Refreshing Device Agent state...")
+
+	response, err := gui.DeviceAgentClient.GetAgentConfiguration(gui.ProgramContext, &pb.GetAgentConfigurationRequest{})
+	if err != nil {
+		notify.Errorf("Failed to get initial agent config: %v", err)
+	}
+	gui.updateGuiAgentConfig(response.Config)
 	gui.MenuItems.Connect.Enable()
 }
 
 func (gui *Gui) handleAgentDisconnect() {
-	applyDisconnectedIcon()
-
 	gui.MenuItems.State.SetTitle("Waiting for Device Agent...")
+
+	gui.applyDisconnectedIcon()
+	gui.resetGuiAgentConfig()
 	gui.MenuItems.Connect.Disable()
 	for i := range gui.MenuItems.GatewayItems {
 		gui.MenuItems.GatewayItems[i].MenuItem.Disable()
@@ -245,19 +276,19 @@ func (gui *Gui) handleAgentStatus(agentStatus *pb.AgentStatus) {
 	}
 }
 
-func applyDisconnectedIcon() {
-	if cfg.BlackAndWhiteIcons {
+func (gui *Gui)applyDisconnectedIcon() {
+	if gui.Config.BlackAndWhiteIcons {
 		systray.SetIcon(NaisLogoBwDisconnected)
 	} else {
 		systray.SetIcon(NaisLogoRed)
 	}
 }
 
-func (gui* Gui) updateIcons() {
+func (gui *Gui) updateIcons() {
 	if gui.AgentStatus.GetConnectionState() == pb.AgentState_Disconnected {
-		applyDisconnectedIcon()
+		gui.applyDisconnectedIcon()
 	} else if gui.AgentStatus.GetConnectionState() == pb.AgentState_Connected {
-		if cfg.BlackAndWhiteIcons {
+		if gui.Config.BlackAndWhiteIcons {
 			systray.SetIcon(NaisLogoBwConnected)
 		} else {
 			systray.SetIcon(NaisLogoGreen)
@@ -282,37 +313,56 @@ func (gui *Gui) handleGuiEvent(guiEvent GuiEvent) {
 		}
 
 	case AutoConnectClicked:
-		if cfg.AutoConnect {
+		config, err := gui.DeviceAgentClient.GetAgentConfiguration(context.Background(), &pb.GetAgentConfigurationRequest{})
+		if err != nil {
+			log.Errorf("get agent config: %v", err)
+			break
+		}
+
+		config.Config.AutoConnect = gui.MenuItems.AutoConnect.Checked()
+
+		_, err = gui.DeviceAgentClient.SetAgentConfiguration(context.Background(), &pb.SetAgentConfigurationRequest{})
+		if err != nil {
+			log.Errorf("set agent config: %v", err)
+			break
+		}
+
+		if config.Config.AutoConnect {
 			gui.MenuItems.AutoConnect.Uncheck()
 		} else {
 			gui.MenuItems.AutoConnect.Check()
 		}
-		cfg.AutoConnect = !cfg.AutoConnect
-		cfg.Persist()
 
 	case BlackAndWhiteClicked:
-		if cfg.BlackAndWhiteIcons {
+		if gui.Config.BlackAndWhiteIcons {
 			gui.MenuItems.BlackAndWhite.Uncheck()
 		} else {
 			gui.MenuItems.BlackAndWhite.Check()
 		}
-		cfg.BlackAndWhiteIcons = !cfg.BlackAndWhiteIcons
+		gui.Config.BlackAndWhiteIcons = !gui.Config.BlackAndWhiteIcons
 		gui.updateIcons()
-		cfg.Persist()
+		gui.Config.Persist()
 
 	case ClientCertClicked:
-		_, err := gui.DeviceAgentClient.EnableClientCertRenewal(context.Background(), &pb.EnableCertRenewalRequest{Enable: !cfg.ClientCert})
+		config, err := gui.DeviceAgentClient.GetAgentConfiguration(context.Background(), &pb.GetAgentConfigurationRequest{})
 		if err != nil {
-			log.Errorf("Toggle client cert renewal: %v", err)
+			log.Errorf("get agent config: %v", err)
 			break
 		}
-		if cfg.ClientCert {
-			gui.MenuItems.ClientCert.Uncheck()
-		} else {
-			gui.MenuItems.ClientCert.Check()
+
+		config.Config.CertRenewal = gui.MenuItems.CertRenewal.Checked()
+
+		_, err = gui.DeviceAgentClient.SetAgentConfiguration(context.Background(), &pb.SetAgentConfigurationRequest{})
+		if err != nil {
+			log.Errorf("set agent config: %v", err)
+			break
 		}
-		cfg.ClientCert = !cfg.ClientCert
-		cfg.Persist()
+
+		if config.Config.CertRenewal {
+			gui.MenuItems.CertRenewal.Uncheck()
+		} else {
+			gui.MenuItems.CertRenewal.Check()
+		}
 
 	case ConnectClicked:
 		log.Infof("Connect button clicked")
@@ -329,19 +379,19 @@ func (gui *Gui) handleGuiEvent(guiEvent GuiEvent) {
 		}
 
 	case HelperLogClicked:
-		err := open.Open(filepath.Join(cfg.ConfigDir, "logs", "helper.log"))
+		err := open.Open(filepath.Join(gui.Config.ConfigDir, "logs", "helper.log"))
 		if err != nil {
 			log.Warn("opening device agent helper log: %w", err)
 		}
 
 	case DeviceLogClicked:
-		err := open.Open(filepath.Join(cfg.ConfigDir, "logs", "agent.log"))
+		err := open.Open(filepath.Join(gui.Config.ConfigDir, "logs", "agent.log"))
 		if err != nil {
 			log.Warn("opening device agent log: %w", err)
 		}
 
 	case LogClicked:
-		err := open.Open(filepath.Join(cfg.ConfigDir, "logs", "systray.log"))
+		err := open.Open(filepath.Join(gui.Config.ConfigDir, "logs", "systray.log"))
 		if err != nil {
 			log.Warn("opening device agent log: %w", err)
 		}

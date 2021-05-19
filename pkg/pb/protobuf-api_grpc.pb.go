@@ -192,7 +192,8 @@ type DeviceAgentClient interface {
 	// Log out of API server, shutting down all VPN connections.
 	Logout(ctx context.Context, in *LogoutRequest, opts ...grpc.CallOption) (*LogoutResponse, error)
 	// Start background renewal of client cert for NAV MS services
-	EnableClientCertRenewal(ctx context.Context, in *EnableCertRenewalRequest, opts ...grpc.CallOption) (*EnableCertRenewalResponse, error)
+	SetAgentConfiguration(ctx context.Context, in *SetAgentConfigurationRequest, opts ...grpc.CallOption) (*SetAgentConfigurationResponse, error)
+	GetAgentConfiguration(ctx context.Context, in *GetAgentConfigurationRequest, opts ...grpc.CallOption) (*GetAgentConfigurationResponse, error)
 }
 
 type deviceAgentClient struct {
@@ -262,9 +263,18 @@ func (c *deviceAgentClient) Logout(ctx context.Context, in *LogoutRequest, opts 
 	return out, nil
 }
 
-func (c *deviceAgentClient) EnableClientCertRenewal(ctx context.Context, in *EnableCertRenewalRequest, opts ...grpc.CallOption) (*EnableCertRenewalResponse, error) {
-	out := new(EnableCertRenewalResponse)
-	err := c.cc.Invoke(ctx, "/naisdevice.DeviceAgent/EnableClientCertRenewal", in, out, opts...)
+func (c *deviceAgentClient) SetAgentConfiguration(ctx context.Context, in *SetAgentConfigurationRequest, opts ...grpc.CallOption) (*SetAgentConfigurationResponse, error) {
+	out := new(SetAgentConfigurationResponse)
+	err := c.cc.Invoke(ctx, "/naisdevice.DeviceAgent/SetAgentConfiguration", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *deviceAgentClient) GetAgentConfiguration(ctx context.Context, in *GetAgentConfigurationRequest, opts ...grpc.CallOption) (*GetAgentConfigurationResponse, error) {
+	out := new(GetAgentConfigurationResponse)
+	err := c.cc.Invoke(ctx, "/naisdevice.DeviceAgent/GetAgentConfiguration", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -285,7 +295,8 @@ type DeviceAgentServer interface {
 	// Log out of API server, shutting down all VPN connections.
 	Logout(context.Context, *LogoutRequest) (*LogoutResponse, error)
 	// Start background renewal of client cert for NAV MS services
-	EnableClientCertRenewal(context.Context, *EnableCertRenewalRequest) (*EnableCertRenewalResponse, error)
+	SetAgentConfiguration(context.Context, *SetAgentConfigurationRequest) (*SetAgentConfigurationResponse, error)
+	GetAgentConfiguration(context.Context, *GetAgentConfigurationRequest) (*GetAgentConfigurationResponse, error)
 	mustEmbedUnimplementedDeviceAgentServer()
 }
 
@@ -305,8 +316,11 @@ func (UnimplementedDeviceAgentServer) Login(context.Context, *LoginRequest) (*Lo
 func (UnimplementedDeviceAgentServer) Logout(context.Context, *LogoutRequest) (*LogoutResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Logout not implemented")
 }
-func (UnimplementedDeviceAgentServer) EnableClientCertRenewal(context.Context, *EnableCertRenewalRequest) (*EnableCertRenewalResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method EnableClientCertRenewal not implemented")
+func (UnimplementedDeviceAgentServer) SetAgentConfiguration(context.Context, *SetAgentConfigurationRequest) (*SetAgentConfigurationResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method SetAgentConfiguration not implemented")
+}
+func (UnimplementedDeviceAgentServer) GetAgentConfiguration(context.Context, *GetAgentConfigurationRequest) (*GetAgentConfigurationResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetAgentConfiguration not implemented")
 }
 func (UnimplementedDeviceAgentServer) mustEmbedUnimplementedDeviceAgentServer() {}
 
@@ -396,20 +410,38 @@ func _DeviceAgent_Logout_Handler(srv interface{}, ctx context.Context, dec func(
 	return interceptor(ctx, in, info, handler)
 }
 
-func _DeviceAgent_EnableClientCertRenewal_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(EnableCertRenewalRequest)
+func _DeviceAgent_SetAgentConfiguration_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(SetAgentConfigurationRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(DeviceAgentServer).EnableClientCertRenewal(ctx, in)
+		return srv.(DeviceAgentServer).SetAgentConfiguration(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/naisdevice.DeviceAgent/EnableClientCertRenewal",
+		FullMethod: "/naisdevice.DeviceAgent/SetAgentConfiguration",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(DeviceAgentServer).EnableClientCertRenewal(ctx, req.(*EnableCertRenewalRequest))
+		return srv.(DeviceAgentServer).SetAgentConfiguration(ctx, req.(*SetAgentConfigurationRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _DeviceAgent_GetAgentConfiguration_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetAgentConfigurationRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(DeviceAgentServer).GetAgentConfiguration(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/naisdevice.DeviceAgent/GetAgentConfiguration",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(DeviceAgentServer).GetAgentConfiguration(ctx, req.(*GetAgentConfigurationRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -434,8 +466,12 @@ var DeviceAgent_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _DeviceAgent_Logout_Handler,
 		},
 		{
-			MethodName: "EnableClientCertRenewal",
-			Handler:    _DeviceAgent_EnableClientCertRenewal_Handler,
+			MethodName: "SetAgentConfiguration",
+			Handler:    _DeviceAgent_SetAgentConfiguration_Handler,
+		},
+		{
+			MethodName: "GetAgentConfiguration",
+			Handler:    _DeviceAgent_GetAgentConfiguration_Handler,
 		},
 	},
 	Streams: []grpc.StreamDesc{

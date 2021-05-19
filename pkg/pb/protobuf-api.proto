@@ -38,8 +38,12 @@ service DeviceAgent {
     rpc Logout (LogoutRequest) returns (LogoutResponse) {
     }
 
-    // Start background renewal of client cert for NAV MS services
-    rpc EnableClientCertRenewal (EnableCertRenewalRequest) returns (EnableCertRenewalResponse) {
+    // Set device agent configuration
+    rpc SetAgentConfiguration (SetAgentConfigurationRequest) returns (SetAgentConfigurationResponse) {
+    }
+
+    // Get the current configuration for the device agent
+    rpc GetAgentConfiguration (GetAgentConfigurationRequest) returns (GetAgentConfigurationResponse) {
     }
 }
 
@@ -86,12 +90,18 @@ message LogoutRequest {
 
 }
 
-message EnableCertRenewalRequest {
-    bool enable = 1;
+message SetAgentConfigurationRequest {
+    AgentConfiguration config = 1;
 }
 
-message EnableCertRenewalResponse {
+message SetAgentConfigurationResponse {
+}
 
+message GetAgentConfigurationRequest {
+}
+
+message GetAgentConfigurationResponse {
+  AgentConfiguration config = 1;
 }
 
 enum AgentState {
@@ -105,8 +115,6 @@ enum AgentState {
     SyncConfig = 7;
     HealthCheck = 8;
     AuthenticateBackoff = 9;
-    EnableClientCertRenewal = 10;
-    DisableClientCertRenewal = 11;
 }
 
 message AgentStatusRequest {
@@ -139,4 +147,9 @@ message Gateway {
 
 message Error {
     string message = 1;
+}
+
+message AgentConfiguration {
+    bool CertRenewal = 1;
+    bool AutoConnect = 2;
 }
