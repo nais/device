@@ -42,8 +42,8 @@ jobs:
 
           echo ${PPA_GPG_PRIVATE_KEY} | base64 -d > /dev/shm/private-key.asc
           gpg --import /dev/shm/private-key.asc
-          gpg --default-key --batch --pinentry-mode loopback --passphrase "${PPA_GPG_PASSPHRASE}" "${EMAIL}" -abs -o - Release > Release.gpg
-          gpg --default-key --batch --pinentry-mode loopback --passphrase "${PPA_GPG_PASSPHRASE}" "${EMAIL}" --clearsign -o - Release > InRelease
+          gpg --default-key --batch --pinentry-mode loopback --no-tty --yes --passphrase "${PPA_GPG_PASSPHRASE}" "${EMAIL}" -abs -o - Release > Release.gpg
+          gpg --default-key --batch --pinentry-mode loopback --no-tty --yes --passphrase "${PPA_GPG_PASSPHRASE}" "${EMAIL}" --clearsign -o - Release > InRelease
 
           git add .
           git --no-pager diff --cached
