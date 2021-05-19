@@ -50,11 +50,11 @@ jobs:
           echo "allow-loopback-pinentry" >> ~/.gnupg/gpg-agent.conf
           echo RELOADAGENT | gpg-connect-agent
           echo -n ${PPA_GPG_PRIVATE_KEY} | base64 -d > /tmp/private.key
-          gpg --import /tmp/private.key
+          gpg --no-tty --pinentry-mode=loopback --import /tmp/private.key
 
           # Sign repo artifacts
-          echo ${PPA_GPG_PASSPHRASE} | gpg --batch --no-tty --yes --passphrase-fd 0 --default-key "${EMAIL}" -abs -o - Release > Release.gpg
-          echo ${PPA_GPG_PASSPHRASE} | gpg --batch --no-tty --yes --passphrase-fd 0 --default-key "${EMAIL}" --clearsign -o - Release > InRelease
+          echo ${PPA_GPG_PASSPHRASE} | gpg --batch --no-tty --pinentry-mode=loopback --yes --passphrase-fd 0 --default-key "${EMAIL}" -abs -o - Release > Release.gpg
+          echo ${PPA_GPG_PASSPHRASE} | gpg --batch --no-tty --pinentry-mode=loopback --yes --passphrase-fd 0 --default-key "${EMAIL}" --clearsign -o - Release > InRelease
 
           # Commit and push changes
           git config user.email "${EMAIL}"
