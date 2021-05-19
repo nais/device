@@ -20,8 +20,8 @@ jobs:
           LATEST: ${{ steps.latest_version.outputs.latest_tag }}
           LATEST_DATE: ${{ steps.latest_version.outputs.latest_tag_published_at }}
           PPA_REPO_KEY: ${{ secrets.PPA_REPO_KEY }}
-          PPA_GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
-          PPA_GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
+          PPA_GPG_PRIVATE_KEY: ${{ secrets.PPA_GPG_PRIVATE_KEY }}
+          PPA_GPG_PASSPHRASE: ${{ secrets.PPA_GPG_PASSPHRASE }}
           EMAIL: aura@nav.no
         run: |
           echo "Version ${LATEST} was released at ${LATEST_DATE}"
