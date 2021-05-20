@@ -49,7 +49,7 @@ jobs:
           echo "pinentry-mode loopback" >> ~/.gnupg/gpg.conf
           echo "allow-loopback-pinentry" >> ~/.gnupg/gpg-agent.conf
           echo RELOADAGENT | gpg-connect-agent
-          gpg --import <(echo -n "${PPA_GPG_PRIVATE_KEY}" | base64 -d)
+          gpg --batch --import <(echo -n "${PPA_GPG_PRIVATE_KEY}" | base64 -d)
 
           # Sign repo artifacts
           echo ${PPA_GPG_PASSPHRASE} | gpg --batch --no-tty --pinentry-mode=loopback --yes --passphrase-fd 0 --default-key "${EMAIL}" -abs -o - Release > Release.gpg
