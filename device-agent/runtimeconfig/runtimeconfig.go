@@ -19,12 +19,12 @@ import (
 type RuntimeConfig struct {
 	Serial          string
 	BootstrapConfig *bootstrap.Config
-	Config          config.Config
+	Config          *config.Config
 	PrivateKey      []byte
 	SessionInfo     *auth.SessionInfo
 }
 
-func New(cfg config.Config) (*RuntimeConfig, error) {
+func New(cfg *config.Config) (*RuntimeConfig, error) {
 	rc := &RuntimeConfig{
 		Config: cfg,
 	}

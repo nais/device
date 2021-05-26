@@ -76,8 +76,8 @@ const (
 func NewGUI(ctx context.Context, client pb.DeviceAgentClient, cfg Config) *Gui {
 	gui := &Gui{
 		DeviceAgentClient: client,
-		Config: cfg,
-		ProgramContext: ctx,
+		Config:            cfg,
+		ProgramContext:    ctx,
 	}
 	gui.applyDisconnectedIcon()
 
@@ -276,7 +276,7 @@ func (gui *Gui) handleAgentStatus(agentStatus *pb.AgentStatus) {
 	}
 }
 
-func (gui *Gui)applyDisconnectedIcon() {
+func (gui *Gui) applyDisconnectedIcon() {
 	if gui.Config.BlackAndWhiteIcons {
 		systray.SetIcon(NaisLogoBwDisconnected)
 	} else {
@@ -313,24 +313,47 @@ func (gui *Gui) handleGuiEvent(guiEvent GuiEvent) {
 		}
 
 	case AutoConnectClicked:
-		config, err := gui.DeviceAgentClient.GetAgentConfiguration(context.Background(), &pb.GetAgentConfigurationRequest{})
+		getConfigResponse, err := gui.DeviceAgentClient.GetAgentConfiguration(context.Background(), &pb.GetAgentConfigurationRequest{})
 		if err != nil {
 			log.Errorf("get agent config: %v", err)
 			break
 		}
 
-		config.Config.AutoConnect = gui.MenuItems.AutoConnect.Checked()
+		getConfigResponse.Config.AutoConnect = !gui.MenuItems.AutoConnect.Checked()
+		setConfigRequest := &pb.SetAgentConfigurationRequest{Config: getConfigResponse.Config}
 
-		_, err = gui.DeviceAgentClient.SetAgentConfiguration(context.Background(), &pb.SetAgentConfigurationRequest{})
+		_, err = gui.DeviceAgentClient.SetAgentConfiguration(context.Background(), setConfigRequest)
 		if err != nil {
 			log.Errorf("set agent config: %v", err)
 			break
 		}
 
-		if config.Config.AutoConnect {
+		if gui.MenuItems.AutoConnect.Checked() {
 			gui.MenuItems.AutoConnect.Uncheck()
 		} else {
 			gui.MenuItems.AutoConnect.Check()
+		}
+
+	case ClientCertClicked:
+		getConfigResponse, err := gui.DeviceAgentClient.GetAgentConfiguration(context.Background(), &pb.GetAgentConfigurationRequest{})
+		if err != nil {
+			log.Errorf("get agent config: %v", err)
+			break
+		}
+
+		getConfigResponse.Config.CertRenewal = !gui.MenuItems.CertRenewal.Checked()
+		setConfigRequest := &pb.SetAgentConfigurationRequest{Config: getConfigResponse.Config}
+
+		_, err = gui.DeviceAgentClient.SetAgentConfiguration(context.Background(), setConfigRequest)
+		if err != nil {
+			log.Errorf("set agent config: %v", err)
+			break
+		}
+
+		if gui.MenuItems.CertRenewal.Checked() {
+			gui.MenuItems.CertRenewal.Uncheck()
+		} else {
+			gui.MenuItems.CertRenewal.Check()
 		}
 
 	case BlackAndWhiteClicked:
@@ -342,27 +365,6 @@ func (gui *Gui) handleGuiEvent(guiEvent GuiEvent) {
 		gui.Config.BlackAndWhiteIcons = !gui.Config.BlackAndWhiteIcons
 		gui.updateIcons()
 		gui.Config.Persist()
-
-	case ClientCertClicked:
-		config, err := gui.DeviceAgentClient.GetAgentConfiguration(context.Background(), &pb.GetAgentConfigurationRequest{})
-		if err != nil {
-			log.Errorf("get agent config: %v", err)
-			break
-		}
-
-		config.Config.CertRenewal = gui.MenuItems.CertRenewal.Checked()
-
-		_, err = gui.DeviceAgentClient.SetAgentConfiguration(context.Background(), &pb.SetAgentConfigurationRequest{})
-		if err != nil {
-			log.Errorf("set agent config: %v", err)
-			break
-		}
-
-		if config.Config.CertRenewal {
-			gui.MenuItems.CertRenewal.Uncheck()
-		} else {
-			gui.MenuItems.CertRenewal.Check()
-		}
 
 	case ConnectClicked:
 		log.Infof("Connect button clicked")

@@ -26,23 +26,24 @@ func init() {
 	flag.StringVar(&cfg.APIServer, "apiserver", cfg.APIServer, "base url to apiserver")
 	flag.StringVar(&cfg.BootstrapAPI, "bootstrap-api", cfg.BootstrapAPI, "url to bootstrap API")
 	flag.StringVar(&cfg.ConfigDir, "config-dir", cfg.ConfigDir, "path to agent config directory")
-	flag.BoolVar(&cfg.RenewMicrosoftCert, "microsoft-cert", cfg.RenewMicrosoftCert, "enable renewal of NAV Microsoft client cert")
 	flag.StringVar(&cfg.Interface, "interface", cfg.Interface, "name of tunnel interface")
 	flag.StringVar(&cfg.LogLevel, "log-level", cfg.LogLevel, "which log level to output")
 	flag.StringVar(&cfg.GrpcAddress, "grpc-address", cfg.GrpcAddress, "unix socket for gRPC server")
 	flag.StringVar(&cfg.DeviceAgentHelperAddress, "device-agent-helper-address", cfg.DeviceAgentHelperAddress, "device-agent-helper unix socket")
-	flag.BoolVar(&cfg.AutoConnect, "connect", false, "auto connect")
-	flag.Parse()
-	cfg.SetDefaults()
 }
 
 func main() {
+	flag.Parse()
+	cfg.SetDefaults()
+
 	logger.SetupLogger(cfg.LogLevel, cfg.ConfigDir, "agent.log")
+
+	cfg.PopulateAgentConfiguration()
 
 	log.Infof("naisdevice-agent %s starting up", version.Version)
 	log.Infof("configuration: %+v", cfg)
 
-	err := startDeviceAgent()
+	err := startDeviceAgent(&cfg)
 	if err != nil {
 		notify.Errorf(err.Error())
 		log.Errorf("naisdevice-agent terminated with error.")
@@ -52,8 +53,8 @@ func main() {
 	log.Infof("naisdevice-agent shutting down.")
 }
 
-func startDeviceAgent() error {
-	if err := filesystem.EnsurePrerequisites(&cfg); err != nil {
+func startDeviceAgent(cfg *config.Config) error {
+	if err := filesystem.EnsurePrerequisites(cfg); err != nil {
 		return fmt.Errorf("missing prerequisites: %s", err)
 	}
 
@@ -82,7 +83,7 @@ func startDeviceAgent() error {
 	log.Infof("accepting network connections on unix socket %s", cfg.GrpcAddress)
 
 	grpcServer := grpc.NewServer()
-	das := device_agent.NewServer(client, cfg.RenewMicrosoftCert)
+	das := device_agent.NewServer(client, cfg)
 	pb.RegisterDeviceAgentServer(grpcServer, das)
 
 	go func() {

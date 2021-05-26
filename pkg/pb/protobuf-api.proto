@@ -68,7 +68,6 @@ message ConfigureJITAResponse {
 }
 
 message LoginResponse {
-
 }
 
 message LogoutResponse {
@@ -115,6 +114,8 @@ enum AgentState {
     SyncConfig = 7;
     HealthCheck = 8;
     AuthenticateBackoff = 9;
+    AgentConfigurationChanged = 10;
+    RenewCert = 11;
 }
 
 message AgentStatusRequest {

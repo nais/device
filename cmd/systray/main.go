@@ -25,9 +25,9 @@ func main() {
 
 	// Default config
 	cfg := &systray.Config{
-		GrpcAddress: filepath.Join(configDir, "agent.sock"),
-		ConfigDir:   configDir,
-		LogLevel:    log.InfoLevel.String(),
+		GrpcAddress:        filepath.Join(configDir, "agent.sock"),
+		ConfigDir:          configDir,
+		LogLevel:           log.InfoLevel.String(),
 		BlackAndWhiteIcons: false,
 	}
 	cfg.Populate()
@@ -60,4 +60,3 @@ func main() {
 
 	systray.Spawn(*cfg)
 }
-

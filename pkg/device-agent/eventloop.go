@@ -6,7 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	client_cert "github.com/nais/device/pkg/client-cert"
+	clientcert "github.com/nais/device/pkg/client-cert"
 	"net"
 	"net/http"
 	"os"
@@ -27,17 +27,17 @@ import (
 )
 
 const (
-	healthCheckInterval  = 20 * time.Second // how often to healthcheck gateways
-	syncConfigBackoff    = 15 * time.Second // re-queue interval when config synchronization times out
-	syncConfigInterval   = 5 * time.Minute  // how often to synchronize config with apiserver
-	syncConfigTimeout    = 5 * time.Second  // timeout for config synchronization
-	versionCheckInterval = 1 * time.Hour    // how often to check for a new version of naisdevice
-	versionCheckTimeout  = 3 * time.Second  // timeout for new version check
-	authFlowTimeout      = 30 * time.Second // total timeout for authenticating user (AAD login in browser, redirect to localhost, exchange code for token)
-	authenticateBackoff  = 10 * time.Second // time to wait between authentication attempts
-	approximateInfinity = time.Hour * 69_420 // Name describes purpose. Used for renewing microsoft client certs automatically
-	CertRenewalInterval = time.Hour * 23 // Microsoft Client certificate validity/renewal interval
-	certRenewalRetryTimeout = time.Second * 10 // Self-explanatory (Microsoft Client certificate)
+	healthCheckInterval  = 20 * time.Second   // how often to healthcheck gateways
+	syncConfigBackoff    = 15 * time.Second   // re-queue interval when config synchronization times out
+	syncConfigInterval   = 5 * time.Minute    // how often to synchronize config with apiserver
+	syncConfigTimeout    = 5 * time.Second    // timeout for config synchronization
+	versionCheckInterval = 1 * time.Hour      // how often to check for a new version of naisdevice
+	versionCheckTimeout  = 3 * time.Second    // timeout for new version check
+	authFlowTimeout      = 30 * time.Second   // total timeout for authenticating user (AAD login in browser, redirect to localhost, exchange code for token)
+	authenticateBackoff  = 10 * time.Second   // time to wait between authentication attempts
+	approximateInfinity  = time.Hour * 69_420 // Name describes purpose. Used for renewing microsoft client certs automatically
+	certRenewalInterval  = time.Hour * 23     // Microsoft Client certificate validity/renewal interval
+	certRenewalBackoff   = time.Second * 10   // Self-explanatory (Microsoft Client certificate)
 )
 
 func (das *DeviceAgentServer) ConfigureHelper(ctx context.Context, rc *runtimeconfig.RuntimeConfig, gateways []*pb.Gateway) error {
@@ -61,6 +61,10 @@ func (das *DeviceAgentServer) EventLoop(rc *runtimeconfig.RuntimeConfig) {
 	certRenewalTicker := time.NewTicker(approximateInfinity)
 	authenticateTimer := time.NewTimer(1 * time.Hour)
 	authenticateTimer.Stop()
+
+	if das.Config.AgentConfiguration.CertRenewal {
+		certRenewalTicker.Reset(1 * time.Second)
+	}
 
 	status := &pb.AgentStatus{}
 	das.stateChange <- status.ConnectionState
@@ -93,21 +97,15 @@ func (das *DeviceAgentServer) EventLoop(rc *runtimeconfig.RuntimeConfig) {
 		case <-syncConfigTicker.C:
 			if status.ConnectionState == pb.AgentState_Connected {
 				das.stateChange <- pb.AgentState_SyncConfig
+			} else {
+				log.Debugf("sync-config skipped, not connected")
 			}
 
 		case <-certRenewalTicker.C:
-			certRenewalTicker.Reset(CertRenewalInterval)
-			log.Infof("State: %v", status.ConnectionState)
 			if status.ConnectionState == pb.AgentState_Connected {
-				err := client_cert.Renew()
-				if err != nil {
-					certRenewalTicker.Reset(certRenewalRetryTimeout)
-					log.Errorf("renewing NAV microsoft client certificate: %v", err)
-				}
-				log.Info("NAV Microsoft Client Certificate renewed")
+				das.stateChange <- pb.AgentState_RenewCert
 			} else {
-				log.Infof("Cert renewal skipped, agent not connected")
-				certRenewalTicker.Reset(certRenewalRetryTimeout)
+				log.Debugf("cert renewal skipped, not connected")
 			}
 
 		case <-healthCheckTicker.C:
@@ -183,10 +181,12 @@ func (das *DeviceAgentServer) EventLoop(rc *runtimeconfig.RuntimeConfig) {
 				authenticateTimer.Reset(authenticateBackoff)
 
 			case pb.AgentState_Connected:
-				// noop
 
 			case pb.AgentState_Disconnected:
 				status.Gateways = make([]*pb.Gateway, 0)
+				if das.Config.AgentConfiguration.AutoConnect {
+					das.stateChange <- pb.AgentState_Bootstrapping
+				}
 
 			case pb.AgentState_Quitting:
 				return
@@ -201,8 +201,6 @@ func (das *DeviceAgentServer) EventLoop(rc *runtimeconfig.RuntimeConfig) {
 				if err != nil {
 					notify.Errorf(err.Error())
 				}
-
-				certRenewalTicker.Reset(approximateInfinity)
 
 				das.stateChange <- pb.AgentState_Disconnected
 
@@ -283,12 +281,23 @@ func (das *DeviceAgentServer) EventLoop(rc *runtimeconfig.RuntimeConfig) {
 
 			case pb.AgentState_Unhealthy:
 
-			case pb.AgentState_EnableClientCertRenewal:
-				certRenewalTicker.Reset(time.Second * 1)
+			case pb.AgentState_AgentConfigurationChanged:
+				if das.Config.AgentConfiguration.CertRenewal {
+					certRenewalTicker.Reset(1 * time.Second)
+				}
 				das.stateChange <- previousState
 
-			case pb.AgentState_DisableClientCertRenewal:
-				certRenewalTicker.Reset(approximateInfinity)
+			case pb.AgentState_RenewCert:
+				err := clientcert.Renew()
+				if err != nil {
+					certRenewalTicker.Reset(certRenewalBackoff)
+					log.Errorf("Renewing NAV microsoft client certificate: %v", err)
+					break
+				}
+
+				certRenewalTicker.Reset(certRenewalInterval)
+				log.Info("NAV Microsoft Client Certificate renewed")
+
 				das.stateChange <- previousState
 			}
 		}
@@ -311,7 +320,12 @@ func newVersionAvailable(ctx context.Context) (bool, error) {
 		return false, fmt.Errorf("retrieve current release version: %s", err)
 	}
 
-	defer resp.Body.Close()
+	defer func() {
+		err := resp.Body.Close()
+		if err != nil {
+			log.Errorf("close request body: %v", err)
+		}
+	}()
 	res := &response{}
 	decoder := json.NewDecoder(resp.Body)
 	err = decoder.Decode(res)
@@ -331,7 +345,11 @@ func ping(addr string) error {
 	if err != nil {
 		return err
 	}
-	c.Close()
+
+	err = c.Close()
+	if err != nil {
+		log.Errorf("closing ping connection: %v", err)
+	}
 
 	return nil
 }
