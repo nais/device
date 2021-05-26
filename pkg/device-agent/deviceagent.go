@@ -3,6 +3,7 @@ package device_agent
 import (
 	"context"
 	"fmt"
+	"github.com/nais/device/device-agent/config"
 	"sync"
 
 	"github.com/google/uuid"
@@ -15,13 +16,13 @@ import (
 
 type DeviceAgentServer struct {
 	pb.UnimplementedDeviceAgentServer
-	AgentStatus                       *pb.AgentStatus
-	DeviceHelper                      pb.DeviceHelperClient
-	lock                              sync.Mutex
-	stateChange                       chan pb.AgentState
-	statusChange                      chan *pb.AgentStatus
-	streams                           map[uuid.UUID]pb.DeviceAgent_StatusServer
-	enableMicrosoftCertificateRenewal bool
+	AgentStatus  *pb.AgentStatus
+	DeviceHelper pb.DeviceHelperClient
+	lock         sync.Mutex
+	stateChange  chan pb.AgentState
+	statusChange chan *pb.AgentStatus
+	streams      map[uuid.UUID]pb.DeviceAgent_StatusServer
+	Config       *config.Config
 }
 
 func (das *DeviceAgentServer) Login(ctx context.Context, request *pb.LoginRequest) (*pb.LoginResponse, error) {
@@ -93,20 +94,26 @@ func (das *DeviceAgentServer) UpdateAgentStatus(status *pb.AgentStatus) {
 	}
 }
 
-func (das *DeviceAgentServer) EnableClientCertRenewal(ctx context.Context, req *pb.EnableCertRenewalRequest) (*pb.EnableCertRenewalResponse, error) {
-	if req.Enable {
-		das.stateChange <-pb.AgentState_EnableClientCertRenewal
-	} else {
-		das.stateChange <-pb.AgentState_DisableClientCertRenewal
-	}
-	return &pb.EnableCertRenewalResponse{}, nil
+func (das *DeviceAgentServer) SetAgentConfiguration(ctx context.Context, req *pb.SetAgentConfigurationRequest) (*pb.SetAgentConfigurationResponse, error) {
+	log.Infof("setting agent config to: %+v", *req.Config)
+	das.Config.AgentConfiguration = req.Config
+	das.Config.PersistAgentConfiguration()
+	das.stateChange <- pb.AgentState_AgentConfigurationChanged
+	return &pb.SetAgentConfigurationResponse{}, nil
 }
 
-func NewServer(helper pb.DeviceHelperClient, enableMicrosoftCertificateRenewal bool) *DeviceAgentServer {
+func (das *DeviceAgentServer) GetAgentConfiguration(ctx context.Context, req *pb.GetAgentConfigurationRequest) (*pb.GetAgentConfigurationResponse, error) {
+	log.Infof("returning agent config: %+v", *das.Config.AgentConfiguration)
+	return &pb.GetAgentConfigurationResponse{
+		Config: das.Config.AgentConfiguration,
+	}, nil
+}
+
+func NewServer(helper pb.DeviceHelperClient, cfg *config.Config) *DeviceAgentServer {
 	return &DeviceAgentServer{
 		DeviceHelper: helper,
 		stateChange:  make(chan pb.AgentState, 32),
 		streams:      make(map[uuid.UUID]pb.DeviceAgent_StatusServer, 0),
-		enableMicrosoftCertificateRenewal: enableMicrosoftCertificateRenewal,
+		Config:       cfg,
 	}
 }

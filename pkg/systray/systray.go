@@ -46,6 +46,5 @@ func onExit() {
 }
 
 func Spawn(systrayConfig Config) {
-	systray.Run(func() {onReady(systrayConfig)}, onExit)
+	systray.Run(func() { onReady(systrayConfig) }, onExit)
 }
-

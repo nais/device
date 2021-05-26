@@ -1,6 +1,11 @@
 package config
 
 import (
+	"errors"
+	"github.com/nais/device/pkg/pb"
+	"google.golang.org/protobuf/encoding/protojson"
+	"io/ioutil"
+	"os"
 	"path/filepath"
 
 	"github.com/nais/device/pkg/config"
@@ -8,6 +13,8 @@ import (
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/endpoints"
 )
+
+const File = "agent-config.json"
 
 type Config struct {
 	APIServer                string
@@ -25,10 +32,9 @@ type Config struct {
 	OAuth2Config             oauth2.Config
 	Platform                 string
 	BootstrapAPI             string
-	AutoConnect              bool
 	GrpcAddress              string
 	DeviceAgentHelperAddress string
-	RenewMicrosoftCert       bool
+	AgentConfiguration       *pb.AgentConfiguration
 }
 
 func (c *Config) SetDefaults() {
@@ -60,4 +66,40 @@ func DefaultConfig() Config {
 			RedirectURL: "http://localhost:51800",
 		},
 	}
+}
+
+func (c *Config) PersistAgentConfiguration() {
+	agentConfigPath := filepath.Join(c.ConfigDir, File)
+
+	out, err := protojson.Marshal(c.AgentConfiguration)
+	if err != nil {
+		log.Errorf("Encode AgentConfiguration: %v", err)
+	}
+
+	log.Debugf("persisting agent-config: %+v", c.AgentConfiguration)
+
+	if err := ioutil.WriteFile(agentConfigPath, out, 0644); err != nil {
+		log.Errorf("Write AgentConfiguration: %v", err)
+	}
+}
+
+func (c *Config) PopulateAgentConfiguration() {
+	agentConfigPath := filepath.Join(c.ConfigDir, File)
+	in, err := ioutil.ReadFile(agentConfigPath)
+	if err != nil {
+		if errors.Is(err, os.ErrNotExist) {
+			c.AgentConfiguration = &pb.AgentConfiguration{}
+			return
+		}
+
+		log.Errorf("Read AgentConfiguration: %v", err)
+	}
+
+	tempCfg := &pb.AgentConfiguration{}
+	if err := protojson.Unmarshal(in, tempCfg); err != nil {
+		log.Fatalln("Failed to parse address book:", err)
+	}
+
+	c.AgentConfiguration = tempCfg
+	log.Debugf("read agent-config: %v", c.AgentConfiguration)
 }

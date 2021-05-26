@@ -191,8 +191,9 @@ type DeviceAgentClient interface {
 	Login(ctx context.Context, in *LoginRequest, opts ...grpc.CallOption) (*LoginResponse, error)
 	// Log out of API server, shutting down all VPN connections.
 	Logout(ctx context.Context, in *LogoutRequest, opts ...grpc.CallOption) (*LogoutResponse, error)
-	// Start background renewal of client cert for NAV MS services
+	// Set device agent configuration
 	SetAgentConfiguration(ctx context.Context, in *SetAgentConfigurationRequest, opts ...grpc.CallOption) (*SetAgentConfigurationResponse, error)
+	// Get the current configuration for the device agent
 	GetAgentConfiguration(ctx context.Context, in *GetAgentConfigurationRequest, opts ...grpc.CallOption) (*GetAgentConfigurationResponse, error)
 }
 
@@ -294,8 +295,9 @@ type DeviceAgentServer interface {
 	Login(context.Context, *LoginRequest) (*LoginResponse, error)
 	// Log out of API server, shutting down all VPN connections.
 	Logout(context.Context, *LogoutRequest) (*LogoutResponse, error)
-	// Start background renewal of client cert for NAV MS services
+	// Set device agent configuration
 	SetAgentConfiguration(context.Context, *SetAgentConfigurationRequest) (*SetAgentConfigurationResponse, error)
+	// Get the current configuration for the device agent
 	GetAgentConfiguration(context.Context, *GetAgentConfigurationRequest) (*GetAgentConfigurationResponse, error)
 	mustEmbedUnimplementedDeviceAgentServer()
 }
