@@ -52,5 +52,6 @@ chown -R "${user}:" "${config_dir}"
 set +e
 systemctl is-active --quiet device-agent-helper.service \
 	&& systemctl stop device-agent-helper.service
+
 killall naisdevice-systray || true
 killall naisdevice-agent || true
