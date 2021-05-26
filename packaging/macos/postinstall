@@ -48,3 +48,6 @@ chmod 600 "$destination"
 launchctl load "$destination"
 
 echo "Installed service $daemon_name"
+
+killall naisdevice-agent || true
+killall naisdevice-systray || true
