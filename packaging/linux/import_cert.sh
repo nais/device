@@ -15,7 +15,7 @@ main() {
   if [[ -d "$HOME/.pki/nssdb" ]]; then
     nss_databases+=("sql:$HOME/.pki/nssdb")
   fi
-  for ff_profile in "$HOME"/.mozilla/firefox/*.default-release/; do
+  for ff_profile in "$HOME"/.mozilla/firefox/*.default-release*/; do
     nss_databases+=("$ff_profile")
   done
   echo "nss databases: ${nss_databases[*]}"
