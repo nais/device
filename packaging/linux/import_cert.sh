@@ -5,7 +5,7 @@ download_cert() {
   curl --silent --fail https://outtune-api.prod-gcp.nais.io/cert --data @- << EOF | jq -r '.cert_pem' > cert.pem
   {
     "serial": "$(cat ~/.config/naisdevice/product_serial)",
-    "public_key_pem": "$(base64 --wrap 0 < ~/.config/naisdevice/browser_cert_pubkey.pem)"
+    "public_key_pem": "$(base64 --wrap 0 <<< "$1")"
   }
 EOF
 }
@@ -26,39 +26,36 @@ main() {
   fi
 
   for db in "${nss_databases[@]}"; do
-    echo "updating db: $db"
+    echo "updating db: '$db'"
     # If key already enrolled:
-    if certutil -d "$db" -K -n naisdevice &> /dev/null; then
-      echo "cert only import"
+    if certutil -d "$db" -L -n naisdevice &> /dev/null; then
+      echo "renew cert"
       (
         set -e
         cd "$(mktemp -d)" && echo "working in: $(pwd)"
-        download_cert
 
-        if certutil -d "$db" -D -n naisdevice > /dev/null; then
-          echo "removed old cert"
-        else
-          echo "failed to remove old cert or no old cert found"
-        fi
-
+        pubkey="$(certutil -L -n naisdevice -d "$db" -a | openssl x509 -pubkey -noout -in -)"
+        download_cert "$pubkey"
+        certutil -d "$db" -D -n naisdevice
         certutil -d "$db" -A -n naisdevice -i cert.pem -t ,,
+
         rm -f cert.pem
-        echo "done"
+        echo "import to '$db' done"
       )
     else
-      echo "first time import"
+      echo "new cert"
       (
         set -e
         cd "$(mktemp -d)" && echo "working in: $(pwd)"
-        openssl genrsa -out key.pem 4096
-        openssl rsa -in key.pem -pubout -outform PEM > ~/.config/naisdevice/browser_cert_pubkey.pem
-        download_cert
 
+        openssl genrsa -out key.pem 4096
+        pubkey="$(openssl rsa -in key.pem -pubout -outform PEM)"
+        download_cert "$pubkey"
         openssl pkcs12 -export -out bundle.p12 -in cert.pem -inkey key.pem -password pass:asd123 -name naisdevice
         pk12util -d "$db" -i bundle.p12 -W asd123 -K ""
 
         rm -f key.pem cert.pem bundle.p12
-        echo "done"
+        echo "import to '$db' done"
       )
     fi
   done
@@ -67,5 +64,8 @@ main() {
 # update $db/ClientAuthRememberList.txt with cert prefs:
 # nav-no.managed.us2.access-control.cas.ms:443
 # nav-no.managed.prod04.access-control.cas.ms
+
+# clean up old pubkey storage:
+rm -f ~/.config/naisdevice/browser_cert_pubkey.pem
 
 main
