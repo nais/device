@@ -310,7 +310,7 @@ func (das *DeviceAgentServer) EventLoop(rc *runtimeconfig.RuntimeConfig) {
 func writeStatusTofile(path string, state pb.AgentState) {
 	err := ioutil.WriteFile(path, []byte(state.String()), 0644)
 	if err != nil {
-		log.Errorf("unable to write agent status to file: %w", err)
+		log.Errorf("unable to write agent status to file: %v", err)
 	}
 }
 
