@@ -7,10 +7,12 @@ import (
 	"errors"
 	"fmt"
 	clientcert "github.com/nais/device/pkg/client-cert"
+	"io/ioutil"
 	"net"
 	"net/http"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"sync"
 	"syscall"
 	"time"
@@ -124,6 +126,7 @@ func (das *DeviceAgentServer) EventLoop(rc *runtimeconfig.RuntimeConfig) {
 			}
 
 		case newState := <-das.stateChange:
+			writeStatusTofile(filepath.Join(das.Config.ConfigDir, "agent_status"), newState)
 			previousState := status.ConnectionState
 			status.ConnectionState = newState
 			log.Infof("state changed to %s", status.ConnectionState)
@@ -301,6 +304,13 @@ func (das *DeviceAgentServer) EventLoop(rc *runtimeconfig.RuntimeConfig) {
 				das.stateChange <- previousState
 			}
 		}
+	}
+}
+
+func writeStatusTofile(path string, state pb.AgentState) {
+	err := ioutil.WriteFile(path, []byte(state.String()), 0644)
+	if err != nil {
+		log.Errorf("unable to write agent status to file: %w", err)
 	}
 }
 
