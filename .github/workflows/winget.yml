@@ -32,8 +32,7 @@ jobs:
           cd wingetrepo
 
           mkdir -p manifests/n/NAV/naisdevice/${LATEST}
-          cd manifests/n/NAV/naisdevice/${LATEST}
-          cat <<EOF >naisdevice.yaml
+          cat <<EOF >manifests/n/NAV/naisdevice/${LATEST}/naisdevice.yaml
           PackageIdentifier: NAV.naisdevice
           PackageVersion: ${LATEST}
           PackageName: naisdevice
