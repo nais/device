@@ -55,12 +55,11 @@ jobs:
           ManifestVersion: 1.0.0
           EOF
 
-          cat manifests/n/NAV/naisdevice/${LATEST}/naisdevice.yaml
-
-          # Commit and push changes
-          #git config user.email "${EMAIL}"
-          #git config user.name "naisdevice pipeline"
-          #git add .
-          #git --no-pager diff --cached
-          #git commit -a -m "Add version ${LATEST} of naisdevice.msi"
+          # Commit and push changes to fork
+          git config user.email "${EMAIL}"
+          git config user.name "naisdevice pipeline"
+          git checkout -b "release-$LATEST"
+          git add .
+          git --no-pager diff --cached
+          git commit -a -m "Add version ${LATEST} of naisdevice.msi"
           #git push
