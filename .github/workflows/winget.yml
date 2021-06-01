@@ -68,4 +68,4 @@ jobs:
           git add .
           git --no-pager diff --cached
           git commit -a -m "Add version ${LATEST} of naisdevice.msi"
-          git push --set-upstream origin $BRANCHNAME
+          git push --all origin
