@@ -43,7 +43,7 @@ jobs:
           PackageName: naisdevice
           Publisher: NAV
           License: MIT
-          LicenseUrl: https://github.com/nais/device/LICENSE
+          LicenseUrl: https://github.com/nais/device/blob/main/LICENSE
           Tags:
           - vpn
           - security
