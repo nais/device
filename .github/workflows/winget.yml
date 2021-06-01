@@ -37,7 +37,7 @@ jobs:
           git merge upstream/master
 
           mkdir -p manifests/n/NAV/naisdevice/${LATEST}
-          cat <<EOF >manifests/n/NAV/naisdevice/${LATEST}/naisdevice.yaml
+          cat <<EOF >manifests/n/NAV/naisdevice/${LATEST}/NAV.naisdevice.yaml
           PackageIdentifier: NAV.naisdevice
           PackageVersion: ${LATEST}
           PackageName: naisdevice
