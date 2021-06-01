@@ -28,8 +28,15 @@ jobs:
           wget https://github.com/nais/device/releases/download/${LATEST}/naisdevice.msi -O naisdevice.msi
           MSICHECKSUM=$(sha256sum naisdevice.msi | awk {'print $1}')
 
+          # setup git and fetch all the latest and greatest stuff
+          git config user.email "${EMAIL}"
+          git config user.name "naisdevice pipeline"
           git clone git@github.com:nais/winget-pkgs.git wingetrepo
           cd wingetrepo
+          git remote add upstream git@github.com:microsoft/winget-pkgs.git
+          git fetch upstream
+          git checkout master
+          git merge upstream/master
 
           mkdir -p manifests/n/NAV/naisdevice/${LATEST}
           cat <<EOF >manifests/n/NAV/naisdevice/${LATEST}/naisdevice.yaml
@@ -56,10 +63,9 @@ jobs:
           EOF
 
           # Commit and push changes to fork
-          git config user.email "${EMAIL}"
-          git config user.name "naisdevice pipeline"
-          git checkout -b "release-$LATEST"
+          BRANCHNAME=naisdevice-$LATEST
+          git checkout -b $BRANCHNAME
           git add .
           git --no-pager diff --cached
           git commit -a -m "Add version ${LATEST} of naisdevice.msi"
-          #git push
+          git push --set-upstream origin $BRANCHNAME
