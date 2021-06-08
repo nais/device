@@ -94,7 +94,7 @@ func NewGUI(ctx context.Context, client pb.DeviceAgentClient, cfg Config) *Gui {
 	gui.MenuItems.Settings = systray.AddMenuItem("Settings", "")
 	gui.MenuItems.AutoConnect = gui.MenuItems.Settings.AddSubMenuItemCheckbox("Connect automatically on startup", "", false)
 	gui.MenuItems.BlackAndWhite = gui.MenuItems.Settings.AddSubMenuItemCheckbox("Black and white icons", "", cfg.BlackAndWhiteIcons)
-	gui.MenuItems.CertRenewal = gui.MenuItems.Settings.AddSubMenuItemCheckbox("Make me NAV-compliant (beta)", "", false)
+	gui.MenuItems.CertRenewal = gui.MenuItems.Settings.AddSubMenuItemCheckbox("Give me Microsoft Access Certificate", "", false)
 	gui.MenuItems.DeviceLog = gui.MenuItems.Logs.AddSubMenuItem("Agent", "")
 	gui.MenuItems.HelperLog = gui.MenuItems.Logs.AddSubMenuItem("Helper", "")
 	gui.MenuItems.SystrayLog = gui.MenuItems.Logs.AddSubMenuItem("Systray", "")
