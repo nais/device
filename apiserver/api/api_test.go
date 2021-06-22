@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/nais/device/pkg/random"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -184,7 +185,7 @@ func addDevice(t *testing.T, db *database.APIServerDB, ctx context.Context, seri
 
 func addSessionInfo(t *testing.T, db *database.APIServerDB, ctx context.Context, databaseDevice *database.Device, userId string, groups []string) *database.SessionInfo {
 	databaseSessionInfo := database.SessionInfo{
-		Key:      "dbSessionKey",
+		Key:      random.RandomString(20, random.LettersAndNumbers),
 		Expiry:   time.Now().Add(time.Minute).Unix(),
 		Device:   databaseDevice,
 		Groups:   groups,

@@ -1,3 +1,6 @@
+-- Run the entire migration as an atomic operation.
+START TRANSACTION ISOLATION LEVEL SERIALIZABLE READ WRITE;
+
 CREATE TYPE platform AS ENUM ('darwin', 'linux', 'windows');
 
 CREATE TABLE device
@@ -35,3 +38,15 @@ CREATE TABLE session
     groups    varchar,
     object_id varchar
 );
+
+-- Database migration
+CREATE TABLE migrations
+(
+    version int primary key          not null,
+    created timestamp with time zone not null
+);
+
+-- Mark this database migration as completed.
+INSERT INTO migrations (version, created)
+VALUES (1, now());
+COMMIT;
