@@ -60,7 +60,10 @@ local:
 	go build -o bin/local/bootstrap-api ./cmd/bootstrap-api
 
 run-postgres:
-	docker run -e POSTGRES_PASSWORD=postgres --rm --name postgres -p 5432:5432 -d postgres:12
+	docker run -e POSTGRES_PASSWORD=postgres --rm --name postgres -p 5432:5432 -d \
+	  -v ${PWD}/apiserver/database/schema/0001_schema.sql:/docker-entrypoint-initdb.d/0001_schema.sql \
+	  -v ${PWD}/testdata.sql:/docker-entrypoint-initdb.d/testdata.sql \
+		postgres:12
 
 run-postgres-test:
 	docker run -e POSTGRES_PASSWORD=postgres --rm --name postgres-test -p 5433:5432 -d postgres:12
