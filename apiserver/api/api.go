@@ -88,10 +88,11 @@ func healthy(devices []database.Device) []database.Device {
 		}
 
 		if *device.Healthy && timeNow.Before(kolideLastSeenDevice.Add(MaxTimeSinceKolideLastSeen)) {
-			healthyDevices = append(healthyDevices, device)
-		} else {
-			log.Tracef("Skipping unhealthy device: %s", device.Serial)
+			log.Infof("Would have skipped device: %s with owner %s because it has not been seen in a while.", device.Serial, device.Username)
 		}
+
+		healthyDevices = append(healthyDevices, device)
+
 	}
 
 	return healthyDevices
