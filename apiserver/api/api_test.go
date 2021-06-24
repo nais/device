@@ -309,6 +309,8 @@ func setup(t *testing.T, j *jita.Jita) (*database.APIServerDB, chi.Router) {
 
 	assert.NoError(t, err)
 
+	api.InitializeMetrics()
+
 	return db, api.New(api.Config{
 		DB:   db,
 		Jita: j,
