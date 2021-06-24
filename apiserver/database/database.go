@@ -385,7 +385,7 @@ INSERT INTO session (key, expiry, device_id, groups, object_id)
 		return fmt.Errorf("scanning row: %s", err)
 	}
 
-	log.Infof("persisted session: %v", si)
+	log.Debugf("persisted session: %v", si)
 
 	return nil
 }
