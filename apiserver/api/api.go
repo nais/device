@@ -54,7 +54,17 @@ func (a *api) gatewayConfig(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(gatewayConfig)
+	err = json.NewEncoder(w).Encode(gatewayConfig)
+	if err != nil {
+		log.Errorf("writing gateway config response: %v", err)
+		return
+	}
+
+	m, err := GatewayConfigsReturned.GetMetricWithLabelValues(gateway.Name)
+	if err != nil {
+		log.Errorf("getting metric metric: %v", err)
+	}
+	m.Inc()
 }
 
 func (api *api) privileged(gateway pb.Gateway, sessions []database.SessionInfo) []database.SessionInfo {
@@ -65,7 +75,12 @@ func (api *api) privileged(gateway pb.Gateway, sessions []database.SessionInfo) 
 	if err != nil {
 		log.Errorf("Gateway retrieving privileged users, %s", err)
 	}
-	PrivilegedUsersPerGateway.WithLabelValues(gateway.Name).Set(float64(len(privilegedUsers)))
+
+	m, err := PrivilegedUsersPerGateway.GetMetricWithLabelValues(gateway.Name)
+	if err != nil {
+		log.Errorf("getting metric metric: %v", err)
+	}
+	m.Set(float64(len(privilegedUsers)))
 
 	var sessionsToReturn []database.SessionInfo
 	for _, session := range sessions {
@@ -201,12 +216,18 @@ func (a *api) deviceConfig(w http.ResponseWriter, r *http.Request) {
 	err = json.NewEncoder(w).Encode(gateways)
 
 	if err != nil {
-		log.Errorf("Encoding gateways response: %v", err)
+		logWithFields.Errorf("Encoding gateways response: %v", err)
 		respondf(w, http.StatusInternalServerError, "unable to get device config\n")
 		return
 	}
 
-	log.Infof("Successfully returned config to device")
+	m, err := DeviceConfigsReturned.GetMetricWithLabelValues(device.Serial, device.Username)
+	if err != nil {
+		logWithFields.Errorf("getting metric metric: %v", err)
+	}
+	m.Inc()
+
+	logWithFields.Debugf("Successfully returned config to device")
 }
 
 func (a *api) UserGateways(userGroups []string) (*[]pb.Gateway, error) {
