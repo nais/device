@@ -49,5 +49,4 @@ launchctl load "$destination"
 
 echo "Installed service $daemon_name"
 
-killall naisdevice-agent || true
-killall naisdevice-systray || true
+killall -m "naisdevice.*" || true
