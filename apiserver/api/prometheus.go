@@ -9,6 +9,8 @@ import (
 
 var (
 	PrivilegedUsersPerGateway *prometheus.GaugeVec
+	DeviceConfigsReturned     *prometheus.CounterVec
+	GatewayConfigsReturned    *prometheus.CounterVec
 )
 
 func Serve(address string) {
@@ -17,14 +19,27 @@ func Serve(address string) {
 }
 
 func InitializeMetrics() {
-
 	PrivilegedUsersPerGateway = prometheus.NewGaugeVec(prometheus.GaugeOpts{
-		Name:      "privileged_users",
-		Help:      "privileged users per gateway",
 		Namespace: "naisdevice",
 		Subsystem: "apiserver",
+		Name:      "privileged_users",
+		Help:      "privileged users per gateway",
 	}, []string{"gateway"})
-
 	prometheus.MustRegister(PrivilegedUsersPerGateway)
 
+	DeviceConfigsReturned = prometheus.NewCounterVec(prometheus.CounterOpts{
+		Namespace:   "naisdevice",
+		Subsystem:   "apiserver",
+		Name:        "user_configs_returned",
+		Help:        "Total number of configs returned to device since apiserver started.",
+	}, []string{"serial", "username"})
+	prometheus.MustRegister(DeviceConfigsReturned)
+
+	GatewayConfigsReturned = prometheus.NewCounterVec(prometheus.CounterOpts{
+		Namespace: "naisdevice",
+		Subsystem: "apiserver",
+		Name:      "gateway_configs_returned",
+		Help:      "Total number of configs returned to gateway since apiserver started.",
+	}, []string{"gateway"})
+	prometheus.MustRegister(GatewayConfigsReturned)
 }
