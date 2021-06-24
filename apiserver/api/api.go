@@ -129,7 +129,7 @@ func authorized(gatewayGroups []string, sessions []database.SessionInfo) []datab
 	return authorizedDevices
 }
 
-func (a *api) devices(w http.ResponseWriter, r *http.Request) {
+func (a *api) devices(w http.ResponseWriter, _ *http.Request) {
 	devices, err := a.db.ReadDevices()
 
 	if err != nil {
@@ -139,7 +139,11 @@ func (a *api) devices(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Add("Content-Type", "application/json; charset=utf-8")
-	json.NewEncoder(w).Encode(devices)
+	err = json.NewEncoder(w).Encode(devices)
+	if err != nil {
+		log.Errorf("writing devices response: %v", err)
+		return
+	}
 }
 
 func (a *api) updateHealth(w http.ResponseWriter, r *http.Request) {
@@ -167,7 +171,7 @@ func (a *api) updateHealth(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (a *api) gateways(w http.ResponseWriter, r *http.Request) {
+func (a *api) gateways(w http.ResponseWriter, _ *http.Request) {
 	//serial := chi.URLParam(r, "serial")
 	gateways, err := a.db.ReadGateways()
 	if err != nil {
@@ -189,7 +193,7 @@ func (a *api) gateways(w http.ResponseWriter, r *http.Request) {
 func (a *api) deviceConfig(w http.ResponseWriter, r *http.Request) {
 	sessionInfo := r.Context().Value("sessionInfo").(*database.SessionInfo)
 
-	log := log.WithFields(log.Fields{
+	logWithFields := log.WithFields(log.Fields{
 		"username":  sessionInfo.Device.Username,
 		"serial":    sessionInfo.Device.Serial,
 		"platform":  sessionInfo.Device.Platform,
@@ -199,13 +203,13 @@ func (a *api) deviceConfig(w http.ResponseWriter, r *http.Request) {
 	// Don't reuse Device from Session here as it might be outdated.
 	device, err := a.db.ReadDeviceById(r.Context(), sessionInfo.Device.ID)
 	if err != nil {
-		log.Errorf("Reading device from db: %v", err)
+		logWithFields.Errorf("Reading device from db: %v", err)
 		respondf(w, http.StatusInternalServerError, "error reading device from db")
 		return
 	}
 
 	if !*device.Healthy {
-		log.Infof("Device is unhealthy, returning HTTP %v", http.StatusForbidden)
+		logWithFields.Infof("Device is unhealthy, returning HTTP %v", http.StatusForbidden)
 		respondf(w, http.StatusForbidden, "device not healthy, on slack: /msg @Kolide status")
 		return
 	}
