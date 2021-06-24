@@ -89,7 +89,7 @@ func healthy(devices []database.Device) []database.Device {
 
 		if *device.Healthy {
 			if timeNow.After(kolideLastSeenDevice.Add(MaxTimeSinceKolideLastSeen)) {
-				log.Infof("Would have skipped device: %s with owner %s. (last seen: %s, now: %s).", device.Serial, device.Username, kolideLastSeenDevice, timeNow)
+				log.Debugf("Would have skipped device: %s with owner %s. (last seen: %s, now: %s).", device.Serial, device.Username, kolideLastSeenDevice, timeNow)
 			}
 
 			healthyDevices = append(healthyDevices, device)
