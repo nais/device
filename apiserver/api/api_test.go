@@ -91,7 +91,7 @@ func TestGatewayConfig(t *testing.T) {
 
 	healthyDevice := addDevice(t, db, ctx, "serial1", "healthyUser", "pubKey1", true, time.Now().Unix())
 	healthyDevice2 := addDevice(t, db, ctx, "serial2", "healthyUser2", "pubKey2", true, time.Now().Unix())
-	healthyDeviceOutOfDate := addDevice(t, db, ctx, "serial2", "healthyUser2", "pubKey2", true, time.Now().Add(-api.MaxTimeSinceKolideLastSeen).Unix())
+	// healthyDeviceOutOfDate := addDevice(t, db, ctx, "serial2", "healthyUser2", "pubKey2", true, time.Now().Add(-api.MaxTimeSinceKolideLastSeen).Unix())
 	unhealthyDevice := addDevice(t, db, ctx, "serial3", "unhealthyUser", "pubKey3", false, time.Now().Unix())
 
 	_ = addSessionInfo(t, db, ctx, healthyDevice, "userId", []string{"authorized"})
@@ -99,7 +99,7 @@ func TestGatewayConfig(t *testing.T) {
 	_ = addSessionInfo(t, db, ctx, unhealthyDevice, "userId", []string{"authorized"})
 	_ = addSessionInfo(t, db, ctx, unhealthyDevice, "userId", []string{"unauthorized"})
 	_ = addSessionInfo(t, db, ctx, healthyDevice2, "userId", []string{""})
-	_ = addSessionInfo(t, db, ctx, healthyDeviceOutOfDate, "userId", []string{"authorized"})
+	//_ = addSessionInfo(t, db, ctx, healthyDeviceOutOfDate, "userId", []string{"authorized"})
 
 	// todo don't use username as gateway
 	authorizedGateway := pb.Gateway{Name: "username", Endpoint: "ep1", PublicKey: "pubkey1"}
