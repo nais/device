@@ -422,7 +422,8 @@ WHERE key = $1;
 func (d *APIServerDB) ReadSessionInfos(ctx context.Context) ([]SessionInfo, error) {
 	query := `
 SELECT key, expiry, device_id, groups, object_id
-FROM session;
+FROM session
+WHERE to_timestamp(expiry) > now();
 `
 
 	rows, err := d.Conn.QueryContext(ctx, query)
