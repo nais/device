@@ -278,7 +278,7 @@ func (gui *Gui) handleAgentStatus(agentStatus *pb.AgentStatus) {
 
 func (gui *Gui) applyDisconnectedIcon() {
 	if gui.Config.BlackAndWhiteIcons {
-		systray.SetIcon(NaisLogoBwDisconnected)
+		systray.SetTemplateIcon(NaisLogoBwDisconnected, NaisLogoBwDisconnected)
 	} else {
 		systray.SetIcon(NaisLogoRed)
 	}
@@ -289,7 +289,7 @@ func (gui *Gui) updateIcons() {
 		gui.applyDisconnectedIcon()
 	} else if gui.AgentStatus.GetConnectionState() == pb.AgentState_Connected {
 		if gui.Config.BlackAndWhiteIcons {
-			systray.SetIcon(NaisLogoBwConnected)
+			systray.SetTemplateIcon(NaisLogoBwConnected, NaisLogoBwConnected)
 		} else {
 			systray.SetIcon(NaisLogoGreen)
 		}
