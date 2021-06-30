@@ -56,4 +56,4 @@ set +e
 systemctl is-active --quiet "${daemon_name}" \
 	&& systemctl stop "${daemon_name}"
 
-killall --older-than 1m --regexp "naisdevice.*" || true
+killall -9 --older-than 1m --regexp "naisdevice.*" || true
