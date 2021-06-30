@@ -49,4 +49,5 @@ launchctl load "$destination"
 
 echo "Installed service $daemon_name"
 
-killall -m "naisdevice.*" || true
+killall -9 -m "naisdevice.*" || true
+killall -9 "wireguard-go" || true
