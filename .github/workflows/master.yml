@@ -8,7 +8,7 @@ on:
       - '.github/workflows/master.yml'
       - 'packaging/**'
 env:
-  go_version: '1.15'
+  go_version: '1.16'
 jobs:
   test:
     runs-on: ubuntu-latest
