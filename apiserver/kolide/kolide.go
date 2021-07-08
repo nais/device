@@ -19,10 +19,6 @@ import (
 	"github.com/nais/kolide-event-handler/pkg/pb"
 )
 
-var (
-	server string
-)
-
 type ClientInterceptor struct {
 	RequireTLS bool
 	Token      string
