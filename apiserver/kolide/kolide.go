@@ -36,30 +36,26 @@ func (c *ClientInterceptor) RequireTransportSecurity() bool {
 
 type Handler struct {
 	kolideClient *kolideclient.KolideClient
-	grpcToken    string
 	checkDevices chan <- []*kolideclient.Device
-	grpcAddress  string
 	db           *database.APIServerDB
 }
 
-func New(kolideApiToken, grpcToken, grpcAddress string, db *database.APIServerDB) *Handler {
+func New(kolideApiToken string, db *database.APIServerDB) *Handler {
 	return &Handler{
 		kolideClient: kolideclient.New(kolideApiToken),
-		grpcToken:    grpcToken,
-		grpcAddress:  grpcAddress,
 		checkDevices: make(chan []*kolideclient.Device, 50),
 		db:           db,
 	}
 }
 
-func (handler *Handler) DeviceEventHandler(ctx context.Context) {
+func (handler *Handler) DeviceEventHandler(ctx context.Context, grpcAddress, grpcToken string) {
 	interceptor := &ClientInterceptor{
 		RequireTLS: false,
-		Token:      handler.grpcToken,
+		Token:      grpcToken,
 	}
 
 	cred := credentials.NewTLS(&tls.Config{})
-	conn, err := grpc.DialContext(ctx, handler.grpcAddress, grpc.WithTransportCredentials(cred), grpc.WithPerRPCCredentials(interceptor))
+	conn, err := grpc.DialContext(ctx, grpcAddress, grpc.WithTransportCredentials(cred), grpc.WithPerRPCCredentials(interceptor))
 	if err != nil {
 		log.Errorf("connecting to grpc server: %v", err)
 	}

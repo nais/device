@@ -80,9 +80,9 @@ func main() {
 		return
 	}
 
-	grpcToken := os.Getenv("GRPC_AUTH_TOKEN")
-	if cfg.KolideEventHandlerAddress != "" && len(grpcToken) == 0 {
-		log.Errorf("env GRPC_AUTH_TOKEN not found, aborting")
+	kolideEventHandlerToken := os.Getenv("KOLIDE_EVENT_HANDLER_TOKEN")
+	if cfg.KolideEventHandlerAddress != "" && len(kolideEventHandlerToken) == 0 {
+		log.Errorf("env KOLIDE_EVENT_HANDLER_TOKEN not found, aborting")
 		return
 	}
 
@@ -129,12 +129,12 @@ func main() {
 		log.Fatalf("Generating public key: %v", err)
 	}
 
-	kolideHandler := kolide.New(kolideApiToken, grpcToken, cfg.KolideEventHandlerAddress, db)
+	kolideHandler := kolide.New(kolideApiToken, db)
 
 	go kolideHandler.Cron(ctx)
 
 	if cfg.KolideEventHandlerAddress != "" {
-		go kolideHandler.DeviceEventHandler(ctx)
+		go kolideHandler.DeviceEventHandler(ctx, cfg.KolideEventHandlerAddress, kolideEventHandlerToken)
 	}
 
 	if len(cfg.BootstrapAPIURL) > 0 {
