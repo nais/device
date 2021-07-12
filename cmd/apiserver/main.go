@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"github.com/nais/device/apiserver/kolide"
 	"io/ioutil"
 	"net/http"
 	"os"
@@ -61,6 +62,7 @@ func init() {
 	flag.StringSliceVar(&cfg.CredentialEntries, "credential-entries", nil, "Comma-separated credentials on format: '<user>:<key>'")
 	flag.StringVar(&cfg.GatewayConfigBucketName, "gateway-config-bucket-name", "gatewayconfig", "Name of bucket containing gateway config object")
 	flag.StringVar(&cfg.GatewayConfigBucketObjectName, "gateway-config-bucket-object-name", "gatewayconfig.json", "Name of bucket object containing gateway config JSON")
+	flag.StringVar(&cfg.KolideEventHandlerAddress, "kolide-event-handler-address", "", "address for kolide-event-handler grpc connection")
 
 	flag.Parse()
 
@@ -72,6 +74,18 @@ func init() {
 func main() {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
+
+	kolideApiToken := os.Getenv("KOLIDE_API_TOKEN")
+	if len(kolideApiToken) == 0 {
+		log.Errorf("env KOLIDE_API_TOKEN not found, aborting")
+		return
+	}
+
+	kolideEventHandlerToken := os.Getenv("KOLIDE_EVENT_HANDLER_TOKEN")
+	if cfg.KolideEventHandlerAddress != "" && len(kolideEventHandlerToken) == 0 {
+		log.Errorf("env KOLIDE_EVENT_HANDLER_TOKEN not found, aborting")
+		return
+	}
 
 	api.InitializeMetrics()
 	go func() {
@@ -114,6 +128,14 @@ func main() {
 	publicKey, err := generatePublicKey(privateKey, "wg")
 	if err != nil {
 		log.Fatalf("Generating public key: %v", err)
+	}
+
+	kolideHandler := kolide.New(kolideApiToken, db)
+
+	go kolideHandler.Cron(ctx)
+
+	if cfg.KolideEventHandlerAddress != "" {
+		go kolideHandler.DeviceEventHandler(ctx, cfg.KolideEventHandlerAddress, kolideEventHandlerToken)
 	}
 
 	if len(cfg.BootstrapAPIURL) > 0 {
