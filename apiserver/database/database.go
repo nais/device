@@ -357,13 +357,14 @@ SELECT id, username, serial, psk, platform, healthy, last_updated, kolide_last_s
   FROM device
  WHERE serial = $1
    AND platform = $2
-   AND username = $3;
+   AND lower(username) = $3;
 	`
 
 	var device Device
 	row := d.Conn.QueryRowContext(ctx, query, serial, platform, username)
 
-	err := row.Scan(&device.ID, &device.Username, &device.Serial, &device.PSK, &device.Platform, &device.Healthy, &device.LastUpdated, &device.KolideLastSeen, &device.PublicKey, &device.IP)
+	lowerUsername := strings.ToLower(device.Username)
+	err := row.Scan(&device.ID, &lowerUsername, &device.Serial, &device.PSK, &device.Platform, &device.Healthy, &device.LastUpdated, &device.KolideLastSeen, &device.PublicKey, &device.IP)
 
 	if err != nil {
 		return nil, fmt.Errorf("scanning row: %s", err)
