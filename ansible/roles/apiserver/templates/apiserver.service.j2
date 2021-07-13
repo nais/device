@@ -20,7 +20,7 @@ ExecStart=/bin/bash -c '/opt/nais-device/bin/apiserver \
         --prometheus-public-key="MN9B/ZgAQdgCXH3/KUaUiObwrzHv6zF2P6M4ySTx81M=" \
         --prometheus-tunnel-ip="10.255.247.254" \
         --credential-entries="$(/opt/nais-device/bin/passwords.sh)" \
-        --kolide-api-token="$(shell gcloud secrets versions access latest --project nais-device --secret kolide-api-token)" \
+        --kolide-api-token="$(gcloud secrets versions access latest --project nais-device --secret kolide-api-token)" \
         --kolide-event-handler-address="kolide-event-handler.prod-gcp.nais.io:443" \
         --kolide-event-handler-token="$(gcloud secrets versions access latest --project nais-device --secret kolide-event-handler-grpc-auth-token)"'
 
