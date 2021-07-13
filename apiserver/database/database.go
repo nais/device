@@ -412,7 +412,7 @@ WHERE key = $1;
 		return nil, fmt.Errorf("reading device: %w", err)
 	}
 
-	log.Infof("retrieved session info from db: %v", si)
+	log.Debugf("retrieved session info from db: %v", si)
 
 	return &si, nil
 }
