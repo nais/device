@@ -40,39 +40,25 @@
     name: apiserver
     state: started
 
-- name: Download naisdevice-health-checker.phar
-  get_url:
-    dest: /opt/nais-device/bin/naisdevice-health-checker.phar
-    force: yes
-    url: https://github.com/nais/naisdevice-health-checker/releases/download/2020-11-09-33e2140/naisdevice-health-checker.phar
-    backup: yes
-    mode: 0755
-
-- name: Install naisdevice-health-checker systemd service file
-  copy:
-    src: naisdevice-health-checker.service
-    dest: /etc/systemd/system/naisdevice-health-checker.service
-    owner: root
-    group: root
-    mode: '0644'
+- name: Uninstall naisdevice-health-checker systemd service file
+  file:
+    path: /etc/systemd/system/naisdevice-health-checker.service
+    state: absent
   notify:
     - systemd_reload
 
 - name: Install naisdevice-health-checker systemd timer file
-  copy:
-    src: naisdevice-health-checker.timer
-    dest: /etc/systemd/system/naisdevice-health-checker.timer
-    owner: root
-    group: root
-    mode: '0644'
+  file:
+    path: /etc/systemd/system/naisdevice-health-checker.timer
+    state: absent
   notify:
     - systemd_reload
 
 - name: ensure naisdevice-health-checker.timer is enabled
   systemd:
     name: naisdevice-health-checker.timer
-    enabled: yes
-    state: started
+    enabled: no
+    state: stopped
     daemon_reload: yes
 
 - name: ensure naisdevice-health-checker.service is disabled
@@ -85,7 +71,6 @@
 - name: Add logrotate config
   template:
     owner: root
-    mode: root
     mode: 640
     src: logrotate-apiserver.j2
     dest: /etc/logrotate.d/naisdevice-apiserver
