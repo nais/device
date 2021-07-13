@@ -82,16 +82,16 @@ local-gateway-agent:
 local-apiserver:
 	$(eval confdir := $(shell mktemp -d))
 	wg genkey > ${confdir}/private.key
-	KOLIDE_API_TOKEN=$(shell gcloud secrets versions access latest --secret kolide-api-token) \
-		KOLIDE_EVENT_HANDLER_TOKEN=$(shell gcloud secrets versions access latest --secret kolide-event-handler-grpc-auth-token) \
-		go run ./cmd/apiserver/main.go \
-			--db-connection-dsn=postgresql://postgres:postgres@localhost/postgres?sslmode=disable \
-			--bind-address=127.0.0.1:8080 \
-			--config-dir=${confdir} \
-			--development-mode=true \
-			--prometheus-address=127.0.0.1:3000 \
-			--credential-entries="nais:device,gateway-1:password" \
-			--kolide-event-handler-address=kolide-event-handler.prod-gcp.nais.io:443
+	go run ./cmd/apiserver/main.go \
+		--db-connection-dsn=postgresql://postgres:postgres@localhost/postgres?sslmode=disable \
+		--bind-address=127.0.0.1:8080 \
+		--config-dir=${confdir} \
+		--development-mode=true \
+		--prometheus-address=127.0.0.1:3000 \
+		--credential-entries="nais:device,gateway-1:password" \
+		--kolide-event-handler-address=kolide-event-handler.prod-gcp.nais.io:443 \
+		--kolide-event-handler-token=$(shell gcloud secrets versions access latest --project nais-device --secret kolide-event-handler-grpc-auth-token) \
+		--kolide-api-token=$(shell gcloud secrets versions access latest --project nais-device --secret kolide-api-token)
 	echo ${confdir}
 
 cmd/device-agent/icons.go: assets/*.ico assets/icon.go

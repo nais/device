@@ -30,6 +30,8 @@ type Config struct {
 	JitaPassword                  string
 	JitaUrl                       string
 	KolideEventHandlerAddress     string
+	KolideEventHandlerToken       string
+	KolideApiToken                string
 }
 
 type Azure struct {

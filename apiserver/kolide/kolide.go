@@ -122,7 +122,6 @@ func (handler *Handler) Cron(programContext context.Context) {
 			log.Info("Doing full Kolide device health sync")
 			ctx, cancel := context.WithTimeout(programContext, FullSyncTimeout)
 			devices, err := handler.kolideClient.GetDevices(ctx)
-			cancel()
 			if err != nil {
 				log.Errorf("getting devies: %v", err)
 			}
@@ -133,6 +132,7 @@ func (handler *Handler) Cron(programContext context.Context) {
 					log.Errorf("update device health: %v", err)
 				}
 			}
+			cancel()
 
 		case <-programContext.Done():
 			log.Infof("stopping cron")
