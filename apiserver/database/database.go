@@ -100,9 +100,7 @@ FROM device;`
 	return devices, nil
 }
 
-func (d *APIServerDB) UpdateDevice(devices []Device) error {
-	ctx := context.Background()
-
+func (d *APIServerDB) UpdateDevice(ctx context.Context, devices []Device) error {
 	tx, err := d.Conn.BeginTx(ctx, nil)
 	if err != nil {
 		return fmt.Errorf("start transaction: %s", err)

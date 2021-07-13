@@ -3,7 +3,6 @@ package kolide
 import (
 	"context"
 	"crypto/tls"
-	"encoding/json"
 	"fmt"
 	"github.com/nais/device/apiserver/database"
 	kolideclient "github.com/nais/device/pkg/kolide-client"
@@ -112,7 +111,7 @@ func (handler *Handler) DeviceEventHandler(ctx context.Context, grpcAddress, grp
 }
 
 const FullSyncInterval = 5 * time.Minute
-const FullSyncTimeout = 3 * time.Minute // Must not be greater than FullSyncInterval
+const FullSyncTimeout = 4 * time.Minute // Must not be greater than FullSyncInterval
 func (handler *Handler) Cron(programContext context.Context) {
 	ticker := time.NewTicker(time.Second * 1)
 
@@ -128,12 +127,12 @@ func (handler *Handler) Cron(programContext context.Context) {
 				log.Errorf("getting devies: %v", err)
 			}
 
-			devicesJson, err := json.Marshal(devices)
-			if err != nil {
-				log.Errorf("marshal json: %v", err)
+			for _, d := range devices {
+				err := handler.updateDeviceHealth(ctx, d)
+				if err != nil {
+					log.Errorf("update device health: %v", err)
+				}
 			}
-
-			log.Infof("%s", devicesJson)
 
 		case <-programContext.Done():
 			log.Infof("stopping cron")
@@ -149,9 +148,9 @@ func (handler *Handler) updateDeviceHealth(ctx context.Context, device *kolidecl
 	}
 
 	existingDevice.Healthy = boolp(DeviceHealthy(device))
+	existingDevice.KolideLastSeen = int64p(device.LastSeenAt.Unix())
 
-	err = handler.db.UpdateDevice([]database.Device{*existingDevice})
-
+	err = handler.db.UpdateDevice(ctx, []database.Device{*existingDevice})
 	if err != nil {
 		return fmt.Errorf("update device: %w", err)
 	}
@@ -189,4 +188,8 @@ func platform(platform string) string {
 
 func boolp(b bool) *bool {
 	return &b
+}
+
+func int64p(i int64) *int64 {
+	return &i
 }

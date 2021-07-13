@@ -63,7 +63,7 @@ func TestGetDeviceConfig(t *testing.T) {
 
 	device.Healthy = boolp(true)
 
-	err := db.UpdateDevice([]database.Device{device})
+	err := db.UpdateDevice(ctx, []database.Device{device})
 	assert.NoError(t, err)
 
 	authorizedGateway := pb.Gateway{Name: "gw1", Endpoint: "ep1", PublicKey: "pubkey1"}
@@ -169,7 +169,7 @@ func addDevice(t *testing.T, db *database.APIServerDB, ctx context.Context, seri
 	if healthy {
 		device.Healthy = boolp(true)
 
-		if err := db.UpdateDevice([]database.Device{device}); err != nil {
+		if err := db.UpdateDevice(ctx, []database.Device{device}); err != nil {
 			t.Fatalf("Updating device status: %v", err)
 			return nil
 		}
@@ -244,7 +244,7 @@ func TestGetDeviceConfigSessionNotInCache(t *testing.T) {
 
 	device.Healthy = boolp(true)
 
-	err := db.UpdateDevice([]database.Device{device})
+	err := db.UpdateDevice(ctx, []database.Device{device})
 	assert.NoError(t, err)
 
 	// Read from db as we need the device ID
