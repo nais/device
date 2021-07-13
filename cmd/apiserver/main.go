@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"github.com/nais/device/apiserver/kolide"
 	"io/ioutil"
 	"net/http"
 	"os"
@@ -61,6 +62,9 @@ func init() {
 	flag.StringSliceVar(&cfg.CredentialEntries, "credential-entries", nil, "Comma-separated credentials on format: '<user>:<key>'")
 	flag.StringVar(&cfg.GatewayConfigBucketName, "gateway-config-bucket-name", "gatewayconfig", "Name of bucket containing gateway config object")
 	flag.StringVar(&cfg.GatewayConfigBucketObjectName, "gateway-config-bucket-object-name", "gatewayconfig.json", "Name of bucket object containing gateway config JSON")
+	flag.StringVar(&cfg.KolideEventHandlerAddress, "kolide-event-handler-address", "", "address for kolide-event-handler grpc connection")
+	flag.StringVar(&cfg.KolideEventHandlerToken, "kolide-event-handler-token", "", "token for kolide-event-handler grpc connection")
+	flag.StringVar(&cfg.KolideApiToken, "kolide-api-token", "", "token used to communicate with the kolide api")
 
 	flag.Parse()
 
@@ -72,6 +76,15 @@ func init() {
 func main() {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
+
+	if len(cfg.KolideApiToken) == 0 {
+		log.Warnf("no kolide api token provided, no device health updates will be performed")
+	}
+
+	if len(cfg.KolideEventHandlerAddress) > 0 && len(cfg.KolideEventHandlerToken) == 0 {
+		log.Errorf("--kolide-event-handler-address is set, but --kolide-event-handler-token is not. aborting")
+		return
+	}
 
 	api.InitializeMetrics()
 	go func() {
@@ -114,6 +127,14 @@ func main() {
 	publicKey, err := generatePublicKey(privateKey, "wg")
 	if err != nil {
 		log.Fatalf("Generating public key: %v", err)
+	}
+
+	kolideHandler := kolide.New(cfg.KolideApiToken, db)
+
+	go kolideHandler.Cron(ctx)
+
+	if cfg.KolideEventHandlerAddress != "" {
+		go kolideHandler.DeviceEventHandler(ctx, cfg.KolideEventHandlerAddress, cfg.KolideEventHandlerToken)
 	}
 
 	if len(cfg.BootstrapAPIURL) > 0 {
