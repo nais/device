@@ -19,7 +19,8 @@ ExecStart=/bin/bash -c '/opt/nais-device/bin/apiserver \
         --endpoint="35.228.142.96:51820" \
         --prometheus-public-key="MN9B/ZgAQdgCXH3/KUaUiObwrzHv6zF2P6M4ySTx81M=" \
         --prometheus-tunnel-ip="10.255.247.254" \
-        --credential-entries="$(/opt/nais-device/bin/passwords.sh)"'
+        --credential-entries="$(/opt/nais-device/bin/passwords.sh)" \
+        --kolide-api-token="$(gcloud secrets versions access latest --secret kolide-api-token)"'
 
 [Install]
 WantedBy=multi-user.target
