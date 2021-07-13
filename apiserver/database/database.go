@@ -452,7 +452,7 @@ WHERE to_timestamp(expiry) > now();
 		sessionInfos = append(sessionInfos, si)
 	}
 
-	log.Infof("retrieved session infos from db")
+	log.Debugf("retrieved session infos from db")
 
 	return sessionInfos, nil
 }
