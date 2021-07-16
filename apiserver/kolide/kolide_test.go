@@ -95,7 +95,7 @@ func TestDeviceHealthy(t *testing.T) {
 				LastSeenAt: timep(time.Now()),
 				Failures: []*kolideclient.DeviceFailure{
 					{
-						Timestamp:  timep(time.Now().Add(-3*time.Hour)),
+						Timestamp:  timep(time.Now().Add(-3 * time.Hour)),
 						ResolvedAt: nil,
 						Ignored:    false,
 						Check: &kolideclient.Check{
@@ -112,7 +112,7 @@ func TestDeviceHealthy(t *testing.T) {
 				LastSeenAt: timep(time.Now()),
 				Failures: []*kolideclient.DeviceFailure{
 					{
-						Timestamp:  timep(time.Now().Add(-3*time.Hour)),
+						Timestamp:  timep(time.Now().Add(-3 * time.Hour)),
 						ResolvedAt: timep(time.Now()),
 						Ignored:    false,
 						Check: &kolideclient.Check{
