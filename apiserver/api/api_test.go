@@ -1,7 +1,6 @@
 package api_test
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -196,34 +195,6 @@ func addSessionInfo(t *testing.T, db *database.APIServerDB, ctx context.Context,
 	}
 
 	return &databaseSessionInfo
-}
-
-func TestUpdateDeviceHealth(t *testing.T) {
-	db, router := setup(t, nil)
-	device := database.Device{Username: "user@acme.org", Serial: "serial", PublicKey: "pubkey", Platform: "darwin", Healthy: boolp(true)}
-	ctx := context.Background()
-	if err := db.AddDevice(ctx, device); err != nil {
-		t.Fatalf("Adding device: %v", err)
-	}
-
-	devices := getDevices(t, router)
-	assert.Len(t, devices, 1)
-	assert.False(t, *devices[0].Healthy)
-
-	devicesJSON := []database.Device{device}
-	b, err := json.Marshal(&devicesJSON)
-	if err != nil {
-		t.Fatalf("Marshalling device JSON: %v", err)
-	}
-
-	req, _ := http.NewRequest("PUT", "/devices/health", bytes.NewReader(b))
-	resp := executeRequest(req, router)
-	assert.Equal(t, http.StatusOK, resp.Code)
-
-	devices = getDevices(t, router)
-
-	assert.Len(t, devices, 1)
-	assert.True(t, *devices[0].Healthy)
 }
 
 func TestGetDeviceConfigSessionNotInCache(t *testing.T) {
