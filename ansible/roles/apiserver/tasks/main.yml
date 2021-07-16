@@ -47,27 +47,6 @@
   notify:
     - systemd_reload
 
-- name: Install naisdevice-health-checker systemd timer file
-  file:
-    path: /etc/systemd/system/naisdevice-health-checker.timer
-    state: absent
-  notify:
-    - systemd_reload
-
-- name: ensure naisdevice-health-checker.timer is enabled
-  systemd:
-    name: naisdevice-health-checker.timer
-    enabled: no
-    state: stopped
-    daemon_reload: yes
-
-- name: ensure naisdevice-health-checker.service is disabled
-  systemd:
-    name: naisdevice-health-checker.service
-    enabled: no
-    state: stopped
-    daemon_reload: yes
-
 - name: Add logrotate config
   template:
     owner: root

@@ -100,7 +100,7 @@ FROM device;`
 	return devices, nil
 }
 
-func (d *APIServerDB) UpdateDevice(ctx context.Context, devices []Device) error {
+func (d *APIServerDB) UpdateDevices(ctx context.Context, devices []Device) error {
 	tx, err := d.Conn.BeginTx(ctx, nil)
 	if err != nil {
 		return fmt.Errorf("start transaction: %s", err)
@@ -125,7 +125,7 @@ func (d *APIServerDB) UpdateDevice(ctx context.Context, devices []Device) error 
 		return fmt.Errorf("commiting transaction: %w", err)
 	}
 
-	log.Infof("Successfully updated device statuses")
+	log.Debugf("Successfully updated device statuses")
 
 	return nil
 }
@@ -143,7 +143,7 @@ WHERE name = $4;`
 		return fmt.Errorf("updating gateway: %w", err)
 	}
 
-	log.Infof("Updated gateway: %s", name)
+	log.Debugf("Updated gateway: %s", name)
 	return nil
 }
 

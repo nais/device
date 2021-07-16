@@ -35,7 +35,7 @@ func (c *ClientInterceptor) RequireTransportSecurity() bool {
 
 type Handler struct {
 	kolideClient *kolideclient.KolideClient
-	checkDevices chan <- []*kolideclient.Device
+	checkDevices chan<- []*kolideclient.Device
 	db           *database.APIServerDB
 }
 
@@ -150,7 +150,7 @@ func (handler *Handler) updateDeviceHealth(ctx context.Context, device *kolidecl
 	existingDevice.Healthy = boolp(DeviceHealthy(device))
 	existingDevice.KolideLastSeen = int64p(device.LastSeenAt.Unix())
 
-	err = handler.db.UpdateDevice(ctx, []database.Device{*existingDevice})
+	err = handler.db.UpdateDevices(ctx, []database.Device{*existingDevice})
 	if err != nil {
 		return fmt.Errorf("update device: %w", err)
 	}

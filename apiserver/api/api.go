@@ -146,31 +146,6 @@ func (a *api) devices(w http.ResponseWriter, _ *http.Request) {
 	}
 }
 
-func (a *api) updateHealth(w http.ResponseWriter, r *http.Request) {
-	var healthUpdates []database.Device
-	if err := json.NewDecoder(r.Body).Decode(&healthUpdates); err != nil {
-		defer r.Body.Close()
-
-		respondf(w, http.StatusBadRequest, "error during JSON unmarshal: %s\n", err)
-		return
-	}
-
-	// Abort status update if it contains incomplete entries
-	// is_healthy and serial is required
-	for _, s := range healthUpdates {
-		if s.Healthy == nil || len(s.Serial) == 0 {
-			respondf(w, http.StatusBadRequest, "missing required field\n")
-			return
-		}
-	}
-
-	if err := a.db.UpdateDevice(r.Context(), healthUpdates); err != nil {
-		log.Error(err)
-		respondf(w, http.StatusInternalServerError, "unable to persist device statuses\n")
-		return
-	}
-}
-
 func (a *api) gateways(w http.ResponseWriter, _ *http.Request) {
 	//serial := chi.URLParam(r, "serial")
 	gateways, err := a.db.ReadGateways()
