@@ -78,7 +78,7 @@ func (service *MyService) ControlChannel() <-chan ControlEvent {
 }
 
 func interfaceExists(ctx context.Context, iface string) bool {
-	queryService := exec.CommandContext(ctx, "sc", "query", serviceName(iface))
+	queryService := exec.CommandContext(ctx, "sc", "query", tunnelName(iface))
 	if err := queryService.Run(); err != nil {
 		return false
 	} else {
@@ -129,8 +129,8 @@ func (configurator *WindowsConfigurator) SyncConf(ctx context.Context, cfg *pb.C
 		log.Debugf("new: %s", string(newWireGuardConfig))
 
 		commands := [][]string{
-			{"net", "stop", serviceName(configurator.helperConfig.Interface)},
-			{"net", "start", serviceName(configurator.helperConfig.Interface)},
+			{"net", "stop", tunnelName(configurator.helperConfig.Interface)},
+			{"net", "start", tunnelName(configurator.helperConfig.Interface)},
 		}
 
 		return runCommands(ctx, commands)
@@ -159,7 +159,7 @@ func (configurator *WindowsConfigurator) TeardownInterface(ctx context.Context) 
 	return nil
 }
 
-func serviceName(interfaceName string) string {
+func tunnelName(interfaceName string) string {
 	return fmt.Sprintf("WireGuardTunnel$%s", interfaceName)
 }
 
