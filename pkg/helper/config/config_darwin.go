@@ -1,7 +1,7 @@
 package config
 
 const (
-	RuntimeDir = "/run/naisdevice"
-	LogDir     = "/var/log/naisdevice"
 	ConfigDir  = "/etc/naisdevice"
+	LogDir     = "/var/log/naisdevice"
+	RuntimeDir = "/run/naisdevice"
 )

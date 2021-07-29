@@ -12,7 +12,7 @@ import (
 func SetupLogger(level, logDir, filename string) {
 	err := os.MkdirAll(logDir, 755)
 	if err != nil {
-		log.Fatal("Creating log dir: %v", err)
+		log.Fatalf("Creating log dir: %v", err)
 	}
 
 	logFilePath := filepath.Join(logDir, filename)
