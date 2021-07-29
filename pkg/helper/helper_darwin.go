@@ -3,7 +3,6 @@ package helper
 import (
 	"context"
 	"fmt"
-	"github.com/nais/device/pkg/config/helper"
 	"os/exec"
 	"strings"
 
@@ -30,7 +29,7 @@ func New(helperConfig Config) *DarwinConfigurator {
 }
 
 func (c *DarwinConfigurator) Prerequisites() error {
-	if err := filesExist(WireGuardBinary, helper.WireGuardGoBinary); err != nil {
+	if err := filesExist(WireGuardBinary, WireGuardGoBinary); err != nil {
 		return fmt.Errorf("verifying if file exists: %w", err)
 	}
 
@@ -72,7 +71,7 @@ func (c *DarwinConfigurator) SetupInterface(ctx context.Context, cfg *pb.Configu
 	}
 
 	commands := [][]string{
-		{helper.WireGuardGoBinary, c.helperConfig.Interface},
+		{WireGuardGoBinary, c.helperConfig.Interface},
 		{"ifconfig", c.helperConfig.Interface, "inet", cfg.GetDeviceIP() + "/21", cfg.GetDeviceIP(), "add"},
 		{"ifconfig", c.helperConfig.Interface, "mtu", "1360"},
 		{"ifconfig", c.helperConfig.Interface, "up"},
@@ -87,7 +86,7 @@ func (c *DarwinConfigurator) TeardownInterface(ctx context.Context) error {
 		return nil
 	}
 
-	cmd := exec.CommandContext(ctx, "pkill", "-f", fmt.Sprintf("%s %s", helper.WireGuardGoBinary, c.helperConfig.Interface))
+	cmd := exec.CommandContext(ctx, "pkill", "-f", fmt.Sprintf("%s %s", WireGuardGoBinary, c.helperConfig.Interface))
 	out, err := cmd.CombinedOutput()
 
 	if err != nil {
@@ -99,6 +98,6 @@ func (c *DarwinConfigurator) TeardownInterface(ctx context.Context) error {
 }
 
 func (c *DarwinConfigurator) interfaceExists(ctx context.Context) bool {
-	cmd := exec.CommandContext(ctx, "pgrep", "-f", fmt.Sprintf("%s %s", helper.WireGuardGoBinary, c.helperConfig.Interface))
+	cmd := exec.CommandContext(ctx, "pgrep", "-f", fmt.Sprintf("%s %s", WireGuardGoBinary, c.helperConfig.Interface))
 	return cmd.Run() == nil
 }
