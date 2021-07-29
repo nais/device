@@ -22,13 +22,13 @@ func SetupLogger(level, configDir, filename string) {
 	mw := io.MultiWriter(logFile, os.Stdout)
 	log.SetOutput(mw)
 
-	log.Infof("Path: %s", configDir)
 	loglevel, err := log.ParseLevel(level)
 	if err != nil {
 		log.Errorf("unable to parse log level %s, error: %v", level, err)
 		return
 	}
 	log.SetLevel(loglevel)
+	log.Infof("Path: %s", configDir)
 	log.SetFormatter(&easy.Formatter{TimestampFormat: "2006-01-02 15:04:05.00000", LogFormat: "%time% - [%lvl%] - %msg%\n"})
 	log.Infof("Successfully set up logging. Level %s", loglevel)
 }

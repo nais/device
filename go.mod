@@ -3,8 +3,9 @@ module github.com/nais/device
 go 1.16
 
 require (
-	cloud.google.com/go v0.75.0
+	cloud.google.com/go v0.81.0
 	cloud.google.com/go/storage v1.12.0
+	github.com/AlecAivazis/survey/v2 v2.2.15
 	github.com/GoogleCloudPlatform/cloudsql-proxy v1.19.1
 	github.com/coreos/go-iptables v0.5.0
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
@@ -15,7 +16,7 @@ require (
 	github.com/getlantern/systray v1.1.0
 	github.com/go-chi/chi v4.1.2+incompatible
 	github.com/go-chi/jwtauth v4.0.4+incompatible
-	github.com/golang/protobuf v1.4.3
+	github.com/golang/protobuf v1.5.2
 	github.com/google/uuid v1.1.2
 	github.com/gopherjs/gopherjs v0.0.0-20200217142428-fce0ec30dd00 // indirect
 	github.com/hashicorp/go-multierror v1.0.0
@@ -25,18 +26,16 @@ require (
 	github.com/prometheus/client_golang v1.9.0
 	github.com/prometheus/procfs v0.3.0 // indirect
 	github.com/sirupsen/logrus v1.8.0
+	github.com/spf13/cobra v1.2.1
 	github.com/spf13/pflag v1.0.5
-	github.com/stretchr/testify v1.5.1
+	github.com/spf13/viper v1.8.1
+	github.com/stretchr/testify v1.7.0
 	github.com/t-tomalak/logrus-easy-formatter v0.0.0-20190827215021-c074f06c5816
 	golang.org/x/crypto v0.0.0-20201221181555-eec23a3978ad
-	golang.org/x/mod v0.4.1 // indirect
-	golang.org/x/net v0.0.0-20210119194325-5f4716e94777 // indirect
-	golang.org/x/oauth2 v0.0.0-20210126194326-f9ce19ea3013
-	golang.org/x/sys v0.0.0-20210124154548-22da62e12c0c
-	golang.org/x/text v0.3.5 // indirect
-	golang.org/x/tools v0.1.0 // indirect
-	google.golang.org/api v0.37.0
-	google.golang.org/genproto v0.0.0-20210126160654-44e461bb6506
-	google.golang.org/grpc v1.35.0
-	google.golang.org/protobuf v1.25.0
+	golang.org/x/oauth2 v0.0.0-20210402161424-2e8d93401602
+	golang.org/x/sys v0.0.0-20210510120138-977fb7262007
+	google.golang.org/api v0.44.0
+	google.golang.org/genproto v0.0.0-20210602131652-f16073e35f0c
+	google.golang.org/grpc v1.38.0
+	google.golang.org/protobuf v1.26.0
 )

@@ -34,6 +34,7 @@ linux-client: cmd/device-agent/icons.go
 	GOOS=linux GOARCH=amd64 go build -o bin/linux-client/naisdevice-systray -ldflags "-s $(LDFLAGS)" ./cmd/systray
 	GOOS=linux GOARCH=amd64 go build -o bin/linux-client/naisdevice-agent -ldflags "-s $(LDFLAGS)" ./cmd/device-agent
 	GOOS=linux GOARCH=amd64 go build -o bin/linux-client/naisdevice-helper -ldflags "-s $(LDFLAGS)" ./cmd/device-agent-helper
+	GOOS=linux GOARCH=amd64 go build -o bin/linux-client/naisdevice -ldflags "-s $(LDFLAGS)" ./cmd/cli
 
 # Run by GitHub actions on macos
 macos-client: cmd/device-agent/icons.go
@@ -41,6 +42,7 @@ macos-client: cmd/device-agent/icons.go
 	GOOS=darwin GOARCH=amd64 go build -o bin/macos-client/naisdevice-agent -ldflags "-s $(LDFLAGS)" ./cmd/device-agent
 	GOOS=darwin GOARCH=amd64 go build -o bin/macos-client/naisdevice-systray -ldflags "-s $(LDFLAGS)" ./cmd/systray
 	GOOS=darwin GOARCH=amd64 go build -o bin/macos-client/naisdevice-helper -ldflags "-s $(LDFLAGS)" ./cmd/device-agent-helper
+	GOOS=darwin GOARCH=amd64 go build -o bin/macos-client/naisdevice -ldflags "-s $(LDFLAGS)" ./cmd/cli
 
 # Run by GitHub actions on linux
 windows-client: cmd/device-agent/icons.go
@@ -51,6 +53,7 @@ windows-client: cmd/device-agent/icons.go
 	GOOS=windows GOARCH=amd64 go build -o bin/windows-client/naisdevice-systray.exe -ldflags "-s $(LDFLAGS) -H=windowsgui" ./cmd/systray
 	GOOS=windows GOARCH=amd64 go build -o bin/windows-client/naisdevice-agent.exe -ldflags "-s $(LDFLAGS) -H=windowsgui" ./cmd/device-agent
 	GOOS=windows GOARCH=amd64 go build -o bin/windows-client/naisdevice-helper.exe -ldflags "-s $(LDFLAGS)" ./cmd/device-agent-helper
+	GOOS=windows GOARCH=amd64 go build -o bin/windows-client/naisdevice -ldflags "-s $(LDFLAGS)" ./cmd/cli
 
 local:
 	mkdir -p ./bin/local

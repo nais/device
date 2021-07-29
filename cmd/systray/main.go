@@ -43,7 +43,7 @@ func main() {
 	if err != nil {
 		// TODO: remove when agent runs as service
 		ctx, cancel := context.WithCancel(context.Background())
-		err = exec.CommandContext(ctx, AgentPath).Start()
+		err = exec.CommandContext(ctx, systray.AgentPath).Start()
 		if err != nil {
 			log.Fatalf("spawning naisdevice-agent: %v", err)
 		}
