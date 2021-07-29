@@ -29,8 +29,6 @@ cat << EOF > "$destination"
                 <string>/Applications/naisdevice.app/Contents/MacOS/naisdevice-helper</string>
                 <string>--interface</string>
                 <string>utun69</string>
-                <string>--config-dir</string>
-                <string>$config_dir</string>
         </array>
         <key>RunAtLoad</key>
         <true/>

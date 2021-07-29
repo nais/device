@@ -1,4 +1,4 @@
-package device_helper
+package helper
 
 import (
 	"bytes"
@@ -14,8 +14,8 @@ import (
 )
 
 const (
-	WireGuardBinary = `c:\Program Files\WireGuard\wireguard.exe`
 	ServiceName     = "naisdevice-agent-helper"
+	WireGuardBinary = `c:\Program Files\WireGuard\wireguard.exe`
 )
 
 type MyService struct {
@@ -91,7 +91,7 @@ func (configurator *WindowsConfigurator) SetupInterface(ctx context.Context, cfg
 		return nil
 	}
 
-	installService := exec.CommandContext(ctx, WireGuardBinary, "/installtunnelservice", configurator.helperConfig.WireGuardConfigPath)
+	installService := exec.CommandContext(ctx, WireGuardBinary, "/installtunnelservice", WireGuardConfigPath)
 	if b, err := installService.CombinedOutput(); err != nil {
 		return fmt.Errorf("installing tunnel service: %v: %v", err, string(b))
 	} else {
@@ -110,7 +110,7 @@ func (configurator *WindowsConfigurator) SetupRoutes(ctx context.Context, gatewa
 }
 
 func (configurator *WindowsConfigurator) SyncConf(ctx context.Context, cfg *pb.Configuration) error {
-	newWireGuardConfig, err := ioutil.ReadFile(configurator.helperConfig.WireGuardConfigPath)
+	newWireGuardConfig, err := ioutil.ReadFile(WireGuardConfigPath)
 	if err != nil {
 		return fmt.Errorf("reading WireGuard config file: %w", err)
 	}

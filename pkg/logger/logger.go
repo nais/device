@@ -9,10 +9,13 @@ import (
 	easy "github.com/t-tomalak/logrus-easy-formatter"
 )
 
-func SetupLogger(level, configDir, filename string) {
-	logDirPath := filepath.Join(configDir, "logs")
+func SetupLogger(level, logDir, filename string) {
+	err := os.MkdirAll(logDir, 755)
+	if err != nil {
+		log.Fatal("Creating log dir: %v", err)
+	}
 
-	logFilePath := filepath.Join(logDirPath, filename)
+	logFilePath := filepath.Join(logDir, filename)
 	logFile, err := os.OpenFile(logFilePath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0664)
 	if err != nil {
 		log.Fatalf("unable to open log file %s, error: %v", logFilePath, err)
@@ -22,7 +25,6 @@ func SetupLogger(level, configDir, filename string) {
 	mw := io.MultiWriter(logFile, os.Stdout)
 	log.SetOutput(mw)
 
-	log.Infof("Path: %s", configDir)
 	loglevel, err := log.ParseLevel(level)
 	if err != nil {
 		log.Errorf("unable to parse log level %s, error: %v", level, err)

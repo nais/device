@@ -8,7 +8,7 @@ bin
 wireguard-go-*
 wireguard-tools-*
 cmd/device-agent/main_windows.syso
-cmd/device-agent-helper/main_windows.syso
+cmd/helper/main_windows.syso
 packaging/windows/obj
 packaging/linux/icons
 device-agent.log

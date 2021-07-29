@@ -2,6 +2,7 @@ package config
 
 import (
 	"errors"
+	config2 "github.com/nais/device/pkg/helper/config"
 	"github.com/nais/device/pkg/pb"
 	"google.golang.org/protobuf/encoding/protojson"
 	"io/ioutil"
@@ -58,7 +59,7 @@ func DefaultConfig() Config {
 		ConfigDir:                userConfigDir,
 		LogLevel:                 "info",
 		GrpcAddress:              filepath.Join(userConfigDir, "agent.sock"),
-		DeviceAgentHelperAddress: filepath.Join(userConfigDir, "helper.sock"),
+		DeviceAgentHelperAddress: filepath.Join(config2.RuntimeDir, "helper.sock"),
 		OAuth2Config: oauth2.Config{
 			ClientID:    "8086d321-c6d3-4398-87da-0d54e3d93967",
 			Scopes:      []string{"openid", "6e45010d-2637-4a40-b91d-d4cbb451fb57/.default", "offline_access"},

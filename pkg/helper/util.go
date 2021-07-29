@@ -1,4 +1,4 @@
-package device_helper
+package helper
 
 import (
 	"context"

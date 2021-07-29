@@ -37,7 +37,8 @@ func main() {
 	flag.StringVar(&cfg.GrpcAddress, "grpc-address", cfg.GrpcAddress, "path to device-agent unix socket")
 	flag.Parse()
 
-	logger.SetupLogger(cfg.LogLevel, cfg.ConfigDir, "systray.log")
+	logDir := filepath.Join(cfg.ConfigDir, "logs")
+	logger.SetupLogger(cfg.LogLevel, logDir, "systray.log")
 
 	conn, err := net.Dial("unix", cfg.GrpcAddress)
 	if err != nil {

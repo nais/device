@@ -3,18 +3,19 @@
 // - configuring the network tunnel interface
 // - synchronizing WireGuard with the provided config
 // - setting up the required routes
-package device_helper
+package helper
 
 import (
 	"bytes"
 	"context"
 	"fmt"
-	"io"
-	"os"
-
+	"github.com/nais/device/pkg/helper/config"
 	log "github.com/sirupsen/logrus"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"io"
+	"os"
+	"path/filepath"
 
 	"github.com/nais/device/device-agent/wireguard"
 	"github.com/nais/device/pkg/pb"
@@ -34,6 +35,10 @@ type DeviceHelperServer struct {
 	OSConfigurator OSConfigurator
 }
 
+var (
+	WireGuardConfigPath = filepath.Join(config.ConfigDir, "utun69.conf")
+)
+
 func (dhs *DeviceHelperServer) Teardown(ctx context.Context, req *pb.TeardownRequest) (*pb.TeardownResponse, error) {
 	log.Infof("Removing network interface '%s' and all routes", dhs.Config.Interface)
 	err := dhs.OSConfigurator.TeardownInterface(ctx)
@@ -42,7 +47,7 @@ func (dhs *DeviceHelperServer) Teardown(ctx context.Context, req *pb.TeardownReq
 	}
 
 	log.Infof("Flushing WireGuard configuration from disk")
-	err = os.Remove(dhs.Config.WireGuardConfigPath)
+	err = os.Remove(WireGuardConfigPath)
 	if err != nil {
 		if !os.IsNotExist(err) {
 			return nil, fmt.Errorf("flush WireGuard configuration from disk: %v", err)
@@ -89,7 +94,7 @@ func (dhs *DeviceHelperServer) writeConfigFile(cfg *pb.Configuration) error {
 		return fmt.Errorf("render configuration: %s", err)
 	}
 
-	fd, err := os.OpenFile(dhs.Config.WireGuardConfigPath, os.O_CREATE|os.O_RDWR|os.O_TRUNC, 0600)
+	fd, err := os.OpenFile(WireGuardConfigPath, os.O_CREATE|os.O_RDWR|os.O_TRUNC, 0600)
 	if err != nil {
 		return fmt.Errorf("open file: %s", err)
 	}

@@ -2,14 +2,14 @@ package main
 
 import (
 	"context"
-	"fmt"
+	"github.com/nais/device/pkg/helper/config"
 	"os"
 	"os/signal"
 	"path/filepath"
 	"syscall"
 	"time"
 
-	"github.com/nais/device/pkg/device-helper"
+	"github.com/nais/device/pkg/helper"
 	"github.com/nais/device/pkg/logger"
 	"github.com/nais/device/pkg/pb"
 	"github.com/nais/device/pkg/unixsocket"
@@ -20,51 +20,45 @@ import (
 )
 
 var (
-	cfg = device_helper.Config{}
+	cfg = helper.Config{}
 )
 
 func init() {
 	flag.StringVar(&cfg.LogLevel, "log-level", "info", "which log level to output")
-	flag.StringVar(&cfg.ConfigDir, "config-dir", "", "path to naisdevice config dir (required)")
 	flag.StringVar(&cfg.Interface, "interface", "utun69", "interface name")
-	flag.StringVar(&cfg.GrpcAddress, "grpc-address", "", "interface name")
 
 	flag.Parse()
-
-	cfg.WireGuardConfigPath = filepath.Join(cfg.ConfigDir, cfg.Interface+".conf")
 }
 
 func main() {
-	if len(cfg.ConfigDir) == 0 {
-		fmt.Println("--config-dir is required")
-		os.Exit(1)
-	}
+	osConfigurator := helper.New(cfg)
 
-	if len(cfg.GrpcAddress) == 0 {
-		cfg.GrpcAddress = filepath.Join(cfg.ConfigDir, "helper.sock")
-	}
-
-	logger.SetupLogger(cfg.LogLevel, cfg.ConfigDir, "helper.log")
+	logger.SetupLogger(cfg.LogLevel, config.LogDir, "helper.log")
 
 	log.Infof("naisdevice-helper %s starting up", version.Version)
 	log.Infof("configuration: %+v", cfg)
 
-	osConfigurator := device_helper.New(cfg)
-
 	if err := osConfigurator.Prerequisites(); err != nil {
 		log.Fatalf("Checking prerequisites: %v", err)
 	}
+	if err := os.MkdirAll(config.RuntimeDir, 0755); err != nil {
+		log.Fatalf("Setting up runtime dir: %v", err)
+	}
+	if err := os.MkdirAll(config.ConfigDir, 0750); err != nil {
+		log.Fatalf("Setting up config dir: %v", err)
+	}
 
-	listener, err := unixsocket.ListenWithFileMode(cfg.GrpcAddress, 0666)
+	grpcPath := filepath.Join(config.RuntimeDir, "helper.sock")
+	listener, err := unixsocket.ListenWithFileMode(grpcPath, 0666)
 	if err != nil {
 		log.Fatal(err)
 	}
-	log.Infof("accepting network connections on unix socket %s", cfg.GrpcAddress)
+	log.Infof("accepting network connections on unix socket %s", grpcPath)
 
 	notifier := pb.NewConnectionNotifier()
 	grpcServer := grpc.NewServer(grpc.StatsHandler(notifier))
 
-	dhs := &device_helper.DeviceHelperServer{
+	dhs := &helper.DeviceHelperServer{
 		Config:         cfg,
 		OSConfigurator: osConfigurator,
 	}
