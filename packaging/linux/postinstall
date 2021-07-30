@@ -46,8 +46,6 @@ for directory in "$config_dir" "$log_dir"; do
 	chmod 700 "$directory"
 done
 
-sed -i "s%@@CONFIG_DIR@@%${config_dir}%" "${unit_file}"
-
 cp /sys/devices/virtual/dmi/id/product_serial "${config_dir}"
 
 chown -R "${user}:" "${config_dir}"

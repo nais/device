@@ -1,4 +1,4 @@
-package device_helper
+package helper
 
 import (
 	"bytes"
@@ -14,8 +14,8 @@ import (
 )
 
 const (
-	WireGuardBinary = `c:\Program Files\WireGuard\wireguard.exe`
-	ServiceName     = "naisdevice-agent-helper"
+	serviceName     = "naisdevice-agent-helper"
+	wireGuardBinary = `c:\Program Files\WireGuard\wireguard.exe`
 )
 
 type MyService struct {
@@ -47,7 +47,7 @@ const (
 )
 
 func (configurator *WindowsConfigurator) Prerequisites() error {
-	if err := filesExist(WireGuardBinary); err != nil {
+	if err := filesExist(wireGuardBinary); err != nil {
 		return fmt.Errorf("verifying if file exists: %w", err)
 	}
 
@@ -62,7 +62,7 @@ func (configurator *WindowsConfigurator) Prerequisites() error {
 
 	go func() {
 		s := NewService()
-		err = svc.Run(ServiceName, s)
+		err = svc.Run(serviceName, s)
 		if err != nil {
 			log.Fatalf("Running service: %v", err)
 		}
@@ -78,7 +78,7 @@ func (service *MyService) ControlChannel() <-chan ControlEvent {
 }
 
 func interfaceExists(ctx context.Context, iface string) bool {
-	queryService := exec.CommandContext(ctx, "sc", "query", serviceName(iface))
+	queryService := exec.CommandContext(ctx, "sc", "query", tunnelName(iface))
 	if err := queryService.Run(); err != nil {
 		return false
 	} else {
@@ -91,7 +91,7 @@ func (configurator *WindowsConfigurator) SetupInterface(ctx context.Context, cfg
 		return nil
 	}
 
-	installService := exec.CommandContext(ctx, WireGuardBinary, "/installtunnelservice", configurator.helperConfig.WireGuardConfigPath)
+	installService := exec.CommandContext(ctx, wireGuardBinary, "/installtunnelservice", WireGuardConfigPath)
 	if b, err := installService.CombinedOutput(); err != nil {
 		return fmt.Errorf("installing tunnel service: %v: %v", err, string(b))
 	} else {
@@ -110,7 +110,7 @@ func (configurator *WindowsConfigurator) SetupRoutes(ctx context.Context, gatewa
 }
 
 func (configurator *WindowsConfigurator) SyncConf(ctx context.Context, cfg *pb.Configuration) error {
-	newWireGuardConfig, err := ioutil.ReadFile(configurator.helperConfig.WireGuardConfigPath)
+	newWireGuardConfig, err := ioutil.ReadFile(WireGuardConfigPath)
 	if err != nil {
 		return fmt.Errorf("reading WireGuard config file: %w", err)
 	}
@@ -129,8 +129,8 @@ func (configurator *WindowsConfigurator) SyncConf(ctx context.Context, cfg *pb.C
 		log.Debugf("new: %s", string(newWireGuardConfig))
 
 		commands := [][]string{
-			{"net", "stop", serviceName(configurator.helperConfig.Interface)},
-			{"net", "start", serviceName(configurator.helperConfig.Interface)},
+			{"net", "stop", tunnelName(configurator.helperConfig.Interface)},
+			{"net", "start", tunnelName(configurator.helperConfig.Interface)},
 		}
 
 		return runCommands(ctx, commands)
@@ -145,7 +145,7 @@ func (configurator *WindowsConfigurator) TeardownInterface(ctx context.Context) 
 		return nil
 	}
 
-	uninstallService := exec.CommandContext(ctx, WireGuardBinary, "/uninstalltunnelservice", configurator.helperConfig.Interface)
+	uninstallService := exec.CommandContext(ctx, wireGuardBinary, "/uninstalltunnelservice", configurator.helperConfig.Interface)
 
 	b, err := uninstallService.CombinedOutput()
 	if err != nil {
@@ -159,7 +159,7 @@ func (configurator *WindowsConfigurator) TeardownInterface(ctx context.Context) 
 	return nil
 }
 
-func serviceName(interfaceName string) string {
+func tunnelName(interfaceName string) string {
 	return fmt.Sprintf("WireGuardTunnel$%s", interfaceName)
 }
 

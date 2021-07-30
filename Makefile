@@ -33,24 +33,24 @@ linux-client: cmd/device-agent/icons.go
 	mkdir -p ./bin/linux-client
 	GOOS=linux GOARCH=amd64 go build -o bin/linux-client/naisdevice-systray -ldflags "-s $(LDFLAGS)" ./cmd/systray
 	GOOS=linux GOARCH=amd64 go build -o bin/linux-client/naisdevice-agent -ldflags "-s $(LDFLAGS)" ./cmd/device-agent
-	GOOS=linux GOARCH=amd64 go build -o bin/linux-client/naisdevice-helper -ldflags "-s $(LDFLAGS)" ./cmd/device-agent-helper
+	GOOS=linux GOARCH=amd64 go build -o bin/linux-client/naisdevice-helper -ldflags "-s $(LDFLAGS)" ./cmd/helper
 
 # Run by GitHub actions on macos
 macos-client: cmd/device-agent/icons.go
 	mkdir -p ./bin/macos-client
 	GOOS=darwin GOARCH=amd64 go build -o bin/macos-client/naisdevice-agent -ldflags "-s $(LDFLAGS)" ./cmd/device-agent
 	GOOS=darwin GOARCH=amd64 go build -o bin/macos-client/naisdevice-systray -ldflags "-s $(LDFLAGS)" ./cmd/systray
-	GOOS=darwin GOARCH=amd64 go build -o bin/macos-client/naisdevice-helper -ldflags "-s $(LDFLAGS)" ./cmd/device-agent-helper
+	GOOS=darwin GOARCH=amd64 go build -o bin/macos-client/naisdevice-helper -ldflags "-s $(LDFLAGS)" ./cmd/helper
 
 # Run by GitHub actions on linux
 windows-client: cmd/device-agent/icons.go
 	mkdir -p ./bin/windows-client
 	go get github.com/akavel/rsrc
-	${GOPATH}/bin/rsrc -arch amd64 -manifest ./packaging/windows/admin_manifest.xml -ico assets/nais-logo-blue.ico -o ./cmd/device-agent-helper/main_windows.syso
+	${GOPATH}/bin/rsrc -arch amd64 -manifest ./packaging/windows/admin_manifest.xml -ico assets/nais-logo-blue.ico -o ./cmd/helper/main_windows.syso
 	${GOPATH}/bin/rsrc -ico assets/nais-logo-blue.ico -o ./cmd/device-agent/main_windows.syso
 	GOOS=windows GOARCH=amd64 go build -o bin/windows-client/naisdevice-systray.exe -ldflags "-s $(LDFLAGS) -H=windowsgui" ./cmd/systray
 	GOOS=windows GOARCH=amd64 go build -o bin/windows-client/naisdevice-agent.exe -ldflags "-s $(LDFLAGS) -H=windowsgui" ./cmd/device-agent
-	GOOS=windows GOARCH=amd64 go build -o bin/windows-client/naisdevice-helper.exe -ldflags "-s $(LDFLAGS)" ./cmd/device-agent-helper
+	GOOS=windows GOARCH=amd64 go build -o bin/windows-client/naisdevice-helper.exe -ldflags "-s $(LDFLAGS)" ./cmd/helper
 
 local:
 	mkdir -p ./bin/local

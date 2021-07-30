@@ -138,7 +138,7 @@
                     Start="auto"
                     Account="NT AUTHORITY\SYSTEM"
                     ErrorControl="normal"
-                    Arguments="--interface utun69 --config-dir &quot;[APP_DATA_FOLDER]\&quot;"
+                    Arguments="--interface utun69"
             />
             <ServiceControl Id="StartService" Start="install" Stop="both" Remove="uninstall" Name="NaisDeviceHelper" Wait="yes"/>
         </Component>

@@ -3,7 +3,7 @@ Description=Naisdevice helper
 Documentation=https://doc.nais.io/device
 
 [Service]
-ExecStart=/usr/sbin/naisdevice-helper --config-dir @@CONFIG_DIR@@
+ExecStart=/usr/sbin/naisdevice-helper
 Restart=always
 
 [Install]

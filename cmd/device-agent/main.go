@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 
 	"github.com/nais/device/device-agent/config"
 	"github.com/nais/device/device-agent/filesystem"
@@ -36,7 +37,8 @@ func main() {
 	flag.Parse()
 	cfg.SetDefaults()
 
-	logger.SetupLogger(cfg.LogLevel, cfg.ConfigDir, "agent.log")
+	logDir := filepath.Join(cfg.ConfigDir, "logs")
+	logger.SetupLogger(cfg.LogLevel, logDir, "agent.log")
 
 	cfg.PopulateAgentConfiguration()
 

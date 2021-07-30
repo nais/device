@@ -1,4 +1,4 @@
-package device_helper
+package helper
 
 import (
 	"context"
@@ -12,7 +12,7 @@ import (
 )
 
 const (
-	WireGuardBinary = "/usr/bin/wg"
+	wireguardBinary = "/usr/bin/wg"
 )
 
 func New(helperConfig Config) *LinuxConfigurator {
@@ -28,7 +28,7 @@ type LinuxConfigurator struct {
 var _ OSConfigurator = &LinuxConfigurator{}
 
 func (c *LinuxConfigurator) Prerequisites() error {
-	if err := filesExist(WireGuardBinary); err != nil {
+	if err := filesExist(wireguardBinary); err != nil {
 		return fmt.Errorf("verifying if file exists: %w", err)
 	}
 
@@ -36,7 +36,7 @@ func (c *LinuxConfigurator) Prerequisites() error {
 }
 
 func (c *LinuxConfigurator) SyncConf(ctx context.Context, cfg *pb.Configuration) error {
-	cmd := exec.CommandContext(ctx, WireGuardBinary, "syncconf", c.helperConfig.Interface, c.helperConfig.WireGuardConfigPath)
+	cmd := exec.CommandContext(ctx, wireguardBinary, "syncconf", c.helperConfig.Interface, WireGuardConfigPath)
 	if b, err := cmd.CombinedOutput(); err != nil {
 		return fmt.Errorf("running syncconf: %w: %v", err, string(b))
 	}
