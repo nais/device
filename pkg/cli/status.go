@@ -12,6 +12,12 @@ func execStatus(_ *cobra.Command, _ []string) error {
 	log.Info("status called")
 	ctx := context.Background()
 
+	_, err := FindNaisDeviceProcess()
+	if err != nil {
+		return err
+	}
+	fmt.Printf("Naisdevice is alive\n")
+
 	client, err := setupClient(GrpcAddress)
 	if err != nil {
 		return err

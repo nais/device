@@ -64,7 +64,7 @@ var gatewayConnectCmd = &cobra.Command{
 
 		err = open.Open(fmt.Sprintf("https://naisdevice-jita.nais.io/?gateway=%s", gatewayName))
 		if err != nil {
-			return fmt.Errorf("opening browser: %v", err)
+			return fmt.Errorf("error opening browser: %v", err)
 		}
 		fmt.Println("Go to browser to continue connection")
 		return nil

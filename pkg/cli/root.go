@@ -10,8 +10,6 @@ import (
 	"github.com/spf13/cobra"
 	"os"
 	"path/filepath"
-
-	"github.com/spf13/viper"
 )
 
 var (
@@ -22,21 +20,18 @@ var (
 
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
-	Use:   "naisdevice",
-	Short: "Controlling naisdevice like a pro",
-	// Long: "" TODO: add long desc
+	Use:     "naisdevice",
+	Short:   "Controlling naisdevice like a pro",
 	Version: fmt.Sprintf("%s\nrevision: %s", version.Version, version.Revision),
 }
 
 // Execute adds all child commands to the root command and sets flags appropriately.
 // This is called by main.main(). It only needs to happen once to the rootCmd.
 func Execute() {
-
 	cobra.CheckErr(rootCmd.Execute())
 }
 
 func init() {
-	cobra.OnInitialize(initConfig)
 	var err error
 	ConfigDir, err = config.UserConfigDir()
 	if err != nil {
@@ -52,30 +47,4 @@ func init() {
 	log.Infof("naisdevice %s starting up", version.Version)
 	log.Infof("configuration: %v, %v, %v", GrpcAddress, LogLevel, ConfigDir)
 
-}
-
-// TODO: remove viper?
-
-// initConfig reads in config file and ENV variables if set.
-func initConfig() {
-	if ConfigDir != "" {
-		// Use config file from the flag.
-		viper.SetConfigFile(ConfigDir)
-	} else {
-		// Find home directory.
-		home, err := os.UserHomeDir()
-		cobra.CheckErr(err)
-
-		// Search config in home directory with name ".device-cli" (without extension).
-		viper.AddConfigPath(home)
-		viper.SetConfigType("yaml")
-		viper.SetConfigName(".naisdevice-cli")
-	}
-
-	viper.AutomaticEnv() // read in environment variables that match
-
-	// If a config file is found, read it in.
-	if err := viper.ReadInConfig(); err == nil {
-		_, _ = fmt.Fprintln(os.Stderr, "Using config file:", viper.ConfigFileUsed())
-	}
 }
