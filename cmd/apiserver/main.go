@@ -18,7 +18,7 @@ import (
 	"github.com/nais/device/pkg/basicauth"
 	"github.com/nais/device/pkg/pb"
 
-	"github.com/dgrijalva/jwt-go"
+	"github.com/golang-jwt/jwt"
 	"github.com/nais/device/apiserver/auth"
 	"github.com/nais/device/apiserver/azure/discovery"
 	"github.com/nais/device/apiserver/azure/validate"

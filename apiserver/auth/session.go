@@ -4,7 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/dgrijalva/jwt-go"
+	"github.com/golang-jwt/jwt"
 	"github.com/nais/device/apiserver/config"
 	"github.com/nais/device/apiserver/database"
 	"github.com/nais/device/pkg/random"

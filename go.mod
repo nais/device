@@ -7,7 +7,6 @@ require (
 	cloud.google.com/go/storage v1.12.0
 	github.com/GoogleCloudPlatform/cloudsql-proxy v1.19.1
 	github.com/coreos/go-iptables v0.5.0
-	github.com/dgrijalva/jwt-go v3.2.0+incompatible
 	github.com/gen2brain/beeep v0.0.0-20200526185328-e9c15c258e28
 	github.com/getlantern/golog v0.0.0-20201105130739-9586b8bde3a9 // indirect
 	github.com/getlantern/hidden v0.0.0-20201229170000-e66e7f878730 // indirect
@@ -15,6 +14,7 @@ require (
 	github.com/getlantern/systray v1.1.0
 	github.com/go-chi/chi v4.1.2+incompatible
 	github.com/go-chi/jwtauth v4.0.4+incompatible
+	github.com/golang-jwt/jwt v3.2.2+incompatible
 	github.com/golang/protobuf v1.4.3
 	github.com/google/uuid v1.1.2
 	github.com/gopherjs/gopherjs v0.0.0-20200217142428-fce0ec30dd00 // indirect
