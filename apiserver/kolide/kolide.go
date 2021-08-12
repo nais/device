@@ -4,10 +4,11 @@ import (
 	"context"
 	"crypto/tls"
 	"fmt"
-	"github.com/nais/device/apiserver/database"
-	kolideclient "github.com/nais/device/pkg/kolide-client"
 	"strings"
 	"time"
+
+	"github.com/nais/device/apiserver/database"
+	kolideclient "github.com/nais/device/pkg/kolide-client"
 
 	log "github.com/sirupsen/logrus"
 	"google.golang.org/grpc"

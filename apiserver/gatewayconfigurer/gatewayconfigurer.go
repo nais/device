@@ -4,10 +4,11 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/nais/device/apiserver/database"
-	log "github.com/sirupsen/logrus"
 	"io"
 	"time"
+
+	"github.com/nais/device/apiserver/database"
+	log "github.com/sirupsen/logrus"
 )
 
 type BucketReader interface {

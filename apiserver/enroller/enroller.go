@@ -1,8 +1,9 @@
 package enroller
 
 import (
-	"github.com/nais/device/apiserver/database"
 	"net/http"
+
+	"github.com/nais/device/apiserver/database"
 )
 
 type Enroller struct {

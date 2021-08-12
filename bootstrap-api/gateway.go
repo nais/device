@@ -3,15 +3,16 @@ package bootstrap_api
 import (
 	"encoding/json"
 	"fmt"
+	"net/http"
+	"strings"
+	"sync"
+	"time"
+
 	"github.com/go-chi/chi"
 	"github.com/nais/device/pkg/bootstrap"
 	"github.com/nais/device/pkg/version"
 	"github.com/prometheus/client_golang/prometheus"
 	log "github.com/sirupsen/logrus"
-	"net/http"
-	"strings"
-	"sync"
-	"time"
 )
 
 /*

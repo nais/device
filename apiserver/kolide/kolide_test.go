@@ -1,10 +1,11 @@
 package kolide
 
 import (
-	kolideclient "github.com/nais/device/pkg/kolide-client"
 	"reflect"
 	"testing"
 	"time"
+
+	kolideclient "github.com/nais/device/pkg/kolide-client"
 )
 
 func TestDeviceHealthy(t *testing.T) {

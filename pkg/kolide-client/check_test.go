@@ -1,10 +1,11 @@
 package kolide_client_test
 
 import (
-	kolideclient "github.com/nais/kolide-event-handler/pkg/kolide-client"
 	"strings"
 	"testing"
 	"time"
+
+	kolideclient "github.com/nais/kolide-event-handler/pkg/kolide-client"
 
 	"github.com/stretchr/testify/assert"
 )

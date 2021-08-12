@@ -2,6 +2,7 @@ package systray
 
 import (
 	"context"
+
 	"github.com/getlantern/systray"
 	"google.golang.org/grpc"
 

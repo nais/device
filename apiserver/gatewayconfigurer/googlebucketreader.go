@@ -1,10 +1,11 @@
 package gatewayconfigurer
 
 import (
-	"cloud.google.com/go/storage"
 	"context"
 	"fmt"
 	"io"
+
+	"cloud.google.com/go/storage"
 )
 
 type GoogleBucketReader struct {

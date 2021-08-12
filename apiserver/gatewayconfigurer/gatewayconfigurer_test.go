@@ -3,13 +3,14 @@ package gatewayconfigurer_test
 import (
 	"context"
 	"fmt"
-	"github.com/nais/device/apiserver/gatewayconfigurer"
-	"github.com/nais/device/apiserver/testdatabase"
-	"github.com/stretchr/testify/assert"
 	"io"
 	"os"
 	"strings"
 	"testing"
+
+	"github.com/nais/device/apiserver/gatewayconfigurer"
+	"github.com/nais/device/apiserver/testdatabase"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestGatewayConfigurer_SyncConfig(t *testing.T) {

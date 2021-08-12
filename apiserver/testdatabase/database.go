@@ -4,11 +4,12 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"time"
+
 	_ "github.com/lib/pq"
 	"github.com/nais/device/apiserver/database"
 	"github.com/nais/device/pkg/random"
 	log "github.com/sirupsen/logrus"
-	"time"
 )
 
 // NewTestDatabase creates and returns a new nais device database within the provided database instance

@@ -2,16 +2,17 @@ package auth_test
 
 import (
 	"fmt"
-	"github.com/nais/device/apiserver/auth"
-	"github.com/nais/device/apiserver/database"
-	"github.com/stretchr/testify/assert"
-	"golang.org/x/oauth2"
-	"golang.org/x/oauth2/endpoints"
 	"net/http"
 	"net/http/httptest"
 	"strconv"
 	"strings"
 	"testing"
+
+	"github.com/nais/device/apiserver/auth"
+	"github.com/nais/device/apiserver/database"
+	"github.com/stretchr/testify/assert"
+	"golang.org/x/oauth2"
+	"golang.org/x/oauth2/endpoints"
 )
 
 func TestSessions_AuthURL(t *testing.T) {

@@ -1,10 +1,11 @@
 package wireguard_test
 
 import (
+	"bytes"
 	"testing"
 
 	"github.com/nais/device/device-agent/wireguard"
-	"github.com/nais/device/pkg/bootstrap"
+	"github.com/nais/device/pkg/pb"
 	"github.com/stretchr/testify/assert"
 )
 

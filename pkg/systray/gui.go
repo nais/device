@@ -3,7 +3,6 @@ package systray
 import (
 	"context"
 	"fmt"
-	"github.com/nais/device/pkg/notify"
 	"os"
 	"os/signal"
 	"path/filepath"
@@ -12,11 +11,12 @@ import (
 	"time"
 
 	"github.com/nais/device/device-agent/open"
+	"github.com/nais/device/pkg/notify"
 	"github.com/nais/device/pkg/pb"
 	"github.com/nais/device/pkg/version"
-	log "github.com/sirupsen/logrus"
 
 	"github.com/getlantern/systray"
+	log "github.com/sirupsen/logrus"
 )
 
 type GuiEvent int

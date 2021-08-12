@@ -4,15 +4,16 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/nais/device/apiserver/enroller"
-	"github.com/nais/device/apiserver/testdatabase"
-	"github.com/nais/device/pkg/bootstrap"
-	"github.com/stretchr/testify/assert"
 	"net/http"
 	"net/http/httptest"
 	"os"
 	"sync"
 	"testing"
+
+	"github.com/nais/device/apiserver/enroller"
+	"github.com/nais/device/apiserver/testdatabase"
+	"github.com/nais/device/pkg/bootstrap"
+	"github.com/stretchr/testify/assert"
 )
 
 const (

@@ -5,10 +5,11 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"time"
+
 	"github.com/nais/device/apiserver/database"
 	"github.com/nais/device/pkg/bootstrap"
 	log "github.com/sirupsen/logrus"
-	"time"
 )
 
 func (e *Enroller) WatchDeviceEnrollments(ctx context.Context) {

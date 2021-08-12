@@ -4,12 +4,13 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/nais/device/pkg/random"
 	"net/http"
 	"net/http/httptest"
 	"os"
 	"testing"
 	"time"
+
+	"github.com/nais/device/pkg/random"
 
 	"github.com/go-chi/chi"
 	"github.com/nais/device/apiserver/api"

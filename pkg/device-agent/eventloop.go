@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	clientcert "github.com/nais/device/pkg/client-cert"
 	"io/ioutil"
 	"net"
 	"net/http"
@@ -16,6 +15,8 @@ import (
 	"sync"
 	"syscall"
 	"time"
+
+	clientcert "github.com/nais/device/pkg/client-cert"
 
 	log "github.com/sirupsen/logrus"
 	"google.golang.org/protobuf/types/known/timestamppb"

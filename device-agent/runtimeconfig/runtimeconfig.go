@@ -6,14 +6,14 @@ import (
 	"fmt"
 	"io/ioutil"
 
-	"github.com/nais/device/device-agent/bootstrapper"
-	"github.com/nais/device/pkg/bootstrap"
 	log "github.com/sirupsen/logrus"
 
 	"github.com/nais/device/device-agent/auth"
+	"github.com/nais/device/device-agent/bootstrapper"
 	"github.com/nais/device/device-agent/config"
 	"github.com/nais/device/device-agent/serial"
 	"github.com/nais/device/device-agent/wireguard"
+	"github.com/nais/device/pkg/bootstrap"
 )
 
 type RuntimeConfig struct {

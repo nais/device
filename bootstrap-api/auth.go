@@ -3,9 +3,10 @@ package bootstrap_api
 import (
 	"context"
 	"fmt"
-	log "github.com/sirupsen/logrus"
 	"net/http"
 	"strings"
+
+	log "github.com/sirupsen/logrus"
 )
 
 func Credentials(credentialEntries []string) (map[string]string, error) {

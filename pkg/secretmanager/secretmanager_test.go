@@ -2,9 +2,10 @@ package secretmanager_test
 
 import (
 	"context"
+	"net"
+
 	"github.com/nais/device/pkg/secretmanager"
 	"github.com/stretchr/testify/assert"
-	"net"
 
 	gsecretmanager "cloud.google.com/go/secretmanager/apiv1"
 	"google.golang.org/api/option"

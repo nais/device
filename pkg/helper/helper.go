@@ -9,13 +9,14 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"io"
+	"os"
+	"path/filepath"
+
 	"github.com/nais/device/pkg/helper/config"
 	log "github.com/sirupsen/logrus"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
-	"io"
-	"os"
-	"path/filepath"
 
 	"github.com/nais/device/device-agent/wireguard"
 	"github.com/nais/device/pkg/pb"

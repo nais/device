@@ -2,9 +2,10 @@ package main_test
 
 import (
 	"bytes"
+	"testing"
+
 	main "github.com/nais/device/cmd/prometheus-agent"
 	"github.com/stretchr/testify/assert"
-	"testing"
 )
 
 func TestGeneratePrometheusTargets(t *testing.T) {

@@ -1,9 +1,10 @@
 package kolide_client
 
 import (
-	log "github.com/sirupsen/logrus"
 	"strings"
 	"time"
+
+	log "github.com/sirupsen/logrus"
 )
 
 func GetSeverity(check Check) Severity {

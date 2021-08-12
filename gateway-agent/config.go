@@ -2,12 +2,13 @@ package gateway_agent
 
 import (
 	"fmt"
-	"github.com/coreos/go-iptables/iptables"
-	"github.com/nais/device/pkg/bootstrap"
-	log "github.com/sirupsen/logrus"
 	"io/ioutil"
 	"os/exec"
 	"strings"
+
+	"github.com/coreos/go-iptables/iptables"
+	"github.com/nais/device/pkg/bootstrap"
+	log "github.com/sirupsen/logrus"
 )
 
 type Config struct {

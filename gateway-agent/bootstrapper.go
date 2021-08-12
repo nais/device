@@ -4,12 +4,13 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"github.com/nais/device/device-agent/wireguard"
-	"github.com/nais/device/pkg/bootstrap"
-	log "github.com/sirupsen/logrus"
 	"io/ioutil"
 	"net/http"
 	"time"
+
+	"github.com/nais/device/device-agent/wireguard"
+	"github.com/nais/device/pkg/bootstrap"
+	log "github.com/sirupsen/logrus"
 )
 
 type Bootstrapper struct {

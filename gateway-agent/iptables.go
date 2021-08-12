@@ -2,6 +2,7 @@ package gateway_agent
 
 import (
 	"fmt"
+
 	log "github.com/sirupsen/logrus"
 )
 

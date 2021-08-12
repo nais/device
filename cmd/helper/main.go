@@ -2,12 +2,13 @@ package main
 
 import (
 	"context"
-	"github.com/nais/device/pkg/helper/config"
 	"os"
 	"os/signal"
 	"path/filepath"
 	"syscall"
 	"time"
+
+	"github.com/nais/device/pkg/helper/config"
 
 	"github.com/nais/device/pkg/helper"
 	"github.com/nais/device/pkg/logger"

@@ -3,11 +3,12 @@ package auth
 import (
 	"context"
 	"fmt"
-	"github.com/nais/device/device-agent/open"
 	"net"
 	"net/http"
 	"strings"
 	"time"
+
+	"github.com/nais/device/device-agent/open"
 
 	"github.com/nais/device/pkg/random"
 	codeverifier "github.com/nirasan/go-oauth-pkce-code-verifier"

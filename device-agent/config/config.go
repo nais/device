@@ -2,12 +2,13 @@ package config
 
 import (
 	"errors"
-	config2 "github.com/nais/device/pkg/helper/config"
-	"github.com/nais/device/pkg/pb"
-	"google.golang.org/protobuf/encoding/protojson"
 	"io/ioutil"
 	"os"
 	"path/filepath"
+
+	config2 "github.com/nais/device/pkg/helper/config"
+	"github.com/nais/device/pkg/pb"
+	"google.golang.org/protobuf/encoding/protojson"
 
 	"github.com/nais/device/pkg/config"
 	log "github.com/sirupsen/logrus"

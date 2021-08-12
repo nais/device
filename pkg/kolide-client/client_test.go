@@ -2,11 +2,12 @@ package kolide_client_test
 
 import (
 	"context"
-	log "github.com/sirupsen/logrus"
 	"net/http"
 	"os"
 	"testing"
 	"time"
+
+	log "github.com/sirupsen/logrus"
 
 	kolideclient "github.com/nais/kolide-event-handler/pkg/kolide-client"
 	"github.com/stretchr/testify/assert"

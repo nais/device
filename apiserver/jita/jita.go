@@ -2,8 +2,9 @@ package jita
 
 import (
 	"fmt"
-	"github.com/nais/device/pkg/basicauth"
 	"net/http"
+
+	"github.com/nais/device/pkg/basicauth"
 )
 
 type Jita struct {

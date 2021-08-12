@@ -2,8 +2,9 @@ package client_cert
 
 import (
 	"fmt"
-	log "github.com/sirupsen/logrus"
 	"os/exec"
+
+	log "github.com/sirupsen/logrus"
 )
 
 const (

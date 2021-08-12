@@ -1,12 +1,13 @@
 package main
 
 import (
-	g "github.com/nais/device/gateway-agent"
-	"github.com/nais/device/pkg/basicauth"
 	"net/http"
 	"path"
 	"path/filepath"
 	"time"
+
+	g "github.com/nais/device/gateway-agent"
+	"github.com/nais/device/pkg/basicauth"
 
 	"github.com/nais/device/pkg/logger"
 

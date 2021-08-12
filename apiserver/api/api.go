@@ -4,9 +4,10 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"time"
+
 	"github.com/nais/device/apiserver/jita"
 	"github.com/nais/device/pkg/pb"
-	"time"
 
 	"net/http"
 

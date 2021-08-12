@@ -1,13 +1,14 @@
 package api
 
 import (
+	"net/http"
+
 	"github.com/go-chi/chi"
 	chi_middleware "github.com/go-chi/chi/middleware"
 	"github.com/nais/device/apiserver/auth"
 	"github.com/nais/device/apiserver/database"
 	"github.com/nais/device/apiserver/jita"
 	"github.com/nais/device/apiserver/middleware"
-	"net/http"
 )
 
 type Config struct {

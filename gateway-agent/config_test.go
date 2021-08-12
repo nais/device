@@ -1,9 +1,10 @@
 package gateway_agent_test
 
 import (
+	"testing"
+
 	gateway_agent "github.com/nais/device/gateway-agent"
 	"github.com/stretchr/testify/assert"
-	"testing"
 )
 
 func TestParseDefaultInterfaceOutput(t *testing.T) {

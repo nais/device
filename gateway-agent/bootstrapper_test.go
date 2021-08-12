@@ -3,16 +3,17 @@ package gateway_agent_test
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/nais/device/device-agent/filesystem"
-	"github.com/nais/device/device-agent/wireguard"
-	g "github.com/nais/device/gateway-agent"
-	"github.com/nais/device/pkg/bootstrap"
-	"github.com/stretchr/testify/assert"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"os"
 	"testing"
+
+	"github.com/nais/device/device-agent/filesystem"
+	"github.com/nais/device/device-agent/wireguard"
+	g "github.com/nais/device/gateway-agent"
+	"github.com/nais/device/pkg/bootstrap"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestGetBootstrapConfig(t *testing.T) {

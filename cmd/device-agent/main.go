@@ -5,18 +5,19 @@ import (
 	"os"
 	"path/filepath"
 
+	log "github.com/sirupsen/logrus"
+	flag "github.com/spf13/pflag"
+	"google.golang.org/grpc"
+
 	"github.com/nais/device/device-agent/config"
 	"github.com/nais/device/device-agent/filesystem"
 	"github.com/nais/device/device-agent/runtimeconfig"
-	"github.com/nais/device/pkg/device-agent"
+	device_agent "github.com/nais/device/pkg/device-agent"
 	"github.com/nais/device/pkg/logger"
 	"github.com/nais/device/pkg/notify"
 	"github.com/nais/device/pkg/pb"
 	"github.com/nais/device/pkg/unixsocket"
 	"github.com/nais/device/pkg/version"
-	log "github.com/sirupsen/logrus"
-	flag "github.com/spf13/pflag"
-	"google.golang.org/grpc"
 )
 
 var (

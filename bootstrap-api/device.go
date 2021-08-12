@@ -2,11 +2,12 @@ package bootstrap_api
 
 import (
 	"encoding/json"
+	"net/http"
+	"sync"
+
 	"github.com/go-chi/chi"
 	"github.com/nais/device/pkg/bootstrap"
 	log "github.com/sirupsen/logrus"
-	"net/http"
-	"sync"
 )
 
 func (api *DeviceApi) postBootstrapConfig(w http.ResponseWriter, r *http.Request) {

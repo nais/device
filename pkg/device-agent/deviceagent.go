@@ -3,15 +3,16 @@ package device_agent
 import (
 	"context"
 	"fmt"
-	"github.com/nais/device/device-agent/config"
 	"sync"
 
 	"github.com/google/uuid"
 	"github.com/hashicorp/go-multierror"
-	"github.com/nais/device/pkg/pb"
 	log "github.com/sirupsen/logrus"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+
+	"github.com/nais/device/device-agent/config"
+	"github.com/nais/device/pkg/pb"
 )
 
 type DeviceAgentServer struct {

@@ -4,11 +4,12 @@ import (
 	"crypto/x509"
 	"encoding/base64"
 	"encoding/json"
-	"github.com/nais/device/apiserver/config"
 	"io"
 	"io/ioutil"
 	"net/http"
 	"strings"
+
+	"github.com/nais/device/apiserver/config"
 
 	log "github.com/sirupsen/logrus"
 )

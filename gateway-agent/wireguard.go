@@ -2,10 +2,11 @@ package gateway_agent
 
 import (
 	"fmt"
-	log "github.com/sirupsen/logrus"
 	"io/ioutil"
 	"os/exec"
 	"regexp"
+
+	log "github.com/sirupsen/logrus"
 )
 
 func SetupInterface(tunnelIP string) error {

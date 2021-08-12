@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"github.com/nais/device/apiserver/kolide"
 	"io/ioutil"
 	"net/http"
 	"os"
@@ -12,6 +11,8 @@ import (
 	"path/filepath"
 	"strings"
 	"time"
+
+	"github.com/nais/device/apiserver/kolide"
 
 	"github.com/nais/device/apiserver/gatewayconfigurer"
 	"github.com/nais/device/apiserver/jita"
