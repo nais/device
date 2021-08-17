@@ -65,6 +65,8 @@ func (das *DeviceAgentServer) EventLoop(rc *runtimeconfig.RuntimeConfig) {
 	authenticateTimer := time.NewTimer(1 * time.Hour)
 	authenticateTimer.Stop()
 
+	autoConnectTriggered := false
+
 	if das.Config.AgentConfiguration.CertRenewal {
 		certRenewalTicker.Reset(1 * time.Second)
 	}
@@ -188,7 +190,8 @@ func (das *DeviceAgentServer) EventLoop(rc *runtimeconfig.RuntimeConfig) {
 
 			case pb.AgentState_Disconnected:
 				status.Gateways = make([]*pb.Gateway, 0)
-				if das.Config.AgentConfiguration.AutoConnect {
+				if das.Config.AgentConfiguration.AutoConnect && !autoConnectTriggered {
+					autoConnectTriggered = true
 					das.stateChange <- pb.AgentState_Bootstrapping
 				}
 
