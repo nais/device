@@ -18,7 +18,7 @@
 1. Enter description `naisdevice-apiserver` and 24 month expiry
 1. Click `Add`
 1. Copy the Value shown for the new client secret row in the table
-1. Add new secret version
+1. Add new secret version (paste from previous step + `<Enter>`)
    ```
    read -s client_secret
    ```
@@ -30,7 +30,7 @@
    ```
    gcloud --project nais-device compute ssh --tunnel-through-iap apiserver -- "sudo systemctl restart apiserver && tail -f -n 0 /var/log/naisdevice/apiserver.json"
    ```
-1. Wait for logs to show and verify no Azure related errors, CTRL+C to stop the `tail` command.
+1. Wait for logs to show and verify no Azure related errors, `<Ctrl+C>` to stop the `tail` command.
 
 ## Verify new secret is working
 1. Kill existing session
