@@ -17,11 +17,12 @@
 1. Below the `Client secrets` heading, click `+ New client secret`
 1. Enter description `naisdevice-apiserver` and 24 month expiry
 1. Click `Add`
-1. Copy the Value shown for the new client secret row in the table
-1. Add new secret version (paste from previous step + `<Enter>`)
+1. Set `client_secret` env var in a terminal (will wait for input)
    ```
    read -s client_secret
    ```
+1. Back in browser: Copy the Value shown for the new client secret row in the table
+1. In the terminal waiting for input, paste the secret and press `<Enter>`
 1. Add secret to Google secret manager
    ```
    gcloud --project nais-device secrets versions add azure-client-secret --data-file <(echo "$client_secret"); unset client_secret
