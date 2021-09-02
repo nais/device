@@ -5,17 +5,23 @@ import (
 	"fmt"
 	"net"
 	"net/http"
-	"strings"
 	"time"
 
-	"github.com/nais/device/device-agent/open"
-
+	"github.com/lestrrat-go/jwx/jwt"
 	codeverifier "github.com/nirasan/go-oauth-pkce-code-verifier"
 	log "github.com/sirupsen/logrus"
 	"golang.org/x/oauth2"
 
+	apiserverconfig "github.com/nais/device/apiserver/config"
+	"github.com/nais/device/device-agent/open"
+
 	"github.com/nais/device/pkg/random"
 )
+
+type authFlowResponse struct {
+	Token *oauth2.Token
+	err   error
+}
 
 func AzureAuthenticatedClient(ctx context.Context, conf oauth2.Config) (*http.Client, error) {
 	token, err := runAuthFlow(ctx, conf)
@@ -32,32 +38,22 @@ func runAuthFlow(ctx context.Context, conf oauth2.Config) (*oauth2.Token, error)
 	codeVerifier, _ := codeverifier.CreateCodeVerifier()
 
 	// TODO check this in response from Azure
-	tokenChan := make(chan *oauth2.Token)
+	authFlowChan := make(chan *authFlowResponse)
 	handler := http.NewServeMux()
 	state := random.RandomString(16, random.LettersAndNumbers)
 
-	// define a handler that will get the authorization code, call the token endpoint, and close the HTTP server
+	// define a handler that will get the authorization code, call the authFlowResponse endpoint, and close the HTTP server
 	handler.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		// Catch if user has not approved terms
-		if strings.HasPrefix(r.URL.Query().Get("error_description"), "AADSTS50105") {
-			http.Redirect(w, r, "https://naisdevice-approval.nais.io/", http.StatusSeeOther)
-			tokenChan <- nil
-			return
-		}
-
 		responseState := r.URL.Query().Get("state")
 		if state != responseState {
-			log.Errorf("Error: invalid 'state' in auth response, try again")
-			failureResponse(w, "Error: invalid 'state' in auth response, try again")
-			tokenChan <- nil
+			failAuth(fmt.Errorf("invalid 'state' in auth response, try again"), w, authFlowChan)
 			return
 		}
 
 		code := r.URL.Query().Get("code")
 		if code == "" {
-			log.Errorf("Error: could not find 'code' URL query parameter")
-			failureResponse(w, "Error: could not find 'code' URL query parameter")
-			tokenChan <- nil
+			failAuth(fmt.Errorf("could not find 'code' URL query parameter"), w, authFlowChan)
 			return
 		}
 
@@ -67,14 +63,37 @@ func runAuthFlow(ctx context.Context, conf oauth2.Config) (*oauth2.Token, error)
 		codeVerifierParam := oauth2.SetAuthURLParam("code_verifier", codeVerifier.String())
 		t, err := conf.Exchange(ctx, code, codeVerifierParam)
 		if err != nil {
-			failureResponse(w, "Error: during code exchange")
-			log.Errorf("exchanging code for tokens: %v", err)
-			tokenChan <- nil
+			failAuth(fmt.Errorf("exchanging code for tokens: %w", err), w, authFlowChan)
+			return
+		}
+
+		parsedToken, err := jwt.Parse([]byte(t.AccessToken))
+		if err != nil {
+			failAuth(fmt.Errorf("parsing authFlowResponse: %v", err), w, authFlowChan)
+			return
+		}
+
+		groups, ok := parsedToken.Get("groups")
+		if !ok {
+			failAuth(fmt.Errorf("no groups found in authFlowResponse"), w, authFlowChan)
+			return
+		}
+
+		approvalOK := false
+		for _, group := range groups.([]interface{}) {
+			if group.(string) == apiserverconfig.NaisDeviceApprovalGroup {
+				approvalOK = true
+			}
+		}
+
+		if !approvalOK {
+			http.Redirect(w, r, "https://naisdevice-approval.nais.io/", http.StatusSeeOther)
+			authFlowChan <- &authFlowResponse{Token: nil, err: fmt.Errorf("do's and don'ts not accepted, opening https://naisdevice-approval.nais.io/ in browser")}
 			return
 		}
 
 		successfulResponse(w, "Successfully authenticated 👌 Close me pls")
-		tokenChan <- t
+		authFlowChan <- &authFlowResponse{Token: t, err: nil}
 	})
 
 	listener, err := net.Listen("tcp", "127.0.0.1:0")
@@ -103,11 +122,16 @@ func runAuthFlow(ctx context.Context, conf oauth2.Config) (*oauth2.Token, error)
 	}
 	fmt.Printf("If the browser didn't open, visit this url to sign in: %v\n", url)
 
-	token := <-tokenChan
+	authFlowResponse := <-authFlowChan
 
-	if token == nil {
-		return nil, fmt.Errorf("no token received")
+	if authFlowResponse.err != nil {
+		return nil, fmt.Errorf("authFlow: %w", authFlowResponse.err)
 	}
 
-	return token, nil
+	return authFlowResponse.Token, nil
+}
+
+func failAuth(err error, w http.ResponseWriter, authFlowChan chan *authFlowResponse) {
+	failureResponse(w, err.Error())
+	authFlowChan <- &authFlowResponse{Token: nil, err: err}
 }

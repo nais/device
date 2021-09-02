@@ -11,12 +11,13 @@ import (
 	"time"
 
 	"github.com/golang-jwt/jwt"
-	"github.com/nais/device/apiserver/config"
-	"github.com/nais/device/apiserver/database"
-	"github.com/nais/device/pkg/random"
 	log "github.com/sirupsen/logrus"
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/endpoints"
+
+	"github.com/nais/device/apiserver/config"
+	"github.com/nais/device/apiserver/database"
+	"github.com/nais/device/pkg/random"
 )
 
 const (
@@ -166,6 +167,18 @@ func (s *Sessions) Login(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		sessionInfo.ObjectId = objectId
+
+		approvalOK := false
+		for _, group := range groups {
+			if group == config.NaisDeviceApprovalGroup {
+				approvalOK = true
+			}
+		}
+
+		if !approvalOK {
+			authFailed(w, "do's and don'ts not accepted, visit: https://naisdevice-approval.nais.io/ to read and accept")
+			return
+		}
 
 		serial := r.Header.Get("x-naisdevice-serial")
 		platform := r.Header.Get("x-naisdevice-platform")
