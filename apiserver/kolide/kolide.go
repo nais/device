@@ -36,14 +36,12 @@ func (c *ClientInterceptor) RequireTransportSecurity() bool {
 
 type Handler struct {
 	kolideClient *kolideclient.KolideClient
-	checkDevices chan<- []*kolideclient.Device
 	db           *database.APIServerDB
 }
 
 func New(kolideApiToken string, db *database.APIServerDB) *Handler {
 	return &Handler{
 		kolideClient: kolideclient.New(kolideApiToken),
-		checkDevices: make(chan []*kolideclient.Device, 50),
 		db:           db,
 	}
 }
@@ -103,8 +101,6 @@ func (handler *Handler) DeviceEventHandler(ctx context.Context, grpcAddress, grp
 			if err != nil {
 				log.Warningf("update device health: %v", err)
 			}
-
-			handler.checkDevices <- []*kolideclient.Device{device}
 		}
 	}
 
