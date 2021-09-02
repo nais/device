@@ -145,7 +145,7 @@ func (handler *Handler) Cron(programContext context.Context) {
 func (handler *Handler) updateDeviceHealth(ctx context.Context, device *kolideclient.Device) error {
 	existingDevice, err := handler.db.ReadDeviceBySerialPlatformUsername(ctx, device.Serial, platform(device.Platform), device.AssignedOwner.Email)
 	if err != nil {
-		return fmt.Errorf("read device(%s, %s): %w", device.AssignedOwner.Email, device.Serial, err)
+		return fmt.Errorf("read device(%+v): %w", device, err)
 	}
 
 	existingDevice.Healthy = boolp(DeviceHealthy(device))

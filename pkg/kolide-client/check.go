@@ -48,7 +48,6 @@ func GetGraceTime(severity Severity) time.Duration {
 	case SeverityCritical:
 		return DurationCritical
 	default:
-		log.Errorf("Unknown severity: %v", severity)
 		return DurationUnknown
 	}
 }
@@ -56,6 +55,10 @@ func GetGraceTime(severity Severity) time.Duration {
 func AfterGracePeriod(failure DeviceFailure) bool {
 	severity := GetSeverity(*failure.Check)
 	graceTime := GetGraceTime(severity)
+
+	if graceTime == DurationUnknown {
+		log.Errorf("DurationUnknown grace time for check %d, with tags: %+v", failure.CheckId, failure.Check.Tags)
+	}
 
 	if failure.Timestamp == nil {
 		return true
