@@ -97,6 +97,11 @@ func (handler *Handler) DeviceEventHandler(ctx context.Context, grpcAddress, grp
 				continue
 			}
 
+			// ignore unassigned devices
+			if len(device.AssignedOwner.Email) == 0 {
+				continue
+			}
+
 			err = handler.updateDeviceHealth(ctx, device)
 			if err != nil {
 				log.Warningf("update device health: %v", err)
@@ -124,6 +129,10 @@ func (handler *Handler) Cron(programContext context.Context) {
 			}
 
 			for _, d := range devices {
+				// ignore unassigned devices
+				if len(d.AssignedOwner.Email) == 0 {
+					continue
+				}
 				err := handler.updateDeviceHealth(ctx, d)
 				if err != nil {
 					log.Errorf("update device health: %v", err)
@@ -141,7 +150,7 @@ func (handler *Handler) Cron(programContext context.Context) {
 func (handler *Handler) updateDeviceHealth(ctx context.Context, device *kolideclient.Device) error {
 	existingDevice, err := handler.db.ReadDeviceBySerialPlatformUsername(ctx, device.Serial, platform(device.Platform), device.AssignedOwner.Email)
 	if err != nil {
-		return fmt.Errorf("read device(%+v): %w", device, err)
+		return fmt.Errorf("read device(%s, %s, %s): %w", device.AssignedOwner.Email, device.Serial, device.Platform, err)
 	}
 
 	existingDevice.Healthy = boolp(DeviceHealthy(device))

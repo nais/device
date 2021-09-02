@@ -54,8 +54,11 @@ func GetGraceTime(severity Severity) time.Duration {
 
 func AfterGracePeriod(failure DeviceFailure) bool {
 	severity := GetSeverity(*failure.Check)
-	graceTime := GetGraceTime(severity)
+	if severity == SeverityInfo {
+		return false
+	}
 
+	graceTime := GetGraceTime(severity)
 	if graceTime == DurationUnknown {
 		log.Errorf("DurationUnknown grace time for check %d, with tags: %+v", failure.CheckId, failure.Check.Tags)
 	}
