@@ -10,10 +10,11 @@ import (
 
 	"github.com/nais/device/device-agent/open"
 
-	"github.com/nais/device/pkg/random"
 	codeverifier "github.com/nirasan/go-oauth-pkce-code-verifier"
 	log "github.com/sirupsen/logrus"
 	"golang.org/x/oauth2"
+
+	"github.com/nais/device/pkg/random"
 )
 
 func AzureAuthenticatedClient(ctx context.Context, conf oauth2.Config) (*http.Client, error) {
@@ -33,12 +34,21 @@ func runAuthFlow(ctx context.Context, conf oauth2.Config) (*oauth2.Token, error)
 	// TODO check this in response from Azure
 	tokenChan := make(chan *oauth2.Token)
 	handler := http.NewServeMux()
+	state := random.RandomString(16, random.LettersAndNumbers)
 
 	// define a handler that will get the authorization code, call the token endpoint, and close the HTTP server
 	handler.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		// Catch if user has not approved terms
 		if strings.HasPrefix(r.URL.Query().Get("error_description"), "AADSTS50105") {
 			http.Redirect(w, r, "https://naisdevice-approval.nais.io/", http.StatusSeeOther)
+			tokenChan <- nil
+			return
+		}
+
+		responseState := r.URL.Query().Get("state")
+		if state != responseState {
+			log.Errorf("Error: invalid 'state' in auth response, try again")
+			failureResponse(w, "Error: invalid 'state' in auth response, try again")
 			tokenChan <- nil
 			return
 		}
@@ -81,7 +91,7 @@ func runAuthFlow(ctx context.Context, conf oauth2.Config) (*oauth2.Token, error)
 	defer server.Close()
 
 	url := conf.AuthCodeURL(
-		random.RandomString(16, random.LettersAndNumbers),
+		state,
 		oauth2.AccessTypeOffline,
 		oauth2.SetAuthURLParam("code_challenge_method", "S256"),
 		oauth2.SetAuthURLParam("code_challenge", codeVerifier.CodeChallengeS256()))
