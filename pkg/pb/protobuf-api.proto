@@ -100,7 +100,7 @@ message GetAgentConfigurationRequest {
 }
 
 message GetAgentConfigurationResponse {
-  AgentConfiguration config = 1;
+    AgentConfiguration config = 1;
 }
 
 enum AgentState {
@@ -153,4 +153,25 @@ message Error {
 message AgentConfiguration {
     bool CertRenewal = 1;
     bool AutoConnect = 2;
+}
+
+service APIServer {
+    // Set up a client->server request for continuous streaming of new configuration
+    rpc GetDeviceConfiguration (GetDeviceConfigurationRequest) returns (stream GetDeviceConfigurationResponse) {
+
+    }
+}
+
+message GetDeviceConfigurationRequest {
+    string sessionKey = 1;
+}
+
+enum DeviceConfigurationStatus {
+    DeviceHealthy = 0;
+    DeviceUnhealthy = 1;
+}
+
+message GetDeviceConfigurationResponse {
+    DeviceConfigurationStatus status = 1;
+    repeated Gateway Gateways = 2;
 }

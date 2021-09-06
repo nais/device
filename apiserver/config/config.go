@@ -13,6 +13,7 @@ type Config struct {
 	DbConnDSN                     string
 	BootstrapApiCredentials       string
 	BindAddress                   string
+	GRPCBindAddress               string
 	ConfigDir                     string
 	PrivateKeyPath                string
 	WireGuardConfigPath           string
@@ -58,8 +59,9 @@ func (c *Config) Credentials() (map[string]string, error) {
 
 func DefaultConfig() Config {
 	return Config{
-		BindAddress:    "10.255.240.1:80",
-		ConfigDir:      "/usr/local/etc/naisdevice/",
-		PrometheusAddr: ":3000",
+		BindAddress:     "10.255.240.1:80",
+		GRPCBindAddress: "10.255.240.1:8099",
+		ConfigDir:       "/usr/local/etc/naisdevice/",
+		PrometheusAddr:  ":3000",
 	}
 }

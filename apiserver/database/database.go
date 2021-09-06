@@ -257,7 +257,7 @@ SELECT id, serial, username, psk, platform, last_updated, kolide_last_seen, heal
 	return &device, nil
 }
 
-func (d *APIServerDB) ReadGateways() ([]pb.Gateway, error) {
+func (d *APIServerDB) ReadGateways() ([]*pb.Gateway, error) {
 	ctx := context.Background()
 
 	query := `
@@ -269,9 +269,9 @@ SELECT public_key, access_group_ids, endpoint, ip, routes, name, requires_privil
 		return nil, fmt.Errorf("querying for gateways %w", err)
 	}
 
-	var gateways []pb.Gateway
+	var gateways []*pb.Gateway
 	for rows.Next() {
-		var gateway pb.Gateway
+		gateway := &pb.Gateway{}
 		var routes string
 		var accessGroupIDs string
 		err := rows.Scan(&gateway.PublicKey, &accessGroupIDs, &gateway.Endpoint, &gateway.Ip, &routes, &gateway.Name, &gateway.RequiresPrivilegedAccess)

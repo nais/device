@@ -4,7 +4,9 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"google.golang.org/grpc"
 	"io/ioutil"
+	"net"
 	"net/http"
 	"os"
 	"os/exec"
@@ -130,7 +132,9 @@ func main() {
 		log.Fatalf("Generating public key: %v", err)
 	}
 
-	kolideHandler := kolide.New(cfg.KolideApiToken, db)
+	updates := make(chan *database.Device, 64)
+
+	kolideHandler := kolide.New(cfg.KolideApiToken, db, updates)
 
 	go kolideHandler.Cron(ctx)
 
@@ -180,6 +184,24 @@ func main() {
 			log.Fatalf("No credentials provided for basic auth")
 		}
 	}
+
+	grpcHandler := api.NewGRPCServer(db)
+	grpcServer := grpc.NewServer()
+
+	pb.RegisterAPIServerServer(grpcServer, grpcHandler)
+
+	grpcListener, err := net.Listen("tcp", cfg.GRPCBindAddress)
+	if err != nil {
+		log.Fatalf("unable to set up gRPC server: %v", err)
+	}
+
+	// fixme: teardown/restart if this exits
+	go grpcServer.Serve(grpcListener)
+
+	go func(){
+		device:=<-updates
+		grpcHandler.SendDeviceConfiguration(context.TODO(), device)
+	}()
 
 	router := api.New(apiConfig)
 
@@ -274,7 +296,7 @@ func syncWireguardConfig(dbConnDSN, driver, privateKey string, conf config.Confi
 	}
 }
 
-func GenerateWGConfig(devices []database.Device, gateways []pb.Gateway, privateKey string, conf config.Config) []byte {
+func GenerateWGConfig(devices []database.Device, gateways []*pb.Gateway, privateKey string, conf config.Config) []byte {
 	interfaceTemplate := `[Interface]
 PrivateKey = %s
 ListenPort = 51820

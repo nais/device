@@ -4,7 +4,6 @@ package pb
 
 import (
 	context "context"
-
 	grpc "google.golang.org/grpc"
 	codes "google.golang.org/grpc/codes"
 	status "google.golang.org/grpc/status"
@@ -481,6 +480,121 @@ var DeviceAgent_ServiceDesc = grpc.ServiceDesc{
 		{
 			StreamName:    "Status",
 			Handler:       _DeviceAgent_Status_Handler,
+			ServerStreams: true,
+		},
+	},
+	Metadata: "pkg/pb/protobuf-api.proto",
+}
+
+// APIServerClient is the client API for APIServer service.
+//
+// For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
+type APIServerClient interface {
+	// Set up a client->server request for continuous streaming of new configuration
+	GetDeviceConfiguration(ctx context.Context, in *GetDeviceConfigurationRequest, opts ...grpc.CallOption) (APIServer_GetDeviceConfigurationClient, error)
+}
+
+type aPIServerClient struct {
+	cc grpc.ClientConnInterface
+}
+
+func NewAPIServerClient(cc grpc.ClientConnInterface) APIServerClient {
+	return &aPIServerClient{cc}
+}
+
+func (c *aPIServerClient) GetDeviceConfiguration(ctx context.Context, in *GetDeviceConfigurationRequest, opts ...grpc.CallOption) (APIServer_GetDeviceConfigurationClient, error) {
+	stream, err := c.cc.NewStream(ctx, &APIServer_ServiceDesc.Streams[0], "/naisdevice.APIServer/GetDeviceConfiguration", opts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &aPIServerGetDeviceConfigurationClient{stream}
+	if err := x.ClientStream.SendMsg(in); err != nil {
+		return nil, err
+	}
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
+	return x, nil
+}
+
+type APIServer_GetDeviceConfigurationClient interface {
+	Recv() (*GetDeviceConfigurationResponse, error)
+	grpc.ClientStream
+}
+
+type aPIServerGetDeviceConfigurationClient struct {
+	grpc.ClientStream
+}
+
+func (x *aPIServerGetDeviceConfigurationClient) Recv() (*GetDeviceConfigurationResponse, error) {
+	m := new(GetDeviceConfigurationResponse)
+	if err := x.ClientStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
+// APIServerServer is the server API for APIServer service.
+// All implementations must embed UnimplementedAPIServerServer
+// for forward compatibility
+type APIServerServer interface {
+	// Set up a client->server request for continuous streaming of new configuration
+	GetDeviceConfiguration(*GetDeviceConfigurationRequest, APIServer_GetDeviceConfigurationServer) error
+	mustEmbedUnimplementedAPIServerServer()
+}
+
+// UnimplementedAPIServerServer must be embedded to have forward compatible implementations.
+type UnimplementedAPIServerServer struct {
+}
+
+func (UnimplementedAPIServerServer) GetDeviceConfiguration(*GetDeviceConfigurationRequest, APIServer_GetDeviceConfigurationServer) error {
+	return status.Errorf(codes.Unimplemented, "method GetDeviceConfiguration not implemented")
+}
+func (UnimplementedAPIServerServer) mustEmbedUnimplementedAPIServerServer() {}
+
+// UnsafeAPIServerServer may be embedded to opt out of forward compatibility for this service.
+// Use of this interface is not recommended, as added methods to APIServerServer will
+// result in compilation errors.
+type UnsafeAPIServerServer interface {
+	mustEmbedUnimplementedAPIServerServer()
+}
+
+func RegisterAPIServerServer(s grpc.ServiceRegistrar, srv APIServerServer) {
+	s.RegisterService(&APIServer_ServiceDesc, srv)
+}
+
+func _APIServer_GetDeviceConfiguration_Handler(srv interface{}, stream grpc.ServerStream) error {
+	m := new(GetDeviceConfigurationRequest)
+	if err := stream.RecvMsg(m); err != nil {
+		return err
+	}
+	return srv.(APIServerServer).GetDeviceConfiguration(m, &aPIServerGetDeviceConfigurationServer{stream})
+}
+
+type APIServer_GetDeviceConfigurationServer interface {
+	Send(*GetDeviceConfigurationResponse) error
+	grpc.ServerStream
+}
+
+type aPIServerGetDeviceConfigurationServer struct {
+	grpc.ServerStream
+}
+
+func (x *aPIServerGetDeviceConfigurationServer) Send(m *GetDeviceConfigurationResponse) error {
+	return x.ServerStream.SendMsg(m)
+}
+
+// APIServer_ServiceDesc is the grpc.ServiceDesc for APIServer service.
+// It's only intended for direct use with grpc.RegisterService,
+// and not to be introspected or modified (even as a copy)
+var APIServer_ServiceDesc = grpc.ServiceDesc{
+	ServiceName: "naisdevice.APIServer",
+	HandlerType: (*APIServerServer)(nil),
+	Methods:     []grpc.MethodDesc{},
+	Streams: []grpc.StreamDesc{
+		{
+			StreamName:    "GetDeviceConfiguration",
+			Handler:       _APIServer_GetDeviceConfiguration_Handler,
 			ServerStreams: true,
 		},
 	},
