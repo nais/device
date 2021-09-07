@@ -12,7 +12,7 @@ import (
 type grpcServer struct {
 	pb.UnimplementedAPIServerServer
 
-	streams map[string]pb.APIServer_GetDeviceConfigurationServer
+	streams map[int]pb.APIServer_GetDeviceConfigurationServer
 	lock    sync.Mutex
 	db      *database.APIServerDB
 }
@@ -21,34 +21,33 @@ var _ pb.APIServerServer = &grpcServer{}
 
 func NewGRPCServer(db *database.APIServerDB) *grpcServer {
 	return &grpcServer{
-		streams: make(map[string]pb.APIServer_GetDeviceConfigurationServer),
+		streams: make(map[int]pb.APIServer_GetDeviceConfigurationServer),
 		db:      db,
 	}
 }
 
 func (s *grpcServer) GetDeviceConfiguration(request *pb.GetDeviceConfigurationRequest, stream pb.APIServer_GetDeviceConfigurationServer) error {
 	s.lock.Lock()
-	s.streams[request.SessionKey] = stream
+	s.streams[int(request.DeviceID)] = stream
 	s.lock.Unlock()
 
 	// wait for disconnect
 	<-stream.Context().Done()
 
 	s.lock.Lock()
-	delete(s.streams, request.SessionKey)
+	delete(s.streams, int(request.DeviceID))
 	s.lock.Unlock()
 
 	return nil
 }
 
-func (s *grpcServer) SendDeviceConfiguration(ctx context.Context, sessionKey string) error {
-	stream, ok := s.streams[sessionKey]
+func (s *grpcServer) SendDeviceConfiguration(ctx context.Context, deviceID int) error {
+	stream, ok := s.streams[deviceID]
 	if !ok {
 		return fmt.Errorf("no session")
 	}
 
-	sessionInfo, err := s.db.ReadSessionInfo(ctx, sessionKey)
-	s.db.read
+	sessionInfo, err := s.db.ReadMostRecentSessionInfo(ctx, deviceID)
 	if err != nil {
 		return err
 	}

@@ -457,6 +457,37 @@ WHERE to_timestamp(expiry) > now();
 
 	return sessionInfos, nil
 }
+
+func (d *APIServerDB) ReadMostRecentSessionInfo(ctx context.Context, deviceID int) (*SessionInfo, error) {
+	query := `
+SELECT key, expiry, device_id, groups, object_id
+FROM session
+WHERE device_id = $1
+ORDER BY expiry DESC
+LIMIT 1;
+`
+
+	row := d.Conn.QueryRowContext(ctx, query, deviceID)
+
+	var si SessionInfo
+	var groups string
+	err := row.Scan(&si.Key, &si.Expiry, &deviceID, &groups, &si.ObjectId)
+	if err != nil {
+		return nil, fmt.Errorf("scanning row: %w", err)
+	}
+
+	si.Groups = strings.Split(groups, ",")
+	si.Device, err = d.ReadDeviceById(ctx, deviceID)
+
+	if err != nil {
+		return nil, fmt.Errorf("reading device: %w", err)
+	}
+
+	log.Debugf("retrieved session info from db: %v", si)
+
+	return &si, nil
+}
+
 func (db *APIServerDB) Migrate(ctx context.Context) error {
 	var version int
 

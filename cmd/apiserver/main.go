@@ -198,9 +198,12 @@ func main() {
 	// fixme: teardown/restart if this exits
 	go grpcServer.Serve(grpcListener)
 
-	go func(){
-		device:=<-updates
-		grpcHandler.SendDeviceConfiguration(context.TODO(), device)
+	go func() {
+		device := <-updates
+		err := grpcHandler.SendDeviceConfiguration(context.TODO(), device.ID)
+		if err != nil {
+			log.Error(err)
+		}
 	}()
 
 	router := api.New(apiConfig)
