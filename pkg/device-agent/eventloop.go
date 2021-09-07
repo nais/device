@@ -62,11 +62,16 @@ func (das *DeviceAgentServer) syncConfigLoop(ctx context.Context, apiserver pb.A
 		return err
 	}
 
+	log.Infof("gRPC connection established with API server")
+
 	for {
 		config, err := stream.Recv()
 		if err != nil {
 			return err
 		}
+
+		log.Infof("Received gateway configuration from API server")
+
 		switch config.Status {
 		case pb.DeviceConfigurationStatus_InvalidSession:
 			log.Errorf("Unauthorized access from apiserver: %v", err)
@@ -313,6 +318,8 @@ func (das *DeviceAgentServer) EventLoop(apiserver pb.APIServerClient) {
 				das.stateChange <- previousState
 
 			case pb.AgentState_RenewCert:
+				das.stateChange <- previousState
+
 				err := clientcert.Renew()
 				if err != nil {
 					certRenewalTicker.Reset(certRenewalBackoff)
@@ -322,8 +329,6 @@ func (das *DeviceAgentServer) EventLoop(apiserver pb.APIServerClient) {
 
 				certRenewalTicker.Reset(certRenewalInterval)
 				log.Info("NAV Microsoft Client Certificate renewed")
-
-				das.stateChange <- previousState
 			}
 		}
 	}

@@ -226,8 +226,6 @@ func (s *Sessions) Login(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		log.Errorf("writing response: %v", err)
 	}
-
-	log.Infof("login: %v", s.Active)
 }
 
 func (s *Sessions) AuthURL(w http.ResponseWriter, r *http.Request) {
