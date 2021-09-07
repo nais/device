@@ -54,6 +54,7 @@ func (das *DeviceAgentServer) syncConfigLoop(ctx context.Context, apiserver pb.A
 		return fmt.Errorf("not authenticated")
 	}
 
+
 	stream, err := apiserver.GetDeviceConfiguration(ctx, &pb.GetDeviceConfigurationRequest{
 		SessionKey: das.rc.SessionInfo.Key,
 	})
@@ -95,6 +96,8 @@ func (das *DeviceAgentServer) syncConfigLoop(ctx context.Context, apiserver pb.A
 
 func (das *DeviceAgentServer) EventLoop(apiserver pb.APIServerClient) {
 	var err error
+	var syncctx context.Context
+	var synccancel context.CancelFunc
 
 	gateways := make(chan []*pb.Gateway, 16)
 	status := &pb.AgentStatus{}
@@ -109,15 +112,6 @@ func (das *DeviceAgentServer) EventLoop(apiserver pb.APIServerClient) {
 	authenticateTimer.Stop()
 
 	go func() {
-		for {
-			ctx, cancel := context.WithTimeout(context.Background(), syncConfigTimeout)
-			err := das.syncConfigLoop(ctx, apiserver, gateways)
-			cancel()
-			if err != nil {
-				log.Errorf("synchronize config: %s", err)
-				time.Sleep(syncConfigBackoff)
-			}
-		}
 	}()
 
 	autoConnectTriggered := false
@@ -178,14 +172,19 @@ func (das *DeviceAgentServer) EventLoop(apiserver pb.APIServerClient) {
 
 		case gws := <-gateways:
 			if status.ConnectionState != pb.AgentState_Connected {
-				log.Debugf("sync-config skipped, not connected")
+				log.Errorf("BUG: sync-config skipped, not connected")
+				break
+			}
+
+			if syncctx == nil {
+				log.Errorf("BUG: synchronization context is nil while updating gateways")
 				break
 			}
 
 			pb.MergeGatewayHealth(gws, status.GetGateways())
 			status.Gateways = gws
 
-			ctx, cancel := context.WithTimeout(context.Background(), helperTimeout)
+			ctx, cancel := context.WithTimeout(syncctx, helperTimeout)
 			err = das.ConfigureHelper(ctx, das.rc, append(
 				[]*pb.Gateway{
 					das.rc.BootstrapConfig.Gateway(),
@@ -206,6 +205,7 @@ func (das *DeviceAgentServer) EventLoop(apiserver pb.APIServerClient) {
 			previousState := status.ConnectionState
 			status.ConnectionState = newState
 			log.Infof("state changed to %s", status.ConnectionState)
+
 			switch status.ConnectionState {
 			case pb.AgentState_Bootstrapping:
 				if das.rc.BootstrapConfig != nil {
@@ -252,6 +252,23 @@ func (das *DeviceAgentServer) EventLoop(apiserver pb.APIServerClient) {
 				}
 
 				status.ConnectedSince = timestamppb.Now()
+
+				syncctx, synccancel = context.WithCancel(context.Background())
+				go func() {
+					log.Infof("Setting up gateway config synchronization loop")
+					for syncctx.Err() == nil {
+						log.Infof("Trying syncConfigLoop()")
+						err := das.syncConfigLoop(syncctx, apiserver, gateways)
+						if err != nil {
+							log.Errorf("synchronize config: %s", err)
+							time.Sleep(1 * time.Second)
+						}
+					}
+					log.Infof("Gateway config synchronization loop: %s", syncctx.Err())
+					syncctx = nil
+					synccancel()
+				}()
+
 				das.stateChange <- pb.AgentState_Connected
 				continue
 
@@ -272,6 +289,9 @@ func (das *DeviceAgentServer) EventLoop(apiserver pb.APIServerClient) {
 				return
 
 			case pb.AgentState_Disconnecting:
+				if synccancel != nil {
+					synccancel() // cancel streaming gateway updates
+				}
 				das.rc.SessionInfo = nil
 				authenticateTimer.Stop()
 				log.Info("Tearing down network connections through device-helper...")

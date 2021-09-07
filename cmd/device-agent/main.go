@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"time"
 
 	log "github.com/sirupsen/logrus"
 	flag "github.com/spf13/pflag"
@@ -83,6 +84,7 @@ func startDeviceAgent(cfg *config.Config) error {
 	log.Infof("apiserver connection on %s", cfg.APIServerGRPCAddress)
 	apiserver, err := grpc.Dial(
 		cfg.APIServerGRPCAddress,
+		grpc.WithTimeout(1*time.Second),
 		grpc.WithInsecure(), // fixme
 	)
 	if err != nil {
