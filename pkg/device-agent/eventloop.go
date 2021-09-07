@@ -29,7 +29,8 @@ import (
 
 const (
 	healthCheckInterval  = 20 * time.Second   // how often to healthcheck gateways
-	syncConfigTimeout    = 5 * time.Second    // timeout for config synchronization
+	syncConfigTimeout    = 1 * time.Hour      // timeout for config synchronization
+	syncConfigBackoff    = 1 * time.Second    // sleep time between failed configuration syncs
 	versionCheckInterval = 1 * time.Hour      // how often to check for a new version of naisdevice
 	versionCheckTimeout  = 3 * time.Second    // timeout for new version check
 	authFlowTimeout      = 30 * time.Second   // total timeout for authenticating user (AAD login in browser, redirect to localhost, exchange code for token)
@@ -49,12 +50,18 @@ func (das *DeviceAgentServer) ConfigureHelper(ctx context.Context, rc *runtimeco
 }
 
 func (das *DeviceAgentServer) syncConfigLoop(ctx context.Context, apiserver pb.APIServerClient, gateways chan<- []*pb.Gateway) error {
+	if das.rc.SessionInfo == nil {
+		return fmt.Errorf("not authenticated")
+	}
+
 	stream, err := apiserver.GetDeviceConfiguration(ctx, &pb.GetDeviceConfigurationRequest{
-		DeviceID: 0, // fixme
+		SessionKey: das.rc.SessionInfo.Key,
 	})
+
 	if err != nil {
 		return err
 	}
+
 	for {
 		config, err := stream.Recv()
 		if err != nil {
@@ -72,6 +79,8 @@ func (das *DeviceAgentServer) syncConfigLoop(ctx context.Context, apiserver pb.A
 			notify.Errorf("No access as your device is unhealthy. Run '/msg @Kolide status' on Slack and fix the errors")
 			das.stateChange <- pb.AgentState_Unhealthy
 			continue
+		case pb.DeviceConfigurationStatus_DeviceHealthy:
+			log.Infof("Device is healthy; server pushed %d gateways", len(config.Gateways))
 		default:
 		}
 
@@ -79,7 +88,7 @@ func (das *DeviceAgentServer) syncConfigLoop(ctx context.Context, apiserver pb.A
 	}
 }
 
-func (das *DeviceAgentServer) EventLoop(rc *runtimeconfig.RuntimeConfig, apiserver pb.APIServerClient) {
+func (das *DeviceAgentServer) EventLoop(apiserver pb.APIServerClient) {
 	var err error
 
 	gateways := make(chan []*pb.Gateway, 16)
@@ -101,6 +110,7 @@ func (das *DeviceAgentServer) EventLoop(rc *runtimeconfig.RuntimeConfig, apiserv
 			cancel()
 			if err != nil {
 				log.Errorf("synchronize config: %s", err)
+				time.Sleep(syncConfigBackoff)
 			}
 		}
 	}()
@@ -171,9 +181,9 @@ func (das *DeviceAgentServer) EventLoop(rc *runtimeconfig.RuntimeConfig, apiserv
 			status.Gateways = gws
 
 			ctx, cancel := context.WithTimeout(context.Background(), helperTimeout)
-			err = das.ConfigureHelper(ctx, rc, append(
+			err = das.ConfigureHelper(ctx, das.rc, append(
 				[]*pb.Gateway{
-					rc.BootstrapConfig.Gateway(),
+					das.rc.BootstrapConfig.Gateway(),
 				},
 				status.GetGateways()...,
 			))
@@ -193,11 +203,11 @@ func (das *DeviceAgentServer) EventLoop(rc *runtimeconfig.RuntimeConfig, apiserv
 			log.Infof("state changed to %s", status.ConnectionState)
 			switch status.ConnectionState {
 			case pb.AgentState_Bootstrapping:
-				if rc.BootstrapConfig != nil {
+				if das.rc.BootstrapConfig != nil {
 					log.Infof("Already bootstrapped")
 				} else {
 					ctx, cancel := context.WithTimeout(context.Background(), 1*time.Minute)
-					rc.BootstrapConfig, err = runtimeconfig.EnsureBootstrapping(rc, ctx)
+					das.rc.BootstrapConfig, err = runtimeconfig.EnsureBootstrapping(das.rc, ctx)
 					cancel()
 					if err != nil {
 						notify.Errorf("Bootstrap: %v", err)
@@ -207,8 +217,8 @@ func (das *DeviceAgentServer) EventLoop(rc *runtimeconfig.RuntimeConfig, apiserv
 				}
 
 				ctx, cancel := context.WithTimeout(context.Background(), helperTimeout)
-				err = das.ConfigureHelper(ctx, rc, []*pb.Gateway{
-					rc.BootstrapConfig.Gateway(),
+				err = das.ConfigureHelper(ctx, das.rc, []*pb.Gateway{
+					das.rc.BootstrapConfig.Gateway(),
 				})
 				cancel()
 
@@ -221,12 +231,12 @@ func (das *DeviceAgentServer) EventLoop(rc *runtimeconfig.RuntimeConfig, apiserv
 				authenticateTimer.Reset(1 * time.Microsecond)
 
 			case pb.AgentState_Authenticating:
-				if rc.SessionInfo != nil && !rc.SessionInfo.Expired() {
+				if das.rc.SessionInfo != nil && !das.rc.SessionInfo.Expired() {
 					log.Infof("Already have a valid session")
 				} else {
 					log.Infof("No valid session, authenticating")
 					ctx, cancel := context.WithTimeout(context.Background(), authFlowTimeout)
-					rc.SessionInfo, err = auth.EnsureAuth(rc.SessionInfo, ctx, rc.Config.APIServer, rc.Config.Platform, rc.Serial)
+					das.rc.SessionInfo, err = auth.EnsureAuth(das.rc.SessionInfo, ctx, das.rc.Config.APIServer, das.rc.Config.Platform, das.rc.Serial)
 					cancel()
 
 					if err != nil {
@@ -257,7 +267,7 @@ func (das *DeviceAgentServer) EventLoop(rc *runtimeconfig.RuntimeConfig, apiserv
 				return
 
 			case pb.AgentState_Disconnecting:
-				rc.SessionInfo = nil
+				das.rc.SessionInfo = nil
 				authenticateTimer.Stop()
 				log.Info("Tearing down network connections through device-helper...")
 				ctx, cancel := context.WithTimeout(context.Background(), helperTimeout)

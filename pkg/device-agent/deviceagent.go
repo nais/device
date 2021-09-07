@@ -3,6 +3,7 @@ package device_agent
 import (
 	"context"
 	"fmt"
+	"github.com/nais/device/device-agent/runtimeconfig"
 	"sync"
 
 	"github.com/google/uuid"
@@ -24,6 +25,7 @@ type DeviceAgentServer struct {
 	statusChange chan *pb.AgentStatus
 	streams      map[uuid.UUID]pb.DeviceAgent_StatusServer
 	Config       *config.Config
+	rc           *runtimeconfig.RuntimeConfig
 }
 
 func (das *DeviceAgentServer) Login(ctx context.Context, request *pb.LoginRequest) (*pb.LoginResponse, error) {
@@ -110,11 +112,12 @@ func (das *DeviceAgentServer) GetAgentConfiguration(ctx context.Context, req *pb
 	}, nil
 }
 
-func NewServer(helper pb.DeviceHelperClient, cfg *config.Config) *DeviceAgentServer {
+func NewServer(helper pb.DeviceHelperClient, cfg *config.Config, rc *runtimeconfig.RuntimeConfig) *DeviceAgentServer {
 	return &DeviceAgentServer{
 		DeviceHelper: helper,
 		stateChange:  make(chan pb.AgentState, 32),
 		streams:      make(map[uuid.UUID]pb.DeviceAgent_StatusServer, 0),
 		Config:       cfg,
+		rc:           rc,
 	}
 }

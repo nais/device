@@ -200,10 +200,16 @@ func main() {
 	go grpcServer.Serve(grpcListener)
 
 	go func() {
-		device := <-updates
-		err := grpcHandler.SendDeviceConfiguration(context.TODO(), device.ID)
-		if err != nil {
-			log.Error(err)
+		for {
+			device := <-updates
+			sessionKey, err := sessions.SessionKeyFromDeviceID(device.ID)
+			log.Infof("Pushing configuration for device %d, session key %s, error %s", device.ID, sessionKey, err)
+			if err == nil {
+				err = grpcHandler.SendDeviceConfiguration(context.TODO(), sessionKey)
+			}
+			if err != nil {
+				log.Error(err)
+			}
 		}
 	}()
 

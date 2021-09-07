@@ -82,7 +82,7 @@ func startDeviceAgent(cfg *config.Config) error {
 
 	log.Infof("apiserver connection on %s", cfg.APIServerGRPCAddress)
 	apiserver, err := grpc.Dial(
-		"tcp:"+cfg.APIServerGRPCAddress,
+		cfg.APIServerGRPCAddress,
 		grpc.WithInsecure(), // fixme
 	)
 	if err != nil {
@@ -97,11 +97,11 @@ func startDeviceAgent(cfg *config.Config) error {
 	log.Infof("accepting network connections on unix socket %s", cfg.GrpcAddress)
 
 	grpcServer := grpc.NewServer()
-	das := device_agent.NewServer(client, cfg)
+	das := device_agent.NewServer(client, cfg, rc)
 	pb.RegisterDeviceAgentServer(grpcServer, das)
 
 	go func() {
-		das.EventLoop(rc)
+		das.EventLoop(apiserverClient)
 		grpcServer.Stop()
 	}()
 

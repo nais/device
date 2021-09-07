@@ -164,7 +164,7 @@ service APIServer {
 }
 
 message GetDeviceConfigurationRequest {
-    int64 deviceID = 1;
+    string sessionKey = 1;
 }
 
 enum DeviceConfigurationStatus {

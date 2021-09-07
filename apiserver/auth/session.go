@@ -55,6 +55,15 @@ func New(cfg config.Config, validator jwt.Keyfunc, db *database.APIServerDB) (*S
 	}, nil
 }
 
+func (s *Sessions) SessionKeyFromDeviceID(deviceID int) (string, error) {
+	for key, session := range s.Active {
+		if session.Device.ID == deviceID {
+			return key, nil
+		}
+	}
+	return "", fmt.Errorf("no active session for device %d", deviceID)
+}
+
 func (s *Sessions) Validator() func(next http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -193,7 +202,7 @@ func (s *Sessions) Login(w http.ResponseWriter, r *http.Request) {
 	} else {
 		sessionInfo.Groups = []string{"group1", "group2"}
 		sessionInfo.ObjectId = "objectId1"
-		sessionInfo.Device = &database.Device{ID: 0, Serial: "serial1", Username: "username1", Platform: "platform1"}
+		sessionInfo.Device = &database.Device{ID: 1, Serial: "serial1", Username: "username1", Platform: "platform1"}
 	}
 
 	b, err := json.Marshal(sessionInfo)

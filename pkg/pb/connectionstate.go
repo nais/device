@@ -12,8 +12,6 @@ func (x *AgentStatus) ConnectionStateString() string {
 		return "Device is unhealthy; no access to resources"
 	case AgentState_HealthCheck:
 		return "Checking gateway connectivity..."
-	case AgentState_SyncConfig:
-		return "Retrieving gateway configuration..."
 	case AgentState_Disconnecting:
 		return "Disconnecting..."
 	case AgentState_Authenticating:
