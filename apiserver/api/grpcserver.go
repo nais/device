@@ -31,6 +31,12 @@ func (s *grpcServer) GetDeviceConfiguration(request *pb.GetDeviceConfigurationRe
 	s.streams[int(request.DeviceID)] = stream
 	s.lock.Unlock()
 
+	// send initial device configuration
+	err := s.SendDeviceConfiguration(stream.Context(), int(request.DeviceID))
+	if err != nil {
+		log.Errorf("send initial device configuration: %s", err)
+	}
+
 	// wait for disconnect
 	<-stream.Context().Done()
 

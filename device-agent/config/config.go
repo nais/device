@@ -20,6 +20,7 @@ const File = "agent-config.json"
 
 type Config struct {
 	APIServer                string
+	APIServerGRPCAddress     string
 	Interface                string
 	ConfigDir                string
 	BootstrapToken           string

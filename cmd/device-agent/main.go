@@ -26,6 +26,7 @@ var (
 
 func init() {
 	flag.StringVar(&cfg.APIServer, "apiserver", cfg.APIServer, "base url to apiserver")
+	flag.StringVar(&cfg.APIServerGRPCAddress, "apiserver-grpc-address", cfg.APIServerGRPCAddress, "grpc address to apiserver")
 	flag.StringVar(&cfg.BootstrapAPI, "bootstrap-api", cfg.BootstrapAPI, "url to bootstrap API")
 	flag.StringVar(&cfg.ConfigDir, "config-dir", cfg.ConfigDir, "path to agent config directory")
 	flag.StringVar(&cfg.Interface, "interface", cfg.Interface, "name of tunnel interface")
@@ -78,6 +79,16 @@ func startDeviceAgent(cfg *config.Config) error {
 
 	client := pb.NewDeviceHelperClient(connection)
 	defer connection.Close()
+
+	log.Infof("apiserver connection on %s", cfg.APIServerGRPCAddress)
+	apiserver, err := grpc.Dial(
+		"tcp:"+cfg.APIServerGRPCAddress,
+		grpc.WithInsecure(), // fixme
+	)
+	if err != nil {
+		return fmt.Errorf("connect to apiserver: %v", err)
+	}
+	apiserverClient := pb.NewAPIServerClient(apiserver)
 
 	listener, err := unixsocket.ListenWithFileMode(cfg.GrpcAddress, 0666)
 	if err != nil {
