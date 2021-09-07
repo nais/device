@@ -42,6 +42,8 @@ func (s *grpcServer) GetDeviceConfiguration(request *pb.GetDeviceConfigurationRe
 }
 
 func (s *grpcServer) SendDeviceConfiguration(ctx context.Context, deviceID int) error {
+	log.Infof("SendDeviceConfiguration(%d)", deviceID)
+
 	stream, ok := s.streams[deviceID]
 	if !ok {
 		return fmt.Errorf("no session")
