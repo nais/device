@@ -4,7 +4,7 @@ import (
 	"net/http"
 	"time"
 
-	bootstrap_api "github.com/nais/device/bootstrap-api"
+	bootstrap_api "github.com/nais/device/pkg/bootstrap-api"
 	"github.com/nais/device/pkg/logger"
 	"github.com/nais/device/pkg/secretmanager"
 	"github.com/prometheus/client_golang/prometheus/promhttp"

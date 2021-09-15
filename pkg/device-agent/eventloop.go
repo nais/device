@@ -21,9 +21,9 @@ import (
 	log "github.com/sirupsen/logrus"
 	"google.golang.org/protobuf/types/known/timestamppb"
 
-	"github.com/nais/device/device-agent/apiserver"
-	"github.com/nais/device/device-agent/auth"
-	"github.com/nais/device/device-agent/runtimeconfig"
+	"github.com/nais/device/pkg/device-agent/apiserver"
+	"github.com/nais/device/pkg/device-agent/auth"
+	"github.com/nais/device/pkg/device-agent/runtimeconfig"
 	"github.com/nais/device/pkg/notify"
 	"github.com/nais/device/pkg/pb"
 	"github.com/nais/device/pkg/version"
@@ -299,6 +299,7 @@ func (das *DeviceAgentServer) EventLoop(rc *runtimeconfig.RuntimeConfig) {
 				if err != nil {
 					certRenewalTicker.Reset(certRenewalBackoff)
 					log.Errorf("Renewing NAV microsoft client certificate: %v", err)
+					das.stateChange <- previousState
 					break
 				}
 

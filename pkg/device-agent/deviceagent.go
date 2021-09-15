@@ -11,7 +11,7 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
-	"github.com/nais/device/device-agent/config"
+	"github.com/nais/device/pkg/device-agent/config"
 	"github.com/nais/device/pkg/pb"
 )
 

@@ -9,10 +9,10 @@ import (
 	flag "github.com/spf13/pflag"
 	"google.golang.org/grpc"
 
-	"github.com/nais/device/device-agent/config"
-	"github.com/nais/device/device-agent/filesystem"
-	"github.com/nais/device/device-agent/runtimeconfig"
 	device_agent "github.com/nais/device/pkg/device-agent"
+	"github.com/nais/device/pkg/device-agent/config"
+	"github.com/nais/device/pkg/device-agent/filesystem"
+	"github.com/nais/device/pkg/device-agent/runtimeconfig"
 	"github.com/nais/device/pkg/logger"
 	"github.com/nais/device/pkg/notify"
 	"github.com/nais/device/pkg/pb"

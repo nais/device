@@ -176,3 +176,24 @@ message GetDeviceConfigurationResponse {
     DeviceConfigurationStatus status = 1;
     repeated Gateway Gateways = 2;
 }
+
+message Device {
+    int64 id = 1;
+    string serial = 2;
+    string psk = 3;
+    google.protobuf.Timestamp lastUpdated = 4;
+    google.protobuf.Timestamp kolideLastSeen = 5;
+    bool healthy = 6;
+    string publicKey = 7;
+    string ip = 8;
+    string username = 9;
+    string platform = 10;
+}
+
+message Session {
+    string key = 1;
+    google.protobuf.Timestamp expiry = 2;
+    Device device = 3;
+    repeated string groups = 4;
+    string objectID = 5;
+}
