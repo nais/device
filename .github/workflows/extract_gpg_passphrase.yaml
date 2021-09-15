@@ -7,6 +7,7 @@
 # - Copy encrypted text and decrypt locally
 # - Add key to Vault for safe keeping
 # - Remove this workflow
+name: Extract GPG passphrase
 
 on: workflow_dispatch
 
@@ -20,6 +21,7 @@ jobs:
           PPA_GPG_PASSPHRASE: ${{ secrets.PPA_GPG_PASSPHRASE }}
         run: |
           # Set-up GPG
+          apt-get upgrade --assume-yes gnupg
           mkdir -p ~/.gnupg
           chmod u=rwx,g=,o= ~/.gnupg
           echo "use-agent" >> ~/.gnupg/gpg.conf
@@ -27,6 +29,8 @@ jobs:
           echo "allow-loopback-pinentry" >> ~/.gnupg/gpg-agent.conf
           echo RELOADAGENT | gpg-connect-agent
           curl https://keybase.io/mortenlj/pgp_keys.asc | gpg --import --batch
+          echo Loaded keys
+          gpg --list-keys
 
           # Encrypt passphrase
           echo ${PPA_GPG_PASSPHRASE} | gpg --batch --no-tty --encrypt --armor --recipient morten.lied.johansen@nav.no -o -
