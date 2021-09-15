@@ -219,7 +219,7 @@ func (a *api) UserGateways(userGroups []string) (*[]pb.Gateway, error) {
 	var filtered []pb.Gateway
 	for _, gw := range gateways {
 		if userIsAuthorized(gw.AccessGroupIDs, userGroups) {
-			filtered = append(filtered, gw)
+			filtered = append(filtered, *gw)
 		}
 	}
 

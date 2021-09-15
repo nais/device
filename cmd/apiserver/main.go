@@ -4,7 +4,9 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"google.golang.org/grpc"
 	"io/ioutil"
+	"net"
 	"net/http"
 	"os"
 	"os/exec"
@@ -54,6 +56,7 @@ func init() {
 	flag.StringVar(&cfg.PrometheusTunnelIP, "prometheus-tunnel-ip", cfg.PrometheusTunnelIP, "prometheus tunnel ip")
 	flag.StringVar(&cfg.LogLevel, "log-level", "info", "which log level to output")
 	flag.StringVar(&cfg.BindAddress, "bind-address", cfg.BindAddress, "Bind address")
+	flag.StringVar(&cfg.GRPCBindAddress, "grpc-bind-address", cfg.GRPCBindAddress, "Bind address for gRPC server")
 	flag.StringVar(&cfg.ConfigDir, "config-dir", cfg.ConfigDir, "Path to configuration directory")
 	flag.StringVar(&cfg.Endpoint, "endpoint", cfg.Endpoint, "public endpoint (ip:port)")
 	flag.BoolVar(&cfg.DevMode, "development-mode", cfg.DevMode, "Development mode avoids setting up wireguard and fetching and validating AAD certificates")
@@ -130,7 +133,9 @@ func main() {
 		log.Fatalf("Generating public key: %v", err)
 	}
 
-	kolideHandler := kolide.New(cfg.KolideApiToken, db)
+	updates := make(chan *database.Device, 64)
+
+	kolideHandler := kolide.New(cfg.KolideApiToken, db, updates)
 
 	go kolideHandler.Cron(ctx)
 
@@ -180,6 +185,33 @@ func main() {
 			log.Fatalf("No credentials provided for basic auth")
 		}
 	}
+
+	grpcHandler := api.NewGRPCServer(db)
+	grpcServer := grpc.NewServer()
+
+	pb.RegisterAPIServerServer(grpcServer, grpcHandler)
+
+	grpcListener, err := net.Listen("tcp", cfg.GRPCBindAddress)
+	if err != nil {
+		log.Fatalf("unable to set up gRPC server: %v", err)
+	}
+
+	// fixme: teardown/restart if this exits
+	go grpcServer.Serve(grpcListener)
+
+	go func() {
+		for {
+			device := <-updates
+			sessionKey, err := sessions.SessionKeyFromDeviceID(device.ID)
+			log.Infof("Pushing configuration for device %d, session key %s, error %s", device.ID, sessionKey, err)
+			if err == nil {
+				err = grpcHandler.SendDeviceConfiguration(context.TODO(), sessionKey)
+			}
+			if err != nil {
+				log.Error(err)
+			}
+		}
+	}()
 
 	router := api.New(apiConfig)
 
@@ -274,7 +306,7 @@ func syncWireguardConfig(dbConnDSN, driver, privateKey string, conf config.Confi
 	}
 }
 
-func GenerateWGConfig(devices []database.Device, gateways []pb.Gateway, privateKey string, conf config.Config) []byte {
+func GenerateWGConfig(devices []database.Device, gateways []*pb.Gateway, privateKey string, conf config.Config) []byte {
 	interfaceTemplate := `[Interface]
 PrivateKey = %s
 ListenPort = 51820

@@ -257,7 +257,7 @@ SELECT id, serial, username, psk, platform, last_updated, kolide_last_seen, heal
 	return &device, nil
 }
 
-func (d *APIServerDB) ReadGateways() ([]pb.Gateway, error) {
+func (d *APIServerDB) ReadGateways() ([]*pb.Gateway, error) {
 	ctx := context.Background()
 
 	query := `
@@ -269,9 +269,9 @@ SELECT public_key, access_group_ids, endpoint, ip, routes, name, requires_privil
 		return nil, fmt.Errorf("querying for gateways %w", err)
 	}
 
-	var gateways []pb.Gateway
+	var gateways []*pb.Gateway
 	for rows.Next() {
-		var gateway pb.Gateway
+		gateway := &pb.Gateway{}
 		var routes string
 		var accessGroupIDs string
 		err := rows.Scan(&gateway.PublicKey, &accessGroupIDs, &gateway.Endpoint, &gateway.Ip, &routes, &gateway.Name, &gateway.RequiresPrivilegedAccess)
@@ -457,6 +457,37 @@ WHERE to_timestamp(expiry) > now();
 
 	return sessionInfos, nil
 }
+
+func (d *APIServerDB) ReadMostRecentSessionInfo(ctx context.Context, deviceID int) (*SessionInfo, error) {
+	query := `
+SELECT key, expiry, device_id, groups, object_id
+FROM session
+WHERE device_id = $1
+ORDER BY expiry DESC
+LIMIT 1;
+`
+
+	row := d.Conn.QueryRowContext(ctx, query, deviceID)
+
+	var si SessionInfo
+	var groups string
+	err := row.Scan(&si.Key, &si.Expiry, &deviceID, &groups, &si.ObjectId)
+	if err != nil {
+		return nil, fmt.Errorf("scanning row: %w", err)
+	}
+
+	si.Groups = strings.Split(groups, ",")
+	si.Device, err = d.ReadDeviceById(ctx, deviceID)
+
+	if err != nil {
+		return nil, fmt.Errorf("reading device: %w", err)
+	}
+
+	log.Debugf("retrieved session info from db: %v", si)
+
+	return &si, nil
+}
+
 func (db *APIServerDB) Migrate(ctx context.Context) error {
 	var version int
 

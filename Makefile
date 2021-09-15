@@ -85,6 +85,7 @@ local-apiserver:
 	go run ./cmd/apiserver/main.go \
 		--db-connection-dsn=postgresql://postgres:postgres@localhost/postgres?sslmode=disable \
 		--bind-address=127.0.0.1:8080 \
+		--grpc-bind-address=127.0.0.1:8099 \
 		--config-dir=${confdir} \
 		--development-mode=true \
 		--prometheus-address=127.0.0.1:3000 \
