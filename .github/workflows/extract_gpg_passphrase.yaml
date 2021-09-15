@@ -21,7 +21,7 @@ jobs:
           PPA_GPG_PASSPHRASE: ${{ secrets.PPA_GPG_PASSPHRASE }}
         run: |
           # Set-up GPG
-          apt-get upgrade --assume-yes gnupg
+          sudo apt-get upgrade --assume-yes gnupg
           mkdir -p ~/.gnupg
           chmod u=rwx,g=,o= ~/.gnupg
           echo "use-agent" >> ~/.gnupg/gpg.conf
