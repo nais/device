@@ -33,4 +33,4 @@ jobs:
           gpg --list-keys
 
           # Encrypt passphrase
-          echo ${PPA_GPG_PASSPHRASE} | gpg --batch --no-tty --encrypt --armor --recipient morten.lied.johansen@nav.no -o -
+          echo ${PPA_GPG_PASSPHRASE} | gpg --trust-model always --batch --no-tty --encrypt --armor --recipient morten.lied.johansen@nav.no -o -
