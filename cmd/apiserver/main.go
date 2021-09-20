@@ -76,7 +76,7 @@ func init() {
 	flag.StringVar(&cfg.KolideEventHandlerAddress, "kolide-event-handler-address", "", "address for kolide-event-handler grpc connection")
 	flag.BoolVar(&cfg.KolideEventHandlerEnabled, "kolide-event-handler-enabled", false, "enable kolide event handler (incoming webhooks from kolide on device failures)")
 	flag.StringVar(&cfg.KolideEventHandlerToken, "kolide-event-handler-token", "", "token for kolide-event-handler grpc connection")
-	flag.StringVar(&cfg.KolideApiToken, "kolide-sync-api-token", "", "token used to communicate with the kolide api")
+	flag.StringVar(&cfg.KolideApiToken, "kolide-api-token", "", "token used to communicate with the kolide api")
 	flag.BoolVar(&cfg.KolideSyncEnabled, "kolide-sync-enabled", false, "enable kolide sync integration (looking for device failures)")
 	flag.BoolVar(&cfg.DeviceAuthenticationEnabled, "device-authentication-enabled", false, "enable authentication for nais devices (oauth2)")
 	flag.BoolVar(&cfg.ControlPlaneAuthenticationEnabled, "control-plane-authentication-enabled", false, "enable authentication for control plane (api keys)")
