@@ -3,16 +3,19 @@ package database
 import (
 	"context"
 	"fmt"
-	"github.com/nais/device/pkg/pb"
-	"google.golang.org/protobuf/types/known/timestamppb"
 	"strings"
 	"time"
+
+	"google.golang.org/protobuf/types/known/timestamppb"
+
+	"github.com/nais/device/pkg/pb"
 )
 
 type Scanner interface {
 	Scan(...interface{}) error
 }
 
+const DeviceFields = "id, serial, username, psk, platform, last_updated, kolide_last_seen, healthy, public_key, ip"
 func scanDevice(row Scanner) (*pb.Device, error) {
 	var lastUpdated *int64
 	var kolideLastSeen *int64

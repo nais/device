@@ -52,9 +52,7 @@ func New(dsn, driver string) (*apiServerDB, error) {
 func (db *apiServerDB) ReadDevices() ([]*pb.Device, error) {
 	ctx := context.Background()
 
-	query := `
-SELECT id, serial, username, psk, platform, last_updated, kolide_last_seen, healthy, public_key, ip
-FROM device;`
+	query := fmt.Sprintf("SELECT %s FROM device;", DeviceFields)
 
 	rows, err := db.conn.QueryContext(ctx, query)
 
@@ -216,10 +214,7 @@ ON CONFLICT(serial, platform) DO UPDATE SET username = $2, public_key = $3;`
 func (db *apiServerDB) ReadDevice(publicKey string) (*pb.Device, error) {
 	ctx := context.Background()
 
-	query := `
-SELECT id, serial, username, psk, platform, last_updated, kolide_last_seen, healthy, public_key, ip
-  FROM device
- WHERE public_key = $1;`
+	query := fmt.Sprintf("SELECT %s FROM device WHERE public_key = $1;", DeviceFields)
 
 	row := db.conn.QueryRowContext(ctx, query, publicKey)
 
@@ -227,10 +222,7 @@ SELECT id, serial, username, psk, platform, last_updated, kolide_last_seen, heal
 }
 
 func (db *apiServerDB) ReadDeviceById(ctx context.Context, deviceID int64) (*pb.Device, error) {
-	query := `
-SELECT id, serial, username, psk, platform, last_updated, kolide_last_seen, healthy, public_key, ip
-  FROM device
- WHERE id = $1;`
+	query := fmt.Sprintf("SELECT %s FROM device WHERE id = $1;", DeviceFields)
 
 	row := db.conn.QueryRowContext(ctx, query, deviceID)
 
@@ -332,13 +324,13 @@ func (db *apiServerDB) readExistingIPs() ([]string, error) {
 }
 
 func (db *apiServerDB) ReadDeviceBySerialPlatformUsername(ctx context.Context, serial string, platform string, username string) (*pb.Device, error) {
-	query := `
-SELECT id, username, serial, psk, platform, healthy, last_updated, kolide_last_seen, public_key, ip
+	query := fmt.Sprintf(`
+SELECT %s
   FROM device
  WHERE serial = $1
    AND platform = $2
    AND lower(username) = $3;
-	`
+	`, DeviceFields)
 
 	lowerUsername := strings.ToLower(username)
 	row := db.conn.QueryRowContext(ctx, query, serial, platform, lowerUsername)
