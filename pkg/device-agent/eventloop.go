@@ -188,11 +188,6 @@ func (das *DeviceAgentServer) EventLoop() {
 			}
 
 		case gws := <-gateways:
-			if status.ConnectionState != pb.AgentState_Connected {
-				log.Errorf("BUG: sync-config skipped, not connected")
-				break
-			}
-
 			if syncctx == nil {
 				log.Errorf("BUG: synchronization context is nil while updating gateways")
 				break
@@ -321,6 +316,12 @@ func (das *DeviceAgentServer) EventLoop() {
 				das.stateChange <- pb.AgentState_Disconnected
 
 			case pb.AgentState_HealthCheck:
+				if previousState != pb.AgentState_Connected {
+					log.Warnf("BUG: health check attempted in non-connected state; disconnecting")
+					das.stateChange <- pb.AgentState_Disconnecting
+					break
+				}
+
 				wg := &sync.WaitGroup{}
 
 				total := len(status.GetGateways())
