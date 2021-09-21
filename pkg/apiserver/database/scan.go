@@ -16,9 +16,10 @@ type Scanner interface {
 }
 
 const DeviceFields = "id, serial, username, psk, platform, last_updated, kolide_last_seen, healthy, public_key, ip"
+
 func scanDevice(row Scanner) (*pb.Device, error) {
-	var lastUpdated *int64
-	var kolideLastSeen *int64
+	var lastUpdated *time.Time
+	var kolideLastSeen *time.Time
 
 	device := &pb.Device{}
 
@@ -29,10 +30,10 @@ func scanDevice(row Scanner) (*pb.Device, error) {
 	}
 
 	if lastUpdated != nil {
-		device.LastUpdated = timestamppb.New(time.Unix(*lastUpdated, 0))
+		device.LastUpdated = timestamppb.New(*lastUpdated)
 	}
 	if kolideLastSeen != nil {
-		device.KolideLastSeen = timestamppb.New(time.Unix(*kolideLastSeen, 0))
+		device.KolideLastSeen = timestamppb.New(*kolideLastSeen)
 	}
 
 	return device, nil
@@ -43,7 +44,7 @@ func scanSession(row Scanner) (*pb.Session, error) {
 
 	var groups string
 	var deviceID int64
-	var expiry *int64
+	var expiry *time.Time
 
 	err := row.Scan(&session.Key, &expiry, &deviceID, &groups, &session.ObjectID)
 	if err != nil {
@@ -53,7 +54,7 @@ func scanSession(row Scanner) (*pb.Session, error) {
 	session.Groups = strings.Split(groups, ",")
 	session.Device = &pb.Device{Id: deviceID}
 	if expiry != nil {
-		session.Expiry = timestamppb.New(time.Unix(*expiry, 0))
+		session.Expiry = timestamppb.New(*expiry)
 	}
 
 	return session, nil
