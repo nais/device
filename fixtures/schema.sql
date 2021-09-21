@@ -44,10 +44,10 @@ CREATE TABLE public.device (
     psk character varying(44),
     platform public.platform,
     healthy boolean,
-    last_updated bigint,
-    kolide_last_seen bigint,
     public_key character varying(44) NOT NULL,
-    ip character varying(15)
+    ip character varying(15),
+    last_updated timestamp with time zone,
+    kolide_last_seen timestamp with time zone
 );
 
 
@@ -133,10 +133,10 @@ ALTER TABLE public.migrations OWNER TO postgres;
 
 CREATE TABLE public.session (
     key character varying,
-    expiry bigint,
     device_id integer,
     groups character varying,
-    object_id character varying
+    object_id character varying,
+    expiry timestamp with time zone
 );
 
 
@@ -233,6 +233,13 @@ ALTER TABLE ONLY public.migrations
 --
 
 CREATE INDEX device_lower_case_username ON public.device USING btree (lower((username)::text));
+
+
+--
+-- Name: expiry_idx; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX expiry_idx ON public.session USING btree (expiry);
 
 
 --

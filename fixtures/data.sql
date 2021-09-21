@@ -20,7 +20,7 @@ SET row_security = off;
 -- Data for Name: device; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
-INSERT INTO public.device VALUES (1, 'mock', 'mock', 'mock', 'linux', true, NULL, NULL, 'le0jjBdynTukcfWbotjyQ1mf9IGpTmh0TkfIh1czmXA=', '10.255.240.2');
+INSERT INTO public.device VALUES (1, 'mock', 'mock', 'mock', 'linux', true, 'le0jjBdynTukcfWbotjyQ1mf9IGpTmh0TkfIh1czmXA=', '10.255.240.2', NULL, NULL);
 
 
 --
@@ -40,12 +40,16 @@ INSERT INTO public.gateway VALUES (4, 'privileged02', 'group1', '127.0.0.1:52183
 INSERT INTO public.migrations VALUES (1, '2021-09-20 11:39:57.356329+00');
 INSERT INTO public.migrations VALUES (2, '2021-09-20 11:39:57.457851+00');
 INSERT INTO public.migrations VALUES (3, '2021-09-20 11:39:57.485695+00');
+INSERT INTO public.migrations VALUES (4, '2021-09-21 09:25:05.324003+00');
 
 
 --
 -- Data for Name: session; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
+INSERT INTO public.session VALUES ('8PlTPLgA491wlaY7wE75', 1, 'group1,group2', 'objectId123', '2021-09-21 18:46:05+00');
+INSERT INTO public.session VALUES ('yX5X4TirbocbjLud9FHq', 1, 'group1,group2', 'objectId123', '2021-09-21 18:46:44+00');
+INSERT INTO public.session VALUES ('rBWvRs0pz1Hl72s98zUs', 1, 'group1,group2', 'objectId123', '2021-09-21 18:47:09+00');
 
 
 --

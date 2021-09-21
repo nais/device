@@ -90,12 +90,12 @@ func (db *apiServerDB) UpdateDevices(ctx context.Context, devices []*pb.Device) 
 
 	query := `
 		UPDATE device
-           SET healthy = $1, kolide_last_seen = $2, last_updated = CAST(EXTRACT(EPOCH FROM NOW()) AS BIGINT)
+           SET healthy = $1, kolide_last_seen = $2, last_updated = NOW()
          WHERE serial = $3 AND platform = $4;
     `
 
 	for _, device := range devices {
-		_, err = tx.ExecContext(ctx, query, device.Healthy, device.KolideLastSeen.AsTime().Unix(), device.Serial, device.Platform)
+		_, err = tx.ExecContext(ctx, query, device.Healthy, device.KolideLastSeen.AsTime(), device.Serial, device.Platform)
 		if err != nil {
 			return err
 		}
@@ -344,7 +344,7 @@ INSERT INTO session (key, expiry, device_id, groups, object_id)
              VALUES ($1, $2, $3, $4, $5);
 `
 
-	_, err := db.conn.ExecContext(ctx, query, si.Key, si.Expiry.AsTime().Unix(), si.GetDevice().GetId(), strings.Join(si.Groups, ","), si.ObjectID)
+	_, err := db.conn.ExecContext(ctx, query, si.Key, si.Expiry.AsTime(), si.GetDevice().GetId(), strings.Join(si.Groups, ","), si.ObjectID)
 	if err != nil {
 		return fmt.Errorf("scanning row: %s", err)
 	}
@@ -370,7 +370,7 @@ func (db *apiServerDB) ReadSessionInfos(ctx context.Context) ([]*pb.Session, err
 	query := `
 SELECT key, expiry, device_id, groups, object_id
 FROM session
-WHERE to_timestamp(expiry) > now();
+WHERE expiry > now();
 `
 
 	rows, err := db.conn.QueryContext(ctx, query)
