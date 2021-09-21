@@ -23,7 +23,7 @@ linux-init:
 # Run by GitHub actions
 controlplane:
 	mkdir -p ./bin/controlplane
-	GOOS=linux GOARCH=amd64 go build -o bin/controlplane/apiserver ./cmd/apiserver
+	GOOS=linux GOARCH=amd64 go build -o bin/controlplane/apiserver -ldflags "-s $(LDFLAGS)" ./cmd/apiserver
 	GOOS=linux GOARCH=amd64 go build -o bin/controlplane/bootstrap-api -ldflags "-s $(LDFLAGS)" ./cmd/bootstrap-api
 	GOOS=linux GOARCH=amd64 go build -o bin/controlplane/gateway-agent -ldflags "-s $(LDFLAGS)" ./cmd/gateway-agent
 	GOOS=linux GOARCH=amd64 go build -o bin/controlplane/prometheus-agent -ldflags "-s $(LDFLAGS)" ./cmd/prometheus-agent
@@ -54,22 +54,23 @@ windows-client: cmd/device-agent/icons.go
 
 local:
 	mkdir -p ./bin/local
-	go build -o bin/local/apiserver ./cmd/apiserver
+	go build -o bin/local/apiserver -ldflags "-s $(LDFLAGS)" ./cmd/apiserver
 	go build -o bin/local/gateway-agent -ldflags "-s $(LDFLAGS)" ./cmd/gateway-agent
-	go build -o bin/local/prometheus-agent ./cmd/prometheus-agent
-	go build -o bin/local/bootstrap-api ./cmd/bootstrap-api
+	go build -o bin/local/prometheus-agent -ldflags "-s $(LDFLAGS)" ./cmd/prometheus-agent
+	go build -o bin/local/bootstrap-api -ldflags "-s $(LDFLAGS)" ./cmd/bootstrap-api
+
+update-fixtures:
+	PGPASSWORD=postgres pg_dump -U postgres -h localhost -d postgres --schema-only > fixtures/schema.sql
+	PGPASSWORD=postgres pg_dump -U postgres -h localhost -d postgres --inserts --data-only > fixtures/data.sql
 
 run-postgres:
-	docker run -e POSTGRES_PASSWORD=postgres --rm --name postgres -p 5432:5432 -d \
-	  -v ${PWD}/apiserver/database/schema/0001_schema.sql:/docker-entrypoint-initdb.d/0001_schema.sql \
-	  -v ${PWD}/testdata.sql:/docker-entrypoint-initdb.d/testdata.sql \
-		postgres:12
+	docker-compose up --detach
 
 run-postgres-test:
 	docker run -e POSTGRES_PASSWORD=postgres --rm --name postgres-test -p 5433:5432 -d postgres:12
 
 stop-postgres:
-	docker stop postgres || echo "okidoki"
+	docker-compose rm --force --stop
 
 stop-postgres-test:
 	docker stop postgres-test || echo "okidoki"
@@ -80,20 +81,9 @@ local-gateway-agent:
 	go run ./cmd/gateway-agent/main.go --api-server-url=http://localhost:8080 --name=gateway-1 --prometheus-address=127.0.0.1:3000 --development-mode=true --config-dir $(config_dir) --log-level debug
 
 local-apiserver:
-	$(eval confdir := $(shell mktemp -d))
-	wg genkey > ${confdir}/private.key
 	go run ./cmd/apiserver/main.go \
-		--db-connection-dsn=postgresql://postgres:postgres@localhost/postgres?sslmode=disable \
-		--bind-address=127.0.0.1:8080 \
-		--grpc-bind-address=127.0.0.1:8099 \
-		--config-dir=${confdir} \
-		--development-mode=true \
-		--prometheus-address=127.0.0.1:3000 \
+		--db-connection-dsn= \
 		--credential-entries="nais:device,gateway-1:password" \
-		--kolide-event-handler-address=kolide-event-handler.prod-gcp.nais.io:443 \
-		--kolide-event-handler-token=$(shell gcloud secrets versions access latest --project nais-device --secret kolide-event-handler-grpc-auth-token) \
-		--kolide-api-token=$(shell gcloud secrets versions access latest --project nais-device --secret kolide-api-token)
-	echo ${confdir}
 
 cmd/device-agent/icons.go: assets/*.ico assets/icon.go
 	cd assets && go run icon.go | gofmt -s > ../pkg/systray/icons.go
@@ -151,7 +141,7 @@ test: cmd/device-agent/icons.go
 	go test ./... -count=1
 
 run-integration-test: cmd/device-agent/icons.go
-	RUN_INTEGRATION_TESTS="true" go test ./... -count=1
+	go test ./... -count=1 -tags=integration_test
 
 # Run by GitHub actions on macos
 pkg: app
@@ -188,3 +178,6 @@ install-protobuf-go:
 
 proto:
 	$(PROTOC) --go-grpc_opt=paths=source_relative --go_opt=paths=source_relative --go_out=. --go-grpc_out=. pkg/pb/protobuf-api.proto
+
+mocks:
+	mockery --case underscore --all --dir pkg/ --output pkg/mocks --recursive

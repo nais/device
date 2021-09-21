@@ -25,8 +25,6 @@ jobs:
           LATEST: ${{ steps.latest_version.outputs.latest_tag }}
           LATEST_DATE: ${{ steps.latest_version.outputs.latest_tag_published_at }}
           PPA_REPO_KEY: ${{ secrets.PPA_REPO_KEY }}
-          PPA_GPG_PRIVATE_KEY: ${{ secrets.PPA_GPG_PRIVATE_KEY }}
-          PPA_GPG_PASSPHRASE: ${{ secrets.PPA_GPG_PASSPHRASE }}
           EMAIL: aura@nav.no
         run: |
           echo "Version ${LATEST} was released at ${LATEST_DATE}"
@@ -35,30 +33,13 @@ jobs:
           git clone git@github.com:nais/nais-ppa.git pparepo
           cd pparepo
 
-          # 'Unpack' deb file for PPA purposes
-          sudo apt update
-          sudo apt install dpkg-dev apt-utils
+          # Fetch latest deb
           wget https://github.com/nais/device/releases/download/${LATEST}/naisdevice.deb -O naisdevice-${LATEST}.deb
-          dpkg-scanpackages --multiversion . > Packages
-          gzip -k -f Packages
-          apt-ftparchive release . > Release
-
-          # Set-up GPG
-          mkdir -p ~/.gnupg
-          echo "use-agent" >> ~/.gnupg/gpg.conf
-          echo "pinentry-mode loopback" >> ~/.gnupg/gpg.conf
-          echo "allow-loopback-pinentry" >> ~/.gnupg/gpg-agent.conf
-          echo RELOADAGENT | gpg-connect-agent
-          gpg --batch --import <(echo -n "${PPA_GPG_PRIVATE_KEY}" | base64 -d)
-
-          # Sign repo artifacts
-          echo ${PPA_GPG_PASSPHRASE} | gpg --batch --no-tty --pinentry-mode=loopback --yes --passphrase-fd 0 --default-key "${EMAIL}" -abs -o - Release > Release.gpg
-          echo ${PPA_GPG_PASSPHRASE} | gpg --batch --no-tty --pinentry-mode=loopback --yes --passphrase-fd 0 --default-key "${EMAIL}" --clearsign -o - Release > InRelease
 
           # Commit and push changes
           git config user.email "${EMAIL}"
           git config user.name "naisdevice pipeline"
-          git add .
+          git add naisdevice-${LATEST}.deb
           git --no-pager diff --cached
-          git commit -a -m "Add version ${LATEST} of naisdevice.deb"
+          git commit --all --message "Add version ${LATEST} of naisdevice.deb"
           git push

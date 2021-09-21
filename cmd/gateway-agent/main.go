@@ -6,8 +6,8 @@ import (
 	"path/filepath"
 	"time"
 
-	g "github.com/nais/device/gateway-agent"
 	"github.com/nais/device/pkg/basicauth"
+	g "github.com/nais/device/pkg/gateway-agent"
 
 	"github.com/nais/device/pkg/logger"
 

@@ -10,7 +10,7 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/nais/device/device-agent/open"
+	"github.com/nais/device/pkg/device-agent/open"
 	"github.com/nais/device/pkg/notify"
 	"github.com/nais/device/pkg/pb"
 	"github.com/nais/device/pkg/version"

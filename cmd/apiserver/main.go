@@ -3,8 +3,8 @@ package main
 import (
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
-	"google.golang.org/grpc"
 	"io/ioutil"
 	"net"
 	"net/http"
@@ -14,30 +14,38 @@ import (
 	"strings"
 	"time"
 
-	"github.com/nais/device/apiserver/kolide"
+	"github.com/nais/device/pkg/version"
 
-	"github.com/nais/device/apiserver/gatewayconfigurer"
-	"github.com/nais/device/apiserver/jita"
+	"google.golang.org/grpc"
+
+	"github.com/nais/device/pkg/apiserver/kolide"
+	"github.com/nais/device/pkg/apiserver/wireguard"
+
+	"github.com/nais/device/pkg/apiserver/gatewayconfigurer"
+	"github.com/nais/device/pkg/apiserver/jita"
 	"github.com/nais/device/pkg/basicauth"
 	"github.com/nais/device/pkg/pb"
 
 	"github.com/golang-jwt/jwt"
-	"github.com/nais/device/apiserver/auth"
-	"github.com/nais/device/apiserver/azure/discovery"
-	"github.com/nais/device/apiserver/azure/validate"
-	"github.com/nais/device/apiserver/enroller"
-	"github.com/nais/device/pkg/logger"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 
-	"github.com/nais/device/apiserver/api"
-	"github.com/nais/device/apiserver/config"
-	"github.com/nais/device/apiserver/database"
+	"github.com/nais/device/pkg/apiserver/auth"
+	"github.com/nais/device/pkg/apiserver/azure/discovery"
+	"github.com/nais/device/pkg/apiserver/azure/validate"
+	"github.com/nais/device/pkg/apiserver/enroller"
+	"github.com/nais/device/pkg/logger"
+
 	log "github.com/sirupsen/logrus"
 	flag "github.com/spf13/pflag"
+
+	"github.com/nais/device/pkg/apiserver/api"
+	"github.com/nais/device/pkg/apiserver/config"
+	"github.com/nais/device/pkg/apiserver/database"
 )
 
 const (
 	gatewayConfigSyncInterval = 1 * time.Minute
+	WireGuardSyncInterval     = 10 * time.Second
 )
 
 var (
@@ -45,7 +53,7 @@ var (
 )
 
 func init() {
-	flag.StringVar(&cfg.DbConnDSN, "db-connection-dsn", os.Getenv("DB_CONNECTION_DSN"), "database connection DSN")
+	flag.StringVar(&cfg.DbConnDSN, "db-connection-dsn", "postgresql://postgres:postgres@localhost/postgres?sslmode=disable", "database connection DSN")
 	flag.StringVar(&cfg.JitaUsername, "jita-username", os.Getenv("JITA_USERNAME"), "jita username")
 	flag.StringVar(&cfg.JitaPassword, "jita-password", os.Getenv("JITA_PASSWORD"), "jita password")
 	flag.StringVar(&cfg.JitaUrl, "jita-url", os.Getenv("JITA_URL"), "jita URL")
@@ -59,7 +67,6 @@ func init() {
 	flag.StringVar(&cfg.GRPCBindAddress, "grpc-bind-address", cfg.GRPCBindAddress, "Bind address for gRPC server")
 	flag.StringVar(&cfg.ConfigDir, "config-dir", cfg.ConfigDir, "Path to configuration directory")
 	flag.StringVar(&cfg.Endpoint, "endpoint", cfg.Endpoint, "public endpoint (ip:port)")
-	flag.BoolVar(&cfg.DevMode, "development-mode", cfg.DevMode, "Development mode avoids setting up wireguard and fetching and validating AAD certificates")
 	flag.StringVar(&cfg.Azure.DiscoveryURL, "azure-discovery-url", "", "Azure discovery url")
 	flag.StringVar(&cfg.Azure.ClientID, "azure-client-id", "", "Azure app client id")
 	flag.StringVar(&cfg.Azure.ClientSecret, "azure-client-secret", "", "Azure app client secret")
@@ -67,8 +74,14 @@ func init() {
 	flag.StringVar(&cfg.GatewayConfigBucketName, "gateway-config-bucket-name", "gatewayconfig", "Name of bucket containing gateway config object")
 	flag.StringVar(&cfg.GatewayConfigBucketObjectName, "gateway-config-bucket-object-name", "gatewayconfig.json", "Name of bucket object containing gateway config JSON")
 	flag.StringVar(&cfg.KolideEventHandlerAddress, "kolide-event-handler-address", "", "address for kolide-event-handler grpc connection")
+	flag.BoolVar(&cfg.KolideEventHandlerEnabled, "kolide-event-handler-enabled", false, "enable kolide event handler (incoming webhooks from kolide on device failures)")
 	flag.StringVar(&cfg.KolideEventHandlerToken, "kolide-event-handler-token", "", "token for kolide-event-handler grpc connection")
 	flag.StringVar(&cfg.KolideApiToken, "kolide-api-token", "", "token used to communicate with the kolide api")
+	flag.BoolVar(&cfg.KolideSyncEnabled, "kolide-sync-enabled", false, "enable kolide sync integration (looking for device failures)")
+	flag.BoolVar(&cfg.DeviceAuthenticationEnabled, "device-authentication-enabled", false, "enable authentication for nais devices (oauth2)")
+	flag.BoolVar(&cfg.ControlPlaneAuthenticationEnabled, "control-plane-authentication-enabled", false, "enable authentication for control plane (api keys)")
+	flag.BoolVar(&cfg.WireguardEnabled, "wireguard-enabled", false, "enable WireGuard")
+	flag.BoolVar(&cfg.CloudSQLProxyEnabled, "cloud-sql-proxy-enabled", false, "enable Google Cloud SQL proxy for database connection")
 
 	flag.Parse()
 
@@ -77,18 +90,30 @@ func init() {
 	logger.Setup(cfg.LogLevel)
 }
 
+var requiredArgNotSetError = errors.New("arg is required, but not set")
+
 func main() {
+	err := run()
+	if err != nil {
+		if errors.Is(err, requiredArgNotSetError) {
+			flag.Usage()
+			log.Error(err)
+		} else {
+			log.Errorf("fatal error: %s", err)
+		}
+
+		os.Exit(1)
+	}
+}
+
+func run() error {
+	var authenticator auth.Authenticator
+	var wireguardPublicKey []byte
+
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	if len(cfg.KolideApiToken) == 0 {
-		log.Warnf("no kolide api token provided, no device health updates will be performed")
-	}
-
-	if len(cfg.KolideEventHandlerAddress) > 0 && len(cfg.KolideEventHandlerToken) == 0 {
-		log.Errorf("--kolide-event-handler-address is set, but --kolide-event-handler-token is not. aborting")
-		return
-	}
+	log.Infof("naisdevice API server %s starting up", version.Version)
 
 	api.InitializeMetrics()
 	go func() {
@@ -96,50 +121,77 @@ func main() {
 		_ = http.ListenAndServe(cfg.PrometheusAddr, promhttp.Handler())
 	}()
 
-	if err := setupInterface(); err != nil && !cfg.DevMode {
-		log.Fatalf("Setting up WireGuard interface: %v", err)
+	db, err := database.New(cfg.DbConnDSN, cfg.DatabaseDriver())
+	if err != nil {
+		return fmt.Errorf("initialize database: %w", err)
 	}
 
-	var dbDriver string
+	sessions := auth.NewSessionStore(db)
+	err = sessions.Warmup(ctx)
+	if err != nil {
+		return fmt.Errorf("warm session cache from database: %w", err)
+	}
 
-	if cfg.DevMode {
-		dbDriver = "postgres"
+	if cfg.DeviceAuthenticationEnabled {
+		tokenValidator, err := createJWTValidator(cfg)
+		if err != nil {
+			return fmt.Errorf("create JWT validator: %w", err)
+		}
+
+		authenticator = auth.New(cfg, tokenValidator, db, sessions)
 	} else {
-		dbDriver = "cloudsqlpostgres"
+		authenticator = auth.Mock()
 	}
 
-	db, err := database.New(cfg.DbConnDSN, dbDriver)
-	if err != nil {
-		log.Fatalf("Instantiating database: %s", err)
+	if cfg.WireguardEnabled {
+		err = setupInterface()
+		if err != nil {
+			return fmt.Errorf("set up WireGuard interface: %w", err)
+		}
+
+		privateKey, err := ioutil.ReadFile(cfg.PrivateKeyPath)
+		if err != nil {
+			return fmt.Errorf("read WireGuard private key: %w", err)
+		}
+
+		wireguardPublicKey, err = generatePublicKey(privateKey, "wg")
+		if err != nil {
+			return fmt.Errorf("generate WireGuard public key: %w", err)
+		}
+
+		w := wireguard.New(cfg, db, string(privateKey))
+
+		go SyncLoop(w)
+
+		log.Infof("WireGuard configured")
+
+	} else {
+		log.Warnf("WireGuard integration DISABLED! Do not run this configuration in production!")
 	}
 
-	tokenValidator, err := createJWTValidator(cfg)
-	if err != nil {
-		log.Fatalf("creating JWT validator: %v", err)
+	updates := make(chan *pb.Device, 64)
+
+	if cfg.KolideSyncEnabled {
+		if len(cfg.KolideApiToken) == 0 {
+			return fmt.Errorf("--kolide-api-token %w", requiredArgNotSetError)
+		}
+
+		kolideHandler := kolide.New(cfg.KolideApiToken, db, updates)
+		go kolideHandler.Cron(ctx)
 	}
 
-	sessions, err := auth.New(cfg, tokenValidator, db)
-	if err != nil {
-		log.Fatalf("Instantiating sessions: %s", err)
-	}
+	if cfg.KolideEventHandlerEnabled {
+		if len(cfg.KolideApiToken) == 0 {
+			return fmt.Errorf("--kolide-api-token %w", requiredArgNotSetError)
+		}
+		if len(cfg.KolideEventHandlerAddress) == 0 {
+			return fmt.Errorf("--kolide-event-handler-address %w", requiredArgNotSetError)
+		}
+		if len(cfg.KolideEventHandlerToken) == 0 {
+			return fmt.Errorf("--kolide-event-handler-token %w", requiredArgNotSetError)
+		}
 
-	privateKey, err := ioutil.ReadFile(cfg.PrivateKeyPath)
-	if err != nil {
-		log.Fatalf("Reading private key: %v", err)
-	}
-
-	publicKey, err := generatePublicKey(privateKey, "wg")
-	if err != nil {
-		log.Fatalf("Generating public key: %v", err)
-	}
-
-	updates := make(chan *database.Device, 64)
-
-	kolideHandler := kolide.New(cfg.KolideApiToken, db, updates)
-
-	go kolideHandler.Cron(ctx)
-
-	if cfg.KolideEventHandlerAddress != "" {
+		kolideHandler := kolide.New(cfg.KolideApiToken, db, updates)
 		go kolideHandler.DeviceEventHandler(ctx, cfg.KolideEventHandlerAddress, cfg.KolideEventHandlerToken)
 	}
 
@@ -151,7 +203,7 @@ func main() {
 			Client:             basicauth.Transport{Username: username, Password: password}.Client(),
 			DB:                 db,
 			BootstrapAPIURL:    cfg.BootstrapAPIURL,
-			APIServerPublicKey: string(publicKey),
+			APIServerPublicKey: string(wireguardPublicKey),
 			APIServerEndpoint:  cfg.Endpoint,
 		}
 
@@ -167,23 +219,23 @@ func main() {
 
 	go gwc.SyncContinuously(ctx)
 
-	go syncWireguardConfig(cfg.DbConnDSN, dbDriver, string(privateKey), cfg)
-
 	apiConfig := api.Config{
-		DB:       db,
-		Jita:     jita.New(cfg.JitaUsername, cfg.JitaPassword, cfg.JitaUrl),
-		Sessions: sessions,
+		DB:            db,
+		Jita:          jita.New(cfg.JitaUsername, cfg.JitaPassword, cfg.JitaUrl),
+		Authenticator: authenticator,
 	}
 
-	apiConfig.APIKeys, err = cfg.Credentials()
-	if err != nil {
-		log.Fatalf("Getting credentials: %v", err)
-	}
-
-	if !cfg.DevMode {
-		if apiConfig.APIKeys == nil {
-			log.Fatalf("No credentials provided for basic auth")
+	if cfg.ControlPlaneAuthenticationEnabled {
+		apiConfig.APIKeys, err = cfg.Credentials()
+		if err != nil {
+			return fmt.Errorf("parse credentials: %w", err)
 		}
+
+		if apiConfig.APIKeys == nil {
+			return fmt.Errorf("control plane basic authentication enabled, but no credentials provided (try --credential-entries)")
+		}
+	} else {
+		log.Warnf("Control plane authentication DISABLED! Do not run this configuration in production!")
 	}
 
 	grpcHandler := api.NewGRPCServer(db)
@@ -193,7 +245,7 @@ func main() {
 
 	grpcListener, err := net.Listen("tcp", cfg.GRPCBindAddress)
 	if err != nil {
-		log.Fatalf("unable to set up gRPC server: %v", err)
+		return fmt.Errorf("unable to set up gRPC server: %w", err)
 	}
 
 	// fixme: teardown/restart if this exits
@@ -202,10 +254,10 @@ func main() {
 	go func() {
 		for {
 			device := <-updates
-			sessionKey, err := sessions.SessionKeyFromDeviceID(device.ID)
-			log.Infof("Pushing configuration for device %d, session key %s, error %s", device.ID, sessionKey, err)
+			session, err := sessions.CachedSessionFromDeviceID(device.Id)
+			log.Infof("Pushing configuration for device %d, session key %s, error %s", device.Id, session.GetKey(), err)
 			if err == nil {
-				err = grpcHandler.SendDeviceConfiguration(context.TODO(), sessionKey)
+				err = grpcHandler.SendDeviceConfiguration(context.TODO(), session.GetKey())
 			}
 			if err != nil {
 				log.Error(err)
@@ -215,8 +267,9 @@ func main() {
 
 	router := api.New(apiConfig)
 
-	fmt.Println("running @", cfg.BindAddress)
-	fmt.Println(http.ListenAndServe(cfg.BindAddress, router))
+	log.Infof("running @%s", cfg.BindAddress)
+
+	return http.ListenAndServe(cfg.BindAddress, router)
 }
 
 func generatePublicKey(privateKey []byte, wireGuardPath string) ([]byte, error) {
@@ -270,75 +323,7 @@ func setupInterface() error {
 	return run(commands)
 }
 
-func syncWireguardConfig(dbConnDSN, driver, privateKey string, conf config.Config) {
-	db, err := database.New(dbConnDSN, driver)
-	if err != nil {
-		log.Fatalf("Instantiating database: %v", err)
-	}
-
-	log.Info("Starting config sync")
-	for c := time.Tick(10 * time.Second); ; <-c {
-		log.Debug("Synchronizing configuration")
-		devices, err := db.ReadDevices()
-		if err != nil {
-			log.Errorf("Reading devices from database: %v", err)
-		}
-
-		gateways, err := db.ReadGateways()
-		if err != nil {
-			log.Errorf("Reading gateways from database: %v", err)
-		}
-
-		wgConfigContent := GenerateWGConfig(devices, gateways, privateKey, cfg)
-
-		if err := ioutil.WriteFile(conf.WireGuardConfigPath, wgConfigContent, 0600); err != nil {
-			log.Errorf("Writing WireGuard config to disk: %v", err)
-		} else {
-			log.Debugf("Successfully wrote WireGuard config to: %v", conf.WireGuardConfigPath)
-		}
-
-		syncConf := exec.Command("wg", "syncconf", "wg0", conf.WireGuardConfigPath)
-		if cfg.DevMode {
-			log.Infof("DevMode: skip running %v", syncConf)
-		} else if b, err := syncConf.CombinedOutput(); err != nil {
-			log.Errorf("Synchronizing WireGuard config: %v: %v", err, string(b))
-		}
-	}
-}
-
-func GenerateWGConfig(devices []database.Device, gateways []*pb.Gateway, privateKey string, conf config.Config) []byte {
-	interfaceTemplate := `[Interface]
-PrivateKey = %s
-ListenPort = 51820
-
-`
-
-	wgConfig := fmt.Sprintf(interfaceTemplate, strings.TrimSuffix(privateKey, "\n"))
-
-	peerTemplate := `[Peer]
-AllowedIPs = %s/32
-PublicKey = %s
-`
-	wgConfig += fmt.Sprintf(peerTemplate, conf.PrometheusTunnelIP, conf.PrometheusPublicKey)
-
-	for _, device := range devices {
-		wgConfig += fmt.Sprintf(peerTemplate, device.IP, device.PublicKey)
-	}
-
-	for _, gateway := range gateways {
-		wgConfig += fmt.Sprintf(peerTemplate, gateway.Ip, gateway.PublicKey)
-	}
-
-	return []byte(wgConfig)
-}
-
 func createJWTValidator(conf config.Config) (jwt.Keyfunc, error) {
-	if conf.DevMode {
-		return func(token *jwt.Token) (interface{}, error) {
-			return []byte("never_used"), nil
-		}, nil
-	}
-
 	if len(conf.Azure.ClientID) == 0 || len(conf.Azure.DiscoveryURL) == 0 {
 		return nil, fmt.Errorf("missing required azure configuration")
 	}
@@ -349,4 +334,16 @@ func createJWTValidator(conf config.Config) (jwt.Keyfunc, error) {
 	}
 
 	return validate.JWTValidator(certificates, conf.Azure.ClientID), nil
+}
+
+func SyncLoop(w wireguard.WireGuard) {
+	log.Debugf("Starting config sync")
+
+	ticker := time.NewTicker(WireGuardSyncInterval)
+	for range ticker.C {
+		err := w.Sync()
+		if err != nil {
+			log.Errorf("syncing wg config: %s", err)
+		}
+	}
 }

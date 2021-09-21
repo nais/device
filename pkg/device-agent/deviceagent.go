@@ -3,16 +3,16 @@ package device_agent
 import (
 	"context"
 	"fmt"
-	"github.com/nais/device/device-agent/runtimeconfig"
 	"sync"
 
 	"github.com/google/uuid"
-	"github.com/hashicorp/go-multierror"
+	multierror "github.com/hashicorp/go-multierror"
 	log "github.com/sirupsen/logrus"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
-	"github.com/nais/device/device-agent/config"
+	"github.com/nais/device/pkg/device-agent/config"
+	"github.com/nais/device/pkg/device-agent/runtimeconfig"
 	"github.com/nais/device/pkg/pb"
 )
 
