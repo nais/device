@@ -2,13 +2,11 @@ package main
 
 import (
 	"fmt"
-	"os"
-	"path/filepath"
-	"time"
-
 	log "github.com/sirupsen/logrus"
 	flag "github.com/spf13/pflag"
 	"google.golang.org/grpc"
+	"os"
+	"path/filepath"
 
 	device_agent "github.com/nais/device/pkg/device-agent"
 	"github.com/nais/device/pkg/device-agent/config"
@@ -81,17 +79,6 @@ func startDeviceAgent(cfg *config.Config) error {
 	client := pb.NewDeviceHelperClient(connection)
 	defer connection.Close()
 
-	log.Infof("apiserver connection on %s", cfg.APIServerGRPCAddress)
-	apiserver, err := grpc.Dial(
-		cfg.APIServerGRPCAddress,
-		grpc.WithTimeout(1*time.Second),
-		grpc.WithInsecure(), // fixme
-	)
-	if err != nil {
-		return fmt.Errorf("connect to apiserver: %v", err)
-	}
-	apiserverClient := pb.NewAPIServerClient(apiserver)
-
 	listener, err := unixsocket.ListenWithFileMode(cfg.GrpcAddress, 0666)
 	if err != nil {
 		return err
@@ -103,7 +90,7 @@ func startDeviceAgent(cfg *config.Config) error {
 	pb.RegisterDeviceAgentServer(grpcServer, das)
 
 	go func() {
-		das.EventLoop(apiserverClient)
+		das.EventLoop()
 		grpcServer.Stop()
 	}()
 

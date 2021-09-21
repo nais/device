@@ -5,6 +5,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"google.golang.org/grpc"
 	"io/ioutil"
 	"net"
 	"net/http"
@@ -28,16 +29,15 @@ import (
 )
 
 const (
-	healthCheckInterval  = 20 * time.Second   // how often to healthcheck gateways
-	syncConfigTimeout    = 1 * time.Hour      // timeout for config synchronization
-	syncConfigBackoff    = 1 * time.Second    // sleep time between failed configuration syncs
-	versionCheckInterval = 1 * time.Hour      // how often to check for a new version of naisdevice
-	versionCheckTimeout  = 3 * time.Second    // timeout for new version check
-	authFlowTimeout      = 30 * time.Second   // total timeout for authenticating user (AAD login in browser, redirect to localhost, exchange code for token)
-	authenticateBackoff  = 10 * time.Second   // time to wait between authentication attempts
-	approximateInfinity  = time.Hour * 69_420 // Name describes purpose. Used for renewing microsoft client certs automatically
-	certRenewalInterval  = time.Hour * 23     // Microsoft Client certificate validity/renewal interval
-	certRenewalBackoff   = time.Second * 10   // Self-explanatory (Microsoft Client certificate)
+	healthCheckInterval   = 20 * time.Second   // how often to healthcheck gateways
+	syncConfigDialTimeout = 1 * time.Second    // sleep time between failed configuration syncs
+	versionCheckInterval  = 1 * time.Hour      // how often to check for a new version of naisdevice
+	versionCheckTimeout   = 3 * time.Second    // timeout for new version check
+	authFlowTimeout       = 30 * time.Second   // total timeout for authenticating user (AAD login in browser, redirect to localhost, exchange code for token)
+	authenticateBackoff   = 10 * time.Second   // time to wait between authentication attempts
+	approximateInfinity   = time.Hour * 69_420 // Name describes purpose. Used for renewing microsoft client certs automatically
+	certRenewalInterval   = time.Hour * 23     // Microsoft Client certificate validity/renewal interval
+	certRenewalBackoff    = time.Second * 10   // Self-explanatory (Microsoft Client certificate)
 )
 
 func (das *DeviceAgentServer) ConfigureHelper(ctx context.Context, rc *runtimeconfig.RuntimeConfig, gateways []*pb.Gateway) error {
@@ -49,13 +49,33 @@ func (das *DeviceAgentServer) ConfigureHelper(ctx context.Context, rc *runtimeco
 	return err
 }
 
-func (das *DeviceAgentServer) syncConfigLoop(ctx context.Context, apiserver pb.APIServerClient, gateways chan<- []*pb.Gateway) error {
+func (das *DeviceAgentServer) syncConfigLoop(ctx context.Context, gateways chan<- []*pb.Gateway) error {
 	if das.rc.SessionInfo == nil {
 		return fmt.Errorf("not authenticated")
 	}
 
+	dialContext, cancel := context.WithTimeout(ctx, syncConfigDialTimeout)
+	defer cancel()
 
-	stream, err := apiserver.GetDeviceConfiguration(ctx, &pb.GetDeviceConfigurationRequest{
+	log.Infof("Attempting gRPC connection to API server on %s...", das.Config.APIServerGRPCAddress)
+	apiserver, err := grpc.DialContext(
+		dialContext,
+		das.Config.APIServerGRPCAddress,
+		grpc.WithInsecure(),
+		grpc.WithBlock(),
+		grpc.WithReturnConnectionError(),
+	)
+	log.Infof("Connected to API server")
+
+	if err != nil {
+		return fmt.Errorf("connect to API server: %v", err)
+	}
+
+	defer apiserver.Close()
+
+	apiserverClient := pb.NewAPIServerClient(apiserver)
+
+	stream, err := apiserverClient.GetDeviceConfiguration(ctx, &pb.GetDeviceConfigurationRequest{
 		SessionKey: das.rc.SessionInfo.Key,
 	})
 
@@ -63,7 +83,7 @@ func (das *DeviceAgentServer) syncConfigLoop(ctx context.Context, apiserver pb.A
 		return err
 	}
 
-	log.Infof("gRPC connection established with API server")
+	log.Infof("Gateway configuration stream established")
 
 	for {
 		config, err := stream.Recv()
@@ -94,7 +114,7 @@ func (das *DeviceAgentServer) syncConfigLoop(ctx context.Context, apiserver pb.A
 	}
 }
 
-func (das *DeviceAgentServer) EventLoop(apiserver pb.APIServerClient) {
+func (das *DeviceAgentServer) EventLoop() {
 	var err error
 	var syncctx context.Context
 	var synccancel context.CancelFunc
@@ -252,13 +272,11 @@ func (das *DeviceAgentServer) EventLoop(apiserver pb.APIServerClient) {
 
 				syncctx, synccancel = context.WithCancel(context.Background())
 				go func() {
-					log.Infof("Setting up gateway config synchronization loop")
 					for syncctx.Err() == nil {
-						log.Infof("Trying syncConfigLoop()")
-						err := das.syncConfigLoop(syncctx, apiserver, gateways)
+						log.Infof("Setting up gateway config synchronization loop")
+						err := das.syncConfigLoop(syncctx, gateways)
 						if err != nil {
-							log.Errorf("synchronize config: %s", err)
-							time.Sleep(1 * time.Second)
+							log.Errorf("Synchronize config: %s", err)
 						}
 					}
 					log.Infof("Gateway config synchronization loop: %s", syncctx.Err())
@@ -306,7 +324,7 @@ func (das *DeviceAgentServer) EventLoop(apiserver pb.APIServerClient) {
 				wg := &sync.WaitGroup{}
 
 				total := len(status.GetGateways())
-				log.Infof("Ping %d gateways...", total)
+				log.Infof("Pinging %d gateways...", total)
 				for i, gw := range status.GetGateways() {
 					go func(i int, gw *pb.Gateway) {
 						wg.Add(1)
