@@ -4,8 +4,8 @@ import (
 	"context"
 	"crypto/tls"
 	"fmt"
-	"github.com/golang/protobuf/ptypes"
 	"github.com/nais/device/pkg/pb"
+	"google.golang.org/protobuf/types/known/timestamppb"
 	"strings"
 	"time"
 
@@ -158,10 +158,7 @@ func (handler *Handler) updateDeviceHealth(ctx context.Context, device *kolidecl
 	}
 
 	existingDevice.Healthy = DeviceHealthy(device)
-	existingDevice.KolideLastSeen, err = ptypes.TimestampProto(*device.LastSeenAt)
-	if err != nil {
-		return err
-	}
+	existingDevice.KolideLastSeen = timestamppb.New(*device.LastSeenAt)
 
 	err = handler.db.UpdateDevices(ctx, []*pb.Device{existingDevice})
 	if err != nil {

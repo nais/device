@@ -4,8 +4,8 @@ import (
 	"context"
 	"encoding/base64"
 	"encoding/json"
-	"errors"
 	"fmt"
+	"google.golang.org/grpc"
 	"io/ioutil"
 	"net"
 	"net/http"
@@ -21,7 +21,6 @@ import (
 	log "github.com/sirupsen/logrus"
 	"google.golang.org/protobuf/types/known/timestamppb"
 
-	"github.com/nais/device/pkg/device-agent/apiserver"
 	"github.com/nais/device/pkg/device-agent/auth"
 	"github.com/nais/device/pkg/device-agent/runtimeconfig"
 	"github.com/nais/device/pkg/notify"
@@ -30,17 +29,15 @@ import (
 )
 
 const (
-	healthCheckInterval  = 20 * time.Second   // how often to healthcheck gateways
-	syncConfigBackoff    = 15 * time.Second   // re-queue interval when config synchronization times out
-	syncConfigInterval   = 5 * time.Minute    // how often to synchronize config with apiserver
-	syncConfigTimeout    = 5 * time.Second    // timeout for config synchronization
-	versionCheckInterval = 1 * time.Hour      // how often to check for a new version of naisdevice
-	versionCheckTimeout  = 3 * time.Second    // timeout for new version check
-	authFlowTimeout      = 30 * time.Second   // total timeout for authenticating user (AAD login in browser, redirect to localhost, exchange code for token)
-	authenticateBackoff  = 10 * time.Second   // time to wait between authentication attempts
-	approximateInfinity  = time.Hour * 69_420 // Name describes purpose. Used for renewing microsoft client certs automatically
-	certRenewalInterval  = time.Hour * 23     // Microsoft Client certificate validity/renewal interval
-	certRenewalBackoff   = time.Second * 10   // Self-explanatory (Microsoft Client certificate)
+	healthCheckInterval   = 20 * time.Second   // how often to healthcheck gateways
+	syncConfigDialTimeout = 1 * time.Second    // sleep time between failed configuration syncs
+	versionCheckInterval  = 1 * time.Hour      // how often to check for a new version of naisdevice
+	versionCheckTimeout   = 3 * time.Second    // timeout for new version check
+	authFlowTimeout       = 30 * time.Second   // total timeout for authenticating user (AAD login in browser, redirect to localhost, exchange code for token)
+	authenticateBackoff   = 10 * time.Second   // time to wait between authentication attempts
+	approximateInfinity   = time.Hour * 69_420 // Name describes purpose. Used for renewing microsoft client certs automatically
+	certRenewalInterval   = time.Hour * 23     // Microsoft Client certificate validity/renewal interval
+	certRenewalBackoff    = time.Second * 10   // Self-explanatory (Microsoft Client certificate)
 )
 
 func (das *DeviceAgentServer) ConfigureHelper(ctx context.Context, rc *runtimeconfig.RuntimeConfig, gateways []*pb.Gateway) error {
@@ -52,13 +49,82 @@ func (das *DeviceAgentServer) ConfigureHelper(ctx context.Context, rc *runtimeco
 	return err
 }
 
-func (das *DeviceAgentServer) EventLoop(rc *runtimeconfig.RuntimeConfig) {
+func (das *DeviceAgentServer) syncConfigLoop(ctx context.Context, gateways chan<- []*pb.Gateway) error {
+	if das.rc.SessionInfo == nil {
+		return fmt.Errorf("not authenticated")
+	}
+
+	dialContext, cancel := context.WithTimeout(ctx, syncConfigDialTimeout)
+	defer cancel()
+
+	log.Infof("Attempting gRPC connection to API server on %s...", das.Config.APIServerGRPCAddress)
+	apiserver, err := grpc.DialContext(
+		dialContext,
+		das.Config.APIServerGRPCAddress,
+		grpc.WithInsecure(),
+		grpc.WithBlock(),
+		grpc.WithReturnConnectionError(),
+	)
+	log.Infof("Connected to API server")
+
+	if err != nil {
+		return fmt.Errorf("connect to API server: %v", err)
+	}
+
+	defer apiserver.Close()
+
+	apiserverClient := pb.NewAPIServerClient(apiserver)
+
+	stream, err := apiserverClient.GetDeviceConfiguration(ctx, &pb.GetDeviceConfigurationRequest{
+		SessionKey: das.rc.SessionInfo.Key,
+	})
+
+	if err != nil {
+		return err
+	}
+
+	log.Infof("Gateway configuration stream established")
+
+	for {
+		config, err := stream.Recv()
+		if err != nil {
+			return err
+		}
+
+		log.Infof("Received gateway configuration from API server")
+
+		switch config.Status {
+		case pb.DeviceConfigurationStatus_InvalidSession:
+			log.Errorf("Unauthorized access from apiserver: %v", err)
+			log.Errorf("Assuming invalid session; disconnecting.")
+			das.stateChange <- pb.AgentState_Disconnecting
+			continue
+		case pb.DeviceConfigurationStatus_DeviceUnhealthy:
+			log.Errorf("Device is not healthy: %v", err)
+			// TODO consider moving all notify calls to systray code
+			notify.Errorf("No access as your device is unhealthy. Run '/msg @Kolide status' on Slack and fix the errors")
+			das.stateChange <- pb.AgentState_Unhealthy
+			continue
+		case pb.DeviceConfigurationStatus_DeviceHealthy:
+			log.Infof("Device is healthy; server pushed %d gateways", len(config.Gateways))
+		default:
+		}
+
+		gateways <- config.Gateways
+	}
+}
+
+func (das *DeviceAgentServer) EventLoop() {
 	var err error
+	var syncctx context.Context
+	var synccancel context.CancelFunc
+
+	gateways := make(chan []*pb.Gateway, 16)
+	status := &pb.AgentStatus{}
 
 	signals := make(chan os.Signal, 1)
 	signal.Notify(signals, syscall.SIGINT, syscall.SIGTERM)
 
-	syncConfigTicker := time.NewTicker(syncConfigInterval)
 	healthCheckTicker := time.NewTicker(healthCheckInterval)
 	versionCheckTicker := time.NewTicker(5 * time.Second)
 	certRenewalTicker := time.NewTicker(approximateInfinity)
@@ -71,7 +137,6 @@ func (das *DeviceAgentServer) EventLoop(rc *runtimeconfig.RuntimeConfig) {
 		certRenewalTicker.Reset(1 * time.Second)
 	}
 
-	status := &pb.AgentStatus{}
 	das.stateChange <- status.ConnectionState
 
 	for {
@@ -99,12 +164,6 @@ func (das *DeviceAgentServer) EventLoop(rc *runtimeconfig.RuntimeConfig) {
 				versionCheckTicker.Reset(versionCheckInterval)
 			}
 
-		case <-syncConfigTicker.C:
-			if status.ConnectionState == pb.AgentState_Connected {
-				das.stateChange <- pb.AgentState_SyncConfig
-			} else {
-				log.Debugf("sync-config skipped, not connected")
-			}
 
 		case <-certRenewalTicker.C:
 			if status.ConnectionState == pb.AgentState_Connected {
@@ -128,18 +187,44 @@ func (das *DeviceAgentServer) EventLoop(rc *runtimeconfig.RuntimeConfig) {
 				break
 			}
 
+		case gws := <-gateways:
+			if syncctx == nil {
+				log.Errorf("BUG: synchronization context is nil while updating gateways")
+				break
+			}
+
+			pb.MergeGatewayHealth(gws, status.GetGateways())
+			status.Gateways = gws
+
+			ctx, cancel := context.WithTimeout(syncctx, helperTimeout)
+			err = das.ConfigureHelper(ctx, das.rc, append(
+				[]*pb.Gateway{
+					das.rc.BootstrapConfig.Gateway(),
+				},
+				status.GetGateways()...,
+			))
+			cancel()
+
+			if err != nil {
+				notify.Errorf(err.Error())
+				das.stateChange <- pb.AgentState_Disconnecting
+			} else {
+				das.stateChange <- pb.AgentState_HealthCheck
+			}
+
 		case newState := <-das.stateChange:
 			writeStatusTofile(filepath.Join(das.Config.ConfigDir, "agent_status"), newState)
 			previousState := status.ConnectionState
 			status.ConnectionState = newState
 			log.Infof("state changed to %s", status.ConnectionState)
+
 			switch status.ConnectionState {
 			case pb.AgentState_Bootstrapping:
-				if rc.BootstrapConfig != nil {
+				if das.rc.BootstrapConfig != nil {
 					log.Infof("Already bootstrapped")
 				} else {
 					ctx, cancel := context.WithTimeout(context.Background(), 1*time.Minute)
-					rc.BootstrapConfig, err = runtimeconfig.EnsureBootstrapping(rc, ctx)
+					das.rc.BootstrapConfig, err = runtimeconfig.EnsureBootstrapping(das.rc, ctx)
 					cancel()
 					if err != nil {
 						notify.Errorf("Bootstrap: %v", err)
@@ -149,8 +234,8 @@ func (das *DeviceAgentServer) EventLoop(rc *runtimeconfig.RuntimeConfig) {
 				}
 
 				ctx, cancel := context.WithTimeout(context.Background(), helperTimeout)
-				err = das.ConfigureHelper(ctx, rc, []*pb.Gateway{
-					rc.BootstrapConfig.Gateway(),
+				err = das.ConfigureHelper(ctx, das.rc, []*pb.Gateway{
+					das.rc.BootstrapConfig.Gateway(),
 				})
 				cancel()
 
@@ -163,12 +248,12 @@ func (das *DeviceAgentServer) EventLoop(rc *runtimeconfig.RuntimeConfig) {
 				authenticateTimer.Reset(1 * time.Microsecond)
 
 			case pb.AgentState_Authenticating:
-				if rc.SessionInfo != nil && !rc.SessionInfo.Expired() {
+				if das.rc.SessionInfo != nil && !das.rc.SessionInfo.Expired() {
 					log.Infof("Already have a valid session")
 				} else {
 					log.Infof("No valid session, authenticating")
 					ctx, cancel := context.WithTimeout(context.Background(), authFlowTimeout)
-					rc.SessionInfo, err = auth.EnsureAuth(rc.SessionInfo, ctx, rc.Config.APIServer, rc.Config.Platform, rc.Serial)
+					das.rc.SessionInfo, err = auth.EnsureAuth(das.rc.SessionInfo, ctx, das.rc.Config.APIServer, das.rc.Config.Platform, das.rc.Serial)
 					cancel()
 
 					if err != nil {
@@ -179,7 +264,22 @@ func (das *DeviceAgentServer) EventLoop(rc *runtimeconfig.RuntimeConfig) {
 				}
 
 				status.ConnectedSince = timestamppb.Now()
-				das.stateChange <- pb.AgentState_SyncConfig
+
+				syncctx, synccancel = context.WithCancel(context.Background())
+				go func() {
+					for syncctx.Err() == nil {
+						log.Infof("Setting up gateway config synchronization loop")
+						err := das.syncConfigLoop(syncctx, gateways)
+						if err != nil {
+							log.Errorf("Synchronize config: %s", err)
+						}
+					}
+					log.Infof("Gateway config synchronization loop: %s", syncctx.Err())
+					syncctx = nil
+					synccancel()
+				}()
+
+				das.stateChange <- pb.AgentState_Connected
 				continue
 
 			case pb.AgentState_AuthenticateBackoff:
@@ -199,6 +299,10 @@ func (das *DeviceAgentServer) EventLoop(rc *runtimeconfig.RuntimeConfig) {
 				return
 
 			case pb.AgentState_Disconnecting:
+				if synccancel != nil {
+					synccancel() // cancel streaming gateway updates
+				}
+				das.rc.SessionInfo = nil
 				authenticateTimer.Stop()
 				log.Info("Tearing down network connections through device-helper...")
 				ctx, cancel := context.WithTimeout(context.Background(), helperTimeout)
@@ -212,10 +316,16 @@ func (das *DeviceAgentServer) EventLoop(rc *runtimeconfig.RuntimeConfig) {
 				das.stateChange <- pb.AgentState_Disconnected
 
 			case pb.AgentState_HealthCheck:
+				if previousState != pb.AgentState_Connected {
+					log.Warnf("BUG: health check attempted in non-connected state; disconnecting")
+					das.stateChange <- pb.AgentState_Disconnecting
+					break
+				}
+
 				wg := &sync.WaitGroup{}
 
 				total := len(status.GetGateways())
-				log.Infof("Ping %d gateways...", total)
+				log.Infof("Pinging %d gateways...", total)
 				for i, gw := range status.GetGateways() {
 					go func(i int, gw *pb.Gateway) {
 						wg.Add(1)
@@ -235,57 +345,6 @@ func (das *DeviceAgentServer) EventLoop(rc *runtimeconfig.RuntimeConfig) {
 
 				das.stateChange <- pb.AgentState_Connected
 
-			case pb.AgentState_SyncConfig:
-				ctx, cancel := context.WithTimeout(context.Background(), syncConfigTimeout)
-				gateways, err := apiserver.GetDeviceConfig(rc.SessionInfo.Key, rc.Config.APIServer, ctx)
-				cancel()
-
-				switch {
-				case errors.Is(err, &apiserver.UnauthorizedError{}):
-					log.Errorf("Unauthorized access from apiserver: %v", err)
-					log.Errorf("Assuming invalid session; disconnecting.")
-					rc.SessionInfo = nil
-					das.stateChange <- pb.AgentState_Disconnecting
-					continue
-
-				case errors.Is(err, &apiserver.UnhealthyError{}):
-					// TODO produce unhealthy status message to "even watcher" stream
-
-					log.Errorf("Device is not healthy: %v", err)
-					// TODO consider moving all notify calls to systray code
-					notify.Errorf("No access as your device is unhealthy. Run '/msg @Kolide status' on Slack and fix the errors")
-					das.stateChange <- pb.AgentState_Unhealthy
-					continue
-
-				case err != nil:
-					log.Errorf("Unable to get gateway config: %v", err)
-					syncConfigTicker.Reset(syncConfigBackoff)
-					das.stateChange <- pb.AgentState_HealthCheck
-					continue
-
-				default:
-					syncConfigTicker.Reset(syncConfigInterval)
-				}
-
-				pb.MergeGatewayHealth(gateways, status.GetGateways())
-				status.Gateways = gateways
-
-				ctx, cancel = context.WithTimeout(context.Background(), helperTimeout)
-				err = das.ConfigureHelper(ctx, rc, append(
-					[]*pb.Gateway{
-						rc.BootstrapConfig.Gateway(),
-					},
-					status.GetGateways()...,
-				))
-				cancel()
-
-				if err != nil {
-					notify.Errorf(err.Error())
-					das.stateChange <- pb.AgentState_Disconnecting
-				} else {
-					das.stateChange <- pb.AgentState_HealthCheck
-				}
-
 			case pb.AgentState_Unhealthy:
 
 			case pb.AgentState_AgentConfigurationChanged:
@@ -295,6 +354,8 @@ func (das *DeviceAgentServer) EventLoop(rc *runtimeconfig.RuntimeConfig) {
 				das.stateChange <- previousState
 
 			case pb.AgentState_RenewCert:
+				das.stateChange <- previousState
+
 				err := clientcert.Renew()
 				if err != nil {
 					certRenewalTicker.Reset(certRenewalBackoff)
@@ -305,8 +366,6 @@ func (das *DeviceAgentServer) EventLoop(rc *runtimeconfig.RuntimeConfig) {
 
 				certRenewalTicker.Reset(certRenewalInterval)
 				log.Info("NAV Microsoft Client Certificate renewed")
-
-				das.stateChange <- previousState
 			}
 		}
 	}

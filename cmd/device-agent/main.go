@@ -2,12 +2,11 @@ package main
 
 import (
 	"fmt"
-	"os"
-	"path/filepath"
-
 	log "github.com/sirupsen/logrus"
 	flag "github.com/spf13/pflag"
 	"google.golang.org/grpc"
+	"os"
+	"path/filepath"
 
 	device_agent "github.com/nais/device/pkg/device-agent"
 	"github.com/nais/device/pkg/device-agent/config"
@@ -26,6 +25,7 @@ var (
 
 func init() {
 	flag.StringVar(&cfg.APIServer, "apiserver", cfg.APIServer, "base url to apiserver")
+	flag.StringVar(&cfg.APIServerGRPCAddress, "apiserver-grpc-address", cfg.APIServerGRPCAddress, "grpc address to apiserver")
 	flag.StringVar(&cfg.BootstrapAPI, "bootstrap-api", cfg.BootstrapAPI, "url to bootstrap API")
 	flag.StringVar(&cfg.ConfigDir, "config-dir", cfg.ConfigDir, "path to agent config directory")
 	flag.StringVar(&cfg.Interface, "interface", cfg.Interface, "name of tunnel interface")
@@ -86,11 +86,11 @@ func startDeviceAgent(cfg *config.Config) error {
 	log.Infof("accepting network connections on unix socket %s", cfg.GrpcAddress)
 
 	grpcServer := grpc.NewServer()
-	das := device_agent.NewServer(client, cfg)
+	das := device_agent.NewServer(client, cfg, rc)
 	pb.RegisterDeviceAgentServer(grpcServer, das)
 
 	go func() {
-		das.EventLoop(rc)
+		das.EventLoop()
 		grpcServer.Stop()
 	}()
 

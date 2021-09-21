@@ -6,24 +6,26 @@ import (
 	"sync"
 
 	"github.com/google/uuid"
-	"github.com/hashicorp/go-multierror"
+	multierror "github.com/hashicorp/go-multierror"
 	log "github.com/sirupsen/logrus"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
 	"github.com/nais/device/pkg/device-agent/config"
+	"github.com/nais/device/pkg/device-agent/runtimeconfig"
 	"github.com/nais/device/pkg/pb"
 )
 
 type DeviceAgentServer struct {
 	pb.UnimplementedDeviceAgentServer
-	AgentStatus  *pb.AgentStatus
-	DeviceHelper pb.DeviceHelperClient
-	lock         sync.Mutex
-	stateChange  chan pb.AgentState
-	statusChange chan *pb.AgentStatus
-	streams      map[uuid.UUID]pb.DeviceAgent_StatusServer
-	Config       *config.Config
+	AgentStatus      *pb.AgentStatus
+	DeviceHelper     pb.DeviceHelperClient
+	lock             sync.Mutex
+	stateChange      chan pb.AgentState
+	statusChange     chan *pb.AgentStatus
+	streams          map[uuid.UUID]pb.DeviceAgent_StatusServer
+	Config           *config.Config
+	rc               *runtimeconfig.RuntimeConfig
 }
 
 func (das *DeviceAgentServer) Login(ctx context.Context, request *pb.LoginRequest) (*pb.LoginResponse, error) {
@@ -110,11 +112,12 @@ func (das *DeviceAgentServer) GetAgentConfiguration(ctx context.Context, req *pb
 	}, nil
 }
 
-func NewServer(helper pb.DeviceHelperClient, cfg *config.Config) *DeviceAgentServer {
+func NewServer(helper pb.DeviceHelperClient, cfg *config.Config, rc *runtimeconfig.RuntimeConfig) *DeviceAgentServer {
 	return &DeviceAgentServer{
 		DeviceHelper: helper,
 		stateChange:  make(chan pb.AgentState, 32),
 		streams:      make(map[uuid.UUID]pb.DeviceAgent_StatusServer, 0),
 		Config:       cfg,
+		rc:           rc,
 	}
 }

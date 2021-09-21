@@ -47,7 +47,7 @@ type authenticator struct {
 	stateLock      sync.Mutex
 }
 
-func New(cfg config.Config, validator jwt.Keyfunc, db database.APIServer, store SessionStore) Authenticator {
+func NewAuthenticator(cfg config.Config, validator jwt.Keyfunc, db database.APIServer, store SessionStore) Authenticator {
 	return &authenticator{
 		db:             db,
 		store:          store,

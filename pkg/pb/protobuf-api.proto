@@ -111,7 +111,8 @@ enum AgentState {
     Unhealthy = 4;
     Quitting = 5;
     Authenticating = 6;
-    SyncConfig = 7;
+    reserved 'SyncConfig';
+    reserved 7;
     HealthCheck = 8;
     AuthenticateBackoff = 9;
     AgentConfigurationChanged = 10;

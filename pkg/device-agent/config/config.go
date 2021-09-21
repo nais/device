@@ -20,6 +20,7 @@ const File = "agent-config.json"
 
 type Config struct {
 	APIServer                string
+	APIServerGRPCAddress     string
 	Interface                string
 	ConfigDir                string
 	BootstrapToken           string
@@ -56,6 +57,7 @@ func DefaultConfig() Config {
 
 	return Config{
 		APIServer:                "http://10.255.240.1",
+		APIServerGRPCAddress:     "10.255.240.1:8099",
 		BootstrapAPI:             "https://bootstrap.device.nais.io",
 		ConfigDir:                userConfigDir,
 		LogLevel:                 "info",
