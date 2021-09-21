@@ -15,18 +15,22 @@ import (
 )
 
 type mockAuthenticator struct {
-	session *pb.Session
+	store SessionStore
 }
 
 func (m *mockAuthenticator) Validator() func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			if m.session == nil {
+			sessionKey := r.Header.Get(HeaderKeySessionKey)
+
+			sessionInfo, err := m.store.Get(r.Context(), sessionKey)
+			if err != nil {
+				log.Errorf("read session info: %v", err)
 				w.WriteHeader(http.StatusUnauthorized)
 				return
 			}
 
-			r = r.WithContext(context.WithValue(r.Context(), "sessionInfo", m.session))
+			r = r.WithContext(context.WithValue(r.Context(), "sessionInfo", sessionInfo))
 
 			next.ServeHTTP(w, r)
 		})
@@ -34,23 +38,26 @@ func (m *mockAuthenticator) Validator() func(http.Handler) http.Handler {
 }
 
 func (m *mockAuthenticator) Login(w http.ResponseWriter, r *http.Request) {
-	//serial := w.Header().Get(HeaderKeyPlatform)
-	//platform := w.Header().Get(HeaderKeySerial)
-	m.session = &pb.Session{
+	session := &pb.Session{
 		Key:      random.RandomString(20, random.LettersAndNumbers),
 		Expiry:   timestamppb.New(time.Now().Add(SessionDuration)),
 		Groups:   []string{"group1", "group2"},
 		ObjectID: "objectId123",
-		// fixme: mock data lives in fixture
-		Device:   &pb.Device{
-			Id: 1,
-			Serial: "mock",
+		Device: &pb.Device{
+			Id:       1,
+			Serial:   "mock",
 			Username: "mock",
 			Platform: "linux",
 		},
 	}
 
-	err := json.NewEncoder(w).Encode(LegacySessionFromProtobuf(m.session))
+	err := m.store.Set(r.Context(), session)
+	if err != nil {
+		authFailed(w, "cache session: %v", err)
+		return
+	}
+
+	err = json.NewEncoder(w).Encode(LegacySessionFromProtobuf(session))
 	if err != nil {
 		authFailed(w, "write response: %v", err)
 		return
@@ -75,8 +82,8 @@ func (m *mockAuthenticator) AuthURL(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func Mock() Authenticator {
+func NewMockAuthenticator(store SessionStore) Authenticator {
 	return &mockAuthenticator{
-		session: nil,
+		store: store,
 	}
 }

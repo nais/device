@@ -138,9 +138,9 @@ func run() error {
 			return fmt.Errorf("create JWT validator: %w", err)
 		}
 
-		authenticator = auth.New(cfg, tokenValidator, db, sessions)
+		authenticator = auth.NewAuthenticator(cfg, tokenValidator, db, sessions)
 	} else {
-		authenticator = auth.Mock()
+		authenticator = auth.NewMockAuthenticator(sessions)
 	}
 
 	if cfg.WireguardEnabled {
