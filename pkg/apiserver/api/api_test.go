@@ -11,7 +11,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/golang/protobuf/ptypes"
 	"google.golang.org/protobuf/types/known/timestamppb"
 
 	"github.com/nais/device/pkg/apiserver/config"
@@ -169,13 +168,12 @@ func TestPrivilegedGatewayConfig(t *testing.T) {
 }
 
 func addDevice(t *testing.T, db database.APIServer, ctx context.Context, serial, username, publicKey string, healthy bool, lastSeen time.Time) *pb.Device {
-	lastSeenProto, _ := ptypes.TimestampProto(lastSeen)
 	device := &pb.Device{
 		Serial:         serial,
 		PublicKey:      publicKey,
 		Username:       username,
 		Platform:       "darwin",
-		KolideLastSeen: lastSeenProto,
+		KolideLastSeen: timestamppb.New(lastSeen),
 	}
 
 	if err := db.AddDevice(ctx, device); err != nil {
@@ -201,10 +199,9 @@ func addDevice(t *testing.T, db database.APIServer, ctx context.Context, serial,
 }
 
 func addSessionInfo(t *testing.T, db database.APIServer, ctx context.Context, databaseDevice *pb.Device, userId string, groups []string) *pb.Session {
-	expiry, _ := ptypes.TimestampProto(time.Now().Add(time.Minute))
 	databaseSessionInfo := &pb.Session{
 		Key:      random.RandomString(20, random.LettersAndNumbers),
-		Expiry:   expiry,
+		Expiry:   timestamppb.New(time.Now().Add(time.Minute)),
 		Device:   databaseDevice,
 		Groups:   groups,
 		ObjectID: userId,
@@ -243,10 +240,9 @@ func TestGetDeviceConfigSessionNotInCache(t *testing.T) {
 		t.Fatalf("Reading device from db: %v", err)
 	}
 
-	expiry, _ := ptypes.TimestampProto(time.Now().Add(time.Minute))
 	databaseSessionInfo := &pb.Session{
 		Key:    "dbSessionKey",
-		Expiry: expiry,
+		Expiry: timestamppb.New(time.Now().Add(time.Minute)),
 		Device: databaseDevice,
 		Groups: []string{"group1", "group2"},
 	}
