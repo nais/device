@@ -6,6 +6,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/lestrrat-go/jwx/jwk"
 	"github.com/lestrrat-go/jwx/jwt"
 	log "github.com/sirupsen/logrus"
 	"google.golang.org/protobuf/types/known/timestamppb"
@@ -24,15 +25,17 @@ type grpcServer struct {
 	streams map[string]pb.APIServer_GetDeviceConfigurationServer
 	lock    sync.Mutex
 	db      database.APIServer
+	jwks    jwk.Set
 }
 
 var _ pb.APIServerServer = &grpcServer{}
 
-func NewGRPCServer(db database.APIServer, store auth.SessionStore) *grpcServer {
+func NewGRPCServer(db database.APIServer, store auth.SessionStore, jwks jwk.Set) *grpcServer {
 	return &grpcServer{
 		streams: make(map[string]pb.APIServer_GetDeviceConfigurationServer),
 		db:      db,
 		store:   store,
+		jwks:    jwks,
 	}
 }
 
@@ -113,7 +116,16 @@ func (s *grpcServer) UserGateways(userGroups []string) ([]*pb.Gateway, error) {
 }
 
 func (s *grpcServer) Login(ctx context.Context, request *pb.APIServerLoginRequest) (*pb.APIServerLoginResponse, error) {
-	parsedToken, err := jwt.Parse([]byte(request.Token))
+	// fixme: move login logic to interface and pass impl to newgrpcserver
+	parsedToken, err := jwt.Parse(
+		[]byte(request.Token),
+		jwt.WithKeySet(s.jwks),
+		jwt.WithAcceptableSkew(5*time.Second),
+		jwt.WithIssuer("https://login.microsoftonline.com/62366534-1ec3-4962-8869-9b5535279d0b/v2.0"),
+		jwt.WithAudience("6e45010d-2637-4a40-b91d-d4cbb451fb57"),
+		jwt.WithValidate(true),
+	)
+
 	if err != nil {
 		return nil, fmt.Errorf("parse token: %w", err)
 	}
@@ -122,8 +134,6 @@ func (s *grpcServer) Login(ctx context.Context, request *pb.APIServerLoginReques
 	if err != nil {
 		return nil, fmt.Errorf("convert claims to map: %w", err)
 	}
-
-	username := claims["preferred_username"].(string)
 
 	var groups []string
 	approvalOK := false
@@ -138,6 +148,8 @@ func (s *grpcServer) Login(ctx context.Context, request *pb.APIServerLoginReques
 	if !approvalOK {
 		return nil, fmt.Errorf("do's and don'ts not accepted, visit: https://naisdevice-approval.nais.io/ to read and accept")
 	}
+
+	username := claims["preferred_username"].(string)
 
 	device, err := s.db.ReadDeviceBySerialPlatform(ctx, request.Serial, request.Platform)
 	if err != nil {

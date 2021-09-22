@@ -14,6 +14,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/lestrrat-go/jwx/jwk"
+
 	"github.com/nais/device/pkg/version"
 
 	"google.golang.org/grpc"
@@ -238,7 +240,17 @@ func run() error {
 		log.Warnf("Control plane authentication DISABLED! Do not run this configuration in production!")
 	}
 
-	grpcHandler := api.NewGRPCServer(db, sessions)
+	jwks, err := jwk.Fetch(ctx, cfg.Azure.DiscoveryURL)
+	if err != nil {
+		return fmt.Errorf("fetch jwks: %w", err)
+	}
+
+	err = auth.EnsureValidJwks(ctx, jwks)
+	if err != nil {
+		return fmt.Errorf("ensure valid jwks: %w", err)
+	}
+
+	grpcHandler := api.NewGRPCServer(db, sessions, jwks)
 	grpcServer := grpc.NewServer()
 
 	pb.RegisterAPIServerServer(grpcServer, grpcHandler)
