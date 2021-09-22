@@ -89,10 +89,9 @@ func (db *apiServerDB) UpdateDevices(ctx context.Context, devices []*pb.Device) 
 	defer tx.Rollback()
 
 	query := `
-		UPDATE device
-           SET healthy = $1, kolide_last_seen = $2, last_updated = NOW()
-         WHERE serial = $3 AND platform = $4;
-    `
+UPDATE device
+   SET healthy = $1, kolide_last_seen = $2, last_updated = NOW()
+ WHERE serial = $3 AND platform = $4;`
 
 	for _, device := range devices {
 		_, err = tx.ExecContext(ctx, query, device.Healthy, device.KolideLastSeen.AsTime(), device.Serial, device.Platform)
@@ -115,8 +114,8 @@ var mux sync.Mutex
 func (db *apiServerDB) UpdateGateway(ctx context.Context, name string, routes, accessGroupIDs []string, requiresPrivilegedAccess bool) error {
 	statement := `
 UPDATE gateway 
-SET routes = $1, access_group_ids = $2, requires_privileged_access = $3
-WHERE name = $4;`
+   SET routes = $1, access_group_ids = $2, requires_privileged_access = $3
+ WHERE name = $4;`
 
 	_, err := db.conn.ExecContext(ctx, statement, strings.Join(routes, ","), strings.Join(accessGroupIDs, ","), requiresPrivilegedAccess, name)
 	if err != nil {
@@ -149,7 +148,7 @@ func (db *apiServerDB) AddGateway(ctx context.Context, name, endpoint, publicKey
 
 	statement := `
 INSERT INTO gateway (name, endpoint, public_key, ip)
-VALUES ($1, $2, $3, $4);`
+             VALUES ($1, $2, $3, $4);`
 
 	_, err = db.conn.ExecContext(ctx, statement, name, endpoint, publicKey, availableIp)
 	if err != nil {
@@ -185,14 +184,19 @@ func (db *apiServerDB) AddDevice(ctx context.Context, device *pb.Device) error {
 
 	statement := `
 INSERT INTO device (serial, username, public_key, ip, healthy, psk, platform)
-VALUES ($1, $2, $3, $4, false, '', $5)
+            VALUES ($1, $2, $3, $4, false, '', $5)
 ON CONFLICT(serial, platform) DO UPDATE SET username = $2, public_key = $3;`
 	_, err = tx.ExecContext(ctx, statement, device.Serial, device.Username, device.PublicKey, ip, device.Platform)
 	if err != nil {
 		return fmt.Errorf("inserting new device: %w", err)
 	}
 
-	stmt := `SELECT id FROM device WHERE serial = $1 AND platform = $2`
+	stmt := `
+SELECT id
+  FROM device
+ WHERE serial = $1
+   AND platform = $2;`
+
 	row := tx.QueryRowContext(ctx, stmt, device.Serial, device.Platform)
 	if row.Err() != nil {
 		return fmt.Errorf("querying for id: %w", err)
@@ -232,9 +236,7 @@ func (db *apiServerDB) ReadDeviceById(ctx context.Context, deviceID int64) (*pb.
 func (db *apiServerDB) ReadGateways() ([]*pb.Gateway, error) {
 	ctx := context.Background()
 
-	query := `
-SELECT public_key, access_group_ids, endpoint, ip, routes, name, requires_privileged_access
-  FROM gateway;`
+	query := fmt.Sprintf("SELECT %s FROM gateway;", GatewayFields)
 
 	rows, err := db.conn.QueryContext(ctx, query)
 	if err != nil {
@@ -243,20 +245,9 @@ SELECT public_key, access_group_ids, endpoint, ip, routes, name, requires_privil
 
 	var gateways []*pb.Gateway
 	for rows.Next() {
-		gateway := &pb.Gateway{}
-		var routes string
-		var accessGroupIDs string
-		err := rows.Scan(&gateway.PublicKey, &accessGroupIDs, &gateway.Endpoint, &gateway.Ip, &routes, &gateway.Name, &gateway.RequiresPrivilegedAccess)
+		gateway, err := scanGateway(rows)
 		if err != nil {
-			return nil, fmt.Errorf("scanning gateway: %w", err)
-		}
-
-		if len(accessGroupIDs) != 0 {
-			gateway.AccessGroupIDs = strings.Split(accessGroupIDs, ",")
-		}
-
-		if len(routes) != 0 {
-			gateway.Routes = strings.Split(routes, ",")
+			return nil, fmt.Errorf("scan gateway: %w", err)
 		}
 
 		gateways = append(gateways, gateway)
@@ -273,30 +264,10 @@ SELECT public_key, access_group_ids, endpoint, ip, routes, name, requires_privil
 func (db *apiServerDB) ReadGateway(name string) (*pb.Gateway, error) {
 	ctx := context.Background()
 
-	query := `
-SELECT public_key, access_group_ids, endpoint, ip, routes, name, requires_privileged_access
-  FROM gateway
- WHERE name = $1;`
-
+	query := fmt.Sprintf("SELECT %s FROM gateway WHERE name = $1;", GatewayFields)
 	row := db.conn.QueryRowContext(ctx, query, name)
 
-	var gateway pb.Gateway
-	var routes string
-	var accessGroupIDs string
-	err := row.Scan(&gateway.PublicKey, &accessGroupIDs, &gateway.Endpoint, &gateway.Ip, &routes, &gateway.Name, &gateway.RequiresPrivilegedAccess)
-	if err != nil {
-		return nil, fmt.Errorf("scanning gateway: %w", err)
-	}
-
-	if len(accessGroupIDs) != 0 {
-		gateway.AccessGroupIDs = strings.Split(accessGroupIDs, ",")
-	}
-
-	if len(routes) != 0 {
-		gateway.Routes = strings.Split(routes, ",")
-	}
-
-	return &gateway, nil
+	return scanGateway(row)
 }
 
 func (db *apiServerDB) readExistingIPs() ([]string, error) {
@@ -329,8 +300,7 @@ SELECT %s
   FROM device
  WHERE serial = $1
    AND platform = $2
-   AND lower(username) = $3;
-	`, DeviceFields)
+   AND lower(username) = $3;`, DeviceFields)
 
 	lowerUsername := strings.ToLower(username)
 	row := db.conn.QueryRowContext(ctx, query, serial, platform, lowerUsername)
@@ -341,8 +311,7 @@ SELECT %s
 func (db *apiServerDB) AddSessionInfo(ctx context.Context, si *pb.Session) error {
 	query := `
 INSERT INTO session (key, expiry, device_id, groups, object_id)
-             VALUES ($1, $2, $3, $4, $5);
-`
+             VALUES ($1, $2, $3, $4, $5);`
 
 	_, err := db.conn.ExecContext(ctx, query, si.Key, si.Expiry.AsTime(), si.GetDevice().GetId(), strings.Join(si.Groups, ","), si.ObjectID)
 	if err != nil {
@@ -355,11 +324,7 @@ INSERT INTO session (key, expiry, device_id, groups, object_id)
 }
 
 func (db *apiServerDB) ReadSessionInfo(ctx context.Context, key string) (*pb.Session, error) {
-	query := `
-SELECT key, expiry, device_id, groups, object_id
-FROM session
-WHERE key = $1;
-`
+	query := fmt.Sprintf("SELECT %s FROM session WHERE key = $1;", sessionFields)
 
 	row := db.conn.QueryRowContext(ctx, query, key)
 
@@ -367,11 +332,7 @@ WHERE key = $1;
 }
 
 func (db *apiServerDB) ReadSessionInfos(ctx context.Context) ([]*pb.Session, error) {
-	query := `
-SELECT key, expiry, device_id, groups, object_id
-FROM session
-WHERE expiry > now();
-`
+	query := fmt.Sprintf("SELECT %s FROM session WHERE expiry > now();", sessionFields)
 
 	rows, err := db.conn.QueryContext(ctx, query)
 	if err != nil {
@@ -398,13 +359,12 @@ WHERE expiry > now();
 }
 
 func (db *apiServerDB) ReadMostRecentSessionInfo(ctx context.Context, deviceID int64) (*pb.Session, error) {
-	query := `
-SELECT key, expiry, device_id, groups, object_id
-FROM session
+	query := fmt.Sprintf(`
+SELECT %s
+ FROM session
 WHERE device_id = $1
 ORDER BY expiry DESC
-LIMIT 1;
-`
+LIMIT 1;`, sessionFields)
 
 	row := db.conn.QueryRowContext(ctx, query, deviceID)
 
@@ -414,7 +374,7 @@ LIMIT 1;
 func (db *apiServerDB) Migrate(ctx context.Context) error {
 	var version int
 
-	query := `SELECT MAX(version) FROM migrations`
+	query := "SELECT MAX(version) FROM migrations"
 	row := db.conn.QueryRowContext(ctx, query)
 	err := row.Scan(&version)
 
