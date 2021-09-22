@@ -7,9 +7,9 @@ import (
 	"io/ioutil"
 
 	log "github.com/sirupsen/logrus"
+	"golang.org/x/oauth2"
 
 	"github.com/nais/device/pkg/bootstrap"
-	"github.com/nais/device/pkg/device-agent/auth"
 	"github.com/nais/device/pkg/device-agent/bootstrapper"
 	"github.com/nais/device/pkg/device-agent/config"
 	"github.com/nais/device/pkg/device-agent/serial"
@@ -23,6 +23,7 @@ type RuntimeConfig struct {
 	Config          *config.Config
 	PrivateKey      []byte
 	SessionInfo     *pb.Session
+	Token           *oauth2.Token
 }
 
 func New(cfg *config.Config) (*RuntimeConfig, error) {
@@ -54,10 +55,7 @@ func New(cfg *config.Config) (*RuntimeConfig, error) {
 
 func EnsureBootstrapping(rc *RuntimeConfig, ctx context.Context) (*bootstrap.Config, error) {
 	log.Infoln("Bootstrapping device")
-	client, err := auth.AzureAuthenticatedClient(ctx, rc.Config.OAuth2Config)
-	if err != nil {
-		return nil, fmt.Errorf("authenticating with Azure: %w", err)
-	}
+	client := rc.Config.OAuth2Config.Client(ctx, rc.Token)
 
 	cfg, err := bootstrapper.BootstrapDevice(
 		&bootstrap.DeviceInfo{

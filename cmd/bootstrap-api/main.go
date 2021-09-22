@@ -4,10 +4,12 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/prometheus/client_golang/prometheus/promhttp"
+
+	"github.com/nais/device/pkg/azure"
 	bootstrap_api "github.com/nais/device/pkg/bootstrap-api"
 	"github.com/nais/device/pkg/logger"
 	"github.com/nais/device/pkg/secretmanager"
-	"github.com/prometheus/client_golang/prometheus/promhttp"
 
 	log "github.com/sirupsen/logrus"
 	flag "github.com/spf13/pflag"
@@ -17,7 +19,7 @@ const SecretSyncInterval = 10 * time.Second
 
 type Config struct {
 	BindAddress            string
-	Azure                  bootstrap_api.Azure
+	Azure                  azure.Azure
 	PrometheusAddr         string
 	PrometheusPublicKey    string
 	PrometheusTunnelIP     string
@@ -28,7 +30,7 @@ type Config struct {
 }
 
 var cfg = &Config{
-	Azure: bootstrap_api.Azure{
+	Azure: azure.Azure{
 		ClientID:     "",
 		DiscoveryURL: "",
 	},
@@ -59,7 +61,7 @@ func main() {
 	}()
 
 	devMode := true
-	jwtValidator, err := bootstrap_api.CreateJWTValidator(cfg.Azure)
+	jwtValidator, err := azure.CreateJWTValidator(cfg.Azure)
 	if err != nil {
 		if !devMode {
 			log.Fatalf("Creating JWT validator: %v", err)
@@ -76,7 +78,7 @@ func main() {
 		log.Fatalf("instantiating secret manager: %v", err)
 	}
 
-	tokenValidator := bootstrap_api.TokenValidatorMiddleware(jwtValidator)
+	tokenValidator := azure.TokenValidatorMiddleware(jwtValidator)
 
 	api := bootstrap_api.NewApi(apiserverCredentials, tokenValidator, sm)
 	router := api.Router()

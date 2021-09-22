@@ -238,7 +238,7 @@ func run() error {
 		log.Warnf("Control plane authentication DISABLED! Do not run this configuration in production!")
 	}
 
-	grpcHandler := api.NewGRPCServer(db)
+	grpcHandler := api.NewGRPCServer(db, sessions)
 	grpcServer := grpc.NewServer()
 
 	pb.RegisterAPIServerServer(grpcServer, grpcHandler)
