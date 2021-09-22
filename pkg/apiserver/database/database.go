@@ -294,16 +294,14 @@ func (db *apiServerDB) readExistingIPs() ([]string, error) {
 	return ips, nil
 }
 
-func (db *apiServerDB) ReadDeviceBySerialPlatformUsername(ctx context.Context, serial string, platform string, username string) (*pb.Device, error) {
+func (db *apiServerDB) ReadDeviceBySerialPlatform(ctx context.Context, serial string, platform string) (*pb.Device, error) {
 	query := fmt.Sprintf(`
 SELECT %s
   FROM device
  WHERE serial = $1
-   AND platform = $2
-   AND lower(username) = $3;`, DeviceFields)
+   AND platform = $2`, DeviceFields)
 
-	lowerUsername := strings.ToLower(username)
-	row := db.conn.QueryRowContext(ctx, query, serial, platform, lowerUsername)
+	row := db.conn.QueryRowContext(ctx, query, serial, platform)
 
 	return scanDevice(row)
 }

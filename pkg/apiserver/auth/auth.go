@@ -181,9 +181,9 @@ func (s *authenticator) Login(w http.ResponseWriter, r *http.Request) {
 
 	serial := r.Header.Get(HeaderKeySerial)
 	platform := r.Header.Get(HeaderKeyPlatform)
-	device, err := s.db.ReadDeviceBySerialPlatformUsername(ctx, serial, platform, username)
+	device, err := s.db.ReadDeviceBySerialPlatform(ctx, serial, platform)
 	if err != nil {
-		authFailed(w, "getting device: %v", err)
+		authFailed(w, "read device (%s, %s, %s): %v", username, platform, serial, err)
 		return
 	}
 

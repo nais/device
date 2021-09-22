@@ -4,10 +4,12 @@ import (
 	"context"
 	"crypto/tls"
 	"fmt"
-	"github.com/nais/device/pkg/pb"
-	"google.golang.org/protobuf/types/known/timestamppb"
 	"strings"
 	"time"
+
+	"google.golang.org/protobuf/types/known/timestamppb"
+
+	"github.com/nais/device/pkg/pb"
 
 	"github.com/nais/device/pkg/apiserver/database"
 	kolideclient "github.com/nais/device/pkg/kolide-client"
@@ -152,9 +154,9 @@ func (handler *Handler) Cron(programContext context.Context) {
 }
 
 func (handler *Handler) updateDeviceHealth(ctx context.Context, device *kolideclient.Device) error {
-	existingDevice, err := handler.db.ReadDeviceBySerialPlatformUsername(ctx, device.Serial, platform(device.Platform), device.AssignedOwner.Email)
+	existingDevice, err := handler.db.ReadDeviceBySerialPlatform(ctx, device.Serial, platform(device.Platform))
 	if err != nil {
-		return fmt.Errorf("read device(%s, %s, %s): %w", device.AssignedOwner.Email, device.Serial, device.Platform, err)
+		return fmt.Errorf("read device(%s, %s), user: %s, err: %w", device.Serial, device.Platform, device.AssignedOwner.Email, err)
 	}
 
 	existingDevice.Healthy = DeviceHealthy(device)
