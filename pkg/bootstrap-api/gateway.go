@@ -8,11 +8,12 @@ import (
 	"sync"
 	"time"
 
-	"github.com/go-chi/chi"
-	"github.com/nais/device/pkg/bootstrap"
-	"github.com/nais/device/pkg/version"
+	"github.com/go-chi/chi/v5"
 	"github.com/prometheus/client_golang/prometheus"
 	log "github.com/sirupsen/logrus"
+
+	"github.com/nais/device/pkg/bootstrap"
+	"github.com/nais/device/pkg/version"
 )
 
 /*

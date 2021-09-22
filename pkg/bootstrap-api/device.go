@@ -5,9 +5,10 @@ import (
 	"net/http"
 	"sync"
 
-	"github.com/go-chi/chi"
-	"github.com/nais/device/pkg/bootstrap"
+	"github.com/go-chi/chi/v5"
 	log "github.com/sirupsen/logrus"
+
+	"github.com/nais/device/pkg/bootstrap"
 )
 
 func (api *DeviceApi) postBootstrapConfig(w http.ResponseWriter, r *http.Request) {

@@ -5,8 +5,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/go-chi/chi"
-	chi_middleware "github.com/go-chi/chi/middleware"
+	"github.com/go-chi/chi/v5"
+	chi_middleware "github.com/go-chi/chi/v5/middleware"
+
 	"github.com/nais/device/pkg/secretmanager"
 )
 

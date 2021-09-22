@@ -17,7 +17,7 @@ import (
 
 	"github.com/nais/device/pkg/random"
 
-	"github.com/go-chi/chi"
+	"github.com/go-chi/chi/v5"
 	"github.com/stretchr/testify/assert"
 
 	"github.com/nais/device/pkg/apiserver/api"
