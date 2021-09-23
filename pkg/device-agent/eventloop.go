@@ -93,7 +93,7 @@ func (das *DeviceAgentServer) syncConfigLoop(ctx context.Context, gateways chan<
 		loginResponse, err := apiserverClient.Login(ctx, &pb.APIServerLoginRequest{
 			Token:    das.rc.Token.AccessToken,
 			Platform: config.Platform,
-			Serial:   "mock",
+			Serial:   das.rc.Serial,
 		})
 
 		if err != nil {
