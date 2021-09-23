@@ -113,10 +113,12 @@ enum AgentState {
     Authenticating = 6;
     reserved 'SyncConfig';
     reserved 7;
-    HealthCheck = 8;
+    reserved 'HealthCheck';
+    reserved 8;
     AuthenticateBackoff = 9;
     AgentConfigurationChanged = 10;
-    RenewCert = 11;
+    reserved 'RenewCert';
+    reserved 11;
 }
 
 message AgentStatusRequest {
