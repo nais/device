@@ -5,7 +5,6 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
-	"google.golang.org/grpc"
 	"io/ioutil"
 	"net"
 	"net/http"
@@ -16,11 +15,12 @@ import (
 	"syscall"
 	"time"
 
-	clientcert "github.com/nais/device/pkg/client-cert"
+	"google.golang.org/grpc"
 
 	log "github.com/sirupsen/logrus"
 	"google.golang.org/protobuf/types/known/timestamppb"
 
+	clientcert "github.com/nais/device/pkg/client-cert"
 	"github.com/nais/device/pkg/device-agent/auth"
 	"github.com/nais/device/pkg/device-agent/runtimeconfig"
 	"github.com/nais/device/pkg/notify"
@@ -133,10 +133,6 @@ func (das *DeviceAgentServer) EventLoop() {
 
 	autoConnectTriggered := false
 
-	if das.Config.AgentConfiguration.CertRenewal {
-		certRenewalTicker.Reset(1 * time.Second)
-	}
-
 	das.stateChange <- status.ConnectionState
 
 	for {
@@ -164,18 +160,47 @@ func (das *DeviceAgentServer) EventLoop() {
 				versionCheckTicker.Reset(versionCheckInterval)
 			}
 
-
 		case <-certRenewalTicker.C:
+			certRenewalTicker.Reset(certRenewalBackoff)
 			if status.ConnectionState == pb.AgentState_Connected {
-				das.stateChange <- pb.AgentState_RenewCert
+				err := clientcert.Renew()
+				if err != nil {
+					log.Errorf("Renewing NAV microsoft client certificate: %v", err)
+					break
+				}
+
+				certRenewalTicker.Reset(certRenewalInterval)
+				log.Info("NAV Microsoft Client Certificate renewed")
 			} else {
 				log.Debugf("cert renewal skipped, not connected")
 			}
 
 		case <-healthCheckTicker.C:
-			if status.ConnectionState == pb.AgentState_Connected {
-				das.stateChange <- pb.AgentState_HealthCheck
+			healthCheckTicker.Reset(healthCheckInterval)
+			if status.ConnectionState != pb.AgentState_Connected {
+				break
 			}
+
+			wg := &sync.WaitGroup{}
+
+			total := len(status.GetGateways())
+			log.Infof("Pinging %d gateways...", total)
+			for i, gw := range status.GetGateways() {
+				go func(i int, gw *pb.Gateway) {
+					wg.Add(1)
+					err := ping(gw.Ip)
+					pos := fmt.Sprintf("[%02d/%02d]", i+1, total)
+					if err == nil {
+						gw.Healthy = true
+						log.Debugf("%s Successfully pinged gateway %v with ip: %v", pos, gw.Name, gw.Ip)
+					} else {
+						gw.Healthy = false
+						log.Infof("%s unable to ping host %s: %v", pos, gw.Ip, err)
+					}
+					wg.Done()
+				}(i, gw)
+			}
+			wg.Wait()
 
 		case <-authenticateTimer.C:
 			switch status.ConnectionState {
@@ -209,7 +234,9 @@ func (das *DeviceAgentServer) EventLoop() {
 				notify.Errorf(err.Error())
 				das.stateChange <- pb.AgentState_Disconnecting
 			} else {
-				das.stateChange <- pb.AgentState_HealthCheck
+				if status.ConnectionState == pb.AgentState_Connected {
+					healthCheckTicker.Reset(1 * time.Second)
+				}
 			}
 
 		case newState := <-das.stateChange:
@@ -287,6 +314,7 @@ func (das *DeviceAgentServer) EventLoop() {
 				authenticateTimer.Reset(authenticateBackoff)
 
 			case pb.AgentState_Connected:
+				certRenewalTicker.Reset(1 * time.Second)
 
 			case pb.AgentState_Disconnected:
 				status.Gateways = make([]*pb.Gateway, 0)
@@ -315,36 +343,6 @@ func (das *DeviceAgentServer) EventLoop() {
 
 				das.stateChange <- pb.AgentState_Disconnected
 
-			case pb.AgentState_HealthCheck:
-				if previousState != pb.AgentState_Connected {
-					log.Warnf("BUG: health check attempted in non-connected state; disconnecting")
-					das.stateChange <- pb.AgentState_Disconnecting
-					break
-				}
-
-				wg := &sync.WaitGroup{}
-
-				total := len(status.GetGateways())
-				log.Infof("Pinging %d gateways...", total)
-				for i, gw := range status.GetGateways() {
-					go func(i int, gw *pb.Gateway) {
-						wg.Add(1)
-						err := ping(gw.Ip)
-						pos := fmt.Sprintf("[%02d/%02d]", i+1, total)
-						if err == nil {
-							gw.Healthy = true
-							log.Debugf("%s Successfully pinged gateway %v with ip: %v", pos, gw.Name, gw.Ip)
-						} else {
-							gw.Healthy = false
-							log.Infof("%s unable to ping host %s: %v", pos, gw.Ip, err)
-						}
-						wg.Done()
-					}(i, gw)
-				}
-				wg.Wait()
-
-				das.stateChange <- pb.AgentState_Connected
-
 			case pb.AgentState_Unhealthy:
 
 			case pb.AgentState_AgentConfigurationChanged:
@@ -352,20 +350,6 @@ func (das *DeviceAgentServer) EventLoop() {
 					certRenewalTicker.Reset(1 * time.Second)
 				}
 				das.stateChange <- previousState
-
-			case pb.AgentState_RenewCert:
-				das.stateChange <- previousState
-
-				err := clientcert.Renew()
-				if err != nil {
-					certRenewalTicker.Reset(certRenewalBackoff)
-					log.Errorf("Renewing NAV microsoft client certificate: %v", err)
-					das.stateChange <- previousState
-					break
-				}
-
-				certRenewalTicker.Reset(certRenewalInterval)
-				log.Info("NAV Microsoft Client Certificate renewed")
 			}
 		}
 	}
