@@ -18,6 +18,8 @@ import (
 
 	"golang.org/x/oauth2"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
+	grpcstatus "google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/timestamppb"
 
 	clientcert "github.com/nais/device/pkg/client-cert"
@@ -97,7 +99,7 @@ func (das *DeviceAgentServer) syncConfigLoop(ctx context.Context, gateways chan<
 		})
 
 		if err != nil {
-			return fmt.Errorf("login: %w", err)
+			return err
 		}
 
 		das.rc.SessionInfo = loginResponse.Session
@@ -296,10 +298,17 @@ func (das *DeviceAgentServer) EventLoop() {
 						log.Infof("Setting up gateway config synchronization loop")
 						err := das.syncConfigLoop(syncctx, gateways)
 						if err != nil {
+							if grpcstatus.Code(err) == codes.Unauthenticated {
+								notify.Errorf(err.Error())
+								das.stateChange <- pb.AgentState_Disconnecting
+								synccancel()
+							}
+
 							log.Errorf("Synchronize config: %s", err)
 							time.Sleep(1 * time.Second)
 						}
 					}
+
 					log.Infof("Gateway config synchronization loop: %s", syncctx.Err())
 					syncctx = nil
 					synccancel()

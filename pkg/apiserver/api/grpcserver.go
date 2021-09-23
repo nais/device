@@ -9,6 +9,8 @@ import (
 	"github.com/lestrrat-go/jwx/jwk"
 	"github.com/lestrrat-go/jwx/jwt"
 	log "github.com/sirupsen/logrus"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/timestamppb"
 
 	"github.com/nais/device/pkg/apiserver/auth"
@@ -127,12 +129,12 @@ func (s *grpcServer) Login(ctx context.Context, request *pb.APIServerLoginReques
 	)
 
 	if err != nil {
-		return nil, fmt.Errorf("parse token: %w", err)
+		return nil, status.Errorf(codes.Unauthenticated, "parse token: %s", err)
 	}
 
 	claims, err := parsedToken.AsMap(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("convert claims to map: %w", err)
+		return nil, status.Errorf(codes.Unauthenticated, "convert claims to map: %s", err)
 	}
 
 	var groups []string
@@ -146,14 +148,14 @@ func (s *grpcServer) Login(ctx context.Context, request *pb.APIServerLoginReques
 	}
 
 	if !approvalOK {
-		return nil, fmt.Errorf("do's and don'ts not accepted, visit: https://naisdevice-approval.nais.io/ to read and accept")
+		return nil, status.Errorf(codes.Unauthenticated, "do's and don'ts not accepted, visit: https://naisdevice-approval.nais.io/ to read and accept")
 	}
 
 	username := claims["preferred_username"].(string)
 
 	device, err := s.db.ReadDeviceBySerialPlatform(ctx, request.Serial, request.Platform)
 	if err != nil {
-		return nil, fmt.Errorf("read device (%s, %s), user: %s, err: %v", request.Platform, request.Serial, username, err)
+		return nil, status.Errorf(codes.Unauthenticated, "read device (%s, %s), user: %s, err: %v", request.Platform, request.Serial, username, err)
 	}
 
 	session := &pb.Session{
@@ -169,7 +171,7 @@ func (s *grpcServer) Login(ctx context.Context, request *pb.APIServerLoginReques
 		log.Errorf("Persisting session info %v: %v", session, err)
 		// don't abort auth here as this might be OK
 		// fixme: we must abort auth here as the database didn't accept the session, and further usage will probably fail
-		return nil, fmt.Errorf("persist session: %w", err)
+		return nil, status.Errorf(codes.Unauthenticated, "persist session: %s", err)
 	}
 
 	return &pb.APIServerLoginResponse{
