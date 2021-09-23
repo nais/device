@@ -58,17 +58,13 @@ func (das *DeviceAgentServer) ConfigureHelper(ctx context.Context, rc *runtimeco
 }
 
 func validateToken(token *oauth2.Token) error {
-	if token != nil && time.Now().Before(token.Expiry) {
-		return nil
-	}
-
 	if token == nil {
 		return TokenDoesNotExist
 	} else if time.Now().After(token.Expiry) {
 		return ExpiredToken
 	}
 
-	return fmt.Errorf("BUG: invalid token state!")
+	return nil
 }
 
 func (das *DeviceAgentServer) syncConfigLoop(ctx context.Context, gateways chan<- []*pb.Gateway) error {
