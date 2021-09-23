@@ -3,8 +3,6 @@ package config
 import (
 	"fmt"
 	"strings"
-
-	"github.com/golang-jwt/jwt"
 )
 
 const NaisDeviceApprovalGroup = "ffd89425-c75c-4618-b5ab-67149ddbbc2d"
@@ -37,7 +35,6 @@ type Config struct {
 	PrometheusAddr                    string
 	PrometheusPublicKey               string
 	PrometheusTunnelIP                string
-	TokenValidator                    jwt.Keyfunc
 	WireGuardConfigPath               string
 	WireguardEnabled                  bool
 }

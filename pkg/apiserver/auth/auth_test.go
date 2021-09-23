@@ -16,7 +16,7 @@ import (
 )
 
 func TestSessions_AuthURL(t *testing.T) {
-	authenticator := auth.NewAuthenticator(config.Config{}, nil, nil, nil)
+	authenticator := auth.NewAuthenticator(config.Config{}, nil, nil, nil, nil)
 
 	customPort := 51821
 	defaultPort := 51800

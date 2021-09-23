@@ -18,6 +18,28 @@ type mockAuthenticator struct {
 	store SessionStore
 }
 
+func (m *mockAuthenticator) Login(ctx context.Context, token, serial, platform string) (*pb.Session, error) {
+	session := &pb.Session{
+		Key:      random.RandomString(20, random.LettersAndNumbers),
+		Expiry:   timestamppb.New(time.Now().Add(SessionDuration)),
+		Groups:   []string{"group1", "group2"},
+		ObjectID: "objectId123",
+		Device: &pb.Device{
+			Id:       1,
+			Serial:   serial,
+			Username: "mock",
+			Platform: platform,
+		},
+	}
+
+	err := m.store.Set(ctx, session)
+	if err != nil {
+		return nil, err
+	}
+
+	return session, nil
+}
+
 func (m *mockAuthenticator) Validator() func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -37,21 +59,8 @@ func (m *mockAuthenticator) Validator() func(http.Handler) http.Handler {
 	}
 }
 
-func (m *mockAuthenticator) Login(w http.ResponseWriter, r *http.Request) {
-	session := &pb.Session{
-		Key:      random.RandomString(20, random.LettersAndNumbers),
-		Expiry:   timestamppb.New(time.Now().Add(SessionDuration)),
-		Groups:   []string{"group1", "group2"},
-		ObjectID: "objectId123",
-		Device: &pb.Device{
-			Id:       1,
-			Serial:   "mock",
-			Username: "mock",
-			Platform: "linux",
-		},
-	}
-
-	err := m.store.Set(r.Context(), session)
+func (m *mockAuthenticator) LoginHTTP(w http.ResponseWriter, r *http.Request) {
+	session, err := m.Login(r.Context(), "token", "mock", "linux")
 	if err != nil {
 		authFailed(w, "cache session: %v", err)
 		return

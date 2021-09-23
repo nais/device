@@ -28,12 +28,9 @@ import (
 	"github.com/nais/device/pkg/basicauth"
 	"github.com/nais/device/pkg/pb"
 
-	"github.com/golang-jwt/jwt"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 
 	"github.com/nais/device/pkg/apiserver/auth"
-	"github.com/nais/device/pkg/apiserver/azure/discovery"
-	"github.com/nais/device/pkg/apiserver/azure/validate"
 	"github.com/nais/device/pkg/apiserver/enroller"
 	"github.com/nais/device/pkg/logger"
 
@@ -135,12 +132,17 @@ func run() error {
 	}
 
 	if cfg.DeviceAuthenticationEnabled {
-		tokenValidator, err := createJWTValidator(cfg)
+		jwks, err := jwk.Fetch(ctx, cfg.Azure.DiscoveryURL)
 		if err != nil {
-			return fmt.Errorf("create JWT validator: %w", err)
+			return fmt.Errorf("fetch jwks: %w", err)
 		}
 
-		authenticator = auth.NewAuthenticator(cfg, tokenValidator, db, sessions)
+		err = auth.EnsureValidJwks(ctx, jwks)
+		if err != nil {
+			return fmt.Errorf("ensure valid jwks: %w", err)
+		}
+
+		authenticator = auth.NewAuthenticator(cfg, db, sessions, jwks)
 	} else {
 		authenticator = auth.NewMockAuthenticator(sessions)
 	}
@@ -240,17 +242,7 @@ func run() error {
 		log.Warnf("Control plane authentication DISABLED! Do not run this configuration in production!")
 	}
 
-	jwks, err := jwk.Fetch(ctx, cfg.Azure.DiscoveryURL)
-	if err != nil {
-		return fmt.Errorf("fetch jwks: %w", err)
-	}
-
-	err = auth.EnsureValidJwks(ctx, jwks)
-	if err != nil {
-		return fmt.Errorf("ensure valid jwks: %w", err)
-	}
-
-	grpcHandler := api.NewGRPCServer(db, sessions, jwks)
+	grpcHandler := api.NewGRPCServer(db, authenticator)
 	grpcServer := grpc.NewServer()
 
 	pb.RegisterAPIServerServer(grpcServer, grpcHandler)
@@ -333,19 +325,6 @@ func setupInterface() error {
 	}
 
 	return run(commands)
-}
-
-func createJWTValidator(conf config.Config) (jwt.Keyfunc, error) {
-	if len(conf.Azure.ClientID) == 0 || len(conf.Azure.DiscoveryURL) == 0 {
-		return nil, fmt.Errorf("missing required azure configuration")
-	}
-
-	certificates, err := discovery.FetchCertificates(conf.Azure)
-	if err != nil {
-		return nil, fmt.Errorf("retrieving azure ad certificates for token validation: %v", err)
-	}
-
-	return validate.JWTValidator(certificates, conf.Azure.ClientID), nil
 }
 
 func SyncLoop(w wireguard.WireGuard) {

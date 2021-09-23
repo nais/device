@@ -10,12 +10,13 @@ import (
 	"sync"
 	"time"
 
+	"github.com/lestrrat-go/jwx/jwk"
+	"github.com/lestrrat-go/jwx/jwt"
 	"google.golang.org/protobuf/types/known/timestamppb"
 
 	"github.com/nais/device/pkg/apiserver/database"
 	"github.com/nais/device/pkg/pb"
 
-	"github.com/golang-jwt/jwt"
 	log "github.com/sirupsen/logrus"
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/endpoints"
@@ -34,25 +35,26 @@ const (
 
 type Authenticator interface {
 	Validator() func(next http.Handler) http.Handler
-	Login(w http.ResponseWriter, r *http.Request)
+	LoginHTTP(w http.ResponseWriter, r *http.Request)
+	Login(ctx context.Context, token, serial, platform string) (*pb.Session, error)
 	AuthURL(w http.ResponseWriter, r *http.Request)
 }
 
 type authenticator struct {
-	OAuthConfig    *oauth2.Config
-	db             database.APIServer
-	store          SessionStore
-	tokenValidator jwt.Keyfunc
-	states         map[string]interface{}
-	stateLock      sync.Mutex
+	OAuthConfig *oauth2.Config
+	db          database.APIServer
+	store       SessionStore
+	states      map[string]interface{}
+	stateLock   sync.Mutex
+	jwks        jwk.Set
 }
 
-func NewAuthenticator(cfg config.Config, validator jwt.Keyfunc, db database.APIServer, store SessionStore) Authenticator {
+func NewAuthenticator(cfg config.Config, db database.APIServer, store SessionStore, jwks jwk.Set) Authenticator {
 	return &authenticator{
-		db:             db,
-		store:          store,
-		states:         make(map[string]interface{}),
-		tokenValidator: validator,
+		db:     db,
+		store:  store,
+		states: make(map[string]interface{}),
+		jwks:   jwks,
 		OAuthConfig: &oauth2.Config{
 			// RedirectURL:  "http://localhost",  don't set this
 			ClientID:     cfg.Azure.ClientID,
@@ -133,18 +135,11 @@ func (s *authenticator) getToken(ctx context.Context, code, redirectUri string) 
 	return token, nil
 }
 
-func (s *authenticator) Login(w http.ResponseWriter, r *http.Request) {
-	ctx := context.Background()
-
+func (s *authenticator) LoginHTTP(w http.ResponseWriter, r *http.Request) {
 	err := s.validAuthState(r.URL.Query().Get("state"))
 	if err != nil {
 		authFailed(w, "Validating auth state: %v", err)
 		return
-	}
-
-	sessionInfo := &pb.Session{
-		Key:    random.RandomString(20, random.LettersAndNumbers),
-		Expiry: timestamppb.New(time.Now().Add(SessionDuration)),
 	}
 
 	listenPort, err := parseListenPort(r.Header.Get(HeaderKeyListenPort))
@@ -154,53 +149,21 @@ func (s *authenticator) Login(w http.ResponseWriter, r *http.Request) {
 	}
 
 	redirectUri := fmt.Sprintf("http://localhost:%d", listenPort)
-	token, err := s.getToken(ctx, r.URL.Query().Get("code"), redirectUri)
+	token, err := s.getToken(r.Context(), r.URL.Query().Get("code"), redirectUri)
 	if err != nil {
 		authFailed(w, "Exchanging code for token: %v", err)
 		return
 	}
 
-	username, objectId, groups, err := s.parseToken(token)
-	if err != nil {
-		authFailed(w, "Parsing token: %v", err)
-		return
-	}
-	sessionInfo.ObjectID = objectId
-
-	approvalOK := false
-	for _, group := range groups {
-		if group == config.NaisDeviceApprovalGroup {
-			approvalOK = true
-		}
-	}
-
-	if !approvalOK {
-		authFailed(w, "do's and don'ts not accepted, visit: https://naisdevice-approval.nais.io/ to read and accept")
-		return
-	}
-
 	serial := r.Header.Get(HeaderKeySerial)
 	platform := r.Header.Get(HeaderKeyPlatform)
-	device, err := s.db.ReadDeviceBySerialPlatform(ctx, serial, platform)
+	session, err := s.Login(r.Context(), token.AccessToken, serial, platform)
 	if err != nil {
-		authFailed(w, "read device (%s, %s, %s): %v", username, platform, serial, err)
-		return
-	}
-
-	sessionInfo.Groups = groups
-	sessionInfo.Device = device
-
-	err = s.store.Set(r.Context(), sessionInfo)
-	if err != nil {
-		log.Errorf("Persisting session info %v: %v", sessionInfo, err)
-		// don't abort auth here as this might be OK
-		// fixme: we must abort auth here as the database didn't accept the session, and further usage will probably fail
-		w.WriteHeader(http.StatusServiceUnavailable)
-		return
+		authFailed(w, "login: %s", err)
 	}
 
 	w.WriteHeader(http.StatusOK)
-	err = json.NewEncoder(w).Encode(LegacySessionFromProtobuf(sessionInfo))
+	err = json.NewEncoder(w).Encode(LegacySessionFromProtobuf(session))
 	if err != nil {
 		log.Errorf("writing response: %v", err)
 	}
@@ -233,24 +196,63 @@ func (s *authenticator) AuthURL(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (s *authenticator) parseToken(token *oauth2.Token) (string, string, []string, error) {
-	var claims jwt.MapClaims
-	_, err := jwt.ParseWithClaims(token.AccessToken, &claims, s.tokenValidator)
+func (s *authenticator) Login(ctx context.Context, token, serial, platform string) (*pb.Session, error) {
+	parsedToken, err := jwt.Parse(
+		[]byte(token),
+		jwt.WithKeySet(s.jwks),
+		jwt.WithAcceptableSkew(5*time.Second),
+		jwt.WithIssuer("https://login.microsoftonline.com/62366534-1ec3-4962-8869-9b5535279d0b/v2.0"),
+		jwt.WithAudience("6e45010d-2637-4a40-b91d-d4cbb451fb57"),
+		jwt.WithValidate(true),
+	)
+
 	if err != nil {
-		return "", "", nil, fmt.Errorf("parsing token with claims: %v", err)
+		return nil, fmt.Errorf("parse token: %s", err)
+	}
+
+	claims, err := parsedToken.AsMap(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("convert claims to map: %s", err)
 	}
 
 	var groups []string
-	groupInterface := claims["groups"].([]interface{})
-	groups = make([]string, len(groupInterface))
-	for i, v := range groupInterface {
-		groups[i] = v.(string)
+	approvalOK := false
+	for _, group := range claims["groups"].([]interface{}) {
+		s := group.(string)
+		if s == config.NaisDeviceApprovalGroup {
+			approvalOK = true
+		}
+		groups = append(groups, s)
+	}
+
+	if !approvalOK {
+		return nil, fmt.Errorf("do's and don'ts not accepted, visit: https://naisdevice-approval.nais.io/ to read and accept")
 	}
 
 	username := claims["preferred_username"].(string)
-	objectId := claims["oid"].(string)
 
-	return username, objectId, groups, nil
+	device, err := s.db.ReadDeviceBySerialPlatform(ctx, serial, platform)
+	if err != nil {
+		return nil, fmt.Errorf("read device (%s, %s), user: %s, err: %v", serial, platform, username, err)
+	}
+
+	session := &pb.Session{
+		Key:      random.RandomString(20, random.LettersAndNumbers),
+		Expiry:   timestamppb.New(time.Now().Add(SessionDuration)),
+		Groups:   groups,
+		ObjectID: claims["oid"].(string),
+		Device:   device,
+	}
+
+	err = s.store.Set(ctx, session)
+	if err != nil {
+		log.Errorf("Persisting session info %v: %v", session, err)
+		// don't abort auth here as this might be OK
+		// fixme: we must abort auth here as the database didn't accept the session, and further usage will probably fail
+		return nil, fmt.Errorf("persist session: %s", err)
+	}
+
+	return session, nil
 }
 
 func authFailed(w http.ResponseWriter, format string, args ...interface{}) {

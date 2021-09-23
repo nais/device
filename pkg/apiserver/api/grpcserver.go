@@ -4,40 +4,33 @@ import (
 	"context"
 	"fmt"
 	"sync"
-	"time"
 
-	"github.com/lestrrat-go/jwx/jwk"
-	"github.com/lestrrat-go/jwx/jwt"
 	log "github.com/sirupsen/logrus"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
-	"google.golang.org/protobuf/types/known/timestamppb"
 
 	"github.com/nais/device/pkg/apiserver/auth"
-	"github.com/nais/device/pkg/apiserver/config"
 	"github.com/nais/device/pkg/apiserver/database"
 	"github.com/nais/device/pkg/pb"
-	"github.com/nais/device/pkg/random"
 )
 
 type grpcServer struct {
 	pb.UnimplementedAPIServerServer
 
-	store   auth.SessionStore
-	streams map[string]pb.APIServer_GetDeviceConfigurationServer
-	lock    sync.Mutex
-	db      database.APIServer
-	jwks    jwk.Set
+	authenticator auth.Authenticator
+	store         auth.SessionStore
+	streams       map[string]pb.APIServer_GetDeviceConfigurationServer
+	lock          sync.Mutex
+	db            database.APIServer
 }
 
 var _ pb.APIServerServer = &grpcServer{}
 
-func NewGRPCServer(db database.APIServer, store auth.SessionStore, jwks jwk.Set) *grpcServer {
+func NewGRPCServer(db database.APIServer, authenticator auth.Authenticator) *grpcServer {
 	return &grpcServer{
-		streams: make(map[string]pb.APIServer_GetDeviceConfigurationServer),
-		db:      db,
-		store:   store,
-		jwks:    jwks,
+		streams:       make(map[string]pb.APIServer_GetDeviceConfigurationServer),
+		db:            db,
+		authenticator: authenticator,
 	}
 }
 
@@ -117,61 +110,10 @@ func (s *grpcServer) UserGateways(userGroups []string) ([]*pb.Gateway, error) {
 	return filtered, nil
 }
 
-func (s *grpcServer) Login(ctx context.Context, request *pb.APIServerLoginRequest) (*pb.APIServerLoginResponse, error) {
-	// fixme: move login logic to interface and pass impl to newgrpcserver
-	parsedToken, err := jwt.Parse(
-		[]byte(request.Token),
-		jwt.WithKeySet(s.jwks),
-		jwt.WithAcceptableSkew(5*time.Second),
-		jwt.WithIssuer("https://login.microsoftonline.com/62366534-1ec3-4962-8869-9b5535279d0b/v2.0"),
-		jwt.WithAudience("6e45010d-2637-4a40-b91d-d4cbb451fb57"),
-		jwt.WithValidate(true),
-	)
-
+func (s *grpcServer) Login(ctx context.Context, r *pb.APIServerLoginRequest) (*pb.APIServerLoginResponse, error) {
+	session, err := s.authenticator.Login(ctx, r.Token, r.Serial, r.Platform)
 	if err != nil {
-		return nil, status.Errorf(codes.Unauthenticated, "parse token: %s", err)
-	}
-
-	claims, err := parsedToken.AsMap(ctx)
-	if err != nil {
-		return nil, status.Errorf(codes.Unauthenticated, "convert claims to map: %s", err)
-	}
-
-	var groups []string
-	approvalOK := false
-	for _, group := range claims["groups"].([]interface{}) {
-		s := group.(string)
-		if s == config.NaisDeviceApprovalGroup {
-			approvalOK = true
-		}
-		groups = append(groups, s)
-	}
-
-	if !approvalOK {
-		return nil, status.Errorf(codes.Unauthenticated, "do's and don'ts not accepted, visit: https://naisdevice-approval.nais.io/ to read and accept")
-	}
-
-	username := claims["preferred_username"].(string)
-
-	device, err := s.db.ReadDeviceBySerialPlatform(ctx, request.Serial, request.Platform)
-	if err != nil {
-		return nil, status.Errorf(codes.Unauthenticated, "read device (%s, %s), user: %s, err: %v", request.Platform, request.Serial, username, err)
-	}
-
-	session := &pb.Session{
-		Key:      random.RandomString(20, random.LettersAndNumbers),
-		Expiry:   timestamppb.New(time.Now().Add(auth.SessionDuration)),
-		Groups:   groups,
-		ObjectID: claims["oid"].(string),
-		Device:   device,
-	}
-
-	err = s.store.Set(ctx, session)
-	if err != nil {
-		log.Errorf("Persisting session info %v: %v", session, err)
-		// don't abort auth here as this might be OK
-		// fixme: we must abort auth here as the database didn't accept the session, and further usage will probably fail
-		return nil, status.Errorf(codes.Unauthenticated, "persist session: %s", err)
+		return nil, status.Errorf(codes.Unauthenticated, "login: %v", err)
 	}
 
 	return &pb.APIServerLoginResponse{
