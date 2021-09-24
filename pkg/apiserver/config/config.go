@@ -41,8 +41,15 @@ type Config struct {
 
 type Azure struct {
 	ClientID     string
-	DiscoveryURL string
+	Tenant       string
 	ClientSecret string
+}
+
+func (a Azure) DiscoveryURL() string {
+	return fmt.Sprintf("https://login.microsoftonline.com/%s/discovery/keys", a.Tenant)
+}
+func (a Azure) Issuer() string {
+	return fmt.Sprintf("https://login.microsoftonline.com/%s/v2.0", a.Tenant)
 }
 
 func (c *Config) Credentials() (map[string]string, error) {

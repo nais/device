@@ -47,6 +47,7 @@ type authenticator struct {
 	states      map[string]interface{}
 	stateLock   sync.Mutex
 	jwks        jwk.Set
+	Azure       config.Azure
 }
 
 func NewAuthenticator(cfg config.Config, db database.APIServer, store SessionStore, jwks jwk.Set) Authenticator {
@@ -55,12 +56,13 @@ func NewAuthenticator(cfg config.Config, db database.APIServer, store SessionSto
 		store:  store,
 		states: make(map[string]interface{}),
 		jwks:   jwks,
+		Azure:  cfg.Azure,
 		OAuthConfig: &oauth2.Config{
 			// RedirectURL:  "http://localhost",  don't set this
 			ClientID:     cfg.Azure.ClientID,
 			ClientSecret: cfg.Azure.ClientSecret,
 			Scopes:       []string{"openid", fmt.Sprintf("%s/.default", cfg.Azure.ClientID)},
-			Endpoint:     endpoints.AzureAD("62366534-1ec3-4962-8869-9b5535279d0b"),
+			Endpoint:     endpoints.AzureAD(cfg.Azure.Tenant),
 		},
 	}
 }
@@ -201,8 +203,8 @@ func (s *authenticator) Login(ctx context.Context, token, serial, platform strin
 		[]byte(token),
 		jwt.WithKeySet(s.jwks),
 		jwt.WithAcceptableSkew(5*time.Second),
-		jwt.WithIssuer("https://login.microsoftonline.com/62366534-1ec3-4962-8869-9b5535279d0b/v2.0"),
-		jwt.WithAudience("6e45010d-2637-4a40-b91d-d4cbb451fb57"),
+		jwt.WithIssuer(s.Azure.Issuer()),
+		jwt.WithAudience(s.Azure.ClientID),
 		jwt.WithValidate(true),
 	)
 

@@ -66,8 +66,8 @@ func init() {
 	flag.StringVar(&cfg.GRPCBindAddress, "grpc-bind-address", cfg.GRPCBindAddress, "Bind address for gRPC server")
 	flag.StringVar(&cfg.ConfigDir, "config-dir", cfg.ConfigDir, "Path to configuration directory")
 	flag.StringVar(&cfg.Endpoint, "endpoint", cfg.Endpoint, "public endpoint (ip:port)")
-	flag.StringVar(&cfg.Azure.DiscoveryURL, "azure-discovery-url", "https://login.microsoftonline.com/62366534-1ec3-4962-8869-9b5535279d0b/discovery/keys", "Azure discovery url")
 	flag.StringVar(&cfg.Azure.ClientID, "azure-client-id", "6e45010d-2637-4a40-b91d-d4cbb451fb57", "Azure app client id")
+	flag.StringVar(&cfg.Azure.Tenant, "azure-tenant", "62366534-1ec3-4962-8869-9b5535279d0b", "Azure tenant")
 	flag.StringVar(&cfg.Azure.ClientSecret, "azure-client-secret", "", "Azure app client secret")
 	flag.StringSliceVar(&cfg.CredentialEntries, "credential-entries", nil, "Comma-separated credentials on format: '<user>:<key>'")
 	flag.StringVar(&cfg.GatewayConfigBucketName, "gateway-config-bucket-name", "gatewayconfig", "Name of bucket containing gateway config object")
@@ -132,7 +132,7 @@ func run() error {
 	}
 
 	if cfg.DeviceAuthenticationEnabled {
-		jwks, err := jwk.Fetch(ctx, cfg.Azure.DiscoveryURL)
+		jwks, err := jwk.Fetch(ctx, cfg.Azure.DiscoveryURL())
 		if err != nil {
 			return fmt.Errorf("fetch jwks: %w", err)
 		}
