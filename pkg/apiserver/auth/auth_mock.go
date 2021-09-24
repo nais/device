@@ -15,7 +15,7 @@ type mockAuthenticator struct {
 	store SessionStore
 }
 
-func (m *mockAuthenticator) Login(ctx context.Context, token, serial, platform string) (*pb.Session, error) {
+func (m *mockAuthenticator) Login(ctx context.Context, _, _, _ string) (*pb.Session, error) {
 	session := &pb.Session{
 		Key:      random.RandomString(20, random.LettersAndNumbers),
 		Expiry:   timestamppb.New(time.Now().Add(SessionDuration)),
@@ -42,11 +42,11 @@ func (m *mockAuthenticator) Validator() func(http.Handler) http.Handler {
 	return nil
 }
 
-func (m *mockAuthenticator) LoginHTTP(w http.ResponseWriter, r *http.Request) {
+func (m *mockAuthenticator) LoginHTTP(http.ResponseWriter, *http.Request) {
 	// not used by current versions of device-agent.
 }
 
-func (m *mockAuthenticator) AuthURL(w http.ResponseWriter, r *http.Request) {
+func (m *mockAuthenticator) AuthURL(http.ResponseWriter, *http.Request) {
 	// not used by current versions of device-agent.
 }
 
