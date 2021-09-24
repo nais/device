@@ -6,8 +6,8 @@
   "source": [
     "./naisdevice.app/Contents/MacOS/wg",
     "./naisdevice.app/Contents/MacOS/wireguard-go",
-    "./naisdevice.app/Contents/MacOS/device-agent-helper",
-    "./naisdevice.app/Contents/MacOS/device-agent"
+    "./naisdevice.app/Contents/MacOS/naisdevice-helper",
+    "./naisdevice.app/Contents/MacOS/naisdevice-agent"
   ],
   "bundle_id": "io.nais.device",
   "sign" :{
