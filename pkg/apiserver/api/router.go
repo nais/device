@@ -20,7 +20,7 @@ type Config struct {
 }
 
 func New(cfg Config) chi.Router {
-	api := api{db: cfg.DB, jita: cfg.Jita}
+	api := &api{db: cfg.DB, jita: cfg.Jita}
 	authenticator := cfg.Authenticator
 
 	latencyHistBuckets := []float64{.001, .005, .01, .025, .05, .1, .5, 1, 3, 5}

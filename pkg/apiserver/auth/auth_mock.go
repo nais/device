@@ -39,7 +39,9 @@ func (m *mockAuthenticator) Login(ctx context.Context, _, _, _ string) (*pb.Sess
 
 func (m *mockAuthenticator) Validator() func(http.Handler) http.Handler {
 	// not used by current versions of device-agent.
-	return nil
+	return func(handler http.Handler) http.Handler {
+		return handler
+	}
 }
 
 func (m *mockAuthenticator) LoginHTTP(http.ResponseWriter, *http.Request) {
