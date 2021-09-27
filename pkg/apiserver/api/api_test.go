@@ -283,7 +283,7 @@ func setup(t *testing.T, j *jita.Jita) (database.APIServer, chi.Router) {
 
 	sessions := auth.NewSessionStore(db)
 
-	authenticator := auth.NewAuthenticator(config.Config{}, nil, db, sessions)
+	authenticator := auth.NewAuthenticator(config.Config{}, db, sessions, nil)
 
 	return db, api.New(api.Config{
 		DB:            db,

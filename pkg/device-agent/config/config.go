@@ -6,14 +6,16 @@ import (
 	"os"
 	"path/filepath"
 
-	config2 "github.com/nais/device/pkg/helper/config"
-	"github.com/nais/device/pkg/pb"
 	"google.golang.org/protobuf/encoding/protojson"
 
-	"github.com/nais/device/pkg/config"
+	config2 "github.com/nais/device/pkg/helper/config"
+	"github.com/nais/device/pkg/pb"
+
 	log "github.com/sirupsen/logrus"
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/endpoints"
+
+	"github.com/nais/device/pkg/config"
 )
 
 const File = "agent-config.json"
@@ -32,7 +34,7 @@ type Config struct {
 	SerialPath               string
 	LogLevel                 string
 	LogFilePath              string
-	OAuth2Config             oauth2.Config
+	OAuth2Config             *oauth2.Config
 	Platform                 string
 	BootstrapAPI             string
 	GrpcAddress              string
@@ -63,7 +65,7 @@ func DefaultConfig() Config {
 		LogLevel:                 "info",
 		GrpcAddress:              filepath.Join(userConfigDir, "agent.sock"),
 		DeviceAgentHelperAddress: filepath.Join(config2.RuntimeDir, "helper.sock"),
-		OAuth2Config: oauth2.Config{
+		OAuth2Config: &oauth2.Config{
 			ClientID:    "8086d321-c6d3-4398-87da-0d54e3d93967",
 			Scopes:      []string{"openid", "6e45010d-2637-4a40-b91d-d4cbb451fb57/.default", "offline_access"},
 			Endpoint:    endpoints.AzureAD("62366534-1ec3-4962-8869-9b5535279d0b"),

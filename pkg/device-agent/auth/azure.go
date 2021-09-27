@@ -13,8 +13,8 @@ import (
 	"golang.org/x/oauth2"
 
 	apiserverconfig "github.com/nais/device/pkg/apiserver/config"
+	"github.com/nais/device/pkg/apiserver/kekw"
 	"github.com/nais/device/pkg/device-agent/open"
-
 	"github.com/nais/device/pkg/random"
 )
 
@@ -23,21 +23,10 @@ type authFlowResponse struct {
 	err   error
 }
 
-func AzureAuthenticatedClient(ctx context.Context, conf oauth2.Config) (*http.Client, error) {
-	token, err := runAuthFlow(ctx, conf)
-
-	if err != nil {
-		return nil, fmt.Errorf("running authorization code flow: %w", err)
-	}
-
-	return conf.Client(ctx, token), nil
-}
-
-func runAuthFlow(ctx context.Context, conf oauth2.Config) (*oauth2.Token, error) {
+func GetDeviceAgentToken(ctx context.Context, conf *oauth2.Config) (*oauth2.Token, error) {
 	// Ignoring impossible error
 	codeVerifier, _ := codeverifier.CreateCodeVerifier()
 
-	// TODO check this in response from Azure
 	authFlowChan := make(chan *authFlowResponse)
 	handler := http.NewServeMux()
 	state := random.RandomString(16, random.LettersAndNumbers)
@@ -134,4 +123,28 @@ func runAuthFlow(ctx context.Context, conf oauth2.Config) (*oauth2.Token, error)
 func failAuth(err error, w http.ResponseWriter, authFlowChan chan *authFlowResponse) {
 	failureResponse(w, err.Error())
 	authFlowChan <- &authFlowResponse{Token: nil, err: err}
+}
+
+func failureResponse(w http.ResponseWriter, msg string) {
+	w.Header().Set("content-type", "text/html;charset=utf8")
+	_, _ = fmt.Fprintf(w, `
+<div style="position:absolute;left:50%%;top:50%%;margin-top:-150px;margin-left:-200px;height:300px;width:400px;bottom:50%%;background-color:#f5f5f5;border:1px solid #d9d9d9;border-radius:4px">
+<img style="width:100px;display:block;margin:auto;margin-top:50px" width="100" src="data:image/jpeg;base64,%s"/>
+<p style="margin-top: 70px" align="center">
+  %s
+</p>
+</div>
+`, kekw.SadKekW, msg)
+}
+
+func successfulResponse(w http.ResponseWriter, msg string) {
+	w.Header().Set("content-type", "text/html;charset=utf8")
+	_, _ = fmt.Fprintf(w, `
+<div style="position:absolute;left:50%%;top:50%%;margin-top:-150px;margin-left:-200px;height:300px;width:400px;bottom:50%%;background-color:#f5f5f5;border:1px solid #d9d9d9;border-radius:4px">
+<img style="width:100px;display:block;margin:auto;margin-top:50px" width="100" src="data:image/jpeg;base64,%s"/>
+<p style="margin-top: 70px" align="center">
+  %s
+</p>
+</div>
+`, kekw.HappyKekW, msg)
 }

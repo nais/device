@@ -29,7 +29,7 @@ type DeviceAgentServer struct {
 }
 
 func (das *DeviceAgentServer) Login(ctx context.Context, request *pb.LoginRequest) (*pb.LoginResponse, error) {
-	das.stateChange <- pb.AgentState_Bootstrapping
+	das.stateChange <- pb.AgentState_Authenticating
 	return &pb.LoginResponse{}, nil
 }
 

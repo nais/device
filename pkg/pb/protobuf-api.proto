@@ -159,6 +159,10 @@ message AgentConfiguration {
 }
 
 service APIServer {
+    // Exchange an access token for a session
+    rpc Login (APIServerLoginRequest) returns (APIServerLoginResponse) {
+
+    }
     // Set up a client->server request for continuous streaming of new configuration
     rpc GetDeviceConfiguration (GetDeviceConfigurationRequest) returns (stream GetDeviceConfigurationResponse) {
 
@@ -167,6 +171,16 @@ service APIServer {
 
 message GetDeviceConfigurationRequest {
     string sessionKey = 1;
+}
+
+message APIServerLoginRequest {
+    string token = 1;
+    string platform = 2;
+    string serial = 3;
+}
+
+message APIServerLoginResponse {
+    Session session = 1;
 }
 
 enum DeviceConfigurationStatus {

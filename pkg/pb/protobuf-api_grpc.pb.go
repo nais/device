@@ -490,6 +490,8 @@ var DeviceAgent_ServiceDesc = grpc.ServiceDesc{
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type APIServerClient interface {
+	// Exchange an access token for a session
+	Login(ctx context.Context, in *APIServerLoginRequest, opts ...grpc.CallOption) (*APIServerLoginResponse, error)
 	// Set up a client->server request for continuous streaming of new configuration
 	GetDeviceConfiguration(ctx context.Context, in *GetDeviceConfigurationRequest, opts ...grpc.CallOption) (APIServer_GetDeviceConfigurationClient, error)
 }
@@ -500,6 +502,15 @@ type aPIServerClient struct {
 
 func NewAPIServerClient(cc grpc.ClientConnInterface) APIServerClient {
 	return &aPIServerClient{cc}
+}
+
+func (c *aPIServerClient) Login(ctx context.Context, in *APIServerLoginRequest, opts ...grpc.CallOption) (*APIServerLoginResponse, error) {
+	out := new(APIServerLoginResponse)
+	err := c.cc.Invoke(ctx, "/naisdevice.APIServer/Login", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
 }
 
 func (c *aPIServerClient) GetDeviceConfiguration(ctx context.Context, in *GetDeviceConfigurationRequest, opts ...grpc.CallOption) (APIServer_GetDeviceConfigurationClient, error) {
@@ -538,6 +549,8 @@ func (x *aPIServerGetDeviceConfigurationClient) Recv() (*GetDeviceConfigurationR
 // All implementations must embed UnimplementedAPIServerServer
 // for forward compatibility
 type APIServerServer interface {
+	// Exchange an access token for a session
+	Login(context.Context, *APIServerLoginRequest) (*APIServerLoginResponse, error)
 	// Set up a client->server request for continuous streaming of new configuration
 	GetDeviceConfiguration(*GetDeviceConfigurationRequest, APIServer_GetDeviceConfigurationServer) error
 	mustEmbedUnimplementedAPIServerServer()
@@ -547,6 +560,9 @@ type APIServerServer interface {
 type UnimplementedAPIServerServer struct {
 }
 
+func (UnimplementedAPIServerServer) Login(context.Context, *APIServerLoginRequest) (*APIServerLoginResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Login not implemented")
+}
 func (UnimplementedAPIServerServer) GetDeviceConfiguration(*GetDeviceConfigurationRequest, APIServer_GetDeviceConfigurationServer) error {
 	return status.Errorf(codes.Unimplemented, "method GetDeviceConfiguration not implemented")
 }
@@ -561,6 +577,24 @@ type UnsafeAPIServerServer interface {
 
 func RegisterAPIServerServer(s grpc.ServiceRegistrar, srv APIServerServer) {
 	s.RegisterService(&APIServer_ServiceDesc, srv)
+}
+
+func _APIServer_Login_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(APIServerLoginRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(APIServerServer).Login(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/naisdevice.APIServer/Login",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(APIServerServer).Login(ctx, req.(*APIServerLoginRequest))
+	}
+	return interceptor(ctx, in, info, handler)
 }
 
 func _APIServer_GetDeviceConfiguration_Handler(srv interface{}, stream grpc.ServerStream) error {
@@ -590,7 +624,12 @@ func (x *aPIServerGetDeviceConfigurationServer) Send(m *GetDeviceConfigurationRe
 var APIServer_ServiceDesc = grpc.ServiceDesc{
 	ServiceName: "naisdevice.APIServer",
 	HandlerType: (*APIServerServer)(nil),
-	Methods:     []grpc.MethodDesc{},
+	Methods: []grpc.MethodDesc{
+		{
+			MethodName: "Login",
+			Handler:    _APIServer_Login_Handler,
+		},
+	},
 	Streams: []grpc.StreamDesc{
 		{
 			StreamName:    "GetDeviceConfiguration",

@@ -2,12 +2,9 @@ package auth
 
 import (
 	"context"
-	"encoding/json"
-	"fmt"
 	"net/http"
 	"time"
 
-	log "github.com/sirupsen/logrus"
 	"google.golang.org/protobuf/types/known/timestamppb"
 
 	"github.com/nais/device/pkg/pb"
@@ -18,26 +15,7 @@ type mockAuthenticator struct {
 	store SessionStore
 }
 
-func (m *mockAuthenticator) Validator() func(http.Handler) http.Handler {
-	return func(next http.Handler) http.Handler {
-		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			sessionKey := r.Header.Get(HeaderKeySessionKey)
-
-			sessionInfo, err := m.store.Get(r.Context(), sessionKey)
-			if err != nil {
-				log.Errorf("read session info: %v", err)
-				w.WriteHeader(http.StatusUnauthorized)
-				return
-			}
-
-			r = r.WithContext(context.WithValue(r.Context(), "sessionInfo", sessionInfo))
-
-			next.ServeHTTP(w, r)
-		})
-	}
-}
-
-func (m *mockAuthenticator) Login(w http.ResponseWriter, r *http.Request) {
+func (m *mockAuthenticator) Login(ctx context.Context, _, _, _ string) (*pb.Session, error) {
 	session := &pb.Session{
 		Key:      random.RandomString(20, random.LettersAndNumbers),
 		Expiry:   timestamppb.New(time.Now().Add(SessionDuration)),
@@ -51,35 +29,25 @@ func (m *mockAuthenticator) Login(w http.ResponseWriter, r *http.Request) {
 		},
 	}
 
-	err := m.store.Set(r.Context(), session)
+	err := m.store.Set(ctx, session)
 	if err != nil {
-		authFailed(w, "cache session: %v", err)
-		return
+		return nil, err
 	}
 
-	err = json.NewEncoder(w).Encode(LegacySessionFromProtobuf(session))
-	if err != nil {
-		authFailed(w, "write response: %v", err)
-		return
-	}
+	return session, nil
 }
 
-func (m *mockAuthenticator) AuthURL(w http.ResponseWriter, r *http.Request) {
-	port, err := parseListenPort(r.Header.Get(HeaderKeyListenPort))
-	if err != nil {
-		_, err = fmt.Fprintf(w, "Unable to parse header: %s", HeaderKeyListenPort)
-		if err != nil {
-			log.Errorf("Writing bad request response: %s", err)
-		}
+func (m *mockAuthenticator) Validator() func(http.Handler) http.Handler {
+	// not used by current versions of device-agent.
+	return nil
+}
 
-		w.WriteHeader(http.StatusBadRequest)
-		return
-	}
+func (m *mockAuthenticator) LoginHTTP(http.ResponseWriter, *http.Request) {
+	// not used by current versions of device-agent.
+}
 
-	_, err = fmt.Fprintf(w, "http://localhost:%d/?mock=true", port)
-	if err != nil {
-		log.Errorf("Writing auth url response: %s", err)
-	}
+func (m *mockAuthenticator) AuthURL(http.ResponseWriter, *http.Request) {
+	// not used by current versions of device-agent.
 }
 
 func NewMockAuthenticator(store SessionStore) Authenticator {

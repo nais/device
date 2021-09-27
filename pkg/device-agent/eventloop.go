@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"net"
@@ -15,12 +16,17 @@ import (
 	"syscall"
 	"time"
 
+	"golang.org/x/oauth2"
 	"google.golang.org/grpc"
-
-	log "github.com/sirupsen/logrus"
+	"google.golang.org/grpc/codes"
+	grpcstatus "google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/timestamppb"
 
 	clientcert "github.com/nais/device/pkg/client-cert"
+	"github.com/nais/device/pkg/device-agent/config"
+
+	log "github.com/sirupsen/logrus"
+
 	"github.com/nais/device/pkg/device-agent/auth"
 	"github.com/nais/device/pkg/device-agent/runtimeconfig"
 	"github.com/nais/device/pkg/notify"
@@ -34,10 +40,14 @@ const (
 	versionCheckInterval  = 1 * time.Hour      // how often to check for a new version of naisdevice
 	versionCheckTimeout   = 3 * time.Second    // timeout for new version check
 	authFlowTimeout       = 30 * time.Second   // total timeout for authenticating user (AAD login in browser, redirect to localhost, exchange code for token)
-	authenticateBackoff   = 10 * time.Second   // time to wait between authentication attempts
 	approximateInfinity   = time.Hour * 69_420 // Name describes purpose. Used for renewing microsoft client certs automatically
 	certRenewalInterval   = time.Hour * 23     // Microsoft Client certificate validity/renewal interval
 	certRenewalBackoff    = time.Second * 10   // Self-explanatory (Microsoft Client certificate)
+)
+
+var (
+	ExpiredToken      = errors.New("azure ad token expired")
+	TokenDoesNotExist = errors.New("azure ad token does not exist")
 )
 
 func (das *DeviceAgentServer) ConfigureHelper(ctx context.Context, rc *runtimeconfig.RuntimeConfig, gateways []*pb.Gateway) error {
@@ -49,11 +59,17 @@ func (das *DeviceAgentServer) ConfigureHelper(ctx context.Context, rc *runtimeco
 	return err
 }
 
-func (das *DeviceAgentServer) syncConfigLoop(ctx context.Context, gateways chan<- []*pb.Gateway) error {
-	if das.rc.SessionInfo == nil {
-		return fmt.Errorf("not authenticated")
+func validateToken(token *oauth2.Token) error {
+	if token == nil {
+		return TokenDoesNotExist
+	} else if time.Now().After(token.Expiry) {
+		return ExpiredToken
 	}
 
+	return nil
+}
+
+func (das *DeviceAgentServer) syncConfigLoop(ctx context.Context, gateways chan<- []*pb.Gateway) error {
 	dialContext, cancel := context.WithTimeout(ctx, syncConfigDialTimeout)
 	defer cancel()
 
@@ -74,6 +90,20 @@ func (das *DeviceAgentServer) syncConfigLoop(ctx context.Context, gateways chan<
 	defer apiserver.Close()
 
 	apiserverClient := pb.NewAPIServerClient(apiserver)
+
+	if das.rc.SessionInfo.Expired() {
+		loginResponse, err := apiserverClient.Login(ctx, &pb.APIServerLoginRequest{
+			Token:    das.rc.Token.AccessToken,
+			Platform: config.Platform,
+			Serial:   das.rc.Serial,
+		})
+
+		if err != nil {
+			return err
+		}
+
+		das.rc.SessionInfo = loginResponse.Session
+	}
 
 	stream, err := apiserverClient.GetDeviceConfiguration(ctx, &pb.GetDeviceConfigurationRequest{
 		SessionKey: das.rc.SessionInfo.Key,
@@ -128,8 +158,6 @@ func (das *DeviceAgentServer) EventLoop() {
 	healthCheckTicker := time.NewTicker(healthCheckInterval)
 	versionCheckTicker := time.NewTicker(5 * time.Second)
 	certRenewalTicker := time.NewTicker(approximateInfinity)
-	authenticateTimer := time.NewTimer(1 * time.Hour)
-	authenticateTimer.Stop()
 
 	autoConnectTriggered := false
 
@@ -202,16 +230,6 @@ func (das *DeviceAgentServer) EventLoop() {
 			}
 			wg.Wait()
 
-		case <-authenticateTimer.C:
-			switch status.ConnectionState {
-			case pb.AgentState_AuthenticateBackoff:
-				fallthrough
-			case pb.AgentState_Bootstrapping:
-				das.stateChange <- pb.AgentState_Authenticating
-			default:
-				break
-			}
-
 		case gws := <-gateways:
 			if syncctx == nil {
 				log.Errorf("BUG: synchronization context is nil while updating gateways")
@@ -272,24 +290,6 @@ func (das *DeviceAgentServer) EventLoop() {
 					continue
 				}
 
-				authenticateTimer.Reset(1 * time.Microsecond)
-
-			case pb.AgentState_Authenticating:
-				if das.rc.SessionInfo != nil && !das.rc.SessionInfo.Expired() {
-					log.Infof("Already have a valid session")
-				} else {
-					log.Infof("No valid session, authenticating")
-					ctx, cancel := context.WithTimeout(context.Background(), authFlowTimeout)
-					das.rc.SessionInfo, err = auth.EnsureAuth(das.rc.SessionInfo, ctx, das.rc.Config.APIServer, das.rc.Config.Platform, das.rc.Serial)
-					cancel()
-
-					if err != nil {
-						notify.Errorf("Authenticate with API server: %v", err)
-						das.stateChange <- pb.AgentState_AuthenticateBackoff
-						continue
-					}
-				}
-
 				status.ConnectedSince = timestamppb.Now()
 
 				syncctx, synccancel = context.WithCancel(context.Background())
@@ -298,9 +298,17 @@ func (das *DeviceAgentServer) EventLoop() {
 						log.Infof("Setting up gateway config synchronization loop")
 						err := das.syncConfigLoop(syncctx, gateways)
 						if err != nil {
+							if grpcstatus.Code(err) == codes.Unauthenticated {
+								notify.Errorf(err.Error())
+								das.stateChange <- pb.AgentState_Disconnecting
+								synccancel()
+							}
+
 							log.Errorf("Synchronize config: %s", err)
+							time.Sleep(1 * time.Second)
 						}
 					}
+
 					log.Infof("Gateway config synchronization loop: %s", syncctx.Err())
 					syncctx = nil
 					synccancel()
@@ -309,9 +317,24 @@ func (das *DeviceAgentServer) EventLoop() {
 				das.stateChange <- pb.AgentState_Connected
 				continue
 
-			case pb.AgentState_AuthenticateBackoff:
-				log.Infof("Re-authenticating in %s...", authenticateBackoff)
-				authenticateTimer.Reset(authenticateBackoff)
+			case pb.AgentState_Authenticating:
+				err = validateToken(das.rc.Token)
+				if err == nil {
+					log.Infof("Already have valid Azure AD token")
+				} else {
+					log.Infof("validate token: %v", err)
+
+					ctx, cancel := context.WithTimeout(context.Background(), authFlowTimeout)
+					das.rc.Token, err = auth.GetDeviceAgentToken(ctx, das.rc.Config.OAuth2Config)
+					cancel()
+					if err != nil {
+						notify.Errorf("Get Azure AD token: %v", err)
+						das.stateChange <- pb.AgentState_Disconnected
+						break
+					}
+				}
+
+				das.stateChange <- pb.AgentState_Bootstrapping
 
 			case pb.AgentState_Connected:
 				certRenewalTicker.Reset(1 * time.Second)
@@ -320,7 +343,7 @@ func (das *DeviceAgentServer) EventLoop() {
 				status.Gateways = make([]*pb.Gateway, 0)
 				if das.Config.AgentConfiguration.AutoConnect && !autoConnectTriggered {
 					autoConnectTriggered = true
-					das.stateChange <- pb.AgentState_Bootstrapping
+					das.stateChange <- pb.AgentState_Authenticating
 				}
 
 			case pb.AgentState_Quitting:
@@ -331,7 +354,6 @@ func (das *DeviceAgentServer) EventLoop() {
 					synccancel() // cancel streaming gateway updates
 				}
 				das.rc.SessionInfo = nil
-				authenticateTimer.Stop()
 				log.Info("Tearing down network connections through device-helper...")
 				ctx, cancel := context.WithTimeout(context.Background(), helperTimeout)
 				_, err = das.DeviceHelper.Teardown(ctx, &pb.TeardownRequest{})

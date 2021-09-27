@@ -14,6 +14,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/lestrrat-go/jwx/jwk"
+
 	"github.com/nais/device/pkg/version"
 
 	"google.golang.org/grpc"
@@ -26,12 +28,9 @@ import (
 	"github.com/nais/device/pkg/basicauth"
 	"github.com/nais/device/pkg/pb"
 
-	"github.com/golang-jwt/jwt"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 
 	"github.com/nais/device/pkg/apiserver/auth"
-	"github.com/nais/device/pkg/apiserver/azure/discovery"
-	"github.com/nais/device/pkg/apiserver/azure/validate"
 	"github.com/nais/device/pkg/apiserver/enroller"
 	"github.com/nais/device/pkg/logger"
 
@@ -67,8 +66,8 @@ func init() {
 	flag.StringVar(&cfg.GRPCBindAddress, "grpc-bind-address", cfg.GRPCBindAddress, "Bind address for gRPC server")
 	flag.StringVar(&cfg.ConfigDir, "config-dir", cfg.ConfigDir, "Path to configuration directory")
 	flag.StringVar(&cfg.Endpoint, "endpoint", cfg.Endpoint, "public endpoint (ip:port)")
-	flag.StringVar(&cfg.Azure.DiscoveryURL, "azure-discovery-url", "", "Azure discovery url")
-	flag.StringVar(&cfg.Azure.ClientID, "azure-client-id", "", "Azure app client id")
+	flag.StringVar(&cfg.Azure.ClientID, "azure-client-id", "6e45010d-2637-4a40-b91d-d4cbb451fb57", "Azure app client id")
+	flag.StringVar(&cfg.Azure.Tenant, "azure-tenant", "62366534-1ec3-4962-8869-9b5535279d0b", "Azure tenant")
 	flag.StringVar(&cfg.Azure.ClientSecret, "azure-client-secret", "", "Azure app client secret")
 	flag.StringSliceVar(&cfg.CredentialEntries, "credential-entries", nil, "Comma-separated credentials on format: '<user>:<key>'")
 	flag.StringVar(&cfg.GatewayConfigBucketName, "gateway-config-bucket-name", "gatewayconfig", "Name of bucket containing gateway config object")
@@ -133,12 +132,17 @@ func run() error {
 	}
 
 	if cfg.DeviceAuthenticationEnabled {
-		tokenValidator, err := createJWTValidator(cfg)
+		jwks, err := jwk.Fetch(ctx, cfg.Azure.DiscoveryURL())
 		if err != nil {
-			return fmt.Errorf("create JWT validator: %w", err)
+			return fmt.Errorf("fetch jwks: %w", err)
 		}
 
-		authenticator = auth.NewAuthenticator(cfg, tokenValidator, db, sessions)
+		err = auth.EnsureValidJwks(ctx, jwks)
+		if err != nil {
+			return fmt.Errorf("ensure valid jwks: %w", err)
+		}
+
+		authenticator = auth.NewAuthenticator(cfg, db, sessions, jwks)
 	} else {
 		authenticator = auth.NewMockAuthenticator(sessions)
 	}
@@ -238,7 +242,7 @@ func run() error {
 		log.Warnf("Control plane authentication DISABLED! Do not run this configuration in production!")
 	}
 
-	grpcHandler := api.NewGRPCServer(db)
+	grpcHandler := api.NewGRPCServer(db, authenticator)
 	grpcServer := grpc.NewServer()
 
 	pb.RegisterAPIServerServer(grpcServer, grpcHandler)
@@ -321,19 +325,6 @@ func setupInterface() error {
 	}
 
 	return run(commands)
-}
-
-func createJWTValidator(conf config.Config) (jwt.Keyfunc, error) {
-	if len(conf.Azure.ClientID) == 0 || len(conf.Azure.DiscoveryURL) == 0 {
-		return nil, fmt.Errorf("missing required azure configuration")
-	}
-
-	certificates, err := discovery.FetchCertificates(conf.Azure)
-	if err != nil {
-		return nil, fmt.Errorf("retrieving azure ad certificates for token validation: %v", err)
-	}
-
-	return validate.JWTValidator(certificates, conf.Azure.ClientID), nil
 }
 
 func SyncLoop(w wireguard.WireGuard) {

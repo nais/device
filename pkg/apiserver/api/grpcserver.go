@@ -3,26 +3,34 @@ package api
 import (
 	"context"
 	"fmt"
+	"sync"
+
+	log "github.com/sirupsen/logrus"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
+
+	"github.com/nais/device/pkg/apiserver/auth"
 	"github.com/nais/device/pkg/apiserver/database"
 	"github.com/nais/device/pkg/pb"
-	log "github.com/sirupsen/logrus"
-	"sync"
 )
 
 type grpcServer struct {
 	pb.UnimplementedAPIServerServer
 
-	streams map[string]pb.APIServer_GetDeviceConfigurationServer
-	lock    sync.Mutex
-	db      database.APIServer
+	authenticator auth.Authenticator
+	store         auth.SessionStore
+	streams       map[string]pb.APIServer_GetDeviceConfigurationServer
+	lock          sync.Mutex
+	db            database.APIServer
 }
 
 var _ pb.APIServerServer = &grpcServer{}
 
-func NewGRPCServer(db database.APIServer) *grpcServer {
+func NewGRPCServer(db database.APIServer, authenticator auth.Authenticator) *grpcServer {
 	return &grpcServer{
-		streams: make(map[string]pb.APIServer_GetDeviceConfigurationServer),
-		db:      db,
+		streams:       make(map[string]pb.APIServer_GetDeviceConfigurationServer),
+		db:            db,
+		authenticator: authenticator,
 	}
 }
 
@@ -100,4 +108,15 @@ func (s *grpcServer) UserGateways(userGroups []string) ([]*pb.Gateway, error) {
 	}
 
 	return filtered, nil
+}
+
+func (s *grpcServer) Login(ctx context.Context, r *pb.APIServerLoginRequest) (*pb.APIServerLoginResponse, error) {
+	session, err := s.authenticator.Login(ctx, r.Token, r.Serial, r.Platform)
+	if err != nil {
+		return nil, status.Errorf(codes.Unauthenticated, "login: %v", err)
+	}
+
+	return &pb.APIServerLoginResponse{
+		Session: session,
+	}, nil
 }

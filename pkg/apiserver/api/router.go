@@ -47,7 +47,7 @@ func New(cfg Config) chi.Router {
 		r.Get("/deviceconfig", api.deviceConfig)
 	})
 
-	r.Get("/login", authenticator.Login)
+	r.Get("/login", authenticator.LoginHTTP)
 	r.Get("/authurl", authenticator.AuthURL)
 
 	return r

@@ -3,8 +3,6 @@ package config
 import (
 	"fmt"
 	"strings"
-
-	"github.com/golang-jwt/jwt"
 )
 
 const NaisDeviceApprovalGroup = "ffd89425-c75c-4618-b5ab-67149ddbbc2d"
@@ -37,15 +35,21 @@ type Config struct {
 	PrometheusAddr                    string
 	PrometheusPublicKey               string
 	PrometheusTunnelIP                string
-	TokenValidator                    jwt.Keyfunc
 	WireGuardConfigPath               string
 	WireguardEnabled                  bool
 }
 
 type Azure struct {
 	ClientID     string
-	DiscoveryURL string
+	Tenant       string
 	ClientSecret string
+}
+
+func (a Azure) DiscoveryURL() string {
+	return fmt.Sprintf("https://login.microsoftonline.com/%s/discovery/keys", a.Tenant)
+}
+func (a Azure) Issuer() string {
+	return fmt.Sprintf("https://login.microsoftonline.com/%s/v2.0", a.Tenant)
 }
 
 func (c *Config) Credentials() (map[string]string, error) {

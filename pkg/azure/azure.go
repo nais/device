@@ -1,4 +1,4 @@
-package bootstrap_api
+package azure
 
 import (
 	"context"
