@@ -135,7 +135,8 @@ app: wg wireguard-go macos-icon macos-client
 	cp packaging/macos/jq-osx-amd64 naisdevice.app/Contents/MacOS/jq
 	cp assets/naisdevice.icns naisdevice.app/Contents/Resources
 	sed 's/VERSIONSTRING/${VERSION}/' packaging/macos/Info.plist.tpl > naisdevice.app/Contents/Info.plist
-	# gon --log-level=debug packaging/macos/gon-app.json
+	#	gon --log-level=debug packaging/macos/gon-app.json
+	codesign -s "Developer ID Application: Torbjorn Hallenberg (T7D7Y5484F)" -f -v --timestamp --deep --options runtime naisdevice.app/Contents/MacOS/*
 
 test: cmd/device-agent/icons.go
 	go test ./... -count=1
@@ -152,13 +153,11 @@ pkg: app
 	cp ./packaging/macos/postinstall ./pkgtemp/scripts/postinstall
 	cp ./packaging/macos/preinstall ./pkgtemp/scripts/preinstall
 	pkgbuild --root ./pkgtemp/pkgroot --identifier ${PKGID} --scripts ./pkgtemp/scripts --version ${VERSION} --ownership recommended ./component.pkg
-	productbuild --identifier ${PKGID}.${VERSION} --package ./component.pkg ./naisdevice.pkg
-	rm -f ./component.pkg
-	#productbuild --identifier ${PKGID}.${VERSION} --package ./component.pkg ./unsigned.pkg
-	#productsign --sign "Developer ID Installer: Torbjorn Hallenberg" unsigned.pkg naisdevice.pkg
-	#rm -f ./component.pkg ./unsigned.pkg
+	productbuild --identifier ${PKGID}.${VERSION} --package ./component.pkg ./unsigned.pkg
+	productsign --sign "Developer ID Installer: Torbjorn Hallenberg" unsigned.pkg naisdevice.pkg
+	rm -f ./component.pkg ./unsigned.pkg
 	rm -rf ./pkgtemp ./naisdevice.app
-	# gon --log-level=debug packaging/macos/gon-pkg.json
+	gon --log-level=debug packaging/macos/gon-pkg.json
 
 # Run by GitHub actions on linux
 deb: linux-client linux-icon
