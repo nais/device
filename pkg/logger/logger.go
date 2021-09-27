@@ -33,6 +33,7 @@ func SetupLogger(level, logDir, filename string) {
 	log.SetLevel(loglevel)
 	log.SetFormatter(&easy.Formatter{TimestampFormat: "2006-01-02 15:04:05.00000", LogFormat: "%time% - [%lvl%] - %msg%\n"})
 	log.Infof("Successfully set up logging. Level %s", loglevel)
+	log.AddHook(NewSentryHook())
 }
 
 func Setup(level string) {

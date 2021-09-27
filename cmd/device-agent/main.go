@@ -2,13 +2,16 @@ package main
 
 import (
 	"fmt"
+	"os"
+	"path/filepath"
+	"time"
+
+	"github.com/getsentry/sentry-go"
 	log "github.com/sirupsen/logrus"
 	flag "github.com/spf13/pflag"
 	"google.golang.org/grpc"
-	"os"
-	"path/filepath"
 
-	device_agent "github.com/nais/device/pkg/device-agent"
+	deviceagent "github.com/nais/device/pkg/device-agent"
 	"github.com/nais/device/pkg/device-agent/config"
 	"github.com/nais/device/pkg/device-agent/filesystem"
 	"github.com/nais/device/pkg/device-agent/runtimeconfig"
@@ -41,12 +44,28 @@ func main() {
 	logDir := filepath.Join(cfg.ConfigDir, "logs")
 	logger.SetupLogger(cfg.LogLevel, logDir, "agent.log")
 
+	err := sentry.Init(sentry.ClientOptions{
+		AttachStacktrace: true,
+		Debug:            true,
+		Release:          version.Version,
+		Dist:             config.Platform,
+		Environment:      "development",
+		// fixme: consider hiding this somewhere
+		Dsn: "https://f71422489ffe4731a59c5268159f1c09@sentry.gc.nav.no/93",
+	})
+	if err != nil {
+		log.Fatalf("BUG: Setup sentry sdk: %s", err)
+	}
+	defer sentry.Flush(2 * time.Second)
+
+	sentry.CaptureMessage("device-agent starting up")
+
 	cfg.PopulateAgentConfiguration()
 
 	log.Infof("naisdevice-agent %s starting up", version.Version)
 	log.Infof("configuration: %+v", cfg)
 
-	err := startDeviceAgent(&cfg)
+	err = startDeviceAgent(&cfg)
 	if err != nil {
 		notify.Errorf(err.Error())
 		log.Errorf("naisdevice-agent terminated with error.")
@@ -86,7 +105,7 @@ func startDeviceAgent(cfg *config.Config) error {
 	log.Infof("accepting network connections on unix socket %s", cfg.GrpcAddress)
 
 	grpcServer := grpc.NewServer()
-	das := device_agent.NewServer(client, cfg, rc)
+	das := deviceagent.NewServer(client, cfg, rc)
 	pb.RegisterDeviceAgentServer(grpcServer, das)
 
 	go func() {
