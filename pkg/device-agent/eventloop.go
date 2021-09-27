@@ -81,11 +81,12 @@ func (das *DeviceAgentServer) syncConfigLoop(ctx context.Context, gateways chan<
 		grpc.WithBlock(),
 		grpc.WithReturnConnectionError(),
 	)
-	log.Infof("Connected to API server")
 
 	if err != nil {
 		return fmt.Errorf("connect to API server: %v", err)
 	}
+
+	log.Infof("Connected to API server")
 
 	defer apiserver.Close()
 
