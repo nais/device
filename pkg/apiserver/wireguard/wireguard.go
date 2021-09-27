@@ -60,7 +60,7 @@ func (w wireguard) Sync() error {
 	return nil
 }
 
-// fixme: merge with marshal code in device-agent
+// TODO: merge with marshal code in device-agent
 func generateWGConfig(devices []*pb.Device, gateways []*pb.Gateway, privateKey string, conf config.Config) []byte {
 	interfaceTemplate := `[Interface]
 PrivateKey = %s
