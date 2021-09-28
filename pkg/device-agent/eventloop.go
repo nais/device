@@ -16,6 +16,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/getsentry/sentry-go"
 	"golang.org/x/oauth2"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
@@ -169,6 +170,16 @@ func (das *DeviceAgentServer) EventLoop() {
 
 		select {
 		case sig := <-signals:
+			sentry.AddBreadcrumb(&sentry.Breadcrumb{
+				Level:   sentry.LevelInfo,
+				Message: "signal received",
+				Type:    "debug",
+				Data: map[string]interface{}{
+					"signal": sig,
+				},
+				Category: "eventloop",
+			})
+
 			log.Infof("Received signal %s, exiting...", sig)
 			return
 
@@ -259,6 +270,16 @@ func (das *DeviceAgentServer) EventLoop() {
 			}
 
 		case newState := <-das.stateChange:
+			sentry.AddBreadcrumb(&sentry.Breadcrumb{
+				Level:   sentry.LevelInfo,
+				Message: "state changed",
+				Type:    "debug",
+				Data: map[string]interface{}{
+					"newState": newState.String(),
+				},
+				Category: "eventloop",
+			})
+
 			writeStatusTofile(filepath.Join(das.Config.ConfigDir, "agent_status"), newState)
 			previousState := status.ConnectionState
 			status.ConnectionState = newState
@@ -338,6 +359,7 @@ func (das *DeviceAgentServer) EventLoop() {
 				das.stateChange <- pb.AgentState_Bootstrapping
 
 			case pb.AgentState_Connected:
+				sentry.CaptureMessage("Connected")
 				certRenewalTicker.Reset(1 * time.Second)
 
 			case pb.AgentState_Disconnected:
@@ -351,6 +373,7 @@ func (das *DeviceAgentServer) EventLoop() {
 				return
 
 			case pb.AgentState_Disconnecting:
+				sentry.CaptureMessage("Disconnected")
 				if synccancel != nil {
 					synccancel() // cancel streaming gateway updates
 				}

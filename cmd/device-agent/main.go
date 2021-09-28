@@ -44,12 +44,26 @@ func main() {
 	logDir := filepath.Join(cfg.ConfigDir, "logs")
 	logger.SetupLogger(cfg.LogLevel, logDir, "agent.log")
 
+	sentry.AddBreadcrumb(&sentry.Breadcrumb{
+		Level:   sentry.LevelInfo,
+		Message: "main",
+		Type:    "type",
+		Data: map[string]interface{}{
+			"key": "value",
+		},
+		Category: "category",
+	})
+
+	environment := "production"
+	if version.Version == "unknown" {
+		environment = "development"
+	}
 	err := sentry.Init(sentry.ClientOptions{
 		AttachStacktrace: true,
 		Debug:            true,
 		Release:          version.Version,
 		Dist:             config.Platform,
-		Environment:      "development",
+		Environment:      environment,
 		// fixme: consider hiding this somewhere
 		Dsn: "https://f71422489ffe4731a59c5268159f1c09@sentry.gc.nav.no/93",
 	})
