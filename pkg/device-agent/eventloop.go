@@ -324,10 +324,10 @@ func (das *DeviceAgentServer) EventLoop() {
 								notify.Errorf(err.Error())
 								das.stateChange <- pb.AgentState_Disconnecting
 								synccancel()
+							} else {
+								log.Errorf("Synchronize config: %s", err)
+								time.Sleep(1 * time.Second)
 							}
-
-							log.Errorf("Synchronize config: %s", err)
-							time.Sleep(1 * time.Second)
 						}
 					}
 
