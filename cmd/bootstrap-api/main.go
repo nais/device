@@ -19,21 +19,18 @@ const SecretSyncInterval = 10 * time.Second
 
 type Config struct {
 	BindAddress            string
-	Azure                  azure.Azure
+	Azure                  *azure.Azure
 	PrometheusAddr         string
 	PrometheusPublicKey    string
 	PrometheusTunnelIP     string
 	CredentialEntries      []string
 	LogLevel               string
 	SecretManagerProjectID string
-	DevMode                bool
+	AzureAuthEnabled       bool
 }
 
 var cfg = &Config{
-	Azure: azure.Azure{
-		ClientID:     "",
-		DiscoveryURL: "",
-	},
+	Azure:             &azure.Azure{},
 	CredentialEntries: nil,
 	BindAddress:       ":8080",
 	PrometheusAddr:    ":3000",
@@ -45,11 +42,11 @@ func init() {
 
 	flag.StringVar(&cfg.PrometheusAddr, "prometheus-address", cfg.PrometheusAddr, "prometheus listen address")
 	flag.StringVar(&cfg.BindAddress, "bind-address", cfg.BindAddress, "Bind address")
-	flag.StringVar(&cfg.Azure.DiscoveryURL, "azure-discovery-url", "", "Azure discovery url")
-	flag.StringVar(&cfg.Azure.ClientID, "azure-client-id", "", "Azure app client id")
+	flag.BoolVar(&cfg.AzureAuthEnabled, "azure-auth-enabled", false, "Azure auth enabled")
+	flag.StringVar(&cfg.Azure.ClientID, "azure-client-id", "6e45010d-2637-4a40-b91d-d4cbb451fb57", "Azure app client id")
+	flag.StringVar(&cfg.Azure.Tenant, "azure-tenant", "62366534-1ec3-4962-8869-9b5535279d0b", "Azure tenant")
 	flag.StringVar(&cfg.SecretManagerProjectID, "secret-manager-project-id", "nais-device", "Secret Manager Project ID")
 	flag.StringSliceVar(&cfg.CredentialEntries, "credential-entries", nil, "Comma-separated credentials on format: '<user>:<key>'")
-	flag.BoolVar(&cfg.DevMode, "development-mode", cfg.DevMode, "Development mode avoids setting up wireguard and fetching and validating AAD certificates")
 
 	flag.Parse()
 }
@@ -60,12 +57,9 @@ func main() {
 		_ = http.ListenAndServe(cfg.PrometheusAddr, promhttp.Handler())
 	}()
 
-	devMode := true
-	jwtValidator, err := azure.CreateJWTValidator(cfg.Azure)
+	err := cfg.Azure.FetchCertificates()
 	if err != nil {
-		if !devMode {
-			log.Fatalf("Creating JWT validator: %v", err)
-		}
+		log.Fatalf("fetch azure certs: %s", err)
 	}
 
 	apiserverCredentials, err := bootstrap_api.Credentials(cfg.CredentialEntries)
@@ -78,7 +72,7 @@ func main() {
 		log.Fatalf("instantiating secret manager: %v", err)
 	}
 
-	tokenValidator := azure.TokenValidatorMiddleware(jwtValidator)
+	tokenValidator := cfg.Azure.TokenValidatorMiddleware()
 
 	api := bootstrap_api.NewApi(apiserverCredentials, tokenValidator, sm)
 	router := api.Router()

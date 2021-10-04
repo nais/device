@@ -14,12 +14,10 @@ require (
 	github.com/getlantern/systray v1.1.0
 	github.com/getsentry/sentry-go v0.11.0
 	github.com/go-chi/chi/v5 v5.0.4
-	github.com/go-chi/jwtauth/v5 v5.0.2
-	github.com/golang-jwt/jwt v3.2.2+incompatible
 	github.com/google/uuid v1.3.0
 	github.com/gopherjs/gopherjs v0.0.0-20210918183006-daae65060a40 // indirect
 	github.com/hashicorp/go-multierror v1.1.1
-	github.com/lestrrat-go/jwx v1.2.6
+	github.com/lestrrat-go/jwx v1.2.7
 	github.com/lib/pq v1.10.3
 	github.com/nais/kolide-event-handler v0.0.0-20210429125647-006939848d86
 	github.com/nirasan/go-oauth-pkce-code-verifier v0.0.0-20170819232839-0fbfe93532da
@@ -51,7 +49,7 @@ require (
 	github.com/getlantern/hex v0.0.0-20190417191902-c6586a6fe0b7 // indirect
 	github.com/go-stack/stack v1.8.1 // indirect
 	github.com/go-toast/toast v0.0.0-20190211030409-01e6764cf0a4 // indirect
-	github.com/goccy/go-json v0.7.8 // indirect
+	github.com/goccy/go-json v0.7.9 // indirect
 	github.com/godbus/dbus/v5 v5.0.5 // indirect
 	github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da // indirect
 	github.com/golang/protobuf v1.5.2 // indirect

@@ -3,12 +3,12 @@ package config
 import (
 	"fmt"
 	"strings"
+
+	"github.com/nais/device/pkg/azure"
 )
 
-const NaisDeviceApprovalGroup = "ffd89425-c75c-4618-b5ab-67149ddbbc2d"
-
 type Config struct {
-	Azure                             Azure
+	Azure                             *azure.Azure
 	BindAddress                       string
 	BootstrapAPIURL                   string
 	BootstrapApiCredentials           string
@@ -39,19 +39,6 @@ type Config struct {
 	WireguardEnabled                  bool
 }
 
-type Azure struct {
-	ClientID     string
-	Tenant       string
-	ClientSecret string
-}
-
-func (a Azure) DiscoveryURL() string {
-	return fmt.Sprintf("https://login.microsoftonline.com/%s/discovery/keys", a.Tenant)
-}
-func (a Azure) Issuer() string {
-	return fmt.Sprintf("https://login.microsoftonline.com/%s/v2.0", a.Tenant)
-}
-
 func (c *Config) Credentials() (map[string]string, error) {
 	credentials := make(map[string]string)
 	for _, key := range c.CredentialEntries {
@@ -75,6 +62,7 @@ func (c *Config) DatabaseDriver() string {
 
 func DefaultConfig() Config {
 	return Config{
+		Azure:           &azure.Azure{},
 		BindAddress:     "127.0.0.1:8080",
 		GRPCBindAddress: "127.0.0.1:8099",
 		ConfigDir:       "/usr/local/etc/naisdevice/",

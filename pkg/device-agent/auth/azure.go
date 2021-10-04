@@ -12,8 +12,8 @@ import (
 	log "github.com/sirupsen/logrus"
 	"golang.org/x/oauth2"
 
-	apiserverconfig "github.com/nais/device/pkg/apiserver/config"
 	"github.com/nais/device/pkg/apiserver/kekw"
+	"github.com/nais/device/pkg/azure"
 	"github.com/nais/device/pkg/device-agent/open"
 	"github.com/nais/device/pkg/random"
 )
@@ -70,7 +70,7 @@ func GetDeviceAgentToken(ctx context.Context, conf *oauth2.Config) (*oauth2.Toke
 
 		approvalOK := false
 		for _, group := range groups.([]interface{}) {
-			if group.(string) == apiserverconfig.NaisDeviceApprovalGroup {
+			if group.(string) == azure.NaisDeviceApprovalGroup {
 				approvalOK = true
 			}
 		}

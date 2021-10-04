@@ -8,7 +8,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/nais/device/pkg/apiserver/config"
+	"github.com/nais/device/pkg/azure"
 
 	"github.com/stretchr/testify/assert"
 
@@ -17,12 +17,9 @@ import (
 
 func TestSessions_AuthURL(t *testing.T) {
 	authenticator := auth.NewAuthenticator(
-		config.Config{
-			Azure: config.Azure{
-				Tenant: "62366534-1ec3-4962-8869-9b5535279d0b",
-			},
+		&azure.Azure{
+			Tenant: "62366534-1ec3-4962-8869-9b5535279d0b",
 		},
-		nil,
 		nil,
 		nil,
 	)

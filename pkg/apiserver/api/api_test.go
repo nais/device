@@ -13,7 +13,7 @@ import (
 
 	"google.golang.org/protobuf/types/known/timestamppb"
 
-	"github.com/nais/device/pkg/apiserver/config"
+	"github.com/nais/device/pkg/azure"
 
 	"github.com/nais/device/pkg/random"
 
@@ -283,7 +283,7 @@ func setup(t *testing.T, j *jita.Jita) (database.APIServer, chi.Router) {
 
 	sessions := auth.NewSessionStore(db)
 
-	authenticator := auth.NewAuthenticator(config.Config{}, db, sessions, nil)
+	authenticator := auth.NewAuthenticator(&azure.Azure{}, db, sessions)
 
 	return db, api.New(api.Config{
 		DB:            db,

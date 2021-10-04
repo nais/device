@@ -10,18 +10,17 @@ import (
 	"sync"
 	"time"
 
-	"github.com/lestrrat-go/jwx/jwk"
 	"github.com/lestrrat-go/jwx/jwt"
 	"google.golang.org/protobuf/types/known/timestamppb"
 
 	"github.com/nais/device/pkg/apiserver/database"
+	"github.com/nais/device/pkg/azure"
 	"github.com/nais/device/pkg/pb"
 
 	log "github.com/sirupsen/logrus"
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/endpoints"
 
-	"github.com/nais/device/pkg/apiserver/config"
 	"github.com/nais/device/pkg/random"
 )
 
@@ -46,23 +45,21 @@ type authenticator struct {
 	store       SessionStore
 	states      map[string]interface{}
 	stateLock   sync.Mutex
-	jwks        jwk.Set
-	Azure       config.Azure
+	Azure       *azure.Azure
 }
 
-func NewAuthenticator(cfg config.Config, db database.APIServer, store SessionStore, jwks jwk.Set) Authenticator {
+func NewAuthenticator(a *azure.Azure, db database.APIServer, store SessionStore) Authenticator {
 	return &authenticator{
 		db:     db,
 		store:  store,
 		states: make(map[string]interface{}),
-		jwks:   jwks,
-		Azure:  cfg.Azure,
+		Azure:  a,
 		OAuthConfig: &oauth2.Config{
 			// RedirectURL:  "http://localhost",  don't set this
-			ClientID:     cfg.Azure.ClientID,
-			ClientSecret: cfg.Azure.ClientSecret,
-			Scopes:       []string{"openid", fmt.Sprintf("%s/.default", cfg.Azure.ClientID)},
-			Endpoint:     endpoints.AzureAD(cfg.Azure.Tenant),
+			ClientID:     a.ClientID,
+			ClientSecret: a.ClientSecret,
+			Scopes:       []string{"openid", fmt.Sprintf("%s/.default", a.ClientID)},
+			Endpoint:     endpoints.AzureAD(a.Tenant),
 		},
 	}
 }
@@ -199,14 +196,7 @@ func (s *authenticator) AuthURL(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *authenticator) Login(ctx context.Context, token, serial, platform string) (*pb.Session, error) {
-	parsedToken, err := jwt.Parse(
-		[]byte(token),
-		jwt.WithKeySet(s.jwks),
-		jwt.WithAcceptableSkew(5*time.Second),
-		jwt.WithIssuer(s.Azure.Issuer()),
-		jwt.WithAudience(s.Azure.ClientID),
-		jwt.WithValidate(true),
-	)
+	parsedToken, err := jwt.Parse([]byte(token), s.Azure.JwtOptions()...)
 
 	if err != nil {
 		return nil, fmt.Errorf("parse token: %s", err)
@@ -218,16 +208,11 @@ func (s *authenticator) Login(ctx context.Context, token, serial, platform strin
 	}
 
 	var groups []string
-	approvalOK := false
 	for _, group := range claims["groups"].([]interface{}) {
-		s := group.(string)
-		if s == config.NaisDeviceApprovalGroup {
-			approvalOK = true
-		}
-		groups = append(groups, s)
+		groups = append(groups, group.(string))
 	}
 
-	if !approvalOK {
+	if !azure.UserInNaisdeviceApprovalGroup(claims) {
 		return nil, fmt.Errorf("do's and don'ts not accepted, visit: https://naisdevice-approval.nais.io/ to read and accept")
 	}
 

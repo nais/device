@@ -14,8 +14,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/lestrrat-go/jwx/jwk"
-
 	"github.com/nais/device/pkg/version"
 
 	"google.golang.org/grpc"
@@ -132,17 +130,12 @@ func run() error {
 	}
 
 	if cfg.DeviceAuthenticationEnabled {
-		jwks, err := jwk.Fetch(ctx, cfg.Azure.DiscoveryURL())
+		err = cfg.Azure.FetchCertificates()
 		if err != nil {
 			return fmt.Errorf("fetch jwks: %w", err)
 		}
 
-		err = auth.EnsureValidJwks(ctx, jwks)
-		if err != nil {
-			return fmt.Errorf("ensure valid jwks: %w", err)
-		}
-
-		authenticator = auth.NewAuthenticator(cfg, db, sessions, jwks)
+		authenticator = auth.NewAuthenticator(cfg.Azure, db, sessions)
 	} else {
 		authenticator = auth.NewMockAuthenticator(sessions)
 	}
