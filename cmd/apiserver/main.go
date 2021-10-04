@@ -252,11 +252,11 @@ func run() error {
 		for {
 			device := <-updates
 			session, err := sessions.CachedSessionFromDeviceID(device.Id)
-			log.Infof("Pushing configuration for device %d, session key %s, error %s", device.Id, session.GetKey(), err)
+			log.Debugf("Pushing configuration for device %d, error %s", device.Id, err)
 			if err == nil {
 				err = grpcHandler.SendDeviceConfiguration(context.TODO(), session.GetKey())
 			}
-			if err != nil {
+			if err != nil && !errors.Is(err, api.ErrNoSession) {
 				log.Error(err)
 			}
 		}

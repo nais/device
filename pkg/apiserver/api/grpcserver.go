@@ -2,6 +2,7 @@ package api
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"sync"
 
@@ -25,6 +26,7 @@ type grpcServer struct {
 }
 
 var _ pb.APIServerServer = &grpcServer{}
+var ErrNoSession = errors.New("no session")
 
 func NewGRPCServer(db database.APIServer, authenticator auth.Authenticator) *grpcServer {
 	return &grpcServer{
@@ -56,11 +58,9 @@ func (s *grpcServer) GetDeviceConfiguration(request *pb.GetDeviceConfigurationRe
 }
 
 func (s *grpcServer) SendDeviceConfiguration(ctx context.Context, sessionKey string) error {
-	log.Infof("SendDeviceConfiguration(%s)", sessionKey)
-
 	stream, ok := s.streams[sessionKey]
 	if !ok {
-		return fmt.Errorf("no session")
+		return ErrNoSession
 	}
 
 	sessionInfo, err := s.db.ReadSessionInfo(ctx, sessionKey)
