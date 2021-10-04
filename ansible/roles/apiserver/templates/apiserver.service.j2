@@ -17,7 +17,6 @@ ExecStart=/bin/bash -c '/opt/nais-device/bin/apiserver \
         --jita-username="naisdevice-jita" \
         --jita-password="$(gcloud secrets versions access latest --secret naisdevice-jita-password)" \
         --jita-url="https://naisdevice-jita.nais.io" \
-        --azure-client-id="6e45010d-2637-4a40-b91d-d4cbb451fb57" \
         --azure-client-secret="$(gcloud secrets versions access latest --secret azure-client-secret)" \
         --bootstrap-api-url="https://bootstrap.device.nais.io" \
         --bootstrap-api-credentials="apiserver:$(gcloud secrets versions access latest --secret nais-device_api-server_bootstrap-api-password)" \

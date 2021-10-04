@@ -7,8 +7,7 @@ Restart=always
 StandardOutput=append:/var/log/naisdevice/bootstrap-api.json
 StandardError=append:/var/log/naisdevice/bootstrap-api.json
 ExecStart=/bin/bash -c '/opt/naisdevice/bin/bootstrap-api \
-        --azure-client-id="6e45010d-2637-4a40-b91d-d4cbb451fb57" \
-        --azure-discovery-url="https://login.microsoftonline.com/62366534-1ec3-4962-8869-9b5535279d0b/discovery/keys" \
+        --azure-auth-enabled="true" \
         --credential-entries="apiserver:$(gcloud secrets versions access latest --secret nais-device_api-server_bootstrap-api-password)"'
 
 [Install]

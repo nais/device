@@ -14,7 +14,7 @@
   get_url:
     dest: /opt/naisdevice/bin/bootstrap-api
     force: yes
-    url: https://github.com/nais/device/releases/download/2021-09-22-110751/bootstrap-api
+    url: https://github.com/nais/device/releases/download/2021-10-04-111116/bootstrap-api
     backup: yes
     mode: 0755
   notify:
