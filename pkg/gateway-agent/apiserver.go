@@ -3,9 +3,11 @@ package gateway_agent
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/nais/device/pkg/apiserver/api"
 	"io/ioutil"
 	"net/http"
+
+	"github.com/nais/device/pkg/apiserver/api"
+	"github.com/nais/device/pkg/ioconvenience"
 )
 
 func GetGatewayConfig(config Config, client http.Client) (*api.GatewayConfig, error) {
@@ -20,7 +22,7 @@ func GetGatewayConfig(config Config, client http.Client) (*api.GatewayConfig, er
 		return nil, fmt.Errorf("getting peer config from apiserver: %w", err)
 	}
 
-	defer resp.Body.Close()
+	defer ioconvenience.CloseReader(resp.Body)
 
 	b, err := ioutil.ReadAll(resp.Body)
 	if err != nil {

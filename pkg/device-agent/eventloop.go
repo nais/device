@@ -25,6 +25,7 @@ import (
 
 	clientcert "github.com/nais/device/pkg/client-cert"
 	"github.com/nais/device/pkg/device-agent/config"
+	"github.com/nais/device/pkg/ioconvenience"
 
 	log "github.com/sirupsen/logrus"
 
@@ -424,12 +425,8 @@ func newVersionAvailable(ctx context.Context) (bool, error) {
 		return false, fmt.Errorf("retrieve current release version: %s", err)
 	}
 
-	defer func() {
-		err := resp.Body.Close()
-		if err != nil {
-			log.Errorf("close request body: %v", err)
-		}
-	}()
+	defer ioconvenience.CloseReader(resp.Body)
+
 	res := &response{}
 	decoder := json.NewDecoder(resp.Body)
 	err = decoder.Decode(res)

@@ -8,6 +8,8 @@ import (
 	"time"
 
 	"github.com/nais/device/pkg/bootstrap"
+	"github.com/nais/device/pkg/ioconvenience"
+
 	log "github.com/sirupsen/logrus"
 )
 
@@ -81,6 +83,8 @@ func (e *Enroller) fetchGatewayInfos() ([]bootstrap.GatewayInfo, error) {
 	if err != nil {
 		return nil, fmt.Errorf("getting gateway infos: %w", err)
 	}
+
+	defer ioconvenience.CloseReader(r.Body)
 
 	var gatewayInfos []bootstrap.GatewayInfo
 	err = json.NewDecoder(r.Body).Decode(&gatewayInfos)

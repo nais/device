@@ -13,6 +13,8 @@ import (
 	"time"
 
 	log "github.com/sirupsen/logrus"
+
+	"github.com/nais/device/pkg/ioconvenience"
 )
 
 type KolideClient struct {
@@ -89,11 +91,14 @@ func (kc *KolideClient) get(ctx context.Context, path string) (*http.Response, e
 			sleep := GetRetryAfter(resp.Header)
 			log.Debugf("[attempt %d/%d] StatusTooManyRequests: sleeping %v", attempt, MaxHttpRetries, sleep)
 			respectTheirAuthority(sleep)
+			ioconvenience.CloseReader(resp.Body)
 		case statusCode >= 500:
 			sleep := time.Duration(attempt+1) * time.Second
 			log.Debugf("[attempt %d/%d] KolideServerError: sleeping %v", attempt, MaxHttpRetries, sleep)
 			respectTheirAuthority(sleep)
+			ioconvenience.CloseReader(resp.Body)
 		default:
+			ioconvenience.CloseReader(resp.Body)
 			return nil, fmt.Errorf("unexpected stauts code: %d, response: %v", statusCode, resp)
 		}
 	}
@@ -111,15 +116,14 @@ func (kc *KolideClient) GetApiPathf(path string, args ...interface{}) string {
 
 func (kc *KolideClient) GetDevice(ctx context.Context, deviceId uint64) (*Device, error) {
 	response, err := kc.get(ctx, kc.GetApiPathf("devices/%d", deviceId))
-
 	if err != nil {
 		return nil, fmt.Errorf("getting client: %w", err)
 	}
 
+	defer ioconvenience.CloseReader(response.Body)
+
 	var device Device
-
 	err = json.NewDecoder(response.Body).Decode(&device)
-
 	if err != nil {
 		return nil, fmt.Errorf("decoding device: %w", err)
 	}
@@ -140,6 +144,8 @@ func (kc *KolideClient) GetCheck(ctx context.Context, checkId int) (*Check, erro
 	if err != nil {
 		return nil, fmt.Errorf("getting check: %w", err)
 	}
+
+	defer ioconvenience.CloseReader(response.Body)
 
 	var check Check
 	err = json.NewDecoder(response.Body).Decode(&check)
@@ -171,8 +177,10 @@ func (kc *KolideClient) GetPaginated(ctx context.Context, path string) ([]json.R
 
 		responseBytes, err := ioutil.ReadAll(response.Body)
 		if err != nil {
+			ioconvenience.CloseReader(response.Body)
 			return nil, fmt.Errorf("reading response body bytes: %w", err)
 		}
+		ioconvenience.CloseReader(response.Body)
 
 		var paginatedResponse PaginatedResponse
 		err = json.Unmarshal(responseBytes, &paginatedResponse)

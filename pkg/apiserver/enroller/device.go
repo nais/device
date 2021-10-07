@@ -5,11 +5,14 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/nais/device/pkg/pb"
 	"time"
 
-	"github.com/nais/device/pkg/bootstrap"
+	"github.com/nais/device/pkg/ioconvenience"
+	"github.com/nais/device/pkg/pb"
+
 	log "github.com/sirupsen/logrus"
+
+	"github.com/nais/device/pkg/bootstrap"
 )
 
 func (e *Enroller) WatchDeviceEnrollments(ctx context.Context) {
@@ -86,6 +89,8 @@ func (e *Enroller) fetchDeviceInfos(bootstrapURL string) ([]bootstrap.DeviceInfo
 	if err != nil {
 		return nil, fmt.Errorf("getting device infos: %w", err)
 	}
+
+	defer ioconvenience.CloseReader(r.Body)
 
 	var deviceInfos []bootstrap.DeviceInfo
 	err = json.NewDecoder(r.Body).Decode(&deviceInfos)

@@ -11,11 +11,13 @@ import (
 	"path"
 	"time"
 
-	"github.com/nais/device/pkg/logger"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	log "github.com/sirupsen/logrus"
 	flag "github.com/spf13/pflag"
+
+	"github.com/nais/device/pkg/ioconvenience"
+	"github.com/nais/device/pkg/logger"
 )
 
 const GatewayFetchInterval = 5 * time.Minute
@@ -163,11 +165,7 @@ func getGateways(config Config) ([]Gateway, error) {
 		return nil, fmt.Errorf("getting gateways from apiserver: %w", err)
 	}
 
-	defer func() {
-		if err := resp.Body.Close(); err != nil {
-			log.Errorf("closing get response body, %v", err)
-		}
-	}()
+	defer ioconvenience.CloseReader(resp.Body)
 
 	var gateways []Gateway
 	err = json.NewDecoder(resp.Body).Decode(&gateways)

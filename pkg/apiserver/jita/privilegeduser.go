@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+
+	"github.com/nais/device/pkg/ioconvenience"
 )
 
 type PrivilegedUser struct {
@@ -16,9 +18,13 @@ func (j *Jita) GetPrivilegedUsersForGateway(gateway string) ([]PrivilegedUser, e
 	if err != nil {
 		return nil, fmt.Errorf("getting privileged users: %w", err)
 	}
+
+	defer ioconvenience.CloseReader(resp.Body)
+
 	if resp.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("not ok when calling jita: %v", resp.StatusCode)
 	}
+
 	var users []PrivilegedUser
 	if err := json.NewDecoder(resp.Body).Decode(&users); err != nil {
 		return nil, fmt.Errorf("decoding privileged users: %w", err)
