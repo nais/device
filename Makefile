@@ -116,7 +116,7 @@ assets/naisdevice.icns:
 wg: bin/macos-client/wg
 bin/macos-client/wg:
 	mkdir -p bin/macos-client
-	curl -L https://git.zx2c4.com/wireguard-tools/snapshot/wireguard-tools-1.0.20210424.tar.xz  | tar x
+	curl -L https://git.zx2c4.com/wireguard-tools/snapshot/wireguard-tools-1.0.20210914.tar.xz | tar x
 	cd wireguard-tools-*/src && make && cp wg ../../bin/macos-client/
 	rm -rf ./wireguard-tools-*
 
