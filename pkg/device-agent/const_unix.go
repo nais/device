@@ -6,4 +6,4 @@ import (
 	"time"
 )
 
-const helperTimeout = 4 * time.Second
+const helperTimeout = 10 * time.Second
