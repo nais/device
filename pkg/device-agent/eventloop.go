@@ -265,9 +265,7 @@ func (das *DeviceAgentServer) EventLoop() {
 				notify.Errorf(err.Error())
 				das.stateChange <- pb.AgentState_Disconnecting
 			} else {
-				if status.ConnectionState == pb.AgentState_Connected {
-					healthCheckTicker.Reset(1 * time.Second)
-				}
+				das.stateChange <- pb.AgentState_Connected
 			}
 
 		case newState := <-das.stateChange:
@@ -361,6 +359,7 @@ func (das *DeviceAgentServer) EventLoop() {
 
 			case pb.AgentState_Connected:
 				sentry.CaptureMessage("Connected")
+				healthCheckTicker.Reset(1 * time.Second)
 				certRenewalTicker.Reset(1 * time.Second)
 
 			case pb.AgentState_Disconnected:
