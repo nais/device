@@ -4,7 +4,7 @@
 
 - name: Add Google Cloud Logging repository
   apt_repository:
-    repo: deb https://packages.cloud.google.com google-cloud-logging-focal-all main
+    repo: deb https://packages.cloud.google.com/apt google-cloud-logging-focal-all main
     update_cache: yes
 
 - name: Install Google Cloud Logging agent
