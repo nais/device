@@ -1,0 +1,30 @@
+# vi: se ft=fluentd:
+
+<source>
+  @type tail
+  path "/var/log/naisdevice/*.json"
+  pos_file "/var/log/naisdevice/fluentd-json.pos"
+  path_key log_path
+  <parse>
+    @type json
+    time_type string
+    time_format "%iso8601"
+  </parse>
+</source>
+
+<filter naisdevice.**>
+  @type record_transformer
+  <record>
+    hostname "#{Socket.gethostname}"
+    tag ${tag}
+  </record>
+</filter>
+
+<match naisdevice.**>
+  @type google_cloud
+  use_metadata_service false
+  project_id nais-device
+  zone europe-north1-a
+  vm_id naisdevice
+  vm_name naisdevice
+</match>

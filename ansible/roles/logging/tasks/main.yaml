@@ -1,51 +1,16 @@
-- name: Ensure docker.io package installed
+- name: Add Google Cloud Logging apt key
+  apt_key:
+    url: https://packages.cloud.google.com/apt/doc/apt-key.gpg
+
+- name: Add Google Cloud Logging repository
+  apt_repository:
+    repo: deb https://packages.cloud.google.com google-cloud-logging-focal-all main
+    update_cache: yes
+
+- name: Install Google Cloud Logging agent
   apt:
-    name: docker.io
+    name: google-fluentd
     state: present
-
-- name: Docker systemd config directory
-  file:
-    path: /etc/systemd/system/docker.service.d/
-    mode: 0755
-    state: directory
-  when: proxy_env is defined
-
-- name: Docker proxy settings
-  template:
-    src: 99-proxy.conf.j2
-    dest: /etc/systemd/system/docker.service.d/99-proxy.conf
-  when: proxy_env is defined
-  notify:
-    - restart_docker
-
-- name: Ensure /opt/naisdevice/fluentd-stackdriver/ directory
-  file:
-    path: /opt/naisdevice/fluentd-stackdriver/
-    state: directory
-    mode: 0755
-
-- name: Download google cloud log write SA credentials
-  shell: gcloud --project nais-device secrets versions access latest --secret logwriter-credentials > /opt/naisdevice/fluentd-stackdriver/sa.json
-  args:
-    creates: /opt/naisdevice/fluentd-stackdriver/sa.json
-    executable: /bin/bash
-  environment:
-    PATH: /usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/snap/bin
-
-- name: Copy fluentd systemd unit
-  template:
-    src: fluentd-stackdriver.service.j2
-    dest: /etc/systemd/system/fluentd-stackdriver.service
-    mode: '0644'
-  notify:
-    - restart_fluentd-stackdriver
-
-- name: Add fluentd user
-  user:
-    name: fluentd
-    uid: 15069
-    groups: syslog
-    shell: /usr/sbin/nologin
 
 - name: Ensure /var/log/naisdevice/ permissions
   file:
@@ -55,9 +20,17 @@
     group: syslog
     mode: 0755
 
-- name: Start and enable fluentd
-  systemd:
-    name: fluentd-stackdriver
-    state: started
-    enabled: yes
-    daemon_reload: yes
+- name: Create google-fluentd config directory
+  file:
+    path: /etc/google-fluentd/config.d
+    state: directory
+    owner: root
+    group: root
+    mode: 0755
+
+- name: Logging configuration
+  template:
+    src: fluentd.conf.j2
+    dest: /etc/google-fluentd/config.d/naisdevice.conf
+  notify:
+    - restart_google-fluentd
