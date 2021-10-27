@@ -233,10 +233,10 @@ func (das *DeviceAgentServer) EventLoop() {
 					pos := fmt.Sprintf("[%02d/%02d]", i+1, total)
 					if err == nil {
 						gw.Healthy = true
-						log.Debugf("%s Successfully pinged gateway %v with ip: %v", pos, gw.Name, gw.Ip)
+						log.Debugf("%s %s: successfully pinged %v", pos, gw.Name, gw.Ip)
 					} else {
 						gw.Healthy = false
-						log.Infof("%s unable to ping host %s: %v", pos, gw.Ip, err)
+						log.Infof("%s %s: unable to ping %s: %v", pos, gw.Name, gw.Ip, err)
 					}
 					wg.Done()
 				}(i, gw)
