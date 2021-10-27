@@ -20,6 +20,20 @@
     group: syslog
     mode: 0755
 
+- name: Ensure /etc/google/auth/ directory
+  file:
+    path: /etc/google/auth/
+    state: directory
+    mode: 0755
+
+- name: Download google cloud log write SA credentials
+  shell: gcloud --project nais-device secrets versions access latest --secret logwriter-credentials > /etc/google/auth/application_default_credentials.json
+  args:
+    creates: /etc/google/auth/application_default_credentials.json
+    executable: /bin/bash
+  environment:
+    PATH: /usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/snap/bin
+
 - name: Create google-fluentd config directory
   file:
     path: /etc/google-fluentd/config.d
@@ -30,7 +44,7 @@
 
 - name: Logging configuration
   template:
-    src: fluentd.conf.j2
-    dest: /etc/google-fluentd/config.d/naisdevice.conf
+    src: naisdevice.conf.j2
+    dest: /etc/google-fluentd/google-fluentd.conf
   notify:
     - restart_google-fluentd

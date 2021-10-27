@@ -1,0 +1,59 @@
+# vi: se ft=fluentd:
+
+<source>
+  @type tail
+  path "/var/log/naisdevice/*.json"
+  pos_file "/var/log/naisdevice/fluentd-json.pos"
+  path_key log_path
+  <parse>
+    @type json
+    time_type string
+    time_format "%iso8601"
+  </parse>
+  tag naisdevice.log
+</source>
+
+<filter naisdevice.**>
+  @type record_transformer
+  enable_ruby true
+  auto_typecast true
+  <record>
+    hostname "#{Socket.gethostname}"
+    tag ${tag}
+    severity ${record.has_key?("level") ? record["level"] : "INFO"}
+  </record>
+</filter>
+
+# Do not collect fluentd's own logs to avoid infinite loops.
+<match fluent.**>
+  @type null
+</match>
+
+# Add a unique insertId to each log entry that doesn't already have it.
+# This helps guarantee the order and prevent log duplication.
+<filter **>
+  @type add_insert_ids
+</filter>
+
+<match naisdevice.**>
+  # Default config from google-fluentd
+  @type google_cloud
+  buffer_type file
+  buffer_path /var/log/google-fluentd/buffers
+  buffer_chunk_limit 512KB
+  flush_interval 5s
+  disable_retry_limit false
+  retry_limit 3
+  retry_wait 10
+  max_retry_wait 300
+  num_threads 8
+  use_grpc true
+  partial_success true
+
+  # Workaround for on-premise VMs
+  use_metadata_service false
+  project_id nais-device
+  zone europe-north1-a
+  vm_id "naisdevice-#{Socket.gethostname}"
+  vm_name "naisdevice-#{Socket.gethostname}"
+</match>
