@@ -11,6 +11,8 @@
   apt:
     name: google-fluentd
     state: present
+  environment:
+    RUNLEVEL: 1
 
 - name: Ensure /var/log/naisdevice/ permissions
   file:
