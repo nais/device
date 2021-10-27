@@ -37,5 +37,4 @@
         authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIKM1uoX5nHMM1ruk1Rfjh1c/t0s1LNQh0MXtf27hC4jg cardno:000615209054"
   roles:
     - onprem-gateway
-    - logging
     - gateway
