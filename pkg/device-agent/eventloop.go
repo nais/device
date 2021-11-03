@@ -6,15 +6,15 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"net"
 	"net/http"
 	"os"
 	"os/signal"
-	"path/filepath"
 	"sync"
 	"syscall"
 	"time"
+
+	clientcert "github.com/nais/device/pkg/client-cert"
 
 	"github.com/getsentry/sentry-go"
 	"golang.org/x/oauth2"
@@ -23,7 +23,6 @@ import (
 	grpcstatus "google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/timestamppb"
 
-	clientcert "github.com/nais/device/pkg/client-cert"
 	"github.com/nais/device/pkg/device-agent/config"
 	"github.com/nais/device/pkg/ioconvenience"
 
@@ -279,7 +278,6 @@ func (das *DeviceAgentServer) EventLoop() {
 				Category: "eventloop",
 			})
 
-			writeStatusTofile(filepath.Join(das.Config.ConfigDir, "agent_status"), newState)
 			previousState := status.ConnectionState
 			status.ConnectionState = newState
 			log.Infof("state changed to %s", status.ConnectionState)
@@ -398,13 +396,6 @@ func (das *DeviceAgentServer) EventLoop() {
 				das.stateChange <- previousState
 			}
 		}
-	}
-}
-
-func writeStatusTofile(path string, state pb.AgentState) {
-	err := ioutil.WriteFile(path, []byte(state.String()), 0644)
-	if err != nil {
-		log.Errorf("unable to write agent status to file: %v", err)
 	}
 }
 
