@@ -103,6 +103,7 @@ jobs:
       run: |
         make pkg VERSION=${{ needs.set-version.outputs.version }}
         md5sum bin/macos-client/*
+        md5sum naisdevice.pkg
     - name: upload pkg
       uses: actions/upload-artifact@v2
       with:
@@ -129,6 +130,7 @@ jobs:
       - name: create windows installer
         run: |
           msbuild packaging\windows\naisdevice.wixproj
+          md5sum bin/windows/naisdevice.msi
       - name: upload windows installer
         uses: actions/upload-artifact@v2
         with:
@@ -158,6 +160,7 @@ jobs:
           sudo gem install --no-document fpm -v 1.11.0
           chmod a+x bin/linux-client/naisdevice*
           make deb VERSION=${{ needs.set-version.outputs.version }}
+          md5sum naisdevice*.deb
       - name: upload debian package
         uses: actions/upload-artifact@v2
         with:
