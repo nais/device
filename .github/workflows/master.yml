@@ -102,8 +102,8 @@ jobs:
         AC_PASSWORD: ${{ secrets.AC_PASSWORD }}
       run: |
         make pkg VERSION=${{ needs.set-version.outputs.version }}
-        md5sum bin/macos-client/*
-        md5sum naisdevice.pkg
+        md5 bin/macos-client/*
+        md5 naisdevice.pkg
     - name: upload pkg
       uses: actions/upload-artifact@v2
       with:
