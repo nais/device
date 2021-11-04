@@ -68,6 +68,7 @@ jobs:
       - name: build ${{ matrix.target }}
         run: |
           make ${{ matrix.target }} VERSION=${{ needs.set-version.outputs.version }}
+          md5sum "bin/${{ matrix.target }}"/*
 
       - name: upload ${{ matrix.target }}
         uses: actions/upload-artifact@v2
@@ -101,6 +102,7 @@ jobs:
         AC_PASSWORD: ${{ secrets.AC_PASSWORD }}
       run: |
         make pkg VERSION=${{ needs.set-version.outputs.version }}
+        md5sum bin/macos-client/*
     - name: upload pkg
       uses: actions/upload-artifact@v2
       with:
