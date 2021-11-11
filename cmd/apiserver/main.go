@@ -115,7 +115,11 @@ func run() error {
 	api.InitializeMetrics()
 	go func() {
 		log.Infof("Prometheus serving metrics at %v", cfg.PrometheusAddr)
-		_ = http.ListenAndServe(cfg.PrometheusAddr, promhttp.Handler())
+
+		err := http.ListenAndServe(cfg.PrometheusAddr, promhttp.Handler())
+		if err != nil {
+			log.Errorf("prometheus serve: %s", err)
+		}
 	}()
 
 	db, err := database.New(cfg.DbConnDSN, cfg.DatabaseDriver())
