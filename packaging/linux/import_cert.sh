@@ -2,7 +2,7 @@
 set -e
 
 download_cert() {
-  curl --silent --fail https://outtune-api.prod-gcp.nais.io/cert --data @- << EOF | jq -r '.cert_pem' > cert.pem
+  curl --silent --fail https://outtune-api.prod-gcp.nais.io/local/cert --data @- << EOF | jq -r '.cert_pem' > cert.pem
   {
     "serial": "$(cat ~/.config/naisdevice/product_serial)",
     "public_key_pem": "$(base64 --wrap 0 <<< "$1")"

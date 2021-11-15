@@ -14,10 +14,10 @@ if [[ ! -x $curl ]]; then
 fi
 
 serial=$(/usr/sbin/ioreg -c IOPlatformExpertDevice -d 2 | /usr/bin/awk -F\" '/IOPlatformSerialNumber/{print $(NF-1)}')
-cn="naisdevice - $serial is out of tune"
+cn="naisdevice - $serial"
 
 download_cert() {
-  $curl --silent --fail https://outtune-api.prod-gcp.nais.io/cert --data @- << EOF | $jq -r '.cert_pem' > cert.pem
+  $curl --silent --fail https://outtune-api.prod-gcp.nais.io/local/cert --data @- << EOF | $jq -r '.cert_pem' > cert.pem
   {
     "serial": "$serial",
     "public_key_pem": "$(base64 < "$HOME/Library/Application Support/naisdevice/browser_cert_pubkey.pem")"
