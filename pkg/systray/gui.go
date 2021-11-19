@@ -124,7 +124,7 @@ func NewGUI(ctx context.Context, client pb.DeviceAgentClient, cfg Config) *Gui {
 	return gui
 }
 
-func (gui *Gui) EventLoop() {
+func (gui *Gui) EventLoop(ctx context.Context) {
 	for {
 		select {
 		case guiEvent := <-gui.Events:
@@ -137,11 +137,14 @@ func (gui *Gui) EventLoop() {
 			gui.handleAgentStatus(agentStatus)
 		case <-gui.NewVersionAvailable:
 			gui.handleNewVersion()
+		case <-ctx.Done():
+			systray.Quit()
+			return
 		}
 	}
 }
 
-func (gui *Gui) handleButtonClicks() {
+func (gui *Gui) handleButtonClicks(ctx context.Context) {
 	gui.aggregateGatewayButtonClicks()
 
 	for {
@@ -172,6 +175,8 @@ func (gui *Gui) handleButtonClicks() {
 			gui.Events <- ClientCertClicked
 		case name := <-gui.PrivilegedGatewayClicked:
 			accessPrivilegedGateway(name)
+		case <-ctx.Done():
+			return
 		}
 	}
 }
@@ -406,34 +411,36 @@ func (gui *Gui) handleGuiEvent(guiEvent GuiEvent) {
 	}
 }
 
-func (gui *Gui) handleStatusStream() {
+func (gui *Gui) handleStatusStream(ctx context.Context) {
 	for {
-		gui.handleAgentDisconnect()
+		select {
+		case <-ctx.Done():
+			log.Infof("stopping handleStatusStream as context is done")
+			return
+		default:
+			gui.handleAgentDisconnect()
+			log.Infof("Requesting status updates from naisdevice-agent...")
 
-		ctx := context.Background()
-
-		log.Infof("Requesting status updates from naisdevice-agent...")
-
-		statusStream, err := gui.DeviceAgentClient.Status(ctx, &pb.AgentStatusRequest{})
-		if err != nil {
-			log.Errorf("Request status stream: %s", err)
-			time.Sleep(requestBackoff)
-			continue
-		}
-
-		log.Infof("naisdevice-agent status stream established")
-		gui.handleAgentConnect()
-
-		for {
-			status, err := statusStream.Recv()
+			statusStream, err := gui.DeviceAgentClient.Status(ctx, &pb.AgentStatusRequest{})
 			if err != nil {
-				log.Errorf("Receive status from device-agent stream: %v", err)
-				break
+				log.Errorf("Request status stream: %s", err)
+				time.Sleep(requestBackoff)
+				continue
 			}
 
-			gui.AgentStatusChannel <- status
-		}
+			log.Infof("naisdevice-agent status stream established")
+			gui.handleAgentConnect()
 
+			for {
+				status, err := statusStream.Recv()
+				if err != nil {
+					log.Errorf("Receive status from device-agent stream: %v", err)
+					break
+				}
+
+				gui.AgentStatusChannel <- status
+			}
+		}
 	}
 }
 

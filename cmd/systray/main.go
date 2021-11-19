@@ -5,7 +5,10 @@ import (
 	"net"
 	"os"
 	"os/exec"
+	"os/signal"
 	"path/filepath"
+	"syscall"
+	"time"
 
 	"github.com/nais/device/pkg/config"
 	"github.com/nais/device/pkg/logger"
@@ -16,7 +19,27 @@ import (
 	flag "github.com/spf13/pflag"
 )
 
+func handleSignals(cancel context.CancelFunc) {
+	signals := make(chan os.Signal, 1)
+	signal.Notify(signals, syscall.SIGINT, syscall.SIGTERM)
+
+	go func() {
+		sig := <-signals
+
+		cancel()
+		log.Infof("signal handler: signal %s, allowing 1s to stop gracefully...", sig)
+		// normally cancelling the context will result in the program returning before the next lines are evaluated
+		time.Sleep(time.Second)
+		log.Infof("signal handler: force-exiting")
+		os.Exit(0)
+	}()
+}
+
 func main() {
+	programContext, cancel := context.WithCancel(context.Background())
+	handleSignals(cancel)
+	defer cancel()
+
 	configDir, err := config.UserConfigDir()
 	if err != nil {
 		notify.Errorf("start naisdevice-systray: unable to find configuration directory: %v", err)
@@ -43,12 +66,12 @@ func main() {
 	conn, err := net.Dial("unix", cfg.GrpcAddress)
 	if err != nil {
 		// TODO: remove when agent runs as service
-		ctx, cancel := context.WithCancel(context.Background())
-		err = exec.CommandContext(ctx, AgentPath).Start()
+		command := exec.CommandContext(programContext, AgentPath)
+		err := command.Start()
 		if err != nil {
 			log.Fatalf("spawning naisdevice-agent: %v", err)
 		}
-		defer cancel()
+		defer command.Wait()
 	} else {
 		err := conn.Close()
 		if err != nil {
@@ -59,5 +82,6 @@ func main() {
 	log.Infof("naisdevice-systray %s starting up", version.Version)
 	log.Infof("configuration: %+v", cfg)
 
-	systray.Spawn(*cfg)
+	systray.Spawn(programContext, *cfg)
+	cancel()
 }

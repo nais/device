@@ -14,12 +14,9 @@ var connection *grpc.ClientConn
 
 const ConfigFile = "systray-config.json"
 
-func onReady(cfg Config) {
-	programContext := context.Background()
-	var err error
-
+func onReady(ctx context.Context, cfg Config) {
 	log.Debugf("naisdevice-agent on unix socket %s", cfg.GrpcAddress)
-	connection, err = grpc.Dial(
+	connection, err := grpc.Dial(
 		"unix:"+cfg.GrpcAddress,
 		grpc.WithInsecure(),
 	)
@@ -29,11 +26,11 @@ func onReady(cfg Config) {
 
 	client := pb.NewDeviceAgentClient(connection)
 
-	gui := NewGUI(programContext, client, cfg)
+	gui := NewGUI(ctx, client, cfg)
 
-	go gui.handleStatusStream()
-	go gui.handleButtonClicks()
-	go gui.EventLoop()
+	go gui.handleStatusStream(ctx)
+	go gui.handleButtonClicks(ctx)
+	go gui.EventLoop(ctx)
 	// TODO: go checkVersion(versionCheckInterval, gui)
 }
 
@@ -46,6 +43,6 @@ func onExit() {
 	}
 }
 
-func Spawn(systrayConfig Config) {
-	systray.Run(func() { onReady(systrayConfig) }, onExit)
+func Spawn(ctx context.Context, systrayConfig Config) {
+	systray.Run(func() { onReady(ctx, systrayConfig) }, onExit)
 }
