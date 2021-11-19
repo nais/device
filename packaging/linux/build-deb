@@ -25,6 +25,9 @@ fpm \
     --after-install packaging/linux/postinstall \
     --after-upgrade packaging/linux/postinstall \
     --deb-systemd packaging/linux/naisdevice-helper.service \
+    --deb-systemd-enable \
+    --deb-systemd-auto-start \
+    --deb-systemd-restart-after-upgrade \
     bin/linux-client/naisdevice-helper=/usr/sbin/naisdevice-helper \
     bin/linux-client/naisdevice-agent=/usr/bin/naisdevice-agent \
     bin/linux-client/naisdevice-systray=/usr/bin/naisdevice-systray \
