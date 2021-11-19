@@ -41,6 +41,7 @@ const (
 	approximateInfinity   = time.Hour * 69_420 // Name describes purpose. Used for renewing microsoft client certs automatically
 	certRenewalInterval   = time.Hour * 23     // Microsoft Client certificate validity/renewal interval
 	certRenewalBackoff    = time.Second * 10   // Self-explanatory (Microsoft Client certificate)
+	syncConfigMaxAttempts = 5
 )
 
 var (
@@ -297,18 +298,26 @@ func (das *DeviceAgentServer) EventLoop(ctx context.Context) {
 
 				syncctx, synccancel = context.WithCancel(context.Background())
 				go func() {
+					attempt := 0
 					for syncctx.Err() == nil {
-						log.Infof("Setting up gateway config synchronization loop")
+						log.Infof("[attempt %d/%d] Setting up gateway config synchronization loop", attempt+1, syncConfigMaxAttempts)
 						err := das.syncConfigLoop(syncctx, gateways)
 						if err != nil {
+							attempt++
 							if grpcstatus.Code(err) == codes.Unauthenticated {
 								notify.Errorf(err.Error())
+								das.stateChange <- pb.AgentState_Disconnecting
+								synccancel()
+							} else if attempt > syncConfigMaxAttempts {
+								notify.Errorf("Failed to connect to naisdevice apiserver %d times, disconnecting")
 								das.stateChange <- pb.AgentState_Disconnecting
 								synccancel()
 							} else {
 								log.Errorf("Synchronize config: %s", err)
 								time.Sleep(1 * time.Second)
 							}
+						} else {
+							attempt = 0
 						}
 					}
 
