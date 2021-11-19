@@ -8,10 +8,7 @@ import (
 	"fmt"
 	"net"
 	"net/http"
-	"os"
-	"os/signal"
 	"sync"
-	"syscall"
 	"time"
 
 	clientcert "github.com/nais/device/pkg/client-cert"
@@ -146,16 +143,13 @@ func (das *DeviceAgentServer) syncConfigLoop(ctx context.Context, gateways chan<
 	}
 }
 
-func (das *DeviceAgentServer) EventLoop() {
+func (das *DeviceAgentServer) EventLoop(ctx context.Context) {
 	var err error
 	var syncctx context.Context
 	var synccancel context.CancelFunc
 
 	gateways := make(chan []*pb.Gateway, 16)
 	status := &pb.AgentStatus{}
-
-	signals := make(chan os.Signal, 1)
-	signal.Notify(signals, syscall.SIGINT, syscall.SIGTERM)
 
 	healthCheckTicker := time.NewTicker(healthCheckInterval)
 	versionCheckTicker := time.NewTicker(5 * time.Second)
@@ -169,18 +163,8 @@ func (das *DeviceAgentServer) EventLoop() {
 		das.UpdateAgentStatus(status)
 
 		select {
-		case sig := <-signals:
-			sentry.AddBreadcrumb(&sentry.Breadcrumb{
-				Level:   sentry.LevelInfo,
-				Message: "signal received",
-				Type:    "debug",
-				Data: map[string]interface{}{
-					"signal": sig,
-				},
-				Category: "eventloop",
-			})
-
-			log.Infof("Received signal %s, exiting...", sig)
+		case <-ctx.Done():
+			log.Infof("EventLoop: context done")
 			return
 
 		case <-versionCheckTicker.C:

@@ -1,9 +1,12 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"os"
+	"os/signal"
 	"path/filepath"
+	"syscall"
 	"time"
 
 	"github.com/getsentry/sentry-go"
@@ -37,9 +40,37 @@ func init() {
 	flag.StringVar(&cfg.DeviceAgentHelperAddress, "device-agent-helper-address", cfg.DeviceAgentHelperAddress, "device-agent-helper unix socket")
 }
 
+func handleSignals(cancel context.CancelFunc) {
+	signals := make(chan os.Signal, 1)
+	signal.Notify(signals, syscall.SIGINT, syscall.SIGTERM)
+
+	go func() {
+		sig := <-signals
+		sentry.AddBreadcrumb(&sentry.Breadcrumb{
+			Level:   sentry.LevelInfo,
+			Message: "signal received",
+			Type:    "debug",
+			Data: map[string]interface{}{
+				"signal": sig,
+			},
+			Category: "eventloop",
+		})
+
+		cancel()
+		log.Infof("signal handler: signal %s, allowing 1s to stop gracefully...", sig)
+		// normally cancelling the context will result in the program returning before the next lines are evaluated
+		time.Sleep(time.Second)
+		log.Infof("signal handler: force-exiting")
+		os.Exit(0)
+	}()
+}
+
 func main() {
 	flag.Parse()
 	cfg.SetDefaults()
+
+	programContext, programCancel := context.WithCancel(context.Background())
+	handleSignals(programCancel)
 
 	logDir := filepath.Join(cfg.ConfigDir, "logs")
 	logger.SetupLogger(cfg.LogLevel, logDir, "agent.log")
@@ -79,7 +110,7 @@ func main() {
 	log.Infof("naisdevice-agent %s starting up", version.Version)
 	log.Infof("configuration: %+v", cfg)
 
-	err = startDeviceAgent(&cfg)
+	err = startDeviceAgent(programContext, &cfg)
 	if err != nil {
 		notify.Errorf(err.Error())
 		log.Errorf("naisdevice-agent terminated with error.")
@@ -89,7 +120,7 @@ func main() {
 	log.Infof("naisdevice-agent shutting down.")
 }
 
-func startDeviceAgent(cfg *config.Config) error {
+func startDeviceAgent(ctx context.Context, cfg *config.Config) error {
 	if err := filesystem.EnsurePrerequisites(cfg); err != nil {
 		return fmt.Errorf("missing prerequisites: %s", err)
 	}
@@ -123,7 +154,7 @@ func startDeviceAgent(cfg *config.Config) error {
 	pb.RegisterDeviceAgentServer(grpcServer, das)
 
 	go func() {
-		das.EventLoop()
+		das.EventLoop(ctx)
 		grpcServer.Stop()
 	}()
 
