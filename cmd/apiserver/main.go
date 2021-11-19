@@ -87,12 +87,12 @@ func init() {
 	logger.Setup(cfg.LogLevel)
 }
 
-var requiredArgNotSetError = errors.New("arg is required, but not set")
+var errRequiredArgNotSet = errors.New("arg is required, but not set")
 
 func main() {
 	err := run()
 	if err != nil {
-		if errors.Is(err, requiredArgNotSetError) {
+		if errors.Is(err, errRequiredArgNotSet) {
 			flag.Usage()
 			log.Error(err)
 		} else {
@@ -174,7 +174,7 @@ func run() error {
 
 	if cfg.KolideSyncEnabled {
 		if len(cfg.KolideApiToken) == 0 {
-			return fmt.Errorf("--kolide-api-token %w", requiredArgNotSetError)
+			return fmt.Errorf("--kolide-api-token %w", errRequiredArgNotSet)
 		}
 
 		kolideHandler := kolide.New(cfg.KolideApiToken, db, updates)
@@ -183,13 +183,13 @@ func run() error {
 
 	if cfg.KolideEventHandlerEnabled {
 		if len(cfg.KolideApiToken) == 0 {
-			return fmt.Errorf("--kolide-api-token %w", requiredArgNotSetError)
+			return fmt.Errorf("--kolide-api-token %w", errRequiredArgNotSet)
 		}
 		if len(cfg.KolideEventHandlerAddress) == 0 {
-			return fmt.Errorf("--kolide-event-handler-address %w", requiredArgNotSetError)
+			return fmt.Errorf("--kolide-event-handler-address %w", errRequiredArgNotSet)
 		}
 		if len(cfg.KolideEventHandlerToken) == 0 {
-			return fmt.Errorf("--kolide-event-handler-token %w", requiredArgNotSetError)
+			return fmt.Errorf("--kolide-event-handler-token %w", errRequiredArgNotSet)
 		}
 
 		kolideHandler := kolide.New(cfg.KolideApiToken, db, updates)
