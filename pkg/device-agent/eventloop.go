@@ -45,8 +45,8 @@ const (
 )
 
 var (
-	ExpiredToken      = errors.New("azure ad token expired")
-	TokenDoesNotExist = errors.New("azure ad token does not exist")
+	ErrExpiredToken      = errors.New("azure ad token expired")
+	ErrTokenDoesNotExist = errors.New("azure ad token does not exist")
 )
 
 func (das *DeviceAgentServer) ConfigureHelper(ctx context.Context, rc *runtimeconfig.RuntimeConfig, gateways []*pb.Gateway) error {
@@ -60,9 +60,9 @@ func (das *DeviceAgentServer) ConfigureHelper(ctx context.Context, rc *runtimeco
 
 func validateToken(token *oauth2.Token) error {
 	if token == nil {
-		return TokenDoesNotExist
+		return ErrTokenDoesNotExist
 	} else if time.Now().After(token.Expiry) {
-		return ExpiredToken
+		return ErrExpiredToken
 	}
 
 	return nil
@@ -211,8 +211,8 @@ func (das *DeviceAgentServer) EventLoop(ctx context.Context) {
 			total := len(status.GetGateways())
 			log.Infof("Pinging %d gateways...", total)
 			for i, gw := range status.GetGateways() {
+				wg.Add(1)
 				go func(i int, gw *pb.Gateway) {
-					wg.Add(1)
 					err := ping(gw.Ip)
 					pos := fmt.Sprintf("[%02d/%02d]", i+1, total)
 					if err == nil {
@@ -309,7 +309,7 @@ func (das *DeviceAgentServer) EventLoop(ctx context.Context) {
 								das.stateChange <- pb.AgentState_Disconnecting
 								synccancel()
 							} else if attempt > syncConfigMaxAttempts {
-								notify.Errorf("Failed to connect to naisdevice apiserver %d times, disconnecting")
+								notify.Errorf("Failed to connect to naisdevice apiserver %d times, disconnecting", syncConfigMaxAttempts)
 								das.stateChange <- pb.AgentState_Disconnecting
 								synccancel()
 							} else {
