@@ -26,10 +26,11 @@ func handleSignals(cancel context.CancelFunc) {
 	go func() {
 		sig := <-signals
 
+		log.Infof("signal handler: got signal '%s', canceling main context", sig)
 		cancel()
-		log.Infof("signal handler: signal %s, allowing 1s to stop gracefully...", sig)
+		log.Infof("signal handler: allowing 1s to stop gracefully...", sig)
 		// normally cancelling the context will result in the program returning before the next lines are evaluated
-		time.Sleep(time.Second)
+		time.Sleep(1 * time.Second)
 		log.Infof("signal handler: force-exiting")
 		os.Exit(0)
 	}()
