@@ -28,10 +28,10 @@ func handleSignals(cancel context.CancelFunc) {
 
 		log.Infof("signal handler: got signal '%s', canceling main context", sig)
 		cancel()
-		log.Infof("signal handler: allowing 1s to stop gracefully...", sig)
+		log.Info("signal handler: allowing 1s to stop gracefully...", sig)
 		// normally cancelling the context will result in the program returning before the next lines are evaluated
 		time.Sleep(1 * time.Second)
-		log.Infof("signal handler: force-exiting")
+		log.Info("signal handler: force-exiting")
 		os.Exit(0)
 	}()
 }
@@ -73,6 +73,7 @@ func main() {
 			log.Fatalf("spawning naisdevice-agent: %v", err)
 		}
 		defer command.Wait()
+		command.Process.Kill()
 	} else {
 		err := conn.Close()
 		if err != nil {
