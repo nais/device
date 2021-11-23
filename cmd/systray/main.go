@@ -73,7 +73,6 @@ func main() {
 			log.Fatalf("spawning naisdevice-agent: %v", err)
 		}
 		defer command.Wait()
-		command.Process.Kill()
 	} else {
 		err := conn.Close()
 		if err != nil {
