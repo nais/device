@@ -105,7 +105,10 @@ func (das *DeviceAgentServer) syncConfigLoop(ctx context.Context, gateways chan<
 		das.rc.SessionInfo = loginResponse.Session
 	}
 
-	stream, err := apiserverClient.GetDeviceConfiguration(ctx, &pb.GetDeviceConfigurationRequest{
+	streamContext, cancel := context.WithDeadline(ctx, das.rc.SessionInfo.Expiry.AsTime())
+	defer cancel()
+
+	stream, err := apiserverClient.GetDeviceConfiguration(streamContext, &pb.GetDeviceConfigurationRequest{
 		SessionKey: das.rc.SessionInfo.Key,
 	})
 
