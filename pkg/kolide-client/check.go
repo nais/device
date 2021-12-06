@@ -54,6 +54,7 @@ func GetGraceTime(severity Severity) time.Duration {
 
 func AfterGracePeriod(failure DeviceFailure) bool {
 	if failure.Check == nil {
+		log.Errorf("BUG: This should not happen, checking grace period for failure %d - Check is nil! (checkID is: %d)", failure.Id, failure.CheckId)
 		return false
 	}
 
