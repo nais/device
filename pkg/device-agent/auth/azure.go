@@ -109,7 +109,7 @@ func GetDeviceAgentToken(ctx context.Context, conf *oauth2.Config) (*oauth2.Toke
 		log.Errorf("opening browser, err: %v", err)
 		// Don't return, as this is not fatal (user can open browser manually)
 	}
-	fmt.Printf("If the browser didn't open, visit this url to sign in: %v\n", url)
+	log.Infof("If the browser didn't open, visit this url to sign in: %v\n", url)
 
 	authFlowResponse := <-authFlowChan
 

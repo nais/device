@@ -339,7 +339,7 @@ func (das *DeviceAgentServer) EventLoop(ctx context.Context) {
 				} else {
 					log.Infof("validate token: %v", err)
 
-					ctx, cancel := context.WithTimeout(context.Background(), authFlowTimeout)
+					ctx, cancel := context.WithTimeout(ctx, authFlowTimeout)
 					das.rc.Token, err = auth.GetDeviceAgentToken(ctx, das.rc.Config.OAuth2Config)
 					cancel()
 					if err != nil {
