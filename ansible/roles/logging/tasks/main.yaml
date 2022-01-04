@@ -13,14 +13,6 @@
     state: present
     policy_rc_d: 101 # disable automatic start
 
-- name: Ensure /var/log/naisdevice/ permissions
-  file:
-    path: /var/log/naisdevice
-    state: directory
-    owner: fluentd
-    group: syslog
-    mode: 0755
-
 - name: Ensure /etc/google/auth/ directory
   file:
     path: /etc/google/auth/
