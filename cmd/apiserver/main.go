@@ -105,6 +105,7 @@ func main() {
 
 func run() error {
 	var authenticator auth.Authenticator
+	var apikeyAuthenticator auth.APIKeyAuthenticator
 	var wireguardPublicKey []byte
 
 	ctx, cancel := context.WithCancel(context.Background())
@@ -218,11 +219,13 @@ func run() error {
 		SyncInterval: gatewayConfigSyncInterval,
 	}
 
+	jitaClient := jita.New(cfg.JitaUsername, cfg.JitaPassword, cfg.JitaUrl)
+
 	go gwc.SyncContinuously(ctx)
 
 	apiConfig := api.Config{
 		DB:            db,
-		Jita:          jita.New(cfg.JitaUsername, cfg.JitaPassword, cfg.JitaUrl),
+		Jita:          jitaClient,
 		Authenticator: authenticator,
 	}
 
@@ -235,11 +238,15 @@ func run() error {
 		if apiConfig.APIKeys == nil {
 			return fmt.Errorf("control plane basic authentication enabled, but no credentials provided (try --credential-entries)")
 		}
+
+		apikeyAuthenticator = auth.NewAPIKeyAuthenticator(apiConfig.APIKeys)
 	} else {
 		log.Warnf("Control plane authentication DISABLED! Do not run this configuration in production!")
+
+		apikeyAuthenticator = auth.NewMockAPIKeyAuthenticator()
 	}
 
-	grpcHandler := api.NewGRPCServer(db, authenticator)
+	grpcHandler := api.NewGRPCServer(db, authenticator, apikeyAuthenticator, jitaClient)
 	grpcServer := grpc.NewServer()
 
 	pb.RegisterAPIServerServer(grpcServer, grpcHandler)

@@ -161,12 +161,25 @@ message AgentConfiguration {
 service APIServer {
     // Exchange an access token for a session
     rpc Login (APIServerLoginRequest) returns (APIServerLoginResponse) {
-
     }
+
     // Set up a client->server request for continuous streaming of new configuration
     rpc GetDeviceConfiguration (GetDeviceConfigurationRequest) returns (stream GetDeviceConfigurationResponse) {
-
     }
+
+    // Set up continuous streaming of new gateway configuration
+    rpc GetGatewayConfiguration (GetGatewayConfigurationRequest) returns (stream GetGatewayConfigurationResponse) {
+    }
+}
+
+message GetGatewayConfigurationRequest {
+    string gateway = 1;
+    string password = 2;
+}
+
+message GetGatewayConfigurationResponse {
+    repeated Device devices = 1;
+    repeated string routes = 2;
 }
 
 message GetDeviceConfigurationRequest {

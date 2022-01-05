@@ -269,7 +269,7 @@ func mockJita(t *testing.T, gatewayName string, privilegedUsers []jita.Privilege
 	return mux
 }
 
-func setup(t *testing.T, j *jita.Jita) (database.APIServer, chi.Router) {
+func setup(t *testing.T, j *jita.jita) (database.APIServer, chi.Router) {
 	ctx := context.Background()
 
 	testDBDSN := "user=postgres password=postgres host=localhost port=5433 sslmode=disable"

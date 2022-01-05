@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"sync"
 
+	"github.com/nais/device/pkg/apiserver/jita"
 	log "github.com/sirupsen/logrus"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -18,21 +19,28 @@ import (
 type grpcServer struct {
 	pb.UnimplementedAPIServerServer
 
-	authenticator auth.Authenticator
-	store         auth.SessionStore
-	streams       map[string]pb.APIServer_GetDeviceConfigurationServer
-	lock          sync.Mutex
-	db            database.APIServer
+	authenticator        auth.Authenticator
+	apikeyAuthenticator  auth.APIKeyAuthenticator
+	jita                 jita.Client
+	store                auth.SessionStore
+	streams              map[string]pb.APIServer_GetDeviceConfigurationServer
+	gatewayConfigStreams map[string]pb.APIServer_GetGatewayConfigurationServer
+	lock                 sync.Mutex
+	db                   database.APIServer
 }
 
 var _ pb.APIServerServer = &grpcServer{}
+
 var ErrNoSession = errors.New("no session")
 
-func NewGRPCServer(db database.APIServer, authenticator auth.Authenticator) *grpcServer {
+func NewGRPCServer(db database.APIServer, authenticator auth.Authenticator, apikeyAuthenticator auth.APIKeyAuthenticator, jita jita.Client) *grpcServer {
 	return &grpcServer{
-		streams:       make(map[string]pb.APIServer_GetDeviceConfigurationServer),
-		db:            db,
-		authenticator: authenticator,
+		streams:              make(map[string]pb.APIServer_GetDeviceConfigurationServer),
+		gatewayConfigStreams: make(map[string]pb.APIServer_GetGatewayConfigurationServer),
+		authenticator:        authenticator,
+		apikeyAuthenticator:  apikeyAuthenticator,
+		db:                   db,
+		jita:                 jita,
 	}
 }
 
@@ -119,4 +127,65 @@ func (s *grpcServer) Login(ctx context.Context, r *pb.APIServerLoginRequest) (*p
 	return &pb.APIServerLoginResponse{
 		Session: session,
 	}, nil
+}
+
+func (s *grpcServer) GetGatewayConfiguration(request *pb.GetGatewayConfigurationRequest, stream pb.APIServer_GetGatewayConfigurationServer) error {
+	err := s.apikeyAuthenticator.Authenticate(request.Gateway, request.Password)
+	if err != nil {
+		return err
+	}
+
+	s.lock.Lock()
+	s.gatewayConfigStreams[request.Gateway] = stream
+	s.lock.Unlock()
+
+	// send initial device configuration
+	err = s.SendGatewayConfiguration(stream.Context(), request.Gateway)
+	if err != nil {
+		log.Errorf("send initial device configuration: %s", err)
+	}
+
+	// wait for disconnect
+	<-stream.Context().Done()
+
+	s.lock.Lock()
+	delete(s.gatewayConfigStreams, request.Gateway)
+	s.lock.Unlock()
+
+	return nil
+}
+
+func (s *grpcServer) SendGatewayConfiguration(ctx context.Context, gatewayName string) error {
+	stream, ok := s.gatewayConfigStreams[gatewayName]
+	if !ok {
+		return ErrNoSession
+	}
+
+	sessionInfos, err := s.db.ReadSessionInfos(ctx)
+	if err != nil {
+		return fmt.Errorf("reading session infos from database: %v", err)
+	}
+
+	gateway, err := s.db.ReadGateway(gatewayName)
+	if err != nil {
+		return fmt.Errorf("reading gateway from database: %v", err)
+	}
+
+	gatewayConfig := &pb.GetGatewayConfigurationResponse{
+		Devices: healthy(
+			authorized(
+				gateway.AccessGroupIDs, privileged(s.jita, gateway, sessionInfos),
+			),
+		),
+		Routes: gateway.Routes,
+	}
+
+	m, err := GatewayConfigsReturned.GetMetricWithLabelValues(gateway.Name)
+	if err != nil {
+		log.Errorf("getting metric metric: %v", err)
+	} else {
+		m.Inc()
+	}
+
+	return stream.Send(gatewayConfig)
 }

@@ -4,12 +4,11 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"net/http"
 	"time"
 
 	"github.com/nais/device/pkg/apiserver/jita"
 	"github.com/nais/device/pkg/pb"
-
-	"net/http"
 
 	"github.com/nais/device/pkg/apiserver/database"
 	log "github.com/sirupsen/logrus"
@@ -17,7 +16,7 @@ import (
 
 type api struct {
 	db   database.APIServer
-	jita *jita.Jita
+	jita jita.Client
 }
 
 const (
@@ -50,7 +49,7 @@ func (a *api) gatewayConfig(w http.ResponseWriter, r *http.Request) {
 	}
 
 	gatewayConfig := GatewayConfig{
-		Devices: healthy(authorized(gateway.AccessGroupIDs, a.privileged(gateway, sessionInfos))),
+		Devices: healthy(authorized(gateway.AccessGroupIDs, privileged(a.jita, gateway, sessionInfos))),
 		Routes:  gateway.Routes,
 	}
 
@@ -68,11 +67,11 @@ func (a *api) gatewayConfig(w http.ResponseWriter, r *http.Request) {
 	m.Inc()
 }
 
-func (a *api) privileged(gateway *pb.Gateway, sessions []*pb.Session) []*pb.Session {
+func privileged(jita jita.Client, gateway *pb.Gateway, sessions []*pb.Session) []*pb.Session {
 	if !gateway.RequiresPrivilegedAccess {
 		return sessions
 	}
-	privilegedUsers, err := a.jita.GetPrivilegedUsersForGateway(gateway.Name)
+	privilegedUsers, err := jita.GetPrivilegedUsersForGateway(gateway.Name)
 	if err != nil {
 		log.Errorf("Gateway retrieving privileged users, %s", err)
 	}

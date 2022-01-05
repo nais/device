@@ -7,16 +7,20 @@ import (
 	"github.com/nais/device/pkg/basicauth"
 )
 
-type Jita struct {
+type client struct {
 	HTTPClient *http.Client
-	Url        string
+	URL        string
 }
 
-func New(username, password, url string) *Jita {
-	return &Jita{
+type Client interface {
+	GetPrivilegedUsersForGateway(gateway string) ([]PrivilegedUser, error)
+}
+
+func New(username, password, url string) Client {
+	return &client{
 		HTTPClient: &http.Client{
 			Transport: basicauth.Transport{Password: password, Username: username},
 		},
-		Url: fmt.Sprintf("%s/%s", url, "api/v1"),
+		URL: fmt.Sprintf("%s/%s", url, "api/v1"),
 	}
 }

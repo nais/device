@@ -14,7 +14,7 @@ import (
 
 type Config struct {
 	DB            database.APIServer
-	Jita          *jita.Jita
+	Jita          jita.Client
 	APIKeys       map[string]string
 	Authenticator auth.Authenticator
 }

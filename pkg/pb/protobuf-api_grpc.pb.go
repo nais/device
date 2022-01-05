@@ -494,6 +494,8 @@ type APIServerClient interface {
 	Login(ctx context.Context, in *APIServerLoginRequest, opts ...grpc.CallOption) (*APIServerLoginResponse, error)
 	// Set up a client->server request for continuous streaming of new configuration
 	GetDeviceConfiguration(ctx context.Context, in *GetDeviceConfigurationRequest, opts ...grpc.CallOption) (APIServer_GetDeviceConfigurationClient, error)
+	// Set up continuous streaming of new gateway configuration
+	GetGatewayConfiguration(ctx context.Context, in *GetGatewayConfigurationRequest, opts ...grpc.CallOption) (APIServer_GetGatewayConfigurationClient, error)
 }
 
 type aPIServerClient struct {
@@ -545,6 +547,38 @@ func (x *aPIServerGetDeviceConfigurationClient) Recv() (*GetDeviceConfigurationR
 	return m, nil
 }
 
+func (c *aPIServerClient) GetGatewayConfiguration(ctx context.Context, in *GetGatewayConfigurationRequest, opts ...grpc.CallOption) (APIServer_GetGatewayConfigurationClient, error) {
+	stream, err := c.cc.NewStream(ctx, &APIServer_ServiceDesc.Streams[1], "/naisdevice.APIServer/GetGatewayConfiguration", opts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &aPIServerGetGatewayConfigurationClient{stream}
+	if err := x.ClientStream.SendMsg(in); err != nil {
+		return nil, err
+	}
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
+	return x, nil
+}
+
+type APIServer_GetGatewayConfigurationClient interface {
+	Recv() (*GetGatewayConfigurationResponse, error)
+	grpc.ClientStream
+}
+
+type aPIServerGetGatewayConfigurationClient struct {
+	grpc.ClientStream
+}
+
+func (x *aPIServerGetGatewayConfigurationClient) Recv() (*GetGatewayConfigurationResponse, error) {
+	m := new(GetGatewayConfigurationResponse)
+	if err := x.ClientStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
 // APIServerServer is the server API for APIServer service.
 // All implementations must embed UnimplementedAPIServerServer
 // for forward compatibility
@@ -553,6 +587,8 @@ type APIServerServer interface {
 	Login(context.Context, *APIServerLoginRequest) (*APIServerLoginResponse, error)
 	// Set up a client->server request for continuous streaming of new configuration
 	GetDeviceConfiguration(*GetDeviceConfigurationRequest, APIServer_GetDeviceConfigurationServer) error
+	// Set up continuous streaming of new gateway configuration
+	GetGatewayConfiguration(*GetGatewayConfigurationRequest, APIServer_GetGatewayConfigurationServer) error
 	mustEmbedUnimplementedAPIServerServer()
 }
 
@@ -565,6 +601,9 @@ func (UnimplementedAPIServerServer) Login(context.Context, *APIServerLoginReques
 }
 func (UnimplementedAPIServerServer) GetDeviceConfiguration(*GetDeviceConfigurationRequest, APIServer_GetDeviceConfigurationServer) error {
 	return status.Errorf(codes.Unimplemented, "method GetDeviceConfiguration not implemented")
+}
+func (UnimplementedAPIServerServer) GetGatewayConfiguration(*GetGatewayConfigurationRequest, APIServer_GetGatewayConfigurationServer) error {
+	return status.Errorf(codes.Unimplemented, "method GetGatewayConfiguration not implemented")
 }
 func (UnimplementedAPIServerServer) mustEmbedUnimplementedAPIServerServer() {}
 
@@ -618,6 +657,27 @@ func (x *aPIServerGetDeviceConfigurationServer) Send(m *GetDeviceConfigurationRe
 	return x.ServerStream.SendMsg(m)
 }
 
+func _APIServer_GetGatewayConfiguration_Handler(srv interface{}, stream grpc.ServerStream) error {
+	m := new(GetGatewayConfigurationRequest)
+	if err := stream.RecvMsg(m); err != nil {
+		return err
+	}
+	return srv.(APIServerServer).GetGatewayConfiguration(m, &aPIServerGetGatewayConfigurationServer{stream})
+}
+
+type APIServer_GetGatewayConfigurationServer interface {
+	Send(*GetGatewayConfigurationResponse) error
+	grpc.ServerStream
+}
+
+type aPIServerGetGatewayConfigurationServer struct {
+	grpc.ServerStream
+}
+
+func (x *aPIServerGetGatewayConfigurationServer) Send(m *GetGatewayConfigurationResponse) error {
+	return x.ServerStream.SendMsg(m)
+}
+
 // APIServer_ServiceDesc is the grpc.ServiceDesc for APIServer service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -634,6 +694,11 @@ var APIServer_ServiceDesc = grpc.ServiceDesc{
 		{
 			StreamName:    "GetDeviceConfiguration",
 			Handler:       _APIServer_GetDeviceConfiguration_Handler,
+			ServerStreams: true,
+		},
+		{
+			StreamName:    "GetGatewayConfiguration",
+			Handler:       _APIServer_GetGatewayConfiguration_Handler,
 			ServerStreams: true,
 		},
 	},

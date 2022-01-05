@@ -12,9 +12,9 @@ type PrivilegedUser struct {
 	UserId string `json:"user_id"`
 }
 
-func (j *Jita) GetPrivilegedUsersForGateway(gateway string) ([]PrivilegedUser, error) {
+func (j *client) GetPrivilegedUsersForGateway(gateway string) ([]PrivilegedUser, error) {
 
-	resp, err := j.HTTPClient.Get(fmt.Sprintf("%s/%s/%s", j.Url, "gatewayAccess", gateway))
+	resp, err := j.HTTPClient.Get(fmt.Sprintf("%s/%s/%s", j.URL, "gatewayAccess", gateway))
 	if err != nil {
 		return nil, fmt.Errorf("getting privileged users: %w", err)
 	}
