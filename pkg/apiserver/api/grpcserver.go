@@ -23,7 +23,6 @@ type grpcServer struct {
 	authenticator        auth.Authenticator
 	apikeyAuthenticator  auth.APIKeyAuthenticator
 	jita                 jita.Client
-	store                auth.SessionStore
 	streams              map[string]pb.APIServer_GetDeviceConfigurationServer
 	gatewayConfigStreams map[string]pb.APIServer_GetGatewayConfigurationServer
 	lock                 sync.Mutex
@@ -79,7 +78,7 @@ func (s *grpcServer) SendDeviceConfiguration(ctx context.Context, sessionKey str
 
 	device, err := s.db.ReadDeviceById(ctx, sessionInfo.GetDevice().GetId())
 	if err != nil {
-		return fmt.Errorf("read device from db: %v", err)
+		return fmt.Errorf("read device from db: %w", err)
 	}
 
 	if !device.GetHealthy() {
@@ -89,6 +88,9 @@ func (s *grpcServer) SendDeviceConfiguration(ctx context.Context, sessionKey str
 	}
 
 	gateways, err := s.UserGateways(sessionInfo.Groups)
+	if err != nil {
+		return fmt.Errorf("get user gateways: %w", err)
+	}
 
 	m, err := DeviceConfigsReturned.GetMetricWithLabelValues(device.Serial, device.Username)
 	if err != nil {
