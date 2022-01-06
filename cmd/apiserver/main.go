@@ -172,13 +172,14 @@ func run() error {
 	}
 
 	updates := make(chan *pb.Device, 64)
+	triggerGatewaySync := make(chan struct{}, 64)
 
 	if cfg.KolideSyncEnabled {
 		if len(cfg.KolideApiToken) == 0 {
 			return fmt.Errorf("--kolide-api-token %w", errRequiredArgNotSet)
 		}
 
-		kolideHandler := kolide.New(cfg.KolideApiToken, db, updates)
+		kolideHandler := kolide.New(cfg.KolideApiToken, db, updates, triggerGatewaySync)
 		go kolideHandler.Cron(ctx)
 	}
 
@@ -193,7 +194,7 @@ func run() error {
 			return fmt.Errorf("--kolide-event-handler-token %w", errRequiredArgNotSet)
 		}
 
-		kolideHandler := kolide.New(cfg.KolideApiToken, db, updates)
+		kolideHandler := kolide.New(cfg.KolideApiToken, db, updates, triggerGatewaySync)
 		go kolideHandler.DeviceEventHandler(ctx, cfg.KolideEventHandlerAddress, cfg.KolideEventHandlerToken)
 	}
 
@@ -214,9 +215,10 @@ func run() error {
 	}
 
 	gwc := gatewayconfigurer.GatewayConfigurer{
-		DB:           db,
-		BucketReader: gatewayconfigurer.GoogleBucketReader{BucketName: cfg.GatewayConfigBucketName, BucketObjectName: cfg.GatewayConfigBucketObjectName},
-		SyncInterval: gatewayConfigSyncInterval,
+		DB:                 db,
+		BucketReader:       gatewayconfigurer.GoogleBucketReader{BucketName: cfg.GatewayConfigBucketName, BucketObjectName: cfg.GatewayConfigBucketObjectName},
+		SyncInterval:       gatewayConfigSyncInterval,
+		TriggerGatewaySync: triggerGatewaySync,
 	}
 
 	jitaClient := jita.New(cfg.JitaUsername, cfg.JitaPassword, cfg.JitaUrl)
@@ -248,6 +250,8 @@ func run() error {
 
 	grpcHandler := api.NewGRPCServer(db, authenticator, apikeyAuthenticator, jitaClient)
 	grpcServer := grpc.NewServer()
+
+	go grpcHandler.SyncGateways(ctx, triggerGatewaySync)
 
 	pb.RegisterAPIServerServer(grpcServer, grpcHandler)
 

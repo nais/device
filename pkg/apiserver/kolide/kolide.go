@@ -39,16 +39,18 @@ func (c *ClientInterceptor) RequireTransportSecurity() bool {
 }
 
 type Handler struct {
-	kolideClient *kolideclient.KolideClient
-	db           database.APIServer
-	updates      chan<- *pb.Device
+	kolideClient       *kolideclient.KolideClient
+	db                 database.APIServer
+	updates            chan<- *pb.Device
+	triggerGatewaySync chan<- struct{}
 }
 
-func New(kolideApiToken string, db database.APIServer, updates chan *pb.Device) *Handler {
+func New(kolideApiToken string, db database.APIServer, updates chan *pb.Device, triggerGatewaySync chan struct{}) *Handler {
 	return &Handler{
-		kolideClient: kolideclient.New(kolideApiToken),
-		db:           db,
-		updates:      updates,
+		kolideClient:       kolideclient.New(kolideApiToken),
+		db:                 db,
+		updates:            updates,
+		triggerGatewaySync: triggerGatewaySync,
 	}
 }
 
@@ -112,6 +114,7 @@ func (handler *Handler) DeviceEventHandler(ctx context.Context, grpcAddress, grp
 			if err != nil {
 				log.Warningf("update device health: %v", err)
 			}
+			handler.triggerGatewaySync <- struct{}{}
 		}
 	}
 
@@ -144,6 +147,7 @@ func (handler *Handler) Cron(programContext context.Context) {
 					log.Errorf("update device health: %v", err)
 				}
 			}
+			handler.triggerGatewaySync <- struct{}{}
 			cancel()
 
 		case <-programContext.Done():

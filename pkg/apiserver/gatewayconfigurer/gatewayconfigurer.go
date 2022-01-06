@@ -16,9 +16,10 @@ type BucketReader interface {
 }
 
 type GatewayConfigurer struct {
-	DB           database.APIServer
-	BucketReader BucketReader
-	SyncInterval time.Duration
+	DB                 database.APIServer
+	BucketReader       BucketReader
+	SyncInterval       time.Duration
+	TriggerGatewaySync chan<- struct{}
 }
 
 type Route struct {
@@ -38,6 +39,7 @@ func (g *GatewayConfigurer) SyncContinuously(ctx context.Context) {
 			if err := g.SyncConfig(ctx); err != nil {
 				log.Errorf("Synchronizing gateway configuration: %v", err)
 			}
+			g.TriggerGatewaySync <- struct{}{}
 		case <-ctx.Done():
 			return
 		}
