@@ -6,7 +6,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-func CloseReader(r io.ReadCloser) {
+func CloseWithLog(r io.Closer) {
 	err := r.Close()
 	if err != nil {
 		log.Warnf("Could not close reader: %s", err)

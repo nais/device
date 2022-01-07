@@ -84,7 +84,7 @@ func (e *Enroller) fetchGatewayInfos() ([]bootstrap.GatewayInfo, error) {
 		return nil, fmt.Errorf("getting gateway infos: %w", err)
 	}
 
-	defer ioconvenience.CloseReader(r.Body)
+	defer ioconvenience.CloseWithLog(r.Body)
 
 	var gatewayInfos []bootstrap.GatewayInfo
 	err = json.NewDecoder(r.Body).Decode(&gatewayInfos)

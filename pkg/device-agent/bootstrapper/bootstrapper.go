@@ -41,7 +41,7 @@ func postDeviceInfo(url string, deviceInfo *bootstrap.DeviceInfo, client *http.C
 		return fmt.Errorf("posting device info to bootstrap API (%v): %w", url, err)
 	}
 
-	defer ioconvenience.CloseReader(resp.Body)
+	defer ioconvenience.CloseWithLog(resp.Body)
 
 	if resp.StatusCode != http.StatusCreated {
 		body, err := ioutil.ReadAll(resp.Body)
@@ -62,7 +62,7 @@ func getBootstrapConfig(url string, client *http.Client) (*bootstrap.Config, err
 			return nil, err
 		}
 
-		defer ioconvenience.CloseReader(resp.Body)
+		defer ioconvenience.CloseWithLog(resp.Body)
 
 		if resp.StatusCode != 200 {
 			return nil, fmt.Errorf("got statuscode %d from bootstrap api", resp.StatusCode)

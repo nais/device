@@ -22,7 +22,7 @@ func GetGatewayConfig(config Config, client http.Client) (*api.GatewayConfig, er
 		return nil, fmt.Errorf("getting peer config from apiserver: %w", err)
 	}
 
-	defer ioconvenience.CloseReader(resp.Body)
+	defer ioconvenience.CloseWithLog(resp.Body)
 
 	b, err := ioutil.ReadAll(resp.Body)
 	if err != nil {

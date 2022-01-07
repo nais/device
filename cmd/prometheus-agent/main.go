@@ -165,7 +165,7 @@ func getGateways(config Config) ([]Gateway, error) {
 		return nil, fmt.Errorf("getting gateways from apiserver: %w", err)
 	}
 
-	defer ioconvenience.CloseReader(resp.Body)
+	defer ioconvenience.CloseWithLog(resp.Body)
 
 	var gateways []Gateway
 	err = json.NewDecoder(resp.Body).Decode(&gateways)

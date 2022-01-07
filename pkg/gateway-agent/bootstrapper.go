@@ -76,7 +76,7 @@ func postGatewayInfo(url string, gatewayInfo *bootstrap.GatewayInfo, client *htt
 		return fmt.Errorf("posting info to bootstrap API (%v): %w", url, err)
 	}
 
-	defer ioconvenience.CloseReader(resp.Body)
+	defer ioconvenience.CloseWithLog(resp.Body)
 
 	if resp.StatusCode != http.StatusCreated {
 		body, err := ioutil.ReadAll(resp.Body)
@@ -98,7 +98,7 @@ func getBootstrapConfig(url string, client *http.Client) (*bootstrap.Config, err
 		if err != nil {
 			return nil, err
 		}
-		defer ioconvenience.CloseReader(resp.Body)
+		defer ioconvenience.CloseWithLog(resp.Body)
 
 		if resp.StatusCode != 200 {
 			return nil, fmt.Errorf("got statuscode %d from bootstrap-api", resp.StatusCode)

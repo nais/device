@@ -14,6 +14,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/nais/device/pkg/apiserver/bucket"
 	"github.com/nais/device/pkg/version"
 
 	"google.golang.org/grpc"
@@ -216,14 +217,11 @@ func run() error {
 		go en.WatchGatewayEnrollments(ctx)
 	}
 
-	bucket := gatewayconfigurer.GoogleBucketReader{
-		BucketName:       cfg.GatewayConfigBucketName,
-		BucketObjectName: cfg.GatewayConfigBucketObjectName,
-	}
+	buck := bucket.NewClient(cfg.GatewayConfigBucketName, cfg.GatewayConfigBucketObjectName)
 
 	gwc := gatewayconfigurer.GatewayConfigurer{
 		DB:                 db,
-		Bucket:             bucket,
+		Bucket:             buck,
 		SyncInterval:       gatewayConfigSyncInterval,
 		TriggerGatewaySync: triggerGatewaySync,
 	}

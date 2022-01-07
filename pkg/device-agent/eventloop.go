@@ -411,7 +411,7 @@ func newVersionAvailable(ctx context.Context) (bool, error) {
 		return false, fmt.Errorf("retrieve current release version: %s", err)
 	}
 
-	defer ioconvenience.CloseReader(resp.Body)
+	defer ioconvenience.CloseWithLog(resp.Body)
 
 	res := &response{}
 	decoder := json.NewDecoder(resp.Body)

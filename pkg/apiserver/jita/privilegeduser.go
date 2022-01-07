@@ -19,7 +19,7 @@ func (j *client) GetPrivilegedUsersForGateway(gateway string) ([]PrivilegedUser,
 		return nil, fmt.Errorf("getting privileged users: %w", err)
 	}
 
-	defer ioconvenience.CloseReader(resp.Body)
+	defer ioconvenience.CloseWithLog(resp.Body)
 
 	if resp.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("not ok when calling jita: %v", resp.StatusCode)

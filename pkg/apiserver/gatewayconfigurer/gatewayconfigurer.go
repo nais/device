@@ -7,7 +7,9 @@ import (
 	"io"
 	"time"
 
+	"github.com/nais/device/pkg/apiserver/bucket"
 	"github.com/nais/device/pkg/apiserver/database"
+	"github.com/nais/device/pkg/ioconvenience"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -17,7 +19,7 @@ type BucketReader interface {
 
 type GatewayConfigurer struct {
 	DB                 database.APIServer
-	Bucket             Bucket
+	Bucket             bucket.Client
 	SyncInterval       time.Duration
 	TriggerGatewaySync chan<- struct{}
 	lastUpdated        time.Time
@@ -47,29 +49,19 @@ func (g *GatewayConfigurer) SyncContinuously(ctx context.Context) {
 }
 
 func (g *GatewayConfigurer) SyncConfig(ctx context.Context) error {
-	object, err := g.Bucket.Object(ctx)
+	object, err := g.Bucket.Open(ctx)
 	if err != nil {
 		return fmt.Errorf("open bucket: %w", err)
 	}
-
-	attrs, err := object.Attrs(ctx)
-	if err != nil {
-		return fmt.Errorf("reading bucket object attributes: %w", err)
-	}
+	defer ioconvenience.CloseWithLog(object)
 
 	// only update configuration if changed server-side
-	if g.lastUpdated.Equal(attrs.Updated) {
+	if g.lastUpdated.Equal(object.LastUpdated()) {
 		return nil
 	}
 
-	reader, err := object.NewReader(ctx)
-	if err != nil {
-		return fmt.Errorf("reading bucket object data: %w", err)
-	}
-	defer reader.Close()
-
 	var gatewayConfigs map[string]GatewayConfig
-	if err := json.NewDecoder(reader).Decode(&gatewayConfigs); err != nil {
+	if err := json.NewDecoder(object.Reader()).Decode(&gatewayConfigs); err != nil {
 		return fmt.Errorf("unmarshaling gateway config json: %v", err)
 	}
 
@@ -87,7 +79,7 @@ func (g *GatewayConfigurer) SyncConfig(ctx context.Context) error {
 		}
 	}
 
-	g.lastUpdated = attrs.Updated
+	g.lastUpdated = object.LastUpdated()
 	g.TriggerGatewaySync <- struct{}{}
 
 	return nil

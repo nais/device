@@ -90,7 +90,7 @@ func (e *Enroller) fetchDeviceInfos(bootstrapURL string) ([]bootstrap.DeviceInfo
 		return nil, fmt.Errorf("getting device infos: %w", err)
 	}
 
-	defer ioconvenience.CloseReader(r.Body)
+	defer ioconvenience.CloseWithLog(r.Body)
 
 	var deviceInfos []bootstrap.DeviceInfo
 	err = json.NewDecoder(r.Body).Decode(&deviceInfos)
