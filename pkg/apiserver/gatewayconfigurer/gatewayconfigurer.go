@@ -17,9 +17,10 @@ type BucketReader interface {
 
 type GatewayConfigurer struct {
 	DB                 database.APIServer
-	BucketReader       BucketReader
+	Bucket             Bucket
 	SyncInterval       time.Duration
 	TriggerGatewaySync chan<- struct{}
+	lastUpdated        time.Time
 }
 
 type Route struct {
@@ -47,10 +48,26 @@ func (g *GatewayConfigurer) SyncContinuously(ctx context.Context) {
 }
 
 func (g *GatewayConfigurer) SyncConfig(ctx context.Context) error {
-	reader, err := g.BucketReader.ReadBucketObject(ctx)
+	object, err := g.Bucket.Object(ctx)
 	if err != nil {
-		return fmt.Errorf("reading bucket object: %v", err)
+		return fmt.Errorf("open bucket: %w", err)
 	}
+
+	attrs, err := object.Attrs(ctx)
+	if err != nil {
+		return fmt.Errorf("reading bucket object attributes: %w", err)
+	}
+
+	// only update configuration if changed server-side
+	if g.lastUpdated.Equal(attrs.Updated) {
+		return nil
+	}
+
+	reader, err := object.NewReader(ctx)
+	if err != nil {
+		return fmt.Errorf("reading bucket object data: %w", err)
+	}
+	defer reader.Close()
 
 	var gatewayConfigs map[string]GatewayConfig
 	if err := json.NewDecoder(reader).Decode(&gatewayConfigs); err != nil {
@@ -58,10 +75,19 @@ func (g *GatewayConfigurer) SyncConfig(ctx context.Context) error {
 	}
 
 	for gatewayName, gatewayConfig := range gatewayConfigs {
-		if err := g.DB.UpdateGateway(context.Background(), gatewayName, ToCIDRStringSlice(gatewayConfig.Routes), gatewayConfig.AccessGroupIds, gatewayConfig.RequiresPrivilegedAccess); err != nil {
-			return fmt.Errorf("updating gateway: %s with routes: %s and accessGroupIds: %s: %v", gatewayName, gatewayConfig.Routes, gatewayConfig.AccessGroupIds, err)
+		err = g.DB.UpdateGateway(
+			context.Background(),
+			gatewayName,
+			ToCIDRStringSlice(gatewayConfig.Routes),
+			gatewayConfig.AccessGroupIds,
+			gatewayConfig.RequiresPrivilegedAccess,
+		)
+		if err != nil {
+			return fmt.Errorf("updating gateway: %s with routes: %s and accessGroupIds: %s: %w", gatewayName, gatewayConfig.Routes, gatewayConfig.AccessGroupIds, err)
 		}
 	}
+
+	g.lastUpdated = attrs.Updated
 
 	return nil
 }

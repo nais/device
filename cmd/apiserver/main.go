@@ -214,9 +214,14 @@ func run() error {
 		go en.WatchGatewayEnrollments(ctx)
 	}
 
+	bucket := gatewayconfigurer.GoogleBucketReader{
+		BucketName:       cfg.GatewayConfigBucketName,
+		BucketObjectName: cfg.GatewayConfigBucketObjectName,
+	}
+
 	gwc := gatewayconfigurer.GatewayConfigurer{
 		DB:                 db,
-		BucketReader:       gatewayconfigurer.GoogleBucketReader{BucketName: cfg.GatewayConfigBucketName, BucketObjectName: cfg.GatewayConfigBucketObjectName},
+		Bucket:             bucket,
 		SyncInterval:       gatewayConfigSyncInterval,
 		TriggerGatewaySync: triggerGatewaySync,
 	}
