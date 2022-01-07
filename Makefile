@@ -67,13 +67,14 @@ run-postgres:
 	docker-compose up --detach
 
 run-postgres-test:
-	docker run -e POSTGRES_PASSWORD=postgres --rm --name postgres-test -p 5433:5432 -d postgres:12
+	docker run -e POSTGRES_PASSWORD=postgres --name postgres-test -p 5433:5432 -d postgres:12
 
 stop-postgres:
 	docker-compose rm --force --stop
 
 stop-postgres-test:
 	docker stop postgres-test || echo "okidoki"
+	docker rm postgres-test
 
 local-gateway-agent:
 	$(eval config_dir := $(shell mktemp -d))
