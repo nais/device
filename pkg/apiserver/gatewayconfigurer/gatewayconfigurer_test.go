@@ -1,74 +1,60 @@
-// +build integration_test
-
 package gatewayconfigurer_test
 
 import (
 	"context"
 	"fmt"
-	"io"
 	"strings"
 	"testing"
+	"time"
 
+	"github.com/nais/device/pkg/apiserver/bucket"
+	"github.com/nais/device/pkg/apiserver/database"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
 
 	"github.com/nais/device/pkg/apiserver/gatewayconfigurer"
-	"github.com/nais/device/pkg/apiserver/testdatabase"
 )
 
 func TestGatewayConfigurer_SyncConfig(t *testing.T) {
 	t.Run("updates gateway config in database according to bucket definition", func(t *testing.T) {
 		ctx := context.Background()
-		testDB, err := testdatabase.New(ctx, "user=postgres password=postgres host=localhost port=5433 sslmode=disable")
-		assert.NoError(t, err)
-		const gatewayName, route, accessGroupId = "name", "r", "agid"
-		assert.NoError(t, testDB.AddGateway(context.Background(), gatewayName, "", ""))
 
-		bucketReader := MockBucketReader{GatewayConfigs: gatewayConfig(gatewayName, route, accessGroupId, true)}
+		const gatewayName, route, accessGroupId = "name", "r", "agid"
+		const requiresPrivilegedAccess = true
+
+		//bucketReader := MockBucketReader{GatewayConfigs: gatewayConfig(gatewayName, route, accessGroupId, true)}
+		channel := make(chan struct{}, 2)
+		db := &database.MockAPIServer{}
+		mockClient := &bucket.MockClient{}
+		mockObject := &bucket.MockObject{}
+		lastUpdated := time.Now()
+		reader := strings.NewReader(gatewayConfig(gatewayName, route, accessGroupId, requiresPrivilegedAccess))
 
 		gc := gatewayconfigurer.GatewayConfigurer{
-			DB:           testDB,
-			BucketReader: bucketReader,
+			DB:                 db,
+			Bucket:             mockClient,
+			TriggerGatewaySync: channel,
 		}
 
-		gateway, err := testDB.ReadGateway(gatewayName)
-		assert.NoError(t, err)
-		assert.Equal(t, gatewayName, gateway.Name)
-		assert.Nil(t, gateway.Routes)
-		assert.Nil(t, gateway.AccessGroupIDs)
-		assert.False(t, gateway.RequiresPrivilegedAccess)
+		db.On("UpdateGateway",
+			mock.Anything,
+			gatewayName,
+			[]string{route},
+			[]string{accessGroupId},
+			requiresPrivilegedAccess,
+		).Return(nil).Once()
 
-		assert.NoError(t, gc.SyncConfig(context.Background()))
+		mockClient.On("Open", mock.Anything).Return(mockObject, nil).Once()
+		mockObject.On("LastUpdated").Return(lastUpdated).Once()
+		mockObject.On("Reader").Return(reader).Once()
+		mockObject.On("Close").Return(nil).Once()
 
-		updatedGateway, err := testDB.ReadGateway(gatewayName)
+		err := gc.SyncConfig(ctx)
+
 		assert.NoError(t, err)
-		assert.Len(t, updatedGateway.Routes, 1)
-		assert.Equal(t, route, updatedGateway.Routes[0])
-		assert.Len(t, updatedGateway.AccessGroupIDs, 1)
-		assert.Equal(t, accessGroupId, updatedGateway.AccessGroupIDs[0])
-		assert.True(t, updatedGateway.RequiresPrivilegedAccess)
+		assert.Len(t, channel, 1)
+		mock.AssertExpectationsForObjects(t, mockClient, mockObject)
 	})
-
-	t.Run("synchronizing gatewayconfig where gateway not in database is ok", func(t *testing.T) {
-		ctx := context.Background()
-		testDB, err := testdatabase.New(ctx, "user=postgres password=postgres host=localhost port=5433 sslmode=disable")
-
-		assert.NoError(t, err)
-		const gatewayName, route, accessGroupId = "name", "r", "agid"
-
-		bucketReader := MockBucketReader{GatewayConfigs: gatewayConfig(gatewayName, route, accessGroupId, true)}
-
-		gc := gatewayconfigurer.GatewayConfigurer{
-			DB:           testDB,
-			BucketReader: bucketReader,
-		}
-
-		gw, err := testDB.ReadGateway(gatewayName)
-		assert.Error(t, err)
-		assert.Nil(t, gw)
-
-		assert.NoError(t, gc.SyncConfig(context.Background()))
-	})
-
 }
 
 func gatewayConfig(gatewayName string, route string, accessGroupId string, requiresPrivilegedAccess bool) string {
@@ -81,12 +67,4 @@ func gatewayConfig(gatewayName string, route string, accessGroupId string, requi
 				}
 			 }`, gatewayName, route, accessGroupId, requiresPrivilegedAccess)
 	return gatewayConfigs
-}
-
-type MockBucketReader struct {
-	GatewayConfigs string
-}
-
-func (m MockBucketReader) ReadBucketObject(_ context.Context) (io.Reader, error) {
-	return strings.NewReader(m.GatewayConfigs), nil
 }

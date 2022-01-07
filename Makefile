@@ -179,4 +179,4 @@ proto:
 	$(PROTOC) --go-grpc_opt=paths=source_relative --go_opt=paths=source_relative --go_out=. --go-grpc_out=. pkg/pb/protobuf-api.proto
 
 mocks:
-	mockery --case underscore --all --dir pkg/ --output pkg/mocks --recursive
+	mockery --case underscore --all --dir pkg/ --inpackage --recursive

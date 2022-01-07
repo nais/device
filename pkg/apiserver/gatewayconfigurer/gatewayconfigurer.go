@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"io"
 	"time"
 
 	"github.com/nais/device/pkg/apiserver/bucket"
@@ -12,10 +11,6 @@ import (
 	"github.com/nais/device/pkg/ioconvenience"
 	log "github.com/sirupsen/logrus"
 )
-
-type BucketReader interface {
-	ReadBucketObject(ctx context.Context) (io.Reader, error)
-}
 
 type GatewayConfigurer struct {
 	DB                 database.APIServer
@@ -56,7 +51,8 @@ func (g *GatewayConfigurer) SyncConfig(ctx context.Context) error {
 	defer ioconvenience.CloseWithLog(object)
 
 	// only update configuration if changed server-side
-	if g.lastUpdated.Equal(object.LastUpdated()) {
+	lastUpdated := object.LastUpdated()
+	if g.lastUpdated.Equal(lastUpdated) {
 		return nil
 	}
 
@@ -79,7 +75,7 @@ func (g *GatewayConfigurer) SyncConfig(ctx context.Context) error {
 		}
 	}
 
-	g.lastUpdated = object.LastUpdated()
+	g.lastUpdated = lastUpdated
 	g.TriggerGatewaySync <- struct{}{}
 
 	return nil
