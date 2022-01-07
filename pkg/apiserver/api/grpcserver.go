@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"sync"
-	"time"
 
 	"github.com/nais/device/pkg/apiserver/jita"
 	log "github.com/sirupsen/logrus"
@@ -132,33 +131,6 @@ func (s *grpcServer) Login(ctx context.Context, r *pb.APIServerLoginRequest) (*p
 	}, nil
 }
 
-const SendGatewayConfigInterval = 30 * time.Second
-const SendGatewayConfigTimeout = 1 * time.Second // Must not be greater than FullSyncInterval
-func (s *grpcServer) SyncGateways(programContext context.Context, trigger chan struct{}) {
-	ticker := time.NewTicker(time.Second * 1)
-
-	for {
-		select {
-		case <-trigger:
-			ticker.Reset(time.Millisecond)
-		case <-ticker.C:
-			ticker.Reset(SendGatewayConfigInterval)
-			log.Info("Doing full gateway sync")
-			for gateway := range s.gatewayConfigStreams {
-				ctx, cancel := context.WithTimeout(programContext, SendGatewayConfigTimeout)
-				err := s.SendGatewayConfiguration(ctx, gateway)
-				if err != nil {
-					log.Errorf("send gateway config: %s", err)
-				}
-				cancel()
-			}
-		case <-programContext.Done():
-			log.Infof("stopping SyncGateways")
-			return
-		}
-	}
-}
-
 func (s *grpcServer) GetGatewayConfiguration(request *pb.GetGatewayConfigurationRequest, stream pb.APIServer_GetGatewayConfigurationServer) error {
 	err := s.apikeyAuthenticator.Authenticate(request.Gateway, request.Password)
 	if err != nil {
@@ -182,6 +154,16 @@ func (s *grpcServer) GetGatewayConfiguration(request *pb.GetGatewayConfiguration
 	delete(s.gatewayConfigStreams, request.Gateway)
 	s.lock.Unlock()
 
+	return nil
+}
+
+func (s *grpcServer) SendAllGatewayConfigurations(ctx context.Context) error {
+	for gateway := range s.gatewayConfigStreams {
+		err := s.SendGatewayConfiguration(ctx, gateway)
+		if err != nil {
+			return fmt.Errorf("send gateway config: %w", err)
+		}
+	}
 	return nil
 }
 

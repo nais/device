@@ -40,7 +40,6 @@ func (g *GatewayConfigurer) SyncContinuously(ctx context.Context) {
 			if err := g.SyncConfig(ctx); err != nil {
 				log.Errorf("Synchronizing gateway configuration: %v", err)
 			}
-			g.TriggerGatewaySync <- struct{}{}
 		case <-ctx.Done():
 			return
 		}
@@ -82,12 +81,14 @@ func (g *GatewayConfigurer) SyncConfig(ctx context.Context) error {
 			gatewayConfig.AccessGroupIds,
 			gatewayConfig.RequiresPrivilegedAccess,
 		)
+
 		if err != nil {
 			return fmt.Errorf("updating gateway: %s with routes: %s and accessGroupIds: %s: %w", gatewayName, gatewayConfig.Routes, gatewayConfig.AccessGroupIds, err)
 		}
 	}
 
 	g.lastUpdated = attrs.Updated
+	g.TriggerGatewaySync <- struct{}{}
 
 	return nil
 }

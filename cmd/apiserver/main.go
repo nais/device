@@ -43,6 +43,8 @@ import (
 const (
 	gatewayConfigSyncInterval = 1 * time.Minute
 	WireGuardSyncInterval     = 10 * time.Second
+	sendGatewayConfigTimeout  = 5 * time.Second
+	sendDeviceUpdateTimeout   = 5 * time.Second
 )
 
 var (
@@ -171,7 +173,7 @@ func run() error {
 		log.Warnf("WireGuard integration DISABLED! Do not run this configuration in production!")
 	}
 
-	updates := make(chan *pb.Device, 64)
+	deviceUpdates := make(chan *pb.Device, 64)
 	triggerGatewaySync := make(chan struct{}, 64)
 
 	if cfg.KolideSyncEnabled {
@@ -179,7 +181,7 @@ func run() error {
 			return fmt.Errorf("--kolide-api-token %w", errRequiredArgNotSet)
 		}
 
-		kolideHandler := kolide.New(cfg.KolideApiToken, db, updates, triggerGatewaySync)
+		kolideHandler := kolide.New(cfg.KolideApiToken, db, deviceUpdates, triggerGatewaySync)
 		go kolideHandler.Cron(ctx)
 	}
 
@@ -194,7 +196,7 @@ func run() error {
 			return fmt.Errorf("--kolide-event-handler-token %w", errRequiredArgNotSet)
 		}
 
-		kolideHandler := kolide.New(cfg.KolideApiToken, db, updates, triggerGatewaySync)
+		kolideHandler := kolide.New(cfg.KolideApiToken, db, deviceUpdates, triggerGatewaySync)
 		go kolideHandler.DeviceEventHandler(ctx, cfg.KolideEventHandlerAddress, cfg.KolideEventHandlerToken)
 	}
 
@@ -256,8 +258,6 @@ func run() error {
 	grpcHandler := api.NewGRPCServer(db, authenticator, apikeyAuthenticator, jitaClient)
 	grpcServer := grpc.NewServer()
 
-	go grpcHandler.SyncGateways(ctx, triggerGatewaySync)
-
 	pb.RegisterAPIServerServer(grpcServer, grpcHandler)
 
 	grpcListener, err := net.Listen("tcp", cfg.GRPCBindAddress)
@@ -268,16 +268,40 @@ func run() error {
 	// fixme: teardown/restart if this exits
 	go grpcServer.Serve(grpcListener)
 
+	sendDeviceConfig := func(device *pb.Device) {
+		ctx, cancel := context.WithTimeout(ctx, sendDeviceUpdateTimeout)
+		defer cancel()
+
+		session, err := sessions.CachedSessionFromDeviceID(device.Id)
+		log.Debugf("Pushing configuration for device %d, error %s", device.Id, err)
+		if err == nil {
+			err = grpcHandler.SendDeviceConfiguration(ctx, session.GetKey())
+		}
+		if err != nil && !errors.Is(err, api.ErrNoSession) {
+			// fixme: metrics
+			log.Error(err)
+		}
+	}
+
+	sendGatewayUpdates := func() {
+		ctx, cancel := context.WithTimeout(ctx, sendGatewayConfigTimeout)
+		defer cancel()
+
+		err = grpcHandler.SendAllGatewayConfigurations(ctx)
+		if err != nil {
+			// fixme: metrics
+			log.Error(err)
+		}
+	}
+
 	go func() {
 		for {
-			device := <-updates
-			session, err := sessions.CachedSessionFromDeviceID(device.Id)
-			log.Debugf("Pushing configuration for device %d, error %s", device.Id, err)
-			if err == nil {
-				err = grpcHandler.SendDeviceConfiguration(context.TODO(), session.GetKey())
-			}
-			if err != nil && !errors.Is(err, api.ErrNoSession) {
-				log.Error(err)
+			select {
+			case device := <-deviceUpdates:
+				sendDeviceConfig(device)
+
+			case <-triggerGatewaySync:
+				sendGatewayUpdates()
 			}
 		}
 	}()
