@@ -3,6 +3,8 @@
 package mocks
 
 import (
+	context "context"
+
 	pb "github.com/nais/device/pkg/pb"
 	mock "github.com/stretchr/testify/mock"
 )
@@ -24,6 +26,43 @@ func (_m *APIServerServer) GetDeviceConfiguration(_a0 *pb.GetDeviceConfiguration
 	}
 
 	return r0
+}
+
+// GetGatewayConfiguration provides a mock function with given fields: _a0, _a1
+func (_m *APIServerServer) GetGatewayConfiguration(_a0 *pb.GetGatewayConfigurationRequest, _a1 pb.APIServer_GetGatewayConfigurationServer) error {
+	ret := _m.Called(_a0, _a1)
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(*pb.GetGatewayConfigurationRequest, pb.APIServer_GetGatewayConfigurationServer) error); ok {
+		r0 = rf(_a0, _a1)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
+// Login provides a mock function with given fields: _a0, _a1
+func (_m *APIServerServer) Login(_a0 context.Context, _a1 *pb.APIServerLoginRequest) (*pb.APIServerLoginResponse, error) {
+	ret := _m.Called(_a0, _a1)
+
+	var r0 *pb.APIServerLoginResponse
+	if rf, ok := ret.Get(0).(func(context.Context, *pb.APIServerLoginRequest) *pb.APIServerLoginResponse); ok {
+		r0 = rf(_a0, _a1)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*pb.APIServerLoginResponse)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(context.Context, *pb.APIServerLoginRequest) error); ok {
+		r1 = rf(_a0, _a1)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
 }
 
 // mustEmbedUnimplementedAPIServerServer provides a mock function with given fields:
