@@ -3,18 +3,19 @@ package auth_test
 import (
 	"context"
 	"errors"
+	"strconv"
+	"testing"
+
 	"github.com/nais/device/pkg/apiserver/auth"
-	"github.com/nais/device/pkg/mocks"
+	"github.com/nais/device/pkg/apiserver/database"
 	"github.com/nais/device/pkg/pb"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
-	"strconv"
-	"testing"
 )
 
 func TestSessionStore_SetAndGetFromCache(t *testing.T) {
 	ctx := context.Background()
-	db := &mocks.APIServer{}
+	db := &database.MockAPIServer{}
 	store := auth.NewSessionStore(db)
 
 	session := &pb.Session{
@@ -36,7 +37,7 @@ func TestSessionStore_SetAndGetFromCache(t *testing.T) {
 
 func TestSessionStore_GetFromDatabase(t *testing.T) {
 	ctx := context.Background()
-	db := &mocks.APIServer{}
+	db := &database.MockAPIServer{}
 	store := auth.NewSessionStore(db)
 
 	session := &pb.Session{
@@ -61,7 +62,7 @@ func TestSessionStore_GetFromDatabase(t *testing.T) {
 
 func TestSessionStore_Errors(t *testing.T) {
 	ctx := context.Background()
-	db := &mocks.APIServer{}
+	db := &database.MockAPIServer{}
 	store := auth.NewSessionStore(db)
 
 	session := &pb.Session{
@@ -97,7 +98,7 @@ func TestSessionStore_Errors(t *testing.T) {
 
 func TestSessionStore_Warmup(t *testing.T) {
 	ctx := context.Background()
-	db := &mocks.APIServer{}
+	db := &database.MockAPIServer{}
 	store := auth.NewSessionStore(db)
 
 	sessions := make([]*pb.Session, 20)
@@ -124,7 +125,7 @@ func TestSessionStore_Warmup(t *testing.T) {
 
 func TestSessionStore_CachedSessionFromDeviceID(t *testing.T) {
 	ctx := context.Background()
-	db := &mocks.APIServer{}
+	db := &database.MockAPIServer{}
 	store := auth.NewSessionStore(db)
 
 	sessions := make([]*pb.Session, 20)
