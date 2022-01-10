@@ -73,8 +73,7 @@ stop-postgres:
 	docker-compose rm --force --stop
 
 stop-postgres-test:
-	docker stop postgres-test || echo "okidoki"
-	docker rm postgres-test
+	docker stop postgres-test || true && docker rm postgres-test || true
 
 local-gateway-agent:
 	$(eval config_dir := $(shell mktemp -d))
