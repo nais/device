@@ -11,7 +11,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-func SetupInterface(tunnelIP string) error {
+func (nc *networkConfigurer) SetupInterface() error {
 	if err := exec.Command("ip", "link", "del", "wg0").Run(); err != nil {
 		log.Infof("pre-deleting WireGuard interface (ok if this fails): %v", err)
 	}
@@ -32,7 +32,7 @@ func SetupInterface(tunnelIP string) error {
 	commands := [][]string{
 		{"ip", "link", "add", "dev", "wg0", "type", "wireguard"},
 		{"ip", "link", "set", "wg0", "mtu", "1360"},
-		{"ip", "address", "add", "dev", "wg0", tunnelIP + "/21"},
+		{"ip", "address", "add", "dev", "wg0", nc.config.BootstrapConfig.DeviceIP + "/21"},
 		{"ip", "link", "set", "wg0", "up"},
 	}
 
@@ -102,7 +102,7 @@ func (nc *networkConfigurer) ActuateWireGuardConfig(devices []*pb.Device) error 
 	return nil
 }
 
-func ConnectedDeviceCount() (int, error) {
+func (nc *networkConfigurer) ConnectedDeviceCount() (int, error) {
 	output, err := exec.Command("wg", "show", "wg0", "endpoints").Output()
 	if err != nil {
 		return 0, err

@@ -30,7 +30,7 @@ func init() {
 	flag.StringVar(&cfg.PrometheusAddr, "prometheus-address", cfg.PrometheusAddr, "prometheus listen address")
 	flag.StringVar(&cfg.PrometheusPublicKey, "prometheus-public-key", cfg.PrometheusPublicKey, "prometheus public key")
 	flag.StringVar(&cfg.PrometheusTunnelIP, "prometheus-tunnel-ip", cfg.PrometheusTunnelIP, "prometheus tunnel ip")
-	flag.BoolVar(&cfg.DevMode, "development-mode", cfg.DevMode, "development mode avoids setting up interface and configuring WireGuard")
+	flag.BoolVar(&cfg.EnableRouting, "enable-routing", cfg.EnableRouting, "enable-routing enables setting up interface and configuring of WireGuard")
 	flag.StringVar(&cfg.LogLevel, "log-level", "info", "log level")
 	flag.StringVar(&cfg.EnrollmentToken, "enrollment-token", "is not set", "bootstrap-api enrollment token")
 
@@ -67,27 +67,29 @@ func main() {
 
 	log.Info("starting gateway-agent")
 
-	if !cfg.DevMode {
-		if err := g.SetupInterface(cfg.BootstrapConfig.DeviceIP); err != nil {
-			log.Fatalf("setting up interface: %v", err)
-		}
-		var err error
-		cfg.IPTables, err = iptables.New()
+	var netConf g.NetworkConfigurer
+	if cfg.EnableRouting {
+		ipTables, err := iptables.New()
 		if err != nil {
 			log.Fatalf("setting up iptables %v", err)
 		}
-
-		err = g.SetupIptables(cfg)
-		if err != nil {
-			log.Fatalf("Setting up iptables defaults: %v", err)
-		}
+		netConf = g.NewConfigurer(cfg, ipTables)
 	} else {
-		log.Infof("Skipping interface setup")
+		netConf = &g.MockNetworkConfigurer{}
 	}
 
-	netConf := g.NewConfigurer(cfg)
+	err = netConf.SetupInterface()
+	if err != nil {
+		log.Fatalf("setting up interface: %v", err)
+	}
 
-	if err := netConf.ActuateWireGuardConfig(make([]*pb.Device, 0)); err != nil && !cfg.DevMode {
+	err = netConf.SetupIPTables()
+	if err != nil {
+		log.Fatalf("setting up iptables defaults: %v", err)
+	}
+
+	err = netConf.ActuateWireGuardConfig(make([]*pb.Device, 0))
+	if err != nil {
 		log.Fatalf("actuating base config: %v", err)
 	}
 

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/coreos/go-iptables/iptables"
 	"github.com/nais/device/pkg/pb"
 	log "github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
@@ -15,43 +16,47 @@ const syncConfigDialTimeout = 1 * time.Second
 type NetworkConfigurer interface {
 	ActuateWireGuardConfig(devices []*pb.Device) error
 	ForwardRoutes(routes []string) error
+	ConnectedDeviceCount() (int, error)
+	SetupInterface() error
+	SetupIPTables() error
 }
 
 type networkConfigurer struct {
-	config Config
+	config        Config
+	ipTables      *iptables.IPTables
+	interfaceName string
+	interfaceIP   string
 }
 
-func NewConfigurer(config Config) networkConfigurer {
-	return networkConfigurer{
-		config: config,
+func NewConfigurer(config Config, ipTables *iptables.IPTables) NetworkConfigurer {
+	return &networkConfigurer{
+		config:   config,
+		ipTables: ipTables,
 	}
 }
 
-func ApplyGatewayConfig(configurer networkConfigurer, gatewayConfig *pb.GetGatewayConfigurationResponse) {
-
+func ApplyGatewayConfig(configurer NetworkConfigurer, gatewayConfig *pb.GetGatewayConfigurationResponse) error {
 	RegisteredDevices.Set(float64(len(gatewayConfig.Devices)))
-
 	LastSuccessfulConfigFetch.SetToCurrentTime()
-	log.Debugf("%+v\n", gatewayConfig)
-	// skip side-effects for local development
-	if configurer.config.DevMode {
-		return
-	}
-	if c, err := ConnectedDeviceCount(); err != nil {
-		log.Errorf("Getting connected device count: %v", err)
+
+	c, err := configurer.ConnectedDeviceCount()
+	if err != nil {
+		log.Errorf("getting connected device count: %v", err)
 	} else {
 		ConnectedDevices.Set(float64(c))
 	}
 
-	err := configurer.ActuateWireGuardConfig(gatewayConfig.Devices)
+	err = configurer.ActuateWireGuardConfig(gatewayConfig.Devices)
 	if err != nil {
-		log.Errorf("actuating WireGuard config: %v", err)
+		return fmt.Errorf("actuating WireGuard config: %w", err)
 	}
 
 	err = configurer.ForwardRoutes(gatewayConfig.Routes)
 	if err != nil {
-		log.Errorf("forwarding routes: %v", err)
+		return fmt.Errorf("forwarding routes: %w", err)
 	}
+
+	return nil
 }
 
 func GetGatewayConfig(ctx context.Context, config Config) (pb.APIServer_GetGatewayConfigurationClient, error) {
