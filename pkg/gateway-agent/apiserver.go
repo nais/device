@@ -1,45 +1,68 @@
 package gateway_agent
 
 import (
-	"encoding/json"
+	"context"
 	"fmt"
-	"io/ioutil"
-	"net/http"
+	"time"
 
-	"github.com/nais/device/pkg/apiserver/api"
-	"github.com/nais/device/pkg/ioconvenience"
+	"github.com/nais/device/pkg/pb"
+	log "github.com/sirupsen/logrus"
+	"google.golang.org/grpc"
 )
 
-func GetGatewayConfig(config Config, client http.Client) (*api.GatewayConfig, error) {
-	gatewayConfigURL := fmt.Sprintf("http://%s/gatewayconfig", config.BootstrapConfig.APIServerIP)
-	req, err := http.NewRequest(http.MethodGet, gatewayConfigURL, nil)
-	if err != nil {
-		return nil, fmt.Errorf("creating http request: %w", err)
-	}
+const syncConfigDialTimeout = 1 * time.Second
 
-	resp, err := client.Do(req)
-	if err != nil {
-		return nil, fmt.Errorf("getting peer config from apiserver: %w", err)
-	}
-
-	defer ioconvenience.CloseWithLog(resp.Body)
-
-	b, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		return nil, fmt.Errorf("reading bytes, %w", err)
-	}
-
-	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("fetching gatewayConfig from apiserver: %v %v %v", resp.StatusCode, resp.Status, string(b))
-	}
-
-	gatewayConfig := &api.GatewayConfig{}
-	err = json.Unmarshal(b, &gatewayConfig)
-	if err != nil {
-		return nil, fmt.Errorf("unmarshal json from apiserver: bytes: %v, error: %w", string(b), err)
-	}
+func ApplyGatewayConfig(config Config, gatewayConfig *pb.GetGatewayConfigurationResponse, baseConfig string) {
 
 	RegisteredDevices.Set(float64(len(gatewayConfig.Devices)))
 
-	return gatewayConfig, nil
+	LastSuccessfulConfigFetch.SetToCurrentTime()
+	log.Debugf("%+v\n", gatewayConfig)
+	// skip side-effects for local development
+	if config.DevMode {
+		return
+	}
+	if c, err := ConnectedDeviceCount(); err != nil {
+		log.Errorf("Getting connected device count: %v", err)
+	} else {
+		ConnectedDevices.Set(float64(c))
+	}
+	peerConfig := GenerateWireGuardPeers(gatewayConfig.Devices)
+
+	err := ActuateWireGuardConfig(baseConfig+peerConfig, config.WireGuardConfigPath)
+	if err != nil {
+		log.Errorf("actuating WireGuard config: %v", err)
+	}
+
+	err = ForwardRoutes(config, gatewayConfig.Routes)
+	if err != nil {
+		log.Errorf("forwarding routes: %v", err)
+	}
+}
+
+func GetGatewayConfig(ctx context.Context, config Config) (pb.APIServer_GetGatewayConfigurationClient, error) {
+	dialContext, cancel := context.WithTimeout(ctx, syncConfigDialTimeout)
+	defer cancel()
+
+	log.Infof("Attempting gRPC connection to API server on %s...", config.APIServerURL)
+	apiserver, err := grpc.DialContext(
+		dialContext,
+		config.APIServerURL,
+		grpc.WithInsecure(),
+		grpc.WithBlock(),
+		grpc.WithReturnConnectionError(),
+	)
+
+	if err != nil {
+		return nil, fmt.Errorf("connect to api server: %w", err)
+	}
+
+	defer apiserver.Close()
+
+	apiserverClient := pb.NewAPIServerClient(apiserver)
+
+	return apiserverClient.GetGatewayConfiguration(ctx, &pb.GetGatewayConfigurationRequest{
+		Gateway:  config.Name,
+		Password: config.APIServerPassword,
+	})
 }

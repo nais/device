@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"net/http"
 	"path"
 	"path/filepath"
@@ -88,40 +89,25 @@ func main() {
 	if err := g.ActuateWireGuardConfig(baseConfig, cfg.WireGuardConfigPath); err != nil && !cfg.DevMode {
 		log.Fatalf("actuating base config: %v", err)
 	}
-	client := http.Client{Transport: &basicauth.Transport{Username: cfg.Name, Password: cfg.APIServerPassword}}
 
-	for range time.NewTicker(10 * time.Second).C {
-		log.Infof("getting config")
-		gatewayConfig, err := g.GetGatewayConfig(cfg, client)
+	for {
+		ctx, cancel := context.WithCancel(context.Background())
+		stream, err := g.GetGatewayConfig(ctx, cfg)
 		if err != nil {
-			log.Error(err)
-			g.FailedConfigFetches.Inc()
+			log.Errorf("connecting to gateway config stream: %v", err)
+			time.Sleep(1 * time.Second)
+			cancel()
 			continue
 		}
 
-		g.LastSuccessfulConfigFetch.SetToCurrentTime()
-
-		log.Debugf("%+v\n", gatewayConfig)
-
-		// skip side-effects for local development
-		if cfg.DevMode {
-			continue
-		}
-
-		if c, err := g.ConnectedDeviceCount(); err != nil {
-			log.Errorf("Getting connected device count: %v", err)
-		} else {
-			g.ConnectedDevices.Set(float64(c))
-		}
-
-		peerConfig := g.GenerateWireGuardPeers(gatewayConfig.Devices)
-		if err := g.ActuateWireGuardConfig(baseConfig+peerConfig, cfg.WireGuardConfigPath); err != nil {
-			log.Errorf("actuating WireGuard config: %v", err)
-		}
-
-		err = g.ForwardRoutes(cfg, gatewayConfig.Routes)
-		if err != nil {
-			log.Errorf("forwarding routes: %v", err)
+		for {
+			gwConfig, err := stream.Recv()
+			if err != nil {
+				log.Errorf("get gateway config: %v", err)
+				cancel()
+				break
+			}
+			g.ApplyGatewayConfig(cfg, gwConfig, baseConfig)
 		}
 	}
 }
