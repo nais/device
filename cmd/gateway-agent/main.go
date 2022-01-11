@@ -3,9 +3,11 @@ package main
 import (
 	"context"
 	"net/http"
+	"os"
+	"os/signal"
 	"path"
 	"path/filepath"
-	"time"
+	"syscall"
 
 	"github.com/nais/device/pkg/basicauth"
 	g "github.com/nais/device/pkg/gateway-agent"
@@ -93,24 +95,21 @@ func main() {
 		log.Fatalf("actuating base config: %v", err)
 	}
 
-	for {
-		ctx, cancel := context.WithCancel(context.Background())
-		stream, err := g.GetGatewayConfig(ctx, cfg)
-		if err != nil {
-			log.Errorf("connecting to gateway config stream: %v", err)
-			time.Sleep(1 * time.Second)
-			cancel()
-			continue
-		}
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
 
-		for {
-			gwConfig, err := stream.Recv()
-			if err != nil {
-				log.Errorf("get gateway config: %v", err)
-				cancel()
-				break
-			}
-			g.ApplyGatewayConfig(netConf, gwConfig)
+	signals := make(chan os.Signal, 1)
+	signal.Notify(signals, syscall.SIGINT, syscall.SIGTERM)
+
+	go func() {
+		<-signals
+		cancel()
+	}()
+
+	for ctx.Err() != nil {
+		err := g.SyncFromStream(ctx, cfg, netConf)
+		if err != nil {
+			log.Error(err)
 		}
 	}
 }

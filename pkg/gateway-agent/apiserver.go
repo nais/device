@@ -35,31 +35,21 @@ func NewConfigurer(config Config, ipTables *iptables.IPTables) NetworkConfigurer
 	}
 }
 
-func ApplyGatewayConfig(configurer NetworkConfigurer, gatewayConfig *pb.GetGatewayConfigurationResponse) error {
-	RegisteredDevices.Set(float64(len(gatewayConfig.Devices)))
-	LastSuccessfulConfigFetch.SetToCurrentTime()
-
-	c, err := configurer.ConnectedDeviceCount()
+func SyncFromStream(ctx context.Context, config Config, netConf NetworkConfigurer) error {
+	stream, err := setupGatewayConfigStream(ctx, config)
 	if err != nil {
-		log.Errorf("getting connected device count: %v", err)
-	} else {
-		ConnectedDevices.Set(float64(c))
+		return fmt.Errorf("connecting to gateway config stream: %w", err)
 	}
-
-	err = configurer.ActuateWireGuardConfig(gatewayConfig.Devices)
-	if err != nil {
-		return fmt.Errorf("actuating WireGuard config: %w", err)
+	for {
+		gwConfig, err := stream.Recv()
+		if err != nil {
+			return fmt.Errorf("get gateway config: %w", err)
+		}
+		applyGatewayConfig(netConf, gwConfig)
 	}
-
-	err = configurer.ForwardRoutes(gatewayConfig.Routes)
-	if err != nil {
-		return fmt.Errorf("forwarding routes: %w", err)
-	}
-
-	return nil
 }
 
-func GetGatewayConfig(ctx context.Context, config Config) (pb.APIServer_GetGatewayConfigurationClient, error) {
+func setupGatewayConfigStream(ctx context.Context, config Config) (pb.APIServer_GetGatewayConfigurationClient, error) {
 	dialContext, cancel := context.WithTimeout(ctx, syncConfigDialTimeout)
 	defer cancel()
 
@@ -84,4 +74,28 @@ func GetGatewayConfig(ctx context.Context, config Config) (pb.APIServer_GetGatew
 		Gateway:  config.Name,
 		Password: config.APIServerPassword,
 	})
+}
+
+func applyGatewayConfig(configurer NetworkConfigurer, gatewayConfig *pb.GetGatewayConfigurationResponse) error {
+	RegisteredDevices.Set(float64(len(gatewayConfig.Devices)))
+	LastSuccessfulConfigFetch.SetToCurrentTime()
+
+	c, err := configurer.ConnectedDeviceCount()
+	if err != nil {
+		log.Errorf("getting connected device count: %v", err)
+	} else {
+		ConnectedDevices.Set(float64(c))
+	}
+
+	err = configurer.ActuateWireGuardConfig(gatewayConfig.Devices)
+	if err != nil {
+		return fmt.Errorf("actuating WireGuard config: %w", err)
+	}
+
+	err = configurer.ForwardRoutes(gatewayConfig.Routes)
+	if err != nil {
+		return fmt.Errorf("forwarding routes: %w", err)
+	}
+
+	return nil
 }
