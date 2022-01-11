@@ -9,6 +9,7 @@ import (
 
 	"github.com/nais/device/pkg/basicauth"
 	g "github.com/nais/device/pkg/gateway-agent"
+	"github.com/nais/device/pkg/pb"
 
 	"github.com/nais/device/pkg/logger"
 
@@ -84,9 +85,9 @@ func main() {
 		log.Infof("Skipping interface setup")
 	}
 
-	baseConfig := g.GenerateBaseConfig(cfg)
+	netConf := g.NewConfigurer(cfg)
 
-	if err := g.ActuateWireGuardConfig(baseConfig, cfg.WireGuardConfigPath); err != nil && !cfg.DevMode {
+	if err := netConf.ActuateWireGuardConfig(make([]*pb.Device, 0)); err != nil && !cfg.DevMode {
 		log.Fatalf("actuating base config: %v", err)
 	}
 
@@ -107,7 +108,7 @@ func main() {
 				cancel()
 				break
 			}
-			g.ApplyGatewayConfig(cfg, gwConfig, baseConfig)
+			g.ApplyGatewayConfig(netConf, gwConfig)
 		}
 	}
 }

@@ -12,14 +12,29 @@ import (
 
 const syncConfigDialTimeout = 1 * time.Second
 
-func ApplyGatewayConfig(config Config, gatewayConfig *pb.GetGatewayConfigurationResponse, baseConfig string) {
+type NetworkConfigurer interface {
+	ActuateWireGuardConfig(devices []*pb.Device) error
+	ForwardRoutes(routes []string) error
+}
+
+type networkConfigurer struct {
+	config Config
+}
+
+func NewConfigurer(config Config) networkConfigurer {
+	return networkConfigurer{
+		config: config,
+	}
+}
+
+func ApplyGatewayConfig(configurer networkConfigurer, gatewayConfig *pb.GetGatewayConfigurationResponse) {
 
 	RegisteredDevices.Set(float64(len(gatewayConfig.Devices)))
 
 	LastSuccessfulConfigFetch.SetToCurrentTime()
 	log.Debugf("%+v\n", gatewayConfig)
 	// skip side-effects for local development
-	if config.DevMode {
+	if configurer.config.DevMode {
 		return
 	}
 	if c, err := ConnectedDeviceCount(); err != nil {
@@ -27,14 +42,13 @@ func ApplyGatewayConfig(config Config, gatewayConfig *pb.GetGatewayConfiguration
 	} else {
 		ConnectedDevices.Set(float64(c))
 	}
-	peerConfig := GenerateWireGuardPeers(gatewayConfig.Devices)
 
-	err := ActuateWireGuardConfig(baseConfig+peerConfig, config.WireGuardConfigPath)
+	err := configurer.ActuateWireGuardConfig(gatewayConfig.Devices)
 	if err != nil {
 		log.Errorf("actuating WireGuard config: %v", err)
 	}
 
-	err = ForwardRoutes(config, gatewayConfig.Routes)
+	err = configurer.ForwardRoutes(gatewayConfig.Routes)
 	if err != nil {
 		log.Errorf("forwarding routes: %v", err)
 	}

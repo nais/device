@@ -41,20 +41,20 @@ func SetupIptables(cfg Config) error {
 	return nil
 }
 
-func ForwardRoutes(cfg Config, routes []string) error {
+func (nc *networkConfigurer) ForwardRoutes(routes []string) error {
 	var err error
 
 	for _, ip := range routes {
-		err = cfg.IPTables.AppendUnique("nat", "POSTROUTING", "-o", cfg.DefaultInterface, "-p", "tcp", "-d", ip, "-j", "SNAT", "--to-source", cfg.DefaultInterfaceIP)
+		err = nc.config.IPTables.AppendUnique("nat", "POSTROUTING", "-o", nc.config.DefaultInterface, "-p", "tcp", "-d", ip, "-j", "SNAT", "--to-source", nc.config.DefaultInterfaceIP)
 		if err != nil {
 			return fmt.Errorf("setting up snat: %w", err)
 		}
 
-		err = cfg.IPTables.AppendUnique(
+		err = nc.config.IPTables.AppendUnique(
 			"filter",
 			"FORWARD",
 			"--in-interface", "wg0",
-			"--out-interface", cfg.DefaultInterface,
+			"--out-interface", nc.config.DefaultInterface,
 			"--protocol", "tcp",
 			"--syn",
 			"--destination", ip,

@@ -2,10 +2,11 @@ package gateway_agent
 
 import (
 	"fmt"
-	"github.com/nais/device/pkg/pb"
 	"io/ioutil"
 	"os/exec"
 	"regexp"
+
+	"github.com/nais/device/pkg/pb"
 
 	log "github.com/sirupsen/logrus"
 )
@@ -51,10 +52,17 @@ Endpoint = %s
 [Peer] # prometheus
 PublicKey = %s
 AllowedIPs = %s/32
-
 `
 
-	return fmt.Sprintf(template, cfg.PrivateKey, cfg.BootstrapConfig.PublicKey, cfg.BootstrapConfig.APIServerIP, cfg.BootstrapConfig.TunnelEndpoint, cfg.PrometheusPublicKey, cfg.PrometheusTunnelIP)
+	return fmt.Sprintf(
+		template,
+		cfg.PrivateKey,
+		cfg.BootstrapConfig.PublicKey,
+		cfg.BootstrapConfig.APIServerIP,
+		cfg.BootstrapConfig.TunnelEndpoint,
+		cfg.PrometheusPublicKey,
+		cfg.PrometheusTunnelIP,
+	)
 }
 
 func GenerateWireGuardPeers(devices []*pb.Device) string {
@@ -72,18 +80,24 @@ AllowedIPs = %s
 }
 
 // ActuateWireGuardConfig runs syncconfig with the provided WireGuard config
-func ActuateWireGuardConfig(wireGuardConfig, wireGuardConfigPath string) error {
-	if err := ioutil.WriteFile(wireGuardConfigPath, []byte(wireGuardConfig), 0600); err != nil {
+func (nc *networkConfigurer) ActuateWireGuardConfig(devices []*pb.Device) error {
+	wireGuardConfig := fmt.Sprintf(
+		"%s%s",
+		GenerateBaseConfig(nc.config),
+		GenerateWireGuardPeers(devices),
+	)
+
+	if err := ioutil.WriteFile(nc.config.WireGuardConfigPath, []byte(wireGuardConfig), 0600); err != nil {
 		return fmt.Errorf("writing WireGuard config to disk: %w", err)
 	}
 
-	cmd := exec.Command("wg", "syncconf", "wg0", wireGuardConfigPath)
+	cmd := exec.Command("wg", "syncconf", "wg0", nc.config.WireGuardConfigPath)
 
 	if err := cmd.Run(); err != nil {
 		return fmt.Errorf("running syncconf: %w", err)
 	}
 
-	log.Debugf("Actuated WireGuard config: %v", wireGuardConfigPath)
+	log.Debugf("Actuated WireGuard config: %v", nc.config.WireGuardConfigPath)
 
 	return nil
 }
