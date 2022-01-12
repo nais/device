@@ -163,6 +163,10 @@ pkg: app
 deb: linux-client linux-icon
 	./packaging/linux/build-deb $(VERSION)
 
+controlplane-deb: controlplane
+	./packaging/controlplane/*/build-deb $(VERSION)
+
+
 clean:
 	rm -rf wireguard-go-*
 	rm -rf wireguard-tools-*

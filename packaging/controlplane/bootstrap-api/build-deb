@@ -1,0 +1,23 @@
+#!/bin/bash
+
+set -o errexit
+set -o pipefail
+set -o nounset
+
+rm -f ./*.deb
+
+fpm \
+  --verbose \
+  --output-type deb \
+  --input-type dir \
+  --name bootstrap-api \
+  --version "${1:-Unknown}" \
+  --vendor "NAV / nais team" \
+  --maintainer "NAV / nais team" \
+  --description "naisdevice bootstrap-api receives naisdevice bootstrap requests, and provide them to a naisdevice apiserver." \
+  --url https://github.com/nais/device \
+  --deb-systemd packaging/controlplane/bootstrap-api/bootstrap-api.service \
+  --deb-systemd-enable \
+  --deb-systemd-auto-start \
+  --deb-systemd-restart-after-upgrade \
+  bin/controlplane/bootstrap-api=/usr/bin/bootstrap-api \
