@@ -46,7 +46,7 @@ func (e *Enroller) EnrollDevice(ctx context.Context) error {
 			return fmt.Errorf("bootstrap: Adding device: %v", err)
 		}
 
-		device, err := e.DB.ReadDevice(enrollment.PublicKey)
+		device, err := e.DB.ReadDevice(ctx, enrollment.PublicKey)
 		if err != nil {
 			return fmt.Errorf("bootstrap: Getting device: %v", err)
 		}

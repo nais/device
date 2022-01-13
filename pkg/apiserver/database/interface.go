@@ -7,15 +7,15 @@ import (
 )
 
 type APIServer interface {
-	ReadDevices() ([]*pb.Device, error)
+	ReadDevices(ctx context.Context) ([]*pb.Device, error)
 	UpdateDevices(ctx context.Context, devices []*pb.Device) error
 	UpdateGateway(ctx context.Context, name string, routes, accessGroupIDs []string, requiresPrivilegedAccess bool) error
 	AddGateway(ctx context.Context, name, endpoint, publicKey string) error
 	AddDevice(ctx context.Context, device *pb.Device) error
-	ReadDevice(publicKey string) (*pb.Device, error)
+	ReadDevice(ctx context.Context, publicKey string) (*pb.Device, error)
 	ReadDeviceById(ctx context.Context, deviceID int64) (*pb.Device, error)
-	ReadGateways() ([]*pb.Gateway, error)
-	ReadGateway(name string) (*pb.Gateway, error)
+	ReadGateways(ctx context.Context) ([]*pb.Gateway, error)
+	ReadGateway(ctx context.Context, name string) (*pb.Gateway, error)
 	ReadDeviceBySerialPlatform(ctx context.Context, serial string, platform string) (*pb.Device, error)
 	AddSessionInfo(ctx context.Context, si *pb.Session) error
 	ReadSessionInfo(ctx context.Context, key string) (*pb.Session, error)

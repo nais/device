@@ -1,3 +1,4 @@
+//go:build integration_test
 // +build integration_test
 
 package database_test
@@ -5,6 +6,7 @@ package database_test
 import (
 	"context"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 
@@ -13,8 +15,12 @@ import (
 	"github.com/nais/device/pkg/pb"
 )
 
+const timeout = 2 * time.Second
+
 func setup(t *testing.T) database.APIServer {
-	ctx := context.Background()
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	defer cancel()
+
 	db, err := testdatabase.New(ctx, "user=postgres password=postgres host=localhost port=5433 sslmode=disable")
 	if err != nil {
 		t.Fatalf("Instantiating database: %v", err)
@@ -25,7 +31,9 @@ func setup(t *testing.T) database.APIServer {
 func TestAddGateway(t *testing.T) {
 	db := setup(t)
 
-	ctx := context.Background()
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	defer cancel()
+
 	g := pb.Gateway{
 		Endpoint:  "1.2.3.4:56789",
 		PublicKey: "publicKey",
@@ -36,7 +44,7 @@ func TestAddGateway(t *testing.T) {
 		err := db.AddGateway(ctx, g.Name, g.Endpoint, g.PublicKey)
 		assert.NoError(t, err)
 
-		gateway, err := db.ReadGateway(g.Name)
+		gateway, err := db.ReadGateway(ctx, g.Name)
 		assert.NoError(t, err)
 
 		assert.Equal(t, g.Name, gateway.Name)
@@ -46,13 +54,13 @@ func TestAddGateway(t *testing.T) {
 	})
 
 	t.Run("adding a gateway with same name as existing fails", func(t *testing.T) {
-		existingGateway, err := db.ReadGateway(g.Name)
+		existingGateway, err := db.ReadGateway(ctx, g.Name)
 		assert.NoError(t, err)
 		assert.Error(t, db.AddGateway(ctx, existingGateway.Name, existingGateway.Endpoint, existingGateway.PublicKey))
 	})
 
 	t.Run("updating existing gateway works", func(t *testing.T) {
-		existingGateway, err := db.ReadGateway(g.Name)
+		existingGateway, err := db.ReadGateway(ctx, g.Name)
 		assert.NoError(t, err)
 
 		assert.Nil(t, existingGateway.Routes)
@@ -63,7 +71,7 @@ func TestAddGateway(t *testing.T) {
 
 		assert.NoError(t, db.UpdateGateway(ctx, existingGateway.Name, routes, accessGroupIDs, true))
 
-		updatedGateway, err := db.ReadGateway(g.Name)
+		updatedGateway, err := db.ReadGateway(ctx, g.Name)
 		assert.NoError(t, err)
 
 		assert.Equal(t, routes, updatedGateway.Routes)
@@ -81,13 +89,15 @@ func TestAddGateway(t *testing.T) {
 func TestAddDevice(t *testing.T) {
 	db := setup(t)
 
-	ctx := context.Background()
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	defer cancel()
+
 	serial := "serial"
 	d := &pb.Device{Username: "username", PublicKey: "publickey", Serial: serial, Platform: "darwin"}
 	err := db.AddDevice(ctx, d)
 	assert.NoError(t, err)
 
-	device, err := db.ReadDevice(d.PublicKey)
+	device, err := db.ReadDevice(ctx, d.PublicKey)
 	assert.NoError(t, err)
 	assert.Equal(t, d.Username, device.Username)
 	assert.Equal(t, d.PublicKey, device.PublicKey)
@@ -103,7 +113,7 @@ func TestAddDevice(t *testing.T) {
 	err = db.AddDevice(ctx, dUpdated)
 	assert.NoError(t, err)
 
-	device, err = db.ReadDevice(newPublicKey)
+	device, err = db.ReadDevice(ctx, newPublicKey)
 	assert.NoError(t, err)
 	assert.Equal(t, dUpdated.Username, device.Username)
 	assert.Equal(t, dUpdated.PublicKey, device.PublicKey)

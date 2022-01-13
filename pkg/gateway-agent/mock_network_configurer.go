@@ -12,8 +12,8 @@ type MockNetworkConfigurer struct {
 	mock.Mock
 }
 
-// ActuateWireGuardConfig provides a mock function with given fields: devices
-func (_m *MockNetworkConfigurer) ActuateWireGuardConfig(devices []*pb.Device) error {
+// ApplyWireGuardConfig provides a mock function with given fields: devices
+func (_m *MockNetworkConfigurer) ApplyWireGuardConfig(devices []*pb.Device) error {
 	ret := _m.Called(devices)
 
 	var r0 error

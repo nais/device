@@ -79,8 +79,8 @@ AllowedIPs = %s
 	return peers
 }
 
-// ActuateWireGuardConfig runs syncconfig with the provided WireGuard config
-func (nc *networkConfigurer) ActuateWireGuardConfig(devices []*pb.Device) error {
+// ApplyWireGuardConfig runs syncconfig with the provided WireGuard config
+func (nc *networkConfigurer) ApplyWireGuardConfig(devices []*pb.Device) error {
 	wireGuardConfig := fmt.Sprintf(
 		"%s%s",
 		GenerateBaseConfig(nc.config),

@@ -13,8 +13,10 @@ import (
 
 const syncConfigDialTimeout = 1 * time.Second
 
+type ErrGRPCConnection error
+
 type NetworkConfigurer interface {
-	ActuateWireGuardConfig(devices []*pb.Device) error
+	ApplyWireGuardConfig(devices []*pb.Device) error
 	ForwardRoutes(routes []string) error
 	ConnectedDeviceCount() (int, error)
 	SetupInterface() error
@@ -36,20 +38,6 @@ func NewConfigurer(config Config, ipTables *iptables.IPTables) NetworkConfigurer
 }
 
 func SyncFromStream(ctx context.Context, config Config, netConf NetworkConfigurer) error {
-	stream, err := setupGatewayConfigStream(ctx, config)
-	if err != nil {
-		return fmt.Errorf("connecting to gateway config stream: %w", err)
-	}
-	for {
-		gwConfig, err := stream.Recv()
-		if err != nil {
-			return fmt.Errorf("get gateway config: %w", err)
-		}
-		applyGatewayConfig(netConf, gwConfig)
-	}
-}
-
-func setupGatewayConfigStream(ctx context.Context, config Config) (pb.APIServer_GetGatewayConfigurationClient, error) {
 	dialContext, cancel := context.WithTimeout(ctx, syncConfigDialTimeout)
 	defer cancel()
 
@@ -63,17 +51,39 @@ func setupGatewayConfigStream(ctx context.Context, config Config) (pb.APIServer_
 	)
 
 	if err != nil {
-		return nil, fmt.Errorf("connect to api server: %w", err)
+		return fmt.Errorf("connect to api server: %w", err)
 	}
+
+	log.Infof("Connected to API server")
 
 	defer apiserver.Close()
 
 	apiserverClient := pb.NewAPIServerClient(apiserver)
 
-	return apiserverClient.GetGatewayConfiguration(ctx, &pb.GetGatewayConfigurationRequest{
+	stream, err := apiserverClient.GetGatewayConfiguration(ctx, &pb.GetGatewayConfigurationRequest{
 		Gateway:  config.Name,
 		Password: config.APIServerPassword,
 	})
+
+	if err != nil {
+		return err
+	}
+
+	log.Infof("Authenticated with API server and streaming configuration updates.")
+
+	for {
+		gwConfig, err := stream.Recv()
+		if err != nil {
+			return fmt.Errorf("get gateway config: %w", err)
+		}
+
+		log.Infof("Received updated configuration.")
+
+		err = applyGatewayConfig(netConf, gwConfig)
+		if err != nil {
+			return fmt.Errorf("apply gateway config: %w", err)
+		}
+	}
 }
 
 func applyGatewayConfig(configurer NetworkConfigurer, gatewayConfig *pb.GetGatewayConfigurationResponse) error {
@@ -87,7 +97,7 @@ func applyGatewayConfig(configurer NetworkConfigurer, gatewayConfig *pb.GetGatew
 		ConnectedDevices.Set(float64(c))
 	}
 
-	err = configurer.ActuateWireGuardConfig(gatewayConfig.Devices)
+	err = configurer.ApplyWireGuardConfig(gatewayConfig.Devices)
 	if err != nil {
 		return fmt.Errorf("actuating WireGuard config: %w", err)
 	}

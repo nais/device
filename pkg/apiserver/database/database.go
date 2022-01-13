@@ -49,9 +49,7 @@ func New(dsn, driver string) (*apiServerDB, error) {
 	return &apiServerDB, nil
 }
 
-func (db *apiServerDB) ReadDevices() ([]*pb.Device, error) {
-	ctx := context.Background()
-
+func (db *apiServerDB) ReadDevices(ctx context.Context) ([]*pb.Device, error) {
 	query := fmt.Sprintf("SELECT %s FROM device;", DeviceFields)
 
 	rows, err := db.conn.QueryContext(ctx, query)
@@ -136,7 +134,7 @@ func (db *apiServerDB) AddGateway(ctx context.Context, name, endpoint, publicKey
 	}
 
 	defer tx.Rollback()
-	takenIps, err := db.readExistingIPs()
+	takenIps, err := db.readExistingIPs(ctx)
 	if err != nil {
 		return fmt.Errorf("reading existing ips: %w", err)
 	}
@@ -172,7 +170,7 @@ func (db *apiServerDB) AddDevice(ctx context.Context, device *pb.Device) error {
 	}
 
 	defer tx.Rollback()
-	ips, err := db.readExistingIPs()
+	ips, err := db.readExistingIPs(ctx)
 	if err != nil {
 		return fmt.Errorf("reading existing ips: %w", err)
 	}
@@ -215,9 +213,7 @@ SELECT id
 	return nil
 }
 
-func (db *apiServerDB) ReadDevice(publicKey string) (*pb.Device, error) {
-	ctx := context.Background()
-
+func (db *apiServerDB) ReadDevice(ctx context.Context, publicKey string) (*pb.Device, error) {
 	query := fmt.Sprintf("SELECT %s FROM device WHERE public_key = $1;", DeviceFields)
 
 	row := db.conn.QueryRowContext(ctx, query, publicKey)
@@ -233,9 +229,7 @@ func (db *apiServerDB) ReadDeviceById(ctx context.Context, deviceID int64) (*pb.
 	return scanDevice(row)
 }
 
-func (db *apiServerDB) ReadGateways() ([]*pb.Gateway, error) {
-	ctx := context.Background()
-
+func (db *apiServerDB) ReadGateways(ctx context.Context) ([]*pb.Gateway, error) {
 	query := fmt.Sprintf("SELECT %s FROM gateway;", GatewayFields)
 
 	rows, err := db.conn.QueryContext(ctx, query)
@@ -261,21 +255,19 @@ func (db *apiServerDB) ReadGateways() ([]*pb.Gateway, error) {
 
 }
 
-func (db *apiServerDB) ReadGateway(name string) (*pb.Gateway, error) {
-	ctx := context.Background()
-
+func (db *apiServerDB) ReadGateway(ctx context.Context, name string) (*pb.Gateway, error) {
 	query := fmt.Sprintf("SELECT %s FROM gateway WHERE name = $1;", GatewayFields)
 	row := db.conn.QueryRowContext(ctx, query, name)
 
 	return scanGateway(row)
 }
 
-func (db *apiServerDB) readExistingIPs() ([]string, error) {
+func (db *apiServerDB) readExistingIPs(ctx context.Context) ([]string, error) {
 	ips := []string{
 		"10.255.240.1", // reserve apiserver ip
 	}
 
-	if devices, err := db.ReadDevices(); err != nil {
+	if devices, err := db.ReadDevices(ctx); err != nil {
 		return nil, fmt.Errorf("reading devices: %w", err)
 	} else {
 		for _, device := range devices {
@@ -283,7 +275,7 @@ func (db *apiServerDB) readExistingIPs() ([]string, error) {
 		}
 	}
 
-	if gateways, err := db.ReadGateways(); err != nil {
+	if gateways, err := db.ReadGateways(ctx); err != nil {
 		return nil, fmt.Errorf("reading gateways: %w", err)
 	} else {
 		for _, gateway := range gateways {

@@ -1,3 +1,4 @@
+//go:build integration_test
 // +build integration_test
 
 package api_test
@@ -190,7 +191,7 @@ func addDevice(t *testing.T, db database.APIServer, ctx context.Context, serial,
 		}
 	}
 
-	deviceWithId, err := db.ReadDevice(device.PublicKey)
+	deviceWithId, err := db.ReadDevice(ctx, device.PublicKey)
 	if err != nil {
 		t.Fatalf("Reading device: %v", err)
 	}
@@ -235,7 +236,7 @@ func TestGetDeviceConfigSessionNotInCache(t *testing.T) {
 	assert.NoError(t, err)
 
 	// Read from db as we need the device ID
-	databaseDevice, err := db.ReadDevice(device.PublicKey)
+	databaseDevice, err := db.ReadDevice(ctx, device.PublicKey)
 	if err != nil {
 		t.Fatalf("Reading device from db: %v", err)
 	}

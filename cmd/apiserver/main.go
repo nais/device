@@ -367,7 +367,11 @@ func SyncLoop(w wireguard.WireGuard) {
 
 	ticker := time.NewTicker(WireGuardSyncInterval)
 	for range ticker.C {
-		err := w.Sync()
+		ctx, cancel := context.WithTimeout(context.Background(), WireGuardSyncInterval)
+
+		err := w.Sync(ctx)
+		cancel()
+
 		if err != nil {
 			log.Errorf("syncing wg config: %s", err)
 		}

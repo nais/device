@@ -32,8 +32,7 @@ type GatewayConfig struct {
 func (a *api) gatewayConfig(w http.ResponseWriter, r *http.Request) {
 	gatewayName, _, _ := r.BasicAuth()
 
-	ctx := context.Background()
-	sessionInfos, err := a.db.ReadSessionInfos(ctx)
+	sessionInfos, err := a.db.ReadSessionInfos(r.Context())
 
 	if err != nil {
 		log.Errorf("reading session infos from database: %v", err)
@@ -41,7 +40,7 @@ func (a *api) gatewayConfig(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	gateway, err := a.db.ReadGateway(gatewayName)
+	gateway, err := a.db.ReadGateway(r.Context(), gatewayName)
 	if err != nil {
 		log.Errorf("reading gateway from database: %v", err)
 		respondf(w, http.StatusInternalServerError, "failed getting gateway config")
@@ -126,8 +125,8 @@ func authorized(gatewayGroups []string, sessions []*pb.Session) []*pb.Device {
 	return authorizedDevices
 }
 
-func (a *api) devices(w http.ResponseWriter, _ *http.Request) {
-	devices, err := a.db.ReadDevices()
+func (a *api) devices(w http.ResponseWriter, r *http.Request) {
+	devices, err := a.db.ReadDevices(r.Context())
 
 	if err != nil {
 		log.Errorf("Reading devices from database: %s", err)
@@ -143,9 +142,9 @@ func (a *api) devices(w http.ResponseWriter, _ *http.Request) {
 	}
 }
 
-func (a *api) gateways(w http.ResponseWriter, _ *http.Request) {
+func (a *api) gateways(w http.ResponseWriter, r *http.Request) {
 	//serial := chi.URLParam(r, "serial")
-	gateways, err := a.db.ReadGateways()
+	gateways, err := a.db.ReadGateways(r.Context())
 	if err != nil {
 		log.Errorf("reading gateways: %v", err)
 		respondf(w, http.StatusInternalServerError, "unable to get device config\n")
@@ -186,7 +185,7 @@ func (a *api) deviceConfig(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	gateways, err := a.UserGateways(sessionInfo.Groups)
+	gateways, err := a.UserGateways(r.Context(), sessionInfo.Groups)
 
 	w.WriteHeader(http.StatusOK)
 	err = json.NewEncoder(w).Encode(gateways)
@@ -206,8 +205,8 @@ func (a *api) deviceConfig(w http.ResponseWriter, r *http.Request) {
 	logWithFields.Debugf("Successfully returned config to device")
 }
 
-func (a *api) UserGateways(userGroups []string) ([]*pb.Gateway, error) {
-	gateways, err := a.db.ReadGateways()
+func (a *api) UserGateways(ctx context.Context, userGroups []string) ([]*pb.Gateway, error) {
+	gateways, err := a.db.ReadGateways(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("reading gateways from db: %v", err)
 	}

@@ -1,6 +1,7 @@
 package wireguard
 
 import (
+	"context"
 	"fmt"
 	"io/ioutil"
 	"os/exec"
@@ -14,7 +15,7 @@ import (
 )
 
 type WireGuard interface {
-	Sync() error
+	Sync(ctx context.Context) error
 }
 
 type wireguard struct {
@@ -31,14 +32,14 @@ func New(config config.Config, db database.APIServer, privateKey string) WireGua
 	}
 }
 
-func (w wireguard) Sync() error {
+func (w wireguard) Sync(ctx context.Context) error {
 	log.Debug("Synchronizing configuration")
-	devices, err := w.db.ReadDevices()
+	devices, err := w.db.ReadDevices(ctx)
 	if err != nil {
 		return fmt.Errorf("reading devices from database: %w", err)
 	}
 
-	gateways, err := w.db.ReadGateways()
+	gateways, err := w.db.ReadGateways(ctx)
 	if err != nil {
 		return fmt.Errorf("reading gateways from database: %w", err)
 	}
@@ -51,7 +52,7 @@ func (w wireguard) Sync() error {
 		log.Debugf("Successfully wrote WireGuard config to: %v", w.cfg.WireGuardConfigPath)
 	}
 
-	syncConf := exec.Command("wg", "syncconf", "wg0", w.cfg.WireGuardConfigPath)
+	syncConf := exec.CommandContext(ctx, "wg", "syncconf", "wg0", w.cfg.WireGuardConfigPath)
 	b, err := syncConf.CombinedOutput()
 	if err != nil {
 		return fmt.Errorf("synchronizing WireGuard config: %w: %v", err, string(b))

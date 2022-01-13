@@ -1,3 +1,4 @@
+//go:build integration_test
 // +build integration_test
 
 package enroller_test
@@ -10,6 +11,7 @@ import (
 	"net/http/httptest"
 	"sync"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 
@@ -28,6 +30,7 @@ const (
 	devicePublicKey    = "publicKey"
 	devicePlatform     = "linux"
 	deviceOwner        = "me"
+	timeout            = 5 * time.Second
 )
 
 func TestWatchGatewayEnrollments(t *testing.T) {
@@ -72,7 +75,9 @@ func TestWatchGatewayEnrollments(t *testing.T) {
 
 		fmt.Fprint(w, `[]`)
 	})
-	ctx := context.Background()
+
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	defer cancel()
 
 	testDB, err := testdatabase.New(ctx, "user=postgres password=postgres host=localhost port=5433 sslmode=disable")
 	assert.NoError(t, err)
@@ -85,9 +90,9 @@ func TestWatchGatewayEnrollments(t *testing.T) {
 		APIServerEndpoint:  endpoint,
 	}
 
-	assert.NoError(t, enr.EnrollGateways(context.Background()))
+	assert.NoError(t, enr.EnrollGateways(ctx))
 
-	gateway, err := testDB.ReadGateway(gatewayName)
+	gateway, err := testDB.ReadGateway(ctx, gatewayName)
 	assert.NoError(t, err)
 
 	assert.Equal(t, gatewayEndpoint, gateway.Endpoint)
@@ -141,7 +146,10 @@ func TestWatchDeviceEnrollments(t *testing.T) {
 
 		fmt.Fprint(w, `[]`)
 	})
-	ctx := context.Background()
+
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	defer cancel()
+
 	testDB, err := testdatabase.New(ctx, "user=postgres password=postgres host=localhost port=5433 sslmode=disable")
 	assert.NoError(t, err)
 	server := httptest.NewServer(mux)
@@ -155,7 +163,7 @@ func TestWatchDeviceEnrollments(t *testing.T) {
 
 	assert.NoError(t, enr.EnrollDevice(context.Background()))
 
-	device, err := testDB.ReadDevice(devicePublicKey)
+	device, err := testDB.ReadDevice(ctx, devicePublicKey)
 	assert.NoError(t, err)
 
 	assert.Equal(t, devicePlatform, device.Platform)

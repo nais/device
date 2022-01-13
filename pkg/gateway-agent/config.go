@@ -1,7 +1,6 @@
 package gateway_agent
 
 import (
-	"fmt"
 	"io/ioutil"
 
 	"github.com/nais/device/pkg/bootstrap"
@@ -30,27 +29,17 @@ type Config struct {
 
 func DefaultConfig() Config {
 	return Config{
-		ConfigDir:       "/usr/local/etc/nais-device",
-		PrometheusAddr:  ":3000",
+		APIServerURL:    "127.0.0.1:8099",
 		BootstrapApiURL: "https://bootstrap.device.nais.io",
-		LogLevel:        "info",
+		ConfigDir:       "/usr/local/etc/nais-device",
+		LogLevel:        "debug",
+		PrometheusAddr:  "127.0.0.1:3000",
 	}
 }
 
 func (c *Config) InitLocalConfig() error {
-	var err error
-	c.PrivateKey, err = readFileToString(c.PrivateKeyPath)
-	if err != nil {
-		return fmt.Errorf("reading private key: %s", err)
-	}
-	c.APIServerPassword, err = readFileToString(c.APIServerPasswordPath)
-	if err != nil {
-		return fmt.Errorf("reading API server password: %s", err)
-	}
-	if len(c.APIServerPassword) == 0 {
-		return fmt.Errorf("API server password file empty: %s", c.APIServerPasswordPath)
-	}
-
+	c.PrivateKey, _ = readFileToString(c.PrivateKeyPath)
+	c.APIServerPassword, _ = readFileToString(c.APIServerPasswordPath)
 	return nil
 }
 

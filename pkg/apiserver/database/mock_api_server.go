@@ -70,13 +70,13 @@ func (_m *MockAPIServer) Migrate(ctx context.Context) error {
 	return r0
 }
 
-// ReadDevice provides a mock function with given fields: publicKey
-func (_m *MockAPIServer) ReadDevice(publicKey string) (*pb.Device, error) {
-	ret := _m.Called(publicKey)
+// ReadDevice provides a mock function with given fields: ctx, publicKey
+func (_m *MockAPIServer) ReadDevice(ctx context.Context, publicKey string) (*pb.Device, error) {
+	ret := _m.Called(ctx, publicKey)
 
 	var r0 *pb.Device
-	if rf, ok := ret.Get(0).(func(string) *pb.Device); ok {
-		r0 = rf(publicKey)
+	if rf, ok := ret.Get(0).(func(context.Context, string) *pb.Device); ok {
+		r0 = rf(ctx, publicKey)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).(*pb.Device)
@@ -84,8 +84,8 @@ func (_m *MockAPIServer) ReadDevice(publicKey string) (*pb.Device, error) {
 	}
 
 	var r1 error
-	if rf, ok := ret.Get(1).(func(string) error); ok {
-		r1 = rf(publicKey)
+	if rf, ok := ret.Get(1).(func(context.Context, string) error); ok {
+		r1 = rf(ctx, publicKey)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -139,13 +139,13 @@ func (_m *MockAPIServer) ReadDeviceBySerialPlatform(ctx context.Context, serial 
 	return r0, r1
 }
 
-// ReadDevices provides a mock function with given fields:
-func (_m *MockAPIServer) ReadDevices() ([]*pb.Device, error) {
-	ret := _m.Called()
+// ReadDevices provides a mock function with given fields: ctx
+func (_m *MockAPIServer) ReadDevices(ctx context.Context) ([]*pb.Device, error) {
+	ret := _m.Called(ctx)
 
 	var r0 []*pb.Device
-	if rf, ok := ret.Get(0).(func() []*pb.Device); ok {
-		r0 = rf()
+	if rf, ok := ret.Get(0).(func(context.Context) []*pb.Device); ok {
+		r0 = rf(ctx)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).([]*pb.Device)
@@ -153,8 +153,8 @@ func (_m *MockAPIServer) ReadDevices() ([]*pb.Device, error) {
 	}
 
 	var r1 error
-	if rf, ok := ret.Get(1).(func() error); ok {
-		r1 = rf()
+	if rf, ok := ret.Get(1).(func(context.Context) error); ok {
+		r1 = rf(ctx)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -162,13 +162,13 @@ func (_m *MockAPIServer) ReadDevices() ([]*pb.Device, error) {
 	return r0, r1
 }
 
-// ReadGateway provides a mock function with given fields: name
-func (_m *MockAPIServer) ReadGateway(name string) (*pb.Gateway, error) {
-	ret := _m.Called(name)
+// ReadGateway provides a mock function with given fields: ctx, name
+func (_m *MockAPIServer) ReadGateway(ctx context.Context, name string) (*pb.Gateway, error) {
+	ret := _m.Called(ctx, name)
 
 	var r0 *pb.Gateway
-	if rf, ok := ret.Get(0).(func(string) *pb.Gateway); ok {
-		r0 = rf(name)
+	if rf, ok := ret.Get(0).(func(context.Context, string) *pb.Gateway); ok {
+		r0 = rf(ctx, name)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).(*pb.Gateway)
@@ -176,8 +176,8 @@ func (_m *MockAPIServer) ReadGateway(name string) (*pb.Gateway, error) {
 	}
 
 	var r1 error
-	if rf, ok := ret.Get(1).(func(string) error); ok {
-		r1 = rf(name)
+	if rf, ok := ret.Get(1).(func(context.Context, string) error); ok {
+		r1 = rf(ctx, name)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -185,13 +185,13 @@ func (_m *MockAPIServer) ReadGateway(name string) (*pb.Gateway, error) {
 	return r0, r1
 }
 
-// ReadGateways provides a mock function with given fields:
-func (_m *MockAPIServer) ReadGateways() ([]*pb.Gateway, error) {
-	ret := _m.Called()
+// ReadGateways provides a mock function with given fields: ctx
+func (_m *MockAPIServer) ReadGateways(ctx context.Context) ([]*pb.Gateway, error) {
+	ret := _m.Called(ctx)
 
 	var r0 []*pb.Gateway
-	if rf, ok := ret.Get(0).(func() []*pb.Gateway); ok {
-		r0 = rf()
+	if rf, ok := ret.Get(0).(func(context.Context) []*pb.Gateway); ok {
+		r0 = rf(ctx)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).([]*pb.Gateway)
@@ -199,8 +199,8 @@ func (_m *MockAPIServer) ReadGateways() ([]*pb.Gateway, error) {
 	}
 
 	var r1 error
-	if rf, ok := ret.Get(1).(func() error); ok {
-		r1 = rf()
+	if rf, ok := ret.Get(1).(func(context.Context) error); ok {
+		r1 = rf(ctx)
 	} else {
 		r1 = ret.Error(1)
 	}

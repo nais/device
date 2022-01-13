@@ -39,7 +39,7 @@ func (e *Enroller) EnrollGateways(ctx context.Context) error {
 			log.Warnf("bootstrap: Adding gateway: %v", err)
 		}
 
-		gateway, err := e.DB.ReadGateway(enrollment.Name)
+		gateway, err := e.DB.ReadGateway(ctx, enrollment.Name)
 		if err != nil {
 			return fmt.Errorf("bootstrap: Getting gateway: %v", err)
 		}

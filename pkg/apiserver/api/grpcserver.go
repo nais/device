@@ -86,7 +86,7 @@ func (s *grpcServer) SendDeviceConfiguration(ctx context.Context, sessionKey str
 		})
 	}
 
-	gateways, err := s.UserGateways(sessionInfo.Groups)
+	gateways, err := s.UserGateways(ctx, sessionInfo.Groups)
 	if err != nil {
 		return fmt.Errorf("get user gateways: %w", err)
 	}
@@ -104,8 +104,8 @@ func (s *grpcServer) SendDeviceConfiguration(ctx context.Context, sessionKey str
 	})
 }
 
-func (s *grpcServer) UserGateways(userGroups []string) ([]*pb.Gateway, error) {
-	gateways, err := s.db.ReadGateways()
+func (s *grpcServer) UserGateways(ctx context.Context, userGroups []string) ([]*pb.Gateway, error) {
+	gateways, err := s.db.ReadGateways(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("reading gateways from db: %v", err)
 	}
@@ -134,25 +134,27 @@ func (s *grpcServer) Login(ctx context.Context, r *pb.APIServerLoginRequest) (*p
 func (s *grpcServer) GetGatewayConfiguration(request *pb.GetGatewayConfigurationRequest, stream pb.APIServer_GetGatewayConfigurationServer) error {
 	err := s.apikeyAuthenticator.Authenticate(request.Gateway, request.Password)
 	if err != nil {
-		return err
+		return status.Error(codes.Unauthenticated, err.Error())
 	}
 
 	s.lock.Lock()
 	s.gatewayConfigStreams[request.Gateway] = stream
 	s.lock.Unlock()
 
+	defer func() {
+		s.lock.Lock()
+		delete(s.gatewayConfigStreams, request.Gateway)
+		s.lock.Unlock()
+	}()
+
 	// send initial device configuration
 	err = s.SendGatewayConfiguration(stream.Context(), request.Gateway)
 	if err != nil {
-		log.Errorf("send initial device configuration: %s", err)
+		return fmt.Errorf("send initial gateway configuration: %s", err)
 	}
 
 	// wait for disconnect
 	<-stream.Context().Done()
-
-	s.lock.Lock()
-	delete(s.gatewayConfigStreams, request.Gateway)
-	s.lock.Unlock()
 
 	return nil
 }
@@ -175,12 +177,12 @@ func (s *grpcServer) SendGatewayConfiguration(ctx context.Context, gatewayName s
 
 	sessionInfos, err := s.db.ReadSessionInfos(ctx)
 	if err != nil {
-		return fmt.Errorf("reading session infos from database: %v", err)
+		return fmt.Errorf("read session infos from database: %w", err)
 	}
 
-	gateway, err := s.db.ReadGateway(gatewayName)
+	gateway, err := s.db.ReadGateway(ctx, gatewayName)
 	if err != nil {
-		return fmt.Errorf("reading gateway from database: %v", err)
+		return fmt.Errorf("read gateway from database: %w", err)
 	}
 
 	gatewayConfig := &pb.GetGatewayConfigurationResponse{
