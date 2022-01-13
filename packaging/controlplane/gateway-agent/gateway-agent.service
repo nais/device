@@ -1,0 +1,24 @@
+# vi:syntax=systemd
+
+[Unit]
+Description=naisdevice gateway agent
+
+[Service]
+Restart=always
+# The failure of either of these commands will be logged, but
+# the service will still attempt to launch, which might well
+# succeed.
+StandardOutput=append:/var/log/naisdevice/gateway-agent.json
+StandardError=append:/var/log/naisdevice/gateway-agent.json
+# TODO
+# - read name and enrollment token from /etc/naisdevice/gateway-agent
+ExecStart=/bin/bash -c '/usr/bin/gateway-agent \
+        --name="nais-device-gw-k8s-ci" \
+        --public-ip="$(curl -H "Metadata-Flavor: Google" http://metadata.google.internal/computeMetadata/v1/instance/network-interfaces/0/access-configs/0/external-ip):51820" \
+        --enrollment-token="$(gcloud secrets --project nais-device versions access latest --secret enrollment-token_nais-device-gw-k8s-ci || echo not_set)" \
+        --prometheus-public-key="MN9B/ZgAQdgCXH3/KUaUiObwrzHv6zF2P6M4ySTx81M=" \
+        --prometheus-tunnel-ip="10.255.247.254"'
+
+[Install]
+WantedBy=multi-user.target
+

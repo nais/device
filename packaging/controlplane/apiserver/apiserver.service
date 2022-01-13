@@ -4,14 +4,14 @@ Description=apiserver
 
 [Service]
 Restart=always
-ExecStart=/bin/bash -c '/opt/nais-device/bin/apiserver \
+ExecStart=/bin/bash -c '/usr/bin/apiserver \
         --azure-client-secret="$(gcloud secrets versions access latest --secret azure-client-secret)" \
         --bind-address="10.255.240.1:80" \
         --bootstrap-api-credentials="apiserver:$(gcloud secrets versions access latest --secret nais-device_api-server_bootstrap-api-password)" \
         --bootstrap-api-url="https://bootstrap.device.nais.io" \
         --cloud-sql-proxy-enabled=true \
         --control-plane-authentication-enabled=true \
-        --credential-entries="$(/opt/nais-device/bin/passwords.sh)" \
+        --credential-entries="$(/usr/bin/apiserver-fetch-passwords)" \
         --db-connection-dsn="$(gcloud secrets versions access latest --secret apiserver-db-dsn)" \
         --device-authentication-enabled=true \
         --endpoint="35.228.142.96:51820" \

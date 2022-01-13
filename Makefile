@@ -163,11 +163,17 @@ pkg: app
 deb: linux-client linux-icon
 	./packaging/linux/build-deb $(VERSION)
 
-controlplane-deb: controlplane
-	./packaging/controlplane/*/build-deb $(VERSION)
+controlplane_paths = $(wildcard packaging/controlplane/*)
+controlplane_components = $(controlplane_paths:packaging/controlplane/%=%)
+
+controlplane-debs: $(controlplane_components)
+$(controlplane_components): controlplane
+	@echo packaging $@
+	./packaging/controlplane/$@/build-deb $(VERSION)
 
 
 clean:
+	rm -rf *.deb
 	rm -rf wireguard-go-*
 	rm -rf wireguard-tools-*
 	rm -rf naisdevice.app
