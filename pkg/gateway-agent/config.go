@@ -33,6 +33,7 @@ func DefaultConfig() Config {
 		BootstrapApiURL: "https://bootstrap.device.nais.io",
 		ConfigDir:       "/usr/local/etc/nais-device",
 		LogLevel:        "debug",
+		Name:            "test01",
 		PrometheusAddr:  "127.0.0.1:3000",
 	}
 }
