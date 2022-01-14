@@ -3,15 +3,11 @@ package gateway_agent
 import (
 	"context"
 	"fmt"
-	"time"
 
 	"github.com/coreos/go-iptables/iptables"
 	"github.com/nais/device/pkg/pb"
 	log "github.com/sirupsen/logrus"
-	"google.golang.org/grpc"
 )
-
-const syncConfigDialTimeout = 1 * time.Second
 
 type ErrGRPCConnection error
 
@@ -37,29 +33,7 @@ func NewConfigurer(config Config, ipTables *iptables.IPTables) NetworkConfigurer
 	}
 }
 
-func SyncFromStream(ctx context.Context, config Config, netConf NetworkConfigurer) error {
-	dialContext, cancel := context.WithTimeout(ctx, syncConfigDialTimeout)
-	defer cancel()
-
-	log.Infof("Attempting gRPC connection to API server on %s...", config.APIServerURL)
-	apiserver, err := grpc.DialContext(
-		dialContext,
-		config.APIServerURL,
-		grpc.WithInsecure(),
-		grpc.WithBlock(),
-		grpc.WithReturnConnectionError(),
-	)
-
-	if err != nil {
-		return fmt.Errorf("connect to api server: %w", err)
-	}
-
-	log.Infof("Connected to API server")
-
-	defer apiserver.Close()
-
-	apiserverClient := pb.NewAPIServerClient(apiserver)
-
+func SyncFromStream(ctx context.Context, config Config, apiserverClient pb.APIServerClient, netConf NetworkConfigurer) error {
 	stream, err := apiserverClient.GetGatewayConfiguration(ctx, &pb.GetGatewayConfigurationRequest{
 		Gateway:  config.Name,
 		Password: config.APIServerPassword,

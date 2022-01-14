@@ -14,6 +14,7 @@ import (
 	"github.com/nais/device/pkg/basicauth"
 	g "github.com/nais/device/pkg/gateway-agent"
 	"github.com/nais/device/pkg/pb"
+	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
@@ -130,8 +131,23 @@ func run() error {
 		cancel()
 	}()
 
+	log.Infof("Attempting gRPC connection to API server on %s...", cfg.APIServerURL)
+	apiserver, err := grpc.DialContext(
+		ctx,
+		cfg.APIServerURL,
+		grpc.WithInsecure(),
+	)
+
+	if err != nil {
+		return fmt.Errorf("unable to connect to api server: %w", err)
+	}
+
+	defer apiserver.Close()
+
+	apiserverClient := pb.NewAPIServerClient(apiserver)
+
 	for ctx.Err() == nil {
-		err := g.SyncFromStream(ctx, cfg, netConf)
+		err := g.SyncFromStream(ctx, cfg, apiserverClient, netConf)
 		if err != nil {
 			code := status.Code(err)
 			if code == codes.Unauthenticated {
