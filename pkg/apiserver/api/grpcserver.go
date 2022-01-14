@@ -137,6 +137,11 @@ func (s *grpcServer) GetGatewayConfiguration(request *pb.GetGatewayConfiguration
 		return status.Error(codes.Unauthenticated, err.Error())
 	}
 
+	_, hasSession := s.gatewayConfigStreams[request.Gateway]
+	if hasSession {
+		return status.Errorf(codes.Aborted, "this gateway already has an open session")
+	}
+
 	s.lock.Lock()
 	s.gatewayConfigStreams[request.Gateway] = stream
 	s.lock.Unlock()
