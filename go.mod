@@ -17,6 +17,7 @@ require (
 	github.com/google/uuid v1.3.0
 	github.com/gopherjs/gopherjs v0.0.0-20210918183006-daae65060a40 // indirect
 	github.com/hashicorp/go-multierror v1.1.1
+	github.com/kelseyhightower/envconfig v1.4.0
 	github.com/lestrrat-go/jwx v1.2.7
 	github.com/lib/pq v1.10.3
 	github.com/nais/kolide-event-handler v0.0.0-20210429125647-006939848d86

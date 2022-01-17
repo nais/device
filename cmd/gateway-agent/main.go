@@ -6,8 +6,6 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
-	"path"
-	"path/filepath"
 	"syscall"
 	"time"
 
@@ -21,6 +19,7 @@ import (
 	"github.com/nais/device/pkg/logger"
 
 	"github.com/coreos/go-iptables/iptables"
+	"github.com/kelseyhightower/envconfig"
 	"github.com/nais/device/pkg/version"
 	log "github.com/sirupsen/logrus"
 	flag "github.com/spf13/pflag"
@@ -47,17 +46,6 @@ func init() {
 	flag.StringVar(&cfg.EnrollmentToken, "enrollment-token", cfg.EnrollmentToken, "bootstrap-api enrollment token")
 
 	flag.Parse()
-
-	logger.Setup(cfg.LogLevel)
-	cfg.WireGuardConfigPath = path.Join(cfg.ConfigDir, "wg0.conf")
-	cfg.PrivateKeyPath = path.Join(cfg.ConfigDir, "private.key")
-	cfg.APIServerPasswordPath = path.Join(cfg.ConfigDir, "apiserver_password")
-	cfg.BootstrapConfigPath = filepath.Join(cfg.ConfigDir, "bootstrapconfig.json")
-
-	log.Infof("Version: %s, Revision: %s", version.Version, version.Revision)
-
-	g.InitializeMetrics(cfg.Name, version.Version)
-	go g.Serve(cfg.PrometheusAddr)
 }
 
 func main() {
@@ -71,10 +59,19 @@ func main() {
 func run() error {
 	var err error
 
-	err = cfg.InitLocalConfig()
+	err = envconfig.Process("GATEWAY_AGENT", &cfg)
 	if err != nil {
-		return fmt.Errorf("initialize local configuration: %v", err)
+		return fmt.Errorf("parse env config: %w", err)
 	}
+
+	cfg.InitLocalConfig()
+	fmt.Printf("%+v\n", cfg)
+
+	logger.Setup(cfg.LogLevel)
+	log.Infof("Version: %s, Revision: %s", version.Version, version.Revision)
+
+	g.InitializeMetrics(cfg.Name, version.Version)
+	go g.Serve(cfg.PrometheusAddr)
 
 	log.Info("starting gateway-agent")
 
