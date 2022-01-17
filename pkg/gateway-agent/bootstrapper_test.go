@@ -28,6 +28,7 @@ func TestGetBootstrapConfig(t *testing.T) {
 		cfg := &g.Config{BootstrapConfigPath: f.Name()}
 		bootstrapper := g.Bootstrapper{Config: cfg}
 		config, err := bootstrapper.EnsureBootstrapConfig()
+		assert.NoError(t, err)
 		assert.Equal(t, deviceIP, config.DeviceIP)
 	})
 
