@@ -3,7 +3,7 @@
 PROTOC = $(shell which protoc)
 PROTOC_GEN_GO = $(shell which protoc-gen-go)
 LAST_COMMIT = $(shell git --no-pager log -1 --pretty=%h)
-VERSION ?= $(shell date "+%Y-%m-%d-%H%M%S")
+VERSION := $(shell date "+%Y-%m-%d-%H%M%S")
 LDFLAGS := -X github.com/nais/device/pkg/version.Revision=$(shell git rev-parse --short HEAD) -X github.com/nais/device/pkg/version.Version=$(VERSION)
 PKGID = io.nais.device
 GOPATH ?= ~/go
