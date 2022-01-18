@@ -190,3 +190,8 @@ proto:
 
 mocks:
 	mockery --case underscore --all --dir pkg/ --inpackage --recursive
+
+# controlplane is autoreleased for every push
+release-frontend:
+	git tag ${VERSION}
+	git push --tags

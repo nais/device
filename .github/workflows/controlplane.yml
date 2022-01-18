@@ -1,0 +1,70 @@
+name: Controlplane
+on:
+  push:
+    paths:
+      - 'Makefile'
+      - 'go.mod'
+      - '**.go'
+      - '.github/workflows/controlplane.yml'
+      - 'packaging/controlplane/**'
+env:
+  go_version: '1.17'
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:11.7
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5433:5432
+        # Set health checks to wait until postgres has started
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    steps:
+    - uses: actions/checkout@v2
+    - uses: actions/setup-go@v2
+      with:
+        go-version: ${{ env.go_version }}
+    - name: run tests
+      run: |
+        #sudo apt update
+        #sudo apt install --yes build-essential libgtk-3-dev libappindicator3-dev
+        make run-integration-test
+
+  build:
+    needs:
+      - set-version
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-go@v2
+        with:
+          go-version: ${{ env.go_version }}
+
+      - name: build
+        run: make controlplane-debs
+
+      - id: 'auth'
+        uses: 'google-github-actions/auth@v0'
+        with:
+          credentials_json: '${{ secrets.GOOGLE_DEB_UPLOAD_SA_JSON }}'
+
+      - name: 'Set up Cloud SDK'
+        uses: 'google-github-actions/setup-gcloud@v0'
+
+      - name: upload
+        run: |
+          for component in \
+            "bootstrap-api" \
+            "apiserver" \
+            "gateway-agent" \
+            "prometheus-agent" \
+            ; do
+            gcloud beta artifacts apt upload --project=naisdevice naisdevice \
+              --source "$component*.deb"
+          done
