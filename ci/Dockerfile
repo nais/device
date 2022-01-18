@@ -21,6 +21,10 @@ RUN curl -L "https://go.dev/dl/go${GO_VERSION}.linux-amd64.tar.gz" \
 RUN curl -L "https://dl.google.com/dl/cloudsdk/channels/rapid/downloads/google-cloud-sdk-${GCLOUD_VERSION}-linux-x86_64.tar.gz" \
   | tar -xzC /root
 
-ENV PATH $PATH:/root/google-cloud-sdk/bin
+ENV PATH $PATH:/root/google-cloud-sdk/bin:/usr/local/go/bin
 
-RUN gcloud components install beta --quiet
+RUN gcloud components install beta --quiet \
+    && rm -rf $(find google-cloud-sdk/ -regex ".*/__pycache__") \
+    && rm -rf google-cloud-sdk/.install/.backup
+
+
