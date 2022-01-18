@@ -58,5 +58,5 @@ jobs:
             "apiserver" \
             "gateway-agent" \
             "prometheus-agent"; do
-            gcloud beta artifacts apt upload naisdevice --quiet --source "$component*.deb"
+            gcloud beta artifacts apt upload naisdevice --quiet --source "$component*.deb" --location europe-north1
           done
