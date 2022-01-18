@@ -59,7 +59,7 @@ jobs:
           credentials_json: '${{ secrets.GOOGLE_DEB_UPLOAD_SA_JSON }}'
 
       - name: 'Set up Cloud SDK'
-        uses: 'google-github-actions/setup-gcloud@v0'
+        uses: 'google-github-actions/setup-gcloud@master'
         with:
           project_id: naisdevice
           install_components: beta
