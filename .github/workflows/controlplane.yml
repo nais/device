@@ -37,8 +37,6 @@ jobs:
         make run-integration-test
 
   build:
-    needs:
-      - set-version
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
