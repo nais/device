@@ -85,6 +85,7 @@ local-apiserver:
 		--db-connection-dsn= \
 		--credential-entries="nais:device,gateway-1:password" \
 
+icons: cmd/device-agent/icons.go
 cmd/device-agent/icons.go: assets/*.ico assets/icon.go
 	cd assets && go run icon.go | gofmt -s > ../pkg/systray/icons.go
 
@@ -138,11 +139,11 @@ app: wg wireguard-go macos-icon macos-client
 	#	gon --log-level=debug packaging/macos/gon-app.json
 	codesign -s "Developer ID Application: Torbjorn Hallenberg (T7D7Y5484F)" -f -v --timestamp --deep --options runtime naisdevice.app/Contents/MacOS/*
 
-test: cmd/device-agent/icons.go
-	go test ./... -count=1
+test:
+	@go test $(shell go list ./... | grep -v systray) -count=1
 
-run-integration-test: cmd/device-agent/icons.go
-	go test ./... -count=1 -tags=integration_test
+run-integration-test:
+	@go test $(shell go list ./... | grep -v systray) -count=1 -tags=integration_test
 
 # Run by GitHub actions on macos
 pkg: app

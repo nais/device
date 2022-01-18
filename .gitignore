@@ -12,5 +12,4 @@ cmd/helper/main_windows.syso
 packaging/windows/obj
 packaging/linux/icons
 device-agent.log
-pkg/systray/icons.go
 *.deb
