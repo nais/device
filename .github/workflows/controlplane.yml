@@ -13,7 +13,7 @@ jobs:
   test:
     runs-on: ubuntu-latest
     container:
-      image: ghcr.io/nais/naisdevice-ci
+      image: ghcr.io/nais/naisdevice-ci:v1
     services:
       postgres:
         image: postgres:11.7
@@ -41,7 +41,7 @@ jobs:
     - test
     runs-on: ubuntu-latest
     container:
-      image: ghcr.io/nais/naisdevice-ci
+      image: ghcr.io/nais/naisdevice-ci:v1
     steps:
       - uses: actions/checkout@v2
 
