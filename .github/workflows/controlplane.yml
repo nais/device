@@ -12,8 +12,6 @@ env:
 jobs:
   test:
     runs-on: ubuntu-latest
-    container:
-      image: ghcr.io/nais/naisdevice-ci:v2
     services:
       postgres:
         image: postgres:11.7
