@@ -97,7 +97,6 @@ func (das *DeviceAgentServer) UpdateAgentStatus(status *pb.AgentStatus) {
 }
 
 func (das *DeviceAgentServer) SetAgentConfiguration(ctx context.Context, req *pb.SetAgentConfigurationRequest) (*pb.SetAgentConfigurationResponse, error) {
-	log.Infof("setting agent config to: %+v", *req.Config)
 	das.Config.AgentConfiguration = req.Config
 	das.Config.PersistAgentConfiguration()
 	das.stateChange <- pb.AgentState_AgentConfigurationChanged
@@ -105,7 +104,6 @@ func (das *DeviceAgentServer) SetAgentConfiguration(ctx context.Context, req *pb
 }
 
 func (das *DeviceAgentServer) GetAgentConfiguration(ctx context.Context, req *pb.GetAgentConfigurationRequest) (*pb.GetAgentConfigurationResponse, error) {
-	log.Infof("returning agent config: %+v", *das.Config.AgentConfiguration)
 	return &pb.GetAgentConfigurationResponse{
 		Config: das.Config.AgentConfiguration,
 	}, nil
