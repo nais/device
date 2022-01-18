@@ -59,10 +59,9 @@ jobs:
           credentials_json: '${{ secrets.GOOGLE_DEB_UPLOAD_SA_JSON }}'
 
       - name: 'Set up Cloud SDK'
-        uses: 'google-github-actions/setup-gcloud@master'
+        uses: 'google-github-actions/setup-gcloud@v0'
         with:
           project_id: naisdevice
-          install_components: beta
 
       - name: 'Upload controlplane deb files to repository'
         run: |
@@ -71,5 +70,5 @@ jobs:
             "apiserver" \
             "gateway-agent" \
             "prometheus-agent"; do
-            gcloud beta artifacts apt upload naisdevice --source "$component*.deb"
+            gcloud beta --quiet artifacts apt upload naisdevice --source "$component*.deb"
           done
