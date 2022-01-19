@@ -5,5 +5,9 @@ for secret in $(gcloud secrets list --filter "labels.type:api-server-password" -
         apikey=$(gcloud secrets versions access latest --secret $secret)
         apikeys+="$gateway_name:$apikey,"
 done
+
+apikey=$(gcloud secrets versions access latest --secret apiserver-admin-password)
+apikeys+="admin:$apikey"
+
 echo -n ${apikeys::-1}
 
