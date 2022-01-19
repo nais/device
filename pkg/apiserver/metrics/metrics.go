@@ -25,6 +25,7 @@ func init() {
 		Name:      "devices_connected",
 		Help:      "number of clients currently connected to api server",
 	})
+
 	PrivilegedUsersPerGateway = prometheus.NewGaugeVec(prometheus.GaugeOpts{
 		Namespace: "naisdevice",
 		Subsystem: "apiserver",
