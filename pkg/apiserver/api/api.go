@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/nais/device/pkg/apiserver/jita"
+	"github.com/nais/device/pkg/apiserver/metrics"
 	"github.com/nais/device/pkg/pb"
 
 	"github.com/nais/device/pkg/apiserver/database"
@@ -59,7 +60,7 @@ func (a *api) gatewayConfig(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	m, err := GatewayConfigsReturned.GetMetricWithLabelValues(gateway.Name)
+	m, err := apiserver_metrics.GatewayConfigsReturned.GetMetricWithLabelValues(gateway.Name)
 	if err != nil {
 		log.Errorf("getting metric metric: %v", err)
 	}
@@ -75,7 +76,7 @@ func privileged(jita jita.Client, gateway *pb.Gateway, sessions []*pb.Session) [
 		log.Errorf("Gateway retrieving privileged users, %s", err)
 	}
 
-	m, err := PrivilegedUsersPerGateway.GetMetricWithLabelValues(gateway.Name)
+	m, err := apiserver_metrics.PrivilegedUsersPerGateway.GetMetricWithLabelValues(gateway.Name)
 	if err != nil {
 		log.Errorf("getting metric metric: %v", err)
 	}
@@ -196,7 +197,7 @@ func (a *api) deviceConfig(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	m, err := DeviceConfigsReturned.GetMetricWithLabelValues(device.Serial, device.Username)
+	m, err := apiserver_metrics.DeviceConfigsReturned.GetMetricWithLabelValues(device.Serial, device.Username)
 	if err != nil {
 		logWithFields.Errorf("getting metric metric: %v", err)
 	}

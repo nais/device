@@ -7,6 +7,7 @@ import (
 	"sync"
 
 	"github.com/nais/device/pkg/apiserver/jita"
+	"github.com/nais/device/pkg/apiserver/metrics"
 	log "github.com/sirupsen/logrus"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -91,7 +92,7 @@ func (s *grpcServer) SendDeviceConfiguration(ctx context.Context, sessionKey str
 		return fmt.Errorf("get user gateways: %w", err)
 	}
 
-	m, err := DeviceConfigsReturned.GetMetricWithLabelValues(device.Serial, device.Username)
+	m, err := apiserver_metrics.DeviceConfigsReturned.GetMetricWithLabelValues(device.Serial, device.Username)
 	if err != nil {
 		log.Errorf("BUG: get metric: %s", err)
 	} else {
@@ -199,7 +200,7 @@ func (s *grpcServer) SendGatewayConfiguration(ctx context.Context, gatewayName s
 		Routes: gateway.Routes,
 	}
 
-	m, err := GatewayConfigsReturned.GetMetricWithLabelValues(gateway.Name)
+	m, err := apiserver_metrics.GatewayConfigsReturned.GetMetricWithLabelValues(gateway.Name)
 	if err != nil {
 		log.Errorf("getting metric metric: %v", err)
 	} else {

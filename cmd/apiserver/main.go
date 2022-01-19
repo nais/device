@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"github.com/nais/device/pkg/apiserver/bucket"
+	apiserver_metrics "github.com/nais/device/pkg/apiserver/metrics"
 	"github.com/nais/device/pkg/version"
 
 	"google.golang.org/grpc"
@@ -26,8 +27,6 @@ import (
 	"github.com/nais/device/pkg/apiserver/jita"
 	"github.com/nais/device/pkg/basicauth"
 	"github.com/nais/device/pkg/pb"
-
-	"github.com/prometheus/client_golang/prometheus/promhttp"
 
 	"github.com/nais/device/pkg/apiserver/auth"
 	"github.com/nais/device/pkg/apiserver/enroller"
@@ -116,13 +115,12 @@ func run() error {
 
 	log.Infof("naisdevice API server %s starting up", version.Version)
 
-	api.InitializeMetrics()
 	go func() {
 		log.Infof("Prometheus serving metrics at %v", cfg.PrometheusAddr)
-
-		err := http.ListenAndServe(cfg.PrometheusAddr, promhttp.Handler())
+		err := apiserver_metrics.Serve(cfg.PrometheusAddr)
 		if err != nil {
-			log.Errorf("prometheus serve: %s", err)
+			log.Errorf("metrics server shut down with error; killing apiserver process: %s", err)
+			cancel()
 		}
 	}()
 
