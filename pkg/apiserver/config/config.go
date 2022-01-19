@@ -62,10 +62,17 @@ func (c *Config) DatabaseDriver() string {
 
 func DefaultConfig() Config {
 	return Config{
-		Azure:           &azure.Azure{},
-		BindAddress:     "127.0.0.1:8080",
-		GRPCBindAddress: "127.0.0.1:8099",
-		ConfigDir:       "/usr/local/etc/naisdevice/",
-		PrometheusAddr:  "127.0.0.1:3000",
+		Azure: &azure.Azure{
+			ClientID: "6e45010d-2637-4a40-b91d-d4cbb451fb57",
+			Tenant:   "62366534-1ec3-4962-8869-9b5535279d0b",
+		},
+		BindAddress:                   "127.0.0.1:8080",
+		ConfigDir:                     "/usr/local/etc/naisdevice/",
+		DbConnDSN:                     "postgresql://postgres:postgres@localhost/postgres?sslmode=disable",
+		GRPCBindAddress:               "127.0.0.1:8099",
+		GatewayConfigBucketName:       "gatewayconfig",
+		GatewayConfigBucketObjectName: "gatewayconfig.json",
+		LogLevel:                      "info",
+		PrometheusAddr:                "127.0.0.1:3000",
 	}
 }

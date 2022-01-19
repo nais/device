@@ -15,6 +15,7 @@ import (
 	"time"
 
 	grpc_prometheus "github.com/grpc-ecosystem/go-grpc-prometheus"
+	"github.com/kelseyhightower/envconfig"
 	"github.com/nais/device/pkg/apiserver/api"
 	"github.com/nais/device/pkg/apiserver/auth"
 	"github.com/nais/device/pkg/apiserver/bucket"
@@ -47,40 +48,41 @@ var (
 )
 
 func init() {
-	flag.StringVar(&cfg.DbConnDSN, "db-connection-dsn", "postgresql://postgres:postgres@localhost/postgres?sslmode=disable", "database connection DSN")
-	flag.StringVar(&cfg.JitaUsername, "jita-username", os.Getenv("JITA_USERNAME"), "jita username")
-	flag.StringVar(&cfg.JitaPassword, "jita-password", os.Getenv("JITA_PASSWORD"), "jita password")
-	flag.StringVar(&cfg.JitaUrl, "jita-url", os.Getenv("JITA_URL"), "jita URL")
-	flag.StringVar(&cfg.BootstrapAPIURL, "bootstrap-api-url", "", "bootstrap API URL")
-	flag.StringVar(&cfg.BootstrapApiCredentials, "bootstrap-api-credentials", os.Getenv("BOOTSTRAP_API_CREDENTIALS"), "bootstrap API credentials")
+	flag.StringVar(&cfg.DbConnDSN, "db-connection-dsn", cfg.DbConnDSN, "database connection DSN")
+	flag.StringVar(&cfg.JitaUsername, "jita-username", cfg.JitaUsername, "jita username")
+	flag.StringVar(&cfg.JitaPassword, "jita-password", cfg.JitaPassword, "jita password")
+	flag.StringVar(&cfg.JitaUrl, "jita-url", cfg.JitaUrl, "jita URL")
+	flag.StringVar(&cfg.BootstrapAPIURL, "bootstrap-api-url", cfg.BootstrapAPIURL, "bootstrap API URL")
+	flag.StringVar(&cfg.BootstrapApiCredentials, "bootstrap-api-credentials", cfg.BootstrapApiCredentials, "bootstrap API credentials")
 	flag.StringVar(&cfg.PrometheusAddr, "prometheus-address", cfg.PrometheusAddr, "prometheus listen address")
 	flag.StringVar(&cfg.PrometheusPublicKey, "prometheus-public-key", cfg.PrometheusPublicKey, "prometheus public key")
 	flag.StringVar(&cfg.PrometheusTunnelIP, "prometheus-tunnel-ip", cfg.PrometheusTunnelIP, "prometheus tunnel ip")
-	flag.StringVar(&cfg.LogLevel, "log-level", "info", "which log level to output")
+	flag.StringVar(&cfg.LogLevel, "log-level", cfg.LogLevel, "which log level to output")
 	flag.StringVar(&cfg.BindAddress, "bind-address", cfg.BindAddress, "Bind address")
 	flag.StringVar(&cfg.GRPCBindAddress, "grpc-bind-address", cfg.GRPCBindAddress, "Bind address for gRPC server")
 	flag.StringVar(&cfg.ConfigDir, "config-dir", cfg.ConfigDir, "Path to configuration directory")
 	flag.StringVar(&cfg.Endpoint, "endpoint", cfg.Endpoint, "public endpoint (ip:port)")
-	flag.StringVar(&cfg.Azure.ClientID, "azure-client-id", "6e45010d-2637-4a40-b91d-d4cbb451fb57", "Azure app client id")
-	flag.StringVar(&cfg.Azure.Tenant, "azure-tenant", "62366534-1ec3-4962-8869-9b5535279d0b", "Azure tenant")
-	flag.StringVar(&cfg.Azure.ClientSecret, "azure-client-secret", "", "Azure app client secret")
-	flag.StringSliceVar(&cfg.CredentialEntries, "credential-entries", nil, "Comma-separated credentials on format: '<user>:<key>'")
-	flag.StringVar(&cfg.GatewayConfigBucketName, "gateway-config-bucket-name", "gatewayconfig", "Name of bucket containing gateway config object")
-	flag.StringVar(&cfg.GatewayConfigBucketObjectName, "gateway-config-bucket-object-name", "gatewayconfig.json", "Name of bucket object containing gateway config JSON")
-	flag.StringVar(&cfg.KolideEventHandlerAddress, "kolide-event-handler-address", "", "address for kolide-event-handler grpc connection")
-	flag.BoolVar(&cfg.KolideEventHandlerEnabled, "kolide-event-handler-enabled", false, "enable kolide event handler (incoming webhooks from kolide on device failures)")
-	flag.StringVar(&cfg.KolideEventHandlerToken, "kolide-event-handler-token", "", "token for kolide-event-handler grpc connection")
-	flag.StringVar(&cfg.KolideApiToken, "kolide-api-token", "", "token used to communicate with the kolide api")
-	flag.BoolVar(&cfg.KolideSyncEnabled, "kolide-sync-enabled", false, "enable kolide sync integration (looking for device failures)")
-	flag.BoolVar(&cfg.DeviceAuthenticationEnabled, "device-authentication-enabled", false, "enable authentication for nais devices (oauth2)")
-	flag.BoolVar(&cfg.ControlPlaneAuthenticationEnabled, "control-plane-authentication-enabled", false, "enable authentication for control plane (api keys)")
-	flag.BoolVar(&cfg.WireguardEnabled, "wireguard-enabled", false, "enable WireGuard")
-	flag.BoolVar(&cfg.CloudSQLProxyEnabled, "cloud-sql-proxy-enabled", false, "enable Google Cloud SQL proxy for database connection")
+	flag.StringVar(&cfg.Azure.ClientID, "azure-client-id", cfg.Azure.ClientID, "Azure app client id")
+	flag.StringVar(&cfg.Azure.Tenant, "azure-tenant", cfg.Azure.Tenant, "Azure tenant")
+	flag.StringVar(&cfg.Azure.ClientSecret, "azure-client-secret", cfg.Azure.ClientSecret, "Azure app client secret")
+	flag.StringSliceVar(&cfg.CredentialEntries, "credential-entries", cfg.CredentialEntries, "Comma-separated credentials on format: '<user>:<key>'")
+	flag.StringVar(&cfg.GatewayConfigBucketName, "gateway-config-bucket-name", cfg.GatewayConfigBucketName, "Name of bucket containing gateway config object")
+	flag.StringVar(&cfg.GatewayConfigBucketObjectName, "gateway-config-bucket-object-name", cfg.GatewayConfigBucketObjectName, "Name of bucket object containing gateway config JSON")
+	flag.StringVar(&cfg.KolideEventHandlerAddress, "kolide-event-handler-address", cfg.KolideEventHandlerAddress, "address for kolide-event-handler grpc connection")
+	flag.BoolVar(&cfg.KolideEventHandlerEnabled, "kolide-event-handler-enabled", cfg.KolideEventHandlerEnabled, "enable kolide event handler (incoming webhooks from kolide on device failures)")
+	flag.StringVar(&cfg.KolideEventHandlerToken, "kolide-event-handler-token", cfg.KolideEventHandlerToken, "token for kolide-event-handler grpc connection")
+	flag.StringVar(&cfg.KolideApiToken, "kolide-api-token", cfg.KolideApiToken, "token used to communicate with the kolide api")
+	flag.BoolVar(&cfg.KolideSyncEnabled, "kolide-sync-enabled", cfg.KolideSyncEnabled, "enable kolide sync integration (looking for device failures)")
+	flag.BoolVar(&cfg.DeviceAuthenticationEnabled, "device-authentication-enabled", cfg.DeviceAuthenticationEnabled, "enable authentication for nais devices (oauth2)")
+	flag.BoolVar(&cfg.ControlPlaneAuthenticationEnabled, "control-plane-authentication-enabled", cfg.ControlPlaneAuthenticationEnabled, "enable authentication for control plane (api keys)")
+	flag.BoolVar(&cfg.WireguardEnabled, "wireguard-enabled", cfg.WireguardEnabled, "enable WireGuard")
+	flag.BoolVar(&cfg.CloudSQLProxyEnabled, "cloud-sql-proxy-enabled", cfg.CloudSQLProxyEnabled, "enable Google Cloud SQL proxy for database connection")
 
 	flag.Parse()
 
 	cfg.PrivateKeyPath = filepath.Join(cfg.ConfigDir, "private.key")
 	cfg.WireGuardConfigPath = filepath.Join(cfg.ConfigDir, "wg0.conf")
+
 	logger.Setup(cfg.LogLevel)
 }
 
@@ -104,6 +106,11 @@ func run() error {
 	var authenticator auth.Authenticator
 	var apikeyAuthenticator auth.APIKeyAuthenticator
 	var wireguardPublicKey []byte
+
+	err := envconfig.Process("APISERVER", &cfg)
+	if err != nil {
+		return fmt.Errorf("parse environment variables: %w", err)
+	}
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
