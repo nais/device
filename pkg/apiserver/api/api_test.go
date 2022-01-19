@@ -12,7 +12,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/nais/device/pkg/apiserver/metrics"
 	"google.golang.org/protobuf/types/known/timestamppb"
 
 	"github.com/nais/device/pkg/azure"
@@ -133,7 +132,6 @@ func TestGatewayConfig(t *testing.T) {
 }
 
 func TestPrivilegedGatewayConfig(t *testing.T) {
-	apiserver_metrics.InitializeMetrics()
 	ctx := context.Background()
 
 	privilegedUsers := []jita.PrivilegedUser{{
@@ -280,8 +278,6 @@ func setup(t *testing.T, j jita.Client) (database.APIServer, chi.Router) {
 	if err != nil {
 		t.Fatalf("Instantiating database: %v", err)
 	}
-
-	apiserver_metrics.InitializeMetrics()
 
 	sessions := auth.NewSessionStore(db)
 
