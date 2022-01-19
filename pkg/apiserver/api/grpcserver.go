@@ -7,7 +7,7 @@ import (
 	"sync"
 
 	"github.com/nais/device/pkg/apiserver/jita"
-	"github.com/nais/device/pkg/apiserver/metrics"
+	apiserver_metrics "github.com/nais/device/pkg/apiserver/metrics"
 	log "github.com/sirupsen/logrus"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -15,6 +15,10 @@ import (
 	"github.com/nais/device/pkg/apiserver/auth"
 	"github.com/nais/device/pkg/apiserver/database"
 	"github.com/nais/device/pkg/pb"
+)
+
+const (
+	AdminUsername = "admin"
 )
 
 type grpcServer struct {
@@ -132,6 +136,26 @@ func (s *grpcServer) Login(ctx context.Context, r *pb.APIServerLoginRequest) (*p
 	return &pb.APIServerLoginResponse{
 		Session: session,
 	}, nil
+}
+
+func (s *grpcServer) AdminListGateways(request *pb.AdminListGatewayRequest, stream pb.APIServer_AdminListGatewaysServer) error {
+	err := s.apikeyAuthenticator.Authenticate(AdminUsername, request.Password)
+	if err != nil {
+		return status.Error(codes.Unauthenticated, err.Error())
+	}
+
+	gateways, err := s.db.ReadGateways(stream.Context())
+	if err != nil {
+		return status.Error(codes.Unavailable, err.Error())
+	}
+	for _, gw := range gateways {
+		err = stream.Send(gw)
+		if err != nil {
+			return status.Error(codes.Aborted, err.Error())
+		}
+	}
+
+	return nil
 }
 
 func (s *grpcServer) GetGatewayConfiguration(request *pb.GetGatewayConfigurationRequest, stream pb.APIServer_GetGatewayConfigurationServer) error {

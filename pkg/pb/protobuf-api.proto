@@ -47,6 +47,47 @@ service DeviceAgent {
     }
 }
 
+service APIServer {
+    // Exchange an access token for a session
+    rpc Login (APIServerLoginRequest) returns (APIServerLoginResponse) {
+    }
+
+    // Set up a client->server request for continuous streaming of new configuration
+    rpc GetDeviceConfiguration (GetDeviceConfigurationRequest) returns (stream GetDeviceConfigurationResponse) {
+    }
+
+    // Set up continuous streaming of new gateway configuration
+    rpc GetGatewayConfiguration (GetGatewayConfigurationRequest) returns (stream GetGatewayConfigurationResponse) {
+    }
+
+    rpc AdminListGateways(AdminListGatewayRequest) returns (stream Gateway) {
+    }
+}
+
+enum AgentState {
+    Disconnected = 0;
+    Bootstrapping = 1;
+    Connected = 2;
+    Disconnecting = 3;
+    Unhealthy = 4;
+    Quitting = 5;
+    Authenticating = 6;
+    reserved 'SyncConfig';
+    reserved 7;
+    reserved 'HealthCheck';
+    reserved 8;
+    AuthenticateBackoff = 9;
+    AgentConfigurationChanged = 10;
+    reserved 'RenewCert';
+    reserved 11;
+}
+
+enum DeviceConfigurationStatus {
+    DeviceHealthy = 0;
+    DeviceUnhealthy = 1;
+    InvalidSession = 2;
+}
+
 message TeardownRequest {
 
 }
@@ -103,24 +144,6 @@ message GetAgentConfigurationResponse {
     AgentConfiguration config = 1;
 }
 
-enum AgentState {
-    Disconnected = 0;
-    Bootstrapping = 1;
-    Connected = 2;
-    Disconnecting = 3;
-    Unhealthy = 4;
-    Quitting = 5;
-    Authenticating = 6;
-    reserved 'SyncConfig';
-    reserved 7;
-    reserved 'HealthCheck';
-    reserved 8;
-    AuthenticateBackoff = 9;
-    AgentConfigurationChanged = 10;
-    reserved 'RenewCert';
-    reserved 11;
-}
-
 message AgentStatusRequest {
     bool keepConnectionOnComplete = 1;
 }
@@ -158,20 +181,6 @@ message AgentConfiguration {
     bool AutoConnect = 2;
 }
 
-service APIServer {
-    // Exchange an access token for a session
-    rpc Login (APIServerLoginRequest) returns (APIServerLoginResponse) {
-    }
-
-    // Set up a client->server request for continuous streaming of new configuration
-    rpc GetDeviceConfiguration (GetDeviceConfigurationRequest) returns (stream GetDeviceConfigurationResponse) {
-    }
-
-    // Set up continuous streaming of new gateway configuration
-    rpc GetGatewayConfiguration (GetGatewayConfigurationRequest) returns (stream GetGatewayConfigurationResponse) {
-    }
-}
-
 message GetGatewayConfigurationRequest {
     string gateway = 1;
     string password = 2;
@@ -196,15 +205,13 @@ message APIServerLoginResponse {
     Session session = 1;
 }
 
-enum DeviceConfigurationStatus {
-    DeviceHealthy = 0;
-    DeviceUnhealthy = 1;
-    InvalidSession = 2;
-}
-
 message GetDeviceConfigurationResponse {
     DeviceConfigurationStatus status = 1;
     repeated Gateway Gateways = 2;
+}
+
+message AdminListGatewayRequest {
+    string password = 1;
 }
 
 message Device {
