@@ -14,30 +14,25 @@ import (
 	"strings"
 	"time"
 
-	"github.com/nais/device/pkg/apiserver/bucket"
-	apiserver_metrics "github.com/nais/device/pkg/apiserver/metrics"
-	"github.com/nais/device/pkg/version"
-
-	"google.golang.org/grpc"
-
-	"github.com/nais/device/pkg/apiserver/kolide"
-	"github.com/nais/device/pkg/apiserver/wireguard"
-
-	"github.com/nais/device/pkg/apiserver/gatewayconfigurer"
-	"github.com/nais/device/pkg/apiserver/jita"
-	"github.com/nais/device/pkg/basicauth"
-	"github.com/nais/device/pkg/pb"
-
-	"github.com/nais/device/pkg/apiserver/auth"
-	"github.com/nais/device/pkg/apiserver/enroller"
-	"github.com/nais/device/pkg/logger"
-
-	log "github.com/sirupsen/logrus"
-	flag "github.com/spf13/pflag"
-
+	grpc_prometheus "github.com/grpc-ecosystem/go-grpc-prometheus"
 	"github.com/nais/device/pkg/apiserver/api"
+	"github.com/nais/device/pkg/apiserver/auth"
+	"github.com/nais/device/pkg/apiserver/bucket"
 	"github.com/nais/device/pkg/apiserver/config"
 	"github.com/nais/device/pkg/apiserver/database"
+	"github.com/nais/device/pkg/apiserver/enroller"
+	"github.com/nais/device/pkg/apiserver/gatewayconfigurer"
+	"github.com/nais/device/pkg/apiserver/jita"
+	"github.com/nais/device/pkg/apiserver/kolide"
+	apiserver_metrics "github.com/nais/device/pkg/apiserver/metrics"
+	"github.com/nais/device/pkg/apiserver/wireguard"
+	"github.com/nais/device/pkg/basicauth"
+	"github.com/nais/device/pkg/logger"
+	"github.com/nais/device/pkg/pb"
+	"github.com/nais/device/pkg/version"
+	log "github.com/sirupsen/logrus"
+	flag "github.com/spf13/pflag"
+	"google.golang.org/grpc"
 )
 
 const (
@@ -114,15 +109,6 @@ func run() error {
 	defer cancel()
 
 	log.Infof("naisdevice API server %s starting up", version.Version)
-
-	go func() {
-		log.Infof("Prometheus serving metrics at %v", cfg.PrometheusAddr)
-		err := apiserver_metrics.Serve(cfg.PrometheusAddr)
-		if err != nil {
-			log.Errorf("metrics server shut down with error; killing apiserver process: %s", err)
-			cancel()
-		}
-	}()
 
 	db, err := database.New(cfg.DbConnDSN, cfg.DatabaseDriver())
 	if err != nil {
@@ -252,9 +238,13 @@ func run() error {
 	}
 
 	grpcHandler := api.NewGRPCServer(db, authenticator, apikeyAuthenticator, jitaClient)
-	grpcServer := grpc.NewServer()
-
+	grpcServer := grpc.NewServer(
+		grpc.UnaryInterceptor(grpc_prometheus.UnaryServerInterceptor),
+		grpc.StreamInterceptor(grpc_prometheus.StreamServerInterceptor),
+	)
 	pb.RegisterAPIServerServer(grpcServer, grpcHandler)
+
+	grpc_prometheus.Register(grpcServer)
 
 	grpcListener, err := net.Listen("tcp", cfg.GRPCBindAddress)
 	if err != nil {
@@ -289,6 +279,15 @@ func run() error {
 			log.Error(err)
 		}
 	}
+
+	go func() {
+		log.Infof("Prometheus serving metrics at %v", cfg.PrometheusAddr)
+		err := apiserver_metrics.Serve(cfg.PrometheusAddr)
+		if err != nil {
+			log.Errorf("metrics server shut down with error; killing apiserver process: %s", err)
+			cancel()
+		}
+	}()
 
 	go func() {
 		for {

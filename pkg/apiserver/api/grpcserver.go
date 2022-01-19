@@ -47,6 +47,7 @@ func NewGRPCServer(db database.APIServer, authenticator auth.Authenticator, apik
 func (s *grpcServer) GetDeviceConfiguration(request *pb.GetDeviceConfigurationRequest, stream pb.APIServer_GetDeviceConfigurationServer) error {
 	s.lock.Lock()
 	s.streams[request.SessionKey] = stream
+	apiserver_metrics.DevicesConnected.Set(float64(len(s.streams)))
 	s.lock.Unlock()
 
 	// send initial device configuration
@@ -60,6 +61,7 @@ func (s *grpcServer) GetDeviceConfiguration(request *pb.GetDeviceConfigurationRe
 
 	s.lock.Lock()
 	delete(s.streams, request.SessionKey)
+	apiserver_metrics.DevicesConnected.Set(float64(len(s.streams)))
 	s.lock.Unlock()
 
 	return nil
