@@ -1,0 +1,30 @@
+@startuml
+actor admin
+control ga as "gateway-agent"
+control apiserver
+database db
+
+admin -> ga: provision server thru terraform/ansible
+admin -> ga: run: "gateway-agent enroll"
+ga -> ga: generate wireguard private key into file
+ga -> ga: generate apiserver password into envvar file
+ga --> admin: get enrollment config blob
+note right: base64(marshal(pb.EnrollGatewayRequest))
+admin -> apiserver: EnrollGateway(enroll config blob)
+apiserver -> db: insert/update gateway
+ga -> ga: restarts gateway-agent service
+ga -> apiserver: connect wireguard
+ga -> apiserver: connect gRPC
+
+@enduml
+
+transcript
+----------
+
+% gateway-agent enroll
+
+Run this command on your device to register the gateway:
+
+  controlplane-cli enroll-gateway <BASE64-data>
+
+%
