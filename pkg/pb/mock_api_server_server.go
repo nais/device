@@ -13,18 +13,27 @@ type MockAPIServerServer struct {
 	mock.Mock
 }
 
-// AdminListGateways provides a mock function with given fields: _a0, _a1
-func (_m *MockAPIServerServer) AdminListGateways(_a0 *AdminListGatewayRequest, _a1 APIServer_AdminListGatewaysServer) error {
+// EnrollGateway provides a mock function with given fields: _a0, _a1
+func (_m *MockAPIServerServer) EnrollGateway(_a0 context.Context, _a1 *EnrollGatewayRequest) (*EnrollGatewayResponse, error) {
 	ret := _m.Called(_a0, _a1)
 
-	var r0 error
-	if rf, ok := ret.Get(0).(func(*AdminListGatewayRequest, APIServer_AdminListGatewaysServer) error); ok {
+	var r0 *EnrollGatewayResponse
+	if rf, ok := ret.Get(0).(func(context.Context, *EnrollGatewayRequest) *EnrollGatewayResponse); ok {
 		r0 = rf(_a0, _a1)
 	} else {
-		r0 = ret.Error(0)
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*EnrollGatewayResponse)
+		}
 	}
 
-	return r0
+	var r1 error
+	if rf, ok := ret.Get(1).(func(context.Context, *EnrollGatewayRequest) error); ok {
+		r1 = rf(_a0, _a1)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
 }
 
 // GetDeviceConfiguration provides a mock function with given fields: _a0, _a1
@@ -47,6 +56,20 @@ func (_m *MockAPIServerServer) GetGatewayConfiguration(_a0 *GetGatewayConfigurat
 
 	var r0 error
 	if rf, ok := ret.Get(0).(func(*GetGatewayConfigurationRequest, APIServer_GetGatewayConfigurationServer) error); ok {
+		r0 = rf(_a0, _a1)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
+// ListGateways provides a mock function with given fields: _a0, _a1
+func (_m *MockAPIServerServer) ListGateways(_a0 *ListGatewayRequest, _a1 APIServer_ListGatewaysServer) error {
+	ret := _m.Called(_a0, _a1)
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(*ListGatewayRequest, APIServer_ListGatewaysServer) error); ok {
 		r0 = rf(_a0, _a1)
 	} else {
 		r0 = ret.Error(0)

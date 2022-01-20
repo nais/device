@@ -46,7 +46,7 @@ func (e *Enroller) Enroll(c *cli.Context) error {
 			PublicKey: string(wireguard.PublicKey([]byte(e.cfg.PrivateKey))),
 			Ip:        e.cfg.PublicIP,
 		},
-		PasswordHash: string(formatted),
+		Shadow: string(formatted),
 	}
 
 	payload, err := proto.Marshal(req)
@@ -60,7 +60,8 @@ func (e *Enroller) Enroll(c *cli.Context) error {
 	}
 
 	fmt.Fprintf(os.Stderr, "API server password has been generated and written to %s.\n", DefaultConfigPath)
-	fmt.Fprintf(os.Stderr, "Please copy the following string and use it as input to `controlplane-cli gateway enroll`:\n\n")
+	fmt.Fprintf(os.Stderr, "Please run the following command to enroll this gateway with the API server:\n\n")
+	fmt.Fprintf(os.Stderr, "controlplane-cli gateway enroll --request ")
 	os.Stderr.Sync()
 
 	_, err = base64.NewEncoder(base64.StdEncoding, os.Stdout).Write(payload)

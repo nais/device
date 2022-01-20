@@ -7,88 +7,90 @@ package naisdevice;
 import "google/protobuf/timestamp.proto";
 
 service DeviceHelper {
-    // Push and apply new VPN configuration.
-    rpc Configure (Configuration) returns (ConfigureResponse) {
-    }
+  // Push and apply new VPN configuration.
+  rpc Configure (Configuration) returns (ConfigureResponse) {
+  }
 
-    // Delete VPN configuration and shut down connections.
-    rpc Teardown (TeardownRequest) returns (TeardownResponse) {
-    }
+  // Delete VPN configuration and shut down connections.
+  rpc Teardown (TeardownRequest) returns (TeardownResponse) {
+  }
 
-    // Install the newest version of naisdevice.
-    rpc Upgrade (UpgradeRequest) returns (UpgradeResponse) {
-    }
+  // Install the newest version of naisdevice.
+  rpc Upgrade (UpgradeRequest) returns (UpgradeResponse) {
+  }
 }
 
 service DeviceAgent {
-    // DeviceAgent will stream all state changes on this endpoint.
-    // Use Status() to continuously monitor the current Agent status.
-    rpc Status (AgentStatusRequest) returns (stream AgentStatus) {
-    }
+  // DeviceAgent will stream all state changes on this endpoint.
+  // Use Status() to continuously monitor the current Agent status.
+  rpc Status (AgentStatusRequest) returns (stream AgentStatus) {
+  }
 
-    // Open the JITA form in a web browser.
-    rpc ConfigureJITA (ConfigureJITARequest) returns (ConfigureJITAResponse) {
-    }
+  // Open the JITA form in a web browser.
+  rpc ConfigureJITA (ConfigureJITARequest) returns (ConfigureJITAResponse) {
+  }
 
-    // Log in to API server, enabling access to protected resources.
-    rpc Login (LoginRequest) returns (LoginResponse) {
-    }
+  // Log in to API server, enabling access to protected resources.
+  rpc Login (LoginRequest) returns (LoginResponse) {
+  }
 
-    // Log out of API server, shutting down all VPN connections.
-    rpc Logout (LogoutRequest) returns (LogoutResponse) {
-    }
+  // Log out of API server, shutting down all VPN connections.
+  rpc Logout (LogoutRequest) returns (LogoutResponse) {
+  }
 
-    // Set device agent configuration
-    rpc SetAgentConfiguration (SetAgentConfigurationRequest) returns (SetAgentConfigurationResponse) {
-    }
+  // Set device agent configuration
+  rpc SetAgentConfiguration (SetAgentConfigurationRequest) returns (SetAgentConfigurationResponse) {
+  }
 
-    // Get the current configuration for the device agent
-    rpc GetAgentConfiguration (GetAgentConfigurationRequest) returns (GetAgentConfigurationResponse) {
-    }
+  // Get the current configuration for the device agent
+  rpc GetAgentConfiguration (GetAgentConfigurationRequest) returns (GetAgentConfigurationResponse) {
+  }
 }
 
 service APIServer {
-    // Exchange an access token for a session
-    rpc Login (APIServerLoginRequest) returns (APIServerLoginResponse) {
-    }
+  // Exchange an access token for a session
+  rpc Login (APIServerLoginRequest) returns (APIServerLoginResponse) {
+  }
 
-    // Set up a client->server request for continuous streaming of new configuration
-    rpc GetDeviceConfiguration (GetDeviceConfigurationRequest) returns (stream GetDeviceConfigurationResponse) {
-    }
+  // Set up a client->server request for continuous streaming of new configuration
+  rpc GetDeviceConfiguration (GetDeviceConfigurationRequest) returns (stream GetDeviceConfigurationResponse) {
+  }
 
-    // Set up continuous streaming of new gateway configuration
-    rpc GetGatewayConfiguration (GetGatewayConfigurationRequest) returns (stream GetGatewayConfigurationResponse) {
-    }
+  // Set up continuous streaming of new gateway configuration
+  rpc GetGatewayConfiguration (GetGatewayConfigurationRequest) returns (stream GetGatewayConfigurationResponse) {
+  }
 
-    rpc AdminListGateways(AdminListGatewayRequest) returns (stream Gateway) {
-    }
+  // Admin endpoint for listing out gateways registered in database
+  rpc ListGateways(ListGatewayRequest) returns (stream Gateway) {
+  }
 
-    rpc EnrollGateway (EnrollGatewayRequest) returns (EnrollGatewayResponse) {
-    }
+  // Admin endpoint for adding gateway credentials to the database
+  rpc EnrollGateway (EnrollGatewayRequest) returns (EnrollGatewayResponse) {
+  }
 }
 
 enum AgentState {
-    Disconnected = 0;
-    Bootstrapping = 1;
-    Connected = 2;
-    Disconnecting = 3;
-    Unhealthy = 4;
-    Quitting = 5;
-    Authenticating = 6;
-    reserved 'SyncConfig';
-    reserved 7;
-    reserved 'HealthCheck';
-    reserved 8;
-    AuthenticateBackoff = 9;
-    AgentConfigurationChanged = 10;
-    reserved 'RenewCert';
-    reserved 11;
+  Disconnected = 0;
+  Bootstrapping = 1;
+  Connected = 2;
+  Disconnecting = 3;
+  Unhealthy = 4;
+  Quitting = 5;
+  Authenticating = 6;
+  reserved 'SyncConfig';
+  reserved 7;
+  reserved 'HealthCheck';
+  reserved 8;
+  AuthenticateBackoff = 9;
+  AgentConfigurationChanged = 10;
+  reserved 'RenewCert';
+  reserved 11;
 }
 
 enum DeviceConfigurationStatus {
-    DeviceHealthy = 0;
-    DeviceUnhealthy = 1;
-    InvalidSession = 2;
+  DeviceHealthy = 0;
+  DeviceUnhealthy = 1;
+  InvalidSession = 2;
 }
 
 message TeardownRequest {
@@ -123,7 +125,7 @@ message UpgradeRequest {
 }
 
 message ConfigureJITARequest {
-    Gateway gateway = 1;
+  Gateway gateway = 1;
 }
 
 message LoginRequest {
@@ -134,7 +136,7 @@ message LogoutRequest {
 }
 
 message SetAgentConfigurationRequest {
-    AgentConfiguration config = 1;
+  AgentConfiguration config = 1;
 }
 
 message SetAgentConfigurationResponse {
@@ -144,104 +146,105 @@ message GetAgentConfigurationRequest {
 }
 
 message GetAgentConfigurationResponse {
-    AgentConfiguration config = 1;
+  AgentConfiguration config = 1;
 }
 
 message AgentStatusRequest {
-    bool keepConnectionOnComplete = 1;
+  bool keepConnectionOnComplete = 1;
 }
 
 message AgentStatus {
-    AgentState connectionState = 1;
-    google.protobuf.Timestamp connectedSince = 2;
-    bool newVersionAvailable = 3;
-    repeated Gateway Gateways = 4;
+  AgentState connectionState = 1;
+  google.protobuf.Timestamp connectedSince = 2;
+  bool newVersionAvailable = 3;
+  repeated Gateway Gateways = 4;
 }
 
 message Configuration {
-    string privateKey = 1;
-    string deviceIP = 2;
-    repeated Gateway Gateways = 3;
+  string privateKey = 1;
+  string deviceIP = 2;
+  repeated Gateway Gateways = 3;
 }
 
 message EnrollGatewayRequest {
-    Gateway gateway = 1;
-    string passwordHash = 2;
+  string password = 1; // authentication token
+  Gateway gateway = 2;
+  string shadow = 3;
 }
 
 message EnrollGatewayResponse {
 }
 
 message Gateway {
-    string name = 1;
-    bool healthy = 2;
-    string publicKey = 3;
-    string endpoint = 4;
-    string ip = 5;
-    repeated string routes = 6;
-    bool requiresPrivilegedAccess = 7 [json_name = "requires_privileged_access"];
-    repeated string accessGroupIDs = 8;
+  string name = 1;
+  bool healthy = 2;
+  string publicKey = 3;
+  string endpoint = 4;
+  string ip = 5;
+  repeated string routes = 6;
+  bool requiresPrivilegedAccess = 7 [json_name = "requires_privileged_access"];
+  repeated string accessGroupIDs = 8;
 }
 
 message Error {
-    string message = 1;
+  string message = 1;
 }
 
 message AgentConfiguration {
-    bool CertRenewal = 1;
-    bool AutoConnect = 2;
+  bool CertRenewal = 1;
+  bool AutoConnect = 2;
 }
 
 message GetGatewayConfigurationRequest {
-    string gateway = 1;
-    string password = 2;
+  string gateway = 1;
+  string password = 2;
 }
 
 message GetGatewayConfigurationResponse {
-    repeated Device devices = 1;
-    repeated string routes = 2;
+  repeated Device devices = 1;
+  repeated string routes = 2;
 }
 
 message GetDeviceConfigurationRequest {
-    string sessionKey = 1;
+  string sessionKey = 1;
 }
 
 message APIServerLoginRequest {
-    string token = 1;
-    string platform = 2;
-    string serial = 3;
+  string token = 1;
+  string platform = 2;
+  string serial = 3;
 }
 
 message APIServerLoginResponse {
-    Session session = 1;
+  Session session = 1;
 }
 
 message GetDeviceConfigurationResponse {
-    DeviceConfigurationStatus status = 1;
-    repeated Gateway Gateways = 2;
+  DeviceConfigurationStatus status = 1;
+  repeated Gateway Gateways = 2;
 }
 
-message AdminListGatewayRequest {
-    string password = 1;
+message ListGatewayRequest {
+  string password = 1;
 }
 
 message Device {
-    int64 id = 1;
-    string serial = 2;
-    string psk = 3;
-    google.protobuf.Timestamp lastUpdated = 4;
-    google.protobuf.Timestamp kolideLastSeen = 5;
-    bool healthy = 6;
-    string publicKey = 7;
-    string ip = 8;
-    string username = 9;
-    string platform = 10;
+  int64 id = 1;
+  string serial = 2;
+  string psk = 3;
+  google.protobuf.Timestamp lastUpdated = 4;
+  google.protobuf.Timestamp kolideLastSeen = 5;
+  bool healthy = 6;
+  string publicKey = 7;
+  string ip = 8;
+  string username = 9;
+  string platform = 10;
 }
 
 message Session {
-    string key = 1;
-    google.protobuf.Timestamp expiry = 2;
-    Device device = 3;
-    repeated string groups = 4;
-    string objectID = 5;
+  string key = 1;
+  google.protobuf.Timestamp expiry = 2;
+  Device device = 3;
+  repeated string groups = 4;
+  string objectID = 5;
 }

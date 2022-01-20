@@ -15,8 +15,8 @@ type MockAPIServerClient struct {
 	mock.Mock
 }
 
-// AdminListGateways provides a mock function with given fields: ctx, in, opts
-func (_m *MockAPIServerClient) AdminListGateways(ctx context.Context, in *AdminListGatewayRequest, opts ...grpc.CallOption) (APIServer_AdminListGatewaysClient, error) {
+// EnrollGateway provides a mock function with given fields: ctx, in, opts
+func (_m *MockAPIServerClient) EnrollGateway(ctx context.Context, in *EnrollGatewayRequest, opts ...grpc.CallOption) (*EnrollGatewayResponse, error) {
 	_va := make([]interface{}, len(opts))
 	for _i := range opts {
 		_va[_i] = opts[_i]
@@ -26,17 +26,17 @@ func (_m *MockAPIServerClient) AdminListGateways(ctx context.Context, in *AdminL
 	_ca = append(_ca, _va...)
 	ret := _m.Called(_ca...)
 
-	var r0 APIServer_AdminListGatewaysClient
-	if rf, ok := ret.Get(0).(func(context.Context, *AdminListGatewayRequest, ...grpc.CallOption) APIServer_AdminListGatewaysClient); ok {
+	var r0 *EnrollGatewayResponse
+	if rf, ok := ret.Get(0).(func(context.Context, *EnrollGatewayRequest, ...grpc.CallOption) *EnrollGatewayResponse); ok {
 		r0 = rf(ctx, in, opts...)
 	} else {
 		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(APIServer_AdminListGatewaysClient)
+			r0 = ret.Get(0).(*EnrollGatewayResponse)
 		}
 	}
 
 	var r1 error
-	if rf, ok := ret.Get(1).(func(context.Context, *AdminListGatewayRequest, ...grpc.CallOption) error); ok {
+	if rf, ok := ret.Get(1).(func(context.Context, *EnrollGatewayRequest, ...grpc.CallOption) error); ok {
 		r1 = rf(ctx, in, opts...)
 	} else {
 		r1 = ret.Error(1)
@@ -97,6 +97,36 @@ func (_m *MockAPIServerClient) GetGatewayConfiguration(ctx context.Context, in *
 
 	var r1 error
 	if rf, ok := ret.Get(1).(func(context.Context, *GetGatewayConfigurationRequest, ...grpc.CallOption) error); ok {
+		r1 = rf(ctx, in, opts...)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// ListGateways provides a mock function with given fields: ctx, in, opts
+func (_m *MockAPIServerClient) ListGateways(ctx context.Context, in *ListGatewayRequest, opts ...grpc.CallOption) (APIServer_ListGatewaysClient, error) {
+	_va := make([]interface{}, len(opts))
+	for _i := range opts {
+		_va[_i] = opts[_i]
+	}
+	var _ca []interface{}
+	_ca = append(_ca, ctx, in)
+	_ca = append(_ca, _va...)
+	ret := _m.Called(_ca...)
+
+	var r0 APIServer_ListGatewaysClient
+	if rf, ok := ret.Get(0).(func(context.Context, *ListGatewayRequest, ...grpc.CallOption) APIServer_ListGatewaysClient); ok {
+		r0 = rf(ctx, in, opts...)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(APIServer_ListGatewaysClient)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(context.Context, *ListGatewayRequest, ...grpc.CallOption) error); ok {
 		r1 = rf(ctx, in, opts...)
 	} else {
 		r1 = ret.Error(1)

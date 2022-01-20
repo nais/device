@@ -5,14 +5,14 @@ import (
 	"os"
 
 	controlplanecli "github.com/nais/device/pkg/controlplane-cli"
-	cli "github.com/urfave/cli/v2"
+	"github.com/urfave/cli/v2"
 )
 
 func main() {
 	app := &cli.App{
 		Flags: []cli.Flag{
 			&cli.StringFlag{
-				Name:    controlplanecli.AdminPasswordFlagName,
+				Name:    controlplanecli.FlagAdminPassword,
 				Usage:   "naisdevice admin password",
 				EnvVars: []string{"NAISDEVICE_ADMIN_PASSWORD"},
 			},
@@ -27,6 +27,18 @@ func main() {
 						Name:   "list",
 						Usage:  "list gateways",
 						Action: controlplanecli.ListGateways,
+					},
+					{
+						Name:  "enroll",
+						Usage: "enroll a gateway",
+						Flags: []cli.Flag{
+							&cli.StringFlag{
+								Name:     "request",
+								Usage:    "output data from 'gateway-agent enroll'",
+								Required: true,
+							},
+						},
+						Action: controlplanecli.EnrollGateway,
 					},
 				},
 			},
