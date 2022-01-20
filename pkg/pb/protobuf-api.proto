@@ -62,6 +62,9 @@ service APIServer {
 
     rpc AdminListGateways(AdminListGatewayRequest) returns (stream Gateway) {
     }
+
+    rpc EnrollGateway (EnrollGatewayRequest) returns (EnrollGatewayResponse) {
+    }
 }
 
 enum AgentState {
@@ -159,6 +162,14 @@ message Configuration {
     string privateKey = 1;
     string deviceIP = 2;
     repeated Gateway Gateways = 3;
+}
+
+message EnrollGatewayRequest {
+    Gateway gateway = 1;
+    string passwordHash = 2;
+}
+
+message EnrollGatewayResponse {
 }
 
 message Gateway {

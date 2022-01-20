@@ -12,6 +12,7 @@ import (
 	"github.com/nais/device/pkg/basicauth"
 	g "github.com/nais/device/pkg/gateway-agent"
 	"github.com/nais/device/pkg/pb"
+	"github.com/urfave/cli/v2"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -34,6 +35,7 @@ const (
 )
 
 func init() {
+
 	flag.StringVar(&cfg.Name, "name", cfg.Name, "gateway name")
 	flag.StringVar(&cfg.ConfigDir, "config-dir", cfg.ConfigDir, "gateway-agent config directory")
 	flag.StringVar(&cfg.PublicIP, "public-ip", cfg.PublicIP, "public gateway ip")
@@ -49,14 +51,30 @@ func init() {
 }
 
 func main() {
-	err := run()
+	enroller := g.NewEnroller(cfg)
+
+	app := &cli.App{
+		Commands: []*cli.Command{
+			{
+				Name:   "enroll",
+				Usage:  "generates a gateway configuration and prints a base64 encoded version to stdout",
+				Action: enroller.Enroll,
+			},
+			{
+				Name:   "run",
+				Usage:  "runs the main gateway loop",
+				Action: run,
+			},
+		},
+	}
+	err := app.Run(os.Args)
 	if err != nil {
 		log.Errorf("fatal: %s", err)
 		os.Exit(1)
 	}
 }
 
-func run() error {
+func run(_ *cli.Context) error {
 	var err error
 
 	err = envconfig.Process("GATEWAY_AGENT", &cfg)

@@ -501,6 +501,7 @@ type APIServerClient interface {
 	// Set up continuous streaming of new gateway configuration
 	GetGatewayConfiguration(ctx context.Context, in *GetGatewayConfigurationRequest, opts ...grpc.CallOption) (APIServer_GetGatewayConfigurationClient, error)
 	AdminListGateways(ctx context.Context, in *AdminListGatewayRequest, opts ...grpc.CallOption) (APIServer_AdminListGatewaysClient, error)
+	EnrollGateway(ctx context.Context, in *EnrollGatewayRequest, opts ...grpc.CallOption) (*EnrollGatewayResponse, error)
 }
 
 type aPIServerClient struct {
@@ -616,6 +617,15 @@ func (x *aPIServerAdminListGatewaysClient) Recv() (*Gateway, error) {
 	return m, nil
 }
 
+func (c *aPIServerClient) EnrollGateway(ctx context.Context, in *EnrollGatewayRequest, opts ...grpc.CallOption) (*EnrollGatewayResponse, error) {
+	out := new(EnrollGatewayResponse)
+	err := c.cc.Invoke(ctx, "/naisdevice.APIServer/EnrollGateway", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // APIServerServer is the server API for APIServer service.
 // All implementations must embed UnimplementedAPIServerServer
 // for forward compatibility
@@ -627,6 +637,7 @@ type APIServerServer interface {
 	// Set up continuous streaming of new gateway configuration
 	GetGatewayConfiguration(*GetGatewayConfigurationRequest, APIServer_GetGatewayConfigurationServer) error
 	AdminListGateways(*AdminListGatewayRequest, APIServer_AdminListGatewaysServer) error
+	EnrollGateway(context.Context, *EnrollGatewayRequest) (*EnrollGatewayResponse, error)
 	mustEmbedUnimplementedAPIServerServer()
 }
 
@@ -645,6 +656,9 @@ func (UnimplementedAPIServerServer) GetGatewayConfiguration(*GetGatewayConfigura
 }
 func (UnimplementedAPIServerServer) AdminListGateways(*AdminListGatewayRequest, APIServer_AdminListGatewaysServer) error {
 	return status.Errorf(codes.Unimplemented, "method AdminListGateways not implemented")
+}
+func (UnimplementedAPIServerServer) EnrollGateway(context.Context, *EnrollGatewayRequest) (*EnrollGatewayResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method EnrollGateway not implemented")
 }
 func (UnimplementedAPIServerServer) mustEmbedUnimplementedAPIServerServer() {}
 
@@ -740,6 +754,24 @@ func (x *aPIServerAdminListGatewaysServer) Send(m *Gateway) error {
 	return x.ServerStream.SendMsg(m)
 }
 
+func _APIServer_EnrollGateway_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(EnrollGatewayRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(APIServerServer).EnrollGateway(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/naisdevice.APIServer/EnrollGateway",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(APIServerServer).EnrollGateway(ctx, req.(*EnrollGatewayRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // APIServer_ServiceDesc is the grpc.ServiceDesc for APIServer service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -750,6 +782,10 @@ var APIServer_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "Login",
 			Handler:    _APIServer_Login_Handler,
+		},
+		{
+			MethodName: "EnrollGateway",
+			Handler:    _APIServer_EnrollGateway_Handler,
 		},
 	},
 	Streams: []grpc.StreamDesc{
