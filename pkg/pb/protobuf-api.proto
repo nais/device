@@ -173,6 +173,7 @@ message EnrollGatewayRequest {
 }
 
 message EnrollGatewayResponse {
+  Gateway gateway = 1;
 }
 
 message Gateway {

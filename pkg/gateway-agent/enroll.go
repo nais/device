@@ -44,7 +44,7 @@ func (e *Enroller) Enroll(c *cli.Context) error {
 		Gateway: &pb.Gateway{
 			Name:      e.cfg.Name,
 			PublicKey: string(wireguard.PublicKey([]byte(e.cfg.PrivateKey))),
-			Ip:        e.cfg.PublicIP,
+			Endpoint:  e.cfg.PublicIP,
 		},
 		Shadow: string(formatted),
 	}
