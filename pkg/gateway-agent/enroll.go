@@ -1,16 +1,15 @@
 package gateway_agent
 
 import (
-	"bytes"
-	"crypto/rand"
-	"crypto/sha1"
 	"encoding/base64"
 	"fmt"
-	"io"
 	"os"
 
+	"github.com/nais/device/pkg/device-agent/wireguard"
+	"github.com/nais/device/pkg/passwordhash"
+	"github.com/nais/device/pkg/pb"
 	"github.com/urfave/cli/v2"
-	"golang.org/x/crypto/pbkdf2"
+	"google.golang.org/protobuf/proto"
 )
 
 const (
@@ -28,63 +27,60 @@ func NewEnroller(cfg Config) Enroller {
 }
 
 func (e *Enroller) Enroll(c *cli.Context) error {
-	password, err := generatePassword()
+	password, err := passwordhash.RandomBytes(32)
 	if err != nil {
 		return fmt.Errorf("generate password: %w", err)
 	}
-	salt, err := generatePassword()
+
+	salt, err := passwordhash.RandomBytes(16)
 	if err != nil {
 		return fmt.Errorf("generate salt: %w", err)
 	}
-	//err = e.persistPassword(password)
+
+	key := passwordhash.HashPassword(password, salt)
+	formatted := passwordhash.FormatHash(key, salt)
+
+	req := &pb.EnrollGatewayRequest{
+		Gateway: &pb.Gateway{
+			Name:      e.cfg.Name,
+			PublicKey: string(wireguard.PublicKey([]byte(e.cfg.PrivateKey))),
+			Ip:        e.cfg.PublicIP,
+		},
+		PasswordHash: string(formatted),
+	}
+
+	payload, err := proto.Marshal(req)
+	if err != nil {
+		return fmt.Errorf("encode protobuf: %w", err)
+	}
+
+	err = e.persistPassword(password, DefaultConfigPath)
 	if err != nil {
 		return fmt.Errorf("persist password: %w", err)
 	}
 
-	hash := HashPassword(password, salt)
+	fmt.Fprintf(os.Stderr, "API server password has been generated and written to %s.\n", DefaultConfigPath)
+	fmt.Fprintf(os.Stderr, "Please copy the following string and use it as input to `controlplane-cli gateway enroll`:\n\n")
+	os.Stderr.Sync()
 
-	fmt.Print(string(hash))
+	_, err = base64.NewEncoder(base64.StdEncoding, os.Stdout).Write(payload)
+	fmt.Fprintf(os.Stderr, "\n")
 
-	// req := pb.EnrollGatewayRequest{
-	// Gateway: &pb.Gateway{
-	// Name:      e.cfg.Name,
-	// PublicKey: string(wireguard.PublicKey([]byte(e.cfg.PrivateKey))),
-	// Ip:        e.cfg.PublicIP,
-	// },
-	// PasswordHash: string(hash),
-	// }
-
-	return nil
+	return err
 }
 
-func HashPassword(password, salt string) []byte {
-	buf := &bytes.Buffer{}
-	key := base64.StdEncoding.EncodeToString(
-		pbkdf2.Key([]byte(password), []byte(salt), 128069, 64, sha1.New),
-	)
-	fmt.Fprintf(buf, "$1$%s$%s", salt, key)
-	return buf.Bytes()
-}
-
-func (e *Enroller) persistPassword(password string) error {
-	fd, err := os.OpenFile(DefaultConfigPath, os.O_APPEND, 0600)
+func (e *Enroller) persistPassword(password []byte, file string) error {
+	fd, err := os.OpenFile(file, os.O_WRONLY|os.O_APPEND, 0600)
 	if err != nil {
 		return fmt.Errorf("open file: %w", err)
 	}
 
-	_, err = fmt.Fprintf(fd, "GATEWAY_AGENT_APISERVERPASSWORD=%v", password)
+	encoded := base64.StdEncoding.EncodeToString(password)
+	_, err = fmt.Fprintf(fd, "GATEWAY_AGENT_APISERVERPASSWORD=\"%s\"\n", encoded)
 	if err != nil {
+		fd.Close()
 		return fmt.Errorf("append to file: %w", err)
 	}
 
-	return nil
-}
-
-func generatePassword() (string, error) {
-	bytes := make([]byte, 32)
-	_, err := io.ReadFull(rand.Reader, bytes)
-	if err != nil {
-		return "", err
-	}
-	return base64.StdEncoding.EncodeToString(bytes), nil
+	return fd.Close()
 }
