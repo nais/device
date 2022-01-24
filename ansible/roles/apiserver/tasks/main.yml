@@ -29,6 +29,31 @@
   notify:
     - restart_apiserver
 
+- name: Get enrollment token
+  shell: gcloud --project nais-device secrets versions access latest --secret {{ item }}
+  args:
+    executable: /bin/bash
+  environment:
+    PATH: /usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/snap/bin
+  register: secrets
+  loop:
+    - apiserver-db-dsn
+    - azure-client-secret
+    - kolide-api-token
+    - kolide-event-handler-grpc-auth-token
+    - nais-device_api-server_bootstrap-api-password
+    - naisdevice-jita-password
+
+- name: API server configuration
+  template:
+    src: configuration.j2
+    dest: /etc/default/apiserver
+    owner: root
+    group: root
+    mode: '0600'
+  #notify:
+  #  - restart_apiserver
+
 - name: Ensure apiserver is enabled
   systemd:
     name: apiserver
