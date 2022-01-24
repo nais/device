@@ -138,7 +138,7 @@ func (s *grpcServer) Login(ctx context.Context, r *pb.APIServerLoginRequest) (*p
 	}, nil
 }
 
-func (s *grpcServer) AdminListGateways(request *pb.ListGatewayRequest, stream pb.APIServer_ListGatewaysServer) error {
+func (s *grpcServer) ListGateways(request *pb.ListGatewayRequest, stream pb.APIServer_ListGatewaysServer) error {
 	err := s.apikeyAuthenticator.Authenticate(AdminUsername, request.Password)
 	if err != nil {
 		return status.Error(codes.Unauthenticated, err.Error())
