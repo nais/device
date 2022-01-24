@@ -44,6 +44,7 @@ func (e *Enroller) Enroll(c *cli.Context) error {
 		Gateway: &pb.Gateway{
 			Name:      e.cfg.Name,
 			PublicKey: string(wireguard.PublicKey([]byte(e.cfg.PrivateKey))),
+			Ip:        e.cfg.BootstrapConfig.DeviceIP,
 			Endpoint:  e.cfg.PublicIP,
 		},
 		Shadow: string(formatted),
@@ -59,7 +60,13 @@ func (e *Enroller) Enroll(c *cli.Context) error {
 		return fmt.Errorf("persist password: %w", err)
 	}
 
-	fmt.Fprintf(os.Stderr, "API server password has been generated and written to %s.\n", DefaultConfigPath)
+	fmt.Fprintf(os.Stderr, "API server password has been generated and written to %s.\n\n", DefaultConfigPath)
+	fmt.Fprintf(os.Stderr, "name........: %s\n", req.Gateway.Name)
+	fmt.Fprintf(os.Stderr, "publickey...: %s\n", req.Gateway.PublicKey)
+	fmt.Fprintf(os.Stderr, "ip..........: %s\n", req.Gateway.Ip)
+	fmt.Fprintf(os.Stderr, "endpoint....: %s\n", req.Gateway.Endpoint)
+	fmt.Fprintf(os.Stderr, "passhash....: %s\n", req.Shadow)
+	fmt.Fprintf(os.Stderr, "\n")
 	fmt.Fprintf(os.Stderr, "Please run the following command to enroll this gateway with the API server:\n\n")
 	fmt.Fprintf(os.Stderr, "controlplane-cli gateway enroll --request ")
 	os.Stderr.Sync()

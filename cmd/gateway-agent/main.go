@@ -53,6 +53,12 @@ func init() {
 func main() {
 	enroller := g.NewEnroller(cfg)
 
+	err := sourceConfig()
+	if err != nil {
+		log.Errorf("read configuration: %s", err)
+		os.Exit(1)
+	}
+
 	app := &cli.App{
 		Commands: []*cli.Command{
 			{
@@ -67,22 +73,28 @@ func main() {
 			},
 		},
 	}
-	err := app.Run(os.Args)
+
+	err = app.Run(os.Args)
 	if err != nil {
 		log.Errorf("fatal: %s", err)
 		os.Exit(1)
 	}
 }
 
-func run(_ *cli.Context) error {
-	var err error
-
-	err = envconfig.Process("GATEWAY_AGENT", &cfg)
+func sourceConfig() error {
+	err := envconfig.Process("GATEWAY_AGENT", &cfg)
 	if err != nil {
 		return fmt.Errorf("parse env config: %w", err)
 	}
 
 	cfg.InitLocalConfig()
+
+	return nil
+}
+
+func run(_ *cli.Context) error {
+	var err error
+
 	fmt.Printf("%+v\n", cfg)
 
 	logger.Setup(cfg.LogLevel)
