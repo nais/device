@@ -35,7 +35,7 @@
     - restart_google-fluentd
 
 - name: Create systemd unit override directory
-  when: onprem == true
+  when: onprem is defined and onprem == true
   file:
     path: /etc/systemd/system/google-fluentd.service.d
     state: directory
@@ -44,7 +44,7 @@
     mode: 0755
 
 - name: Add systemd unit override
-  when: onprem == true
+  when: onprem is defined and onprem == true
   template:
     src: override.conf.j2
     dest: /etc/systemd/system/google-fluentd.service.d/override.conf
