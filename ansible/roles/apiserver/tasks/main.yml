@@ -30,19 +30,25 @@
     - restart_apiserver
 
 - name: Get enrollment token
-  shell: gcloud --project nais-device secrets versions access latest --secret {{ item }}
+  shell: gcloud --project nais-device secrets versions access latest --secret {{ item.secret }}
   args:
     executable: /bin/bash
   environment:
     PATH: /usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/snap/bin
   register: secrets
   loop:
-    - apiserver-db-dsn
-    - azure-client-secret
-    - kolide-api-token
-    - kolide-event-handler-grpc-auth-token
-    - nais-device_api-server_bootstrap-api-password
-    - naisdevice-jita-password
+    - env: APISERVER_DBCONNECTIONDSN
+      secret: apiserver-db-dsn
+    - env: APISERVER_AZURECLIENTSECRET
+      secret: azure-client-secret
+    - env: APISERVER_KOLIDEAPITOKEN
+      secret: kolide-api-token
+    - env: APISERVER_KOLIDEEVENTHANDLERTOKEN
+      secret: kolide-event-handler-grpc-auth-token
+    - env: APISERVER_BOOTSTRAPAPICREDENTIALS
+      secret: nais-device_api-server_bootstrap-api-password
+    - env: APISERVER_JITAPASSWORD
+      secret: naisdevice-jita-password
 
 - name: API server configuration
   template:

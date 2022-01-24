@@ -1,11 +1,8 @@
 #!/bin/sh
 
-APISERVER_AZURECLIENTSECRET="{{ azure-client-secret }}"
-APISERVER_BOOTSTRAPAPICREDENTIALS="{{ nais-device_api-server_bootstrap-api-password }}"
-APISERVER_DBCONNECTIONDSN="{{ apiserver-db-dsn }}"
-APISERVER_JITAPASSWORD="{{ naisdevice-jita-password }}"
-APISERVER_KOLIDEAPITOKEN="{{ kolide-api-token }}"
-APISERVER_KOLIDEEVENTHANDLERTOKEN="{{ kolide-event-handler-grpc-auth-token }}"
+{% for result in secrets.results -%}
+  {{ result.item.env }}="{{ result.stdout }}"
+{% endfor -%}
 
 APISERVER_BINDADDRESS="10.255.240.1:80"
 APISERVER_BOOTSTRAPAPIURL="https://bootstrap.device.nais.io"
