@@ -4,8 +4,8 @@ Description=apiserver
 
 [Service]
 Restart=always
-StandardOutput=append:/var/log/naisdevice/gateway-agent.json
-StandardError=append:/var/log/naisdevice/gateway-agent.json
+StandardOutput=append:/var/log/naisdevice/apiserver.json
+StandardError=append:/var/log/naisdevice/apiserver.json
 
 # This script fetches passwords and stores them in file referenced below
 ExecStartPre=/usr/bin/apiserver-fetch-passwords
