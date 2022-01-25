@@ -23,85 +23,12 @@ import (
 const (
 	apiServerPublicKey = "pk"
 	endpoint           = "ep"
-	gatewayName        = "gateway-1"
-	gatewayEndpoint    = "1.2.3.4"
-	gatewayPublicKey   = "publicKey"
 	deviceSerial       = "deviceSerial"
 	devicePublicKey    = "publicKey"
 	devicePlatform     = "linux"
 	deviceOwner        = "me"
 	timeout            = 5 * time.Second
 )
-
-func TestWatchGatewayEnrollments(t *testing.T) {
-	once := sync.Once{}
-	success := false
-	mux := http.NewServeMux()
-
-	mux.HandleFunc("/api/v2/gateway/config/gateway-1", func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != http.MethodPost {
-			t.Fatalf("invalid method")
-		}
-
-		var cfg bootstrap.Config
-		err := json.NewDecoder(r.Body).Decode(&cfg)
-		assert.NoError(t, err)
-
-		assert.Equal(t, apiServerPublicKey, cfg.PublicKey)
-		assert.Equal(t, endpoint, cfg.TunnelEndpoint)
-
-		success = true
-		w.WriteHeader(http.StatusCreated)
-	})
-
-	mux.HandleFunc("/api/v2/gateway/info", func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != http.MethodGet {
-			t.Fatalf("invalid method")
-		}
-
-		gwInfos := []bootstrap.GatewayInfo{{
-			Name:      gatewayName,
-			PublicIP:  gatewayEndpoint,
-			PublicKey: gatewayPublicKey,
-		}}
-
-		b, err := json.Marshal(&gwInfos)
-		assert.NoError(t, err)
-
-		once.Do(func() {
-			w.Write(b)
-			return
-		})
-
-		fmt.Fprint(w, `[]`)
-	})
-
-	ctx, cancel := context.WithTimeout(context.Background(), timeout)
-	defer cancel()
-
-	testDB, err := testdatabase.New(ctx, "user=postgres password=postgres host=localhost port=5433 sslmode=disable")
-	assert.NoError(t, err)
-	server := httptest.NewServer(mux)
-	enr := enroller.Enroller{
-		Client:             server.Client(),
-		DB:                 testDB,
-		BootstrapAPIURL:    server.URL,
-		APIServerPublicKey: apiServerPublicKey,
-		APIServerEndpoint:  endpoint,
-	}
-
-	assert.NoError(t, enr.EnrollGateways(ctx))
-
-	gateway, err := testDB.ReadGateway(ctx, gatewayName)
-	assert.NoError(t, err)
-
-	assert.Equal(t, gatewayEndpoint, gateway.Endpoint)
-	assert.Equal(t, gatewayPublicKey, gateway.PublicKey)
-
-	if !success {
-		t.Errorf("no success")
-	}
-}
 
 func TestWatchDeviceEnrollments(t *testing.T) {
 	once := sync.Once{}

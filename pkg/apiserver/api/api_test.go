@@ -82,15 +82,24 @@ func TestGetDeviceConfig(t *testing.T) {
 	err = db.AddSessionInfo(ctx, si)
 	assert.NoError(t, err)
 
-	authorizedGateway := pb.Gateway{Name: "gw1", Endpoint: "ep1", PublicKey: "pubkey1"}
-	unauthorizedGateway := pb.Gateway{Name: "gw2", Endpoint: "ep2", PublicKey: "pubkey2"}
-	if err := db.AddGateway(ctx, authorizedGateway.Name, authorizedGateway.Endpoint, authorizedGateway.PublicKey, ""); err != nil {
+	authorizedGateway := pb.Gateway{
+		Name:           "gw1",
+		Endpoint:       "ep1",
+		PublicKey:      "pubkey1",
+		AccessGroupIDs: []string{"group1"},
+	}
+	unauthorizedGateway := pb.Gateway{
+		Name:      "gw2",
+		Endpoint:  "ep2",
+		PublicKey: "pubkey2",
+	}
+	if err := db.AddGateway(ctx, &authorizedGateway); err != nil {
 		t.Fatalf("Adding gateway: %v", err)
 	}
 
-	assert.NoError(t, db.UpdateGateway(ctx, authorizedGateway.Name, nil, []string{"group1"}, false))
+	assert.NoError(t, db.UpdateGateway(ctx, &authorizedGateway))
 
-	if err := db.AddGateway(ctx, unauthorizedGateway.Name, unauthorizedGateway.Endpoint, unauthorizedGateway.PublicKey, ""); err != nil {
+	if err := db.AddGateway(ctx, &unauthorizedGateway); err != nil {
 		t.Fatalf("Adding gateway: %v", err)
 	}
 
@@ -118,11 +127,16 @@ func TestGatewayConfig(t *testing.T) {
 	//_ = addSessionInfo(t, db, ctx, healthyDeviceOutOfDate, "userId", []string{"authorized"})
 
 	// todo don't use username as gateway
-	authorizedGateway := pb.Gateway{Name: "username", Endpoint: "ep1", PublicKey: "pubkey1"}
-	if err := db.AddGateway(ctx, authorizedGateway.Name, authorizedGateway.Endpoint, authorizedGateway.PublicKey, ""); err != nil {
+	authorizedGateway := pb.Gateway{
+		Name:           "username",
+		Endpoint:       "ep1",
+		PublicKey:      "pubkey1",
+		AccessGroupIDs: []string{"authorized"},
+	}
+	if err := db.AddGateway(ctx, &authorizedGateway); err != nil {
 		t.Fatalf("Adding gateway: %v", err)
 	}
-	assert.NoError(t, db.UpdateGateway(ctx, authorizedGateway.Name, nil, []string{"authorized"}, false))
+	assert.NoError(t, db.UpdateGateway(ctx, &authorizedGateway))
 
 	gatewayConfig := getGatewayConfig(t, router, "username", "password")
 	devices := gatewayConfig.Devices
@@ -145,17 +159,29 @@ func TestPrivilegedGatewayConfig(t *testing.T) {
 	_ = addSessionInfo(t, db, ctx, healthyDevice, privilegedUsers[0].UserId, []string{"authorized"})
 
 	// todo don't use username as gateway
-	privilegedGateway1 := pb.Gateway{Name: "privileged1", Endpoint: "ep1", PublicKey: "pubkey1"}
-	if err := db.AddGateway(ctx, privilegedGateway1.Name, privilegedGateway1.Endpoint, privilegedGateway1.PublicKey, ""); err != nil {
+	privilegedGateway1 := pb.Gateway{
+		Name:                     "privileged1",
+		Endpoint:                 "ep1",
+		PublicKey:                "pubkey1",
+		AccessGroupIDs:           []string{"authorized"},
+		RequiresPrivilegedAccess: true,
+	}
+	if err := db.AddGateway(ctx, &privilegedGateway1); err != nil {
 		t.Fatalf("Adding gateway: %v", err)
 	}
-	assert.NoError(t, db.UpdateGateway(ctx, privilegedGateway1.Name, nil, []string{"authorized"}, true))
+	assert.NoError(t, db.UpdateGateway(ctx, &privilegedGateway1))
 
-	privilegedGateway2 := pb.Gateway{Name: "privileged2", Endpoint: "ep1", PublicKey: "pubkey2"}
-	if err := db.AddGateway(ctx, privilegedGateway2.Name, privilegedGateway2.Endpoint, privilegedGateway2.PublicKey, ""); err != nil {
+	privilegedGateway2 := pb.Gateway{
+		Name:                     "privileged2",
+		Endpoint:                 "ep1",
+		PublicKey:                "pubkey2",
+		AccessGroupIDs:           []string{"authorized"},
+		RequiresPrivilegedAccess: true,
+	}
+	if err := db.AddGateway(ctx, &privilegedGateway2); err != nil {
 		t.Fatalf("Adding gateway: %v", err)
 	}
-	assert.NoError(t, db.UpdateGateway(ctx, privilegedGateway2.Name, nil, []string{"authorized"}, true))
+	assert.NoError(t, db.UpdateGateway(ctx, &privilegedGateway2))
 
 	privilegedGatewayConfig := getGatewayConfig(t, router, "privileged1", "password")
 	assert.Len(t, privilegedGatewayConfig.Devices, 1)

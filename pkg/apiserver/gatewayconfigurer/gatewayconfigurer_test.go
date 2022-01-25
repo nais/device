@@ -10,6 +10,7 @@ import (
 
 	"github.com/nais/device/pkg/apiserver/bucket"
 	"github.com/nais/device/pkg/apiserver/database"
+	"github.com/nais/device/pkg/pb"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 
@@ -39,12 +40,15 @@ func TestGatewayConfigurer_SyncConfig(t *testing.T) {
 			TriggerGatewaySync: channel,
 		}
 
+		db.On("ReadGateway", mock.Anything, gatewayName).Return(&pb.Gateway{Name: gatewayName}, nil).Once()
 		db.On("UpdateGateway",
 			mock.Anything,
-			gatewayName,
-			[]string{route},
-			[]string{accessGroupId},
-			requiresPrivilegedAccess,
+			&pb.Gateway{
+				Name:                     gatewayName,
+				Routes:                   []string{route},
+				AccessGroupIDs:           []string{accessGroupId},
+				RequiresPrivilegedAccess: requiresPrivilegedAccess,
+			},
 		).Return(nil).Once()
 
 		mockClient.On("Open", mock.Anything).Return(mockObject, nil).Twice()
@@ -127,10 +131,9 @@ func TestGatewayConfigurer_SyncConfig(t *testing.T) {
 			TriggerGatewaySync: channel,
 		}
 
+		db.On("ReadGateway", mock.Anything, gatewayName).Return(&pb.Gateway{Name: gatewayName}, nil)
+
 		db.On("UpdateGateway",
-			mock.Anything,
-			mock.Anything,
-			mock.Anything,
 			mock.Anything,
 			mock.Anything,
 		).Return(expectedError).Once()

@@ -42,7 +42,7 @@ func TestAddGateway(t *testing.T) {
 	}
 
 	t.Run("adding new gateway works", func(t *testing.T) {
-		err := db.AddGateway(ctx, g.Name, g.Endpoint, g.PublicKey, g.PasswordHash)
+		err := db.AddGateway(ctx, &g)
 		assert.NoError(t, err)
 
 		gateway, err := db.ReadGateway(ctx, g.Name)
@@ -58,7 +58,7 @@ func TestAddGateway(t *testing.T) {
 	t.Run("adding a gateway with same name as existing fails", func(t *testing.T) {
 		existingGateway, err := db.ReadGateway(ctx, g.Name)
 		assert.NoError(t, err)
-		assert.Error(t, db.AddGateway(ctx, existingGateway.Name, existingGateway.Endpoint, existingGateway.PublicKey, ""))
+		assert.Error(t, db.AddGateway(ctx, existingGateway))
 	})
 
 	t.Run("updating existing gateway works", func(t *testing.T) {
@@ -68,23 +68,26 @@ func TestAddGateway(t *testing.T) {
 		assert.Nil(t, existingGateway.Routes)
 		assert.Nil(t, existingGateway.AccessGroupIDs)
 
-		routes := []string{"r", "o", "u", "t", "e", "s"}
-		accessGroupIDs := []string{"a1", "b2", "c3"}
+		existingGateway.Routes = []string{"r", "o", "u", "t", "e", "s"}
+		existingGateway.AccessGroupIDs = []string{"a1", "b2", "c3"}
+		existingGateway.RequiresPrivilegedAccess = true
 
-		assert.NoError(t, db.UpdateGateway(ctx, existingGateway.Name, routes, accessGroupIDs, true))
+		assert.NoError(t, db.UpdateGateway(ctx, existingGateway))
 
 		updatedGateway, err := db.ReadGateway(ctx, g.Name)
 		assert.NoError(t, err)
 
-		assert.Equal(t, routes, updatedGateway.Routes)
-		assert.Equal(t, accessGroupIDs, updatedGateway.AccessGroupIDs)
+		assert.Equal(t, existingGateway.Routes, updatedGateway.Routes)
+		assert.Equal(t, existingGateway.AccessGroupIDs, updatedGateway.AccessGroupIDs)
 		assert.True(t, updatedGateway.RequiresPrivilegedAccess)
 	})
-	t.Run("updating non-existant gateway is ok", func(t *testing.T) {
-		routes := []string{"r", "o", "u", "t", "e", "s"}
-		accessGroupIDs := []string{"a1", "b2", "c3"}
-
-		assert.NoError(t, db.UpdateGateway(ctx, "non-existant", routes, accessGroupIDs, false))
+	t.Run("updating non-existent gateway is ok", func(t *testing.T) {
+		nonExistentGateway := pb.Gateway{
+			Name:           "non-existent",
+			Routes:         []string{"r", "o", "u", "t", "e", "s"},
+			AccessGroupIDs: []string{"a1", "b2", "c3"},
+		}
+		assert.NoError(t, db.UpdateGateway(ctx, &nonExistentGateway))
 	})
 }
 

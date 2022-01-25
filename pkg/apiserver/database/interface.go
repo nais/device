@@ -9,8 +9,8 @@ import (
 type APIServer interface {
 	ReadDevices(ctx context.Context) ([]*pb.Device, error)
 	UpdateDevices(ctx context.Context, devices []*pb.Device) error
-	UpdateGateway(ctx context.Context, name string, routes, accessGroupIDs []string, requiresPrivilegedAccess bool) error
-	AddGateway(ctx context.Context, name, endpoint, publicKey, passwordHash string) error
+	UpdateGateway(ctx context.Context, gateway *pb.Gateway) error
+	AddGateway(ctx context.Context, gateway *pb.Gateway) error
 	AddDevice(ctx context.Context, device *pb.Device) error
 	ReadDevice(ctx context.Context, publicKey string) (*pb.Device, error)
 	ReadDeviceById(ctx context.Context, deviceID int64) (*pb.Device, error)

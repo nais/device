@@ -19,7 +19,7 @@ func (s *grpcServer) EnrollGateway(ctx context.Context, r *pb.EnrollGatewayReque
 		return nil, status.Errorf(codes.InvalidArgument, "need to specify a gateway")
 	}
 
-	err = s.db.AddGateway(ctx, gw.Name, gw.Endpoint, gw.PublicKey, gw.PasswordHash)
+	err = s.db.AddGateway(ctx, gw)
 	if err != nil {
 		return nil, status.Errorf(codes.DataLoss, err.Error())
 	}

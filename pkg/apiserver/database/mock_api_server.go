@@ -28,13 +28,13 @@ func (_m *MockAPIServer) AddDevice(ctx context.Context, device *pb.Device) error
 	return r0
 }
 
-// AddGateway provides a mock function with given fields: ctx, name, endpoint, publicKey, passwordHash
-func (_m *MockAPIServer) AddGateway(ctx context.Context, name string, endpoint string, publicKey string, passwordHash string) error {
-	ret := _m.Called(ctx, name, endpoint, publicKey, passwordHash)
+// AddGateway provides a mock function with given fields: ctx, gateway
+func (_m *MockAPIServer) AddGateway(ctx context.Context, gateway *pb.Gateway) error {
+	ret := _m.Called(ctx, gateway)
 
 	var r0 error
-	if rf, ok := ret.Get(0).(func(context.Context, string, string, string, string) error); ok {
-		r0 = rf(ctx, name, endpoint, publicKey, passwordHash)
+	if rf, ok := ret.Get(0).(func(context.Context, *pb.Gateway) error); ok {
+		r0 = rf(ctx, gateway)
 	} else {
 		r0 = ret.Error(0)
 	}
@@ -291,13 +291,13 @@ func (_m *MockAPIServer) UpdateDevices(ctx context.Context, devices []*pb.Device
 	return r0
 }
 
-// UpdateGateway provides a mock function with given fields: ctx, name, routes, accessGroupIDs, requiresPrivilegedAccess
-func (_m *MockAPIServer) UpdateGateway(ctx context.Context, name string, routes []string, accessGroupIDs []string, requiresPrivilegedAccess bool) error {
-	ret := _m.Called(ctx, name, routes, accessGroupIDs, requiresPrivilegedAccess)
+// UpdateGateway provides a mock function with given fields: ctx, gateway
+func (_m *MockAPIServer) UpdateGateway(ctx context.Context, gateway *pb.Gateway) error {
+	ret := _m.Called(ctx, gateway)
 
 	var r0 error
-	if rf, ok := ret.Get(0).(func(context.Context, string, []string, []string, bool) error); ok {
-		r0 = rf(ctx, name, routes, accessGroupIDs, requiresPrivilegedAccess)
+	if rf, ok := ret.Get(0).(func(context.Context, *pb.Gateway) error); ok {
+		r0 = rf(ctx, gateway)
 	} else {
 		r0 = ret.Error(0)
 	}

@@ -62,14 +62,15 @@ func (g *GatewayConfigurer) SyncConfig(ctx context.Context) error {
 	}
 
 	for gatewayName, gatewayConfig := range gatewayConfigs {
-		err = g.DB.UpdateGateway(
-			context.Background(),
-			gatewayName,
-			ToCIDRStringSlice(gatewayConfig.Routes),
-			gatewayConfig.AccessGroupIds,
-			gatewayConfig.RequiresPrivilegedAccess,
-		)
+		gw, err := g.DB.ReadGateway(ctx, gatewayName)
+		if err != nil {
+			return fmt.Errorf("reading gateway %s from db: %w", gatewayName, err)
+		}
+		gw.AccessGroupIDs = gatewayConfig.AccessGroupIds
+		gw.RequiresPrivilegedAccess = gatewayConfig.RequiresPrivilegedAccess
+		gw.Routes = ToCIDRStringSlice(gatewayConfig.Routes)
 
+		err = g.DB.UpdateGateway(ctx, gw)
 		if err != nil {
 			return fmt.Errorf("updating gateway: %s with routes: %s and accessGroupIds: %s: %w", gatewayName, gatewayConfig.Routes, gatewayConfig.AccessGroupIds, err)
 		}

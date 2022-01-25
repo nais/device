@@ -205,7 +205,6 @@ func run() error {
 		}
 
 		go en.WatchDeviceEnrollments(ctx)
-		go en.WatchGatewayEnrollments(ctx)
 	}
 
 	buck := bucket.NewClient(cfg.GatewayConfigBucketName, cfg.GatewayConfigBucketObjectName)
