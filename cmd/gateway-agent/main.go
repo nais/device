@@ -3,16 +3,13 @@ package main
 import (
 	"context"
 	"fmt"
-	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
 	"time"
 
-	"github.com/nais/device/pkg/basicauth"
 	g "github.com/nais/device/pkg/gateway-agent"
 	"github.com/nais/device/pkg/pb"
-	"github.com/urfave/cli/v2"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -36,69 +33,43 @@ const (
 
 func init() {
 
-	flag.StringVar(&cfg.Name, "name", cfg.Name, "gateway name")
+	flag.BoolVar(&cfg.EnableRouting, "enable-routing", cfg.EnableRouting, "enable-routing enables setting up interface and configuring of WireGuard")
+	flag.StringVar(&cfg.APIServerEndpoint, "apiserver-endpoint", cfg.APIServerEndpoint, "WireGuard public endpoint at API server, host:port")
+	flag.StringVar(&cfg.APIServerPassword, "apiserver-password", cfg.APIServerPassword, "password to access apiserver")
+	flag.StringVar(&cfg.APIServerPublicKey, "apiserver-public-key", cfg.APIServerPublicKey, "API server's WireGuard public key")
+	flag.StringVar(&cfg.APIServerPrivateIP, "apiserver-private-ip", cfg.APIServerPrivateIP, "API server's WireGuard IP address")
+	flag.StringVar(&cfg.APIServerURL, "api-server-url", cfg.APIServerURL, "prometheus tunnel ip")
 	flag.StringVar(&cfg.ConfigDir, "config-dir", cfg.ConfigDir, "gateway-agent config directory")
-	flag.StringVar(&cfg.PublicIP, "public-ip", cfg.PublicIP, "public gateway ip")
+	flag.StringVar(&cfg.DeviceIP, "device-ip", cfg.DeviceIP, "IP address to use in WireGuard VPN")
+	flag.StringVar(&cfg.LogLevel, "log-level", cfg.LogLevel, "log level")
+	flag.StringVar(&cfg.Name, "name", cfg.Name, "gateway name")
+	flag.StringVar(&cfg.PrivateKey, "private-key", cfg.PrivateKey, "wireguard private key")
 	flag.StringVar(&cfg.PrometheusAddr, "prometheus-address", cfg.PrometheusAddr, "prometheus listen address")
 	flag.StringVar(&cfg.PrometheusPublicKey, "prometheus-public-key", cfg.PrometheusPublicKey, "prometheus public key")
 	flag.StringVar(&cfg.PrometheusTunnelIP, "prometheus-tunnel-ip", cfg.PrometheusTunnelIP, "prometheus tunnel ip")
-	flag.StringVar(&cfg.APIServerURL, "api-server-url", cfg.APIServerURL, "prometheus tunnel ip")
-	flag.BoolVar(&cfg.EnableRouting, "enable-routing", cfg.EnableRouting, "enable-routing enables setting up interface and configuring of WireGuard")
-	flag.StringVar(&cfg.LogLevel, "log-level", cfg.LogLevel, "log level")
-	flag.StringVar(&cfg.EnrollmentToken, "enrollment-token", cfg.EnrollmentToken, "bootstrap-api enrollment token")
 
 	flag.Parse()
 }
 
 func main() {
-	enroller := g.NewEnroller(cfg)
-
-	err := sourceConfig()
-	if err != nil {
-		log.Errorf("read configuration: %s", err)
-		os.Exit(1)
-	}
-
-	app := &cli.App{
-		Commands: []*cli.Command{
-			{
-				Name:   "enroll",
-				Usage:  "generates a gateway configuration and prints a base64 encoded version to stdout",
-				Action: enroller.Enroll,
-			},
-			{
-				Name:   "run",
-				Usage:  "runs the main gateway loop",
-				Action: run,
-			},
-		},
-	}
-
-	err = app.Run(os.Args)
+	err := run()
 	if err != nil {
 		log.Errorf("fatal: %s", err)
 		os.Exit(1)
 	}
 }
 
-func sourceConfig() error {
-	err := envconfig.Process("GATEWAY_AGENT", &cfg)
-	if err != nil {
-		return fmt.Errorf("parse env config: %w", err)
-	}
-
-	cfg.InitLocalConfig()
-
-	return nil
-}
-
-func run(_ *cli.Context) error {
+func run() error {
 	var err error
 
-	fmt.Printf("%+v\n", cfg)
+	err = envconfig.Process("GATEWAY_AGENT", &cfg)
+	if err != nil {
+		return fmt.Errorf("read environment configuration: %w", err)
+	}
 
 	logger.Setup(cfg.LogLevel)
-	log.Infof("Version: %s, Revision: %s", version.Version, version.Revision)
+
+	log.Infof("gateway-agent version %s, revision: %s", version.Version, version.Revision)
 
 	g.InitializeMetrics(cfg.Name, version.Version)
 	go g.Serve(cfg.PrometheusAddr)
@@ -107,21 +78,10 @@ func run(_ *cli.Context) error {
 
 	var netConf g.NetworkConfigurer
 	if cfg.EnableRouting {
-		bootstrapper := g.Bootstrapper{
-			Config: &cfg,
-			HTTPClient: &http.Client{
-				Transport: &basicauth.Transport{
-					Username: cfg.Name,
-					Password: cfg.EnrollmentToken,
-				},
-			},
-		}
-
-		cfg.BootstrapConfig, err = bootstrapper.EnsureBootstrapConfig()
+		err = cfg.ValidateWireguard()
 		if err != nil {
-			return fmt.Errorf("ensure gateway is bootstrapped: %w", err)
+			return fmt.Errorf("cannot enable routing: %w", err)
 		}
-
 		ipTables, err := iptables.New()
 		if err != nil {
 			return fmt.Errorf("setup iptables: %w", err)

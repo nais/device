@@ -58,6 +58,7 @@ local:
 	go build -o bin/local/gateway-agent -ldflags "-s $(LDFLAGS)" ./cmd/gateway-agent
 	go build -o bin/local/prometheus-agent -ldflags "-s $(LDFLAGS)" ./cmd/prometheus-agent
 	go build -o bin/local/bootstrap-api -ldflags "-s $(LDFLAGS)" ./cmd/bootstrap-api
+	go build -o bin/local/controlplane-cli -ldflags "-s $(LDFLAGS)" ./cmd/controlplane-cli
 
 update-fixtures:
 	PGPASSWORD=postgres pg_dump -U postgres -h localhost -d postgres --schema-only > fixtures/schema.sql

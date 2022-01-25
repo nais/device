@@ -4,12 +4,6 @@ import (
 	"encoding/base64"
 	"fmt"
 	"os"
-
-	"github.com/nais/device/pkg/device-agent/wireguard"
-	"github.com/nais/device/pkg/passwordhash"
-	"github.com/nais/device/pkg/pb"
-	"github.com/urfave/cli/v2"
-	"google.golang.org/protobuf/proto"
 )
 
 const (
@@ -24,57 +18,6 @@ func NewEnroller(cfg Config) Enroller {
 	return Enroller{
 		cfg: cfg,
 	}
-}
-
-func (e *Enroller) Enroll(c *cli.Context) error {
-	password, err := passwordhash.RandomBytes(32)
-	if err != nil {
-		return fmt.Errorf("generate password: %w", err)
-	}
-
-	salt, err := passwordhash.RandomBytes(16)
-	if err != nil {
-		return fmt.Errorf("generate salt: %w", err)
-	}
-
-	key := passwordhash.HashPassword(password, salt)
-	formatted := passwordhash.FormatHash(key, salt)
-
-	req := &pb.EnrollGatewayRequest{
-		Gateway: &pb.Gateway{
-			Name:      e.cfg.Name,
-			PublicKey: string(wireguard.PublicKey([]byte(e.cfg.PrivateKey))),
-			Ip:        e.cfg.BootstrapConfig.DeviceIP,
-			Endpoint:  e.cfg.PublicIP,
-		},
-		Shadow: string(formatted),
-	}
-
-	payload, err := proto.Marshal(req)
-	if err != nil {
-		return fmt.Errorf("encode protobuf: %w", err)
-	}
-
-	err = e.persistPassword(password, DefaultConfigPath)
-	if err != nil {
-		return fmt.Errorf("persist password: %w", err)
-	}
-
-	fmt.Fprintf(os.Stderr, "API server password has been generated and written to %s.\n\n", DefaultConfigPath)
-	fmt.Fprintf(os.Stderr, "name........: %s\n", req.Gateway.Name)
-	fmt.Fprintf(os.Stderr, "publickey...: %s\n", req.Gateway.PublicKey)
-	fmt.Fprintf(os.Stderr, "ip..........: %s\n", req.Gateway.Ip)
-	fmt.Fprintf(os.Stderr, "endpoint....: %s\n", req.Gateway.Endpoint)
-	fmt.Fprintf(os.Stderr, "passhash....: %s\n", req.Shadow)
-	fmt.Fprintf(os.Stderr, "\n")
-	fmt.Fprintf(os.Stderr, "Please run the following command to enroll this gateway with the API server:\n\n")
-	fmt.Fprintf(os.Stderr, "controlplane-cli gateway enroll --request ")
-	os.Stderr.Sync()
-
-	_, err = base64.NewEncoder(base64.StdEncoding, os.Stdout).Write(payload)
-	fmt.Fprintf(os.Stderr, "\n")
-
-	return err
 }
 
 func (e *Enroller) persistPassword(password []byte, file string) error {

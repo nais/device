@@ -1,26 +1,22 @@
 @startuml
 actor admin
 control ga as "gateway-agent"
-control bootstrap
 control apiserver
 database db
 
 ==Initial setup==
 admin -> ga: provision server thru terraform/ansible
 
-==If passwords and keys don't exist==
-ga -> ga: generate passwords and keys
-ga -> ga: write updated configuration into files
-
 ==If not enrolled==
-ga -> bootstrap: please enroll me
-note right: pb.EnrollGatewayRequest
-apiserver -> bootstrap: poll enrollment requests
-admin -> apiserver: approve request
+admin -> admin: generate password and wireguard private key
+admin -> apiserver: EnrollGateway(pb.EnrollGatewayRequest)
+note right: passhash\nwg public key\npublic ip
+apiserver -> apiserver: allocate private ip
 apiserver -> db: insert/update gateway
-apiserver -> bootstrap: send acknowledgement + private ip
-bootstrap --> ga: here is your ip address
-ga -> ga: write private ip address into file
+apiserver --> admin: pb.EnrollGatewayResponse
+admin -> admin: generate pb.GatewayConfiguration
+admin -> ga: ssh
+ga -> ga: insert configuration as env into file
 
 ==When enrolled==
 ga -> apiserver: establish secure connection

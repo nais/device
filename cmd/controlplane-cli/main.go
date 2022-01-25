@@ -33,8 +33,13 @@ func main() {
 						Usage: "enroll a gateway",
 						Flags: []cli.Flag{
 							&cli.StringFlag{
-								Name:     "request",
-								Usage:    "output data from 'gateway-agent enroll'",
+								Name:     controlplanecli.FlagName,
+								Usage:    "gateway name",
+								Required: true,
+							},
+							&cli.StringFlag{
+								Name:     controlplanecli.FlagEndpoint,
+								Usage:    "public ip and port used for WireGuard connection",
 								Required: true,
 							},
 						},

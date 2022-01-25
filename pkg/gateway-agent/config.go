@@ -1,55 +1,57 @@
 package gateway_agent
 
 import (
-	"io/ioutil"
-	"path"
-	"path/filepath"
-
-	"github.com/nais/device/pkg/bootstrap"
+	"fmt"
 )
 
 type Config struct {
-	Name                string
+	APIServerEndpoint   string
+	APIServerPassword   string
+	APIServerPrivateIP  string
+	APIServerPublicKey  string
+	APIServerURL        string
 	ConfigDir           string
-	WireGuardConfigPath string
-	BootstrapConfigPath string
-	BootstrapApiURL     string
-	PrivateKeyPath      string
-	PrivateKey          string
+	DeviceIP            string
 	EnableRouting       bool
+	LogLevel            string
+	Name                string
+	PrivateKey          string
 	PrometheusAddr      string
 	PrometheusPublicKey string
 	PrometheusTunnelIP  string
-	APIServerURL        string
-	APIServerPassword   string
-	LogLevel            string
-	BootstrapConfig     *bootstrap.Config
-	PublicIP            string
-	EnrollmentToken     string
+	WireGuardConfigPath string
 }
 
 func DefaultConfig() Config {
-	cfg := Config{
-		APIServerURL:    "127.0.0.1:8099",
-		BootstrapApiURL: "https://bootstrap.device.nais.io",
-		ConfigDir:       "/etc/gateway-agent/",
-		LogLevel:        "info",
-		Name:            "test01",
-		PrometheusAddr:  "127.0.0.1:3000",
+	return Config{
+		APIServerURL:        "127.0.0.1:8099",
+		ConfigDir:           "/etc/gateway-agent/",
+		LogLevel:            "info",
+		Name:                "test01",
+		PrometheusAddr:      "127.0.0.1:3000",
+		WireGuardConfigPath: "/run/wg0.conf",
+	}
+}
+
+func (c Config) ValidateWireguard() error {
+	var err error
+
+	check := func(key, value string) error {
+		if err != nil {
+			return err
+		}
+		if len(value) == 0 {
+			err = fmt.Errorf("missing required configuration option '%s'", key)
+		}
+		return err
 	}
 
-	return cfg
-}
+	err = check("apiserver-endpoint", c.APIServerEndpoint)
+	err = check("apiserver-password", c.APIServerPassword)
+	err = check("apiserver-public-key", c.APIServerPublicKey)
+	err = check("apiserver-private-ip", c.APIServerPrivateIP)
+	err = check("device-ip", c.DeviceIP)
+	err = check("private-key", c.PrivateKey)
 
-func (c *Config) InitLocalConfig() {
-	c.WireGuardConfigPath = path.Join("/", "run", "wg0.conf")
-	c.PrivateKeyPath = path.Join(c.ConfigDir, "private.key")
-	c.BootstrapConfigPath = filepath.Join(c.ConfigDir, "bootstrapconfig.json")
-
-	c.PrivateKey, _ = readFileToString(c.PrivateKeyPath)
-}
-
-func readFileToString(filePath string) (string, error) {
-	b, err := ioutil.ReadFile(filePath)
-	return string(b), err
+	return err
 }

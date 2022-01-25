@@ -32,7 +32,7 @@ func (nc *networkConfigurer) SetupInterface() error {
 	commands := [][]string{
 		{"ip", "link", "add", "dev", "wg0", "type", "wireguard"},
 		{"ip", "link", "set", "wg0", "mtu", "1360"},
-		{"ip", "address", "add", "dev", "wg0", nc.config.BootstrapConfig.DeviceIP + "/21"},
+		{"ip", "address", "add", "dev", "wg0", nc.config.DeviceIP + "/21"},
 		{"ip", "link", "set", "wg0", "up"},
 	}
 
@@ -57,9 +57,9 @@ AllowedIPs = %s/32
 	return fmt.Sprintf(
 		template,
 		cfg.PrivateKey,
-		cfg.BootstrapConfig.PublicKey,
-		cfg.BootstrapConfig.APIServerIP,
-		cfg.BootstrapConfig.TunnelEndpoint,
+		cfg.APIServerPublicKey,
+		cfg.APIServerPrivateIP,
+		cfg.APIServerEndpoint,
 		cfg.PrometheusPublicKey,
 		cfg.PrometheusTunnelIP,
 	)

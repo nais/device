@@ -169,7 +169,6 @@ message Configuration {
 message EnrollGatewayRequest {
   string password = 1; // authentication token
   Gateway gateway = 2;
-  string shadow = 3;
 }
 
 message EnrollGatewayResponse {
@@ -185,6 +184,7 @@ message Gateway {
   repeated string routes = 6;
   bool requiresPrivilegedAccess = 7 [json_name = "requires_privileged_access"];
   repeated string accessGroupIDs = 8;
+  string passwordHash = 9;
 }
 
 message Error {
