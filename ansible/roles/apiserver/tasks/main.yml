@@ -38,7 +38,7 @@
     PATH: /usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/snap/bin
   register: secrets
   loop:
-    - env: APISERVER_DBCONNECTIONDSN
+    - env: APISERVER_DBCONNDSN
       secret: apiserver-db-dsn
     - env: APISERVER_AZURECLIENTSECRET
       secret: azure-client-secret
