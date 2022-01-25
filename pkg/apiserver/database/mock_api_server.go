@@ -28,13 +28,13 @@ func (_m *MockAPIServer) AddDevice(ctx context.Context, device *pb.Device) error
 	return r0
 }
 
-// AddGateway provides a mock function with given fields: ctx, name, endpoint, publicKey
-func (_m *MockAPIServer) AddGateway(ctx context.Context, name string, endpoint string, publicKey string) error {
-	ret := _m.Called(ctx, name, endpoint, publicKey)
+// AddGateway provides a mock function with given fields: ctx, name, endpoint, publicKey, passwordHash
+func (_m *MockAPIServer) AddGateway(ctx context.Context, name string, endpoint string, publicKey string, passwordHash string) error {
+	ret := _m.Called(ctx, name, endpoint, publicKey, passwordHash)
 
 	var r0 error
-	if rf, ok := ret.Get(0).(func(context.Context, string, string, string) error); ok {
-		r0 = rf(ctx, name, endpoint, publicKey)
+	if rf, ok := ret.Get(0).(func(context.Context, string, string, string, string) error); ok {
+		r0 = rf(ctx, name, endpoint, publicKey, passwordHash)
 	} else {
 		r0 = ret.Error(0)
 	}

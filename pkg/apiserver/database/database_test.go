@@ -35,13 +35,14 @@ func TestAddGateway(t *testing.T) {
 	defer cancel()
 
 	g := pb.Gateway{
-		Endpoint:  "1.2.3.4:56789",
-		PublicKey: "publicKey",
-		Name:      "gateway",
+		Endpoint:     "1.2.3.4:56789",
+		PublicKey:    "publicKey",
+		Name:         "gateway",
+		PasswordHash: "hunter2",
 	}
 
 	t.Run("adding new gateway works", func(t *testing.T) {
-		err := db.AddGateway(ctx, g.Name, g.Endpoint, g.PublicKey)
+		err := db.AddGateway(ctx, g.Name, g.Endpoint, g.PublicKey, g.PasswordHash)
 		assert.NoError(t, err)
 
 		gateway, err := db.ReadGateway(ctx, g.Name)
@@ -50,13 +51,14 @@ func TestAddGateway(t *testing.T) {
 		assert.Equal(t, g.Name, gateway.Name)
 		assert.Equal(t, g.Endpoint, gateway.Endpoint)
 		assert.Equal(t, g.PublicKey, gateway.PublicKey)
+		assert.Equal(t, g.PasswordHash, gateway.PasswordHash)
 		assert.False(t, gateway.RequiresPrivilegedAccess)
 	})
 
 	t.Run("adding a gateway with same name as existing fails", func(t *testing.T) {
 		existingGateway, err := db.ReadGateway(ctx, g.Name)
 		assert.NoError(t, err)
-		assert.Error(t, db.AddGateway(ctx, existingGateway.Name, existingGateway.Endpoint, existingGateway.PublicKey))
+		assert.Error(t, db.AddGateway(ctx, existingGateway.Name, existingGateway.Endpoint, existingGateway.PublicKey, ""))
 	})
 
 	t.Run("updating existing gateway works", func(t *testing.T) {

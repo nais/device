@@ -84,13 +84,13 @@ func TestGetDeviceConfig(t *testing.T) {
 
 	authorizedGateway := pb.Gateway{Name: "gw1", Endpoint: "ep1", PublicKey: "pubkey1"}
 	unauthorizedGateway := pb.Gateway{Name: "gw2", Endpoint: "ep2", PublicKey: "pubkey2"}
-	if err := db.AddGateway(ctx, authorizedGateway.Name, authorizedGateway.Endpoint, authorizedGateway.PublicKey); err != nil {
+	if err := db.AddGateway(ctx, authorizedGateway.Name, authorizedGateway.Endpoint, authorizedGateway.PublicKey, ""); err != nil {
 		t.Fatalf("Adding gateway: %v", err)
 	}
 
 	assert.NoError(t, db.UpdateGateway(ctx, authorizedGateway.Name, nil, []string{"group1"}, false))
 
-	if err := db.AddGateway(ctx, unauthorizedGateway.Name, unauthorizedGateway.Endpoint, unauthorizedGateway.PublicKey); err != nil {
+	if err := db.AddGateway(ctx, unauthorizedGateway.Name, unauthorizedGateway.Endpoint, unauthorizedGateway.PublicKey, ""); err != nil {
 		t.Fatalf("Adding gateway: %v", err)
 	}
 
@@ -119,7 +119,7 @@ func TestGatewayConfig(t *testing.T) {
 
 	// todo don't use username as gateway
 	authorizedGateway := pb.Gateway{Name: "username", Endpoint: "ep1", PublicKey: "pubkey1"}
-	if err := db.AddGateway(ctx, authorizedGateway.Name, authorizedGateway.Endpoint, authorizedGateway.PublicKey); err != nil {
+	if err := db.AddGateway(ctx, authorizedGateway.Name, authorizedGateway.Endpoint, authorizedGateway.PublicKey, ""); err != nil {
 		t.Fatalf("Adding gateway: %v", err)
 	}
 	assert.NoError(t, db.UpdateGateway(ctx, authorizedGateway.Name, nil, []string{"authorized"}, false))
@@ -146,13 +146,13 @@ func TestPrivilegedGatewayConfig(t *testing.T) {
 
 	// todo don't use username as gateway
 	privilegedGateway1 := pb.Gateway{Name: "privileged1", Endpoint: "ep1", PublicKey: "pubkey1"}
-	if err := db.AddGateway(ctx, privilegedGateway1.Name, privilegedGateway1.Endpoint, privilegedGateway1.PublicKey); err != nil {
+	if err := db.AddGateway(ctx, privilegedGateway1.Name, privilegedGateway1.Endpoint, privilegedGateway1.PublicKey, ""); err != nil {
 		t.Fatalf("Adding gateway: %v", err)
 	}
 	assert.NoError(t, db.UpdateGateway(ctx, privilegedGateway1.Name, nil, []string{"authorized"}, true))
 
 	privilegedGateway2 := pb.Gateway{Name: "privileged2", Endpoint: "ep1", PublicKey: "pubkey2"}
-	if err := db.AddGateway(ctx, privilegedGateway2.Name, privilegedGateway2.Endpoint, privilegedGateway2.PublicKey); err != nil {
+	if err := db.AddGateway(ctx, privilegedGateway2.Name, privilegedGateway2.Endpoint, privilegedGateway2.PublicKey, ""); err != nil {
 		t.Fatalf("Adding gateway: %v", err)
 	}
 	assert.NoError(t, db.UpdateGateway(ctx, privilegedGateway2.Name, nil, []string{"authorized"}, true))
