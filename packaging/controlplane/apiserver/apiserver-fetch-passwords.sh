@@ -9,5 +9,4 @@ done
 apikey=$(gcloud secrets versions access latest --secret apiserver-admin-password)
 apikeys+="admin:$apikey"
 
-echo -n ${apikeys::-1}
-
+echo "APISERVER_CREDENTIALENTRIES=${apikeys}" > /run/apiserver-credentials

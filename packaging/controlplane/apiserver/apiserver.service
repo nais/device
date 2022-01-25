@@ -4,31 +4,15 @@ Description=apiserver
 
 [Service]
 Restart=always
-ExecStart=/bin/bash -c '/usr/bin/apiserver \
-        --azure-client-secret="$(gcloud secrets versions access latest --secret azure-client-secret)" \
-        --bind-address="10.255.240.1:80" \
-        --bootstrap-api-credentials="apiserver:$(gcloud secrets versions access latest --secret nais-device_api-server_bootstrap-api-password)" \
-        --bootstrap-api-url="https://bootstrap.device.nais.io" \
-        --cloud-sql-proxy-enabled=true \
-        --control-plane-authentication-enabled=true \
-        --credential-entries="$(/usr/bin/apiserver-fetch-passwords)" \
-        --db-connection-dsn="$(gcloud secrets versions access latest --secret apiserver-db-dsn)" \
-        --device-authentication-enabled=true \
-        --endpoint="35.228.142.96:51820" \
-        --grpc-bind-address="10.255.240.1:8099" \
-        --jita-password="$(gcloud secrets versions access latest --secret naisdevice-jita-password)" \
-        --jita-url="https://naisdevice-jita.nais.io" \
-        --jita-username="naisdevice-jita" \
-        --kolide-api-token="$(gcloud secrets versions access latest --project nais-device --secret kolide-api-token)" \
-        --kolide-event-handler-address="kolide-event-handler.prod-gcp.nais.io:443" \
-        --kolide-event-handler-enabled=true \
-        --kolide-event-handler-token="$(gcloud secrets versions access latest --project nais-device --secret kolide-event-handler-grpc-auth-token)" \
-        --kolide-sync-enabled=true \
-        --prometheus-address=10.255.240.1:3000 \
-        --prometheus-public-key="MN9B/ZgAQdgCXH3/KUaUiObwrzHv6zF2P6M4ySTx81M=" \
-        --prometheus-tunnel-ip="10.255.247.254" \
-        --wireguard-enabled=true \
-        '
+StandardOutput=append:/var/log/naisdevice/gateway-agent.json
+StandardError=append:/var/log/naisdevice/gateway-agent.json
+
+# This script fetches passwords and stores them in file referenced below
+ExecStartPre=/usr/bin/apiserver-fetch-passwords
+EnvironmentFile=/run/apiserver-credentials
+
+EnvironmentFile=/etc/default/apiserver
+ExecStart=/usr/bin/apiserver
 
 [Install]
 WantedBy=multi-user.target
