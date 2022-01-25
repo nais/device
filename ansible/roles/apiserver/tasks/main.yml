@@ -1,35 +1,36 @@
-- name: Ensure wireguard package installed
+- name: Ensure gpg package installed
   apt:
-    name: wireguard
+    name: gpg
     state: present
 
+- name: Ensure prometheus-node-exporter package installed
+  apt:
+    name: prometheus-node-exporter
+    state: present
+
+- name: Set up apt-key for controlplane repo
+  apt_key:
+    url: https://europe-north1-apt.pkg.dev/doc/repo-signing-key.gpg
+    state: present
+
+- name: Set up controlplane repo
+  apt_repository:
+    repo: 'deb [arch=amd64] https://europe-north1-apt.pkg.dev/projects/naisdevice controlplane main'
+    state: present
+
+- name: Ensure apiserver package installed
+  apt:
+    name: apiserver
+    state: present
+
+# TODO: remove
 - name: Create binary directory
   file:
     path: /opt/nais-device/bin
     state: directory
     mode: '0755'
 
-- name: Download apiserver
-  get_url:
-    dest: /opt/nais-device/bin/apiserver
-    force: yes
-    url: https://github.com/nais/device/releases/download/2021-12-03-104505/apiserver
-    backup: yes
-    mode: 0755
-  notify:
-    - restart_apiserver
-
-- name: Install apiserver systemd unit file
-  template:
-    src: apiserver.service.j2
-    dest: /etc/systemd/system/apiserver.service
-    owner: root
-    group: root
-    mode: '0644'
-  notify:
-    - restart_apiserver
-
-- name: Get enrollment token
+- name: Get secrets
   shell: gcloud --project nais-device secrets versions access latest --secret {{ item.secret }}
   args:
     executable: /bin/bash
@@ -70,13 +71,6 @@
   systemd:
     name: apiserver
     state: started
-
-- name: Uninstall naisdevice-health-checker systemd service file
-  file:
-    path: /etc/systemd/system/naisdevice-health-checker.service
-    state: absent
-  notify:
-    - systemd_reload
 
 - name: Add logrotate config
   template:
