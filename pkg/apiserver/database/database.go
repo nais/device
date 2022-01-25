@@ -124,7 +124,7 @@ UPDATE gateway
 	return nil
 }
 
-func (db *apiServerDB) AddGateway(ctx context.Context, name, endpoint, publicKey string) error {
+func (db *apiServerDB) AddGateway(ctx context.Context, name, endpoint, publicKey, passwordHash string) error {
 	mux.Lock()
 	defer mux.Unlock()
 
@@ -145,10 +145,10 @@ func (db *apiServerDB) AddGateway(ctx context.Context, name, endpoint, publicKey
 	}
 
 	statement := `
-INSERT INTO gateway (name, endpoint, public_key, ip)
-             VALUES ($1, $2, $3, $4);`
+INSERT INTO gateway (name, endpoint, public_key, ip, password_hash)
+             VALUES ($1, $2, $3, $4, $5);`
 
-	_, err = db.conn.ExecContext(ctx, statement, name, endpoint, publicKey, availableIp)
+	_, err = db.conn.ExecContext(ctx, statement, name, endpoint, publicKey, availableIp, passwordHash)
 	if err != nil {
 		return fmt.Errorf("inserting new gateway, statement: '%s', error: %w", statement, err)
 	}

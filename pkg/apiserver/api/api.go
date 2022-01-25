@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"github.com/nais/device/pkg/apiserver/jita"
-	"github.com/nais/device/pkg/apiserver/metrics"
+	apiserver_metrics "github.com/nais/device/pkg/apiserver/metrics"
 	"github.com/nais/device/pkg/pb"
 
 	"github.com/nais/device/pkg/apiserver/database"
@@ -215,6 +215,7 @@ func (a *api) UserGateways(ctx context.Context, userGroups []string) ([]*pb.Gate
 	var filtered []*pb.Gateway
 	for _, gw := range gateways {
 		if userIsAuthorized(gw.AccessGroupIDs, userGroups) {
+			gw.PasswordHash = ""
 			filtered = append(filtered, gw)
 		}
 	}

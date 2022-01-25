@@ -33,7 +33,7 @@ func (e *Enroller) EnrollGateways(ctx context.Context) error {
 	}
 
 	for _, enrollment := range gatewayInfos {
-		err := e.DB.AddGateway(ctx, enrollment.Name, enrollment.PublicIP, enrollment.PublicKey)
+		err := e.DB.AddGateway(ctx, enrollment.Name, enrollment.PublicIP, enrollment.PublicKey, "")
 
 		if err != nil {
 			log.Warnf("bootstrap: Adding gateway: %v", err)

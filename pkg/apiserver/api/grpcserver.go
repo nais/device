@@ -120,6 +120,7 @@ func (s *grpcServer) UserGateways(ctx context.Context, userGroups []string) ([]*
 	var filtered []*pb.Gateway
 	for _, gw := range gateways {
 		if userIsAuthorized(gw.AccessGroupIDs, userGroups) {
+			gw.PasswordHash = ""
 			filtered = append(filtered, gw)
 		}
 	}

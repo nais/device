@@ -2,8 +2,8 @@
 -- PostgreSQL database dump
 --
 
--- Dumped from database version 12.8
--- Dumped by pg_dump version 13.4
+-- Dumped from database version 12.9
+-- Dumped by pg_dump version 13.5 (Ubuntu 13.5-0ubuntu0.21.10.1)
 
 SET statement_timeout = 0;
 SET lock_timeout = 0;
@@ -87,7 +87,8 @@ CREATE TABLE public.gateway (
     public_key character varying(44) NOT NULL,
     ip character varying(15),
     routes character varying DEFAULT ''::character varying,
-    requires_privileged_access boolean DEFAULT false
+    requires_privileged_access boolean DEFAULT false,
+    password_hash character varying(255)
 );
 
 

@@ -16,14 +16,14 @@ type Scanner interface {
 }
 
 const DeviceFields = "id, serial, username, psk, platform, last_updated, kolide_last_seen, healthy, public_key, ip"
-const GatewayFields = "public_key, access_group_ids, endpoint, ip, routes, name, requires_privileged_access"
+const GatewayFields = "public_key, access_group_ids, endpoint, ip, routes, name, requires_privileged_access, password_hash"
 const sessionFields = "key, expiry, device_id, groups, object_id"
 
 func scanGateway(row Scanner) (*pb.Gateway, error) {
 	gateway := &pb.Gateway{}
 	var routes string
 	var accessGroupIDs string
-	err := row.Scan(&gateway.PublicKey, &accessGroupIDs, &gateway.Endpoint, &gateway.Ip, &routes, &gateway.Name, &gateway.RequiresPrivilegedAccess)
+	err := row.Scan(&gateway.PublicKey, &accessGroupIDs, &gateway.Endpoint, &gateway.Ip, &routes, &gateway.Name, &gateway.RequiresPrivilegedAccess, &gateway.PasswordHash)
 	if err != nil {
 		return nil, fmt.Errorf("scanning gateway: %w", err)
 	}
