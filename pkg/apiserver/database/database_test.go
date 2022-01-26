@@ -61,6 +61,13 @@ func TestAddGateway(t *testing.T) {
 		assert.Error(t, db.AddGateway(ctx, existingGateway))
 	})
 
+	t.Run("adding a gateway with an existing public key fails", func (t *testing.T) {
+		existingGateway, err := db.ReadGateway(ctx, g.Name)
+		assert.NoError(t, err)
+		existingGateway.Name = "new name"
+		assert.Error(t, db.AddGateway(ctx, existingGateway))
+	})
+
 	t.Run("updating existing gateway works", func(t *testing.T) {
 		existingGateway, err := db.ReadGateway(ctx, g.Name)
 		assert.NoError(t, err)
@@ -71,6 +78,9 @@ func TestAddGateway(t *testing.T) {
 		existingGateway.Routes = []string{"r", "o", "u", "t", "e", "s"}
 		existingGateway.AccessGroupIDs = []string{"a1", "b2", "c3"}
 		existingGateway.RequiresPrivilegedAccess = true
+		existingGateway.PublicKey = "new public key"
+		existingGateway.Endpoint = "new endpoint"
+		existingGateway.PasswordHash = "new password hash"
 
 		assert.NoError(t, db.UpdateGateway(ctx, existingGateway))
 
@@ -80,6 +90,9 @@ func TestAddGateway(t *testing.T) {
 		assert.Equal(t, existingGateway.Routes, updatedGateway.Routes)
 		assert.Equal(t, existingGateway.AccessGroupIDs, updatedGateway.AccessGroupIDs)
 		assert.True(t, updatedGateway.RequiresPrivilegedAccess)
+		assert.Equal(t, existingGateway.PublicKey, updatedGateway.PublicKey)
+		assert.Equal(t, existingGateway.Endpoint, updatedGateway.Endpoint)
+		assert.Equal(t, existingGateway.PasswordHash, updatedGateway.PasswordHash)
 	})
 	t.Run("updating non-existent gateway is ok", func(t *testing.T) {
 		nonExistentGateway := pb.Gateway{

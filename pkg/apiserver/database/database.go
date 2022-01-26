@@ -111,11 +111,25 @@ var mux sync.Mutex
 
 func (db *apiServerDB) UpdateGateway(ctx context.Context, gw *pb.Gateway) error {
 	statement := `
-UPDATE gateway 
-   SET routes = $1, access_group_ids = $2, requires_privileged_access = $3
- WHERE name = $4;`
+UPDATE gateway
+    SET public_key = $1,
+        access_group_ids = $2,
+        endpoint = $3,
+        ip = $4,
+        routes = $5,
+        requires_privileged_access = $6,
+        password_hash = $7
+ WHERE name = $8;`
 
-	_, err := db.conn.ExecContext(ctx, statement, strings.Join(gw.Routes, ","), strings.Join(gw.AccessGroupIDs, ","), gw.RequiresPrivilegedAccess, gw.Name)
+	_, err := db.conn.ExecContext(ctx, statement,
+		gw.PublicKey,
+		strings.Join(gw.AccessGroupIDs, ","),
+		gw.Endpoint,
+		gw.Ip,
+		strings.Join(gw.Routes, ","),
+		gw.RequiresPrivilegedAccess,
+		gw.PasswordHash,
+		gw.Name)
 	if err != nil {
 		return fmt.Errorf("updating gateway: %w", err)
 	}
@@ -145,10 +159,19 @@ func (db *apiServerDB) AddGateway(ctx context.Context, gw *pb.Gateway) error {
 	}
 
 	statement := `
-INSERT INTO gateway (name, endpoint, public_key, ip, password_hash)
-             VALUES ($1, $2, $3, $4, $5);`
+INSERT INTO gateway (name, endpoint, public_key, ip, password_hash, access_group_ids, routes, requires_privileged_access)
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8);`
 
-	_, err = db.conn.ExecContext(ctx, statement, gw.Name, gw.Endpoint, gw.PublicKey, availableIp, gw.PasswordHash)
+	_, err = db.conn.ExecContext(ctx, statement,
+		gw.Name,
+		gw.Endpoint,
+		gw.PublicKey,
+		availableIp,
+		gw.PasswordHash,
+		strings.Join(gw.AccessGroupIDs, ","),
+		strings.Join(gw.Routes, ","),
+		gw.RequiresPrivilegedAccess,
+	)
 	if err != nil {
 		return fmt.Errorf("inserting new gateway, statement: '%s', error: %w", statement, err)
 	}

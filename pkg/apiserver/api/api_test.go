@@ -97,8 +97,6 @@ func TestGetDeviceConfig(t *testing.T) {
 		t.Fatalf("Adding gateway: %v", err)
 	}
 
-	assert.NoError(t, db.UpdateGateway(ctx, &authorizedGateway))
-
 	if err := db.AddGateway(ctx, &unauthorizedGateway); err != nil {
 		t.Fatalf("Adding gateway: %v", err)
 	}
@@ -136,7 +134,6 @@ func TestGatewayConfig(t *testing.T) {
 	if err := db.AddGateway(ctx, &authorizedGateway); err != nil {
 		t.Fatalf("Adding gateway: %v", err)
 	}
-	assert.NoError(t, db.UpdateGateway(ctx, &authorizedGateway))
 
 	gatewayConfig := getGatewayConfig(t, router, "username", "password")
 	devices := gatewayConfig.Devices
@@ -169,7 +166,6 @@ func TestPrivilegedGatewayConfig(t *testing.T) {
 	if err := db.AddGateway(ctx, &privilegedGateway1); err != nil {
 		t.Fatalf("Adding gateway: %v", err)
 	}
-	assert.NoError(t, db.UpdateGateway(ctx, &privilegedGateway1))
 
 	privilegedGateway2 := pb.Gateway{
 		Name:                     "privileged2",
@@ -181,7 +177,6 @@ func TestPrivilegedGatewayConfig(t *testing.T) {
 	if err := db.AddGateway(ctx, &privilegedGateway2); err != nil {
 		t.Fatalf("Adding gateway: %v", err)
 	}
-	assert.NoError(t, db.UpdateGateway(ctx, &privilegedGateway2))
 
 	privilegedGatewayConfig := getGatewayConfig(t, router, "privileged1", "password")
 	assert.Len(t, privilegedGatewayConfig.Devices, 1)
