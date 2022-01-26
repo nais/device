@@ -33,15 +33,15 @@ import (
 )
 
 const (
-	healthCheckInterval   = 20 * time.Second   // how often to healthcheck gateways
-	syncConfigDialTimeout = 1 * time.Second    // sleep time between failed configuration syncs
-	versionCheckInterval  = 1 * time.Hour      // how often to check for a new version of naisdevice
-	versionCheckTimeout   = 3 * time.Second    // timeout for new version check
-	authFlowTimeout       = 30 * time.Second   // total timeout for authenticating user (AAD login in browser, redirect to localhost, exchange code for token)
-	approximateInfinity   = time.Hour * 69_420 // Name describes purpose. Used for renewing microsoft client certs automatically
-	certRenewalInterval   = time.Hour * 23     // Microsoft Client certificate validity/renewal interval
-	certRenewalBackoff    = time.Second * 10   // Self-explanatory (Microsoft Client certificate)
-	syncConfigMaxAttempts = 5
+	healthCheckInterval    = 20 * time.Second   // how often to healthcheck gateways
+	syncConfigDialTimeout  = 1 * time.Second    // sleep time between failed configuration syncs
+	versionCheckInterval   = 1 * time.Hour      // how often to check for a new version of naisdevice
+	versionCheckTimeout    = 3 * time.Second    // timeout for new version check
+	authFlowTimeout        = 30 * time.Second   // total timeout for authenticating user (AAD login in browser, redirect to localhost, exchange code for token)
+	approximateInfinity    = time.Hour * 69_420 // Name describes purpose. Used for renewing microsoft client certs automatically
+	certRenewalInterval    = time.Hour * 23     // Microsoft Client certificate validity/renewal interval
+	certRenewalBackoff     = time.Second * 10   // Self-explanatory (Microsoft Client certificate)
+	apiServerRetryInterval = time.Second * 5
 )
 
 var (
@@ -82,7 +82,7 @@ func (das *DeviceAgentServer) syncConfigLoop(ctx context.Context, gateways chan<
 	)
 
 	if err != nil {
-		return fmt.Errorf("connect to API server: %v", err)
+		return grpcstatus.Errorf(codes.Unavailable, err.Error())
 	}
 
 	log.Infof("Connected to API server")
@@ -119,14 +119,14 @@ func (das *DeviceAgentServer) syncConfigLoop(ctx context.Context, gateways chan<
 	log.Infof("Gateway configuration stream established")
 
 	for {
-		config, err := stream.Recv()
+		cfg, err := stream.Recv()
 		if err != nil {
 			return err
 		}
 
 		log.Infof("Received gateway configuration from API server")
 
-		switch config.Status {
+		switch cfg.Status {
 		case pb.DeviceConfigurationStatus_InvalidSession:
 			log.Errorf("Unauthorized access from apiserver: %v", err)
 			log.Errorf("Assuming invalid session; disconnecting.")
@@ -139,11 +139,11 @@ func (das *DeviceAgentServer) syncConfigLoop(ctx context.Context, gateways chan<
 			das.stateChange <- pb.AgentState_Unhealthy
 			continue
 		case pb.DeviceConfigurationStatus_DeviceHealthy:
-			log.Infof("Device is healthy; server pushed %d gateways", len(config.Gateways))
+			log.Infof("Device is healthy; server pushed %d gateways", len(cfg.Gateways))
 		default:
 		}
 
-		gateways <- config.Gateways
+		gateways <- cfg.Gateways
 	}
 }
 
@@ -303,24 +303,20 @@ func (das *DeviceAgentServer) EventLoop(ctx context.Context) {
 				go func() {
 					attempt := 0
 					for syncctx.Err() == nil {
-						log.Infof("[attempt %d/%d] Setting up gateway config synchronization loop", attempt+1, syncConfigMaxAttempts)
+						attempt++
+						log.Infof("[attempt %d] Setting up gateway configuration stream...", attempt)
 						err := das.syncConfigLoop(syncctx, gateways)
-						if err != nil {
-							attempt++
-							if grpcstatus.Code(err) == codes.Unauthenticated {
-								notify.Errorf(err.Error())
-								das.stateChange <- pb.AgentState_Disconnecting
-								synccancel()
-							} else if attempt > syncConfigMaxAttempts {
-								notify.Errorf("Failed to connect to naisdevice apiserver %d times, disconnecting", syncConfigMaxAttempts)
-								das.stateChange <- pb.AgentState_Disconnecting
-								synccancel()
-							} else {
-								log.Errorf("Synchronize config: %s", err)
-								time.Sleep(1 * time.Second)
-							}
-						} else {
+
+						switch grpcstatus.Code(err) {
+						case codes.OK:
 							attempt = 0
+						case codes.Unavailable:
+							log.Warnf("Synchronize config: not connected to API server!")
+							time.Sleep(apiServerRetryInterval)
+						default:
+							notify.Errorf(err.Error())
+							das.stateChange <- pb.AgentState_Disconnecting
+							synccancel()
 						}
 					}
 
