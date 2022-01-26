@@ -17,6 +17,7 @@ import (
 const FlagName = "name"
 const FlagEndpoint = "endpoint"
 const FlagAdminPassword = "admin-password"
+const FlagPassword = "password"
 
 func ListGateways(c *cli.Context) error {
 	conn, err := grpc.DialContext(
@@ -47,6 +48,22 @@ func ListGateways(c *cli.Context) error {
 	}
 
 	return stream.Context().Err()
+}
+
+func HashPassword(c *cli.Context) error {
+	password := c.String(FlagPassword)
+
+	salt, err := passwordhash.RandomBytes(16)
+	if err != nil {
+		return fmt.Errorf("generate salt: %w", err)
+	}
+
+	key := passwordhash.HashPassword([]byte(password), salt)
+	passhash := passwordhash.FormatHash(key, salt)
+
+	fmt.Println(string(passhash))
+
+	return nil
 }
 
 func EnrollGateway(c *cli.Context) error {

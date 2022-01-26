@@ -19,6 +19,18 @@ func main() {
 		},
 		Commands: []*cli.Command{
 			{
+				Name:  "passhash",
+				Usage: "generate a password hash from a password",
+				Flags: []cli.Flag{
+					&cli.StringFlag{
+						Name:     controlplanecli.FlagPassword,
+						Usage:    "cleartext password",
+						Required: true,
+					},
+				},
+				Action: controlplanecli.HashPassword,
+			},
+			{
 				Name:    "gateway",
 				Aliases: []string{"gw"},
 				Usage:   "options for gateways",

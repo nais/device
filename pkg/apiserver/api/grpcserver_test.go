@@ -2,9 +2,9 @@ package api_test
 
 import (
 	"context"
-	"log"
 	"net"
 	"testing"
+	"time"
 
 	"github.com/nais/device/pkg/apiserver/api"
 	"github.com/nais/device/pkg/apiserver/auth"
@@ -20,17 +20,24 @@ import (
 
 const bufSize = 1024 * 1024
 
-var lis *bufconn.Listener
+func contextBufDialer(listener *bufconn.Listener) func(context.Context, string) (net.Conn, error) {
+	return func(context.Context, string) (net.Conn, error) {
+		return listener.Dial()
+	}
+}
 
-func init() {
-	lis = bufconn.Listen(bufSize)
-	s := grpc.NewServer()
+func TestGetDeviceConfiguration(t *testing.T) {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	lis := bufconn.Listen(bufSize)
+
 	accessGroups := []string{"auth"}
 
-	apiServer := &database.MockAPIServer{}
-	apiServer.On("ReadSessionInfo", mock.Anything, mock.Anything).Return(&pb.Session{Groups: accessGroups}, nil)
-	apiServer.On("ReadDeviceById", mock.Anything, mock.Anything).Return(&pb.Device{Healthy: true}, nil)
-	apiServer.On("ReadGateways", mock.Anything).Return([]*pb.Gateway{
+	db := &database.MockAPIServer{}
+	db.On("ReadSessionInfo", mock.Anything, mock.Anything).Return(&pb.Session{Groups: accessGroups}, nil)
+	db.On("ReadDeviceById", mock.Anything, mock.Anything).Return(&pb.Device{Healthy: true}, nil)
+	db.On("ReadGateways", mock.Anything).Return([]*pb.Gateway{
 		{
 			Endpoint:       "1.2.3.4:56789",
 			PublicKey:      "publicKey",
@@ -40,67 +47,144 @@ func init() {
 		},
 	}, nil)
 
-	gatewayAuthenticator := auth.NewGatewayAuthenticator(apiServer)
+	gatewayAuthenticator := auth.NewGatewayAuthenticator(db)
 
-	server := api.NewGRPCServer(apiServer, nil, nil, gatewayAuthenticator, nil)
+	server := api.NewGRPCServer(db, nil, nil, gatewayAuthenticator, nil)
 
+	s := grpc.NewServer()
 	pb.RegisterAPIServerServer(s, server)
-	go func() {
-		if err := s.Serve(lis); err != nil {
-			log.Fatalf("Server exited with error: %v", err)
-		}
-	}()
-}
+	go s.Serve(lis)
 
-func bufDialer(context.Context, string) (net.Conn, error) {
-	return lis.Dial()
-}
-
-func TestGetDeviceConfiguration(t *testing.T) {
-	ctx := context.Background()
 	conn, err := grpc.DialContext(
 		ctx,
 		"bufnet",
-		grpc.WithContextDialer(bufDialer),
+		grpc.WithContextDialer(contextBufDialer(lis)),
 		grpc.WithInsecure(),
 	)
-
-	if err != nil {
-		t.Fatalf("Failed to dial bufnet: %v", err)
-	}
+	assert.NoError(t, err)
 	defer conn.Close()
 
 	client := pb.NewAPIServerClient(conn)
 	configClient, err := client.GetDeviceConfiguration(ctx, &pb.GetDeviceConfigurationRequest{})
-	if err != nil {
-		t.Fatalf("ListGateways failed: %v", err)
-	}
+	assert.NoError(t, err)
 
 	resp, err := configClient.Recv()
-	if err != nil {
-		t.Fatalf("ListGateways().Recv() failed: %v", err)
-	}
+	assert.NoError(t, err)
 
 	gw := resp.Gateways[0]
 
 	assert.Equal(t, "", gw.PasswordHash)
+
+	db.AssertExpectations(t)
 }
 
 func TestGatewayPasswordAuthentication(t *testing.T) {
-	apiServer := &database.MockAPIServer{}
-	apiServer.On("ReadGateway", mock.Anything, "gateway").Return(&pb.Gateway{
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	lis := bufconn.Listen(bufSize)
+
+	// hash generated with `controlplane-cli passhash --password hunter2`
+	gwResponse := &pb.Gateway{
 		Endpoint:     "1.2.3.4:56789",
 		PublicKey:    "publicKey",
 		Name:         "gateway",
-		PasswordHash: "hunter2",
-	}, nil)
-	gatewayAuthenticator := auth.NewGatewayAuthenticator(apiServer)
+		PasswordHash: "$1$5QY7q+KaDZ8EZ+zNaOm2Ag==$BCamA+wMQCcv+QkgJY6H/5Zml5CNq61HkON8tnhUwpj9bq2MkpfPcKLworcMaoVzOfkpEOhf57Btm807pxRAhw==",
+		Routes: []string{
+			"mockroute",
+		},
+	}
+	db := &database.MockAPIServer{}
+	db.On("ReadSessionInfos", mock.Anything, mock.Anything).Return([]*pb.Session{}, nil)
+	db.On("ReadGateway", mock.Anything, "gateway").Return(gwResponse, nil).Times(2)
 
-	server := api.NewGRPCServer(apiServer, nil, nil, gatewayAuthenticator, nil)
+	gatewayAuthenticator := auth.NewGatewayAuthenticator(db)
 
-	err := server.GetGatewayConfiguration(&pb.GetGatewayConfigurationRequest{Gateway: "gateway", Password: "hunter2"}, nil)
+	server := api.NewGRPCServer(db, nil, nil, gatewayAuthenticator, nil)
+
+	s := grpc.NewServer()
+	pb.RegisterAPIServerServer(s, server)
+	go s.Serve(lis)
+
+	conn, err := grpc.DialContext(
+		ctx,
+		"bufnet",
+		grpc.WithContextDialer(contextBufDialer(lis)),
+		grpc.WithInsecure(),
+	)
 	assert.NoError(t, err)
+	defer conn.Close()
 
-	err = server.GetGatewayConfiguration(&pb.GetGatewayConfigurationRequest{Gateway: "gateway", Password: "tullepassord"}, nil)
-	assert.Equal(t, codes.Unauthenticated, status.Convert(err).Code())
+	client := pb.NewAPIServerClient(conn)
+
+	// Test authenticated call with correct password
+	stream, err := client.GetGatewayConfiguration(
+		ctx,
+		&pb.GetGatewayConfigurationRequest{
+			Gateway:  "gateway",
+			Password: "hunter2",
+		},
+	)
+	assert.NoError(t, err)
+	assert.NotNil(t, stream)
+
+	gw, err := stream.Recv()
+	assert.NoError(t, err)
+	assert.Equal(t, gwResponse.Routes, gw.Routes)
+}
+
+func TestGatewayPasswordAuthenticationFail(t *testing.T) {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	lis := bufconn.Listen(bufSize)
+
+	// hash generated with `controlplane-cli passhash --password hunter2`
+	gwResponse := &pb.Gateway{
+		Endpoint:     "1.2.3.4:56789",
+		PublicKey:    "publicKey",
+		Name:         "gateway",
+		PasswordHash: "$1$5QY7q+KaDZ8EZ+zNaOm2Ag==$BCamA+wMQCcv+QkgJY6H/5Zml5CNq61HkON8tnhUwpj9bq2MkpfPcKLworcMaoVzOfkpEOhf57Btm807pxRAhw==",
+		Routes: []string{
+			"mockroute",
+		},
+	}
+
+	db := &database.MockAPIServer{}
+	db.On("ReadGateway", mock.Anything, "gateway").Return(gwResponse, nil).Times(1)
+
+	gatewayAuthenticator := auth.NewGatewayAuthenticator(db)
+
+	server := api.NewGRPCServer(db, nil, nil, gatewayAuthenticator, nil)
+
+	s := grpc.NewServer()
+	pb.RegisterAPIServerServer(s, server)
+	go s.Serve(lis)
+
+	conn, err := grpc.DialContext(
+		ctx,
+		"bufnet",
+		grpc.WithContextDialer(contextBufDialer(lis)),
+		grpc.WithInsecure(),
+	)
+	assert.NoError(t, err)
+	defer conn.Close()
+
+	client := pb.NewAPIServerClient(conn)
+
+	// Test authenticated call with correct password
+	stream, err := client.GetGatewayConfiguration(
+		ctx,
+		&pb.GetGatewayConfigurationRequest{
+			Gateway:  "gateway",
+			Password: "wrong-password",
+		},
+	)
+	assert.NoError(t, err)
+	assert.NotNil(t, stream)
+
+	gw, err := stream.Recv()
+	assert.Nil(t, gw)
+	assert.Error(t, err)
+	assert.Equal(t, codes.Unauthenticated, status.Code(err))
 }
