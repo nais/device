@@ -23,9 +23,15 @@ func scanGateway(row Scanner) (*pb.Gateway, error) {
 	gateway := &pb.Gateway{}
 	var routes string
 	var accessGroupIDs string
-	err := row.Scan(&gateway.PublicKey, &accessGroupIDs, &gateway.Endpoint, &gateway.Ip, &routes, &gateway.Name, &gateway.RequiresPrivilegedAccess, &gateway.PasswordHash)
+	var passhash *string
+
+	err := row.Scan(&gateway.PublicKey, &accessGroupIDs, &gateway.Endpoint, &gateway.Ip, &routes, &gateway.Name, &gateway.RequiresPrivilegedAccess, &passhash)
 	if err != nil {
 		return nil, fmt.Errorf("scanning gateway: %w", err)
+	}
+
+	if passhash != nil {
+		gateway.PasswordHash = *passhash
 	}
 
 	if len(accessGroupIDs) != 0 {
