@@ -104,7 +104,8 @@ func main() {
 
 func run() error {
 	var authenticator auth.Authenticator
-	var apikeyAuthenticator auth.APIKeyAuthenticator
+	var apikeyAuthenticator auth.UsernamePasswordAuthenticator
+	var gatewayAuthenticator auth.UsernamePasswordAuthenticator
 	var wireguardPublicKey []byte
 
 	err := envconfig.Process("APISERVER", &cfg)
@@ -237,13 +238,15 @@ func run() error {
 		}
 
 		apikeyAuthenticator = auth.NewAPIKeyAuthenticator(apiConfig.APIKeys)
+		gatewayAuthenticator = auth.NewGatewayAuthenticator(db)
 	} else {
 		log.Warnf("Control plane authentication DISABLED! Do not run this configuration in production!")
 
 		apikeyAuthenticator = auth.NewMockAPIKeyAuthenticator()
+		gatewayAuthenticator = auth.NewMockAPIKeyAuthenticator()
 	}
 
-	grpcHandler := api.NewGRPCServer(db, authenticator, apikeyAuthenticator, jitaClient)
+	grpcHandler := api.NewGRPCServer(db, authenticator, apikeyAuthenticator, gatewayAuthenticator, jitaClient)
 	grpcServer := grpc.NewServer(
 		grpc.UnaryInterceptor(grpc_prometheus.UnaryServerInterceptor),
 		grpc.StreamInterceptor(grpc_prometheus.StreamServerInterceptor),

@@ -3,7 +3,7 @@ package auth
 type mockApikeyAuthenticator struct {
 }
 
-func NewMockAPIKeyAuthenticator() APIKeyAuthenticator {
+func NewMockAPIKeyAuthenticator() UsernamePasswordAuthenticator {
 	return &mockApikeyAuthenticator{}
 }
 

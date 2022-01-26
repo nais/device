@@ -4,7 +4,7 @@ import (
 	"fmt"
 )
 
-type APIKeyAuthenticator interface {
+type UsernamePasswordAuthenticator interface {
 	Authenticate(username, password string) error
 }
 
@@ -12,7 +12,7 @@ type apikeyAuthenticator struct {
 	users map[string]string
 }
 
-func NewAPIKeyAuthenticator(users map[string]string) APIKeyAuthenticator {
+func NewAPIKeyAuthenticator(users map[string]string) UsernamePasswordAuthenticator {
 	return &apikeyAuthenticator{
 		users: users,
 	}

@@ -25,7 +25,8 @@ type grpcServer struct {
 	pb.UnimplementedAPIServerServer
 
 	authenticator        auth.Authenticator
-	apikeyAuthenticator  auth.APIKeyAuthenticator
+	apikeyAuthenticator  auth.UsernamePasswordAuthenticator
+	gatewayAuthenticator auth.UsernamePasswordAuthenticator
 	jita                 jita.Client
 	streams              map[string]pb.APIServer_GetDeviceConfigurationServer
 	gatewayConfigStreams map[string]pb.APIServer_GetGatewayConfigurationServer
@@ -37,12 +38,13 @@ var _ pb.APIServerServer = &grpcServer{}
 
 var ErrNoSession = errors.New("no session")
 
-func NewGRPCServer(db database.APIServer, authenticator auth.Authenticator, apikeyAuthenticator auth.APIKeyAuthenticator, jita jita.Client) *grpcServer {
+func NewGRPCServer(db database.APIServer, authenticator auth.Authenticator, apikeyAuthenticator, gatewayAuthenticator auth.UsernamePasswordAuthenticator, jita jita.Client) *grpcServer {
 	return &grpcServer{
 		streams:              make(map[string]pb.APIServer_GetDeviceConfigurationServer),
 		gatewayConfigStreams: make(map[string]pb.APIServer_GetGatewayConfigurationServer),
 		authenticator:        authenticator,
 		apikeyAuthenticator:  apikeyAuthenticator,
+		gatewayAuthenticator: gatewayAuthenticator,
 		db:                   db,
 		jita:                 jita,
 	}
@@ -160,7 +162,7 @@ func (s *grpcServer) ListGateways(request *pb.ListGatewayRequest, stream pb.APIS
 }
 
 func (s *grpcServer) GetGatewayConfiguration(request *pb.GetGatewayConfigurationRequest, stream pb.APIServer_GetGatewayConfigurationServer) error {
-	err := s.apikeyAuthenticator.Authenticate(request.Gateway, request.Password)
+	err := s.gatewayAuthenticator.Authenticate(request.Gateway, request.Password)
 	if err != nil {
 		return status.Error(codes.Unauthenticated, err.Error())
 	}
