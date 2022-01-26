@@ -16,7 +16,7 @@ type MockAPIServerClient struct {
 }
 
 // EnrollGateway provides a mock function with given fields: ctx, in, opts
-func (_m *MockAPIServerClient) EnrollGateway(ctx context.Context, in *EnrollGatewayRequest, opts ...grpc.CallOption) (*EnrollGatewayResponse, error) {
+func (_m *MockAPIServerClient) EnrollGateway(ctx context.Context, in *ModifyGatewayRequest, opts ...grpc.CallOption) (*ModifyGatewayResponse, error) {
 	_va := make([]interface{}, len(opts))
 	for _i := range opts {
 		_va[_i] = opts[_i]
@@ -26,17 +26,17 @@ func (_m *MockAPIServerClient) EnrollGateway(ctx context.Context, in *EnrollGate
 	_ca = append(_ca, _va...)
 	ret := _m.Called(_ca...)
 
-	var r0 *EnrollGatewayResponse
-	if rf, ok := ret.Get(0).(func(context.Context, *EnrollGatewayRequest, ...grpc.CallOption) *EnrollGatewayResponse); ok {
+	var r0 *ModifyGatewayResponse
+	if rf, ok := ret.Get(0).(func(context.Context, *ModifyGatewayRequest, ...grpc.CallOption) *ModifyGatewayResponse); ok {
 		r0 = rf(ctx, in, opts...)
 	} else {
 		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(*EnrollGatewayResponse)
+			r0 = ret.Get(0).(*ModifyGatewayResponse)
 		}
 	}
 
 	var r1 error
-	if rf, ok := ret.Get(1).(func(context.Context, *EnrollGatewayRequest, ...grpc.CallOption) error); ok {
+	if rf, ok := ret.Get(1).(func(context.Context, *ModifyGatewayRequest, ...grpc.CallOption) error); ok {
 		r1 = rf(ctx, in, opts...)
 	} else {
 		r1 = ret.Error(1)
@@ -67,6 +67,36 @@ func (_m *MockAPIServerClient) GetDeviceConfiguration(ctx context.Context, in *G
 
 	var r1 error
 	if rf, ok := ret.Get(1).(func(context.Context, *GetDeviceConfigurationRequest, ...grpc.CallOption) error); ok {
+		r1 = rf(ctx, in, opts...)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// GetGateway provides a mock function with given fields: ctx, in, opts
+func (_m *MockAPIServerClient) GetGateway(ctx context.Context, in *ModifyGatewayRequest, opts ...grpc.CallOption) (*Gateway, error) {
+	_va := make([]interface{}, len(opts))
+	for _i := range opts {
+		_va[_i] = opts[_i]
+	}
+	var _ca []interface{}
+	_ca = append(_ca, ctx, in)
+	_ca = append(_ca, _va...)
+	ret := _m.Called(_ca...)
+
+	var r0 *Gateway
+	if rf, ok := ret.Get(0).(func(context.Context, *ModifyGatewayRequest, ...grpc.CallOption) *Gateway); ok {
+		r0 = rf(ctx, in, opts...)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*Gateway)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(context.Context, *ModifyGatewayRequest, ...grpc.CallOption) error); ok {
 		r1 = rf(ctx, in, opts...)
 	} else {
 		r1 = ret.Error(1)
@@ -157,6 +187,36 @@ func (_m *MockAPIServerClient) Login(ctx context.Context, in *APIServerLoginRequ
 
 	var r1 error
 	if rf, ok := ret.Get(1).(func(context.Context, *APIServerLoginRequest, ...grpc.CallOption) error); ok {
+		r1 = rf(ctx, in, opts...)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// UpdateGateway provides a mock function with given fields: ctx, in, opts
+func (_m *MockAPIServerClient) UpdateGateway(ctx context.Context, in *ModifyGatewayRequest, opts ...grpc.CallOption) (*ModifyGatewayResponse, error) {
+	_va := make([]interface{}, len(opts))
+	for _i := range opts {
+		_va[_i] = opts[_i]
+	}
+	var _ca []interface{}
+	_ca = append(_ca, ctx, in)
+	_ca = append(_ca, _va...)
+	ret := _m.Called(_ca...)
+
+	var r0 *ModifyGatewayResponse
+	if rf, ok := ret.Get(0).(func(context.Context, *ModifyGatewayRequest, ...grpc.CallOption) *ModifyGatewayResponse); ok {
+		r0 = rf(ctx, in, opts...)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*ModifyGatewayResponse)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(context.Context, *ModifyGatewayRequest, ...grpc.CallOption) error); ok {
 		r1 = rf(ctx, in, opts...)
 	} else {
 		r1 = ret.Error(1)

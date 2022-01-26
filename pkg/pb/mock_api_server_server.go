@@ -14,20 +14,20 @@ type MockAPIServerServer struct {
 }
 
 // EnrollGateway provides a mock function with given fields: _a0, _a1
-func (_m *MockAPIServerServer) EnrollGateway(_a0 context.Context, _a1 *EnrollGatewayRequest) (*EnrollGatewayResponse, error) {
+func (_m *MockAPIServerServer) EnrollGateway(_a0 context.Context, _a1 *ModifyGatewayRequest) (*ModifyGatewayResponse, error) {
 	ret := _m.Called(_a0, _a1)
 
-	var r0 *EnrollGatewayResponse
-	if rf, ok := ret.Get(0).(func(context.Context, *EnrollGatewayRequest) *EnrollGatewayResponse); ok {
+	var r0 *ModifyGatewayResponse
+	if rf, ok := ret.Get(0).(func(context.Context, *ModifyGatewayRequest) *ModifyGatewayResponse); ok {
 		r0 = rf(_a0, _a1)
 	} else {
 		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(*EnrollGatewayResponse)
+			r0 = ret.Get(0).(*ModifyGatewayResponse)
 		}
 	}
 
 	var r1 error
-	if rf, ok := ret.Get(1).(func(context.Context, *EnrollGatewayRequest) error); ok {
+	if rf, ok := ret.Get(1).(func(context.Context, *ModifyGatewayRequest) error); ok {
 		r1 = rf(_a0, _a1)
 	} else {
 		r1 = ret.Error(1)
@@ -48,6 +48,29 @@ func (_m *MockAPIServerServer) GetDeviceConfiguration(_a0 *GetDeviceConfiguratio
 	}
 
 	return r0
+}
+
+// GetGateway provides a mock function with given fields: _a0, _a1
+func (_m *MockAPIServerServer) GetGateway(_a0 context.Context, _a1 *ModifyGatewayRequest) (*Gateway, error) {
+	ret := _m.Called(_a0, _a1)
+
+	var r0 *Gateway
+	if rf, ok := ret.Get(0).(func(context.Context, *ModifyGatewayRequest) *Gateway); ok {
+		r0 = rf(_a0, _a1)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*Gateway)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(context.Context, *ModifyGatewayRequest) error); ok {
+		r1 = rf(_a0, _a1)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
 }
 
 // GetGatewayConfiguration provides a mock function with given fields: _a0, _a1
@@ -93,6 +116,29 @@ func (_m *MockAPIServerServer) Login(_a0 context.Context, _a1 *APIServerLoginReq
 
 	var r1 error
 	if rf, ok := ret.Get(1).(func(context.Context, *APIServerLoginRequest) error); ok {
+		r1 = rf(_a0, _a1)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// UpdateGateway provides a mock function with given fields: _a0, _a1
+func (_m *MockAPIServerServer) UpdateGateway(_a0 context.Context, _a1 *ModifyGatewayRequest) (*ModifyGatewayResponse, error) {
+	ret := _m.Called(_a0, _a1)
+
+	var r0 *ModifyGatewayResponse
+	if rf, ok := ret.Get(0).(func(context.Context, *ModifyGatewayRequest) *ModifyGatewayResponse); ok {
+		r0 = rf(_a0, _a1)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*ModifyGatewayResponse)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(context.Context, *ModifyGatewayRequest) error); ok {
 		r1 = rf(_a0, _a1)
 	} else {
 		r1 = ret.Error(1)

@@ -57,6 +57,23 @@ func main() {
 						},
 						Action: controlplanecli.EnrollGateway,
 					},
+					{
+						Name:  "edit",
+						Usage: "edit gateway parameters",
+						Flags: []cli.Flag{
+							&cli.StringFlag{
+								Name:     controlplanecli.FlagName,
+								Usage:    "gateway name",
+								Required: true,
+							},
+							&cli.StringFlag{
+								Name:     controlplanecli.FlagPasswordHash,
+								Usage:    "password hash",
+								Required: false,
+							},
+						},
+						Action: controlplanecli.EditGateway,
+					},
 				},
 			},
 		},

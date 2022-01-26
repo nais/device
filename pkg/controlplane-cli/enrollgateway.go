@@ -18,6 +18,7 @@ const FlagName = "name"
 const FlagEndpoint = "endpoint"
 const FlagAdminPassword = "admin-password"
 const FlagPassword = "password"
+const FlagPasswordHash = "password-hash"
 
 func ListGateways(c *cli.Context) error {
 	conn, err := grpc.DialContext(
@@ -66,6 +67,46 @@ func HashPassword(c *cli.Context) error {
 	return nil
 }
 
+func EditGateway(c *cli.Context) error {
+	conn, err := grpc.DialContext(
+		c.Context,
+		"127.0.0.1:8099",
+		grpc.WithInsecure(),
+	)
+
+	if err != nil {
+		return err
+	}
+
+	client := pb.NewAPIServerClient(conn)
+
+	req := &pb.ModifyGatewayRequest{
+		Password: c.String(FlagAdminPassword),
+		Gateway: &pb.Gateway{
+			Name: c.String(FlagName),
+		},
+	}
+
+	gw, err := client.GetGateway(c.Context, req)
+	if err != nil {
+		return err
+	}
+
+	if gw == nil {
+		return fmt.Errorf("gateway not found")
+	}
+
+	if c.IsSet(FlagPasswordHash) {
+		gw.PasswordHash = c.String(FlagPasswordHash)
+	}
+
+	req.Gateway = gw
+
+	_, err = client.UpdateGateway(c.Context, req)
+
+	return err
+}
+
 func EnrollGateway(c *cli.Context) error {
 	password, err := passwordhash.RandomBytes(32)
 	if err != nil {
@@ -83,7 +124,7 @@ func EnrollGateway(c *cli.Context) error {
 	privateKey := wireguard.WgGenKey()
 	publicKey := wireguard.PublicKey(privateKey)
 
-	req := &pb.EnrollGatewayRequest{
+	req := &pb.ModifyGatewayRequest{
 		Password: c.String(FlagAdminPassword),
 		Gateway: &pb.Gateway{
 			Name:         c.String(FlagName),

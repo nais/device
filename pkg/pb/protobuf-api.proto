@@ -60,12 +60,20 @@ service APIServer {
   rpc GetGatewayConfiguration (GetGatewayConfigurationRequest) returns (stream GetGatewayConfigurationResponse) {
   }
 
+  // Admin endpoint for retrieving a single gateway
+  rpc GetGateway (ModifyGatewayRequest) returns (Gateway) {
+  }
+
   // Admin endpoint for listing out gateways registered in database
   rpc ListGateways(ListGatewayRequest) returns (stream Gateway) {
   }
 
   // Admin endpoint for adding gateway credentials to the database
-  rpc EnrollGateway (EnrollGatewayRequest) returns (EnrollGatewayResponse) {
+  rpc EnrollGateway (ModifyGatewayRequest) returns (ModifyGatewayResponse) {
+  }
+
+  // Admin endpoint for adding gateway credentials to the database
+  rpc UpdateGateway (ModifyGatewayRequest) returns (ModifyGatewayResponse) {
   }
 }
 
@@ -166,12 +174,12 @@ message Configuration {
   repeated Gateway Gateways = 3;
 }
 
-message EnrollGatewayRequest {
+message ModifyGatewayRequest {
   string password = 1; // authentication token
   Gateway gateway = 2;
 }
 
-message EnrollGatewayResponse {
+message ModifyGatewayResponse {
   Gateway gateway = 1;
 }
 

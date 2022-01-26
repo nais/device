@@ -500,10 +500,14 @@ type APIServerClient interface {
 	GetDeviceConfiguration(ctx context.Context, in *GetDeviceConfigurationRequest, opts ...grpc.CallOption) (APIServer_GetDeviceConfigurationClient, error)
 	// Set up continuous streaming of new gateway configuration
 	GetGatewayConfiguration(ctx context.Context, in *GetGatewayConfigurationRequest, opts ...grpc.CallOption) (APIServer_GetGatewayConfigurationClient, error)
+	// Admin endpoint for retrieving a single gateway
+	GetGateway(ctx context.Context, in *ModifyGatewayRequest, opts ...grpc.CallOption) (*Gateway, error)
 	// Admin endpoint for listing out gateways registered in database
 	ListGateways(ctx context.Context, in *ListGatewayRequest, opts ...grpc.CallOption) (APIServer_ListGatewaysClient, error)
 	// Admin endpoint for adding gateway credentials to the database
-	EnrollGateway(ctx context.Context, in *EnrollGatewayRequest, opts ...grpc.CallOption) (*EnrollGatewayResponse, error)
+	EnrollGateway(ctx context.Context, in *ModifyGatewayRequest, opts ...grpc.CallOption) (*ModifyGatewayResponse, error)
+	// Admin endpoint for adding gateway credentials to the database
+	UpdateGateway(ctx context.Context, in *ModifyGatewayRequest, opts ...grpc.CallOption) (*ModifyGatewayResponse, error)
 }
 
 type aPIServerClient struct {
@@ -587,6 +591,15 @@ func (x *aPIServerGetGatewayConfigurationClient) Recv() (*GetGatewayConfiguratio
 	return m, nil
 }
 
+func (c *aPIServerClient) GetGateway(ctx context.Context, in *ModifyGatewayRequest, opts ...grpc.CallOption) (*Gateway, error) {
+	out := new(Gateway)
+	err := c.cc.Invoke(ctx, "/naisdevice.APIServer/GetGateway", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *aPIServerClient) ListGateways(ctx context.Context, in *ListGatewayRequest, opts ...grpc.CallOption) (APIServer_ListGatewaysClient, error) {
 	stream, err := c.cc.NewStream(ctx, &APIServer_ServiceDesc.Streams[2], "/naisdevice.APIServer/ListGateways", opts...)
 	if err != nil {
@@ -619,9 +632,18 @@ func (x *aPIServerListGatewaysClient) Recv() (*Gateway, error) {
 	return m, nil
 }
 
-func (c *aPIServerClient) EnrollGateway(ctx context.Context, in *EnrollGatewayRequest, opts ...grpc.CallOption) (*EnrollGatewayResponse, error) {
-	out := new(EnrollGatewayResponse)
+func (c *aPIServerClient) EnrollGateway(ctx context.Context, in *ModifyGatewayRequest, opts ...grpc.CallOption) (*ModifyGatewayResponse, error) {
+	out := new(ModifyGatewayResponse)
 	err := c.cc.Invoke(ctx, "/naisdevice.APIServer/EnrollGateway", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *aPIServerClient) UpdateGateway(ctx context.Context, in *ModifyGatewayRequest, opts ...grpc.CallOption) (*ModifyGatewayResponse, error) {
+	out := new(ModifyGatewayResponse)
+	err := c.cc.Invoke(ctx, "/naisdevice.APIServer/UpdateGateway", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -638,10 +660,14 @@ type APIServerServer interface {
 	GetDeviceConfiguration(*GetDeviceConfigurationRequest, APIServer_GetDeviceConfigurationServer) error
 	// Set up continuous streaming of new gateway configuration
 	GetGatewayConfiguration(*GetGatewayConfigurationRequest, APIServer_GetGatewayConfigurationServer) error
+	// Admin endpoint for retrieving a single gateway
+	GetGateway(context.Context, *ModifyGatewayRequest) (*Gateway, error)
 	// Admin endpoint for listing out gateways registered in database
 	ListGateways(*ListGatewayRequest, APIServer_ListGatewaysServer) error
 	// Admin endpoint for adding gateway credentials to the database
-	EnrollGateway(context.Context, *EnrollGatewayRequest) (*EnrollGatewayResponse, error)
+	EnrollGateway(context.Context, *ModifyGatewayRequest) (*ModifyGatewayResponse, error)
+	// Admin endpoint for adding gateway credentials to the database
+	UpdateGateway(context.Context, *ModifyGatewayRequest) (*ModifyGatewayResponse, error)
 	mustEmbedUnimplementedAPIServerServer()
 }
 
@@ -658,11 +684,17 @@ func (UnimplementedAPIServerServer) GetDeviceConfiguration(*GetDeviceConfigurati
 func (UnimplementedAPIServerServer) GetGatewayConfiguration(*GetGatewayConfigurationRequest, APIServer_GetGatewayConfigurationServer) error {
 	return status.Errorf(codes.Unimplemented, "method GetGatewayConfiguration not implemented")
 }
+func (UnimplementedAPIServerServer) GetGateway(context.Context, *ModifyGatewayRequest) (*Gateway, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetGateway not implemented")
+}
 func (UnimplementedAPIServerServer) ListGateways(*ListGatewayRequest, APIServer_ListGatewaysServer) error {
 	return status.Errorf(codes.Unimplemented, "method ListGateways not implemented")
 }
-func (UnimplementedAPIServerServer) EnrollGateway(context.Context, *EnrollGatewayRequest) (*EnrollGatewayResponse, error) {
+func (UnimplementedAPIServerServer) EnrollGateway(context.Context, *ModifyGatewayRequest) (*ModifyGatewayResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method EnrollGateway not implemented")
+}
+func (UnimplementedAPIServerServer) UpdateGateway(context.Context, *ModifyGatewayRequest) (*ModifyGatewayResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method UpdateGateway not implemented")
 }
 func (UnimplementedAPIServerServer) mustEmbedUnimplementedAPIServerServer() {}
 
@@ -737,6 +769,24 @@ func (x *aPIServerGetGatewayConfigurationServer) Send(m *GetGatewayConfiguration
 	return x.ServerStream.SendMsg(m)
 }
 
+func _APIServer_GetGateway_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ModifyGatewayRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(APIServerServer).GetGateway(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/naisdevice.APIServer/GetGateway",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(APIServerServer).GetGateway(ctx, req.(*ModifyGatewayRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _APIServer_ListGateways_Handler(srv interface{}, stream grpc.ServerStream) error {
 	m := new(ListGatewayRequest)
 	if err := stream.RecvMsg(m); err != nil {
@@ -759,7 +809,7 @@ func (x *aPIServerListGatewaysServer) Send(m *Gateway) error {
 }
 
 func _APIServer_EnrollGateway_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(EnrollGatewayRequest)
+	in := new(ModifyGatewayRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
@@ -771,7 +821,25 @@ func _APIServer_EnrollGateway_Handler(srv interface{}, ctx context.Context, dec 
 		FullMethod: "/naisdevice.APIServer/EnrollGateway",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(APIServerServer).EnrollGateway(ctx, req.(*EnrollGatewayRequest))
+		return srv.(APIServerServer).EnrollGateway(ctx, req.(*ModifyGatewayRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _APIServer_UpdateGateway_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ModifyGatewayRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(APIServerServer).UpdateGateway(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/naisdevice.APIServer/UpdateGateway",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(APIServerServer).UpdateGateway(ctx, req.(*ModifyGatewayRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -788,8 +856,16 @@ var APIServer_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _APIServer_Login_Handler,
 		},
 		{
+			MethodName: "GetGateway",
+			Handler:    _APIServer_GetGateway_Handler,
+		},
+		{
 			MethodName: "EnrollGateway",
 			Handler:    _APIServer_EnrollGateway_Handler,
+		},
+		{
+			MethodName: "UpdateGateway",
+			Handler:    _APIServer_UpdateGateway_Handler,
 		},
 	},
 	Streams: []grpc.StreamDesc{
