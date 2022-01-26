@@ -1,11 +1,26 @@
-- name: Ensure wireguard package installed
+- name: Ensure gpg package installed
   apt:
-    name: wireguard
+    name: gpg
     state: present
 
 - name: Ensure prometheus-node-exporter package installed
   apt:
     name: prometheus-node-exporter
+    state: present
+
+- name: Set up apt-key for controlplane repo
+  apt_key:
+    url: https://europe-north1-apt.pkg.dev/doc/repo-signing-key.gpg
+    state: present
+
+- name: Set up controlplane repo
+  apt_repository:
+    repo: 'deb [arch=amd64] https://europe-north1-apt.pkg.dev/projects/naisdevice controlplane main'
+    state: present
+
+- name: Ensure gateway-agent package installed
+  apt:
+    name: gateway-agent
     state: present
 
 - name: Enable IPv4 forwarding in sysctl
@@ -14,47 +29,15 @@
     value: '1'
     reload: yes
 
-- name: Create gateway agent binary directory
+- name: Remove old gateway agent binary directory
   file:
-    path: /opt/nais-device/bin
-    state: directory
-    mode: '0755'
+    path: /opt/nais-device
+    state: absent
 
-- name: Download gateway agent
-  get_url:
-    dest: /opt/nais-device/bin/gateway-agent
-    force: yes
-    url: https://github.com/nais/device/releases/download/2021-10-04-111116/gateway-agent
-    backup: yes
-    mode: 0755
-  notify:
-    - restart_gateway-agent
-
-- name: Create gateway config dir
+- name: Remove old gateway agent systemd unit file
   file:
-    path: /usr/local/etc/nais-device
-    state: directory
-    mode: '0750'
-
-- name: Generate wireguard public key
-  shell: umask 077 && wg genkey > /usr/local/etc/nais-device/private.key
-  args:
-    creates: /usr/local/etc/nais-device/private.key
-
-- name: Get apiserver password
-  shell: gcloud --project nais-device secrets versions access latest --secret {{ gcp_project }}_{{ name }}_api-server-password > /usr/local/etc/nais-device/apiserver_password
-  args:
-    creates: /usr/local/etc/nais-device/apiserver_password
-    executable: /bin/bash
-  environment:
-    PATH: /usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/snap/bin
-
-- name: Install gateway agent systemd unit file
-  template:
-    src: gateway-agent.service.j2
-    dest: /etc/systemd/system/gateway-agent.service
-  notify:
-    - restart_gateway-agent
+    state: absent
+    path: /etc/systemd/system/gateway-agent.service
 
 - name: Ensure gateway-agent is enabled
   systemd:
@@ -72,7 +55,7 @@
 - name: Add logrotate config
   template:
     owner: root
-    mode: root
+    group: root
     mode: 640
     src: logrotate-gateway-agent.j2
     dest: /etc/logrotate.d/naisdevice-gateway-agent

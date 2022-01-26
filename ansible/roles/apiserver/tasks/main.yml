@@ -40,7 +40,7 @@
   loop:
     - env: APISERVER_DBCONNDSN
       secret: apiserver-db-dsn
-    - env: APISERVER_AZURECLIENTSECRET
+    - env: APISERVER_AZURE_CLIENTSECRET
       secret: azure-client-secret
     - env: APISERVER_KOLIDEAPITOKEN
       secret: kolide-api-token
