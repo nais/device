@@ -11,8 +11,6 @@ import (
 	"sync"
 	"time"
 
-	clientcert "github.com/nais/device/pkg/client-cert"
-
 	"github.com/getsentry/sentry-go"
 	"golang.org/x/oauth2"
 	"google.golang.org/grpc"
@@ -191,7 +189,7 @@ func (das *DeviceAgentServer) EventLoop(ctx context.Context) {
 
 			if err != nil {
 				log.Errorf("check for new version: %s", err)
-				continue
+				break
 			}
 
 			if status.NewVersionAvailable {
@@ -203,18 +201,22 @@ func (das *DeviceAgentServer) EventLoop(ctx context.Context) {
 
 		case <-certRenewalTicker.C:
 			certRenewalTicker.Reset(certRenewalBackoff)
-			if status.ConnectionState == pb.AgentState_Connected {
-				err := clientcert.Renew()
-				if err != nil {
-					log.Errorf("Renewing NAV microsoft client certificate: %v", err)
-					break
-				}
-
-				certRenewalTicker.Reset(certRenewalInterval)
-				log.Info("NAV Microsoft Client Certificate renewed")
-			} else {
-				log.Debugf("cert renewal skipped, not connected")
+			if status.ConnectionState != pb.AgentState_Connected {
+				log.Debugf("NAV Microsoft client certificate renewal skipped; not connected")
+				break
 			}
+
+			renewContext, renewCancel := context.WithTimeout(ctx, certRenewalBackoff)
+			err = das.outtune.Install(renewContext)
+			renewCancel()
+
+			if err != nil {
+				log.Errorf("Renewing NAV Microsoft client certificate: %v", err)
+				break
+			}
+
+			certRenewalTicker.Reset(certRenewalInterval)
+			log.Info("NAV Microsoft client certificate renewed")
 
 		case <-healthCheckTicker.C:
 			healthCheckTicker.Reset(healthCheckInterval)

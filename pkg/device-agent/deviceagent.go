@@ -6,7 +6,8 @@ import (
 	"sync"
 
 	"github.com/google/uuid"
-	multierror "github.com/hashicorp/go-multierror"
+	"github.com/hashicorp/go-multierror"
+	"github.com/nais/device/pkg/outtune"
 	log "github.com/sirupsen/logrus"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -25,6 +26,7 @@ type DeviceAgentServer struct {
 	streams      map[uuid.UUID]pb.DeviceAgent_StatusServer
 	Config       *config.Config
 	rc           *runtimeconfig.RuntimeConfig
+	outtune      outtune.Outtune
 }
 
 func (das *DeviceAgentServer) Login(ctx context.Context, request *pb.LoginRequest) (*pb.LoginResponse, error) {
@@ -40,14 +42,14 @@ func (das *DeviceAgentServer) Logout(ctx context.Context, request *pb.LogoutRequ
 func (das *DeviceAgentServer) Status(request *pb.AgentStatusRequest, statusServer pb.DeviceAgent_StatusServer) error {
 	id := uuid.New()
 
-	log.Infof("grpc: client connection established")
+	log.Infof("grpc: client connection established to device helper")
 
 	das.lock.Lock()
 	das.streams[id] = statusServer
 	das.lock.Unlock()
 
 	defer func() {
-		log.Infof("grpc: client connection closed")
+		log.Infof("grpc: client connection with device helper closed")
 		if !request.GetKeepConnectionOnComplete() {
 			log.Infof("grpc: keepalive not requested, tearing down connections...")
 			das.stateChange <- pb.AgentState_Disconnecting
@@ -109,12 +111,13 @@ func (das *DeviceAgentServer) GetAgentConfiguration(ctx context.Context, req *pb
 	}, nil
 }
 
-func NewServer(helper pb.DeviceHelperClient, cfg *config.Config, rc *runtimeconfig.RuntimeConfig) *DeviceAgentServer {
+func NewServer(helper pb.DeviceHelperClient, cfg *config.Config, rc *runtimeconfig.RuntimeConfig, ot outtune.Outtune) *DeviceAgentServer {
 	return &DeviceAgentServer{
 		DeviceHelper: helper,
 		stateChange:  make(chan pb.AgentState, 32),
 		streams:      make(map[uuid.UUID]pb.DeviceAgent_StatusServer),
 		Config:       cfg,
+		outtune:      ot,
 		rc:           rc,
 	}
 }

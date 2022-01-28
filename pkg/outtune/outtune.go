@@ -1,7 +1,6 @@
 package outtune
 
 import (
-	"bufio"
 	"bytes"
 	"context"
 	"crypto/rand"
@@ -13,103 +12,41 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
-	"os"
-	"os/exec"
-	"regexp"
-
-	"github.com/nais/device/pkg/pb"
 )
 
 const entropyBits = 4096
 
-type outtune struct {
-	helper pb.DeviceHelperClient
+type Outtune interface {
+	Install(ctx context.Context) error
 }
 
-func NewOuttune(helper pb.DeviceHelperClient) *outtune {
-	return &outtune{
-		helper: helper,
-	}
-}
-
-type Request struct {
+type request struct {
 	Serial       string `json:"serial"`
 	PublicKeyPEM string `json:"public_key_pem"`
 }
 
-type Response struct {
+type response struct {
 	CertificatePEM string `json:"cert_pem"`
 }
 
-func (o *outtune) Purge(ctx context.Context) error {
-	serial, err := o.helper.GetSerial(ctx, &pb.GetSerialRequest{})
-	if err != nil {
-		return err
-	}
-	ids, err := identities(ctx, serial.GetSerial())
-	if err != nil {
-		return err
-	}
-
-	for _, id := range ids {
-		fmt.Println(id)
-	}
-
-	return nil
-}
-
-func (o *outtune) GetCertificate(ctx context.Context) error {
-	serial, err := o.helper.GetSerial(ctx, &pb.GetSerialRequest{})
-	if err != nil {
-		return err
-	}
-
+func generateKeyAndCertificate(ctx context.Context, serial string) (*identity, error) {
 	privateKey, err := rsa.GenerateKey(rand.Reader, entropyBits)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	cert, err := download(ctx, serial.GetSerial(), privateKey)
+	cert, err := download(ctx, serial, privateKey)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	w, err := os.CreateTemp(os.TempDir(), "foobar")
-	if err != nil {
-		return err
-	}
-	defer w.Close()
-	defer os.Remove(w.Name())
-
-	err = pem.Encode(w, &pem.Block{
-		Type:  "RSA PRIVATE KEY",
-		Bytes: x509.MarshalPKCS1PrivateKey(privateKey),
-	})
-	if err != nil {
-		return err
-	}
-
-	_, err = w.WriteString(cert.CertificatePEM)
-	if err != nil {
-		return err
-	}
-
-	// private key and certificate written; flush contents to disk and close
-	err = w.Close()
-	if err != nil {
-		return err
-	}
-
-	// run Mac OS X keychain import tool
-	cmd := exec.CommandContext(ctx, "/usr/bin/security", "import", w.Name(), "-A")
-	err = cmd.Run()
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return &identity{
+		privateKey:  privateKey,
+		certificate: cert.CertificatePEM,
+	}, nil
 }
-func download(ctx context.Context, serial string, privateKey *rsa.PrivateKey) (*Response, error) {
+
+func download(ctx context.Context, serial string, privateKey *rsa.PrivateKey) (*response, error) {
 	publicKey, err := x509.MarshalPKIXPublicKey(&privateKey.PublicKey)
 	if err != nil {
 		return nil, err
@@ -126,7 +63,7 @@ func download(ctx context.Context, serial string, privateKey *rsa.PrivateKey) (*
 		return nil, fmt.Errorf("encode public key in PEM format: %w", err)
 	}
 
-	req := &Request{
+	req := &request{
 		Serial:       serial,
 		PublicKeyPEM: base64.StdEncoding.EncodeToString(buf.Bytes()),
 	}
@@ -155,7 +92,7 @@ func download(ctx context.Context, serial string, privateKey *rsa.PrivateKey) (*
 		return nil, fmt.Errorf("CA signer returned %s: %s", resp.Status, string(msg))
 	}
 
-	response := &Response{}
+	response := &response{}
 	err = json.NewDecoder(resp.Body).Decode(response)
 	if err != nil {
 		return nil, err
@@ -163,53 +100,3 @@ func download(ctx context.Context, serial string, privateKey *rsa.PrivateKey) (*
 
 	return response, nil
 }
-
-func identities(ctx context.Context, serial string) ([]string, error) {
-	id := "naisdevice - " + serial
-	cmd := exec.CommandContext(ctx, "/usr/bin/security", "find-identity", "-s", id)
-	stdout, err := cmd.StdoutPipe()
-	if err != nil {
-		return nil, err
-	}
-	defer stdout.Close()
-
-	err = cmd.Start()
-	if err != nil {
-		return nil, err
-	}
-
-	ids := make([]string, 0)
-	re := regexp.MustCompile("[A-Za-z0-9]{40}")
-	scan := bufio.NewScanner(stdout)
-	for scan.Scan() {
-		line := scan.Text()
-		certificateID := re.FindString(line)
-		if len(certificateID) == 0 {
-			continue
-		}
-		ids = append(ids, certificateID)
-	}
-
-	err = cmd.Wait()
-	if err != nil {
-		return nil, err
-	}
-
-	return ids, nil
-}
-
-//pubkey_path="$HOME/Library/Application Support/naisdevice/browser_cert_pubkey.pem"
-//    set -eo pipefail
-//    cd "$(mktemp -d)"
-//    ## delete expired cert
-//    security delete-certificate -c "$cn"
-//
-//    ## renew cert and import in keychain
-//    download_cert
-//    security import cert.pem
-//    identity_cert=$(security find-certificate -c "$cn" -Z | grep "SHA-1 hash:")
-//    certhash=$(echo "$identity_cert" | cut -c13-53)
-//
-//    ## set identity preference to use this cert automaticlaly for specified domains
-//    security set-identity-preference -Z "$certhash" -s "https://nav-no.managed.us2.access-control.cas.ms/aad_login"
-//  ) || (echo "failed renewing cert"; exit 1)
