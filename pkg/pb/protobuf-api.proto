@@ -18,6 +18,9 @@ service DeviceHelper {
   // Install the newest version of naisdevice.
   rpc Upgrade (UpgradeRequest) returns (UpgradeResponse) {
   }
+
+  rpc GetSerial (GetSerialRequest) returns (GetSerialResponse) {
+  }
 }
 
 service DeviceAgent {
@@ -113,9 +116,7 @@ message ConfigureResponse {
 
 }
 
-message UpgradeResponse {
 
-}
 
 message ConfigureJITAResponse {
 
@@ -130,6 +131,18 @@ message LogoutResponse {
 
 message UpgradeRequest {
 
+}
+
+message UpgradeResponse {
+
+}
+
+message GetSerialRequest {
+
+}
+
+message GetSerialResponse {
+  string serial = 1;
 }
 
 message ConfigureJITARequest {

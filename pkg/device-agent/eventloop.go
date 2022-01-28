@@ -37,6 +37,7 @@ const (
 	syncConfigDialTimeout  = 1 * time.Second    // sleep time between failed configuration syncs
 	versionCheckInterval   = 1 * time.Hour      // how often to check for a new version of naisdevice
 	versionCheckTimeout    = 3 * time.Second    // timeout for new version check
+	getSerialTimeout       = 2 * time.Second    // timeout for getting device serial from helper
 	authFlowTimeout        = 30 * time.Second   // total timeout for authenticating user (AAD login in browser, redirect to localhost, exchange code for token)
 	approximateInfinity    = time.Hour * 69_420 // Name describes purpose. Used for renewing microsoft client certs automatically
 	certRenewalInterval    = time.Hour * 23     // Microsoft Client certificate validity/renewal interval
@@ -92,10 +93,15 @@ func (das *DeviceAgentServer) syncConfigLoop(ctx context.Context, gateways chan<
 	apiserverClient := pb.NewAPIServerClient(apiserver)
 
 	if das.rc.SessionInfo.Expired() {
+		serial, err := das.getSerial(ctx)
+		if err != nil {
+			return err
+		}
+
 		loginResponse, err := apiserverClient.Login(ctx, &pb.APIServerLoginRequest{
 			Token:    das.rc.Token.AccessToken,
 			Platform: config.Platform,
-			Serial:   das.rc.Serial,
+			Serial:   serial,
 		})
 
 		if err != nil {
@@ -145,6 +151,13 @@ func (das *DeviceAgentServer) syncConfigLoop(ctx context.Context, gateways chan<
 
 		gateways <- cfg.Gateways
 	}
+}
+
+func (das *DeviceAgentServer) getSerial(ctx context.Context) (string, error) {
+	ctx, cancel := context.WithTimeout(ctx, getSerialTimeout)
+	defer cancel()
+	serial, err := das.DeviceHelper.GetSerial(ctx, &pb.GetSerialRequest{})
+	return serial.GetSerial(), err
 }
 
 func (das *DeviceAgentServer) EventLoop(ctx context.Context) {
@@ -276,7 +289,10 @@ func (das *DeviceAgentServer) EventLoop(ctx context.Context) {
 					log.Infof("Already bootstrapped")
 				} else {
 					ctx, cancel := context.WithTimeout(context.Background(), 1*time.Minute)
-					das.rc.BootstrapConfig, err = runtimeconfig.EnsureBootstrapping(das.rc, ctx)
+					serial, err := das.getSerial(ctx)
+					if err == nil {
+						das.rc.BootstrapConfig, err = runtimeconfig.EnsureBootstrapping(das.rc, serial, ctx)
+					}
 					cancel()
 					if err != nil {
 						notify.Errorf("Bootstrap: %v", err)

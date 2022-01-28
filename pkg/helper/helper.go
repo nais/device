@@ -14,6 +14,7 @@ import (
 	"path/filepath"
 
 	"github.com/nais/device/pkg/helper/config"
+	"github.com/nais/device/pkg/helper/serial"
 	log "github.com/sirupsen/logrus"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -107,6 +108,14 @@ func (dhs *DeviceHelperServer) writeConfigFile(cfg *pb.Configuration) error {
 	}
 
 	return nil
+}
+
+func (dhs *DeviceHelperServer) GetSerial(context.Context, *pb.GetSerialRequest) (*pb.GetSerialResponse, error) {
+	device_serial, err := serial.GetDeviceSerial()
+	if err != nil {
+		return nil, err
+	}
+	return &pb.GetSerialResponse{Serial: device_serial}, nil
 }
 
 func (dhs *DeviceHelperServer) Upgrade(context.Context, *pb.UpgradeRequest) (*pb.UpgradeResponse, error) {

@@ -12,13 +12,11 @@ import (
 	"github.com/nais/device/pkg/bootstrap"
 	"github.com/nais/device/pkg/device-agent/bootstrapper"
 	"github.com/nais/device/pkg/device-agent/config"
-	"github.com/nais/device/pkg/device-agent/serial"
 	"github.com/nais/device/pkg/device-agent/wireguard"
 	"github.com/nais/device/pkg/pb"
 )
 
 type RuntimeConfig struct {
-	Serial          string
 	BootstrapConfig *bootstrap.Config
 	Config          *config.Config
 	PrivateKey      []byte
@@ -37,10 +35,6 @@ func New(cfg *config.Config) (*RuntimeConfig, error) {
 		return nil, fmt.Errorf("ensuring private key: %w", err)
 	}
 
-	if rc.Serial, err = serial.GetDeviceSerial(cfg.SerialPath); err != nil {
-		return nil, fmt.Errorf("getting device serial: %w", err)
-	}
-
 	rc.BootstrapConfig, err = readBootstrapConfigFromFile(rc.Config.BootstrapConfigPath)
 	if err != nil {
 		log.Infof("Unable to read bootstrap config from file: %v", err)
@@ -53,14 +47,14 @@ func New(cfg *config.Config) (*RuntimeConfig, error) {
 	return rc, nil
 }
 
-func EnsureBootstrapping(rc *RuntimeConfig, ctx context.Context) (*bootstrap.Config, error) {
+func EnsureBootstrapping(rc *RuntimeConfig, serial string, ctx context.Context) (*bootstrap.Config, error) {
 	log.Infoln("Bootstrapping device")
 	client := rc.Config.OAuth2Config.Client(ctx, rc.Token)
 
 	cfg, err := bootstrapper.BootstrapDevice(
 		&bootstrap.DeviceInfo{
 			PublicKey: string(wireguard.PublicKey(rc.PrivateKey)),
-			Serial:    rc.Serial,
+			Serial:    serial,
 			Platform:  rc.Config.Platform,
 		},
 		rc.Config.BootstrapAPI,

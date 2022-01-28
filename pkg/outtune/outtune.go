@@ -17,10 +17,20 @@ import (
 	"os/exec"
 	"regexp"
 
-	"github.com/nais/device/pkg/device-agent/serial"
+	"github.com/nais/device/pkg/pb"
 )
 
 const entropyBits = 4096
+
+type outtune struct {
+	helper pb.DeviceHelperClient
+}
+
+func NewOuttune(helper pb.DeviceHelperClient) *outtune {
+	return &outtune{
+		helper: helper,
+	}
+}
 
 type Request struct {
 	Serial       string `json:"serial"`
@@ -31,13 +41,12 @@ type Response struct {
 	CertificatePEM string `json:"cert_pem"`
 }
 
-func Purge(ctx context.Context) error {
-	ser, err := serial.GetDeviceSerial("")
+func (o *outtune) Purge(ctx context.Context) error {
+	serial, err := o.helper.GetSerial(ctx, &pb.GetSerialRequest{})
 	if err != nil {
 		return err
 	}
-
-	ids, err := identities(ctx, ser)
+	ids, err := identities(ctx, serial.GetSerial())
 	if err != nil {
 		return err
 	}
@@ -49,8 +58,8 @@ func Purge(ctx context.Context) error {
 	return nil
 }
 
-func GetCertificate(ctx context.Context) error {
-	ser, err := serial.GetDeviceSerial("")
+func (o *outtune) GetCertificate(ctx context.Context) error {
+	serial, err := o.helper.GetSerial(ctx, &pb.GetSerialRequest{})
 	if err != nil {
 		return err
 	}
@@ -60,7 +69,7 @@ func GetCertificate(ctx context.Context) error {
 		return err
 	}
 
-	cert, err := download(ctx, ser, privateKey)
+	cert, err := download(ctx, serial.GetSerial(), privateKey)
 	if err != nil {
 		return err
 	}

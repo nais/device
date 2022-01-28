@@ -6,7 +6,7 @@ import (
 	"regexp"
 )
 
-func GetDeviceSerial(serialpath string) (string, error) {
+func GetDeviceSerial() (string, error) {
 	cmd := exec.Command("/usr/sbin/ioreg", "-rd1", "-c", "IOPlatformExpertDevice")
 	b, err := cmd.CombinedOutput()
 	if err != nil {
