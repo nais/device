@@ -41,6 +41,8 @@ require (
 	google.golang.org/protobuf v1.27.1
 )
 
+require github.com/golang/protobuf v1.5.2
+
 require (
 	cloud.google.com/go v0.95.0 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
@@ -56,7 +58,6 @@ require (
 	github.com/goccy/go-json v0.7.9 // indirect
 	github.com/godbus/dbus/v5 v5.0.5 // indirect
 	github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da // indirect
-	github.com/golang/protobuf v1.5.2 // indirect
 	github.com/google/go-cmp v0.5.6 // indirect
 	github.com/googleapis/gax-go/v2 v2.1.1 // indirect
 	github.com/gopherjs/gopherwasm v1.1.0 // indirect

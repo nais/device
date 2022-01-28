@@ -59,6 +59,9 @@ local:
 	go build -o bin/local/prometheus-agent -ldflags "-s $(LDFLAGS)" ./cmd/prometheus-agent
 	go build -o bin/local/bootstrap-api -ldflags "-s $(LDFLAGS)" ./cmd/bootstrap-api
 	go build -o bin/local/controlplane-cli -ldflags "-s $(LDFLAGS)" ./cmd/controlplane-cli
+	go build -o bin/local/naisdevice-agent -ldflags "-s $(LDFLAGS)" ./cmd/device-agent
+	go build -o bin/local/naisdevice-systray -ldflags "-s $(LDFLAGS)" ./cmd/systray
+	go build -o bin/local/naisdevice-helper -ldflags "-s $(LDFLAGS)" ./cmd/helper
 
 update-fixtures:
 	PGPASSWORD=postgres pg_dump -U postgres -h localhost -d postgres --schema-only > fixtures/schema.sql
