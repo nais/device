@@ -5,6 +5,9 @@ package outtune_test
 
 import (
 	"context"
+	"crypto/x509"
+	"encoding/pem"
+	"io/ioutil"
 	"testing"
 
 	"github.com/nais/device/pkg/outtune"
@@ -21,4 +24,15 @@ func TestGetCertificate(t *testing.T) {
 	o := outtune.New(helper)
 	err := o.Install(context.Background())
 	assert.NoError(t, err)
+}
+
+func TestGenerateDBKey(t *testing.T) {
+	certfile, err := ioutil.ReadFile("/home/cn/cert.cert")
+	assert.NoError(t, err)
+	block, _ := pem.Decode([]byte(certfile))
+	cert, err := x509.ParseCertificate(block.Bytes)
+	assert.NoError(t, err)
+	dbkey, err := outtune.GenerateDBKey(cert)
+	assert.NoError(t, err)
+	assert.Equal(t, "AAAAAAAAAAAAAAAGAAAATAF+r6lnAzBKMQswCQYDVQQGEwJOTzEMMAoGA1UEChMDTkFWMRMwEQYDVQQLEwpuYWlzZGV2aWNlMRgwFgYDVQQDEw9uYWlzZGV2aWNlLXJvb3Q=", dbkey)
 }
