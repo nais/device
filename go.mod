@@ -85,4 +85,5 @@ require (
 	golang.org/x/time v0.0.0-20210723032227-1f47c861a9ac // indirect
 	google.golang.org/appengine v1.6.7 // indirect
 	gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b // indirect
+	software.sslmate.com/src/go-pkcs12 v0.0.0-20210415151418-c5206de65a78
 )
