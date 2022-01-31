@@ -70,29 +70,22 @@ func (o *linux) Install(ctx context.Context) error {
 		if err != nil {
 			log.Infof("could not list certificates in db %s: %v", db, err)
 		}
+		err = installCert(ctx, db, w.Name())
+		if err != nil {
+			return err
+		}
 		for _, cert := range certs {
 			err = deleteCert(ctx, db, cert) // this seems to always fail, but the cert does get deleted?
 			if err != nil {
 				log.Infof("couldn't delete cert '%s' in db %s: %v", cert, db, err)
 			}
 		}
-
-		err = installCert(ctx, db, w.Name())
-		if err != nil {
-			return err
-		}
 	}
-
 	return nil
 }
 
 func deleteCert(ctx context.Context, db, certname string) error {
 	cmd := exec.CommandContext(ctx, certutilBinary, "-d", db, "-F", "-n", certname)
-	err := cmd.Run()
-	if err != nil {
-		return err
-	}
-	cmd = exec.CommandContext(ctx, certutilBinary, "-d", db, "-D", "-n", certname)
 	return cmd.Run()
 }
 
@@ -105,7 +98,7 @@ func listCertificates(ctx context.Context, db string) ([]string, error) {
 	lines := strings.Split(string(out), "\n")
 	var ret []string
 	for _, line := range lines {
-		if strings.HasPrefix(line, "naisdevice") {
+		if strings.HasPrefix(line, naisdeviceCertName) {
 			ret = append(ret, strings.TrimSpace(strings.TrimSuffix(line, "u,u,u")))
 		}
 	}
