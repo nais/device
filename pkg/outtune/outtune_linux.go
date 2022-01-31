@@ -1,11 +1,7 @@
 package outtune
 
 import (
-	"bytes"
 	"context"
-	"crypto/x509"
-	"encoding/base64"
-	"encoding/binary"
 	"fmt"
 	"os"
 	"os/exec"
@@ -22,7 +18,6 @@ const (
 	certutilBinary      = "/usr/bin/certutil"
 	pk12utilBinary      = "/usr/bin/pk12util"
 	naisdeviceCertName  = "naisdevice"
-	dummyPassword       = "asd123"
 )
 
 type linux struct {
@@ -136,61 +131,4 @@ func nssDatabases() ([]string, error) {
 	}
 	nss_dbs = append(nss_dbs, firefoxProfiles...)
 	return nss_dbs, nil
-}
-
-func GenerateDBKey(cert *x509.Certificate) (string, error) {
-	buffer := &bytes.Buffer{}
-	ew := &errorWriter{w: buffer}
-	// fields from the spec that were never implemented
-	// https://searchfox.org/mozilla-central/source/security/manager/ssl/nsNSSCertificate.cpp#167
-	/*
-
-		// The format of the key is the base64 encoding of the following:
-		// 4 bytes: {0, 0, 0, 0} (this was intended to be the module ID, but it was
-		//                        never implemented)
-		// 4 bytes: {0, 0, 0, 0} (this was intended to be the slot ID, but it was
-		//                        never implemented)
-		// 4 bytes: <serial number length in big-endian order>
-		// 4 bytes: <DER-encoded issuer distinguished name length in big-endian order>
-		// n bytes: <bytes of serial number>
-		// m bytes: <DER-encoded issuer distinguished name>
-		nsAutoCString buf;
-		const char leadingZeroes[] = {0, 0, 0, 0, 0, 0, 0, 0};
-	*/
-	leadingZeroes := []byte{0, 0, 0, 0, 0, 0, 0, 0}
-
-	//buf.Append(leadingZeroes, sizeof(leadingZeroes));
-	ew.Write(leadingZeroes)
-
-	//uint32_t serialNumberLen = htonl(cert.GetSerialNumber().GetLength());
-	//buf.Append(BitwiseCast<const char*, const uint32_t*>(&serialNumberLen),
-	//			sizeof(uint32_t));
-
-	sn := cert.SerialNumber.Bytes()
-	binary.Write(ew, binary.BigEndian, uint32(len(sn)))
-
-	//uint32_t issuerLen = htonl(cert.GetIssuer().GetLength());
-	//buf.Append(BitwiseCast<const char*, const uint32_t*>(&issuerLen),
-	//			sizeof(uint32_t));
-
-	issuer := []byte(cert.Issuer.ToRDNSequence().String())
-	binary.Write(ew, binary.BigEndian, uint32(len(issuer)))
-
-	//buf.Append(BitwiseCast<const char*, const unsigned char*>(
-	//				cert.GetSerialNumber().UnsafeGetData()),
-	//			cert.GetSerialNumber().GetLength());
-
-	ew.Write(sn)
-
-	//buf.Append(BitwiseCast<const char*, const unsigned char*>(
-	//				cert.GetIssuer().UnsafeGetData()),
-	//			cert.GetIssuer().GetLength());
-
-	ew.Write(issuer)
-
-	if ew.Error() != nil {
-		return "", ew.Error()
-	}
-
-	return base64.StdEncoding.EncodeToString(buffer.Bytes()), nil
 }

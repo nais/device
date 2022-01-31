@@ -7,7 +7,7 @@ import (
 	"encoding/pem"
 	"io"
 
-	pkcs12 "software.sslmate.com/src/go-pkcs12"
+	"software.sslmate.com/src/go-pkcs12"
 )
 
 type identity struct {
@@ -26,6 +26,7 @@ func (id *identity) SerializePEM(w io.Writer) error {
 }
 
 func (id *identity) SerializePKCS12(w io.Writer) error {
+	const dummyPassword = "asd"
 	block, _ := pem.Decode([]byte(id.certificate))
 	cert, err := x509.ParseCertificate(block.Bytes)
 	if err != nil {
