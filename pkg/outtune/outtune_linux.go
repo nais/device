@@ -80,7 +80,7 @@ func (o *linux) Install(ctx context.Context) error {
 			return err
 		}
 		for _, cert := range certs {
-			err = deleteCert(ctx, db, cert) // this seems to always fail, but the cert does get deleted?
+			err = deleteCert(ctx, db, cert)
 			if err != nil {
 				log.Infof("couldn't delete cert '%s' in db %s: %v", cert, db, err)
 			}
@@ -91,7 +91,11 @@ func (o *linux) Install(ctx context.Context) error {
 
 func deleteCert(ctx context.Context, db, certname string) error {
 	cmd := exec.CommandContext(ctx, certutilBinary, "-d", db, "-F", "-n", certname)
-	return cmd.Run()
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		return fmt.Errorf("delete cert: %w: %s", err, string(out))
+	}
+	return nil
 }
 
 func listCertificates(ctx context.Context, db string) ([]string, error) {
