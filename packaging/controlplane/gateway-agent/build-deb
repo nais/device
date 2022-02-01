@@ -21,5 +21,4 @@ fpm \
   --deb-systemd-auto-start \
   --deb-systemd-restart-after-upgrade \
   --depends wireguard \
-  bin/controlplane/gateway-agent=/usr/bin/gateway-agent \
-  packaging/controlplane/gateway-agent/config=/etc/default/gateway-agent
+  bin/controlplane/gateway-agent=/usr/bin/gateway-agent
