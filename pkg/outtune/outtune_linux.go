@@ -2,6 +2,7 @@ package outtune
 
 import (
 	"context"
+	"crypto/x509"
 	"fmt"
 	"os"
 	"os/exec"
@@ -13,11 +14,12 @@ import (
 )
 
 const (
-	defaultNSSPath      = ".pki/nssdb"
-	firefoxProfilesGlob = ".mozilla/firefox/*.default-release*"
-	certutilBinary      = "/usr/bin/certutil"
-	pk12utilBinary      = "/usr/bin/pk12util"
-	naisdeviceCertName  = "naisdevice"
+	defaultNSSPath             = ".pki/nssdb"
+	firefoxProfilesGlob        = ".mozilla/firefox/*.default-release*"
+	certutilBinary             = "/usr/bin/certutil"
+	pk12utilBinary             = "/usr/bin/pk12util"
+	naisdeviceCertName         = "naisdevice"
+	clientAuthRememberListFile = "ClientAuthRememberList.txt"
 )
 
 type linux struct {
@@ -73,6 +75,10 @@ func (o *linux) Install(ctx context.Context) error {
 		if err != nil {
 			return err
 		}
+		err = persistClientAuthRememberList(db, id.certificate)
+		if err != nil {
+			return err
+		}
 		for _, cert := range certs {
 			err = deleteCert(ctx, db, cert) // this seems to always fail, but the cert does get deleted?
 			if err != nil {
@@ -109,6 +115,35 @@ func installCert(ctx context.Context, db, pk12filename string) error {
 	cmd := exec.CommandContext(ctx, pk12utilBinary, "-d", db, "-i", pk12filename, "-W", dummyPassword)
 	err := cmd.Run()
 	return err
+}
+
+func persistClientAuthRememberList(db string, cert *x509.Certificate) error {
+	dbkey, err := GenerateDBKey(cert)
+	if err != nil {
+		return err
+	}
+	rememberList := GenerateClientAuthRememberList(dbkey)
+	filename := fmt.Sprintf("%s/%s", db, clientAuthRememberListFile)
+
+	var file *os.File
+	_, err = os.Stat(filename)
+	if os.IsNotExist(err) {
+		file, err = os.OpenFile(filename, os.O_EXCL|os.O_WRONLY|os.O_APPEND|os.O_CREATE, 0644)
+	} else {
+		// todo: consider reading the file in order to identify matching rememberlist-entries
+		// and replace them with our new entries
+		file, err = os.OpenFile(filename, os.O_APPEND|os.O_WRONLY|os.O_EXCL, 0644)
+	}
+	if err != nil {
+		return err
+	}
+
+	_, err = file.Write([]byte(rememberList))
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func nssDatabases() ([]string, error) {

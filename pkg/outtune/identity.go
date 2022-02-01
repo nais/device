@@ -12,7 +12,7 @@ import (
 
 type identity struct {
 	privateKey  *rsa.PrivateKey
-	certificate string
+	certificate *x509.Certificate
 }
 
 func (id *identity) SerializePEM(w io.Writer) error {
@@ -21,18 +21,15 @@ func (id *identity) SerializePEM(w io.Writer) error {
 		Type:  "RSA PRIVATE KEY",
 		Bytes: x509.MarshalPKCS1PrivateKey(id.privateKey),
 	})
-	ew.Write([]byte(id.certificate))
+	pem.Encode(ew, &pem.Block{
+		Type:  "CERTIFICATE",
+		Bytes: id.certificate.Raw,
+	})
 	return ew.Error()
 }
 
 func (id *identity) SerializePKCS12(w io.Writer) error {
-	const dummyPassword = "asd"
-	block, _ := pem.Decode([]byte(id.certificate))
-	cert, err := x509.ParseCertificate(block.Bytes)
-	if err != nil {
-		return err
-	}
-	pk12, err := pkcs12.Encode(rand.Reader, id.privateKey, cert, nil, dummyPassword)
+	pk12, err := pkcs12.Encode(rand.Reader, id.privateKey, id.certificate, nil, dummyPassword)
 	if err != nil {
 		return err
 	}

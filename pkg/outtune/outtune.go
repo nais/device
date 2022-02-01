@@ -12,9 +12,12 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+
+	log "github.com/sirupsen/logrus"
 )
 
 const entropyBits = 4096
+const dummyPassword = "asd123"
 
 type Outtune interface {
 	Install(ctx context.Context) error
@@ -35,14 +38,23 @@ func generateKeyAndCertificate(ctx context.Context, serial string) (*identity, e
 		return nil, err
 	}
 
-	cert, err := download(ctx, serial, privateKey)
+	resp, err := download(ctx, serial, privateKey)
+	if err != nil {
+		return nil, err
+	}
+
+	block, rest := pem.Decode([]byte(resp.CertificatePEM))
+	if rest != nil {
+		log.Warnf("certificate had remaining input which was ignored")
+	}
+	cert, err := x509.ParseCertificate(block.Bytes)
 	if err != nil {
 		return nil, err
 	}
 
 	return &identity{
 		privateKey:  privateKey,
-		certificate: cert.CertificatePEM,
+		certificate: cert,
 	}, nil
 }
 
