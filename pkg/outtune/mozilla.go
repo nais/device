@@ -58,6 +58,7 @@ func GenerateDBKey(cert *x509.Certificate) (string, error) {
 	return base64.StdEncoding.EncodeToString(buffer.Bytes()), nil
 }
 
+// FIXME: verify that this is something we want to do, and then don't use hard-coded values
 func GenerateClientAuthRememberList(dbkey string) string {
 	const fingerprint = "4D:8E:7C:37:51:3D:5F:95:DA:CB:24:8D:8C:BB:A1:54:8F:12:89:7D:C7:20:6C:0F:70:05:59:38:70:D8:9A:56"
 	const domain = "nav-no.managed.access.mcas.ms"

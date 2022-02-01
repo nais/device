@@ -141,13 +141,14 @@ func persistClientAuthRememberList(db string, cert *x509.Certificate) error {
 	if err != nil {
 		return err
 	}
+	defer file.Close()
 
 	_, err = file.Write([]byte(rememberList))
 	if err != nil {
 		return err
 	}
 
-	return nil
+	return file.Close()
 }
 
 func nssDatabases() ([]string, error) {
