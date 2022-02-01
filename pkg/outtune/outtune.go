@@ -44,7 +44,7 @@ func generateKeyAndCertificate(ctx context.Context, serial string) (*identity, e
 	}
 
 	block, rest := pem.Decode([]byte(resp.CertificatePEM))
-	if rest != nil {
+	if rest != nil && len(rest) > 0 {
 		log.Warnf("certificate had remaining input which was ignored")
 	}
 	cert, err := x509.ParseCertificate(block.Bytes)
