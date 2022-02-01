@@ -12,6 +12,12 @@ func main() {
 	app := &cli.App{
 		Flags: []cli.Flag{
 			&cli.StringFlag{
+				Name:    controlplanecli.FlagAPIServer,
+				Usage:   "apiserver address",
+				EnvVars: []string{"NAISDEVICE_APISERVER"},
+				Value:   "127.0.0.1:8099",
+			},
+			&cli.StringFlag{
 				Name:    controlplanecli.FlagAdminPassword,
 				Usage:   "naisdevice admin password",
 				EnvVars: []string{"NAISDEVICE_ADMIN_PASSWORD"},

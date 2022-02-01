@@ -14,16 +14,17 @@ import (
 	"google.golang.org/grpc"
 )
 
-const FlagName = "name"
-const FlagEndpoint = "endpoint"
 const FlagAdminPassword = "admin-password"
+const FlagAPIServer = "apiserver"
+const FlagEndpoint = "endpoint"
+const FlagName = "name"
 const FlagPassword = "password"
 const FlagPasswordHash = "password-hash"
 
 func ListGateways(c *cli.Context) error {
 	conn, err := grpc.DialContext(
 		c.Context,
-		"127.0.0.1:8099",
+		c.String(FlagAPIServer),
 		grpc.WithInsecure(),
 	)
 	if err != nil {
@@ -70,7 +71,7 @@ func HashPassword(c *cli.Context) error {
 func EditGateway(c *cli.Context) error {
 	conn, err := grpc.DialContext(
 		c.Context,
-		"127.0.0.1:8099",
+		c.String(FlagAPIServer),
 		grpc.WithInsecure(),
 	)
 
@@ -143,7 +144,7 @@ func EnrollGateway(c *cli.Context) error {
 
 	conn, err := grpc.DialContext(
 		c.Context,
-		"127.0.0.1:8099",
+		c.String(FlagAPIServer),
 		grpc.WithInsecure(),
 	)
 
