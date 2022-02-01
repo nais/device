@@ -23,6 +23,15 @@
     name: gateway-agent
     state: present
 
+- name: gateway-agent configuration
+  template:
+    src: configuration.j2
+    dest: /etc/default/gateway-agent
+    owner: root
+    group: root
+    mode: '0600'
+    force: no
+
 - name: Enable IPv4 forwarding in sysctl
   sysctl:
     name: net.ipv4.ip_forward
