@@ -43,6 +43,8 @@ require (
 
 require github.com/golang/protobuf v1.5.2
 
+require github.com/akavel/rsrc v0.10.2 // indirect
+
 require (
 	cloud.google.com/go v0.95.0 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
