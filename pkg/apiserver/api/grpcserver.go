@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 	"sync"
 
 	"github.com/nais/device/pkg/apiserver/jita"
@@ -179,11 +180,13 @@ func (s *grpcServer) GetGatewayConfiguration(request *pb.GetGatewayConfiguration
 
 	s.lock.Lock()
 	s.gatewayConfigStreams[request.Gateway] = stream
+	s.reportOnlineGateways()
 	s.lock.Unlock()
 
 	defer func() {
 		s.lock.Lock()
 		delete(s.gatewayConfigStreams, request.Gateway)
+		s.reportOnlineGateways()
 		s.lock.Unlock()
 	}()
 
@@ -247,4 +250,17 @@ func (s *grpcServer) SendGatewayConfiguration(ctx context.Context, gatewayName s
 	}
 
 	return stream.Send(gatewayConfig)
+}
+
+func (s *grpcServer) onlineGateways() []string {
+	gateways := make([]string, 0, len(s.gatewayConfigStreams))
+	for k := range s.gatewayConfigStreams {
+		gateways = append(gateways, k)
+	}
+	return gateways
+}
+
+func (s *grpcServer) reportOnlineGateways() {
+	apiserver_metrics.SetConnectedGateways(s.onlineGateways())
+	log.Infof("Online gateways: %s", strings.Join(s.onlineGateways(), ", "))
 }
