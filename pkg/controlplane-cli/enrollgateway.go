@@ -14,12 +14,15 @@ import (
 	"google.golang.org/grpc"
 )
 
-const FlagAdminPassword = "admin-password"
-const FlagAPIServer = "apiserver"
-const FlagEndpoint = "endpoint"
-const FlagName = "name"
-const FlagPassword = "password"
-const FlagPasswordHash = "password-hash"
+const (
+	FlagAdminPassword = "admin-password"
+	FlagAPIServer     = "apiserver"
+	FlagEndpoint      = "endpoint"
+	FlagName          = "name"
+	FlagPassword      = "password"
+	FlagPasswordHash  = "password-hash"
+	FlagPublicKey     = "public-key"
+)
 
 func ListGateways(c *cli.Context) error {
 	conn, err := grpc.DialContext(
@@ -99,6 +102,10 @@ func EditGateway(c *cli.Context) error {
 
 	if c.IsSet(FlagPasswordHash) {
 		gw.PasswordHash = c.String(FlagPasswordHash)
+	}
+
+	if c.IsSet(FlagPublicKey) {
+		gw.PublicKey = c.String(FlagPublicKey)
 	}
 
 	req.Gateway = gw

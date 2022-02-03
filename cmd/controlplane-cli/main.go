@@ -77,6 +77,11 @@ func main() {
 								Usage:    "password hash",
 								Required: false,
 							},
+							&cli.StringFlag{
+								Name:     controlplanecli.FlagPublicKey,
+								Usage:    "public key",
+								Required: false,
+							},
 						},
 						Action: controlplanecli.EditGateway,
 					},
