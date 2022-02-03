@@ -200,7 +200,7 @@ func (s *grpcServer) GetGatewayConfiguration(request *pb.GetGatewayConfiguration
 
 	// send initial device configuration
 	s.lock.RLock()
-	err = s.SendGatewayConfiguration(stream.Context(), request.Gateway)
+	err = s.SendInitialGatewayConfiguration(stream.Context(), request.Gateway)
 	s.lock.RUnlock()
 	if err != nil {
 		return fmt.Errorf("send initial gateway configuration: %s", err)
@@ -212,12 +212,26 @@ func (s *grpcServer) GetGatewayConfiguration(request *pb.GetGatewayConfiguration
 	return nil
 }
 
+func (s *grpcServer) SendInitialGatewayConfiguration(ctx context.Context, gatewayName string) error {
+	sessionInfos, err := s.db.ReadSessionInfos(ctx)
+	if err != nil {
+		return fmt.Errorf("read session infos from database: %w", err)
+	}
+
+	return s.SendGatewayConfiguration(ctx, gatewayName, sessionInfos)
+}
+
 func (s *grpcServer) SendAllGatewayConfigurations(ctx context.Context) error {
 	s.lock.RLock()
 	defer s.lock.RUnlock()
 
+	sessionInfos, err := s.db.ReadSessionInfos(ctx)
+	if err != nil {
+		return fmt.Errorf("read session infos from database: %w", err)
+	}
+
 	for gateway := range s.gatewayConfigStreams {
-		err := s.SendGatewayConfiguration(ctx, gateway)
+		err := s.SendGatewayConfiguration(ctx, gateway, sessionInfos)
 		if err != nil {
 			return fmt.Errorf("send gateway config: %w", err)
 		}
@@ -225,15 +239,10 @@ func (s *grpcServer) SendAllGatewayConfigurations(ctx context.Context) error {
 	return nil
 }
 
-func (s *grpcServer) SendGatewayConfiguration(ctx context.Context, gatewayName string) error {
+func (s *grpcServer) SendGatewayConfiguration(ctx context.Context, gatewayName string, sessionInfos []*pb.Session) error {
 	stream, ok := s.gatewayConfigStreams[gatewayName]
 	if !ok {
 		return ErrNoSession
-	}
-
-	sessionInfos, err := s.db.ReadSessionInfos(ctx)
-	if err != nil {
-		return fmt.Errorf("read session infos from database: %w", err)
 	}
 
 	gateway, err := s.db.ReadGateway(ctx, gatewayName)
