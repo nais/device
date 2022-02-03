@@ -33,13 +33,14 @@ type grpcServer struct {
 	gatewayConfigStreams map[string]pb.APIServer_GetGatewayConfigurationServer
 	lock                 sync.RWMutex
 	db                   database.APIServer
+	triggerGatewaySync   chan<- struct{}
 }
 
 var _ pb.APIServerServer = &grpcServer{}
 
 var ErrNoSession = errors.New("no session")
 
-func NewGRPCServer(db database.APIServer, authenticator auth.Authenticator, apikeyAuthenticator, gatewayAuthenticator auth.UsernamePasswordAuthenticator, jita jita.Client) *grpcServer {
+func NewGRPCServer(db database.APIServer, authenticator auth.Authenticator, apikeyAuthenticator, gatewayAuthenticator auth.UsernamePasswordAuthenticator, jita jita.Client, triggerGatewaySync chan<- struct{}) *grpcServer {
 	return &grpcServer{
 		streams:              make(map[string]pb.APIServer_GetDeviceConfigurationServer),
 		gatewayConfigStreams: make(map[string]pb.APIServer_GetGatewayConfigurationServer),
@@ -48,6 +49,7 @@ func NewGRPCServer(db database.APIServer, authenticator auth.Authenticator, apik
 		gatewayAuthenticator: gatewayAuthenticator,
 		db:                   db,
 		jita:                 jita,
+		triggerGatewaySync:   triggerGatewaySync,
 	}
 }
 
@@ -133,11 +135,17 @@ func (s *grpcServer) UserGateways(ctx context.Context, userGroups []string) ([]*
 	return filtered, nil
 }
 
+func (s *grpcServer) triggerGatewayConfigurationSync() {
+	s.triggerGatewaySync <- struct{}{}
+}
+
 func (s *grpcServer) Login(ctx context.Context, r *pb.APIServerLoginRequest) (*pb.APIServerLoginResponse, error) {
 	session, err := s.authenticator.Login(ctx, r.Token, r.Serial, r.Platform)
 	if err != nil {
 		return nil, status.Errorf(codes.Unauthenticated, "login: %v", err)
 	}
+
+	s.triggerGatewayConfigurationSync()
 
 	return &pb.APIServerLoginResponse{
 		Session: session,
