@@ -136,7 +136,6 @@ app: wg wireguard-go macos-icon macos-client
 	rm -rf naisdevice.app
 	mkdir -p naisdevice.app/Contents/{MacOS,Resources}
 	cp bin/macos-client/* naisdevice.app/Contents/MacOS
-	cp packaging/macos/import_cert.sh naisdevice.app/Contents/Resources/
 	cp packaging/macos/jq-osx-amd64 naisdevice.app/Contents/MacOS/jq
 	cp assets/naisdevice.icns naisdevice.app/Contents/Resources
 	sed 's/VERSIONSTRING/${VERSION}/' packaging/macos/Info.plist.tpl > naisdevice.app/Contents/Info.plist
