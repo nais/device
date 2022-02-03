@@ -53,11 +53,9 @@ func (db *apiServerDB) ReadDevices(ctx context.Context) ([]*pb.Device, error) {
 	query := fmt.Sprintf("SELECT %s FROM device;", DeviceFields)
 
 	rows, err := db.conn.QueryContext(ctx, query)
-
 	if err != nil {
 		return nil, fmt.Errorf("querying for devices: %v", err)
 	}
-
 	defer rows.Close()
 
 	if rows.Err() != nil {
@@ -259,6 +257,7 @@ func (db *apiServerDB) ReadGateways(ctx context.Context) ([]*pb.Gateway, error) 
 	if err != nil {
 		return nil, fmt.Errorf("querying for gateways %w", err)
 	}
+	defer rows.Close()
 
 	var gateways []*pb.Gateway
 	for rows.Next() {
@@ -351,6 +350,7 @@ func (db *apiServerDB) ReadSessionInfos(ctx context.Context) ([]*pb.Session, err
 	if err != nil {
 		return nil, fmt.Errorf("query rows: %w", err)
 	}
+	defer rows.Close()
 
 	sessionInfos := make([]*pb.Session, 0)
 	for rows.Next() {
