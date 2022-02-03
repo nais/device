@@ -250,13 +250,12 @@ func (s *grpcServer) SendGatewayConfiguration(ctx context.Context, gatewayName s
 		return fmt.Errorf("read gateway from database: %w", err)
 	}
 
+	gatewayPrivilegedDevices := privileged(s.jita, gateway, sessionInfos)
+	authorizedDevices := authorized(gateway.AccessGroupIDs, gatewayPrivilegedDevices)
+	healthyDevices := healthy(authorizedDevices)
 	gatewayConfig := &pb.GetGatewayConfigurationResponse{
-		Devices: healthy(
-			authorized(
-				gateway.AccessGroupIDs, privileged(s.jita, gateway, sessionInfos),
-			),
-		),
-		Routes: gateway.Routes,
+		Devices: healthyDevices,
+		Routes:  gateway.Routes,
 	}
 
 	m, err := apiserver_metrics.GatewayConfigsReturned.GetMetricWithLabelValues(gateway.Name)
