@@ -2,8 +2,7 @@ name: Update Homebrew cask
 
 on:
   workflow_run:
-    workflows: [ "Test, build and release" ]
-    branches: [ master ]
+    workflows: [ "Release naisdevice frontends" ]
     types:
       - completed
   workflow_dispatch:

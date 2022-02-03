@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 	"sync"
 
 	"github.com/nais/device/pkg/apiserver/jita"
@@ -30,15 +31,16 @@ type grpcServer struct {
 	jita                 jita.Client
 	streams              map[string]pb.APIServer_GetDeviceConfigurationServer
 	gatewayConfigStreams map[string]pb.APIServer_GetGatewayConfigurationServer
-	lock                 sync.Mutex
+	lock                 sync.RWMutex
 	db                   database.APIServer
+	triggerGatewaySync   chan<- struct{}
 }
 
 var _ pb.APIServerServer = &grpcServer{}
 
 var ErrNoSession = errors.New("no session")
 
-func NewGRPCServer(db database.APIServer, authenticator auth.Authenticator, apikeyAuthenticator, gatewayAuthenticator auth.UsernamePasswordAuthenticator, jita jita.Client) *grpcServer {
+func NewGRPCServer(db database.APIServer, authenticator auth.Authenticator, apikeyAuthenticator, gatewayAuthenticator auth.UsernamePasswordAuthenticator, jita jita.Client, triggerGatewaySync chan<- struct{}) *grpcServer {
 	return &grpcServer{
 		streams:              make(map[string]pb.APIServer_GetDeviceConfigurationServer),
 		gatewayConfigStreams: make(map[string]pb.APIServer_GetGatewayConfigurationServer),
@@ -47,14 +49,15 @@ func NewGRPCServer(db database.APIServer, authenticator auth.Authenticator, apik
 		gatewayAuthenticator: gatewayAuthenticator,
 		db:                   db,
 		jita:                 jita,
+		triggerGatewaySync:   triggerGatewaySync,
 	}
 }
 
 func (s *grpcServer) GetDeviceConfiguration(request *pb.GetDeviceConfigurationRequest, stream pb.APIServer_GetDeviceConfigurationServer) error {
-	s.lock.Lock()
+	s.lock.RLock()
 	s.streams[request.SessionKey] = stream
 	apiserver_metrics.DevicesConnected.Set(float64(len(s.streams)))
-	s.lock.Unlock()
+	s.lock.RUnlock()
 
 	// send initial device configuration
 	err := s.SendDeviceConfiguration(stream.Context(), request.SessionKey)
@@ -74,7 +77,9 @@ func (s *grpcServer) GetDeviceConfiguration(request *pb.GetDeviceConfigurationRe
 }
 
 func (s *grpcServer) SendDeviceConfiguration(ctx context.Context, sessionKey string) error {
+	s.lock.RLock()
 	stream, ok := s.streams[sessionKey]
+	s.lock.RUnlock()
 	if !ok {
 		return ErrNoSession
 	}
@@ -130,11 +135,17 @@ func (s *grpcServer) UserGateways(ctx context.Context, userGroups []string) ([]*
 	return filtered, nil
 }
 
+func (s *grpcServer) triggerGatewayConfigurationSync() {
+	s.triggerGatewaySync <- struct{}{}
+}
+
 func (s *grpcServer) Login(ctx context.Context, r *pb.APIServerLoginRequest) (*pb.APIServerLoginResponse, error) {
 	session, err := s.authenticator.Login(ctx, r.Token, r.Serial, r.Platform)
 	if err != nil {
 		return nil, status.Errorf(codes.Unauthenticated, "login: %v", err)
 	}
+
+	s.triggerGatewayConfigurationSync()
 
 	return &pb.APIServerLoginResponse{
 		Session: session,
@@ -167,23 +178,30 @@ func (s *grpcServer) GetGatewayConfiguration(request *pb.GetGatewayConfiguration
 		return status.Error(codes.Unauthenticated, err.Error())
 	}
 
+	s.lock.RLock()
 	_, hasSession := s.gatewayConfigStreams[request.Gateway]
+	s.lock.RUnlock()
+
 	if hasSession {
 		return status.Errorf(codes.Aborted, "this gateway already has an open session")
 	}
 
 	s.lock.Lock()
 	s.gatewayConfigStreams[request.Gateway] = stream
+	s.reportOnlineGateways()
 	s.lock.Unlock()
 
 	defer func() {
 		s.lock.Lock()
 		delete(s.gatewayConfigStreams, request.Gateway)
+		s.reportOnlineGateways()
 		s.lock.Unlock()
 	}()
 
 	// send initial device configuration
+	s.lock.RLock()
 	err = s.SendGatewayConfiguration(stream.Context(), request.Gateway)
+	s.lock.RUnlock()
 	if err != nil {
 		return fmt.Errorf("send initial gateway configuration: %s", err)
 	}
@@ -195,6 +213,9 @@ func (s *grpcServer) GetGatewayConfiguration(request *pb.GetGatewayConfiguration
 }
 
 func (s *grpcServer) SendAllGatewayConfigurations(ctx context.Context) error {
+	s.lock.RLock()
+	defer s.lock.RUnlock()
+
 	for gateway := range s.gatewayConfigStreams {
 		err := s.SendGatewayConfiguration(ctx, gateway)
 		if err != nil {
@@ -237,4 +258,17 @@ func (s *grpcServer) SendGatewayConfiguration(ctx context.Context, gatewayName s
 	}
 
 	return stream.Send(gatewayConfig)
+}
+
+func (s *grpcServer) onlineGateways() []string {
+	gateways := make([]string, 0, len(s.gatewayConfigStreams))
+	for k := range s.gatewayConfigStreams {
+		gateways = append(gateways, k)
+	}
+	return gateways
+}
+
+func (s *grpcServer) reportOnlineGateways() {
+	apiserver_metrics.SetConnectedGateways(s.onlineGateways())
+	log.Infof("Online gateways: %s", strings.Join(s.onlineGateways(), ", "))
 }

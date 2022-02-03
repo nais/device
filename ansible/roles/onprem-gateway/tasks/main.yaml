@@ -1,26 +1,3 @@
-- name: Add gcloud apt key
-  apt_key:
-    keyring: /usr/share/keyrings/cloud.google.gpg
-    url: https://packages.cloud.google.com/apt/doc/apt-key.gpg
-
-- name: Add gcloud cli repo
-  apt_repository:
-    repo: "deb [signed-by=/usr/share/keyrings/cloud.google.gpg] https://packages.cloud.google.com/apt cloud-sdk main"
-
-- name: Add gcloud cli
-  apt:
-    update_cache: yes
-    name: google-cloud-sdk
-    state: present
-
-- name: Activate main service account
-  shell: gcloud auth activate-service-account --key-file=/root/sa.json
-  args:
-    #creates: /opt/naisdevice/fluentd-stackdriver/sa.json
-    executable: /bin/bash
-  environment:
-    PATH: /usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/snap/bin
-
 - name: Create admin group
   group:
     name: admin
@@ -57,7 +34,7 @@
 - name: Add logrotate config
   template:
     owner: root
-    mode: root
+    group: root
     mode: 640
     src: logrotate-gateway-agent.j2
     dest: /etc/logrotate.d/naisdevice-gateway-agent

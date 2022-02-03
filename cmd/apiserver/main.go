@@ -246,7 +246,7 @@ func run() error {
 		gatewayAuthenticator = auth.NewMockAPIKeyAuthenticator()
 	}
 
-	grpcHandler := api.NewGRPCServer(db, authenticator, apikeyAuthenticator, gatewayAuthenticator, jitaClient)
+	grpcHandler := api.NewGRPCServer(db, authenticator, apikeyAuthenticator, gatewayAuthenticator, jitaClient, triggerGatewaySync)
 	grpcServer := grpc.NewServer(
 		grpc.UnaryInterceptor(grpc_prometheus.UnaryServerInterceptor),
 		grpc.StreamInterceptor(grpc_prometheus.StreamServerInterceptor),
