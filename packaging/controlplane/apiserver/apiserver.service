@@ -7,10 +7,6 @@ Restart=always
 StandardOutput=append:/var/log/naisdevice/apiserver.json
 StandardError=append:/var/log/naisdevice/apiserver.json
 
-# This script fetches passwords and stores them in file referenced below
-ExecStartPre=/usr/bin/apiserver-fetch-passwords
-EnvironmentFile=/run/apiserver-credentials
-
 EnvironmentFile=/etc/default/apiserver
 ExecStart=/usr/bin/apiserver
 

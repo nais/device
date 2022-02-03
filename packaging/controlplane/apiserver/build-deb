@@ -21,5 +21,4 @@ fpm \
   --deb-systemd-auto-start \
   --deb-systemd-restart-after-upgrade \
   --depends wireguard \
-  bin/controlplane/apiserver=/usr/bin/apiserver \
-  packaging/controlplane/apiserver/apiserver-fetch-passwords.sh=/usr/bin/apiserver-fetch-passwords
+  bin/controlplane/apiserver=/usr/bin/apiserver
