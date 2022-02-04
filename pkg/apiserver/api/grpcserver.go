@@ -21,9 +21,10 @@ type grpcServer struct {
 	apikeyAuthenticator  auth.UsernamePasswordAuthenticator
 	gatewayAuthenticator auth.UsernamePasswordAuthenticator
 	jita                 jita.Client
-	streams              map[string]pb.APIServer_GetDeviceConfigurationServer
+	deviceConfigStreams  map[string]pb.APIServer_GetDeviceConfigurationServer
 	gatewayConfigStreams map[string]pb.APIServer_GetGatewayConfigurationServer
-	lock                 sync.RWMutex
+	gatewayLock          sync.RWMutex
+	deviceLock           sync.RWMutex
 	db                   database.APIServer
 	triggerGatewaySync   chan<- struct{}
 }
@@ -34,7 +35,7 @@ var ErrNoSession = errors.New("no session")
 
 func NewGRPCServer(db database.APIServer, authenticator auth.Authenticator, apikeyAuthenticator, gatewayAuthenticator auth.UsernamePasswordAuthenticator, jita jita.Client, triggerGatewaySync chan<- struct{}) *grpcServer {
 	return &grpcServer{
-		streams:              make(map[string]pb.APIServer_GetDeviceConfigurationServer),
+		deviceConfigStreams:  make(map[string]pb.APIServer_GetDeviceConfigurationServer),
 		gatewayConfigStreams: make(map[string]pb.APIServer_GetGatewayConfigurationServer),
 		authenticator:        authenticator,
 		apikeyAuthenticator:  apikeyAuthenticator,

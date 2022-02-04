@@ -18,32 +18,32 @@ func (s *grpcServer) GetGatewayConfiguration(request *pb.GetGatewayConfiguration
 		return status.Error(codes.Unauthenticated, err.Error())
 	}
 
-	s.lock.RLock()
+	s.gatewayLock.RLock()
 	_, hasSession := s.gatewayConfigStreams[request.Gateway]
-	s.lock.RUnlock()
+	s.gatewayLock.RUnlock()
 
 	if hasSession {
 		return status.Errorf(codes.Aborted, "this gateway already has an open session")
 	}
 
-	s.lock.Lock()
+	s.gatewayLock.Lock()
 	s.gatewayConfigStreams[request.Gateway] = stream
 	s.reportOnlineGateways()
-	s.lock.Unlock()
+	s.gatewayLock.Unlock()
 
 	log.Infof("Gateway %s", strings.Join(s.onlineGateways(), ", "))
 
 	defer func() {
-		s.lock.Lock()
+		s.gatewayLock.Lock()
 		delete(s.gatewayConfigStreams, request.Gateway)
 		s.reportOnlineGateways()
-		s.lock.Unlock()
+		s.gatewayLock.Unlock()
 	}()
 
 	// send initial device configuration
-	s.lock.RLock()
+	s.gatewayLock.RLock()
 	err = s.SendInitialGatewayConfiguration(stream.Context(), request.Gateway)
-	s.lock.RUnlock()
+	s.gatewayLock.RUnlock()
 	if err != nil {
 		return fmt.Errorf("send initial gateway configuration: %s", err)
 	}
@@ -64,8 +64,8 @@ func (s *grpcServer) SendInitialGatewayConfiguration(ctx context.Context, gatewa
 }
 
 func (s *grpcServer) SendAllGatewayConfigurations(ctx context.Context) error {
-	s.lock.RLock()
-	defer s.lock.RUnlock()
+	s.gatewayLock.RLock()
+	defer s.gatewayLock.RUnlock()
 
 	sessionInfos, err := s.db.ReadSessionInfos(ctx)
 	if err != nil {
