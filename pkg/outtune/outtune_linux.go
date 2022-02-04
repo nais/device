@@ -16,6 +16,7 @@ import (
 const (
 	defaultNSSPath             = ".pki/nssdb"
 	firefoxProfilesGlob        = ".mozilla/firefox/*.default-release*"
+	firefoxSnapProfilesGlob    = "snap/firefox/common/.mozilla/firefox/*.default-release"
 	certutilBinary             = "/usr/bin/certutil"
 	pk12utilBinary             = "/usr/bin/pk12util"
 	naisdeviceCertName         = "naisdevice"
@@ -170,5 +171,13 @@ func nssDatabases() ([]string, error) {
 		log.Infof("could not find any firefox profiles: %v", err)
 	}
 	nss_dbs = append(nss_dbs, firefoxProfiles...)
+
+	firefoxSnapProfiles, err := filepath.Glob(fmt.Sprintf("%s/%s", home, firefoxSnapProfilesGlob))
+	if err != nil {
+		log.Infof("could not find any firefox profiles: %v", err)
+	}
+
+	nss_dbs = append(nss_dbs, firefoxSnapProfiles...)
+
 	return nss_dbs, nil
 }

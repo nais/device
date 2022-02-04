@@ -91,7 +91,13 @@ func download(ctx context.Context, serial string, privateKey *rsa.PrivateKey) (*
 		return nil, fmt.Errorf("create http request: %w", err)
 	}
 
-	resp, err := http.DefaultClient.Do(httpRequest)
+	// Prevent the use of previous connection that was attempted before the needed gateway was ready for use.
+	client := &http.Client{
+		Transport: &http.Transport{
+			DisableKeepAlives: true,
+		},
+	}
+	resp, err := client.Do(httpRequest)
 	if err != nil {
 		return nil, fmt.Errorf("send request to CA signer: %w", err)
 	}

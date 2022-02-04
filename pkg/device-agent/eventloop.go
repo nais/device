@@ -368,7 +368,7 @@ func (das *DeviceAgentServer) EventLoop(ctx context.Context) {
 			case pb.AgentState_Connected:
 				sentry.CaptureMessage("Connected")
 				healthCheckTicker.Reset(1 * time.Second)
-				certRenewalTicker.Reset(1 * time.Second)
+				certRenewalTicker.Reset(2 * time.Second)
 
 			case pb.AgentState_Disconnected:
 				status.Gateways = make([]*pb.Gateway, 0)
