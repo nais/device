@@ -48,6 +48,11 @@ func healthy(devices []*pb.Device) []*pb.Device {
 		kolideLastSeenDevice := device.GetKolideLastSeen().AsTime()
 		healthyDeviceDeadline := kolideLastSeenDevice.Add(MaxTimeSinceKolideLastSeen)
 
+		// TODO(vegar): remove when we've figured out tz stuff
+		if !healthyDeviceDeadline.Before(now) {
+			log.Infof("Skipping device '%s' as it's not been seen lately (deadline: '%s' now: '%s')", device.Serial, healthyDeviceDeadline, now)
+		}
+
 		if device.GetHealthy() && healthyDeviceDeadline.Before(now) {
 			healthyDevices = append(healthyDevices, device)
 		}
