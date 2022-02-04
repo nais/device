@@ -21,7 +21,7 @@ type api struct {
 }
 
 const (
-	MaxTimeSinceKolideLastSeen = 2 * time.Hour
+	MaxTimeSinceKolideLastSeen = 1 * time.Hour
 )
 
 type GatewayConfig struct {
