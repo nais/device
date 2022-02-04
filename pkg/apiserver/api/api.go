@@ -29,65 +29,6 @@ type GatewayConfig struct {
 	Routes  []string
 }
 
-func privileged(jita jita.Client, gateway *pb.Gateway, sessions []*pb.Session) []*pb.Session {
-	if !gateway.RequiresPrivilegedAccess {
-		return sessions
-	}
-	privilegedUsers, err := jita.GetPrivilegedUsersForGateway(gateway.Name)
-	if err != nil {
-		log.Errorf("Gateway retrieving privileged users, %s", err)
-	}
-
-	m, err := apiserver_metrics.PrivilegedUsersPerGateway.GetMetricWithLabelValues(gateway.Name)
-	if err != nil {
-		log.Errorf("getting metric metric: %v", err)
-	}
-	m.Set(float64(len(privilegedUsers)))
-
-	var sessionsToReturn []*pb.Session
-	for _, session := range sessions {
-		if userIsPrivileged(privilegedUsers, session.ObjectID) {
-			sessionsToReturn = append(sessionsToReturn, session)
-		} else {
-			log.Tracef("Skipping unauthorized session: %s", session.Device.Serial)
-		}
-	}
-	return sessionsToReturn
-}
-
-func healthy(devices []*pb.Device) []*pb.Device {
-	var healthyDevices []*pb.Device
-	timeNow := time.Now()
-	for _, device := range devices {
-		kolideLastSeenDevice := device.GetKolideLastSeen().AsTime()
-
-		if device.GetHealthy() {
-			if timeNow.After(kolideLastSeenDevice.Add(MaxTimeSinceKolideLastSeen)) {
-				log.Debugf("Would have skipped device: %s with owner %s. (last seen: %s, now: %s).", device.Serial, device.Username, kolideLastSeenDevice, timeNow)
-			}
-
-			healthyDevices = append(healthyDevices, device)
-		}
-
-	}
-
-	return healthyDevices
-}
-
-func authorized(gatewayGroups []string, sessions []*pb.Session) []*pb.Device {
-	var authorizedDevices []*pb.Device
-
-	for _, session := range sessions {
-		if userIsAuthorized(gatewayGroups, session.Groups) {
-			authorizedDevices = append(authorizedDevices, session.Device)
-		} else {
-			log.Tracef("Skipping unauthorized session: %s", session.Device.Serial)
-		}
-	}
-
-	return authorizedDevices
-}
-
 func (a *api) deviceConfig(w http.ResponseWriter, r *http.Request) {
 	sessionInfo := r.Context().Value("sessionInfo").(*pb.Session)
 
@@ -140,7 +81,7 @@ func (a *api) UserGateways(ctx context.Context, userGroups []string) ([]*pb.Gate
 
 	var filtered []*pb.Gateway
 	for _, gw := range gateways {
-		if userIsAuthorized(gw.AccessGroupIDs, userGroups) {
+		if StringSliceHasIntersect(gw.AccessGroupIDs, userGroups) {
 			gw.PasswordHash = ""
 			filtered = append(filtered, gw)
 		}
@@ -158,10 +99,11 @@ func userIsPrivileged(privilegedUsers []jita.PrivilegedUser, users string) bool 
 	return false
 }
 
-func userIsAuthorized(gatewayGroups []string, userGroups []string) bool {
-	for _, userGroup := range userGroups {
-		for _, gatewayGroup := range gatewayGroups {
-			if userGroup == gatewayGroup {
+// Returns true if any of the strings in one of the slices are found in the other slice; otherwise false.
+func StringSliceHasIntersect(slice1 []string, slice2 []string) bool {
+	for _, a := range slice1 {
+		for _, b := range slice2 {
+			if a == b {
 				return true
 			}
 		}
