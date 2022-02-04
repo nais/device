@@ -50,3 +50,23 @@ func (s *grpcServer) GetGateway(ctx context.Context, r *pb.ModifyGatewayRequest)
 
 	return s.db.ReadGateway(ctx, r.GetGateway().GetName())
 }
+
+func (s *grpcServer) ListGateways(request *pb.ListGatewayRequest, stream pb.APIServer_ListGatewaysServer) error {
+	err := s.apikeyAuthenticator.Authenticate(AdminUsername, request.Password)
+	if err != nil {
+		return status.Error(codes.Unauthenticated, err.Error())
+	}
+
+	gateways, err := s.db.ReadGateways(stream.Context())
+	if err != nil {
+		return status.Error(codes.Unavailable, err.Error())
+	}
+	for _, gw := range gateways {
+		err = stream.Send(gw)
+		if err != nil {
+			return status.Error(codes.Aborted, err.Error())
+		}
+	}
+
+	return nil
+}
