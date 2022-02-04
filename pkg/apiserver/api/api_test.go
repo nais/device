@@ -29,29 +29,6 @@ import (
 	"github.com/nais/device/pkg/pb"
 )
 
-func TestGetDevices(t *testing.T) {
-	db, router := setup(t, nil)
-
-	ctx := context.Background()
-
-	d := &pb.Device{Username: "user", Serial: "serial", PublicKey: "pubkey", Platform: "darwin"}
-	if err := db.AddDevice(ctx, d); err != nil {
-		t.Fatalf("Adding device: %v", err)
-	}
-
-	devices := getDevices(t, router)
-	assert.Len(t, devices, 1)
-	device := devices[0]
-	assert.Equal(t, d.Username, device.Username)
-	assert.Equal(t, d.PublicKey, device.PublicKey)
-	assert.Equal(t, d.Serial, device.Serial)
-	assert.Equal(t, d.Platform, device.Platform)
-	assert.NotNil(t, device.Ip)
-	assert.False(t, device.Healthy, "unhealthy by default")
-	assert.Nil(t, device.LastUpdated, "not updated by default")
-	assert.Nil(t, device.KolideLastSeen, "unseen by default")
-}
-
 func TestGetDeviceConfig(t *testing.T) {
 	db, router := setup(t, nil)
 
@@ -105,87 +82,6 @@ func TestGetDeviceConfig(t *testing.T) {
 
 	assert.Len(t, gateways, 1)
 	assert.Equal(t, gateways[0].PublicKey, authorizedGateway.PublicKey)
-}
-
-func TestGatewayConfig(t *testing.T) {
-	db, router := setup(t, nil)
-
-	ctx := context.Background()
-
-	healthyDevice := addDevice(t, db, ctx, "serial1", "healthyUser", "pubKey1", true, time.Now())
-	healthyDevice2 := addDevice(t, db, ctx, "serial2", "healthyUser2", "pubKey2", true, time.Now())
-	// healthyDeviceOutOfDate := addDevice(t, db, ctx, "serial2", "healthyUser2", "pubKey2", true, time.Now().Add(-api.MaxTimeSinceKolideLastSeen))
-	unhealthyDevice := addDevice(t, db, ctx, "serial3", "unhealthyUser", "pubKey3", false, time.Now())
-
-	_ = addSessionInfo(t, db, ctx, healthyDevice, "userId", []string{"authorized"})
-	_ = addSessionInfo(t, db, ctx, healthyDevice2, "userId", []string{"unauthorized"})
-	_ = addSessionInfo(t, db, ctx, unhealthyDevice, "userId", []string{"authorized"})
-	_ = addSessionInfo(t, db, ctx, unhealthyDevice, "userId", []string{"unauthorized"})
-	_ = addSessionInfo(t, db, ctx, healthyDevice2, "userId", []string{""})
-	//_ = addSessionInfo(t, db, ctx, healthyDeviceOutOfDate, "userId", []string{"authorized"})
-
-	// todo don't use username as gateway
-	authorizedGateway := pb.Gateway{
-		Name:           "username",
-		Endpoint:       "ep1",
-		PublicKey:      "pubkey1",
-		AccessGroupIDs: []string{"authorized"},
-	}
-	if err := db.AddGateway(ctx, &authorizedGateway); err != nil {
-		t.Fatalf("Adding gateway: %v", err)
-	}
-
-	gatewayConfig := getGatewayConfig(t, router, "username", "password")
-	devices := gatewayConfig.Devices
-
-	assert.Len(t, devices, 1)
-	assert.Equal(t, devices[0].PublicKey, healthyDevice.PublicKey)
-}
-
-func TestPrivilegedGatewayConfig(t *testing.T) {
-	ctx := context.Background()
-
-	privilegedUsers := []jita.PrivilegedUser{{
-		UserId: "userId",
-	}}
-	server := httptest.NewServer(mockJita(t, "privileged1", privilegedUsers))
-	db, router := setup(t, jita.New("username", "password", server.URL))
-
-	healthyDevice := addDevice(t, db, ctx, "serial1", "healthyUser", "pubKey1", true, time.Now())
-
-	_ = addSessionInfo(t, db, ctx, healthyDevice, privilegedUsers[0].UserId, []string{"authorized"})
-
-	// todo don't use username as gateway
-	privilegedGateway1 := pb.Gateway{
-		Name:                     "privileged1",
-		Endpoint:                 "ep1",
-		PublicKey:                "pubkey1",
-		AccessGroupIDs:           []string{"authorized"},
-		RequiresPrivilegedAccess: true,
-	}
-	if err := db.AddGateway(ctx, &privilegedGateway1); err != nil {
-		t.Fatalf("Adding gateway: %v", err)
-	}
-
-	privilegedGateway2 := pb.Gateway{
-		Name:                     "privileged2",
-		Endpoint:                 "ep1",
-		PublicKey:                "pubkey2",
-		AccessGroupIDs:           []string{"authorized"},
-		RequiresPrivilegedAccess: true,
-	}
-	if err := db.AddGateway(ctx, &privilegedGateway2); err != nil {
-		t.Fatalf("Adding gateway: %v", err)
-	}
-
-	privilegedGatewayConfig := getGatewayConfig(t, router, "privileged1", "password")
-	assert.Len(t, privilegedGatewayConfig.Devices, 1)
-	assert.Equal(t, privilegedGatewayConfig.Devices[0].PublicKey, healthyDevice.PublicKey)
-
-	unprivilegedGatewayConfig := getGatewayConfig(t, router, "privileged2", "password")
-	assert.Len(t, unprivilegedGatewayConfig.Devices, 0)
-
-	server.Close()
 }
 
 func addDevice(t *testing.T, db database.APIServer, ctx context.Context, serial, username, publicKey string, healthy bool, lastSeen time.Time) *pb.Device {
@@ -322,32 +218,6 @@ func getDeviceConfig(t *testing.T, router chi.Router, sessionKey string) (gatewa
 	}
 
 	return gateways
-}
-
-func getGatewayConfig(t *testing.T, router chi.Router, username, password string) api.GatewayConfig {
-	req, _ := http.NewRequest("GET", "/gatewayconfig", nil)
-	req.SetBasicAuth(username, password)
-	resp := executeRequest(req, router)
-	assert.Equal(t, http.StatusOK, resp.Code)
-
-	var gatewayConfig api.GatewayConfig
-	if err := json.NewDecoder(resp.Body).Decode(&gatewayConfig); err != nil {
-		t.Fatalf("Unmarshaling response body: %v", err)
-	}
-
-	return gatewayConfig
-}
-
-func getDevices(t *testing.T, router chi.Router) (devices []*pb.Device) {
-	req, _ := http.NewRequest("GET", "/devices", nil)
-	resp := executeRequest(req, router)
-	assert.Equal(t, http.StatusOK, resp.Code)
-
-	if err := json.NewDecoder(resp.Body).Decode(&devices); err != nil {
-		t.Fatalf("Unmarshaling response body: %v", err)
-	}
-
-	return devices
 }
 
 func executeRequest(req *http.Request, router chi.Router) *httptest.ResponseRecorder {

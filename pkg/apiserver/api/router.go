@@ -4,8 +4,6 @@ import (
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
-	chi_middleware "github.com/go-chi/chi/v5/middleware"
-
 	"github.com/nais/device/pkg/apiserver/auth"
 	"github.com/nais/device/pkg/apiserver/database"
 	"github.com/nais/device/pkg/apiserver/jita"
@@ -30,17 +28,6 @@ func New(cfg Config) chi.Router {
 	r := chi.NewRouter()
 
 	r.Use(prometheusMiddleware.Handler())
-
-	r.Group(func(r chi.Router) {
-		if cfg.APIKeys != nil {
-			r.Use(chi_middleware.BasicAuth("naisdevice", cfg.APIKeys))
-		}
-
-		r.Get("/gateways", api.gateways)
-		r.Get("/devices", api.devices)
-
-		r.Get("/gatewayconfig", api.gatewayConfig)
-	})
 
 	r.Group(func(r chi.Router) {
 		r.Use(authenticator.Validator())

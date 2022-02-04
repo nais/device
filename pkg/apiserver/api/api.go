@@ -29,44 +29,6 @@ type GatewayConfig struct {
 	Routes  []string
 }
 
-// gatewayConfig returns the devices for the gateway that has the group membership required
-func (a *api) gatewayConfig(w http.ResponseWriter, r *http.Request) {
-	gatewayName, _, _ := r.BasicAuth()
-
-	sessionInfos, err := a.db.ReadSessionInfos(r.Context())
-
-	if err != nil {
-		log.Errorf("reading session infos from database: %v", err)
-		respondf(w, http.StatusInternalServerError, "failed getting gateway config")
-		return
-	}
-
-	gateway, err := a.db.ReadGateway(r.Context(), gatewayName)
-	if err != nil {
-		log.Errorf("reading gateway from database: %v", err)
-		respondf(w, http.StatusInternalServerError, "failed getting gateway config")
-		return
-	}
-
-	gatewayConfig := GatewayConfig{
-		Devices: healthy(authorized(gateway.AccessGroupIDs, privileged(a.jita, gateway, sessionInfos))),
-		Routes:  gateway.Routes,
-	}
-
-	w.WriteHeader(http.StatusOK)
-	err = json.NewEncoder(w).Encode(gatewayConfig)
-	if err != nil {
-		log.Errorf("writing gateway config response: %v", err)
-		return
-	}
-
-	m, err := apiserver_metrics.GatewayConfigsReturned.GetMetricWithLabelValues(gateway.Name)
-	if err != nil {
-		log.Errorf("getting metric metric: %v", err)
-	}
-	m.Inc()
-}
-
 func privileged(jita jita.Client, gateway *pb.Gateway, sessions []*pb.Session) []*pb.Session {
 	if !gateway.RequiresPrivilegedAccess {
 		return sessions
@@ -124,42 +86,6 @@ func authorized(gatewayGroups []string, sessions []*pb.Session) []*pb.Device {
 	}
 
 	return authorizedDevices
-}
-
-func (a *api) devices(w http.ResponseWriter, r *http.Request) {
-	devices, err := a.db.ReadDevices(r.Context())
-
-	if err != nil {
-		log.Errorf("Reading devices from database: %s", err)
-		w.WriteHeader(http.StatusInternalServerError)
-		return
-	}
-
-	w.Header().Add("Content-Type", "application/json; charset=utf-8")
-	err = json.NewEncoder(w).Encode(devices)
-	if err != nil {
-		log.Errorf("writing devices response: %v", err)
-		return
-	}
-}
-
-func (a *api) gateways(w http.ResponseWriter, r *http.Request) {
-	//serial := chi.URLParam(r, "serial")
-	gateways, err := a.db.ReadGateways(r.Context())
-	if err != nil {
-		log.Errorf("reading gateways: %v", err)
-		respondf(w, http.StatusInternalServerError, "unable to get device config\n")
-		return
-	}
-
-	w.WriteHeader(http.StatusOK)
-	err = json.NewEncoder(w).Encode(gateways)
-
-	if err != nil {
-		log.Errorf("encoding gateways response: %v", err)
-		respondf(w, http.StatusInternalServerError, "unable to get device config\n")
-		return
-	}
 }
 
 func (a *api) deviceConfig(w http.ResponseWriter, r *http.Request) {
