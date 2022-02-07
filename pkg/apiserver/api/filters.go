@@ -1,8 +1,6 @@
 package api
 
 import (
-	"time"
-
 	"github.com/nais/device/pkg/apiserver/jita"
 	apiserver_metrics "github.com/nais/device/pkg/apiserver/metrics"
 	"github.com/nais/device/pkg/pb"
@@ -43,13 +41,8 @@ func privileged(jita jita.Client, gateway *pb.Gateway, sessions []*pb.Session) [
 func healthy(devices []*pb.Device) []*pb.Device {
 	var healthyDevices []*pb.Device
 
-	now := time.Now()
-
 	for _, device := range devices {
-		kolideLastSeenDevice := device.GetKolideLastSeen().AsTime()
-		healthyDeviceDeadline := kolideLastSeenDevice.Add(MaxTimeSinceKolideLastSeen)
-
-		if device.GetHealthy() && healthyDeviceDeadline.After(now) {
+		if device.GetHealthy() && device.KolideSeenRecently() {
 			healthyDevices = append(healthyDevices, device)
 		}
 	}
