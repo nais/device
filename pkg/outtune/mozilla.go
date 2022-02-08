@@ -8,6 +8,8 @@ import (
 	"fmt"
 	"net/url"
 	"strings"
+
+	"github.com/nais/device/pkg/ioconvenience"
 )
 
 // Loosely ported from Mozilla Firefox source code, licensed under Mozilla public license
@@ -32,7 +34,7 @@ type mozkey struct {
 
 func GenerateDBKey(cert *x509.Certificate) (string, error) {
 	buffer := &bytes.Buffer{}
-	ew := &errorWriter{w: buffer}
+	ew := ioconvenience.NewErrorWriter(buffer)
 
 	sn := cert.SerialNumber.Bytes()
 	dn := cert.RawIssuer
@@ -51,8 +53,9 @@ func GenerateDBKey(cert *x509.Certificate) (string, error) {
 	binary.Write(ew, binary.BigEndian, mk.serial)
 	binary.Write(ew, binary.BigEndian, mk.dn)
 
-	if ew.Error() != nil {
-		return "", ew.Error()
+	_, err := ew.Status()
+	if err != nil {
+		return "", err
 	}
 
 	return base64.StdEncoding.EncodeToString(buffer.Bytes()), nil

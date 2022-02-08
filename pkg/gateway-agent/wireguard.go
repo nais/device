@@ -2,10 +2,12 @@ package gateway_agent
 
 import (
 	"fmt"
-	"io/ioutil"
+	"io"
+	"os"
 	"os/exec"
 	"regexp"
 
+	"github.com/nais/device/pkg/ioconvenience"
 	"github.com/nais/device/pkg/pb"
 
 	log "github.com/sirupsen/logrus"
@@ -39,56 +41,37 @@ func (nc *networkConfigurer) SetupInterface() error {
 	return run(commands)
 }
 
-func GenerateBaseConfig(cfg Config) string {
-	template := `[Interface]
-PrivateKey = %s
-ListenPort = 51820
-
-[Peer] # apiserver
-PublicKey = %s
-AllowedIPs = %s/32
-Endpoint = %s
-
-[Peer] # prometheus
-PublicKey = %s
-AllowedIPs = %s/32
-`
-
-	return fmt.Sprintf(
-		template,
-		cfg.PrivateKey,
-		cfg.APIServerPublicKey,
-		cfg.APIServerPrivateIP,
-		cfg.APIServerEndpoint,
-		cfg.PrometheusPublicKey,
-		cfg.PrometheusTunnelIP,
-	)
-}
-
-func GenerateWireGuardPeers(devices []*pb.Device) string {
-	peerTemplate := `[Peer]
-PublicKey = %s
-AllowedIPs = %s
-`
-	var peers string
-
-	for _, device := range devices {
-		peers += fmt.Sprintf(peerTemplate, device.PublicKey, device.Ip)
+func WriteWireGuardPeers(w io.Writer, peers []pb.Peer) error {
+	ew := ioconvenience.NewErrorWriter(w)
+	for _, peer := range peers {
+		_ = peer.WritePeerConfig(ew)
 	}
 
-	return peers
+	_, err := ew.Status()
+	return err
 }
 
 // ApplyWireGuardConfig runs syncconfig with the provided WireGuard config
-func (nc *networkConfigurer) ApplyWireGuardConfig(devices []*pb.Device) error {
-	wireGuardConfig := fmt.Sprintf(
-		"%s%s",
-		GenerateBaseConfig(nc.config),
-		GenerateWireGuardPeers(devices),
-	)
+func (nc *networkConfigurer) ApplyWireGuardConfig(peers []pb.Peer) error {
+	configFile, err := os.OpenFile(nc.config.WireGuardConfigPath, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0600)
+	if err != nil {
+		return fmt.Errorf("open WireGuard config file: %w", err)
+	}
+	defer configFile.Close()
 
-	if err := ioutil.WriteFile(nc.config.WireGuardConfigPath, []byte(wireGuardConfig), 0600); err != nil {
-		return fmt.Errorf("writing WireGuard config to disk: %w", err)
+	ew := ioconvenience.NewErrorWriter(configFile)
+
+	_ = nc.config.WriteWireGuardBase(ew)
+	_ = WriteWireGuardPeers(ew, peers)
+
+	_, err = ew.Status()
+	if err != nil {
+		return fmt.Errorf("write wg config: %w", err)
+	}
+
+	err = configFile.Close()
+	if err != nil {
+		return fmt.Errorf("close WireGuard config: %w", err)
 	}
 
 	cmd := exec.Command("wg", "syncconf", "wg0", nc.config.WireGuardConfigPath)

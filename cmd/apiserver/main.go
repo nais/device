@@ -75,7 +75,7 @@ func init() {
 	flag.BoolVar(&cfg.KolideSyncEnabled, "kolide-sync-enabled", cfg.KolideSyncEnabled, "enable kolide sync integration (looking for device failures)")
 	flag.BoolVar(&cfg.DeviceAuthenticationEnabled, "device-authentication-enabled", cfg.DeviceAuthenticationEnabled, "enable authentication for nais devices (oauth2)")
 	flag.BoolVar(&cfg.ControlPlaneAuthenticationEnabled, "control-plane-authentication-enabled", cfg.ControlPlaneAuthenticationEnabled, "enable authentication for control plane (api keys)")
-	flag.BoolVar(&cfg.WireguardEnabled, "wireguard-enabled", cfg.WireguardEnabled, "enable WireGuard")
+	flag.BoolVar(&cfg.WireGuardEnabled, "wireguard-enabled", cfg.WireGuardEnabled, "enable WireGuard")
 	flag.BoolVar(&cfg.CloudSQLProxyEnabled, "cloud-sql-proxy-enabled", cfg.CloudSQLProxyEnabled, "enable Google Cloud SQL proxy for database connection")
 
 	flag.Parse()
@@ -140,7 +140,7 @@ func run() error {
 		authenticator = auth.NewMockAuthenticator(sessions)
 	}
 
-	if cfg.WireguardEnabled {
+	if cfg.WireGuardEnabled {
 		err = setupInterface()
 		if err != nil {
 			return fmt.Errorf("set up WireGuard interface: %w", err)

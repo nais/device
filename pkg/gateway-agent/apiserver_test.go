@@ -49,7 +49,7 @@ func TestSyncFromStream(t *testing.T) {
 
 		netConf := &gateway_agent.MockNetworkConfigurer{}
 		netConf.On("ConnectedDeviceCount").Return(1, nil)
-		netConf.On("ApplyWireGuardConfig", resp.Devices).Return(nil)
+		netConf.On("ApplyWireGuardConfig", pb.DevicesAsPeers(resp.Devices)).Return(nil)
 		netConf.On("ForwardRoutes", resp.Routes).Return(nil)
 
 		err := gateway_agent.SyncFromStream(ctx, cfg, client, netConf)

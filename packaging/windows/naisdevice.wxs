@@ -134,7 +134,7 @@
                     Type="ownProcess"
                     Name="NaisDeviceHelper"
                     DisplayName="naisdevice helper"
-                    Description="Controls the Wireguard VPN connection"
+                    Description="Controls the WireGuard VPN connection"
                     Start="auto"
                     Account="NT AUTHORITY\SYSTEM"
                     ErrorControl="normal"

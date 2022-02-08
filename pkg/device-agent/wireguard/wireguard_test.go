@@ -25,7 +25,7 @@ func TestMarshalGateway(t *testing.T) {
 	}
 
 	buf := new(bytes.Buffer)
-	_, err := wireguard.MarshalGateway(buf, gw)
+	err := gw.WritePeerConfig(buf)
 
 	assert.NoError(t, err)
 

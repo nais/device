@@ -13,6 +13,7 @@ import (
 	"golang.org/x/crypto/curve25519"
 
 	"github.com/nais/device/pkg/device-agent/filesystem"
+	"github.com/nais/device/pkg/ioconvenience"
 	"github.com/nais/device/pkg/pb"
 )
 
@@ -83,18 +84,6 @@ func PublicKey(privateKey []byte) []byte {
 	return KeyToBase64(WGPubKey(privateKey))
 }
 
-var wireGuardTemplateGateway = `[Peer]
-PublicKey = %s
-AllowedIPs = %s
-Endpoint = %s
-
-`
-
-func MarshalGateway(w io.Writer, x *pb.Gateway) (int, error) {
-	routes := append(x.GetRoutes(), x.GetIp())
-	return fmt.Fprintf(w, wireGuardTemplateGateway, x.GetPublicKey(), strings.Join(routes, ","), x.GetEndpoint())
-}
-
 func Marshal(w io.Writer, x *pb.Configuration) (int, error) {
 	gateways := x.GetGateways()[:]
 	if gateways != nil {
@@ -104,12 +93,12 @@ func Marshal(w io.Writer, x *pb.Configuration) (int, error) {
 		})
 	}
 
-	mw := multiWriter{w: w}
+	ew := ioconvenience.NewErrorWriter(w)
 
 	_, _ = MarshalHeader(w, x)
 	for _, gw := range gateways {
-		_, _ = MarshalGateway(mw, gw)
+		_ = gw.WritePeerConfig(ew)
 	}
 
-	return mw.Status()
+	return ew.Status()
 }

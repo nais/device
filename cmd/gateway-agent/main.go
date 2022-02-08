@@ -78,7 +78,7 @@ func run() error {
 
 	var netConf g.NetworkConfigurer
 	if cfg.EnableRouting {
-		err = cfg.ValidateWireguard()
+		err = cfg.ValidateWireGuard()
 		if err != nil {
 			return fmt.Errorf("cannot enable routing: %w", err)
 		}
@@ -101,7 +101,7 @@ func run() error {
 		return fmt.Errorf("setup iptables defaults: %w", err)
 	}
 
-	err = netConf.ApplyWireGuardConfig(make([]*pb.Device, 0))
+	err = netConf.ApplyWireGuardConfig(nil)
 	if err != nil {
 		return fmt.Errorf("apply wireguard config: %w", err)
 	}

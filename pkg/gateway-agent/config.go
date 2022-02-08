@@ -2,6 +2,9 @@ package gateway_agent
 
 import (
 	"fmt"
+	"io"
+
+	"github.com/nais/device/pkg/ioconvenience"
 )
 
 type Config struct {
@@ -33,7 +36,7 @@ func DefaultConfig() Config {
 	}
 }
 
-func (c Config) ValidateWireguard() error {
+func (c Config) ValidateWireGuard() error {
 	var err error
 
 	check := func(key, value string) error {
@@ -52,6 +55,28 @@ func (c Config) ValidateWireguard() error {
 	err = check("apiserver-private-ip", c.APIServerPrivateIP)
 	err = check("device-ip", c.DeviceIP)
 	err = check("private-key", c.PrivateKey)
+
+	return err
+}
+
+func (cfg *Config) WriteWireGuardBase(w io.Writer) error {
+	ew := ioconvenience.NewErrorWriter(w)
+
+	_, _ = io.WriteString(ew, "[Interface]\n")
+	_, _ = io.WriteString(ew, fmt.Sprintf("PrivateKey = %s\n", cfg.PrivateKey))
+	_, _ = io.WriteString(ew, "ListenPort = 51820\n")
+	_, _ = io.WriteString(ew, "\n")
+	_, _ = io.WriteString(ew, "[Peer] # apiserver\n")
+	_, _ = io.WriteString(ew, fmt.Sprintf("PublicKey = %s\n", cfg.APIServerPublicKey))
+	_, _ = io.WriteString(ew, fmt.Sprintf("AllowedIPs = %s/32\n", cfg.APIServerPrivateIP))
+	_, _ = io.WriteString(ew, fmt.Sprintf("Endpoint = %s\n", cfg.APIServerEndpoint))
+	_, _ = io.WriteString(ew, "\n")
+	_, _ = io.WriteString(ew, "[Peer] # prometheus\n")
+	_, _ = io.WriteString(ew, fmt.Sprintf("PublicKey = %s\n", cfg.PrometheusPublicKey))
+	_, _ = io.WriteString(ew, fmt.Sprintf("AllowedIPs = %s/32\n", cfg.PrometheusTunnelIP))
+	_, _ = io.WriteString(ew, "\n")
+
+	_, err := ew.Status()
 
 	return err
 }

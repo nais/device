@@ -12,7 +12,7 @@ import (
 type ErrGRPCConnection error
 
 type NetworkConfigurer interface {
-	ApplyWireGuardConfig(devices []*pb.Device) error
+	ApplyWireGuardConfig(peers []pb.Peer) error
 	ForwardRoutes(routes []string) error
 	ConnectedDeviceCount() (int, error)
 	SetupInterface() error
@@ -71,7 +71,7 @@ func applyGatewayConfig(configurer NetworkConfigurer, gatewayConfig *pb.GetGatew
 		ConnectedDevices.Set(float64(c))
 	}
 
-	err = configurer.ApplyWireGuardConfig(gatewayConfig.Devices)
+	err = configurer.ApplyWireGuardConfig(pb.DevicesAsPeers(gatewayConfig.Devices))
 	if err != nil {
 		return fmt.Errorf("actuating WireGuard config: %w", err)
 	}

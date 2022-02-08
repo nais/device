@@ -7,6 +7,7 @@ import (
 	"encoding/pem"
 	"io"
 
+	"github.com/nais/device/pkg/ioconvenience"
 	"software.sslmate.com/src/go-pkcs12"
 )
 
@@ -16,7 +17,7 @@ type identity struct {
 }
 
 func (id *identity) SerializePEM(w io.Writer) error {
-	ew := &errorWriter{w: w}
+	ew := ioconvenience.NewErrorWriter(w)
 	pem.Encode(ew, &pem.Block{
 		Type:  "RSA PRIVATE KEY",
 		Bytes: x509.MarshalPKCS1PrivateKey(id.privateKey),
@@ -25,7 +26,9 @@ func (id *identity) SerializePEM(w io.Writer) error {
 		Type:  "CERTIFICATE",
 		Bytes: id.certificate.Raw,
 	})
-	return ew.Error()
+
+	_, err := ew.Status()
+	return err
 }
 
 func (id *identity) SerializePKCS12(w io.Writer) error {

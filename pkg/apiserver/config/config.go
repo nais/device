@@ -36,7 +36,7 @@ type Config struct {
 	PrometheusPublicKey               string
 	PrometheusTunnelIP                string
 	WireGuardConfigPath               string
-	WireguardEnabled                  bool
+	WireGuardEnabled                  bool
 }
 
 func (c *Config) Credentials() (map[string]string, error) {

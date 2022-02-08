@@ -1,6 +1,8 @@
 package gateway_agent
 
 import (
+	"os"
+
 	"github.com/nais/device/pkg/pb"
 	log "github.com/sirupsen/logrus"
 )
@@ -11,10 +13,10 @@ func NewNoOpConfigurer() NetworkConfigurer {
 	return &noopConfigurer{}
 }
 
-func (n *noopConfigurer) ApplyWireGuardConfig(devices []*pb.Device) error {
-	log.Debugf("Applying WireGuard configuration with %d devices", len(devices))
-	for i, device := range devices {
-		log.Debugf("(%02d) %s", i+1, device.String())
+func (n *noopConfigurer) ApplyWireGuardConfig(peers []pb.Peer) error {
+	log.Debugf("Applying WireGuard configuration with %d peers", len(peers))
+	for _, peer := range peers {
+		_ = peer.WritePeerConfig(os.Stdout)
 	}
 	return nil
 }
