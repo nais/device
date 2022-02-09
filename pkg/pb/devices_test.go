@@ -1,6 +1,7 @@
 package pb_test
 
 import (
+	"bytes"
 	"testing"
 	"time"
 
@@ -25,4 +26,22 @@ func TestKolideSeenRecently(t *testing.T) {
 
 	assert.True(t, deviceSeenRecently.KolideSeenRecently())
 	assert.False(t, deviceNotSeenRecently.KolideSeenRecently())
+}
+
+func TestWriteDevicePeerConfig(t *testing.T) {
+	device := &pb.Device{
+		PublicKey: "pub",
+		Ip:        "ip",
+	}
+
+	buf := new(bytes.Buffer)
+	err := device.WritePeerConfig(buf)
+	assert.NoError(t, err)
+
+	expected := `[Peer]
+PublicKey = pub
+AllowedIPs = ip
+
+`
+	assert.Equal(t, expected, buf.String())
 }

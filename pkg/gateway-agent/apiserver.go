@@ -4,36 +4,14 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/coreos/go-iptables/iptables"
 	"github.com/nais/device/pkg/pb"
+	"github.com/nais/device/pkg/wireguard"
 	log "github.com/sirupsen/logrus"
 )
 
 type ErrGRPCConnection error
 
-type NetworkConfigurer interface {
-	ApplyWireGuardConfig(peers []pb.Peer) error
-	ForwardRoutes(routes []string) error
-	ConnectedDeviceCount() (int, error)
-	SetupInterface() error
-	SetupIPTables() error
-}
-
-type networkConfigurer struct {
-	config        Config
-	ipTables      *iptables.IPTables
-	interfaceName string
-	interfaceIP   string
-}
-
-func NewConfigurer(config Config, ipTables *iptables.IPTables) NetworkConfigurer {
-	return &networkConfigurer{
-		config:   config,
-		ipTables: ipTables,
-	}
-}
-
-func SyncFromStream(ctx context.Context, config Config, apiserverClient pb.APIServerClient, netConf NetworkConfigurer) error {
+func SyncFromStream(ctx context.Context, config Config, apiserverClient pb.APIServerClient, netConf wireguard.NetworkConfigurer) error {
 	stream, err := apiserverClient.GetGatewayConfiguration(ctx, &pb.GetGatewayConfigurationRequest{
 		Gateway:  config.Name,
 		Password: config.APIServerPassword,
@@ -60,7 +38,7 @@ func SyncFromStream(ctx context.Context, config Config, apiserverClient pb.APISe
 	}
 }
 
-func applyGatewayConfig(configurer NetworkConfigurer, gatewayConfig *pb.GetGatewayConfigurationResponse) error {
+func applyGatewayConfig(configurer wireguard.NetworkConfigurer, gatewayConfig *pb.GetGatewayConfigurationResponse) error {
 	RegisteredDevices.Set(float64(len(gatewayConfig.Devices)))
 	LastSuccessfulConfigFetch.SetToCurrentTime()
 

@@ -1,4 +1,4 @@
-package gateway_agent
+package wireguard
 
 import (
 	"fmt"
@@ -7,11 +7,34 @@ import (
 	"os/exec"
 	"regexp"
 
+	"github.com/coreos/go-iptables/iptables"
 	"github.com/nais/device/pkg/ioconvenience"
 	"github.com/nais/device/pkg/pb"
 
 	log "github.com/sirupsen/logrus"
 )
+
+type NetworkConfigurer interface {
+	ApplyWireGuardConfig(peers []pb.Peer) error
+	ForwardRoutes(routes []string) error
+	ConnectedDeviceCount() (int, error)
+	SetupInterface() error
+	SetupIPTables() error
+}
+
+type networkConfigurer struct {
+	config        WireGuardPeerConfig
+	ipTables      *iptables.IPTables
+	interfaceName string
+	interfaceIP   string
+}
+
+func NewConfigurer(config WireGuardPeerConfig, ipTables *iptables.IPTables) NetworkConfigurer {
+	return &networkConfigurer{
+		config:   config,
+		ipTables: ipTables,
+	}
+}
 
 func (nc *networkConfigurer) SetupInterface() error {
 	if err := exec.Command("ip", "link", "del", "wg0").Run(); err != nil {
@@ -34,26 +57,16 @@ func (nc *networkConfigurer) SetupInterface() error {
 	commands := [][]string{
 		{"ip", "link", "add", "dev", "wg0", "type", "wireguard"},
 		{"ip", "link", "set", "wg0", "mtu", "1360"},
-		{"ip", "address", "add", "dev", "wg0", nc.config.DeviceIP + "/21"},
+		{"ip", "address", "add", "dev", "wg0", nc.config.GetTunnelIP() + "/21"},
 		{"ip", "link", "set", "wg0", "up"},
 	}
 
 	return run(commands)
 }
 
-func WriteWireGuardPeers(w io.Writer, peers []pb.Peer) error {
-	ew := ioconvenience.NewErrorWriter(w)
-	for _, peer := range peers {
-		_ = peer.WritePeerConfig(ew)
-	}
-
-	_, err := ew.Status()
-	return err
-}
-
 // ApplyWireGuardConfig runs syncconfig with the provided WireGuard config
 func (nc *networkConfigurer) ApplyWireGuardConfig(peers []pb.Peer) error {
-	configFile, err := os.OpenFile(nc.config.WireGuardConfigPath, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0600)
+	configFile, err := os.OpenFile(nc.config.GetWireGuardConfigPath(), os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0600)
 	if err != nil {
 		return fmt.Errorf("open WireGuard config file: %w", err)
 	}
@@ -74,13 +87,13 @@ func (nc *networkConfigurer) ApplyWireGuardConfig(peers []pb.Peer) error {
 		return fmt.Errorf("close WireGuard config: %w", err)
 	}
 
-	cmd := exec.Command("wg", "syncconf", "wg0", nc.config.WireGuardConfigPath)
+	cmd := exec.Command("wg", "syncconf", "wg0", nc.config.GetWireGuardConfigPath())
 
 	if err := cmd.Run(); err != nil {
 		return fmt.Errorf("running syncconf: %w", err)
 	}
 
-	log.Debugf("Actuated WireGuard config: %v", nc.config.WireGuardConfigPath)
+	log.Debugf("Actuated WireGuard config: %v", nc.config.GetWireGuardConfigPath())
 
 	return nil
 }
@@ -95,4 +108,14 @@ func (nc *networkConfigurer) ConnectedDeviceCount() (int, error) {
 	matches := re.FindAll(output, -1)
 
 	return len(matches), nil
+}
+
+func WriteWireGuardPeers(w io.Writer, peers []pb.Peer) error {
+	ew := ioconvenience.NewErrorWriter(w)
+	for _, peer := range peers {
+		_ = peer.WritePeerConfig(ew)
+	}
+
+	_, err := ew.Status()
+	return err
 }

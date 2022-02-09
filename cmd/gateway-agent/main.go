@@ -10,6 +10,7 @@ import (
 
 	g "github.com/nais/device/pkg/gateway-agent"
 	"github.com/nais/device/pkg/pb"
+	"github.com/nais/device/pkg/wireguard"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -54,8 +55,7 @@ func init() {
 func main() {
 	err := run()
 	if err != nil {
-		log.Errorf("fatal: %s", err)
-		os.Exit(1)
+		log.Fatalf("Running gateway-agent: %s", err)
 	}
 }
 
@@ -76,7 +76,7 @@ func run() error {
 
 	log.Info("starting gateway-agent")
 
-	var netConf g.NetworkConfigurer
+	var netConf wireguard.NetworkConfigurer
 	if cfg.EnableRouting {
 		err = cfg.ValidateWireGuard()
 		if err != nil {
@@ -86,9 +86,9 @@ func run() error {
 		if err != nil {
 			return fmt.Errorf("setup iptables: %w", err)
 		}
-		netConf = g.NewConfigurer(cfg, ipTables)
+		netConf = wireguard.NewConfigurer(cfg, ipTables)
 	} else {
-		netConf = g.NewNoOpConfigurer()
+		netConf = wireguard.NewNoOpConfigurer()
 	}
 
 	err = netConf.SetupInterface()

@@ -1,4 +1,4 @@
-package gateway_agent
+package prometheusagent
 
 import (
 	"fmt"
@@ -8,30 +8,25 @@ import (
 )
 
 type Config struct {
-	APIServerEndpoint   string
 	APIServerPassword   string
-	APIServerPrivateIP  string
 	APIServerPublicKey  string
+	APIServerTunnelIP   string
 	APIServerURL        string
-	ConfigDir           string
-	DeviceIP            string
-	EnableRouting       bool
+	APIServerUsername   string
+	APIServerEndpoint   string
 	LogLevel            string
-	Name                string
 	PrivateKey          string
 	PrometheusAddr      string
-	PrometheusPublicKey string
-	PrometheusTunnelIP  string
+	TunnelIP            string
 	WireGuardConfigPath string
+	WireGuardEnabled    bool
 }
 
 func DefaultConfig() Config {
 	return Config{
-		APIServerURL:        "127.0.0.1:8099",
-		ConfigDir:           "/etc/gateway-agent/",
-		LogLevel:            "info",
-		Name:                "test01",
+		APIServerURL:        "http://127.0.0.1:8099",
 		PrometheusAddr:      "127.0.0.1:3000",
+		LogLevel:            "info",
 		WireGuardConfigPath: "/run/wg0.conf",
 	}
 }
@@ -52,8 +47,8 @@ func (c Config) ValidateWireGuard() error {
 	err = check("apiserver-endpoint", c.APIServerEndpoint)
 	err = check("apiserver-password", c.APIServerPassword)
 	err = check("apiserver-public-key", c.APIServerPublicKey)
-	err = check("apiserver-private-ip", c.APIServerPrivateIP)
-	err = check("device-ip", c.DeviceIP)
+	err = check("apiserver-tunnel-ip", c.APIServerTunnelIP)
+	err = check("tunnel-ip", c.TunnelIP)
 	err = check("private-key", c.PrivateKey)
 
 	return err
@@ -68,12 +63,8 @@ func (cfg Config) WriteWireGuardBase(w io.Writer) error {
 	_, _ = io.WriteString(ew, "\n")
 	_, _ = io.WriteString(ew, "[Peer] # apiserver\n")
 	_, _ = io.WriteString(ew, fmt.Sprintf("PublicKey = %s\n", cfg.APIServerPublicKey))
-	_, _ = io.WriteString(ew, fmt.Sprintf("AllowedIPs = %s/32\n", cfg.APIServerPrivateIP))
+	_, _ = io.WriteString(ew, fmt.Sprintf("AllowedIPs = %s/32\n", cfg.APIServerTunnelIP))
 	_, _ = io.WriteString(ew, fmt.Sprintf("Endpoint = %s\n", cfg.APIServerEndpoint))
-	_, _ = io.WriteString(ew, "\n")
-	_, _ = io.WriteString(ew, "[Peer] # prometheus\n")
-	_, _ = io.WriteString(ew, fmt.Sprintf("PublicKey = %s\n", cfg.PrometheusPublicKey))
-	_, _ = io.WriteString(ew, fmt.Sprintf("AllowedIPs = %s/32\n", cfg.PrometheusTunnelIP))
 	_, _ = io.WriteString(ew, "\n")
 
 	_, err := ew.Status()
@@ -86,7 +77,7 @@ func (cfg Config) GetPassword() string {
 }
 
 func (cfg Config) GetUsername() string {
-	return cfg.Name
+	return cfg.APIServerUsername
 }
 
 func (cfg Config) GetWireGuardConfigPath() string {
@@ -94,5 +85,5 @@ func (cfg Config) GetWireGuardConfigPath() string {
 }
 
 func (cfg Config) GetTunnelIP() string {
-	return cfg.DeviceIP
+	return cfg.TunnelIP
 }

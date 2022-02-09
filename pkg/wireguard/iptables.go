@@ -1,4 +1,4 @@
-package gateway_agent
+package wireguard
 
 import (
 	"fmt"

@@ -1,20 +1,43 @@
 package gateway_agent_test
 
 import (
+	"bytes"
 	"testing"
 
 	gateway_agent "github.com/nais/device/pkg/gateway-agent"
 	"github.com/stretchr/testify/assert"
 )
 
-func TestParseDefaultInterfaceOutput(t *testing.T) {
-	input := []byte(`1.1.1.1 via 13.37.96.1 dev ens160 src 13.37.96.69 uid 1001
-    cache
-`)
+func TestWriteWireGuardBase(t *testing.T) {
+	cfg := gateway_agent.Config{
+		PrivateKey:          "abc",
+		DeviceIP:            "127.0.0.1",
+		APIServerEndpoint:   "endpoint",
+		APIServerPrivateIP:  "10.255.240.1",
+		APIServerPublicKey:  "pubkey",
+		PrometheusPublicKey: "prom",
+		PrometheusTunnelIP:  "10.255.247.254",
+	}
 
-	ifName, ifIP, err := gateway_agent.ParseDefaultInterfaceOutput(input)
+	buf := new(bytes.Buffer)
+	err := cfg.WriteWireGuardBase(buf)
 
 	assert.NoError(t, err)
-	assert.Equal(t, "ens160", ifName)
-	assert.Equal(t, "13.37.96.69", ifIP)
+
+	expected :=
+		`[Interface]
+PrivateKey = abc
+ListenPort = 51820
+
+[Peer] # apiserver
+PublicKey = pubkey
+AllowedIPs = 10.255.240.1/32
+Endpoint = endpoint
+
+[Peer] # prometheus
+PublicKey = prom
+AllowedIPs = 10.255.247.254/32
+
+`
+	assert.Equal(t, expected, buf.String())
 }

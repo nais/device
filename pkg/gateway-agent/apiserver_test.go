@@ -8,6 +8,7 @@ import (
 
 	gateway_agent "github.com/nais/device/pkg/gateway-agent"
 	"github.com/nais/device/pkg/pb"
+	"github.com/nais/device/pkg/wireguard"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 )
@@ -47,7 +48,7 @@ func TestSyncFromStream(t *testing.T) {
 			req,
 		).Return(stream, nil)
 
-		netConf := &gateway_agent.MockNetworkConfigurer{}
+		netConf := &wireguard.MockNetworkConfigurer{}
 		netConf.On("ConnectedDeviceCount").Return(1, nil)
 		netConf.On("ApplyWireGuardConfig", pb.DevicesAsPeers(resp.Devices)).Return(nil)
 		netConf.On("ForwardRoutes", resp.Routes).Return(nil)
