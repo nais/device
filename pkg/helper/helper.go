@@ -15,6 +15,7 @@ import (
 
 	"github.com/nais/device/pkg/helper/config"
 	"github.com/nais/device/pkg/helper/serial"
+	wireguard2 "github.com/nais/device/pkg/wireguard"
 	log "github.com/sirupsen/logrus"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -35,6 +36,7 @@ type DeviceHelperServer struct {
 	pb.UnimplementedDeviceHelperServer
 	Config         Config
 	OSConfigurator OSConfigurator
+	Wireguard      *wireguard2.Config
 }
 
 var (
@@ -91,7 +93,7 @@ func (dhs *DeviceHelperServer) Configure(ctx context.Context, cfg *pb.Configurat
 func (dhs *DeviceHelperServer) writeConfigFile(cfg *pb.Configuration) error {
 	buf := new(bytes.Buffer)
 
-	_, err := wireguard.Marshal(buf, cfg)
+	err := wireguard.Marshal(buf, cfg)
 	if err != nil {
 		return fmt.Errorf("render configuration: %s", err)
 	}

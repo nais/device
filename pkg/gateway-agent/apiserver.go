@@ -23,6 +23,8 @@ func SyncFromStream(ctx context.Context, config Config, apiserverClient pb.APISe
 
 	log.Infof("Authenticated with API server and streaming configuration updates.")
 
+	staticPeers := config.StaticPeers()
+
 	for {
 		gwConfig, err := stream.Recv()
 		if err != nil {
@@ -31,14 +33,14 @@ func SyncFromStream(ctx context.Context, config Config, apiserverClient pb.APISe
 
 		log.Infof("Received updated configuration.")
 
-		err = applyGatewayConfig(netConf, gwConfig)
+		err = applyGatewayConfig(netConf, gwConfig, staticPeers...)
 		if err != nil {
 			return fmt.Errorf("apply gateway config: %w", err)
 		}
 	}
 }
 
-func applyGatewayConfig(configurer wireguard.NetworkConfigurer, gatewayConfig *pb.GetGatewayConfigurationResponse) error {
+func applyGatewayConfig(configurer wireguard.NetworkConfigurer, gatewayConfig *pb.GetGatewayConfigurationResponse, staticPeers ...wireguard.Peer) error {
 	RegisteredDevices.Set(float64(len(gatewayConfig.Devices)))
 	LastSuccessfulConfigFetch.SetToCurrentTime()
 
@@ -49,7 +51,8 @@ func applyGatewayConfig(configurer wireguard.NetworkConfigurer, gatewayConfig *p
 		ConnectedDevices.Set(float64(c))
 	}
 
-	err = configurer.ApplyWireGuardConfig(pb.DevicesAsPeers(gatewayConfig.Devices))
+	peers := wireguard.MakePeers(gatewayConfig.Devices, nil)
+	err = configurer.ApplyWireGuardConfig(append(staticPeers, peers...))
 	if err != nil {
 		return fmt.Errorf("actuating WireGuard config: %w", err)
 	}

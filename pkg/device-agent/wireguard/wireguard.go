@@ -10,10 +10,10 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/nais/device/pkg/wireguard"
 	"golang.org/x/crypto/curve25519"
 
 	"github.com/nais/device/pkg/device-agent/filesystem"
-	"github.com/nais/device/pkg/ioconvenience"
 	"github.com/nais/device/pkg/pb"
 )
 
@@ -84,21 +84,30 @@ func PublicKey(privateKey []byte) []byte {
 	return KeyToBase64(WGPubKey(privateKey))
 }
 
-func Marshal(w io.Writer, x *pb.Configuration) (int, error) {
-	gateways := x.GetGateways()[:]
-	if gateways != nil {
-		// Sort gateways here to let windows helper detect changes in, and prevent unnecessary restarts
-		sort.Slice(gateways, func(i, j int) bool {
-			return strings.Compare(gateways[i].Name, gateways[j].Name) < 0
-		})
+func sortGateways(gateways []*pb.Gateway) {
+	if gateways == nil {
+		return
+	}
+	sort.Slice(gateways, func(i, j int) bool {
+		return strings.Compare(gateways[i].Name, gateways[j].Name) < 0
+	})
+}
+
+func Marshal(w io.Writer, x *pb.Configuration) error {
+	// Sort gateways here to let windows helper detect changes in, and prevent unnecessary restarts
+	gateways := x.GetGateways()
+	sortGateways(gateways)
+
+	cf := &wireguard.Config{
+		Peers:      wireguard.MakePeers(nil, gateways),
+		PrivateKey: x.GetPrivateKey(),
 	}
 
-	ew := ioconvenience.NewErrorWriter(w)
-
-	_, _ = MarshalHeader(w, x)
-	for _, gw := range gateways {
-		_ = gw.WritePeerConfig(ew)
+	// Address configuration only supported on Windows
+	if windows {
+		cf.MTU = mtu
+		cf.Address = x.GetDeviceIP()
 	}
 
-	return ew.Status()
+	return cf.MarshalINI(w)
 }

@@ -1,3 +1,4 @@
+//go:build linux || darwin
 // +build linux darwin
 
 package wireguard
@@ -13,6 +14,10 @@ var wireGuardTemplateHeader = `[Interface]
 PrivateKey = %s
 
 `
+
+// mtu is no-op on non-windows platforms
+const mtu = 0
+const windows = false
 
 func MarshalHeader(w io.Writer, x *pb.Configuration) (int, error) {
 	return fmt.Fprintf(w, wireGuardTemplateHeader, x.GetPrivateKey())

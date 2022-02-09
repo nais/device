@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/nais/device/pkg/ioconvenience"
+	"github.com/nais/device/pkg/pb"
 )
 
 type Peer interface {
@@ -16,10 +17,11 @@ type Peer interface {
 }
 
 type Config struct {
-	PrivateKey string
-	Interface  string
+	Address    string
 	ListenPort int
+	MTU        int
 	Peers      []Peer
+	PrivateKey string
 }
 
 func (cfg *Config) MarshalINI(w io.Writer) error {
@@ -31,7 +33,13 @@ func (cfg *Config) MarshalINI(w io.Writer) error {
 	if cfg.ListenPort > 0 {
 		fmt.Fprintf(ew, "ListenPort = %d\n", cfg.ListenPort)
 	}
-	fprintNonEmpty(ew, "Interface = %s\n", cfg.Interface)
+
+	// MTU and Address only supported/implemented on Windows platform
+	if cfg.MTU > 0 {
+		fmt.Fprintf(ew, "MTU = %d\n", cfg.MTU)
+	}
+	fprintNonEmpty(ew, "Address = %s\n", cfg.Address)
+
 	fmt.Fprintf(ew, "\n")
 
 	for _, peer := range cfg.Peers {
@@ -52,4 +60,15 @@ func fprintNonEmpty(w io.Writer, format string, value string) (int, error) {
 		return 0, nil
 	}
 	return fmt.Fprintf(w, format, value)
+}
+
+func MakePeers(devices []*pb.Device, gateways []*pb.Gateway) []Peer {
+	peers := make([]Peer, 0, len(devices)+len(gateways))
+	for i := range gateways {
+		peers = append(peers, gateways[i])
+	}
+	for i := range devices {
+		peers = append(peers, devices[i])
+	}
+	return peers
 }

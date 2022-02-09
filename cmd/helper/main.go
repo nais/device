@@ -8,9 +8,8 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/nais/device/pkg/helper/config"
-
 	"github.com/nais/device/pkg/helper"
+	"github.com/nais/device/pkg/helper/config"
 	"github.com/nais/device/pkg/logger"
 	"github.com/nais/device/pkg/pb"
 	"github.com/nais/device/pkg/unixsocket"

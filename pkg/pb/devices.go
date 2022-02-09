@@ -1,11 +1,7 @@
 package pb
 
 import (
-	"fmt"
-	"io"
 	"time"
-
-	"github.com/nais/device/pkg/ioconvenience"
 )
 
 const MaxTimeSinceKolideLastSeen = 24 * time.Hour
@@ -17,24 +13,14 @@ func (x *Device) KolideSeenRecently() bool {
 	return deadline.After(time.Now())
 }
 
-func (x *Device) WritePeerConfig(w io.Writer) error {
-	ew := ioconvenience.NewErrorWriter(w)
-
-	_, _ = io.WriteString(ew, "[Peer]\n")
-	_, _ = io.WriteString(ew, fmt.Sprintf("PublicKey = %s\n", x.GetPublicKey()))
-	_, _ = io.WriteString(ew, fmt.Sprintf("AllowedIPs = %s\n", x.GetIp()))
-	_, _ = io.WriteString(ew, "\n")
-
-	_, err := ew.Status()
-	return err
-}
-
 // Satisfy WireGuard interface.
+// This value is written to the config file as a comment, so we put in the serial of the device in order to identify it.
 func (x *Device) GetName() string {
 	return x.GetSerial()
 }
 
 // Satisfy WireGuard interface.
+// This field contains the private IP address of a device.
 func (x *Device) GetAllowedIPs() []string {
 	return []string{x.GetIp()}
 }
@@ -43,12 +29,4 @@ func (x *Device) GetAllowedIPs() []string {
 // Endpoints are not used when configuring gateway and api server; connections are initiated from the client.
 func (x *Device) GetEndpoint() string {
 	return ""
-}
-
-func DevicesAsPeers(devices []*Device) []Peer {
-	peers := make([]Peer, len(devices))
-	for i := range peers {
-		peers[i] = devices[i]
-	}
-	return peers
 }

@@ -11,9 +11,9 @@ import (
 
 func TestConfig_MarshalINI(t *testing.T) {
 	cfg := &wireguard.Config{
-		PrivateKey: "privkey",
-		Interface:  "utun66",
+		Address:    "address",
 		ListenPort: 12345,
+		MTU:        123,
 		Peers: []wireguard.Peer{
 			&pb.Gateway{
 				Name:      "gw-name",
@@ -28,6 +28,7 @@ func TestConfig_MarshalINI(t *testing.T) {
 				Ip:        "device-private-ip",
 			},
 		},
+		PrivateKey: "privkey",
 	}
 
 	buf := &bytes.Buffer{}
@@ -38,7 +39,8 @@ func TestConfig_MarshalINI(t *testing.T) {
 	expected := `[Interface]
 PrivateKey = privkey
 ListenPort = 12345
-Interface = utun66
+MTU = 123
+Address = address
 
 [Peer] # gw-name
 PublicKey = gw-pubkey

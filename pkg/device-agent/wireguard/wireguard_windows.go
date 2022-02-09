@@ -17,6 +17,7 @@ MTU = %d
 Address = %s
 `
 
+const windows = true
 const mtu = 1360
 
 func MarshalHeader(w io.Writer, x *pb.Configuration) (int, error) {

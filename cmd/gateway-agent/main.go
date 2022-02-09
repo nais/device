@@ -29,7 +29,9 @@ var (
 )
 
 const (
-	grpcConnectBackoff = 5 * time.Second
+	grpcConnectBackoff  = 5 * time.Second
+	wireguardInterface  = "wg0"
+	wireguardListenPort = 51820
 )
 
 func init() {
@@ -86,7 +88,7 @@ func run() error {
 		if err != nil {
 			return fmt.Errorf("setup iptables: %w", err)
 		}
-		netConf = wireguard.NewConfigurer(cfg, ipTables)
+		netConf = wireguard.NewConfigurer(cfg.WireGuardConfigPath, cfg.DeviceIP, cfg.PrivateKey, wireguardInterface, wireguardListenPort, ipTables)
 	} else {
 		netConf = wireguard.NewNoOpConfigurer()
 	}

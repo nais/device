@@ -1,7 +1,6 @@
 package pb_test
 
 import (
-	"bytes"
 	"testing"
 
 	"github.com/nais/device/pkg/pb"
@@ -61,24 +60,4 @@ func TestMergeGatewayHealth(t *testing.T) {
 
 	assert.Equal(t, "gw-4", dst[3].Name)
 	assert.False(t, dst[3].Healthy)
-}
-
-func TestWriteGatewayPeerConfig(t *testing.T) {
-	gateway := &pb.Gateway{
-		PublicKey: "pub",
-		Ip:        "ip",
-		Endpoint:  "endpoint",
-	}
-
-	buf := new(bytes.Buffer)
-	err := gateway.WritePeerConfig(buf)
-	assert.NoError(t, err)
-
-	expected := `[Peer]
-PublicKey = pub
-AllowedIPs = ip
-Endpoint = endpoint
-
-`
-	assert.Equal(t, expected, buf.String())
 }

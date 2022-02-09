@@ -18,12 +18,14 @@ func TestMarshalConfiguration(t *testing.T) {
 		DeviceIP:   "127.0.0.1",
 		Gateways: []*pb.Gateway{
 			{
+				Name:      "gateway-1",
 				PublicKey: "PQKmraPOPye5CJq1x7njpl8rRu5RSrIKyHvZXtLvS0E=",
 				Endpoint:  "13.37.13.37:51820",
 				Ip:        "10.255.240.2/32",
 				Routes:    []string{"13.37.69.0/24", "13.37.59.69/32"},
 			},
 			{
+				Name:      "gateway-2",
 				PublicKey: "foobar",
 				Endpoint:  "14.37.13.37:51820",
 				Ip:        "11.255.240.2/32",
@@ -33,7 +35,7 @@ func TestMarshalConfiguration(t *testing.T) {
 	}
 
 	buf := new(bytes.Buffer)
-	_, err := wireguard.Marshal(buf, cfg)
+	err := wireguard.Marshal(buf, cfg)
 
 	assert.NoError(t, err)
 
@@ -41,12 +43,12 @@ func TestMarshalConfiguration(t *testing.T) {
 		`[Interface]
 PrivateKey = abc
 
-[Peer]
+[Peer] # gateway-1
 PublicKey = PQKmraPOPye5CJq1x7njpl8rRu5RSrIKyHvZXtLvS0E=
 AllowedIPs = 13.37.69.0/24,13.37.59.69/32,10.255.240.2/32
 Endpoint = 13.37.13.37:51820
 
-[Peer]
+[Peer] # gateway-2
 PublicKey = foobar
 AllowedIPs = 14.37.69.0/24,14.37.59.69/32,11.255.240.2/32
 Endpoint = 14.37.13.37:51820

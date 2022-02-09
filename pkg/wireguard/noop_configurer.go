@@ -1,9 +1,6 @@
 package wireguard
 
 import (
-	"os"
-
-	"github.com/nais/device/pkg/pb"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -13,10 +10,10 @@ func NewNoOpConfigurer() NetworkConfigurer {
 	return &noopConfigurer{}
 }
 
-func (n *noopConfigurer) ApplyWireGuardConfig(peers []pb.Peer) error {
+func (n *noopConfigurer) ApplyWireGuardConfig(peers []Peer) error {
 	log.Debugf("Applying WireGuard configuration with %d peers", len(peers))
 	for _, peer := range peers {
-		_ = peer.WritePeerConfig(os.Stdout)
+		log.Debugf("%#v", peer)
 	}
 	return nil
 }

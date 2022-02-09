@@ -6,6 +6,7 @@ import (
 	"net/http"
 
 	"github.com/kelseyhightower/envconfig"
+	"github.com/nais/device/pkg/pb"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	log "github.com/sirupsen/logrus"
@@ -26,6 +27,11 @@ var (
 		Namespace: "naisdevice",
 		Subsystem: "prometheus_agent",
 	})
+)
+
+const (
+	wireguardInterface  = "wg0"
+	wireguardListenPort = 51820
 )
 
 func init() {
@@ -76,7 +82,7 @@ func run() error {
 			return fmt.Errorf("cannot enable WireGuard: %w", err)
 		}
 
-		netConf = wireguard.NewConfigurer(cfg, nil)
+		netConf = wireguard.NewConfigurer(cfg.WireGuardConfigPath, cfg.TunnelIP, cfg.PrivateKey, wireguardInterface, wireguardListenPort, nil)
 	} else {
 		netConf = wireguard.NewNoOpConfigurer()
 	}
@@ -86,8 +92,15 @@ func run() error {
 		return fmt.Errorf("set up network interface: %w", err)
 	}
 
+	apiserver := &pb.Gateway{
+		Name:      "apiserver",
+		PublicKey: cfg.APIServerPublicKey,
+		Endpoint:  cfg.APIServerEndpoint,
+		Ip:        cfg.APIServerTunnelIP,
+	}
+
 	// apply initial base config
-	err = netConf.ApplyWireGuardConfig(nil)
+	err = netConf.ApplyWireGuardConfig([]wireguard.Peer{apiserver})
 	if err != nil {
 		return fmt.Errorf("apply initial WireGuard config: %w", err)
 	}
