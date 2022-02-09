@@ -30,18 +30,22 @@ func MergeGatewayHealth(dst []*Gateway, src []*Gateway) {
 	}
 }
 
-func (d *Gateway) WritePeerConfig(w io.Writer) error {
+func (x *Gateway) WritePeerConfig(w io.Writer) error {
 	ew := ioconvenience.NewErrorWriter(w)
 
-	routes := append(d.GetRoutes(), d.GetIp())
+	routes := append(x.GetRoutes(), x.GetIp())
 	allowedIPs := strings.Join(routes, ",")
 
 	_, _ = io.WriteString(ew, "[Peer]\n")
-	_, _ = io.WriteString(ew, fmt.Sprintf("PublicKey = %s\n", d.GetPublicKey()))
+	_, _ = io.WriteString(ew, fmt.Sprintf("PublicKey = %s\n", x.GetPublicKey()))
 	_, _ = io.WriteString(ew, fmt.Sprintf("AllowedIPs = %s\n", allowedIPs))
-	_, _ = io.WriteString(ew, fmt.Sprintf("Endpoint = %s\n", d.GetEndpoint()))
+	_, _ = io.WriteString(ew, fmt.Sprintf("Endpoint = %s\n", x.GetEndpoint()))
 	_, _ = io.WriteString(ew, "\n")
 
 	_, err := ew.Status()
 	return err
+}
+
+func (x *Gateway) GetAllowedIPs() []string {
+	return append(x.GetRoutes(), x.GetIp())
 }
