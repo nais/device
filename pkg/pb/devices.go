@@ -8,7 +8,7 @@ import (
 	"github.com/nais/device/pkg/ioconvenience"
 )
 
-const MaxTimeSinceKolideLastSeen = 1 * time.Hour
+const MaxTimeSinceKolideLastSeen = 24 * time.Hour
 
 func (d *Device) KolideSeenRecently() bool {
 	lastSeen := d.GetKolideLastSeen().AsTime()

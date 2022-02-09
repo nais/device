@@ -34,5 +34,4 @@ Endpoint = endpoint
 
 `
 	assert.Equal(t, expected, buf.String())
-
 }

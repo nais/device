@@ -14,7 +14,7 @@ func TestKolideSeenRecently(t *testing.T) {
 	//now := time.Date(2069, 4, 20, 13, 37, 0, 0, nil)
 	now := time.Now()
 	withinDeadline := now.Add(-30 * time.Minute)
-	afterDeadline := now.Add(-61 * time.Minute)
+	afterDeadline := now.Add(-25 * time.Hour)
 
 	deviceSeenRecently := &pb.Device{
 		KolideLastSeen: timestamppb.New(withinDeadline),
