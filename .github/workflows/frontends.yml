@@ -110,6 +110,10 @@ jobs:
         with:
           name: windows-client
           path: bin/windows
+      - name: set version env var
+        run: |
+          $version = 800+[int]$Env:GITHUB_RUN_NUMBER
+          "WINDOWS_BUILD_NUMBER=$version" >> $Env:GITHUB_ENV
       - name: create windows installer
         run: |
           msbuild packaging\windows\naisdevice.wixproj
