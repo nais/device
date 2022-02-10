@@ -24,7 +24,7 @@ type Config struct {
 
 func DefaultConfig() Config {
 	return Config{
-		APIServerURL:        "http://127.0.0.1:8099",
+		APIServerURL:        "127.0.0.1:8099",
 		PrometheusAddr:      "127.0.0.1:3000",
 		LogLevel:            "info",
 		WireGuardConfigPath: "/run/wg0.conf",

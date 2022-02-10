@@ -29,7 +29,6 @@ func UpdateConfiguration(targetIPs []string) error {
 
 	err = EncodePrometheusTargets(targetIPs, 9100, nodeTargetsFile)
 	if err != nil {
-		_ = nodeTargetsFile.Close()
 		return fmt.Errorf("unable to write prometheus node config: %w", err)
 	}
 
@@ -41,7 +40,6 @@ func UpdateConfiguration(targetIPs []string) error {
 
 	err = EncodePrometheusTargets(targetIPs, 3000, gatewayTargetsFile)
 	if err != nil {
-		_ = gatewayTargetsFile.Close()
 		return fmt.Errorf("unable to write prometheus gateway config: %w", err)
 	}
 

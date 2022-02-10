@@ -10,8 +10,10 @@ import (
 	"net/http"
 	"os"
 	"os/exec"
+	"os/signal"
 	"path/filepath"
 	"strings"
+	"syscall"
 	"time"
 
 	grpc_prometheus "github.com/grpc-ecosystem/go-grpc-prometheus"
@@ -298,23 +300,52 @@ func run() error {
 		}
 	}()
 
-	go func() {
-		for {
-			select {
-			case device := <-deviceUpdates:
-				sendDeviceConfig(device)
-
-			case <-triggerGatewaySync:
-				sendGatewayUpdates()
-			}
-		}
-	}()
-
 	router := api.New(apiConfig)
 
 	log.Infof("running @%s", cfg.BindAddress)
 
-	return http.ListenAndServe(cfg.BindAddress, router)
+	srv := &http.Server{
+		Handler: router,
+		Addr:    cfg.BindAddress,
+	}
+
+	go func() {
+		err := srv.ListenAndServe()
+		cancel()
+		switch err {
+		case http.ErrServerClosed:
+			log.Infof("HTTP server stopped successfully.")
+		case nil:
+		default:
+			log.Errorf("HTTP server terminated with error: %s", err)
+		}
+	}()
+
+	sigs := make(chan os.Signal)
+	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
+
+	defer srv.Close()
+	defer grpcServer.GracefulStop()
+
+	for {
+		select {
+		case s := <-sigs:
+			log.Warnf("Received signal %s", s)
+			cancel()
+
+		case <-ctx.Done():
+			log.Warnf("Program context canceled; shutting down.")
+			return nil
+
+		case device := <-deviceUpdates:
+			sendDeviceConfig(device)
+
+		case <-triggerGatewaySync:
+			sendGatewayUpdates()
+		}
+	}
+
+	return nil
 }
 
 func generatePublicKey(privateKey []byte, wireGuardPath string) ([]byte, error) {

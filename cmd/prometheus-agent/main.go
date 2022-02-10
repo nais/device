@@ -3,7 +3,12 @@ package main
 import (
 	"context"
 	"fmt"
+	"io"
 	"net/http"
+	"os"
+	"os/signal"
+	"syscall"
+	"time"
 
 	"github.com/kelseyhightower/envconfig"
 	"github.com/nais/device/pkg/pb"
@@ -35,7 +40,7 @@ const (
 )
 
 func init() {
-	logger.Setup(cfg.LogLevel)
+	flag.StringVar(&cfg.LogLevel, "log-level", cfg.LogLevel, "logging verbosity")
 	flag.StringVar(&cfg.TunnelIP, "tunnel-ip", cfg.TunnelIP, "prometheus tunnel ip")
 	flag.StringVar(&cfg.PrometheusAddr, "prometheus-address", cfg.PrometheusAddr, "prometheus listen address")
 	flag.StringVar(&cfg.APIServerURL, "api-server-url", cfg.APIServerURL, "api server URL")
@@ -57,7 +62,9 @@ func main() {
 
 func run() error {
 	var err error
-	ctx := context.Background()
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
 
 	err = envconfig.Process("PROMETHEUS_AGENT", &cfg)
 	if err != nil {
@@ -66,7 +73,7 @@ func run() error {
 
 	logger.Setup(cfg.LogLevel)
 
-	log.Infof("gateway-agent version %s, revision: %s", version.Version, version.Revision)
+	log.Infof("prometheus-agent version %s, revision: %s", version.Version, version.Revision)
 
 	prometheus.MustRegister(lastSuccessfulConfigUpdate)
 
@@ -105,17 +112,93 @@ func run() error {
 		return fmt.Errorf("apply initial WireGuard config: %w", err)
 	}
 
-	grpcClient, err := grpc.DialContext(ctx, cfg.APIServerURL)
+	grpcClient, err := grpc.DialContext(ctx, cfg.APIServerURL, grpc.WithInsecure())
 	if err != nil {
 		return fmt.Errorf("grpc dial: %w", err)
 	}
-	_ = grpcClient
 
-	// TODO:
-	// register prometheus grpc client
-	// get gateways stream
-	// on change:
-	//   prometheusagent.UpdateConfiguration
-	//   lastSuccessfulConfigUpdate.SetToCurrentTime()
+	apiClient := pb.NewAPIServerClient(grpcClient)
+
+	sigs := make(chan os.Signal)
+	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
+
+	const pollInterval = 5 * time.Minute
+	const timeout = 10 * time.Second
+	t := time.NewTimer(time.Millisecond)
+
+	update := func() error {
+		ctx, cancel := context.WithTimeout(ctx, timeout)
+		defer cancel()
+
+		gateways, err := listGateways(ctx, apiClient)
+		if err != nil {
+			return err
+		}
+
+		return applyGateways(netConf, gateways, apiserver)
+	}
+
+	for ctx.Err() == nil {
+		select {
+		case s := <-sigs:
+			log.Warnf("Received signal %s", s)
+			cancel()
+		case <-t.C:
+			log.Debugf("Polling for new configuration...")
+			err = update()
+			if err != nil {
+				log.Error(err)
+			} else {
+				log.Debugf("Configuration successfully applied")
+				lastSuccessfulConfigUpdate.SetToCurrentTime()
+			}
+			t.Reset(pollInterval)
+		}
+	}
+
 	return nil
+}
+
+func listGateways(ctx context.Context, client pb.APIServerClient) ([]*pb.Gateway, error) {
+	const listCap = 128
+
+	stream, err := client.ListGateways(ctx, &pb.ListGatewayRequest{
+		Password: cfg.APIServerPassword,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	gateways := make([]*pb.Gateway, 0, listCap)
+
+	for ctx.Err() == nil {
+		gateway, err := stream.Recv()
+		if err == io.EOF {
+			break
+		} else if err != nil {
+			return nil, err
+		}
+		gateways = append(gateways, gateway)
+	}
+
+	return gateways, nil
+}
+
+func applyGateways(netConf wireguard.NetworkConfigurer, gateways []*pb.Gateway, staticPeers ...wireguard.Peer) error {
+	peers := make([]wireguard.Peer, len(gateways))
+	ips := make([]string, len(gateways))
+
+	for i := range gateways {
+		peers[i] = gateways[i]
+		ips[i] = gateways[i].GetIp()
+	}
+
+	peers = append(peers, staticPeers...)
+
+	err := netConf.ApplyWireGuardConfig(peers)
+	if err != nil {
+		return err
+	}
+
+	return prometheusagent.UpdateConfiguration(ips)
 }
