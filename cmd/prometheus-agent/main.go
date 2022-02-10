@@ -42,13 +42,13 @@ const (
 func init() {
 	flag.StringVar(&cfg.LogLevel, "log-level", cfg.LogLevel, "logging verbosity")
 	flag.StringVar(&cfg.TunnelIP, "tunnel-ip", cfg.TunnelIP, "prometheus tunnel ip")
-	flag.StringVar(&cfg.PrometheusAddr, "prometheus-address", cfg.PrometheusAddr, "prometheus listen address")
+	flag.StringVar(&cfg.PrometheusAddress, "prometheus-address", cfg.PrometheusAddress, "prometheus listen address")
 	flag.StringVar(&cfg.APIServerURL, "api-server-url", cfg.APIServerURL, "api server URL")
 	flag.StringVar(&cfg.APIServerPublicKey, "api-server-public-key", cfg.APIServerPublicKey, "api server public key")
 	flag.StringVar(&cfg.APIServerEndpoint, "api-server-endpoint", cfg.APIServerEndpoint, "api server WireGuard endpoint")
 	flag.StringVar(&cfg.APIServerUsername, "api-server-username", cfg.APIServerUsername, "apiserver username")
 	flag.StringVar(&cfg.APIServerPassword, "api-server-password", cfg.APIServerPassword, "apiserver password")
-	flag.BoolVar(&cfg.WireGuardEnabled, "wireguard-enabled", cfg.WireGuardEnabled, "apiserver password")
+	flag.BoolVar(&cfg.WireGuardEnabled, "wireguard-enabled", cfg.WireGuardEnabled, "enable WireGuard integration")
 
 	flag.Parse()
 }
@@ -78,8 +78,8 @@ func run() error {
 	prometheus.MustRegister(lastSuccessfulConfigUpdate)
 
 	go func() {
-		log.Infof("Prometheus serving metrics at %v", cfg.PrometheusAddr)
-		_ = http.ListenAndServe(cfg.PrometheusAddr, promhttp.Handler())
+		log.Infof("Prometheus serving metrics at %v", cfg.PrometheusAddress)
+		_ = http.ListenAndServe(cfg.PrometheusAddress, promhttp.Handler())
 	}()
 
 	var netConf wireguard.NetworkConfigurer
