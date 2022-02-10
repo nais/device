@@ -10,4 +10,4 @@ StandardError=append:/var/log/naisdevice/prometheus-agent.json
 ExecStart=/usr/bin/prometheus-agent
 
 [Install]
-
+WantedBy=multi-user.target
