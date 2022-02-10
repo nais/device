@@ -1,3 +1,13 @@
+- name: Set up apt-key for controlplane repo
+  apt_key:
+    url: https://europe-north1-apt.pkg.dev/doc/repo-signing-key.gpg
+    state: present
+
+- name: Set up controlplane repo
+  apt_repository:
+    repo: 'deb [arch=amd64] https://europe-north1-apt.pkg.dev/projects/naisdevice controlplane main'
+    state: present
+
 - name: Ensure wireguard package installed
   apt:
     name: wireguard
@@ -8,21 +18,10 @@
     name: prometheus
     state: present
 
-- name: Create binary directory
-  file:
-    path: /opt/naisdevice/bin
-    state: directory
-    mode: '0755'
-
-- name: Download prometheus-agent
-  get_url:
-    dest: /opt/naisdevice/bin/prometheus-agent
-    force: yes
-    url: https://github.com/nais/device/releases/download/2021-10-04-111116/prometheus-agent
-    backup: yes
-    mode: 0755
-  notify:
-    - restart_prometheus-agent
+- name: Ensure prometheus-agent package installed
+  apt:
+    name: prometheus-agent
+    state: present
 
 - name: Copy prometheus config
   copy:
@@ -30,13 +29,6 @@
     dest: /etc/prometheus/
   notify:
     - restart_prometheus
-
-- name: Install prometheus-agent systemd unit file
-  template:
-    src: prometheus-agent.service.j2
-    dest: /etc/systemd/system/prometheus-agent.service
-  notify:
-    - restart_prometheus-agent
 
 - name: Ensure prometheus-agent is enabled
   systemd:
