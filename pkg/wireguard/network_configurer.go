@@ -6,7 +6,6 @@ import (
 	"os/exec"
 	"regexp"
 
-	"github.com/coreos/go-iptables/iptables"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -18,16 +17,22 @@ type NetworkConfigurer interface {
 	SetupIPTables() error
 }
 
+type IPTables interface {
+	AppendUnique(table, chain string, rulespec ...string) error
+	NewChain(table, chain string) error
+	ChangePolicy(table, chain, target string) error
+}
+
 type networkConfigurer struct {
 	config        *Config
-	ipTables      *iptables.IPTables
+	ipTables      IPTables
 	interfaceName string
 	interfaceIP   string
 	configPath    string
 	tunnelIP      string
 }
 
-func NewConfigurer(configPath, tunnelIP, privateKey, intf string, listenPort int, ipTables *iptables.IPTables) NetworkConfigurer {
+func NewConfigurer(configPath, tunnelIP, privateKey, intf string, listenPort int, ipTables IPTables) NetworkConfigurer {
 	return &networkConfigurer{
 		config: &Config{
 			PrivateKey: privateKey,
