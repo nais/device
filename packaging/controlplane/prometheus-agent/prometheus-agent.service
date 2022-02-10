@@ -4,14 +4,10 @@ Description=Prometheus agent
 
 [Service]
 Restart=always
+EnvironmentFile=/etc/default/prometheus-agent
 StandardOutput=append:/var/log/naisdevice/prometheus-agent.json
 StandardError=append:/var/log/naisdevice/prometheus-agent.json
-ExecStart=/bin/bash -c '/usr/bin/prometheus-agent \
-        --tunnel-ip="10.255.247.254" \
-        --api-server-public-key="FUwVtyvs8nIRx9RpUUEopkfV8idmHz9g9K/vf9MFOXI=" \
-        --api-server-wireguard-endpoint="35.228.142.96:51820" \
-        --apiserver-username="prometheus" \
-        --apiserver-password="$(gcloud secrets versions access latest --secret nais-device_prometheus_api-server-password)"'
+ExecStart=/usr/bin/prometheus-agent
 
 [Install]
 
