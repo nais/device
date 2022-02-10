@@ -53,7 +53,7 @@ func TestGetDeviceConfiguration(t *testing.T) {
 
 	gatewayAuthenticator := auth.NewGatewayAuthenticator(db)
 
-	server := api.NewGRPCServer(db, nil, nil, gatewayAuthenticator, nil, make(chan struct{}, 10))
+	server := api.NewGRPCServer(db, nil, nil, gatewayAuthenticator, nil, nil, make(chan struct{}, 10))
 
 	s := grpc.NewServer()
 	pb.RegisterAPIServerServer(s, server)
@@ -104,7 +104,7 @@ func TestGatewayPasswordAuthentication(t *testing.T) {
 
 	gatewayAuthenticator := auth.NewGatewayAuthenticator(db)
 
-	server := api.NewGRPCServer(db, nil, nil, gatewayAuthenticator, nil, make(chan struct{}, 10))
+	server := api.NewGRPCServer(db, nil, nil, gatewayAuthenticator, nil, nil, make(chan struct{}, 10))
 
 	s := grpc.NewServer()
 	pb.RegisterAPIServerServer(s, server)
@@ -159,7 +159,7 @@ func TestGatewayPasswordAuthenticationFail(t *testing.T) {
 
 	gatewayAuthenticator := auth.NewGatewayAuthenticator(db)
 
-	server := api.NewGRPCServer(db, nil, nil, gatewayAuthenticator, nil, make(chan struct{}, 10))
+	server := api.NewGRPCServer(db, nil, nil, gatewayAuthenticator, nil, nil, make(chan struct{}, 10))
 
 	s := grpc.NewServer()
 	pb.RegisterAPIServerServer(s, server)

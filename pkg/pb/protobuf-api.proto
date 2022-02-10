@@ -190,6 +190,7 @@ message Configuration {
 message ModifyGatewayRequest {
   string password = 1; // authentication token
   Gateway gateway = 2;
+  string username = 3;
 }
 
 message ModifyGatewayResponse {

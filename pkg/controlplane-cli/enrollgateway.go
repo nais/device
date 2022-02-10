@@ -88,6 +88,7 @@ func EditGateway(c *cli.Context) error {
 	client := pb.NewAPIServerClient(conn)
 
 	req := &pb.ModifyGatewayRequest{
+		Username: AdminUsername,
 		Password: c.String(FlagAdminPassword),
 		Gateway: &pb.Gateway{
 			Name: c.String(FlagName),
@@ -136,6 +137,7 @@ func EnrollGateway(c *cli.Context) error {
 	publicKey := wireguard.PublicKey(privateKey)
 
 	req := &pb.ModifyGatewayRequest{
+		Username: AdminUsername,
 		Password: c.String(FlagAdminPassword),
 		Gateway: &pb.Gateway{
 			Name:         c.String(FlagName),

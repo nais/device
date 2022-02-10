@@ -10,11 +10,6 @@ import (
 	"github.com/nais/device/pkg/pb"
 )
 
-const (
-	AdminUsername      = "admin"
-	PrometheusUsername = "prometheus"
-)
-
 type grpcServer struct {
 	pb.UnimplementedAPIServerServer
 
