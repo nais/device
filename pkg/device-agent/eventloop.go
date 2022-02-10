@@ -38,8 +38,9 @@ const (
 	getSerialTimeout       = 2 * time.Second    // timeout for getting device serial from helper
 	authFlowTimeout        = 30 * time.Second   // total timeout for authenticating user (AAD login in browser, redirect to localhost, exchange code for token)
 	approximateInfinity    = time.Hour * 69_420 // Name describes purpose. Used for renewing microsoft client certs automatically
-	certRenewalInterval    = time.Hour * 23     // Microsoft Client certificate validity/renewal interval
-	certRenewalBackoff     = time.Second * 10   // Self-explanatory (Microsoft Client certificate)
+	certificateLifetime    = time.Hour * 23     // Microsoft Client certificate validity/renewal interval
+	certCheckInterval      = time.Minute * 1    // Self-explanatory (Microsoft Client certificate)
+	certRenewTimeout       = time.Second * 20
 	apiServerRetryInterval = time.Second * 5
 )
 
@@ -169,6 +170,7 @@ func (das *DeviceAgentServer) EventLoop(ctx context.Context) {
 	healthCheckTicker := time.NewTicker(healthCheckInterval)
 	versionCheckTicker := time.NewTicker(5 * time.Second)
 	certRenewalTicker := time.NewTicker(approximateInfinity)
+	lastCertificateFetch := time.Time{}
 
 	autoConnectTriggered := false
 
@@ -200,13 +202,25 @@ func (das *DeviceAgentServer) EventLoop(ctx context.Context) {
 			}
 
 		case <-certRenewalTicker.C:
-			certRenewalTicker.Reset(certRenewalBackoff)
-			if status.ConnectionState != pb.AgentState_Connected {
-				log.Debugf("NAV Microsoft client certificate renewal skipped; not connected")
+			certRenewalTicker.Reset(certCheckInterval)
+
+			if !das.Config.AgentConfiguration.CertRenewal {
 				break
 			}
 
-			renewContext, renewCancel := context.WithTimeout(ctx, certRenewalBackoff)
+			nextFetch := lastCertificateFetch.Add(certificateLifetime)
+			if time.Now().Before(nextFetch) {
+				break
+			}
+
+			if status.ConnectionState != pb.AgentState_Connected {
+				log.Debugf("NAV Microsoft client certificate renewal not running because you are not connected")
+				break
+			}
+
+			log.Infof("Attempting to install new NAV Microsoft client certificate")
+
+			renewContext, renewCancel := context.WithTimeout(ctx, certRenewTimeout)
 			err = das.outtune.Install(renewContext)
 			renewCancel()
 
@@ -215,7 +229,8 @@ func (das *DeviceAgentServer) EventLoop(ctx context.Context) {
 				break
 			}
 
-			certRenewalTicker.Reset(certRenewalInterval)
+			lastCertificateFetch = time.Now()
+
 			log.Info("NAV Microsoft client certificate renewed")
 
 		case <-healthCheckTicker.C:
@@ -368,7 +383,7 @@ func (das *DeviceAgentServer) EventLoop(ctx context.Context) {
 			case pb.AgentState_Connected:
 				sentry.CaptureMessage("Connected")
 				healthCheckTicker.Reset(1 * time.Second)
-				certRenewalTicker.Reset(2 * time.Second)
+				certRenewalTicker.Reset(5 * time.Second)
 
 			case pb.AgentState_Disconnected:
 				status.Gateways = make([]*pb.Gateway, 0)
@@ -400,9 +415,7 @@ func (das *DeviceAgentServer) EventLoop(ctx context.Context) {
 			case pb.AgentState_Unhealthy:
 
 			case pb.AgentState_AgentConfigurationChanged:
-				if das.Config.AgentConfiguration.CertRenewal {
-					certRenewalTicker.Reset(1 * time.Second)
-				}
+				certRenewalTicker.Reset(1 * time.Second)
 				das.stateChange <- previousState
 			}
 		}
