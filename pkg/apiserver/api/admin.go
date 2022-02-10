@@ -9,7 +9,7 @@ import (
 )
 
 func (s *grpcServer) addOrUpdateGateway(ctx context.Context, r *pb.ModifyGatewayRequest, callback func(context.Context, *pb.Gateway) error) (*pb.ModifyGatewayResponse, error) {
-	err := s.apikeyAuthenticator.Authenticate(AdminUsername, r.GetPassword())
+	err := s.adminAuth.Authenticate(AdminUsername, r.GetPassword())
 	if err != nil {
 		return nil, status.Errorf(codes.Unauthenticated, err.Error())
 	}
@@ -43,7 +43,7 @@ func (s *grpcServer) UpdateGateway(ctx context.Context, r *pb.ModifyGatewayReque
 }
 
 func (s *grpcServer) GetGateway(ctx context.Context, r *pb.ModifyGatewayRequest) (*pb.Gateway, error) {
-	err := s.apikeyAuthenticator.Authenticate(AdminUsername, r.GetPassword())
+	err := s.adminAuth.Authenticate(AdminUsername, r.GetPassword())
 	if err != nil {
 		return nil, status.Errorf(codes.Unauthenticated, err.Error())
 	}
@@ -52,7 +52,7 @@ func (s *grpcServer) GetGateway(ctx context.Context, r *pb.ModifyGatewayRequest)
 }
 
 func (s *grpcServer) ListGateways(request *pb.ListGatewayRequest, stream pb.APIServer_ListGatewaysServer) error {
-	err := s.apikeyAuthenticator.Authenticate(AdminUsername, request.Password)
+	err := authenticateAny(request.GetUsername(), request.GetPassword(), s.adminAuth, s.prometheusAuth)
 	if err != nil {
 		return status.Error(codes.Unauthenticated, err.Error())
 	}

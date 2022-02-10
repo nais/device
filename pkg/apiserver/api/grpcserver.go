@@ -11,15 +11,17 @@ import (
 )
 
 const (
-	AdminUsername = "admin"
+	AdminUsername      = "admin"
+	PrometheusUsername = "prometheus"
 )
 
 type grpcServer struct {
 	pb.UnimplementedAPIServerServer
 
 	authenticator        auth.Authenticator
-	apikeyAuthenticator  auth.UsernamePasswordAuthenticator
-	gatewayAuthenticator auth.UsernamePasswordAuthenticator
+	adminAuth            auth.UsernamePasswordAuthenticator
+	gatewayAuth          auth.UsernamePasswordAuthenticator
+	prometheusAuth       auth.UsernamePasswordAuthenticator
 	jita                 jita.Client
 	deviceConfigStreams  map[string]pb.APIServer_GetDeviceConfigurationServer
 	gatewayConfigStreams map[string]pb.APIServer_GetGatewayConfigurationServer
@@ -33,13 +35,14 @@ var _ pb.APIServerServer = &grpcServer{}
 
 var ErrNoSession = errors.New("no session")
 
-func NewGRPCServer(db database.APIServer, authenticator auth.Authenticator, apikeyAuthenticator, gatewayAuthenticator auth.UsernamePasswordAuthenticator, jita jita.Client, triggerGatewaySync chan<- struct{}) *grpcServer {
+func NewGRPCServer(db database.APIServer, authenticator auth.Authenticator, adminAuth, gatewayAuth, prometheusAuth auth.UsernamePasswordAuthenticator, jita jita.Client, triggerGatewaySync chan<- struct{}) *grpcServer {
 	return &grpcServer{
 		deviceConfigStreams:  make(map[string]pb.APIServer_GetDeviceConfigurationServer),
 		gatewayConfigStreams: make(map[string]pb.APIServer_GetGatewayConfigurationServer),
 		authenticator:        authenticator,
-		apikeyAuthenticator:  apikeyAuthenticator,
-		gatewayAuthenticator: gatewayAuthenticator,
+		adminAuth:            adminAuth,
+		gatewayAuth:          gatewayAuth,
+		prometheusAuth:       prometheusAuth,
 		db:                   db,
 		jita:                 jita,
 		triggerGatewaySync:   triggerGatewaySync,
@@ -48,4 +51,13 @@ func NewGRPCServer(db database.APIServer, authenticator auth.Authenticator, apik
 
 func (s *grpcServer) triggerGatewayConfigurationSync() {
 	s.triggerGatewaySync <- struct{}{}
+}
+
+func authenticateAny(username, password string, auths ...auth.UsernamePasswordAuthenticator) error {
+	for _, a := range auths {
+		if a.Authenticate(username, password) == nil {
+			return nil
+		}
+	}
+	return auth.ErrInvalidAuth
 }

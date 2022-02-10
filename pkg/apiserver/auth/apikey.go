@@ -1,8 +1,10 @@
 package auth
 
 import (
-	"fmt"
+	"errors"
 )
+
+var ErrInvalidAuth = errors.New("invalid username or password")
 
 type UsernamePasswordAuthenticator interface {
 	Authenticate(username, password string) error
@@ -22,5 +24,5 @@ func (a *apikeyAuthenticator) Authenticate(username, password string) error {
 	if len(username) > 0 && len(password) > 0 && a.users[username] == password {
 		return nil
 	}
-	return fmt.Errorf("invalid username or password")
+	return ErrInvalidAuth
 }

@@ -24,6 +24,8 @@ const (
 	FlagPublicKey     = "public-key"
 )
 
+const AdminUsername = "admin"
+
 func ListGateways(c *cli.Context) error {
 	conn, err := grpc.DialContext(
 		c.Context,
@@ -36,6 +38,7 @@ func ListGateways(c *cli.Context) error {
 
 	client := pb.NewAPIServerClient(conn)
 	stream, err := client.ListGateways(c.Context, &pb.ListGatewayRequest{
+		Username: AdminUsername,
 		Password: c.String(FlagAdminPassword),
 	})
 	if err != nil {

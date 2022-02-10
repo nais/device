@@ -67,7 +67,8 @@ func init() {
 	flag.StringVar(&cfg.Azure.ClientID, "azure-client-id", cfg.Azure.ClientID, "Azure app client id")
 	flag.StringVar(&cfg.Azure.Tenant, "azure-tenant", cfg.Azure.Tenant, "Azure tenant")
 	flag.StringVar(&cfg.Azure.ClientSecret, "azure-client-secret", cfg.Azure.ClientSecret, "Azure app client secret")
-	flag.StringSliceVar(&cfg.CredentialEntries, "credential-entries", cfg.CredentialEntries, "Comma-separated credentials on format: '<user>:<key>'")
+	flag.StringSliceVar(&cfg.AdminCredentialEntries, "admin-credential-entries", cfg.AdminCredentialEntries, "Comma-separated credentials on format: '<user>:<key>'")
+	flag.StringSliceVar(&cfg.PrometheusCredentialEntries, "prometheus-credential-entries", cfg.PrometheusCredentialEntries, "Comma-separated credentials on format: '<user>:<key>'")
 	flag.StringVar(&cfg.GatewayConfigBucketName, "gateway-config-bucket-name", cfg.GatewayConfigBucketName, "Name of bucket containing gateway config object")
 	flag.StringVar(&cfg.GatewayConfigBucketObjectName, "gateway-config-bucket-object-name", cfg.GatewayConfigBucketObjectName, "Name of bucket object containing gateway config JSON")
 	flag.StringVar(&cfg.KolideEventHandlerAddress, "kolide-event-handler-address", cfg.KolideEventHandlerAddress, "address for kolide-event-handler grpc connection")
@@ -106,8 +107,9 @@ func main() {
 
 func run() error {
 	var authenticator auth.Authenticator
-	var apikeyAuthenticator auth.UsernamePasswordAuthenticator
+	var adminAuthenticator auth.UsernamePasswordAuthenticator
 	var gatewayAuthenticator auth.UsernamePasswordAuthenticator
+	var prometheusAuthenticator auth.UsernamePasswordAuthenticator
 	var wireguardPublicKey []byte
 
 	err := envconfig.Process("APISERVER", &cfg)
@@ -230,25 +232,36 @@ func run() error {
 	}
 
 	if cfg.ControlPlaneAuthenticationEnabled {
-		apiConfig.APIKeys, err = cfg.Credentials()
+		apiConfig.APIKeys, err = config.Credentials(cfg.AdminCredentialEntries)
 		if err != nil {
-			return fmt.Errorf("parse credentials: %w", err)
+			return fmt.Errorf("parse admin credentials: %w", err)
 		}
 
-		if apiConfig.APIKeys == nil {
-			return fmt.Errorf("control plane basic authentication enabled, but no credentials provided (try --credential-entries)")
+		if len(apiConfig.APIKeys) == 0 {
+			return fmt.Errorf("control plane basic authentication enabled, but no admin credentials provided (try --admin-credential-entries)")
 		}
 
-		apikeyAuthenticator = auth.NewAPIKeyAuthenticator(apiConfig.APIKeys)
+		promauth, err := config.Credentials(cfg.PrometheusCredentialEntries)
+		if err != nil {
+			return fmt.Errorf("parse prometheus credentials: %w", err)
+		}
+
+		if len(promauth) == 0 {
+			return fmt.Errorf("control plane basic authentication enabled, but no prometheus credentials provided (try --prometheus-credential-entries)")
+		}
+
+		adminAuthenticator = auth.NewAPIKeyAuthenticator(apiConfig.APIKeys)
 		gatewayAuthenticator = auth.NewGatewayAuthenticator(db)
+		prometheusAuthenticator = auth.NewAPIKeyAuthenticator(promauth)
 	} else {
 		log.Warnf("Control plane authentication DISABLED! Do not run this configuration in production!")
 
-		apikeyAuthenticator = auth.NewMockAPIKeyAuthenticator()
+		adminAuthenticator = auth.NewMockAPIKeyAuthenticator()
 		gatewayAuthenticator = auth.NewMockAPIKeyAuthenticator()
+		prometheusAuthenticator = auth.NewMockAPIKeyAuthenticator()
 	}
 
-	grpcHandler := api.NewGRPCServer(db, authenticator, apikeyAuthenticator, gatewayAuthenticator, jitaClient, triggerGatewaySync)
+	grpcHandler := api.NewGRPCServer(db, authenticator, adminAuthenticator, gatewayAuthenticator, prometheusAuthenticator, jitaClient, triggerGatewaySync)
 	grpcServer := grpc.NewServer(
 		grpc.UnaryInterceptor(grpc_prometheus.UnaryServerInterceptor),
 		grpc.StreamInterceptor(grpc_prometheus.StreamServerInterceptor),

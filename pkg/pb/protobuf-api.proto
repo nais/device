@@ -248,6 +248,7 @@ message GetDeviceConfigurationResponse {
 
 message ListGatewayRequest {
   string password = 1;
+  string username = 2;
 }
 
 message Device {

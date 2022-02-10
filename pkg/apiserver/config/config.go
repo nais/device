@@ -15,7 +15,8 @@ type Config struct {
 	CloudSQLProxyEnabled              bool
 	ConfigDir                         string
 	ControlPlaneAuthenticationEnabled bool
-	CredentialEntries                 []string
+	AdminCredentialEntries            []string
+	PrometheusCredentialEntries       []string
 	DbConnDSN                         string
 	DeviceAuthenticationEnabled       bool
 	Endpoint                          string
@@ -39,9 +40,9 @@ type Config struct {
 	WireGuardEnabled                  bool
 }
 
-func (c *Config) Credentials() (map[string]string, error) {
+func Credentials(entries []string) (map[string]string, error) {
 	credentials := make(map[string]string)
-	for _, key := range c.CredentialEntries {
+	for _, key := range entries {
 		entry := strings.Split(key, ":")
 		if len(entry) > 2 {
 			return nil, fmt.Errorf("invalid format on credentials, should be comma-separated entries on format 'user:key'")

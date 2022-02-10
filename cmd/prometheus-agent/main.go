@@ -163,6 +163,7 @@ func listGateways(ctx context.Context, client pb.APIServerClient) ([]*pb.Gateway
 	const listCap = 128
 
 	stream, err := client.ListGateways(ctx, &pb.ListGatewayRequest{
+		Username: cfg.APIServerUsername,
 		Password: cfg.APIServerPassword,
 	})
 	if err != nil {

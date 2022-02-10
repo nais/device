@@ -13,7 +13,7 @@ import (
 )
 
 func (s *grpcServer) GetGatewayConfiguration(request *pb.GetGatewayConfigurationRequest, stream pb.APIServer_GetGatewayConfigurationServer) error {
-	err := s.gatewayAuthenticator.Authenticate(request.Gateway, request.Password)
+	err := s.gatewayAuth.Authenticate(request.Gateway, request.Password)
 	if err != nil {
 		return status.Error(codes.Unauthenticated, err.Error())
 	}
