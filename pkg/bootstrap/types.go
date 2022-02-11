@@ -4,7 +4,7 @@ import (
 	"github.com/nais/device/pkg/pb"
 )
 
-// Config is the information the device needs to bootstrap it's connection to the APIServer
+// Config is the information the device needs to bootstrap its connection to the APIServer
 type Config struct {
 	DeviceIP       string `json:"deviceIP"`
 	PublicKey      string `json:"publicKey"`

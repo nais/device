@@ -279,30 +279,37 @@ func run() error {
 		adminAuthenticator = auth.NewAPIKeyAuthenticator(apiConfig.APIKeys)
 		gatewayAuthenticator = auth.NewGatewayAuthenticator(db)
 		prometheusAuthenticator = auth.NewAPIKeyAuthenticator(promauth)
-	} else {
-		log.Warnf("Control plane authentication DISABLED! Do not run this configuration in production!")
 
+		log.Warnf("Control plane authentication enabled.")
+
+	} else {
 		adminAuthenticator = auth.NewMockAPIKeyAuthenticator()
 		gatewayAuthenticator = auth.NewMockAPIKeyAuthenticator()
 		prometheusAuthenticator = auth.NewMockAPIKeyAuthenticator()
+
+		log.Warnf("Control plane authentication DISABLED! Do not run this configuration in production!")
 	}
 
-	grpcHandler := api.NewGRPCServer(db, authenticator, adminAuthenticator, gatewayAuthenticator, prometheusAuthenticator, jitaClient, triggerGatewaySync)
+	grpcHandler := api.NewGRPCServer(
+		db,
+		authenticator,
+		adminAuthenticator,
+		gatewayAuthenticator,
+		prometheusAuthenticator,
+		jitaClient,
+		triggerGatewaySync,
+	)
 	grpcServer := grpc.NewServer(
 		grpc.UnaryInterceptor(grpc_prometheus.UnaryServerInterceptor),
 		grpc.StreamInterceptor(grpc_prometheus.StreamServerInterceptor),
 	)
 	pb.RegisterAPIServerServer(grpcServer, grpcHandler)
-
 	grpc_prometheus.Register(grpcServer)
 
 	grpcListener, err := net.Listen("tcp", cfg.GRPCBindAddress)
 	if err != nil {
 		return fmt.Errorf("unable to set up gRPC server: %w", err)
 	}
-
-	// fixme: teardown/restart if this exits
-	go grpcServer.Serve(grpcListener)
 
 	sendDeviceConfig := func(device *pb.Device) {
 		ctx, cancel := context.WithTimeout(ctx, sendDeviceUpdateTimeout)
@@ -341,14 +348,13 @@ func run() error {
 
 	router := api.New(apiConfig)
 
-	log.Infof("running @%s", cfg.BindAddress)
-
 	srv := &http.Server{
 		Handler: router,
 		Addr:    cfg.BindAddress,
 	}
 
 	go func() {
+		log.Infof("Legacy HTTP API starting on %s", cfg.BindAddress)
 		err := srv.ListenAndServe()
 		cancel()
 		switch err {
@@ -358,6 +364,15 @@ func run() error {
 		default:
 			log.Errorf("HTTP server terminated with error: %s", err)
 		}
+	}()
+
+	go func() {
+		log.Infof("gRPC server starting on %s", cfg.GRPCBindAddress)
+		err := grpcServer.Serve(grpcListener)
+		if err != nil {
+			log.Errorf("gRPC server exited with error: %s", err)
+		}
+		cancel()
 	}()
 
 	sigs := make(chan os.Signal)
@@ -383,8 +398,6 @@ func run() error {
 			sendGatewayUpdates()
 		}
 	}
-
-	return nil
 }
 
 func generatePublicKey(privateKey []byte, wireGuardPath string) ([]byte, error) {
