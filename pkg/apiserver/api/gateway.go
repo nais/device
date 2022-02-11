@@ -3,7 +3,6 @@ package api
 import (
 	"context"
 	"fmt"
-	"strings"
 
 	apiserver_metrics "github.com/nais/device/pkg/apiserver/metrics"
 	"github.com/nais/device/pkg/pb"
@@ -31,7 +30,7 @@ func (s *grpcServer) GetGatewayConfiguration(request *pb.GetGatewayConfiguration
 	s.reportOnlineGateways()
 	s.gatewayLock.Unlock()
 
-	log.Infof("Gateway %s", strings.Join(s.onlineGateways(), ", "))
+	log.Infof("Gateway %s connected (%d active gateways)", request.Gateway, len(s.gatewayConfigStreams))
 
 	defer func() {
 		s.gatewayLock.Lock()
