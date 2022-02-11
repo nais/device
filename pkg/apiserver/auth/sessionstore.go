@@ -3,9 +3,10 @@ package auth
 import (
 	"context"
 	"fmt"
+	"sync"
+
 	"github.com/nais/device/pkg/apiserver/database"
 	"github.com/nais/device/pkg/pb"
-	"sync"
 )
 
 // sessionStore provides a database-backed session storage, with an in-memory caching layer.

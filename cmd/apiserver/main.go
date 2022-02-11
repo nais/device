@@ -127,6 +127,8 @@ func run() error {
 		return fmt.Errorf("initialize database: %w", err)
 	}
 
+	log.Infof("Loading user sessions from database...")
+
 	sessions := auth.NewSessionStore(db)
 	err = sessions.Warmup(ctx)
 	if err != nil {
@@ -134,17 +136,24 @@ func run() error {
 	}
 
 	if cfg.DeviceAuthenticationEnabled {
+		log.Infof("Fetching Azure OIDC configuration...")
 		err = cfg.Azure.FetchCertificates()
 		if err != nil {
 			return fmt.Errorf("fetch jwks: %w", err)
 		}
 
 		authenticator = auth.NewAuthenticator(cfg.Azure, db, sessions)
+		log.Infof("Azure OIDC authenticator configured to authenticate device sessions.")
+
 	} else {
+
 		authenticator = auth.NewMockAuthenticator(sessions)
+		log.Warnf("Device authentication DISABLED! Do not run this configuration in production!")
 	}
 
 	if cfg.WireGuardEnabled {
+		log.Infof("Setting up WireGuard integration...")
+
 		err = setupInterface()
 		if err != nil {
 			return fmt.Errorf("set up WireGuard interface: %w", err)
@@ -164,7 +173,7 @@ func run() error {
 
 		go SyncLoop(w)
 
-		log.Infof("WireGuard configured")
+		log.Infof("WireGuard successfully configured.")
 
 	} else {
 		log.Warnf("WireGuard integration DISABLED! Do not run this configuration in production!")

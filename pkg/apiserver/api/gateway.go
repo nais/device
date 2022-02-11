@@ -50,6 +50,8 @@ func (s *grpcServer) GetGatewayConfiguration(request *pb.GetGatewayConfiguration
 	// wait for disconnect
 	<-stream.Context().Done()
 
+	log.Infof("Gateway %s disconnected (%d active gateways)", request.Gateway, len(s.gatewayConfigStreams))
+
 	return nil
 }
 
