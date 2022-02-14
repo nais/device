@@ -87,13 +87,14 @@ func init() {
 
 	cfg.PrivateKeyPath = filepath.Join(cfg.ConfigDir, "private.key")
 	cfg.WireGuardConfigPath = filepath.Join(cfg.ConfigDir, "wg0.conf")
-
-	logger.Setup(cfg.LogLevel)
 }
 
 var errRequiredArgNotSet = errors.New("arg is required, but not set")
 
 func main() {
+	// sets up default logger
+	logger.Setup(cfg.LogLevel)
+
 	err := run()
 	if err != nil {
 		if errors.Is(err, errRequiredArgNotSet) {
@@ -120,6 +121,9 @@ func run() error {
 	if err != nil {
 		return fmt.Errorf("parse environment variables: %w", err)
 	}
+
+	// sets up logger based on envconfig
+	logger.Setup(cfg.LogLevel)
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -418,6 +422,7 @@ func run() error {
 			return nil
 
 		case <-gatewaySyncTimer.C:
+			log.Debugf("triggered gateway sync")
 			sendGatewayUpdates()
 
 		case event := <-deviceUpdates:
