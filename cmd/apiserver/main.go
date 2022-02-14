@@ -33,6 +33,7 @@ import (
 	"github.com/nais/device/pkg/logger"
 	"github.com/nais/device/pkg/pb"
 	"github.com/nais/device/pkg/version"
+	kolidepb "github.com/nais/kolide-event-handler/pkg/pb"
 	log "github.com/sirupsen/logrus"
 	flag "github.com/spf13/pflag"
 	"google.golang.org/grpc"
@@ -74,9 +75,8 @@ func init() {
 	flag.StringVar(&cfg.GatewayConfigBucketObjectName, "gateway-config-bucket-object-name", cfg.GatewayConfigBucketObjectName, "Name of bucket object containing gateway config JSON")
 	flag.StringVar(&cfg.KolideEventHandlerAddress, "kolide-event-handler-address", cfg.KolideEventHandlerAddress, "address for kolide-event-handler grpc connection")
 	flag.BoolVar(&cfg.KolideEventHandlerEnabled, "kolide-event-handler-enabled", cfg.KolideEventHandlerEnabled, "enable kolide event handler (incoming webhooks from kolide on device failures)")
+	flag.BoolVar(&cfg.KolideEventHandlerSecure, "kolide-event-handler-secure", cfg.KolideEventHandlerSecure, "require TLS and authentication when talking to Kolide event handler")
 	flag.StringVar(&cfg.KolideEventHandlerToken, "kolide-event-handler-token", cfg.KolideEventHandlerToken, "token for kolide-event-handler grpc connection")
-	flag.StringVar(&cfg.KolideApiToken, "kolide-api-token", cfg.KolideApiToken, "token used to communicate with the kolide api")
-	flag.BoolVar(&cfg.KolideSyncEnabled, "kolide-sync-enabled", cfg.KolideSyncEnabled, "enable kolide sync integration (looking for device failures)")
 	flag.BoolVar(&cfg.DeviceAuthenticationEnabled, "device-authentication-enabled", cfg.DeviceAuthenticationEnabled, "enable authentication for nais devices (oauth2)")
 	flag.BoolVar(&cfg.ControlPlaneAuthenticationEnabled, "control-plane-authentication-enabled", cfg.ControlPlaneAuthenticationEnabled, "enable authentication for control plane (api keys)")
 	flag.BoolVar(&cfg.WireGuardEnabled, "wireguard-enabled", cfg.WireGuardEnabled, "enable WireGuard")
@@ -182,7 +182,7 @@ func run() error {
 		log.Warnf("WireGuard integration DISABLED! Do not run this configuration in production!")
 	}
 
-	deviceUpdates := make(chan *pb.Device, 64)
+	deviceUpdates := make(chan *kolidepb.DeviceEvent, 64)
 	triggerGatewaySync := make(chan struct{}, 64)
 
 	// TODO: remove when we've improved JITA
@@ -202,29 +202,19 @@ func run() error {
 		}
 	}()
 
-	if cfg.KolideSyncEnabled {
-		if len(cfg.KolideApiToken) == 0 {
-			return fmt.Errorf("--kolide-api-token %w", errRequiredArgNotSet)
-		}
-
-		kolideHandler := kolide.New(cfg.KolideApiToken, db, deviceUpdates, triggerGatewaySync)
-
-		go kolideHandler.Cron(ctx)
-	}
-
 	if cfg.KolideEventHandlerEnabled {
-		if len(cfg.KolideApiToken) == 0 {
-			return fmt.Errorf("--kolide-api-token %w", errRequiredArgNotSet)
-		}
 		if len(cfg.KolideEventHandlerAddress) == 0 {
 			return fmt.Errorf("--kolide-event-handler-address %w", errRequiredArgNotSet)
 		}
-		if len(cfg.KolideEventHandlerToken) == 0 {
-			return fmt.Errorf("--kolide-event-handler-token %w", errRequiredArgNotSet)
-		}
 
-		kolideHandler := kolide.New(cfg.KolideApiToken, db, deviceUpdates, triggerGatewaySync)
-		go kolideHandler.DeviceEventHandler(ctx, cfg.KolideEventHandlerAddress, cfg.KolideEventHandlerToken)
+		go func() {
+			log.Infof("Kolide event handler stream starting on %s", cfg.KolideEventHandlerAddress)
+			err := kolide.DeviceEventStreamer(ctx, cfg.KolideEventHandlerAddress, cfg.KolideEventHandlerToken, cfg.KolideEventHandlerSecure, deviceUpdates)
+			if err != nil {
+				log.Errorf("Kolide event streamer finished: %s", err)
+			}
+			cancel()
+		}()
 	}
 
 	if len(cfg.BootstrapAPIURL) > 0 {
@@ -315,6 +305,9 @@ func run() error {
 		return fmt.Errorf("unable to set up gRPC server: %w", err)
 	}
 
+	gatewaySyncTimer := time.NewTimer(time.Second)
+	gatewaySyncTimer.Stop()
+
 	sendDeviceConfig := func(device *pb.Device) {
 		ctx, cancel := context.WithTimeout(ctx, sendDeviceUpdateTimeout)
 		defer cancel()
@@ -339,6 +332,22 @@ func run() error {
 			// fixme: metrics
 			log.Error(err)
 		}
+	}
+
+	updateDevice := func(event *kolidepb.DeviceEvent) error {
+		device, err := kolide.LookupDevice(ctx, db, event)
+		if err != nil {
+			return err
+		}
+		device.Healthy = event.GetState().Healthy()
+		device.LastUpdated = event.GetTimestamp()
+		err = db.UpdateDevices(ctx, []*pb.Device{device})
+		if err != nil {
+			return err
+		}
+		sendDeviceConfig(device)
+		triggerGatewaySync <- struct{}{}
+		return nil
 	}
 
 	go func() {
@@ -403,11 +412,17 @@ func run() error {
 			time.Sleep(shutdownGracePeriod)
 			return nil
 
-		case device := <-deviceUpdates:
-			sendDeviceConfig(device)
+		case <-gatewaySyncTimer.C:
+			sendGatewayUpdates()
+
+		case event := <-deviceUpdates:
+			err = updateDevice(event)
+			if err != nil {
+				log.Errorf("Update device health: %s", err)
+			}
 
 		case <-triggerGatewaySync:
-			sendGatewayUpdates()
+			gatewaySyncTimer.Reset(time.Second)
 		}
 	}
 }

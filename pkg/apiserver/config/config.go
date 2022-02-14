@@ -26,11 +26,10 @@ type Config struct {
 	JitaPassword                      string
 	JitaUrl                           string
 	JitaUsername                      string
-	KolideApiToken                    string
 	KolideEventHandlerAddress         string
 	KolideEventHandlerEnabled         bool
 	KolideEventHandlerToken           string
-	KolideSyncEnabled                 bool
+	KolideEventHandlerSecure          bool
 	LogLevel                          string
 	PrivateKeyPath                    string
 	PrometheusAddr                    string
