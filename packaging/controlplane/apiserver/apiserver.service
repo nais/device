@@ -4,10 +4,9 @@ Description=apiserver
 
 [Service]
 Restart=always
+EnvironmentFile=/etc/default/apiserver
 StandardOutput=append:/var/log/naisdevice/apiserver.json
 StandardError=append:/var/log/naisdevice/apiserver.json
-
-EnvironmentFile=/etc/default/apiserver
 ExecStart=/usr/bin/apiserver
 
 [Install]

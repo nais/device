@@ -1,5 +1,4 @@
 # vi:syntax=systemd
-
 [Unit]
 Description=naisdevice gateway agent
 
