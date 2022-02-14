@@ -43,6 +43,7 @@ const (
 	WireGuardSyncInterval     = 10 * time.Second
 	sendGatewayConfigTimeout  = 5 * time.Second
 	sendDeviceUpdateTimeout   = 5 * time.Second
+	shutdownGracePeriod       = 20 * time.Millisecond // time to allow server processes to finish their goroutines
 )
 
 var (
@@ -102,6 +103,8 @@ func main() {
 		}
 
 		os.Exit(1)
+	} else {
+		log.Info("naisdevice API server has shut down cleanly.")
 	}
 }
 
@@ -205,6 +208,7 @@ func run() error {
 		}
 
 		kolideHandler := kolide.New(cfg.KolideApiToken, db, deviceUpdates, triggerGatewaySync)
+
 		go kolideHandler.Cron(ctx)
 	}
 
@@ -389,6 +393,14 @@ func run() error {
 
 		case <-ctx.Done():
 			log.Warnf("Program context canceled; shutting down.")
+			log.Warnf("Stopping legacy HTTP API...")
+			err = srv.Close()
+			if err != nil {
+				log.Errorf("Shutdown: %s", err)
+			}
+			log.Warnf("Stopping gRPC API...")
+			grpcServer.GracefulStop()
+			time.Sleep(shutdownGracePeriod)
 			return nil
 
 		case device := <-deviceUpdates:
