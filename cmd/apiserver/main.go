@@ -173,6 +173,23 @@ func run() error {
 	deviceUpdates := make(chan *pb.Device, 64)
 	triggerGatewaySync := make(chan struct{}, 64)
 
+	// TODO: remove when we've improved JITA
+	// This triggers sync every 10 sec to let gateways know if someone has JITA'd
+	go func() {
+		ticker := time.NewTicker(10 * time.Second)
+		for {
+			select {
+			case <-ticker.C:
+				log.Info("Hack: triggering gateway-sync")
+				triggerGatewaySync <- struct{}{}
+
+			case <-ctx.Done():
+				log.Infof("Stopped gateway-sync hack")
+				return
+			}
+		}
+	}()
+
 	if cfg.KolideSyncEnabled {
 		if len(cfg.KolideApiToken) == 0 {
 			return fmt.Errorf("--kolide-api-token %w", errRequiredArgNotSet)
