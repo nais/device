@@ -321,7 +321,7 @@ func run() error {
 		if err == nil {
 			err = grpcHandler.SendDeviceConfiguration(ctx, session.GetKey())
 		}
-		if err != nil && !errors.Is(err, api.ErrNoSession) && errors.Is(err, auth.ErrNoSession) {
+		if err != nil && !errors.Is(err, api.ErrNoSession) && !errors.Is(err, auth.ErrNoSession) {
 			// fixme: metrics
 			log.Error(err)
 		}
