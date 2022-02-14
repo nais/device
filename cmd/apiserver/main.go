@@ -354,7 +354,7 @@ func run() error {
 			return err
 		}
 		sendDeviceConfig(device)
-		triggerGatewaySync <- struct{}{}
+		gatewaySyncTimer.Reset(time.Second)
 		return nil
 	}
 
