@@ -192,7 +192,7 @@ func run() error {
 		for {
 			select {
 			case <-ticker.C:
-				log.Info("Hack: triggering gateway-sync")
+				log.Debugf("Hack: triggering gateway-sync")
 				triggerGatewaySync <- struct{}{}
 
 			case <-ctx.Done():
@@ -317,7 +317,7 @@ func run() error {
 		if err == nil {
 			err = grpcHandler.SendDeviceConfiguration(ctx, session.GetKey())
 		}
-		if err != nil && !errors.Is(err, api.ErrNoSession) {
+		if err != nil && !errors.Is(err, api.ErrNoSession) && errors.Is(err, auth.ErrNoSession) {
 			// fixme: metrics
 			log.Error(err)
 		}

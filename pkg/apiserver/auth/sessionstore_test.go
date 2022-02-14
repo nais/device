@@ -86,7 +86,7 @@ func TestSessionStore_Errors(t *testing.T) {
 
 	// Get cached device
 	session, err = store.CachedSessionFromDeviceID(14)
-	assert.EqualError(t, err, "no active session for device 14")
+	assert.EqualError(t, err, "no active session: device 14")
 	assert.Nil(t, session)
 
 	// Fail warmup

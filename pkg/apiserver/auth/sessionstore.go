@@ -2,12 +2,15 @@ package auth
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"sync"
 
 	"github.com/nais/device/pkg/apiserver/database"
 	"github.com/nais/device/pkg/pb"
 )
+
+var ErrNoSession = errors.New("no active session")
 
 // sessionStore provides a database-backed session storage, with an in-memory caching layer.
 type sessionStore struct {
@@ -83,5 +86,6 @@ func (store *sessionStore) CachedSessionFromDeviceID(deviceID int64) (*pb.Sessio
 			return session, nil
 		}
 	}
-	return nil, fmt.Errorf("no active session for device %d", deviceID)
+
+	return nil, fmt.Errorf("%w: device %d", ErrNoSession, deviceID)
 }
