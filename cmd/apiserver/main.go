@@ -388,18 +388,19 @@ func run() error {
 		cancel()
 	}()
 
-	sigs := make(chan os.Signal)
+	sigs := make(chan os.Signal, 1)
 	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
+	go func() {
+		s := <-sigs
+		log.Infof("Received signal %s", s)
+		cancel()
+	}()
 
 	defer srv.Close()
-	defer grpcServer.GracefulStop()
+	defer grpcServer.Stop()
 
 	for {
 		select {
-		case s := <-sigs:
-			log.Warnf("Received signal %s", s)
-			cancel()
-
 		case <-ctx.Done():
 			log.Warnf("Program context canceled; shutting down.")
 			log.Warnf("Stopping legacy HTTP API...")
@@ -408,7 +409,7 @@ func run() error {
 				log.Errorf("Shutdown: %s", err)
 			}
 			log.Warnf("Stopping gRPC API...")
-			grpcServer.GracefulStop()
+			grpcServer.Stop()
 			time.Sleep(shutdownGracePeriod)
 			return nil
 
