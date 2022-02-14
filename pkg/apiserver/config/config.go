@@ -26,6 +26,7 @@ type Config struct {
 	JitaPassword                      string
 	JitaUrl                           string
 	JitaUsername                      string
+	JitaEnabled                       bool
 	KolideEventHandlerAddress         string
 	KolideEventHandlerEnabled         bool
 	KolideEventHandlerToken           string

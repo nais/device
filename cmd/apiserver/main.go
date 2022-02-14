@@ -56,6 +56,7 @@ func init() {
 	flag.StringVar(&cfg.JitaUsername, "jita-username", cfg.JitaUsername, "jita username")
 	flag.StringVar(&cfg.JitaPassword, "jita-password", cfg.JitaPassword, "jita password")
 	flag.StringVar(&cfg.JitaUrl, "jita-url", cfg.JitaUrl, "jita URL")
+	flag.BoolVar(&cfg.JitaEnabled, "jita-enabled", cfg.JitaEnabled, "enable jita-synchronization")
 	flag.StringVar(&cfg.BootstrapAPIURL, "bootstrap-api-url", cfg.BootstrapAPIURL, "bootstrap API URL")
 	flag.StringVar(&cfg.BootstrapApiCredentials, "bootstrap-api-credentials", cfg.BootstrapApiCredentials, "bootstrap API credentials")
 	flag.StringVar(&cfg.PrometheusAddr, "prometheus-address", cfg.PrometheusAddr, "prometheus listen address")
@@ -242,6 +243,9 @@ func run() error {
 	}
 
 	jitaClient := jita.New(cfg.JitaUsername, cfg.JitaPassword, cfg.JitaUrl)
+	if cfg.JitaEnabled {
+		go SyncJitaContinuosly(ctx, jitaClient)
+	}
 
 	go gwc.SyncContinuously(ctx)
 
@@ -491,6 +495,25 @@ func SyncLoop(w wireguard.WireGuard) {
 
 		if err != nil {
 			log.Errorf("syncing wg config: %s", err)
+		}
+	}
+}
+
+func SyncJitaContinuosly(ctx context.Context, j jita.Client) {
+	ticker := time.NewTicker(10 * time.Second)
+	for {
+		select {
+		case <-ticker.C:
+			log.Debug("Updating jita privileged users")
+			err := j.UpdatePrivilegedUsers()
+
+			if err != nil {
+				log.Errorf("Updating jita privileged users: %s", err)
+			}
+
+		case <-ctx.Done():
+			log.Infof("Stopped jita-sync")
+			return
 		}
 	}
 }

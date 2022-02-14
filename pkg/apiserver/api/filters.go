@@ -12,10 +12,7 @@ func privileged(jita jita.Client, gateway *pb.Gateway, sessions []*pb.Session) [
 	if !gateway.RequiresPrivilegedAccess {
 		return sessions
 	}
-	privilegedUsers, err := jita.GetPrivilegedUsersForGateway(gateway.Name)
-	if err != nil {
-		log.Errorf("Gateway retrieving privileged users, %s", err)
-	}
+	privilegedUsers := jita.GetPrivilegedUsersForGateway(gateway.Name)
 
 	m, err := apiserver_metrics.PrivilegedUsersPerGateway.GetMetricWithLabelValues(gateway.Name)
 	if err != nil {

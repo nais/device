@@ -12,22 +12,32 @@ type PrivilegedUser struct {
 	UserId string `json:"user_id"`
 }
 
-func (j *client) GetPrivilegedUsersForGateway(gateway string) ([]PrivilegedUser, error) {
+func (j *client) GetPrivilegedUsersForGateway(gateway string) []PrivilegedUser {
+	j.lock.RLock()
+	defer j.lock.RUnlock()
 
-	resp, err := j.HTTPClient.Get(fmt.Sprintf("%s/%s/%s", j.URL, "gatewayAccess", gateway))
+	return j.PrivilegedUsers[gateway]
+}
+
+func (j *client) UpdatePrivilegedUsers() error {
+
+	resp, err := j.HTTPClient.Get(fmt.Sprintf("%s/%s", j.URL, "gatewaysAccess"))
 	if err != nil {
-		return nil, fmt.Errorf("getting privileged users: %w", err)
+		return fmt.Errorf("getting all privileged users: %w", err)
 	}
 
 	defer ioconvenience.CloseWithLog(resp.Body)
 
 	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("not ok when calling jita: %v", resp.StatusCode)
+		return fmt.Errorf("not ok when calling jita: %v", resp.StatusCode)
 	}
 
-	var users []PrivilegedUser
-	if err := json.NewDecoder(resp.Body).Decode(&users); err != nil {
-		return nil, fmt.Errorf("decoding privileged users: %w", err)
+	j.lock.Lock()
+	defer j.lock.Unlock()
+
+	if err := json.NewDecoder(resp.Body).Decode(&j.PrivilegedUsers); err != nil {
+		return fmt.Errorf("decoding all privileged users: %w", err)
 	}
-	return users, nil
+
+	return nil
 }
