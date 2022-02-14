@@ -10,9 +10,10 @@ import (
 )
 
 func TestJita(t *testing.T) {
-	mux := http.NewServeMux()
-	mux.HandleFunc("/api/v1/gatewaysAccess", func(rw http.ResponseWriter, r *http.Request) {
-		response := `{
+	t.Run("response with data", func(t *testing.T) {
+		mux := http.NewServeMux()
+		mux.HandleFunc("/api/v1/gatewaysAccess", func(rw http.ResponseWriter, r *http.Request) {
+			response := `{
 			"onprem-k8s-prod": [
 			{
 				"user_id": "8e81112f-638e-4efb-a02f-9662a17ab38b",
@@ -34,33 +35,56 @@ func TestJita(t *testing.T) {
 			]
 		}`
 
-		_, err := rw.Write([]byte(response))
+			_, err := rw.Write([]byte(response))
+			assert.NoError(t, err)
+		})
+
+		s := httptest.NewServer(mux)
+		defer s.Close()
+
+		j := jita.New("", "", s.URL)
+		err := j.UpdatePrivilegedUsers()
 		assert.NoError(t, err)
+
+		usersOnprem := j.GetPrivilegedUsersForGateway("onprem-k8s-prod")
+		expectedOnprem := []jita.PrivilegedUser{
+			{UserId: "8e81112f-638e-4efb-a02f-9662a17ab38b"},
+			{UserId: "516e0fc5-eae4-4918-b692-750618bbd3ab"},
+		}
+		assert.Equal(t, expectedOnprem, usersOnprem)
+
+		usersNaisvakt := j.GetPrivilegedUsersForGateway("naisvakt")
+		expectedNaisvakt := []jita.PrivilegedUser{
+			{UserId: "fbecc223-3967-4c1c-ae0e-ca74c11fa340"},
+		}
+
+		assert.Equal(t, expectedNaisvakt, usersNaisvakt)
+
+		usersEmpty := j.GetPrivilegedUsersForGateway("empty")
+		var expectedEmpty []jita.PrivilegedUser
+
+		assert.Equal(t, expectedEmpty, usersEmpty)
 	})
 
-	s := httptest.NewServer(mux)
-	defer s.Close()
+	t.Run("empty response", func(t *testing.T) {
+		mux := http.NewServeMux()
+		mux.HandleFunc("/api/v1/gatewaysAccess", func(rw http.ResponseWriter, r *http.Request) {
+			response := `{}`
 
-	j := jita.New("", "", s.URL)
-	err := j.UpdatePrivilegedUsers()
-	assert.NoError(t, err)
+			_, err := rw.Write([]byte(response))
+			assert.NoError(t, err)
+		})
 
-	usersOnprem := j.GetPrivilegedUsersForGateway("onprem-k8s-prod")
-	expectedOnprem := []jita.PrivilegedUser{
-		{UserId: "8e81112f-638e-4efb-a02f-9662a17ab38b"},
-		{UserId: "516e0fc5-eae4-4918-b692-750618bbd3ab"},
-	}
-	assert.Equal(t, expectedOnprem, usersOnprem)
+		s := httptest.NewServer(mux)
+		defer s.Close()
 
-	usersNaisvakt := j.GetPrivilegedUsersForGateway("naisvakt")
-	expectedNaisvakt := []jita.PrivilegedUser{
-		{UserId: "fbecc223-3967-4c1c-ae0e-ca74c11fa340"},
-	}
+		j := jita.New("", "", s.URL)
+		err := j.UpdatePrivilegedUsers()
+		assert.NoError(t, err)
 
-	assert.Equal(t, expectedNaisvakt, usersNaisvakt)
+		var expectedEmpty []jita.PrivilegedUser
+		usersEmpty := j.GetPrivilegedUsersForGateway("empty")
 
-	usersEmpty := j.GetPrivilegedUsersForGateway("empty")
-	var expectedEmpty []jita.PrivilegedUser
-
-	assert.Equal(t, expectedEmpty, usersEmpty)
+		assert.Equal(t, expectedEmpty, usersEmpty)
+	})
 }
