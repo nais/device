@@ -1,18 +1,5 @@
 package pb
 
-import (
-	"time"
-)
-
-const MaxTimeSinceKolideLastSeen = 24 * time.Hour
-
-func (x *Device) KolideSeenRecently() bool {
-	lastSeen := x.GetKolideLastSeen().AsTime()
-	deadline := lastSeen.Add(MaxTimeSinceKolideLastSeen)
-
-	return deadline.After(time.Now())
-}
-
 // Satisfy WireGuard interface.
 // This value is written to the config file as a comment, so we put in the serial of the device in order to identify it.
 func (x *Device) GetName() string {

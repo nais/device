@@ -52,7 +52,7 @@ func (s *grpcServer) SendDeviceConfiguration(ctx context.Context, sessionKey str
 		return fmt.Errorf("read device from db: %w", err)
 	}
 
-	if !device.GetHealthy() || !device.KolideSeenRecently() {
+	if !device.GetHealthy() {
 		return stream.Send(&pb.GetDeviceConfigurationResponse{
 			Status: pb.DeviceConfigurationStatus_DeviceUnhealthy,
 		})

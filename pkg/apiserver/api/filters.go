@@ -39,7 +39,7 @@ func healthy(devices []*pb.Device) []*pb.Device {
 	var healthyDevices []*pb.Device
 
 	for _, device := range devices {
-		if device.GetHealthy() && device.KolideSeenRecently() {
+		if device.GetHealthy() {
 			healthyDevices = append(healthyDevices, device)
 		}
 	}
