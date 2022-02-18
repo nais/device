@@ -346,6 +346,11 @@ func (das *DeviceAgentServer) EventLoop(ctx context.Context) {
 						case codes.Unavailable:
 							log.Warnf("Synchronize config: not connected to API server!")
 							time.Sleep(apiServerRetryInterval)
+						case codes.Unauthenticated:
+							log.Errorf("Logging in: %s", err)
+							das.rc.Token = nil
+							log.Error("Cleaned up Azure AD Token")
+							fallthrough
 						default:
 							notify.Errorf(err.Error())
 							das.stateChange <- pb.AgentState_Disconnecting
