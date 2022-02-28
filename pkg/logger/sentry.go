@@ -5,7 +5,6 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-
 type sentryHook struct {
 	logLevelsToCapture map[log.Level]sentry.Level
 }
@@ -14,11 +13,10 @@ func NewSentryHook() *sentryHook {
 	return &sentryHook{
 		logLevelsToCapture: map[log.Level]sentry.Level{
 			log.ErrorLevel: sentry.LevelError,
-			log.WarnLevel: sentry.LevelWarning,
+			log.WarnLevel:  sentry.LevelWarning,
 		},
 	}
 }
-
 
 func (s sentryHook) Levels() []log.Level {
 	var levels []log.Level

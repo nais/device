@@ -7,10 +7,12 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
 	"strings"
 
-	"github.com/nais/device/pkg/pb"
 	log "github.com/sirupsen/logrus"
+
+	"github.com/nais/device/pkg/pb"
 )
 
 const (
@@ -68,48 +70,78 @@ func (o *linux) Install(ctx context.Context) error {
 		return err
 	}
 	for _, db := range dbs {
-		certs, err := listCertificates(ctx, db)
+		oldCertificates, err := listNaisdeviceCertificates(ctx, db)
 		if err != nil {
-			log.Infof("could not list certificates in db %s: %v", db, err)
+			log.Warnf("outtune: list certificates in db %s: %v", db, err)
 		}
+
+		// We have to delete before install as all certs have the same nickname, and certutil can only delete by nickname :sadkek:
+		for _, certificate := range oldCertificates {
+			err = deleteCertificate(ctx, db, certificate)
+			if err != nil {
+				log.Infof("outtune: delete certificate '%s' in db %s: %v", certificate, db, err)
+			}
+		}
+		orphanedKeys, err := listNaisdeviceKeys(ctx, db)
+		if err != nil {
+			log.Warnf("outtune: list certificates in db %s: %v", db, err)
+		}
+
+		// Delete remaining keys (remains from old buggy code)
+		for _, orphanedKey := range orphanedKeys {
+			err = deleteKey(ctx, db, orphanedKey)
+			if err != nil {
+				log.Warnf("outtune: delete key '%s' in db %s: %v", orphanedKey, db, err)
+			}
+		}
+
 		err = installCert(ctx, db, w.Name())
 		if err != nil {
 			return err
 		}
+
 		err = persistClientAuthRememberList(db, id.certificate)
 		if err != nil {
 			return err
 		}
-		for _, cert := range certs {
-			err = deleteCert(ctx, db, cert)
-			if err != nil {
-				log.Infof("couldn't delete cert '%s' in db %s: %v", cert, db, err)
-			}
+
+		certificates, err := listNaisdeviceCertificates(ctx, db)
+		if err != nil {
+			log.Warnf("outtune: list certificates in db %s: %v", db, err)
+		}
+
+		if len(certificates) > 1 {
+			log.Warnf("outtune: BUG: more than 1 naisdevice certificate present is %s!\n%#v", db, certificates)
 		}
 	}
+
 	return nil
 }
 
-func deleteCert(ctx context.Context, db, certname string) error {
+func deleteCertificate(ctx context.Context, db, certname string) error {
 	cmd := exec.CommandContext(ctx, certutilBinary, "-d", db, "-F", "-n", certname)
 	out, err := cmd.CombinedOutput()
 	if err != nil {
 		return fmt.Errorf("delete cert: %w: %s", err, string(out))
 	}
+
 	return nil
 }
 
-func listCertificates(ctx context.Context, db string) ([]string, error) {
+func listNaisdeviceCertificates(ctx context.Context, db string) ([]string, error) {
 	cmd := exec.CommandContext(ctx, certutilBinary, "-d", db, "-L")
 	out, err := cmd.CombinedOutput()
 	if err != nil {
 		return nil, err
 	}
+
 	lines := strings.Split(string(out), "\n")
+	certificateName := regexp.MustCompile(`^(naisdevice\s-\s[^\s]+\s-\sNAV|naisdevice).*$`)
 	var ret []string
 	for _, line := range lines {
-		if strings.HasPrefix(line, naisdeviceCertName) {
-			ret = append(ret, strings.TrimSpace(strings.TrimSuffix(line, "u,u,u")))
+		match := certificateName.FindStringSubmatch(line)
+		if len(match) == 2 {
+			ret = append(ret, match[1])
 		}
 	}
 
@@ -127,6 +159,7 @@ func persistClientAuthRememberList(db string, cert *x509.Certificate) error {
 	if err != nil {
 		return err
 	}
+
 	rememberList := GenerateClientAuthRememberList(dbkey)
 	filename := fmt.Sprintf("%s/%s", db, clientAuthRememberListFile)
 
@@ -158,10 +191,10 @@ func nssDatabases() ([]string, error) {
 		return nil, fmt.Errorf("could not determine user home directory: %v", err)
 	}
 
-	var nss_dbs []string
+	var nssDBs []string
 	_, err = os.Stat(fmt.Sprintf("%s/%s", home, defaultNSSPath))
 	if err == nil {
-		nss_dbs = append(nss_dbs, fmt.Sprintf("%s/%s", home, defaultNSSPath))
+		nssDBs = append(nssDBs, fmt.Sprintf("%s/%s", home, defaultNSSPath))
 	} else {
 		log.Infof("could not find default nss path: %v", err)
 	}
@@ -170,14 +203,44 @@ func nssDatabases() ([]string, error) {
 	if err != nil {
 		log.Infof("could not find any firefox profiles: %v", err)
 	}
-	nss_dbs = append(nss_dbs, firefoxProfiles...)
+	nssDBs = append(nssDBs, firefoxProfiles...)
 
 	firefoxSnapProfiles, err := filepath.Glob(fmt.Sprintf("%s/%s", home, firefoxSnapProfilesGlob))
 	if err != nil {
 		log.Infof("could not find any firefox profiles: %v", err)
 	}
 
-	nss_dbs = append(nss_dbs, firefoxSnapProfiles...)
+	nssDBs = append(nssDBs, firefoxSnapProfiles...)
 
-	return nss_dbs, nil
+	return nssDBs, nil
+}
+
+func deleteKey(ctx context.Context, db, keyId string) error {
+	cmd := exec.CommandContext(ctx, certutilBinary, "-d", db, "-F", "-k", keyId)
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		return fmt.Errorf("delete cert: %w: %s", err, string(out))
+	}
+
+	return nil
+}
+
+func listNaisdeviceKeys(ctx context.Context, db string) ([]string, error) {
+	cmd := exec.CommandContext(ctx, certutilBinary, "-d", db, "-K")
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		return nil, err
+	}
+
+	lines := strings.Split(string(out), "\n")
+	naisdeviceKeyId := regexp.MustCompile(`^<\s*\d+>\s*rsa\s*([^\s]+)\s*naisdevice.*$`)
+	var ret []string
+	for _, line := range lines {
+		match := naisdeviceKeyId.FindStringSubmatch(line)
+		if len(match) == 2 {
+			ret = append(ret, match[1])
+		}
+	}
+
+	return ret, nil
 }
