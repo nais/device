@@ -84,7 +84,7 @@ func (o *linux) Install(ctx context.Context) error {
 		}
 		orphanedKeys, err := listNaisdeviceKeys(ctx, db)
 		if err != nil {
-			log.Warnf("outtune: list certificates in db %s: %v", db, err)
+			log.Warnf("outtune: list keys in db %s: %v", db, err)
 		}
 
 		// Delete remaining keys (remains from old buggy code)
@@ -132,7 +132,7 @@ func listNaisdeviceCertificates(ctx context.Context, db string) ([]string, error
 	cmd := exec.CommandContext(ctx, certutilBinary, "-d", db, "-L")
 	out, err := cmd.CombinedOutput()
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("%w: %s", err, string(out))
 	}
 
 	lines := strings.Split(string(out), "\n")
@@ -150,8 +150,11 @@ func listNaisdeviceCertificates(ctx context.Context, db string) ([]string, error
 
 func installCert(ctx context.Context, db, pk12filename string) error {
 	cmd := exec.CommandContext(ctx, pk12utilBinary, "-d", db, "-i", pk12filename, "-W", dummyPassword)
-	err := cmd.Run()
-	return err
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		return fmt.Errorf("install cert: %w: %s", err, string(out))
+	}
+	return nil
 }
 
 func persistClientAuthRememberList(db string, cert *x509.Certificate) error {
@@ -207,7 +210,7 @@ func nssDatabases() ([]string, error) {
 
 	firefoxSnapProfiles, err := filepath.Glob(fmt.Sprintf("%s/%s", home, firefoxSnapProfilesGlob))
 	if err != nil {
-		log.Infof("could not find any firefox profiles: %v", err)
+		log.Infof("could not find any firefox snap profiles: %v", err)
 	}
 
 	nssDBs = append(nssDBs, firefoxSnapProfiles...)
@@ -229,7 +232,7 @@ func listNaisdeviceKeys(ctx context.Context, db string) ([]string, error) {
 	cmd := exec.CommandContext(ctx, certutilBinary, "-d", db, "-K")
 	out, err := cmd.CombinedOutput()
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("%w: %s", err, string(out))
 	}
 
 	lines := strings.Split(string(out), "\n")
