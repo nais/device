@@ -120,17 +120,19 @@ func EditGateway(c *cli.Context) error {
 }
 
 func EnrollGateway(c *cli.Context) error {
-	password, err := passwordhash.RandomBytes(32)
+	passwordBytes, err := passwordhash.RandomBytes(32)
 	if err != nil {
 		return fmt.Errorf("generate password: %w", err)
 	}
+
+	password := base64.StdEncoding.EncodeToString(passwordBytes)
 
 	salt, err := passwordhash.RandomBytes(16)
 	if err != nil {
 		return fmt.Errorf("generate salt: %w", err)
 	}
 
-	key := passwordhash.HashPassword(password, salt)
+	key := passwordhash.HashPassword([]byte(password), salt)
 	passhash := passwordhash.FormatHash(key, salt)
 
 	privateKey := wireguard.WgGenKey()
@@ -175,7 +177,7 @@ func EnrollGateway(c *cli.Context) error {
 	fmt.Fprintf(os.Stderr, "Please paste the following configuration into /etc/default/gateway-agent:\n\n")
 
 	fmt.Printf("GATEWAY_AGENT_NAME=\"%s\"\n", response.GetGateway().GetName())
-	fmt.Printf("GATEWAY_AGENT_APISERVERPASSWORD=\"%s\"\n", base64.StdEncoding.EncodeToString(password))
+	fmt.Printf("GATEWAY_AGENT_APISERVERPASSWORD=\"%s\"\n", password)
 	fmt.Printf("GATEWAY_AGENT_PRIVATEKEY=\"%s\"\n", base64.StdEncoding.EncodeToString(privateKey))
 	fmt.Printf("GATEWAY_AGENT_DEVICEIP=\"%s\"\n", response.GetGateway().GetIp())
 
