@@ -81,6 +81,7 @@ func init() {
 	flag.BoolVar(&cfg.DeviceAuthenticationEnabled, "device-authentication-enabled", cfg.DeviceAuthenticationEnabled, "enable authentication for nais devices (oauth2)")
 	flag.BoolVar(&cfg.ControlPlaneAuthenticationEnabled, "control-plane-authentication-enabled", cfg.ControlPlaneAuthenticationEnabled, "enable authentication for control plane (api keys)")
 	flag.BoolVar(&cfg.WireGuardEnabled, "wireguard-enabled", cfg.WireGuardEnabled, "enable WireGuard")
+	flag.StringVar(&cfg.WireGuardNetworkAddress, "wireguard-network-address", cfg.WireGuardNetworkAddress, "WireGuard network-address")
 	flag.BoolVar(&cfg.CloudSQLProxyEnabled, "cloud-sql-proxy-enabled", cfg.CloudSQLProxyEnabled, "enable Google Cloud SQL proxy for database connection")
 
 	flag.Parse()
@@ -162,7 +163,7 @@ func run() error {
 	if cfg.WireGuardEnabled {
 		log.Infof("Setting up WireGuard integration...")
 
-		err = setupInterface()
+		err = setupInterface(cfg.WireGuardNetworkAddress)
 		if err != nil {
 			return fmt.Errorf("set up WireGuard interface: %w", err)
 		}
@@ -461,7 +462,7 @@ func generatePublicKey(privateKey []byte, wireGuardPath string) ([]byte, error) 
 	return bytes.TrimSuffix(out, []byte("\n")), nil
 }
 
-func setupInterface() error {
+func setupInterface(networkAddress string) error {
 	if err := exec.Command("ip", "link", "del", "wg0").Run(); err != nil {
 		log.Infof("Pre-deleting WireGuard interface (ok if this fails): %v", err)
 	}
@@ -481,7 +482,7 @@ func setupInterface() error {
 	commands := [][]string{
 		{"ip", "link", "add", "dev", "wg0", "type", "wireguard"},
 		{"ip", "link", "set", "wg0", "mtu", "1360"},
-		{"ip", "address", "add", "dev", "wg0", "10.255.240.1/21"},
+		{"ip", "address", "add", "dev", "wg0", networkAddress},
 		{"ip", "link", "set", "wg0", "up"},
 	}
 
