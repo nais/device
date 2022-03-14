@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"net/http"
 	"time"
 
@@ -9,8 +10,6 @@ import (
 	"github.com/nais/device/pkg/azure"
 	bootstrap_api "github.com/nais/device/pkg/bootstrap-api"
 	"github.com/nais/device/pkg/logger"
-	"github.com/nais/device/pkg/secretmanager"
-
 	log "github.com/sirupsen/logrus"
 	flag "github.com/spf13/pflag"
 )
@@ -18,15 +17,14 @@ import (
 const SecretSyncInterval = 10 * time.Second
 
 type Config struct {
-	BindAddress            string
-	Azure                  *azure.Azure
-	PrometheusAddr         string
-	PrometheusPublicKey    string
-	PrometheusTunnelIP     string
-	CredentialEntries      []string
-	LogLevel               string
-	SecretManagerProjectID string
-	AzureAuthEnabled       bool
+	BindAddress         string
+	Azure               *azure.Azure
+	PrometheusAddr      string
+	PrometheusPublicKey string
+	PrometheusTunnelIP  string
+	CredentialEntries   []string
+	LogLevel            string
+	AzureAuthEnabled    bool
 }
 
 var cfg = &Config{
@@ -45,7 +43,6 @@ func init() {
 	flag.BoolVar(&cfg.AzureAuthEnabled, "azure-auth-enabled", false, "Azure auth enabled")
 	flag.StringVar(&cfg.Azure.ClientID, "azure-client-id", "6e45010d-2637-4a40-b91d-d4cbb451fb57", "Azure app client id")
 	flag.StringVar(&cfg.Azure.Tenant, "azure-tenant", "62366534-1ec3-4962-8869-9b5535279d0b", "Azure tenant")
-	flag.StringVar(&cfg.SecretManagerProjectID, "secret-manager-project-id", "nais-device", "Secret Manager Project ID")
 	flag.StringSliceVar(&cfg.CredentialEntries, "credential-entries", nil, "Comma-separated credentials on format: '<user>:<key>'")
 
 	flag.Parse()
@@ -57,9 +54,17 @@ func main() {
 		_ = http.ListenAndServe(cfg.PrometheusAddr, promhttp.Handler())
 	}()
 
-	err := cfg.Azure.FetchCertificates()
-	if err != nil {
-		log.Fatalf("fetch azure certs: %s", err)
+	var tokenValidator func(next http.Handler) http.Handler
+	if cfg.AzureAuthEnabled {
+		err := cfg.Azure.FetchCertificates()
+		if err != nil {
+			log.Fatalf("fetch azure certs: %s", err)
+		}
+
+		tokenValidator = cfg.Azure.TokenValidatorMiddleware()
+	} else {
+		log.Warnf("AUTH DISABLED, this should NOT run in production")
+		tokenValidator = mockTokenValidator()
 	}
 
 	apiserverCredentials, err := bootstrap_api.Credentials(cfg.CredentialEntries)
@@ -67,18 +72,26 @@ func main() {
 		log.Fatalf("Reading basic auth credentials: %v", err)
 	}
 
-	sm, err := secretmanager.New(cfg.SecretManagerProjectID)
-	if err != nil {
-		log.Fatalf("instantiating secret manager: %v", err)
-	}
-
-	tokenValidator := cfg.Azure.TokenValidatorMiddleware()
-
-	api := bootstrap_api.NewApi(apiserverCredentials, tokenValidator, sm)
+	apiLogger := log.WithField("component", "api")
+	api := bootstrap_api.NewApi(apiserverCredentials, tokenValidator, apiLogger)
 	router := api.Router()
-	stop := make(chan struct{}, 1)
-	go api.SyncEnrollmentSecretsLoop(SecretSyncInterval, stop)
 
 	log.Info("running @ ", cfg.BindAddress)
 	log.Info(http.ListenAndServe(cfg.BindAddress, router))
+}
+
+func mockTokenValidator() func(next http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			next.ServeHTTP(w,
+				r.WithContext(
+					context.WithValue(
+						r.Context(),
+						"preferred_username",
+						"username@mock.dev",
+					),
+				),
+			)
+		})
+	}
 }
