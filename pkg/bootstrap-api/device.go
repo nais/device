@@ -42,19 +42,19 @@ func (api *DeviceApi) getBootstrapConfig(w http.ResponseWriter, r *http.Request)
 
 	if bootstrapConfig == nil {
 		w.WriteHeader(http.StatusNotFound)
-		api.log.Warnf("no bootstrap config for serial: %v", serial)
+		ctxLog.Warnf("no bootstrap config for serial: %v", serial)
 		return
 	}
 
 	w.WriteHeader(http.StatusOK)
 	err := json.NewEncoder(w).Encode(bootstrapConfig)
 	if err != nil {
-		api.log.Errorf("Unable to get bootstrap config: Encoding json: %v", err)
+		ctxLog.Errorf("Unable to get bootstrap config: Encoding json: %v", err)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 
-	api.log.WithField("event", "retrieved_bootstrapconfig").Infof("Successfully returned bootstrap config")
+	ctxLog.WithField("event", "retrieved_bootstrapconfig").Infof("Successfully returned bootstrap config")
 }
 
 func (api *DeviceApi) postDeviceInfo(w http.ResponseWriter, r *http.Request) {
