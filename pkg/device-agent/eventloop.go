@@ -12,7 +12,6 @@ import (
 	"time"
 
 	"github.com/getsentry/sentry-go"
-	"golang.org/x/oauth2"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	grpcstatus "google.golang.org/grpc/status"
@@ -58,7 +57,7 @@ func (das *DeviceAgentServer) ConfigureHelper(ctx context.Context, rc *runtimeco
 	return err
 }
 
-func validateToken(token *oauth2.Token) error {
+func validateToken(token *auth.Token) error {
 	if token == nil {
 		return ErrTokenDoesNotExist
 	} else if time.Now().After(token.Expiry) {

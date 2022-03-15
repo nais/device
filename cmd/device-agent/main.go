@@ -9,6 +9,9 @@ import (
 	"syscall"
 	"time"
 
+	"golang.org/x/oauth2"
+	"golang.org/x/oauth2/endpoints"
+
 	"github.com/getsentry/sentry-go"
 	"github.com/nais/device/pkg/outtune"
 	log "github.com/sirupsen/logrus"
@@ -39,6 +42,7 @@ func init() {
 	flag.StringVar(&cfg.LogLevel, "log-level", cfg.LogLevel, "which log level to output")
 	flag.StringVar(&cfg.GrpcAddress, "grpc-address", cfg.GrpcAddress, "unix socket for gRPC server")
 	flag.StringVar(&cfg.DeviceAgentHelperAddress, "device-agent-helper-address", cfg.DeviceAgentHelperAddress, "device-agent-helper unix socket")
+	flag.BoolVar(&cfg.EnableGoogleAuth, "enable-google-auth", cfg.EnableGoogleAuth, "enables Google auth instead of Azure")
 }
 
 func handleSignals(cancel context.CancelFunc) {
@@ -69,6 +73,14 @@ func handleSignals(cancel context.CancelFunc) {
 func main() {
 	flag.Parse()
 	cfg.SetDefaults()
+	if cfg.EnableGoogleAuth {
+		cfg.OAuth2Config = oauth2.Config{
+			ClientID:    "955023559628-g51n36t4icbd6lq7ils4r0ol9oo8kpk0.apps.googleusercontent.com",
+			Scopes:      []string{"https://www.googleapis.com/auth/userinfo.email"},
+			Endpoint:    endpoints.Google,
+			RedirectURL: "http://localhost:PORT/google",
+		}
+	}
 
 	programContext, programCancel := context.WithCancel(context.Background())
 	handleSignals(programCancel)

@@ -18,3 +18,6 @@ func Credentials(credentialEntries []string) (map[string]string, error) {
 
 	return credentials, nil
 }
+
+func GoogleAuthPartner() {
+}

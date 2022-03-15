@@ -3,36 +3,19 @@ package auth
 import (
 	"context"
 	"fmt"
-	"net"
 	"net/http"
 	"time"
 
 	"github.com/lestrrat-go/jwx/jwt"
 	codeverifier "github.com/nirasan/go-oauth-pkce-code-verifier"
-	log "github.com/sirupsen/logrus"
 	"golang.org/x/oauth2"
 
-	"github.com/nais/device/pkg/apiserver/kekw"
 	"github.com/nais/device/pkg/azure"
-	"github.com/nais/device/pkg/device-agent/open"
-	"github.com/nais/device/pkg/random"
 )
 
-type authFlowResponse struct {
-	Token *oauth2.Token
-	err   error
-}
+func handleRedirectAzure(state string, conf oauth2.Config, codeVerifier *codeverifier.CodeVerifier, authFlowChan chan *authFlowResponse) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
 
-func GetDeviceAgentToken(ctx context.Context, conf *oauth2.Config) (*oauth2.Token, error) {
-	// Ignoring impossible error
-	codeVerifier, _ := codeverifier.CreateCodeVerifier()
-
-	authFlowChan := make(chan *authFlowResponse)
-	handler := http.NewServeMux()
-	state := random.RandomString(16, random.LettersAndNumbers)
-
-	// define a handler that will get the authorization code, call the authFlowResponse endpoint, and close the HTTP server
-	handler.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		// Catch if user has not approved terms
 		responseState := r.URL.Query().Get("state")
 		if state != responseState {
@@ -46,7 +29,7 @@ func GetDeviceAgentToken(ctx context.Context, conf *oauth2.Config) (*oauth2.Toke
 			return
 		}
 
-		ctx, cancel := context.WithDeadline(ctx, time.Now().Add(30*time.Second))
+		ctx, cancel := context.WithDeadline(r.Context(), time.Now().Add(30*time.Second))
 		defer cancel()
 
 		codeVerifierParam := oauth2.SetAuthURLParam("code_verifier", codeVerifier.String())
@@ -81,70 +64,13 @@ func GetDeviceAgentToken(ctx context.Context, conf *oauth2.Config) (*oauth2.Toke
 			return
 		}
 
+		token := &Token{
+			AccessToken: t.AccessToken,
+			Expiry:      t.Expiry,
+		}
+
 		successfulResponse(w, "Successfully authenticated 👌 Close me pls")
-		authFlowChan <- &authFlowResponse{Token: t, err: nil}
-	})
+		authFlowChan <- &authFlowResponse{Token: token, err: nil}
 
-	listener, err := net.Listen("tcp", "127.0.0.1:0")
-
-	if err != nil {
-		return nil, fmt.Errorf("creating listener: %w", err)
 	}
-
-	port := listener.Addr().(*net.TCPAddr).Port
-	conf.RedirectURL = fmt.Sprintf("http://localhost:%d/", port)
-
-	server := &http.Server{Handler: handler}
-	go server.Serve(listener)
-	defer server.Close()
-
-	url := conf.AuthCodeURL(
-		state,
-		oauth2.AccessTypeOffline,
-		oauth2.SetAuthURLParam("code_challenge_method", "S256"),
-		oauth2.SetAuthURLParam("code_challenge", codeVerifier.CodeChallengeS256()))
-
-	err = open.Open(url)
-	if err != nil {
-		log.Errorf("opening browser, err: %v", err)
-		// Don't return, as this is not fatal (user can open browser manually)
-	}
-	log.Infof("If the browser didn't open, visit this url to sign in: %v\n", url)
-
-	authFlowResponse := <-authFlowChan
-
-	if authFlowResponse.err != nil {
-		return nil, fmt.Errorf("authFlow: %w", authFlowResponse.err)
-	}
-
-	return authFlowResponse.Token, nil
-}
-
-func failAuth(err error, w http.ResponseWriter, authFlowChan chan *authFlowResponse) {
-	failureResponse(w, err.Error())
-	authFlowChan <- &authFlowResponse{Token: nil, err: err}
-}
-
-func failureResponse(w http.ResponseWriter, msg string) {
-	w.Header().Set("content-type", "text/html;charset=utf8")
-	_, _ = fmt.Fprintf(w, `
-<div style="position:absolute;left:50%%;top:50%%;margin-top:-150px;margin-left:-200px;height:300px;width:400px;bottom:50%%;background-color:#f5f5f5;border:1px solid #d9d9d9;border-radius:4px">
-<img style="width:100px;display:block;margin:auto;margin-top:50px" width="100" src="data:image/jpeg;base64,%s"/>
-<p style="margin-top: 70px" align="center">
-  %s
-</p>
-</div>
-`, kekw.SadKekW, msg)
-}
-
-func successfulResponse(w http.ResponseWriter, msg string) {
-	w.Header().Set("content-type", "text/html;charset=utf8")
-	_, _ = fmt.Fprintf(w, `
-<div style="position:absolute;left:50%%;top:50%%;margin-top:-150px;margin-left:-200px;height:300px;width:400px;bottom:50%%;background-color:#f5f5f5;border:1px solid #d9d9d9;border-radius:4px">
-<img style="width:100px;display:block;margin:auto;margin-top:50px" width="100" src="data:image/jpeg;base64,%s"/>
-<p style="margin-top: 70px" align="center">
-  %s
-</p>
-</div>
-`, kekw.HappyKekW, msg)
 }
