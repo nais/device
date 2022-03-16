@@ -81,5 +81,6 @@ func DefaultConfig() Config {
 		PrometheusAddr:                "127.0.0.1:3000",
 		WireGuardNetworkAddress:       "10.255.240.1/21",
 		WireGuardIP:                   "10.255.240.1",
+		WireGuardConfigPath:           "/run/wg0.conf",
 	}
 }
