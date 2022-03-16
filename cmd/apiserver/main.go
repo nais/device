@@ -5,13 +5,11 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"net"
 	"net/http"
 	"os"
 	"os/exec"
 	"os/signal"
-	"path/filepath"
 	"strings"
 	"syscall"
 	"time"
@@ -63,7 +61,6 @@ func init() {
 	flag.StringVar(&cfg.LogLevel, "log-level", cfg.LogLevel, "which log level to output")
 	flag.StringVar(&cfg.BindAddress, "bind-address", cfg.BindAddress, "Bind address")
 	flag.StringVar(&cfg.GRPCBindAddress, "grpc-bind-address", cfg.GRPCBindAddress, "Bind address for gRPC server")
-	flag.StringVar(&cfg.ConfigDir, "config-dir", cfg.ConfigDir, "Path to configuration directory")
 	flag.StringVar(&cfg.Endpoint, "endpoint", cfg.Endpoint, "public endpoint (ip:port)")
 	flag.StringVar(&cfg.Azure.ClientID, "azure-client-id", cfg.Azure.ClientID, "Azure app client id")
 	flag.StringVar(&cfg.Azure.Tenant, "azure-tenant", cfg.Azure.Tenant, "Azure tenant")
@@ -82,12 +79,11 @@ func init() {
 	flag.BoolVar(&cfg.WireGuardEnabled, "wireguard-enabled", cfg.WireGuardEnabled, "enable WireGuard")
 	flag.StringVar(&cfg.WireGuardIP, "wireguard-ip", cfg.WireGuardIP, "WireGuard ip")
 	flag.StringVar(&cfg.WireGuardNetworkAddress, "wireguard-network-address", cfg.WireGuardNetworkAddress, "WireGuard network-address")
+	flag.StringVar(&cfg.WireGuardPrivateKey, "wireguard-private-key", cfg.WireGuardPrivateKey, "WireGuard private key")
 	flag.BoolVar(&cfg.CloudSQLProxyEnabled, "cloud-sql-proxy-enabled", cfg.CloudSQLProxyEnabled, "enable Google Cloud SQL proxy for database connection")
 
 	flag.Parse()
-
-	cfg.PrivateKeyPath = filepath.Join(cfg.ConfigDir, "private.key")
-	cfg.WireGuardConfigPath = filepath.Join(cfg.ConfigDir, "wg0.conf")
+	cfg.WireGuardConfigPath = "/run/wg0.conf"
 }
 
 var errRequiredArgNotSet = errors.New("arg is required, but not set")
@@ -178,17 +174,12 @@ func run() error {
 			return fmt.Errorf("set up WireGuard interface: %w", err)
 		}
 
-		privateKey, err := ioutil.ReadFile(cfg.PrivateKeyPath)
-		if err != nil {
-			return fmt.Errorf("read WireGuard private key: %w", err)
-		}
-
-		wireguardPublicKey, err = generatePublicKey(privateKey, "wg")
+		wireguardPublicKey, err = generatePublicKey([]byte(cfg.WireGuardPrivateKey), "wg")
 		if err != nil {
 			return fmt.Errorf("generate WireGuard public key: %w", err)
 		}
 
-		w := wireguard.New(cfg, db, string(privateKey))
+		w := wireguard.New(cfg, db, cfg.WireGuardPrivateKey)
 
 		go SyncLoop(w)
 

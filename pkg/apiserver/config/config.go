@@ -13,7 +13,6 @@ type Config struct {
 	BootstrapAPIURL                   string
 	BootstrapApiCredentials           string
 	CloudSQLProxyEnabled              bool
-	ConfigDir                         string
 	ControlPlaneAuthenticationEnabled bool
 	AdminCredentialEntries            []string
 	PrometheusCredentialEntries       []string
@@ -33,13 +32,13 @@ type Config struct {
 	KolideEventHandlerToken           string
 	KolideEventHandlerSecure          bool
 	LogLevel                          string
-	PrivateKeyPath                    string
 	PrometheusAddr                    string
 	PrometheusPublicKey               string
 	PrometheusTunnelIP                string
 	WireGuardEnabled                  bool
 	WireGuardIP                       string
 	WireGuardConfigPath               string
+	WireGuardPrivateKey               string
 	WireGuardNetworkAddress           string
 }
 
@@ -74,7 +73,6 @@ func DefaultConfig() Config {
 			ClientID: "955023559628-g51n36t4icbd6lq7ils4r0ol9oo8kpk0.apps.googleusercontent.com",
 		},
 		BindAddress:                   "127.0.0.1:8080",
-		ConfigDir:                     "/usr/local/etc/naisdevice/",
 		DbConnDSN:                     "postgresql://postgres:postgres@localhost/postgres?sslmode=disable",
 		GRPCBindAddress:               "127.0.0.1:8099",
 		GatewayConfigBucketName:       "gatewayconfig",
