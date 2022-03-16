@@ -83,7 +83,6 @@ func init() {
 	flag.BoolVar(&cfg.CloudSQLProxyEnabled, "cloud-sql-proxy-enabled", cfg.CloudSQLProxyEnabled, "enable Google Cloud SQL proxy for database connection")
 
 	flag.Parse()
-	cfg.WireGuardConfigPath = "/run/wg0.conf"
 }
 
 var errRequiredArgNotSet = errors.New("arg is required, but not set")
@@ -234,6 +233,7 @@ func run() error {
 			BootstrapAPIURL:    cfg.BootstrapAPIURL,
 			APIServerPublicKey: string(wireguardPublicKey),
 			APIServerEndpoint:  cfg.Endpoint,
+			APIServerIP:        cfg.WireGuardIP,
 		}
 
 		go en.WatchDeviceEnrollments(ctx)
