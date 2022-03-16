@@ -35,7 +35,7 @@ const (
 	versionCheckInterval   = 1 * time.Hour      // how often to check for a new version of naisdevice
 	versionCheckTimeout    = 3 * time.Second    // timeout for new version check
 	getSerialTimeout       = 2 * time.Second    // timeout for getting device serial from helper
-	authFlowTimeout        = 30 * time.Second   // total timeout for authenticating user (AAD login in browser, redirect to localhost, exchange code for token)
+	authFlowTimeout        = 1 * time.Minute    // total timeout for authenticating user (AAD login in browser, redirect to localhost, exchange code for token)
 	approximateInfinity    = time.Hour * 69_420 // Name describes purpose. Used for renewing microsoft client certs automatically
 	certificateLifetime    = time.Hour * 23     // Microsoft Client certificate validity/renewal interval
 	certCheckInterval      = time.Minute * 1    // Self-explanatory (Microsoft Client certificate)
@@ -373,7 +373,7 @@ func (das *DeviceAgentServer) EventLoop(ctx context.Context) {
 					das.rc.Token, err = auth.GetDeviceAgentToken(ctx, das.rc.Config.OAuth2Config)
 					cancel()
 					if err != nil {
-						notify.Errorf("Get Azure AD token: %v", err)
+						notify.Errorf("Get token: %v", err)
 						das.stateChange <- pb.AgentState_Disconnected
 						break
 					}
