@@ -14,19 +14,23 @@ import (
 
 	"google.golang.org/protobuf/types/known/timestamppb"
 
-	"github.com/nais/device/pkg/azure"
-
+	"github.com/nais/device/pkg/auth"
 	"github.com/nais/device/pkg/random"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/stretchr/testify/assert"
 
 	"github.com/nais/device/pkg/apiserver/api"
-	"github.com/nais/device/pkg/apiserver/auth"
+	apiauth "github.com/nais/device/pkg/apiserver/auth"
 	"github.com/nais/device/pkg/apiserver/database"
 	"github.com/nais/device/pkg/apiserver/jita"
 	"github.com/nais/device/pkg/apiserver/testdatabase"
 	"github.com/nais/device/pkg/pb"
+)
+
+const (
+	wireguardNetworkAddress = "10.255.240.1/21"
+	apiserverWireGuardIP    = "10.255.240.1"
 )
 
 func TestGetDeviceConfig(t *testing.T) {
@@ -190,15 +194,15 @@ func setup(t *testing.T, j jita.Client) (database.APIServer, chi.Router) {
 	ctx := context.Background()
 
 	testDBDSN := "user=postgres password=postgres host=localhost port=5433 sslmode=disable"
-
-	db, err := testdatabase.New(ctx, testDBDSN)
+	ipAllocator := database.NewIPAllocator(wireguardNetworkAddress, []string{apiserverWireGuardIP})
+	db, err := testdatabase.New(ctx, testDBDSN, ipAllocator)
 	if err != nil {
 		t.Fatalf("Instantiating database: %v", err)
 	}
 
-	sessions := auth.NewSessionStore(db)
+	sessions := apiauth.NewSessionStore(db)
 
-	authenticator := auth.NewAuthenticator(&azure.Azure{}, db, sessions)
+	authenticator := apiauth.NewAuthenticator(&auth.Azure{}, db, sessions)
 
 	return db, api.New(api.Config{
 		DB:            db,

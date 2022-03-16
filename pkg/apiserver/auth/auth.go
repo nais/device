@@ -14,7 +14,7 @@ import (
 	"google.golang.org/protobuf/types/known/timestamppb"
 
 	"github.com/nais/device/pkg/apiserver/database"
-	"github.com/nais/device/pkg/azure"
+	"github.com/nais/device/pkg/auth"
 	"github.com/nais/device/pkg/pb"
 
 	log "github.com/sirupsen/logrus"
@@ -32,6 +32,19 @@ const (
 	HeaderKeyPlatform   = "x-naisdevice-platform"
 )
 
+type contextKey string
+
+const contextKeySession contextKey = "session"
+
+func GetSessionInfo(ctx context.Context) *pb.Session {
+	session, _ := ctx.Value(contextKeySession).(*pb.Session)
+	return session
+}
+
+func WithSessionInfo(ctx context.Context, session *pb.Session) context.Context {
+	return context.WithValue(ctx, contextKeySession, session)
+}
+
 type Authenticator interface {
 	Validator() func(next http.Handler) http.Handler
 	LoginHTTP(w http.ResponseWriter, r *http.Request)
@@ -45,10 +58,10 @@ type authenticator struct {
 	store       SessionStore
 	states      map[string]interface{}
 	stateLock   sync.Mutex
-	Azure       *azure.Azure
+	Azure       *auth.Azure
 }
 
-func NewAuthenticator(a *azure.Azure, db database.APIServer, store SessionStore) Authenticator {
+func NewAuthenticator(a *auth.Azure, db database.APIServer, store SessionStore) Authenticator {
 	return &authenticator{
 		db:     db,
 		store:  store,
@@ -69,20 +82,20 @@ func (s *authenticator) Validator() func(http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			sessionKey := r.Header.Get(HeaderKeySessionKey)
 
-			sessionInfo, err := s.store.Get(r.Context(), sessionKey)
+			session, err := s.store.Get(r.Context(), sessionKey)
 			if err != nil {
 				log.Errorf("read session info: %v", err)
 				w.WriteHeader(http.StatusUnauthorized)
 				return
 			}
 
-			if sessionInfo.Expired() {
-				log.Infof("session expired: %v", sessionInfo)
+			if session.Expired() {
+				log.Infof("session expired: %v", session)
 				w.WriteHeader(http.StatusUnauthorized)
 				return
 			}
 
-			r = r.WithContext(context.WithValue(r.Context(), "sessionInfo", sessionInfo))
+			r = r.WithContext(WithSessionInfo(r.Context(), session))
 
 			next.ServeHTTP(w, r)
 		})
@@ -196,8 +209,7 @@ func (s *authenticator) AuthURL(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *authenticator) Login(ctx context.Context, token, serial, platform string) (*pb.Session, error) {
-	parsedToken, err := jwt.Parse([]byte(token), s.Azure.JwtOptions()...)
-
+	parsedToken, err := jwt.ParseString(token, s.Azure.JwtOptions()...)
 	if err != nil {
 		return nil, fmt.Errorf("parse token: %s", err)
 	}
@@ -212,7 +224,7 @@ func (s *authenticator) Login(ctx context.Context, token, serial, platform strin
 		groups = append(groups, group.(string))
 	}
 
-	if !azure.UserInNaisdeviceApprovalGroup(claims) {
+	if !auth.UserInNaisdeviceApprovalGroup(claims) {
 		return nil, fmt.Errorf("do's and don'ts not accepted, visit: https://naisdevice-approval.nais.io/ to read and accept")
 	}
 

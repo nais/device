@@ -4,9 +4,10 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
+
 	"github.com/nais/device/pkg/bearertransport"
 	"github.com/nais/device/pkg/device-agent/auth"
-	"io/ioutil"
 
 	"github.com/nais/device/pkg/bootstrap"
 	"github.com/nais/device/pkg/device-agent/bootstrapper"
@@ -49,7 +50,7 @@ func New(cfg *config.Config) (*RuntimeConfig, error) {
 
 func EnsureBootstrapping(rc *RuntimeConfig, serial string, ctx context.Context) (*bootstrap.Config, error) {
 	log.Infoln("Bootstrapping device")
-	client := bearertransport.Transport{AccessToken: rc.Token.AccessToken}.Client()
+	client := bearertransport.Transport{AccessToken: rc.Token.Token}.Client()
 
 	cfg, err := bootstrapper.BootstrapDevice(
 		ctx,
@@ -61,7 +62,6 @@ func EnsureBootstrapping(rc *RuntimeConfig, serial string, ctx context.Context) 
 		rc.Config.BootstrapAPI,
 		client,
 	)
-
 	if err != nil {
 		return nil, err
 	}
@@ -79,7 +79,7 @@ func writeToJSONFile(strct interface{}, path string) error {
 	if err != nil {
 		return fmt.Errorf("marshaling struct into json: %w", err)
 	}
-	if err := ioutil.WriteFile(path, b, 0600); err != nil {
+	if err := ioutil.WriteFile(path, b, 0o600); err != nil {
 		return err
 	}
 	return nil

@@ -1,6 +1,7 @@
 package bootstrapper_test
 
 import (
+	"context"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
@@ -52,7 +53,8 @@ func TestBootstrapDevice(t *testing.T) {
 		Platform:  platform,
 	}
 
-	bootstrapConfig, err := bootstrapper.BootstrapDevice(di, server.URL, server.Client())
+	ctx := context.Background()
+	bootstrapConfig, err := bootstrapper.BootstrapDevice(ctx, di, server.URL, server.Client())
 
 	assert.NoError(t, err)
 	assert.Equal(t, tunnelIP, bootstrapConfig.DeviceIP)

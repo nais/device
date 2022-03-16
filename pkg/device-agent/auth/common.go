@@ -3,22 +3,23 @@ package auth
 import (
 	"context"
 	"fmt"
+	"net"
+	"net/http"
+	"strconv"
+	"strings"
+	"time"
+
 	"github.com/nais/device/pkg/apiserver/kekw"
 	"github.com/nais/device/pkg/device-agent/open"
 	"github.com/nais/device/pkg/random"
 	codeverifier "github.com/nirasan/go-oauth-pkce-code-verifier"
 	log "github.com/sirupsen/logrus"
 	"golang.org/x/oauth2"
-	"net"
-	"net/http"
-	"strconv"
-	"strings"
-	"time"
 )
 
 type Token struct {
-	AccessToken string
-	Expiry      time.Time
+	Token  string
+	Expiry time.Time
 }
 
 type authFlowResponse struct {
@@ -34,7 +35,6 @@ func GetDeviceAgentToken(ctx context.Context, conf oauth2.Config) (*Token, error
 	state := random.RandomString(16, random.LettersAndNumbers)
 
 	listener, err := net.Listen("tcp", "127.0.0.1:0")
-
 	if err != nil {
 		return nil, fmt.Errorf("creating listener: %w", err)
 	}

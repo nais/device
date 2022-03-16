@@ -23,8 +23,8 @@ type ExchangeRequest struct {
 }
 
 type ExchangeResponse struct {
-	AccessToken string    `json:"access_token"`
-	Expiry      time.Time `json:"expiry"`
+	IDToken string    `json:"access_token"`
+	Expiry  time.Time `json:"expiry"`
 }
 
 func main() {
@@ -43,7 +43,7 @@ func main() {
 	baseOAuth2Config := &oauth2.Config{
 		ClientSecret: cfg.ClientSecret,
 		ClientID:     cfg.ClientID,
-		Scopes:       []string{"https://www.googleapis.com/auth/userinfo.email"},
+		Scopes:       []string{".default"},
 		Endpoint:     endpoints.Google,
 	}
 
@@ -78,8 +78,8 @@ func exchange(oauth2config *oauth2.Config) http.HandlerFunc {
 		}
 
 		err = json.NewEncoder(w).Encode(ExchangeResponse{
-			AccessToken: token.AccessToken,
-			Expiry:      token.Expiry,
+			IDToken: token.Extra("id_token").(string),
+			Expiry:  token.Expiry,
 		})
 		if err != nil {
 			log.WithError(err).Warnf("encode response")

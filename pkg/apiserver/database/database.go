@@ -12,27 +12,26 @@ import (
 	_ "github.com/lib/pq"
 	log "github.com/sirupsen/logrus"
 
-	"github.com/nais/device/pkg/apiserver/cidr"
 	"github.com/nais/device/pkg/pb"
 )
 
-const (
-	TunnelCidr = "10.255.240.0/21"
-)
-
 type apiServerDB struct {
-	conn *sql.DB
+	conn        *sql.DB
+	IPAllocator IPAllocator
 }
 
 var _ APIServer = &apiServerDB{}
 
-func New(dsn, driver string) (*apiServerDB, error) {
+func New(dsn, driver string, ipAllocator IPAllocator) (*apiServerDB, error) {
 	db, err := sql.Open(driver, dsn)
 	if err != nil {
 		return nil, fmt.Errorf("connecting to database: %s", err)
 	}
 
-	apiServerDB := apiServerDB{conn: db}
+	apiServerDB := apiServerDB{
+		conn:        db,
+		IPAllocator: ipAllocator,
+	}
 
 	ctx := context.Background()
 	for backoff := 0; backoff < 5; backoff++ {
@@ -65,7 +64,6 @@ func (db *apiServerDB) ReadDevices(ctx context.Context) ([]*pb.Device, error) {
 	devices := make([]*pb.Device, 0) // don't want nil declaration here as this JSON encodes to 'null' instead of '[]'
 	for rows.Next() {
 		device, err := scanDevice(rows)
-
 		if err != nil {
 			return nil, err
 		}
@@ -151,7 +149,7 @@ func (db *apiServerDB) AddGateway(ctx context.Context, gw *pb.Gateway) error {
 		return fmt.Errorf("reading existing ips: %w", err)
 	}
 
-	availableIp, err := cidr.FindAvailableIP(TunnelCidr, takenIps)
+	availableIp, err := db.IPAllocator.NextIP(takenIps)
 	if err != nil {
 		return fmt.Errorf("finding available ip: %w", err)
 	}
@@ -196,7 +194,7 @@ func (db *apiServerDB) AddDevice(ctx context.Context, device *pb.Device) error {
 		return fmt.Errorf("reading existing ips: %w", err)
 	}
 
-	ip, err := cidr.FindAvailableIP(TunnelCidr, ips)
+	ip, err := db.IPAllocator.NextIP(ips)
 	if err != nil {
 		return fmt.Errorf("finding available ip: %w", err)
 	}
@@ -274,7 +272,6 @@ func (db *apiServerDB) ReadGateways(ctx context.Context) ([]*pb.Gateway, error) 
 	}
 
 	return gateways, nil
-
 }
 
 func (db *apiServerDB) ReadGateway(ctx context.Context, name string) (*pb.Gateway, error) {
@@ -285,9 +282,7 @@ func (db *apiServerDB) ReadGateway(ctx context.Context, name string) (*pb.Gatewa
 }
 
 func (db *apiServerDB) readExistingIPs(ctx context.Context) ([]string, error) {
-	ips := []string{
-		"10.255.240.1", // reserve apiserver ip
-	}
+	var ips []string
 
 	if devices, err := db.ReadDevices(ctx); err != nil {
 		return nil, fmt.Errorf("reading devices: %w", err)
@@ -390,7 +385,6 @@ func (db *apiServerDB) Migrate(ctx context.Context) error {
 	query := "SELECT MAX(version) FROM migrations"
 	row := db.conn.QueryRowContext(ctx, query)
 	err := row.Scan(&version)
-
 	if err != nil {
 		// error might be due to no schema.
 		// no way to detect this, so log error and continue with migrations.

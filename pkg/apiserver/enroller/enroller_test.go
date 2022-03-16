@@ -15,19 +15,22 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
+	"github.com/nais/device/pkg/apiserver/database"
 	"github.com/nais/device/pkg/apiserver/enroller"
 	"github.com/nais/device/pkg/apiserver/testdatabase"
 	"github.com/nais/device/pkg/bootstrap"
 )
 
 const (
-	apiServerPublicKey = "pk"
-	endpoint           = "ep"
-	deviceSerial       = "deviceSerial"
-	devicePublicKey    = "publicKey"
-	devicePlatform     = "linux"
-	deviceOwner        = "me"
-	timeout            = 5 * time.Second
+	apiServerPublicKey      = "pk"
+	apiserverWireGuardIP    = "10.255.240.1"
+	wireguardNetworkAddress = "10.255.240.1/21"
+	endpoint                = "ep"
+	deviceSerial            = "deviceSerial"
+	devicePublicKey         = "publicKey"
+	devicePlatform          = "linux"
+	deviceOwner             = "me"
+	timeout                 = 5 * time.Second
 )
 
 func TestWatchDeviceEnrollments(t *testing.T) {
@@ -35,7 +38,7 @@ func TestWatchDeviceEnrollments(t *testing.T) {
 	success := false
 	mux := http.NewServeMux()
 
-	mux.HandleFunc("/api/v2/device/config/deviceSerial", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("/api/v2/device/config/"+deviceSerial, func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPost {
 			t.Fatalf("invalid method")
 		}
@@ -46,6 +49,7 @@ func TestWatchDeviceEnrollments(t *testing.T) {
 
 		assert.Equal(t, apiServerPublicKey, cfg.PublicKey)
 		assert.Equal(t, endpoint, cfg.TunnelEndpoint)
+		assert.Equal(t, apiserverWireGuardIP, cfg.APIServerIP)
 
 		success = true
 		w.WriteHeader(http.StatusCreated)
@@ -68,7 +72,6 @@ func TestWatchDeviceEnrollments(t *testing.T) {
 
 		once.Do(func() {
 			w.Write(b)
-			return
 		})
 
 		fmt.Fprint(w, `[]`)
@@ -77,7 +80,8 @@ func TestWatchDeviceEnrollments(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 
-	testDB, err := testdatabase.New(ctx, "user=postgres password=postgres host=localhost port=5433 sslmode=disable")
+	ipAllocator := database.NewIPAllocator(wireguardNetworkAddress, []string{apiserverWireGuardIP})
+	testDB, err := testdatabase.New(ctx, "user=postgres password=postgres host=localhost port=5433 sslmode=disable", ipAllocator)
 	assert.NoError(t, err)
 	server := httptest.NewServer(mux)
 	enr := enroller.Enroller{
@@ -86,6 +90,7 @@ func TestWatchDeviceEnrollments(t *testing.T) {
 		BootstrapAPIURL:    server.URL,
 		APIServerPublicKey: apiServerPublicKey,
 		APIServerEndpoint:  endpoint,
+		APIServerIP:        apiserverWireGuardIP,
 	}
 
 	assert.NoError(t, enr.EnrollDevice(context.Background()))

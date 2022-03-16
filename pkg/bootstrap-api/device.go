@@ -8,6 +8,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	log "github.com/sirupsen/logrus"
 
+	"github.com/nais/device/pkg/auth"
 	"github.com/nais/device/pkg/bootstrap"
 )
 
@@ -35,7 +36,7 @@ func (api *DeviceApi) getBootstrapConfig(w http.ResponseWriter, r *http.Request)
 	serial := chi.URLParam(r, "serial")
 	ctxLog := api.log.WithFields(log.Fields{
 		"serial":   serial,
-		"username": r.Context().Value("preferred_username").(string),
+		"username": auth.GetEmail(r.Context()),
 	})
 
 	bootstrapConfig := api.enrollments.getBootstrapConfig(serial)
@@ -60,14 +61,13 @@ func (api *DeviceApi) getBootstrapConfig(w http.ResponseWriter, r *http.Request)
 func (api *DeviceApi) postDeviceInfo(w http.ResponseWriter, r *http.Request) {
 	var deviceInfo bootstrap.DeviceInfo
 	err := json.NewDecoder(r.Body).Decode(&deviceInfo)
-
 	if err != nil {
 		api.log.Errorf("Decoding json: %v", err)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 
-	deviceInfo.Owner = r.Context().Value("preferred_username").(string)
+	deviceInfo.Owner = auth.GetEmail(r.Context())
 	if len(deviceInfo.Owner) == 0 {
 		api.log.Errorf("deviceInfo without owner, abort enroll")
 		w.WriteHeader(http.StatusBadRequest)

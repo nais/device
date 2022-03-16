@@ -15,13 +15,18 @@ import (
 	"github.com/nais/device/pkg/pb"
 )
 
-const timeout = 2 * time.Second
+const (
+	timeout                 = 5 * time.Second
+	wireguardNetworkAddress = "10.255.240.1/21"
+	apiserverWireGuardIP    = "10.255.240.1"
+)
 
 func setup(t *testing.T) database.APIServer {
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 
-	db, err := testdatabase.New(ctx, "user=postgres password=postgres host=localhost port=5433 sslmode=disable")
+	ipAllocator := database.NewIPAllocator(wireguardNetworkAddress, []string{apiserverWireGuardIP})
+	db, err := testdatabase.New(ctx, "user=postgres password=postgres host=localhost port=5433 sslmode=disable", ipAllocator)
 	if err != nil {
 		t.Fatalf("Instantiating database: %v", err)
 	}
@@ -61,7 +66,7 @@ func TestAddGateway(t *testing.T) {
 		assert.Error(t, db.AddGateway(ctx, existingGateway))
 	})
 
-	t.Run("adding a gateway with an existing public key fails", func (t *testing.T) {
+	t.Run("adding a gateway with an existing public key fails", func(t *testing.T) {
 		existingGateway, err := db.ReadGateway(ctx, g.Name)
 		assert.NoError(t, err)
 		existingGateway.Name = "new name"

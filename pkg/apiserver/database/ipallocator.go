@@ -1,4 +1,4 @@
-package cidr
+package database
 
 import (
 	"fmt"
@@ -6,7 +6,28 @@ import (
 	"strings"
 )
 
-func FindAvailableIP(cidr string, allocated []string) (string, error) {
+type IPAllocator interface {
+	NextIP([]string) (string, error)
+}
+
+type ipAllocator struct {
+	cidr     string
+	reserved []string
+}
+
+func NewIPAllocator(cidr string, reserved []string) IPAllocator {
+	return &ipAllocator{
+		cidr:     cidr,
+		reserved: reserved,
+	}
+}
+
+func (i *ipAllocator) NextIP(takenIPs []string) (string, error) {
+	takenIPs = append(takenIPs, i.reserved...)
+	return findAvailableIP(i.cidr, takenIPs)
+}
+
+func findAvailableIP(cidr string, allocated []string) (string, error) {
 	allocatedMap := toMap(allocated)
 	ips, _ := cidrIPs(cidr)
 	for _, ip := range ips {
@@ -27,7 +48,6 @@ func toMap(strings []string) map[string]struct{} {
 
 func cidrIPs(cidr string) ([]string, error) {
 	ip, ipnet, err := net.ParseCIDR(cidr)
-
 	if err != nil {
 		return nil, err
 	}
@@ -40,7 +60,7 @@ func cidrIPs(cidr string) ([]string, error) {
 	if strings.HasSuffix(cidr, "/32") {
 		return ips, nil
 	} else {
-		//remove network address and broadcast address
+		// remove network address and broadcast address
 		return ips[1 : len(ips)-1], nil
 	}
 }

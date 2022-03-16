@@ -10,15 +10,15 @@ import (
 	"time"
 )
 
-type ExchangeResponse struct {
-	AccessToken string    `json:"access_token"`
-	Expiry      time.Time `json:"expiry"`
-}
-
 type ExchangeRequest struct {
 	CodeVerifier string `json:"code_verifier"`
 	AccessCode   string `json:"access_code"`
 	RedirectURI  string `json:"redirect_uri"`
+}
+
+type ExchangeResponse struct {
+	IDToken string    `json:"access_token"`
+	Expiry  time.Time `json:"expiry"`
 }
 
 func handleRedirectGoogle(state, redirectURI string, codeVerifier *codeverifier.CodeVerifier, authFlowChan chan *authFlowResponse) http.HandlerFunc {
@@ -51,7 +51,8 @@ func handleRedirectGoogle(state, redirectURI string, codeVerifier *codeverifier.
 			return
 		}
 
-		req, err := http.NewRequestWithContext(ctx, http.MethodPost, "https://naisdevice-auth-server-h2pjqrstja-lz.a.run.app/exchange", &buffer)
+		//req, err := http.NewRequestWithContext(ctx, http.MethodPost, "https://naisdevice-auth-server-h2pjqrstja-lz.a.run.app/exchange", &buffer)
+		req, err := http.NewRequestWithContext(ctx, http.MethodPost, "http://localhost:8080/exchange", &buffer)
 		if err != nil {
 			failAuth(err, w, authFlowChan)
 			return
@@ -71,8 +72,8 @@ func handleRedirectGoogle(state, redirectURI string, codeVerifier *codeverifier.
 		}
 
 		token := &Token{
-			AccessToken: exchangeResponse.AccessToken,
-			Expiry:      exchangeResponse.Expiry,
+			Token:  exchangeResponse.IDToken,
+			Expiry: exchangeResponse.Expiry,
 		}
 
 		successfulResponse(w, "Successfully authenticated 👌 Close me pls")

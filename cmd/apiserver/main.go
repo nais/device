@@ -47,9 +47,7 @@ const (
 	shutdownGracePeriod       = 20 * time.Millisecond // time to allow server processes to finish their goroutines
 )
 
-var (
-	cfg = config.DefaultConfig()
-)
+var cfg = config.DefaultConfig()
 
 func init() {
 	flag.StringVar(&cfg.DbConnDSN, "db-connection-dsn", cfg.DbConnDSN, "database connection DSN")
@@ -70,6 +68,7 @@ func init() {
 	flag.StringVar(&cfg.Azure.ClientID, "azure-client-id", cfg.Azure.ClientID, "Azure app client id")
 	flag.StringVar(&cfg.Azure.Tenant, "azure-tenant", cfg.Azure.Tenant, "Azure tenant")
 	flag.StringVar(&cfg.Azure.ClientSecret, "azure-client-secret", cfg.Azure.ClientSecret, "Azure app client secret")
+	flag.StringVar(&cfg.Google.ClientID, "google-client-id", cfg.Google.ClientID, "Google credential client id")
 	flag.StringSliceVar(&cfg.AdminCredentialEntries, "admin-credential-entries", cfg.AdminCredentialEntries, "Comma-separated credentials on format: '<user>:<key>'")
 	flag.StringSliceVar(&cfg.PrometheusCredentialEntries, "prometheus-credential-entries", cfg.PrometheusCredentialEntries, "Comma-separated credentials on format: '<user>:<key>'")
 	flag.StringVar(&cfg.GatewayConfigBucketName, "gateway-config-bucket-name", cfg.GatewayConfigBucketName, "Name of bucket containing gateway config object")
@@ -78,9 +77,10 @@ func init() {
 	flag.BoolVar(&cfg.KolideEventHandlerEnabled, "kolide-event-handler-enabled", cfg.KolideEventHandlerEnabled, "enable kolide event handler (incoming webhooks from kolide on device failures)")
 	flag.BoolVar(&cfg.KolideEventHandlerSecure, "kolide-event-handler-secure", cfg.KolideEventHandlerSecure, "require TLS and authentication when talking to Kolide event handler")
 	flag.StringVar(&cfg.KolideEventHandlerToken, "kolide-event-handler-token", cfg.KolideEventHandlerToken, "token for kolide-event-handler grpc connection")
-	flag.BoolVar(&cfg.DeviceAuthenticationEnabled, "device-authentication-enabled", cfg.DeviceAuthenticationEnabled, "enable authentication for nais devices (oauth2)")
+	flag.StringVar(&cfg.DeviceAuthenticationProvider, "device-authentication-provider", cfg.DeviceAuthenticationProvider, "set device authentication provider")
 	flag.BoolVar(&cfg.ControlPlaneAuthenticationEnabled, "control-plane-authentication-enabled", cfg.ControlPlaneAuthenticationEnabled, "enable authentication for control plane (api keys)")
 	flag.BoolVar(&cfg.WireGuardEnabled, "wireguard-enabled", cfg.WireGuardEnabled, "enable WireGuard")
+	flag.StringVar(&cfg.WireGuardIP, "wireguard-ip", cfg.WireGuardIP, "WireGuard ip")
 	flag.StringVar(&cfg.WireGuardNetworkAddress, "wireguard-network-address", cfg.WireGuardNetworkAddress, "WireGuard network-address")
 	flag.BoolVar(&cfg.CloudSQLProxyEnabled, "cloud-sql-proxy-enabled", cfg.CloudSQLProxyEnabled, "enable Google Cloud SQL proxy for database connection")
 
@@ -131,7 +131,8 @@ func run() error {
 
 	log.Infof("naisdevice API server %s starting up", version.Version)
 
-	db, err := database.New(cfg.DbConnDSN, cfg.DatabaseDriver())
+	ipAllocator := database.NewIPAllocator(cfg.WireGuardNetworkAddress, []string{cfg.WireGuardIP})
+	db, err := database.New(cfg.DbConnDSN, cfg.DatabaseDriver(), ipAllocator)
 	if err != nil {
 		return fmt.Errorf("initialize database: %w", err)
 	}
@@ -144,20 +145,29 @@ func run() error {
 		return fmt.Errorf("warm session cache from database: %w", err)
 	}
 
-	if cfg.DeviceAuthenticationEnabled {
+	switch cfg.DeviceAuthenticationProvider {
+	case "azure":
 		log.Infof("Fetching Azure OIDC configuration...")
 		err = cfg.Azure.FetchCertificates()
 		if err != nil {
-			return fmt.Errorf("fetch jwks: %w", err)
+			return fmt.Errorf("fetch Azure jwks: %w", err)
 		}
 
 		authenticator = auth.NewAuthenticator(cfg.Azure, db, sessions)
 		log.Infof("Azure OIDC authenticator configured to authenticate device sessions.")
+	case "google":
+		log.Infof("Setting up Google OIDC configuration...")
+		err = cfg.Google.SetupJwkAutoRefresh()
+		if err != nil {
+			return fmt.Errorf("set up Google jwks: %w", err)
+		}
 
-	} else {
-
+		authenticator = auth.NewGoogleAuthenticator(cfg.Google, db, sessions)
+		log.Infof("Google OIDC authenticator configured to authenticate device sessions.")
+	default:
 		authenticator = auth.NewMockAuthenticator(sessions)
 		log.Warnf("Device authentication DISABLED! Do not run this configuration in production!")
+		log.Warnf("To enable device authentication, specify auth provider with --device-authentication-provider=azure|google")
 	}
 
 	if cfg.WireGuardEnabled {
@@ -512,7 +522,6 @@ func SyncJitaContinuosly(ctx context.Context, j jita.Client) {
 		case <-ticker.C:
 			log.Debug("Updating jita privileged users")
 			err := j.UpdatePrivilegedUsers()
-
 			if err != nil {
 				log.Errorf("Updating jita privileged users: %s", err)
 			}

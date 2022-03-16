@@ -79,7 +79,6 @@ func (das *DeviceAgentServer) syncConfigLoop(ctx context.Context, gateways chan<
 		grpc.WithBlock(),
 		grpc.WithReturnConnectionError(),
 	)
-
 	if err != nil {
 		return grpcstatus.Errorf(codes.Unavailable, err.Error())
 	}
@@ -97,11 +96,10 @@ func (das *DeviceAgentServer) syncConfigLoop(ctx context.Context, gateways chan<
 		}
 
 		loginResponse, err := apiserverClient.Login(ctx, &pb.APIServerLoginRequest{
-			Token:    das.rc.Token.AccessToken,
+			Token:    das.rc.Token.Token,
 			Platform: config.Platform,
 			Serial:   serial,
 		})
-
 		if err != nil {
 			return err
 		}
@@ -115,7 +113,6 @@ func (das *DeviceAgentServer) syncConfigLoop(ctx context.Context, gateways chan<
 	stream, err := apiserverClient.GetDeviceConfiguration(streamContext, &pb.GetDeviceConfigurationRequest{
 		SessionKey: das.rc.SessionInfo.Key,
 	})
-
 	if err != nil {
 		return err
 	}

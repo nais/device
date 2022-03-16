@@ -29,9 +29,7 @@ import (
 	"github.com/nais/device/pkg/version"
 )
 
-var (
-	cfg = config.DefaultConfig()
-)
+var cfg = config.DefaultConfig()
 
 func init() {
 	flag.StringVar(&cfg.APIServer, "apiserver", cfg.APIServer, "base url to apiserver")
@@ -156,7 +154,7 @@ func startDeviceAgent(ctx context.Context, cfg *config.Config) error {
 	client := pb.NewDeviceHelperClient(connection)
 	defer connection.Close()
 
-	listener, err := unixsocket.ListenWithFileMode(cfg.GrpcAddress, 0666)
+	listener, err := unixsocket.ListenWithFileMode(cfg.GrpcAddress, 0o666)
 	if err != nil {
 		return err
 	}

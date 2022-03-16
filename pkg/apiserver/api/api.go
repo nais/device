@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/nais/device/pkg/apiserver/auth"
 	"github.com/nais/device/pkg/apiserver/jita"
 	apiserver_metrics "github.com/nais/device/pkg/apiserver/metrics"
 	"github.com/nais/device/pkg/pb"
@@ -30,7 +31,7 @@ type GatewayConfig struct {
 }
 
 func (a *api) deviceConfig(w http.ResponseWriter, r *http.Request) {
-	sessionInfo := r.Context().Value("sessionInfo").(*pb.Session)
+	sessionInfo := auth.GetSessionInfo(r.Context())
 
 	logWithFields := log.WithFields(log.Fields{
 		"username":  sessionInfo.Device.Username,

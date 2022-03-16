@@ -1,9 +1,10 @@
 package auth
 
 import (
+	"time"
+
 	"github.com/nais/device/pkg/pb"
 	"google.golang.org/protobuf/types/known/timestamppb"
-	"time"
 )
 
 type LegacySessionInfo struct {

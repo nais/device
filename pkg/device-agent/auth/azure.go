@@ -7,15 +7,13 @@ import (
 	"time"
 
 	"github.com/lestrrat-go/jwx/jwt"
+	"github.com/nais/device/pkg/auth"
 	codeverifier "github.com/nirasan/go-oauth-pkce-code-verifier"
 	"golang.org/x/oauth2"
-
-	"github.com/nais/device/pkg/azure"
 )
 
 func handleRedirectAzure(state string, conf oauth2.Config, codeVerifier *codeverifier.CodeVerifier, authFlowChan chan *authFlowResponse) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-
 		// Catch if user has not approved terms
 		responseState := r.URL.Query().Get("state")
 		if state != responseState {
@@ -53,7 +51,7 @@ func handleRedirectAzure(state string, conf oauth2.Config, codeVerifier *codever
 
 		approvalOK := false
 		for _, group := range groups.([]interface{}) {
-			if group.(string) == azure.NaisDeviceApprovalGroup {
+			if group.(string) == auth.NaisDeviceApprovalGroup {
 				approvalOK = true
 			}
 		}
@@ -65,12 +63,11 @@ func handleRedirectAzure(state string, conf oauth2.Config, codeVerifier *codever
 		}
 
 		token := &Token{
-			AccessToken: t.AccessToken,
-			Expiry:      t.Expiry,
+			Token:  t.AccessToken,
+			Expiry: t.Expiry,
 		}
 
 		successfulResponse(w, "Successfully authenticated 👌 Close me pls")
 		authFlowChan <- &authFlowResponse{Token: token, err: nil}
-
 	}
 }

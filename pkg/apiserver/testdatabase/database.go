@@ -14,14 +14,14 @@ import (
 )
 
 // New creates and returns a new nais device database within the provided database instance
-func New(ctx context.Context, dsn string) (database.APIServer, error) {
+func New(ctx context.Context, dsn string, ipAllocator database.IPAllocator) (database.APIServer, error) {
 	databaseName, err := createDatabase(dsn)
 	if err != nil {
 		return nil, fmt.Errorf("creating database: %w", err)
 	}
 
 	dsn = fmt.Sprintf("%s dbname=%s", dsn, databaseName)
-	db, err := database.New(dsn, "postgres")
+	db, err := database.New(dsn, "postgres", ipAllocator)
 	if err != nil {
 		return nil, err
 	}
