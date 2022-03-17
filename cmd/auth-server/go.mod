@@ -1,6 +1,6 @@
 module github.com/nais/device/cmd/auth-server
 
-go 1.17
+go 1.18
 
 require (
 	github.com/kelseyhightower/envconfig v1.4.0

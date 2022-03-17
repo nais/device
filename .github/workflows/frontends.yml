@@ -4,7 +4,7 @@ on:
     tags:
       - "*"
 env:
-  go_version: '1.17'
+  go_version: '1.18'
 jobs:
   test:
     runs-on: ubuntu-latest
