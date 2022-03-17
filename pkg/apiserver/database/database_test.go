@@ -5,6 +5,7 @@ package database_test
 
 import (
 	"context"
+	"net/netip"
 	"testing"
 	"time"
 
@@ -25,7 +26,7 @@ func setup(t *testing.T) database.APIServer {
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 
-	ipAllocator := database.NewIPAllocator(wireguardNetworkAddress, []string{apiserverWireGuardIP})
+	ipAllocator := database.NewIPAllocator(netip.MustParsePrefix(wireguardNetworkAddress), []string{apiserverWireGuardIP})
 	db, err := testdatabase.New(ctx, "user=postgres password=postgres host=localhost port=5433 sslmode=disable", ipAllocator)
 	if err != nil {
 		t.Fatalf("Instantiating database: %v", err)

@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"net/netip"
 	"sync"
 	"testing"
 	"time"
@@ -80,7 +81,7 @@ func TestWatchDeviceEnrollments(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 
-	ipAllocator := database.NewIPAllocator(wireguardNetworkAddress, []string{apiserverWireGuardIP})
+	ipAllocator := database.NewIPAllocator(netip.MustParsePrefix(wireguardNetworkAddress), []string{apiserverWireGuardIP})
 	testDB, err := testdatabase.New(ctx, "user=postgres password=postgres host=localhost port=5433 sslmode=disable", ipAllocator)
 	assert.NoError(t, err)
 	server := httptest.NewServer(mux)

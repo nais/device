@@ -112,7 +112,7 @@ func StringSliceHasIntersect(slice1 []string, slice2 []string) bool {
 	return false
 }
 
-func respondf(w http.ResponseWriter, statusCode int, format string, args ...interface{}) {
+func respondf(w http.ResponseWriter, statusCode int, format string, args ...any) {
 	w.WriteHeader(statusCode)
 
 	if _, wErr := w.Write([]byte(fmt.Sprintf(format, args...))); wErr != nil {

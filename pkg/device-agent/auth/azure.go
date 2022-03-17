@@ -50,7 +50,7 @@ func handleRedirectAzure(state string, conf oauth2.Config, codeVerifier *codever
 		}
 
 		approvalOK := false
-		for _, group := range groups.([]interface{}) {
+		for _, group := range groups.([]any) {
 			if group.(string) == auth.NaisDeviceApprovalGroup {
 				approvalOK = true
 			}

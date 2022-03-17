@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"net/netip"
 	"testing"
 	"time"
 
@@ -194,7 +195,7 @@ func setup(t *testing.T, j jita.Client) (database.APIServer, chi.Router) {
 	ctx := context.Background()
 
 	testDBDSN := "user=postgres password=postgres host=localhost port=5433 sslmode=disable"
-	ipAllocator := database.NewIPAllocator(wireguardNetworkAddress, []string{apiserverWireGuardIP})
+	ipAllocator := database.NewIPAllocator(netip.MustParsePrefix(wireguardNetworkAddress), []string{apiserverWireGuardIP})
 	db, err := testdatabase.New(ctx, testDBDSN, ipAllocator)
 	if err != nil {
 		t.Fatalf("Instantiating database: %v", err)

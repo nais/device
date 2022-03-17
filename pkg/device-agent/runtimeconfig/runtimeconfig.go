@@ -74,7 +74,7 @@ func EnsureBootstrapping(rc *RuntimeConfig, serial string, ctx context.Context) 
 	return cfg, nil
 }
 
-func writeToJSONFile(strct interface{}, path string) error {
+func writeToJSONFile(strct any, path string) error {
 	b, err := json.Marshal(&strct)
 	if err != nil {
 		return fmt.Errorf("marshaling struct into json: %w", err)

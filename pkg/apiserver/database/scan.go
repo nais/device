@@ -12,7 +12,7 @@ import (
 )
 
 type Scanner interface {
-	Scan(...interface{}) error
+	Scan(...any) error
 }
 
 const DeviceFields = "id, serial, username, psk, platform, last_updated, kolide_last_seen, healthy, public_key, ip"

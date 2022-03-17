@@ -8,7 +8,6 @@ import (
 	"github.com/nais/device/pkg/apiserver/gatewayconfigurer"
 )
 
-
 func TestToCIDRStringSlice(t *testing.T) {
 	cidr := "1.2.3.4"
 	cidrStringSlice := gatewayconfigurer.ToCIDRStringSlice([]gatewayconfigurer.Route{{CIDR: cidr}})

@@ -2,8 +2,7 @@ package database
 
 import (
 	"fmt"
-	"net"
-	"strings"
+	"net/netip"
 )
 
 type IPAllocator interface {
@@ -11,11 +10,11 @@ type IPAllocator interface {
 }
 
 type ipAllocator struct {
-	cidr     string
+	cidr     netip.Prefix
 	reserved []string
 }
 
-func NewIPAllocator(cidr string, reserved []string) IPAllocator {
+func NewIPAllocator(cidr netip.Prefix, reserved []string) IPAllocator {
 	return &ipAllocator{
 		cidr:     cidr,
 		reserved: reserved,
@@ -27,7 +26,7 @@ func (i *ipAllocator) NextIP(takenIPs []string) (string, error) {
 	return findAvailableIP(i.cidr, takenIPs)
 }
 
-func findAvailableIP(cidr string, allocated []string) (string, error) {
+func findAvailableIP(cidr netip.Prefix, allocated []string) (string, error) {
 	allocatedMap := toMap(allocated)
 	ips, _ := cidrIPs(cidr)
 	for _, ip := range ips {
@@ -46,30 +45,17 @@ func toMap(strings []string) map[string]struct{} {
 	return m
 }
 
-func cidrIPs(cidr string) ([]string, error) {
-	ip, ipnet, err := net.ParseCIDR(cidr)
-	if err != nil {
-		return nil, err
-	}
-
+func cidrIPs(cidr netip.Prefix) ([]string, error) {
 	var ips []string
-	for ip := ip.Mask(ipnet.Mask); ipnet.Contains(ip); inc(ip) {
+	addr := cidr.Addr()
+	for ip := addr; cidr.Contains(ip); ip = ip.Next() {
 		ips = append(ips, ip.String())
 	}
 
-	if strings.HasSuffix(cidr, "/32") {
+	if cidr.Bits() == 32 {
 		return ips, nil
 	} else {
 		// remove network address and broadcast address
 		return ips[1 : len(ips)-1], nil
-	}
-}
-
-func inc(ip net.IP) {
-	for j := len(ip) - 1; j >= 0; j-- {
-		ip[j]++
-		if ip[j] > 0 {
-			break
-		}
 	}
 }

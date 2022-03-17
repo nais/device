@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"net"
 	"net/http"
+	"net/netip"
 	"os"
 	"os/exec"
 	"os/signal"
@@ -126,7 +127,12 @@ func run() error {
 
 	log.Infof("naisdevice API server %s starting up", version.Version)
 
-	ipAllocator := database.NewIPAllocator(cfg.WireGuardNetworkAddress, []string{cfg.WireGuardIP})
+	wireguardPrefix, err := netip.ParsePrefix(cfg.WireGuardNetworkAddress)
+	if err != nil {
+		return fmt.Errorf("parse wireguard network address: %w", err)
+	}
+
+	ipAllocator := database.NewIPAllocator(wireguardPrefix, []string{cfg.WireGuardIP})
 	db, err := database.New(cfg.DbConnDSN, cfg.DatabaseDriver(), ipAllocator)
 	if err != nil {
 		return fmt.Errorf("initialize database: %w", err)

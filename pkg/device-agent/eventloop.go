@@ -286,7 +286,7 @@ func (das *DeviceAgentServer) EventLoop(ctx context.Context) {
 				Level:   sentry.LevelInfo,
 				Message: "state changed",
 				Type:    "debug",
-				Data: map[string]interface{}{
+				Data: map[string]any{
 					"newState": newState.String(),
 				},
 				Category: "eventloop",

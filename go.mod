@@ -1,6 +1,6 @@
 module github.com/nais/device
 
-go 1.17
+go 1.18
 
 require (
 	cloud.google.com/go/secretmanager v0.1.0
@@ -92,5 +92,4 @@ require (
 	cloud.google.com/go/compute v1.5.0 // indirect
 	cloud.google.com/go/iam v0.3.0 // indirect
 	golang.org/x/xerrors v0.0.0-20200804184101-5ec99f83aff1 // indirect
-	gopkg.in/yaml.v2 v2.4.0 // indirect
 )
