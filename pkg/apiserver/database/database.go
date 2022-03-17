@@ -380,26 +380,32 @@ LIMIT 1;`, sessionFields)
 }
 
 func (db *apiServerDB) Migrate(ctx context.Context) error {
-	var version int
+	var currentVersion int
 
 	query := "SELECT MAX(version) FROM migrations"
 	row := db.conn.QueryRowContext(ctx, query)
-	err := row.Scan(&version)
+	err := row.Scan(&currentVersion)
 	if err != nil {
 		// error might be due to no schema.
 		// no way to detect this, so log error and continue with migrations.
 		log.Warnf("unable to get current migration version: %s", err)
 	}
 
-	for version < len(migrations) {
-		log.Infof("migrating database schema to version %d", version+1)
-
-		_, err = db.conn.ExecContext(ctx, migrations[version])
-		if err != nil {
-			return fmt.Errorf("migrating to version %d: %s", version+1, err)
+	migrations, err := migrations()
+	if err != nil {
+		return fmt.Errorf("unable to read migrations: %w", err)
+	}
+	for _, migration := range migrations {
+		if migration.version <= currentVersion {
+			continue
 		}
 
-		version++
+		log.Infof("migrating database schema to version %d", migration.version)
+
+		_, err = db.conn.ExecContext(ctx, migration.sql)
+		if err != nil {
+			return fmt.Errorf("migrating to version %d: %s", migration.version, err)
+		}
 	}
 
 	return nil
