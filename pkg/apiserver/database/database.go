@@ -203,9 +203,9 @@ func (db *apiServerDB) AddDevice(ctx context.Context, device *pb.Device) error {
 
 	statement := `
 INSERT INTO device (serial, username, public_key, ip, healthy, psk, platform)
-            VALUES ($1, $2, $3, $4, false, '', $5)
+            VALUES ($1, $2, $3, $4, $5, '', $6)
 ON CONFLICT(serial, platform) DO UPDATE SET username = $2, public_key = $3;`
-	_, err = tx.ExecContext(ctx, statement, device.Serial, device.Username, device.PublicKey, ip, device.Platform)
+	_, err = tx.ExecContext(ctx, statement, device.Serial, device.Username, device.PublicKey, ip, db.defaultDeviceHealth, device.Platform)
 	if err != nil {
 		return fmt.Errorf("inserting new device: %w", err)
 	}
