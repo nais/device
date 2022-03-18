@@ -45,6 +45,7 @@ func (g *googleAuthenticator) Login(ctx context.Context, token, serial, platform
 	session := &pb.Session{
 		Key:      random.RandomString(20, random.LettersAndNumbers),
 		Expiry:   timestamppb.New(time.Now().Add(SessionDuration)),
+		Groups:   user.Groups,
 		ObjectID: user.ID,
 		Device:   device,
 	}

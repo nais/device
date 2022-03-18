@@ -113,7 +113,8 @@ func (g *Google) ParseAndValidateToken(token string) (*User, error) {
 	}
 
 	return &User{
-		ID:    sub,
-		Email: email,
+		ID:     sub,
+		Email:  email,
+		Groups: []string{"allUsers"},
 	}, nil
 }
