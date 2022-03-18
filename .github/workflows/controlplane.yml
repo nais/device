@@ -39,7 +39,7 @@ jobs:
     - test
     runs-on: ubuntu-latest
     container:
-      image: ghcr.io/nais/naisdevice-ci:v3
+      image: ghcr.io/nais/naisdevice-ci:v4
     steps:
       - uses: actions/checkout@v2
 
