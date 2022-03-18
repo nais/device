@@ -21,7 +21,7 @@ func New(ctx context.Context, dsn string, ipAllocator database.IPAllocator) (dat
 	}
 
 	dsn = fmt.Sprintf("%s dbname=%s", dsn, databaseName)
-	db, err := database.New(dsn, "postgres", ipAllocator)
+	db, err := database.New(dsn, "postgres", ipAllocator, false)
 	if err != nil {
 		return nil, err
 	}

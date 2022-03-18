@@ -16,21 +16,23 @@ import (
 )
 
 type apiServerDB struct {
-	conn        *sql.DB
-	IPAllocator IPAllocator
+	conn                *sql.DB
+	IPAllocator         IPAllocator
+	defaultDeviceHealth bool
 }
 
 var _ APIServer = &apiServerDB{}
 
-func New(dsn, driver string, ipAllocator IPAllocator) (*apiServerDB, error) {
+func New(dsn, driver string, ipAllocator IPAllocator, defaultDeviceHealth bool) (*apiServerDB, error) {
 	db, err := sql.Open(driver, dsn)
 	if err != nil {
 		return nil, fmt.Errorf("connecting to database: %s", err)
 	}
 
 	apiServerDB := apiServerDB{
-		conn:        db,
-		IPAllocator: ipAllocator,
+		conn:                db,
+		IPAllocator:         ipAllocator,
+		defaultDeviceHealth: defaultDeviceHealth,
 	}
 
 	ctx := context.Background()

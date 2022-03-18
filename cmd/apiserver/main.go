@@ -133,7 +133,7 @@ func run() error {
 	}
 
 	ipAllocator := database.NewIPAllocator(wireguardPrefix, []string{cfg.WireGuardIP})
-	db, err := database.New(cfg.DbConnDSN, cfg.DatabaseDriver(), ipAllocator)
+	db, err := database.New(cfg.DbConnDSN, cfg.DatabaseDriver(), ipAllocator, !cfg.KolideEventHandlerEnabled)
 	if err != nil {
 		return fmt.Errorf("initialize database: %w", err)
 	}
