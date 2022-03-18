@@ -4,7 +4,7 @@ LABEL org.opencontainers.image.source=https://github.com/nais/device
 
 ARG FPM_VERSION=1.13.1
 ARG GCLOUD_VERSION=368.0.0
-ARG GO_VERSION=1.18.0
+ARG GO_VERSION=1.18
 WORKDIR /root
 
 ARG DEBIAN_FRONTEND=noninteractive
