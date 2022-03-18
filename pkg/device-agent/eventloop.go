@@ -370,7 +370,7 @@ func (das *DeviceAgentServer) EventLoop(ctx context.Context) {
 					log.Infof("validate token: %v", err)
 
 					ctx, cancel := context.WithTimeout(ctx, authFlowTimeout)
-					das.rc.Token, err = auth.GetDeviceAgentToken(ctx, das.rc.Config.OAuth2Config)
+					das.rc.Token, err = auth.GetDeviceAgentToken(ctx, das.rc.Config.OAuth2Config, das.Config.GoogleAuthServerAddress)
 					cancel()
 					if err != nil {
 						notify.Errorf("Get token: %v", err)

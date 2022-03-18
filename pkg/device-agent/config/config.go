@@ -41,6 +41,7 @@ type Config struct {
 	DeviceAgentHelperAddress string
 	AgentConfiguration       *pb.AgentConfiguration
 	EnableGoogleAuth         bool
+	GoogleAuthServerAddress  string
 }
 
 func (c *Config) SetDefaults() {
@@ -66,6 +67,7 @@ func DefaultConfig() Config {
 		LogLevel:                 "info",
 		GrpcAddress:              filepath.Join(userConfigDir, "agent.sock"),
 		DeviceAgentHelperAddress: filepath.Join(config2.RuntimeDir, "helper.sock"),
+		GoogleAuthServerAddress:  "https://naisdevice-auth-server-h2pjqrstja-lz.a.run.app",
 		OAuth2Config: oauth2.Config{
 			ClientID:    "8086d321-c6d3-4398-87da-0d54e3d93967",
 			Scopes:      []string{"openid", "6e45010d-2637-4a40-b91d-d4cbb451fb57/.default", "offline_access"},
@@ -85,7 +87,7 @@ func (c *Config) PersistAgentConfiguration() {
 
 	log.Debugf("persisting agent-config: %+v", c.AgentConfiguration)
 
-	if err := ioutil.WriteFile(agentConfigPath, out, 0644); err != nil {
+	if err := ioutil.WriteFile(agentConfigPath, out, 0o644); err != nil {
 		log.Errorf("Write AgentConfiguration: %v", err)
 	}
 }

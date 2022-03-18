@@ -5,9 +5,10 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	codeverifier "github.com/nirasan/go-oauth-pkce-code-verifier"
 	"net/http"
 	"time"
+
+	codeverifier "github.com/nirasan/go-oauth-pkce-code-verifier"
 )
 
 type ExchangeRequest struct {
@@ -21,7 +22,7 @@ type ExchangeResponse struct {
 	Expiry  time.Time `json:"expiry"`
 }
 
-func handleRedirectGoogle(state, redirectURI string, codeVerifier *codeverifier.CodeVerifier, authFlowChan chan *authFlowResponse) http.HandlerFunc {
+func handleRedirectGoogle(state, redirectURI string, codeVerifier *codeverifier.CodeVerifier, authFlowChan chan *authFlowResponse, authServer string) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		// Catch if user has not approved terms
 		responseState := r.URL.Query().Get("state")
@@ -51,8 +52,7 @@ func handleRedirectGoogle(state, redirectURI string, codeVerifier *codeverifier.
 			return
 		}
 
-		//req, err := http.NewRequestWithContext(ctx, http.MethodPost, "https://naisdevice-auth-server-h2pjqrstja-lz.a.run.app/exchange", &buffer)
-		req, err := http.NewRequestWithContext(ctx, http.MethodPost, "http://localhost:8080/exchange", &buffer)
+		req, err := http.NewRequestWithContext(ctx, http.MethodPost, authServer+"/exchange", &buffer)
 		if err != nil {
 			failAuth(err, w, authFlowChan)
 			return

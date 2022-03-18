@@ -27,7 +27,7 @@ type authFlowResponse struct {
 	err   error
 }
 
-func GetDeviceAgentToken(ctx context.Context, conf oauth2.Config) (*Token, error) {
+func GetDeviceAgentToken(ctx context.Context, conf oauth2.Config, authServer string) (*Token, error) {
 	// Ignoring impossible error
 	codeVerifier, _ := codeverifier.CreateCodeVerifier()
 
@@ -45,7 +45,7 @@ func GetDeviceAgentToken(ctx context.Context, conf oauth2.Config) (*Token, error
 	handler := http.NewServeMux()
 	// define a handler that will get the authorization code, call the authFlowResponse endpoint, and close the HTTP server
 	handler.HandleFunc("/", handleRedirectAzure(state, conf, codeVerifier, authFlowChan))
-	handler.HandleFunc("/google", handleRedirectGoogle(state, conf.RedirectURL, codeVerifier, authFlowChan))
+	handler.HandleFunc("/google", handleRedirectGoogle(state, conf.RedirectURL, codeVerifier, authFlowChan, authServer))
 
 	server := &http.Server{Handler: handler}
 	go server.Serve(listener)
