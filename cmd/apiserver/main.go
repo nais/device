@@ -67,6 +67,7 @@ func init() {
 	flag.StringVar(&cfg.Azure.Tenant, "azure-tenant", cfg.Azure.Tenant, "Azure tenant")
 	flag.StringVar(&cfg.Azure.ClientSecret, "azure-client-secret", cfg.Azure.ClientSecret, "Azure app client secret")
 	flag.StringVar(&cfg.Google.ClientID, "google-client-id", cfg.Google.ClientID, "Google credential client id")
+	flag.StringSliceVar(&cfg.Google.AllowedDomains, "google-allowed-domains", cfg.Google.AllowedDomains, "Google allowed domains: comma separated list")
 	flag.StringSliceVar(&cfg.AdminCredentialEntries, "admin-credential-entries", cfg.AdminCredentialEntries, "Comma-separated credentials on format: '<user>:<key>'")
 	flag.StringSliceVar(&cfg.PrometheusCredentialEntries, "prometheus-credential-entries", cfg.PrometheusCredentialEntries, "Comma-separated credentials on format: '<user>:<key>'")
 	flag.StringVar(&cfg.GatewayConfigBucketName, "gateway-config-bucket-name", cfg.GatewayConfigBucketName, "Name of bucket containing gateway config object")
@@ -290,7 +291,7 @@ func run() error {
 		gatewayAuthenticator = auth.NewGatewayAuthenticator(db)
 		prometheusAuthenticator = auth.NewAPIKeyAuthenticator(promauth)
 
-		log.Warnf("Control plane authentication enabled.")
+		log.Infof("Control plane authentication enabled.")
 
 	} else {
 		adminAuthenticator = auth.NewMockAPIKeyAuthenticator()
