@@ -10,6 +10,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/nais/device/assets"
 	"github.com/nais/device/pkg/device-agent/open"
 	"github.com/nais/device/pkg/notify"
 	"github.com/nais/device/pkg/pb"
@@ -283,9 +284,9 @@ func (gui *Gui) handleAgentStatus(agentStatus *pb.AgentStatus) {
 
 func (gui *Gui) applyDisconnectedIcon() {
 	if gui.Config.BlackAndWhiteIcons {
-		systray.SetTemplateIcon(NaisLogoBwDisconnected, NaisLogoBwDisconnected)
+		systray.SetTemplateIcon(assets.NaisLogoBwDisconnected, assets.NaisLogoBwDisconnected)
 	} else {
-		systray.SetIcon(NaisLogoRed)
+		systray.SetIcon(assets.NaisLogoRed)
 	}
 }
 
@@ -294,12 +295,12 @@ func (gui *Gui) updateIcons() {
 		gui.applyDisconnectedIcon()
 	} else if gui.AgentStatus.GetConnectionState() == pb.AgentState_Connected {
 		if gui.Config.BlackAndWhiteIcons {
-			systray.SetTemplateIcon(NaisLogoBwConnected, NaisLogoBwConnected)
+			systray.SetTemplateIcon(assets.NaisLogoBwConnected, assets.NaisLogoBwConnected)
 		} else {
-			systray.SetIcon(NaisLogoGreen)
+			systray.SetIcon(assets.NaisLogoGreen)
 		}
 	} else if gui.AgentStatus.GetConnectionState() == pb.AgentState_Unhealthy {
-		systray.SetIcon(NaisLogoYellow)
+		systray.SetIcon(assets.NaisLogoYellow)
 	}
 }
 

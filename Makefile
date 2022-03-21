@@ -29,21 +29,21 @@ controlplane:
 	GOOS=linux GOARCH=amd64 go build -o bin/controlplane/prometheus-agent -ldflags "-s $(LDFLAGS)" ./cmd/prometheus-agent
 
 # Run by GitHub actions on linux
-linux-client: cmd/device-agent/icons.go
+linux-client:
 	mkdir -p ./bin/linux-client
 	GOOS=linux GOARCH=amd64 go build -o bin/linux-client/naisdevice-systray -ldflags "-s $(LDFLAGS)" ./cmd/systray
 	GOOS=linux GOARCH=amd64 go build -o bin/linux-client/naisdevice-agent -ldflags "-s $(LDFLAGS)" ./cmd/device-agent
 	GOOS=linux GOARCH=amd64 go build -o bin/linux-client/naisdevice-helper -ldflags "-s $(LDFLAGS)" ./cmd/helper
 
 # Run by GitHub actions on macos
-macos-client: cmd/device-agent/icons.go
+macos-client:
 	mkdir -p ./bin/macos-client
 	GOOS=darwin GOARCH=amd64 go build -o bin/macos-client/naisdevice-agent -ldflags "-s $(LDFLAGS)" ./cmd/device-agent
 	GOOS=darwin GOARCH=amd64 go build -o bin/macos-client/naisdevice-systray -ldflags "-s $(LDFLAGS)" ./cmd/systray
 	GOOS=darwin GOARCH=amd64 go build -o bin/macos-client/naisdevice-helper -ldflags "-s $(LDFLAGS)" ./cmd/helper
 
 # Run by GitHub actions on linux
-windows-client: cmd/device-agent/icons.go
+windows-client:
 	mkdir -p ./bin/windows-client
 	go get github.com/akavel/rsrc
 	${GOPATH}/bin/rsrc -arch amd64 -manifest ./packaging/windows/admin_manifest.xml -ico assets/nais-logo-blue.ico -o ./cmd/helper/main_windows.syso
@@ -88,10 +88,6 @@ local-apiserver:
 	go run ./cmd/apiserver/main.go \
 		--db-connection-dsn= \
 		--credential-entries="nais:device,gateway-1:password" \
-
-icons: cmd/device-agent/icons.go
-cmd/device-agent/icons.go: assets/*.ico assets/icon.go
-	cd assets && go run icon.go | gofmt -s > ../pkg/systray/icons.go
 
 linux-icon: packaging/linux/icons/*/apps/naisdevice.png
 packaging/linux/icons/*/apps/naisdevice.png: assets/nais-logo-blue.png
