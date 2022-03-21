@@ -23,25 +23,26 @@ const File = "agent-config.json"
 type Config struct {
 	APIServer                string
 	APIServerGRPCAddress     string
-	Interface                string
-	ConfigDir                string
-	BootstrapToken           string
-	WireGuardBinary          string
-	WireGuardGoBinary        string
-	PrivateKeyPath           string
-	WireGuardConfigPath      string
-	BootstrapConfigPath      string
-	SerialPath               string
-	LogLevel                 string
-	LogFilePath              string
-	OAuth2Config             oauth2.Config
-	Platform                 string
-	BootstrapAPI             string
-	GrpcAddress              string
-	DeviceAgentHelperAddress string
 	AgentConfiguration       *pb.AgentConfiguration
+	BootstrapAPI             string
+	BootstrapConfigPath      string
+	BootstrapToken           string
+	ConfigDir                string
+	DeviceAgentHelperAddress string
 	EnableGoogleAuth         bool
 	GoogleAuthServerAddress  string
+	GrpcAddress              string
+	Interface                string
+	LogFilePath              string
+	LogLevel                 string
+	OAuth2Config             oauth2.Config
+	OuttuneEnabled           bool
+	Platform                 string
+	PrivateKeyPath           string
+	SerialPath               string
+	WireGuardBinary          string
+	WireGuardConfigPath      string
+	WireGuardGoBinary        string
 }
 
 func (c *Config) SetDefaults() {
@@ -68,6 +69,7 @@ func DefaultConfig() Config {
 		GrpcAddress:              filepath.Join(userConfigDir, "agent.sock"),
 		DeviceAgentHelperAddress: filepath.Join(config2.RuntimeDir, "helper.sock"),
 		GoogleAuthServerAddress:  "https://naisdevice-auth-server-h2pjqrstja-lz.a.run.app",
+		OuttuneEnabled:           true,
 		OAuth2Config: oauth2.Config{
 			ClientID:    "8086d321-c6d3-4398-87da-0d54e3d93967",
 			Scopes:      []string{"openid", "6e45010d-2637-4a40-b91d-d4cbb451fb57/.default", "offline_access"},

@@ -42,6 +42,7 @@ func init() {
 	flag.StringVar(&cfg.DeviceAgentHelperAddress, "device-agent-helper-address", cfg.DeviceAgentHelperAddress, "device-agent-helper unix socket")
 	flag.BoolVar(&cfg.EnableGoogleAuth, "enable-google-auth", cfg.EnableGoogleAuth, "enables Google auth instead of Azure")
 	flag.StringVar(&cfg.GoogleAuthServerAddress, "google-auth-server-address", cfg.GoogleAuthServerAddress, "Google auth-server address")
+	flag.BoolVar(&cfg.OuttuneEnabled, "outtune-enabled", cfg.OuttuneEnabled, "Toggle fetching of outtune certificates")
 }
 
 func handleSignals(cancel context.CancelFunc) {
