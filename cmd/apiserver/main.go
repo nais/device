@@ -83,6 +83,7 @@ func init() {
 	flag.StringVar(&cfg.WireGuardNetworkAddress, "wireguard-network-address", cfg.WireGuardNetworkAddress, "WireGuard network-address")
 	flag.StringVar(&cfg.WireGuardPrivateKey, "wireguard-private-key", cfg.WireGuardPrivateKey, "WireGuard private key")
 	flag.BoolVar(&cfg.CloudSQLProxyEnabled, "cloud-sql-proxy-enabled", cfg.CloudSQLProxyEnabled, "enable Google Cloud SQL proxy for database connection")
+	flag.StringVar(&cfg.GatewayConfigurer, "gateway-configurer", cfg.GatewayConfigurer, "which method to use for fetching gateway config (metadata or bucket)")
 
 	flag.Parse()
 }
@@ -246,21 +247,29 @@ func run() error {
 		go en.WatchDeviceEnrollments(ctx)
 	}
 
-	buck := bucket.NewClient(cfg.GatewayConfigBucketName, cfg.GatewayConfigBucketObjectName)
-
-	gwc := gatewayconfigurer.GatewayConfigurer{
-		DB:                 db,
-		Bucket:             buck,
-		SyncInterval:       gatewayConfigSyncInterval,
-		TriggerGatewaySync: triggerGatewaySync,
-	}
-
 	jitaClient := jita.New(cfg.JitaUsername, cfg.JitaPassword, cfg.JitaUrl)
 	if cfg.JitaEnabled {
 		go SyncJitaContinuosly(ctx, jitaClient)
 	}
 
-	go gwc.SyncContinuously(ctx)
+	switch cfg.GatewayConfigurer {
+	case "bucket":
+		buck := bucket.NewClient(cfg.GatewayConfigBucketName, cfg.GatewayConfigBucketObjectName)
+
+		updater := gatewayconfigurer.GatewayConfigurer{
+			DB:                 db,
+			Bucket:             buck,
+			SyncInterval:       gatewayConfigSyncInterval,
+			TriggerGatewaySync: triggerGatewaySync,
+		}
+
+		go updater.SyncContinuously(ctx)
+	case "metadata":
+		updater := gatewayconfigurer.NewGoogleMetadata(db, log.WithField("component", "gatewayconfigurer"))
+		go updater.SyncContinuously(ctx, gatewayConfigSyncInterval)
+	default:
+		log.Warn("no valid gateway configurer set, gateways won't be updated.")
+	}
 
 	apiConfig := api.Config{
 		DB:            db,
