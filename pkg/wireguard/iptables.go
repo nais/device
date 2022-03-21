@@ -9,17 +9,16 @@ import (
 )
 
 func (nc *networkConfigurer) determineDefaultInterface() error {
-	if len(nc.interfaceIP) > 0 && len(nc.interfaceName) > 0 {
+	if len(nc.interfaceIP) > 0 && len(nc.wireguardInterface) > 0 {
 		return nil
 	}
 	cmd := exec.Command("ip", "route", "get", "1.1.1.1")
 	out, err := cmd.CombinedOutput()
-
 	if err != nil {
 		return err
 	}
 
-	nc.interfaceName, nc.interfaceIP, err = ParseDefaultInterfaceOutput(out)
+	nc.defaultInterface, nc.interfaceIP, err = ParseDefaultInterfaceOutput(out)
 	return err
 }
 
@@ -55,14 +54,14 @@ func (nc *networkConfigurer) SetupIPTables() error {
 		return fmt.Errorf("setting FORWARD policy to DROP: %w", err)
 	}
 
-	// Allow ESTABLISHED,RELATED from wg0 to default interface
-	err = nc.ipTables.AppendUnique("filter", "FORWARD", "-i", "wg0", "-o", nc.interfaceName, "-m", "conntrack", "--ctstate", "ESTABLISHED,RELATED", "-j", "ACCEPT")
+	// Allow ESTABLISHED,RELATED from WireGuard to default interface
+	err = nc.ipTables.AppendUnique("filter", "FORWARD", "-i", nc.wireguardInterface, "-o", nc.defaultInterface, "-m", "conntrack", "--ctstate", "ESTABLISHED,RELATED", "-j", "ACCEPT")
 	if err != nil {
 		return fmt.Errorf("adding default FORWARD outbound-rule: %w", err)
 	}
 
-	// Allow ESTABLISHED,RELATED from default interface to wg0
-	err = nc.ipTables.AppendUnique("filter", "FORWARD", "-i", nc.interfaceName, "-o", "wg0", "-m", "conntrack", "--ctstate", "ESTABLISHED,RELATED", "-j", "ACCEPT")
+	// Allow ESTABLISHED,RELATED from default interface to WireGuard
+	err = nc.ipTables.AppendUnique("filter", "FORWARD", "-i", nc.defaultInterface, "-o", nc.wireguardInterface, "-m", "conntrack", "--ctstate", "ESTABLISHED,RELATED", "-j", "ACCEPT")
 	if err != nil {
 		return fmt.Errorf("adding default FORWARD inbound-rule: %w", err)
 	}
@@ -88,7 +87,7 @@ func (nc *networkConfigurer) ForwardRoutes(routes []string) error {
 	var err error
 
 	for _, ip := range routes {
-		err = nc.ipTables.AppendUnique("nat", "POSTROUTING", "-o", nc.interfaceName, "-p", "tcp", "-d", ip, "-j", "SNAT", "--to-source", nc.interfaceIP)
+		err = nc.ipTables.AppendUnique("nat", "POSTROUTING", "-o", nc.defaultInterface, "-p", "tcp", "-d", ip, "-j", "SNAT", "--to-source", nc.interfaceIP)
 		if err != nil {
 			return fmt.Errorf("setting up snat: %w", err)
 		}
@@ -96,8 +95,8 @@ func (nc *networkConfigurer) ForwardRoutes(routes []string) error {
 		err = nc.ipTables.AppendUnique(
 			"filter",
 			"FORWARD",
-			"--in-interface", "wg0",
-			"--out-interface", nc.interfaceName,
+			"--in-interface", nc.wireguardInterface,
+			"--out-interface", nc.defaultInterface,
 			"--protocol", "tcp",
 			"--syn",
 			"--destination", ip,
