@@ -5,6 +5,7 @@ import (
 	"os"
 	"os/exec"
 	"regexp"
+	"time"
 
 	log "github.com/sirupsen/logrus"
 )
@@ -92,7 +93,9 @@ func (nc *networkConfigurer) ApplyWireGuardConfig(peers []Peer) error {
 		return fmt.Errorf("close WireGuard config: %w", err)
 	}
 
+	time.Sleep(1 * time.Second)
 	cmd := exec.Command("wg", "syncconf", nc.interfaceName, nc.configPath)
+	log.Info(cmd.String())
 
 	out, err := cmd.CombinedOutput()
 	if err != nil {
