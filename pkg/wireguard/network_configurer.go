@@ -75,7 +75,7 @@ func (nc *networkConfigurer) SetupInterface() error {
 
 // ApplyWireGuardConfig runs syncconfig with the provided WireGuard config
 func (nc *networkConfigurer) ApplyWireGuardConfig(peers []Peer) error {
-	configFile, err := os.OpenFile(nc.configPath, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0600)
+	configFile, err := os.OpenFile(nc.configPath, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0o600)
 	if err != nil {
 		return fmt.Errorf("open WireGuard config file: %w", err)
 	}
@@ -94,8 +94,9 @@ func (nc *networkConfigurer) ApplyWireGuardConfig(peers []Peer) error {
 
 	cmd := exec.Command("wg", "syncconf", nc.interfaceName, nc.configPath)
 
-	if err := cmd.Run(); err != nil {
-		return fmt.Errorf("sync WireGuard config: %w", err)
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		return fmt.Errorf("sync WireGuard config: %w: out: %v", err, string(out))
 	}
 
 	log.Debugf("Actuated WireGuard config at %v", nc.configPath)
