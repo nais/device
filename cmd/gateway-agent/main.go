@@ -24,9 +24,7 @@ import (
 	flag "github.com/spf13/pflag"
 )
 
-var (
-	cfg = g.DefaultConfig()
-)
+var cfg = g.DefaultConfig()
 
 const (
 	grpcConnectBackoff  = 5 * time.Second
@@ -35,7 +33,6 @@ const (
 )
 
 func init() {
-
 	flag.BoolVar(&cfg.EnableRouting, "enable-routing", cfg.EnableRouting, "enable-routing enables setting up interface and configuring of WireGuard")
 	flag.StringVar(&cfg.APIServerEndpoint, "apiserver-endpoint", cfg.APIServerEndpoint, "WireGuard public endpoint at API server, host:port")
 	flag.StringVar(&cfg.APIServerPassword, "apiserver-password", cfg.APIServerPassword, "password to access apiserver")
@@ -103,7 +100,7 @@ func run() error {
 		return fmt.Errorf("setup iptables defaults: %w", err)
 	}
 
-	err = netConf.ApplyWireGuardConfig(nil)
+	err = netConf.ApplyWireGuardConfig(cfg.StaticPeers())
 	if err != nil {
 		return fmt.Errorf("apply wireguard config: %w", err)
 	}
@@ -126,7 +123,6 @@ func run() error {
 		cfg.APIServerURL,
 		grpc.WithInsecure(),
 	)
-
 	if err != nil {
 		return fmt.Errorf("unable to connect to api server: %w", err)
 	}
@@ -147,8 +143,8 @@ func run() error {
 			log.Error(err)
 			log.Debugf("Waiting %s before next retry...", grpcConnectBackoff)
 			select {
-			case <-ctx.Done(): //context cancelled
-			case <-time.After(grpcConnectBackoff): //timeout
+			case <-ctx.Done(): // context cancelled
+			case <-time.After(grpcConnectBackoff): // timeout
 			}
 		}
 	}
