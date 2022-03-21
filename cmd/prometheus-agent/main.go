@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"os"
 	"os/signal"
 	"syscall"
 	"time"
@@ -35,6 +34,8 @@ var (
 )
 
 const (
+	updateInterval      = 5 * time.Minute
+	updateTimeout       = 10 * time.Second
 	wireguardInterface  = "wg0"
 	wireguardListenPort = 51820
 )
@@ -119,15 +120,11 @@ func run() error {
 
 	apiClient := pb.NewAPIServerClient(grpcClient)
 
-	sigs := make(chan os.Signal)
-	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
-
-	const pollInterval = 5 * time.Minute
-	const timeout = 10 * time.Second
-	t := time.NewTimer(time.Millisecond)
+	ctx, cancel = signal.NotifyContext(ctx, syscall.SIGINT, syscall.SIGTERM)
+	defer cancel()
 
 	update := func() error {
-		ctx, cancel := context.WithTimeout(ctx, timeout)
+		ctx, cancel := context.WithTimeout(ctx, updateTimeout)
 		defer cancel()
 
 		gateways, err := listGateways(ctx, apiClient)
@@ -139,20 +136,20 @@ func run() error {
 	}
 
 	for ctx.Err() == nil {
+		log.Debugf("Polling for new configuration...")
+		err = update()
+		if err != nil {
+			log.Error(err)
+		} else {
+			log.Debugf("Configuration successfully applied")
+			lastSuccessfulConfigUpdate.SetToCurrentTime()
+		}
+
 		select {
-		case s := <-sigs:
-			log.Warnf("Received signal %s", s)
-			cancel()
-		case <-t.C:
-			log.Debugf("Polling for new configuration...")
-			err = update()
-			if err != nil {
-				log.Error(err)
-			} else {
-				log.Debugf("Configuration successfully applied")
-				lastSuccessfulConfigUpdate.SetToCurrentTime()
-			}
-			t.Reset(pollInterval)
+		case <-ctx.Done():
+			log.Infof("prometheus-agent program context done, exiting")
+			return nil
+		case <-time.After(updateInterval):
 		}
 	}
 
