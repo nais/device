@@ -15,9 +15,11 @@ type Scanner interface {
 	Scan(...any) error
 }
 
-const DeviceFields = "id, serial, username, psk, platform, last_updated, kolide_last_seen, healthy, public_key, ip"
-const GatewayFields = "public_key, access_group_ids, endpoint, ip, routes, name, requires_privileged_access, password_hash"
-const sessionFields = "key, expiry, device_id, groups, object_id"
+const (
+	DeviceFields  = "id, serial, username, psk, platform, last_updated, kolide_last_seen, healthy, public_key, ip"
+	GatewayFields = "public_key, access_group_ids, endpoint, ip, routes, name, requires_privileged_access, password_hash"
+	sessionFields = "key, expiry, device_id, groups, object_id"
+)
 
 func scanGateway(row Scanner) (*pb.Gateway, error) {
 	gateway := &pb.Gateway{}
@@ -52,9 +54,8 @@ func scanDevice(row Scanner) (*pb.Device, error) {
 	device := &pb.Device{}
 
 	err := row.Scan(&device.Id, &device.Serial, &device.Username, &device.Psk, &device.Platform, &lastUpdated, &kolideLastSeen, &device.Healthy, &device.PublicKey, &device.Ip)
-
 	if err != nil {
-		return nil, fmt.Errorf("scan device row: %s", err)
+		return nil, fmt.Errorf("scan device row: %w", err)
 	}
 
 	if lastUpdated != nil {
