@@ -496,10 +496,11 @@ func setupInterface(networkAddress string) error {
 	run := func(commands [][]string) error {
 		for _, s := range commands {
 			cmd := exec.Command(s[0], s[1:]...)
-			if out, err := cmd.CombinedOutput(); err != nil {
+			out, err := cmd.CombinedOutput()
+			if err != nil {
 				return fmt.Errorf("running %v: %w: %v", cmd, err, string(out))
 			} else {
-				fmt.Printf("%v: %v\n", cmd, string(out))
+				log.Debugf("%v: %v\n", cmd, string(out))
 			}
 		}
 		return nil
