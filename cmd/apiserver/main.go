@@ -553,5 +553,5 @@ func setupCloudSQLProxyLogging() {
 	cloudsqlproxylog.Errorf = log.Errorf
 	cloudsqlproxylog.Infof = log.Infof
 	cloudsqlproxylog.Verbosef = log.Debugf
-	cloudsqlproxylog.EnableStructuredLogs(false, false)
+	// cloudsqlproxylog.EnableStructuredLogs(false, false)
 }
