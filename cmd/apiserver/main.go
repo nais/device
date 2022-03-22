@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"context"
+	"database/sql"
 	"errors"
 	"fmt"
 	"net"
@@ -446,7 +447,11 @@ func run() error {
 		case event := <-deviceUpdates:
 			err = updateDevice(event)
 			if err != nil {
-				log.Errorf("Update device health: %s", err)
+				if errors.Is(err, sql.ErrNoRows) {
+					log.Debugf("Update device health: %s", err)
+				} else {
+					log.Errorf("Update device health: %s", err)
+				}
 			}
 
 		case <-triggerGatewaySync:
