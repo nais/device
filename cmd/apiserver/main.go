@@ -187,10 +187,11 @@ func run() error {
 			return fmt.Errorf("set up WireGuard interface: %w", err)
 		}
 
-		wireguardPublicKey, err = generatePublicKey([]byte(cfg.WireGuardPrivateKey), "wg")
+		publicKey, err := generatePublicKey([]byte(cfg.WireGuardPrivateKey), "wg")
 		if err != nil {
 			return fmt.Errorf("generate WireGuard public key: %w", err)
 		}
+		cfg.WireGuardPublicKey = string(publicKey)
 
 		w := wireguard.New(cfg, db, cfg.WireGuardPrivateKey)
 
@@ -251,6 +252,15 @@ func run() error {
 		}
 
 		go en.WatchDeviceEnrollments(ctx)
+	}
+
+	if cfg.AutoEnrollEnabled {
+		enrollPeers := append(cfg.StaticPeers(), cfg.APIServerPeer())
+		e, err := enroller.NewAutoEnroll(ctx, db, enrollPeers, cfg.BindAddress, log.WithField("component", "auto-enroller"))
+		if err != nil {
+			return err
+		}
+		go e.Run(ctx)
 	}
 
 	jitaClient := jita.New(cfg.JitaUsername, cfg.JitaPassword, cfg.JitaUrl)
