@@ -24,6 +24,7 @@ type Config struct {
 	PrometheusPublicKey string
 	PrometheusTunnelIP  string
 	WireGuardConfigPath string
+	AutoBootstrap       bool
 }
 
 func DefaultConfig() Config {
