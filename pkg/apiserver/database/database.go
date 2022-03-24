@@ -136,6 +136,27 @@ UPDATE gateway
 	return nil
 }
 
+func (db *apiServerDB) UpdateGatewayDynamicFields(ctx context.Context, gw *pb.Gateway) error {
+	statement := `
+UPDATE gateway
+    SET access_group_ids = $1,
+        routes = $2,
+        requires_privileged_access = $3
+ WHERE name = $4;`
+
+	_, err := db.conn.ExecContext(ctx, statement,
+		strings.Join(gw.AccessGroupIDs, ","),
+		strings.Join(gw.Routes, ","),
+		gw.RequiresPrivilegedAccess,
+		gw.Name)
+	if err != nil {
+		return fmt.Errorf("updating gateway dynamic fields: %w", err)
+	}
+
+	log.Debugf("Updated gateway dynamic fields: %s", gw.Name)
+	return nil
+}
+
 func (db *apiServerDB) AddGateway(ctx context.Context, gw *pb.Gateway) error {
 	mux.Lock()
 	defer mux.Unlock()
@@ -158,7 +179,8 @@ func (db *apiServerDB) AddGateway(ctx context.Context, gw *pb.Gateway) error {
 
 	statement := `
 INSERT INTO gateway (name, endpoint, public_key, ip, password_hash, access_group_ids, routes, requires_privileged_access)
-             VALUES ($1, $2, $3, $4, $5, $6, $7, $8);`
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+ON CONFLICT (name) DO UPDATE SET endpoint = EXCLUDED.endpoint, public_key = EXCLUDED.public_key, password_hash = EXCLUDED.password_hash;`
 
 	_, err = db.conn.ExecContext(ctx, statement,
 		gw.Name,

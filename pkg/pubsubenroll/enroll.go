@@ -22,18 +22,19 @@ type Request struct {
 	WireGuardPublicKey []byte `json:"wireguard_public_key"`
 	Name               string `json:"name"`
 	Endpoint           string `json:"endpoint"`
+	HashedPassword     string `json:"hashed_password"`
 }
 
 type Response struct {
 	APIServerGRPCAddress string        `json:"api_server_grpc_address"`
-	APIServerPassword    string        `json:"api_server_password"`
 	WireGuardIP          string        `json:"wireguard_ip"`
 	Peers                []*pb.Gateway `json:"peers"`
 }
 
 type Client struct {
-	WireGuardPublicKey []byte
-	Port               int
+	wireGuardPublicKey []byte
+	port               int
+	hashedPassword     string
 
 	Name             string `json:"name"`
 	EnrollProjectID  string `json:"project_id"`
@@ -42,20 +43,21 @@ type Client struct {
 	ExternalIP       string `json:"external_ip"`
 }
 
-func New(ctx context.Context, privateKeyPath string, wireguardListenPort int, log *log.Entry) (*Client, wireguard.PrivateKey, error) {
+func New(ctx context.Context, privateKeyPath, hashedPassword string, wireguardListenPort int, log *log.Entry) (*Client, wireguard.PrivateKey, error) {
 	privateKey, err := readOrCreatePrivateKey(privateKeyPath, log)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	b, err := getGoogleMetadata(ctx, "instance/attributes/enroll-config")
+	b, err := GetGoogleMetadata(ctx, "instance/attributes/enroll-config")
 	if err != nil {
 		return nil, nil, err
 	}
 
 	ec := &Client{
-		Port:               wireguardListenPort,
-		WireGuardPublicKey: privateKey.Public(),
+		port:               wireguardListenPort,
+		wireGuardPublicKey: privateKey.Public(),
+		hashedPassword:     hashedPassword,
 	}
 	if err := json.Unmarshal(b, ec); err != nil {
 		return nil, nil, err
@@ -65,7 +67,7 @@ func New(ctx context.Context, privateKeyPath string, wireguardListenPort int, lo
 
 func (c *Client) Bootstrap(ctx context.Context) (*Response, error) {
 	log.Info("Bootstrapping...")
-	projectID, err := getGoogleMetadataString(ctx, "project/project-id")
+	projectID, err := GetGoogleMetadataString(ctx, "project/project-id")
 	if err != nil {
 		return nil, err
 	}
@@ -105,9 +107,10 @@ func (c *Client) Bootstrap(ctx context.Context) (*Response, error) {
 
 func (c *Client) publishAndWait(ctx context.Context, topic *pubsub.Topic) error {
 	enrollMsg := Request{
-		WireGuardPublicKey: c.WireGuardPublicKey,
+		WireGuardPublicKey: c.wireGuardPublicKey,
 		Name:               c.Name,
-		Endpoint:           net.JoinHostPort(c.ExternalIP, strconv.Itoa(c.Port)),
+		Endpoint:           net.JoinHostPort(c.ExternalIP, strconv.Itoa(c.port)),
+		HashedPassword:     c.hashedPassword,
 	}
 	b, err := json.Marshal(enrollMsg)
 	if err != nil {
@@ -149,12 +152,12 @@ func readOrCreatePrivateKey(path string, log *log.Entry) (wireguard.PrivateKey, 
 	return wireguard.PrivateKey(b), nil
 }
 
-func getGoogleMetadataString(ctx context.Context, path string) (string, error) {
-	b, err := getGoogleMetadata(ctx, path)
+func GetGoogleMetadataString(ctx context.Context, path string) (string, error) {
+	b, err := GetGoogleMetadata(ctx, path)
 	return string(b), err
 }
 
-func getGoogleMetadata(ctx context.Context, path string) ([]byte, error) {
+func GetGoogleMetadata(ctx context.Context, path string) ([]byte, error) {
 	url := "http://metadata.google.internal/computeMetadata/v1/" + path
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 	if err != nil {

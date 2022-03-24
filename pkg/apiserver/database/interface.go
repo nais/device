@@ -10,6 +10,7 @@ type APIServer interface {
 	ReadDevices(ctx context.Context) ([]*pb.Device, error)
 	UpdateDevices(ctx context.Context, devices []*pb.Device) error
 	UpdateGateway(ctx context.Context, gateway *pb.Gateway) error
+	UpdateGatewayDynamicFields(ctx context.Context, gateway *pb.Gateway) error
 	AddGateway(ctx context.Context, gateway *pb.Gateway) error
 	AddDevice(ctx context.Context, device *pb.Device) error
 	ReadDevice(ctx context.Context, publicKey string) (*pb.Device, error)

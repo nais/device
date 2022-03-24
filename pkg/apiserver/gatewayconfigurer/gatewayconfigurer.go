@@ -9,6 +9,7 @@ import (
 	"github.com/nais/device/pkg/apiserver/bucket"
 	"github.com/nais/device/pkg/apiserver/database"
 	"github.com/nais/device/pkg/ioconvenience"
+	"github.com/nais/device/pkg/pb"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -62,15 +63,14 @@ func (g *GatewayConfigurer) SyncConfig(ctx context.Context) error {
 	}
 
 	for gatewayName, gatewayConfig := range gatewayConfigs {
-		gw, err := g.DB.ReadGateway(ctx, gatewayName)
-		if err != nil {
-			return fmt.Errorf("reading gateway %s from db: %w", gatewayName, err)
+		gw := &pb.Gateway{
+			Name:                     gatewayName,
+			AccessGroupIDs:           gatewayConfig.AccessGroupIds,
+			RequiresPrivilegedAccess: gatewayConfig.RequiresPrivilegedAccess,
+			Routes:                   ToCIDRStringSlice(gatewayConfig.Routes),
 		}
-		gw.AccessGroupIDs = gatewayConfig.AccessGroupIds
-		gw.RequiresPrivilegedAccess = gatewayConfig.RequiresPrivilegedAccess
-		gw.Routes = ToCIDRStringSlice(gatewayConfig.Routes)
 
-		err = g.DB.UpdateGateway(ctx, gw)
+		err = g.DB.UpdateGatewayDynamicFields(ctx, gw)
 		if err != nil {
 			return fmt.Errorf("updating gateway: %s with routes: %s and accessGroupIds: %s: %w", gatewayName, gatewayConfig.Routes, gatewayConfig.AccessGroupIds, err)
 		}

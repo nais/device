@@ -9,6 +9,7 @@ import (
 	"time"
 
 	g "github.com/nais/device/pkg/gateway-agent"
+	"github.com/nais/device/pkg/passwordhash"
 	"github.com/nais/device/pkg/pb"
 	"github.com/nais/device/pkg/pubsubenroll"
 	"github.com/nais/device/pkg/wireguard"
@@ -84,9 +85,16 @@ func run() error {
 	staticPeers := cfg.StaticPeers()
 	if cfg.AutoBootstrap {
 		log.Info("Auto bootstrap enabled")
+		password, hashedPassword, err := passwordhash.GeneratePasswordAndHash()
+		if err != nil {
+			return err
+		}
+		cfg.APIServerPassword = password
+
 		ecfg, wgPrivateKey, err := pubsubenroll.New(
 			ctx,
 			filepath.Join(cfg.ConfigDir, "private.key"),
+			hashedPassword,
 			wireguardListenPort,
 			log.WithField("component", "bootstrap"),
 		)
@@ -102,7 +110,6 @@ func run() error {
 		}
 
 		cfg.PrivateKey = string(wgPrivateKey.Private())
-		cfg.APIServerPassword = enrollResp.APIServerPassword
 		cfg.APIServerURL = enrollResp.APIServerGRPCAddress
 		cfg.DeviceIP = enrollResp.WireGuardIP
 

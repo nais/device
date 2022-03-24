@@ -8,6 +8,7 @@ import (
 )
 
 type Config struct {
+	AutoEnrollEnabled                 bool
 	Azure                             *auth.Azure
 	BindAddress                       string
 	BootstrapAPIURL                   string
