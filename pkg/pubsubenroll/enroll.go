@@ -61,19 +61,19 @@ func (c *Client) Bootstrap(ctx context.Context) (*Response, error) {
 	log.Info("Bootstrapping...")
 	projectID, err := GetGoogleMetadataString(ctx, "project/project-id")
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("get google metadata: %w", err)
 	}
 
 	client, err := pubsub.NewClient(ctx, projectID)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("create pubsub client: %w", err)
 	}
 
 	topic := client.TopicInProject(c.TopicName, c.EnrollProjectID)
 	sub := client.Subscription(c.SubscriptionName)
 
 	if err := c.publishAndWait(ctx, topic); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("publish and wait: %w", err)
 	}
 
 	var resp *Response
@@ -91,7 +91,7 @@ func (c *Client) Bootstrap(ctx context.Context) (*Response, error) {
 		cancel()
 	})
 	if err != nil && !errors.Is(err, context.Canceled) {
-		return nil, err
+		return nil, fmt.Errorf("bootstrap failed: %w", err)
 	}
 
 	return resp, nil
