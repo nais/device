@@ -72,6 +72,8 @@ func (c *Client) Bootstrap(ctx context.Context) (*Response, error) {
 	topic := client.TopicInProject(c.TopicName, c.EnrollProjectID)
 	sub := client.Subscription(c.SubscriptionName)
 
+	log.WithFields(log.Fields{"topic": topic.ID(), "subscription": sub.ID()}).Info("bootstrap using pubsub")
+
 	if err := c.publishAndWait(ctx, topic); err != nil {
 		return nil, fmt.Errorf("publish and wait: %w", err)
 	}
