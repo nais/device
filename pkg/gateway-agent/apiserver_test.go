@@ -56,7 +56,7 @@ func TestSyncFromStream(t *testing.T) {
 		netConf.On("ApplyWireGuardConfig", peers).Return(nil)
 		netConf.On("ForwardRoutes", resp.Routes).Return(nil)
 
-		err := gateway_agent.SyncFromStream(ctx, cfg, client, netConf)
+		err := gateway_agent.SyncFromStream(ctx, cfg.Name, cfg.APIServerPassword, staticPeers, client, netConf)
 
 		assert.ErrorIs(t, err, knownError)
 	})

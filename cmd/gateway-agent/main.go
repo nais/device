@@ -170,7 +170,7 @@ func run() error {
 	apiserverClient := pb.NewAPIServerClient(apiserver)
 
 	for attempt := 0; attempt < maxReconnectAttempts; attempt++ {
-		err := g.SyncFromStream(ctx, cfg, apiserverClient, netConf)
+		err := g.SyncFromStream(ctx, cfg.Name, cfg.APIServerPassword, staticPeers, apiserverClient, netConf)
 		if err != nil {
 			code := status.Code(err)
 			if code == codes.Unauthenticated {
