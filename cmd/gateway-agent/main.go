@@ -29,10 +29,11 @@ import (
 var cfg = g.DefaultConfig()
 
 const (
-	grpcConnectBackoff  = 5 * time.Second
-	wireguardInterface  = "wg0"
-	wireguardListenPort = 51820
-	enrollTimeout       = 20 * time.Second
+	grpcConnectBackoff   = 5 * time.Second
+	wireguardInterface   = "wg0"
+	wireguardListenPort  = 51820
+	enrollTimeout        = 20 * time.Second
+	maxReconnectAttempts = 10
 )
 
 func init() {
@@ -168,7 +169,7 @@ func run() error {
 
 	apiserverClient := pb.NewAPIServerClient(apiserver)
 
-	for {
+	for attempt := 0; attempt < maxReconnectAttempts; attempt++ {
 		err := g.SyncFromStream(ctx, cfg, apiserverClient, netConf)
 		if err != nil {
 			code := status.Code(err)
@@ -177,7 +178,7 @@ func run() error {
 				// so we terminate here to let the OS restart us.
 				return err
 			}
-			log.Error(err)
+			log.Errorf("attempt %v: %v", attempt, err)
 			log.Debugf("Waiting %s before next retry...", grpcConnectBackoff)
 			select {
 			case <-ctx.Done(): // context cancelled
