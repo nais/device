@@ -78,7 +78,8 @@ func (c *Client) Bootstrap(ctx context.Context) (*Response, error) {
 		return nil, fmt.Errorf("publish and wait: %w", err)
 	}
 
-	var resp *Response
+	resp := &Response{}
+	var unmarshalErr error
 	ctx, cancel := context.WithCancel(ctx)
 	err = sub.Receive(ctx, func(ctx context.Context, msg *pubsub.Message) {
 		if v, ok := msg.Attributes["type"]; !ok || v != "enroll-response" {
@@ -87,13 +88,15 @@ func (c *Client) Bootstrap(ctx context.Context) (*Response, error) {
 		}
 
 		msg.Ack()
-		if err := json.Unmarshal(msg.Data, resp); err != nil {
-			log.WithError(err).Error("unable to parse enroll response")
-		}
+		unmarshalErr = json.Unmarshal(msg.Data, resp)
 		cancel()
 	})
 	if err != nil && !errors.Is(err, context.Canceled) {
 		return nil, fmt.Errorf("bootstrap failed: %w", err)
+	}
+
+	if unmarshalErr != nil {
+		return nil, fmt.Errorf("parse json: %w", unmarshalErr)
 	}
 
 	return resp, nil
