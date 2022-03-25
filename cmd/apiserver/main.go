@@ -256,7 +256,7 @@ func run() error {
 
 	if cfg.AutoEnrollEnabled {
 		enrollPeers := append(cfg.StaticPeers(), cfg.APIServerPeer())
-		e, err := enroller.NewAutoEnroll(ctx, db, enrollPeers, cfg.BindAddress, log.WithField("component", "auto-enroller"))
+		e, err := enroller.NewAutoEnroll(ctx, db, enrollPeers, cfg.GRPCBindAddress, log.WithField("component", "auto-enroller"))
 		if err != nil {
 			return err
 		}
