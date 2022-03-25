@@ -39,6 +39,11 @@ func DefaultConfig() Config {
 }
 
 func (c Config) ValidateWireGuard() error {
+	// values are provided runtime -- no early validation needed
+	if c.AutoBootstrap {
+		return nil
+	}
+
 	var err error
 
 	check := func(key, value string) error {
