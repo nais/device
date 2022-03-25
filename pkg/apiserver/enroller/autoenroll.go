@@ -66,6 +66,7 @@ func NewAutoEnroll(
 }
 
 func (a *AutoEnroll) Run(ctx context.Context) error {
+	a.log.Infof("Starting auto enroll...")
 	return a.subscription.Receive(ctx, a.receive)
 }
 
@@ -82,6 +83,7 @@ func (a *AutoEnroll) receive(ctx context.Context, msg *pubsub.Message) {
 		a.log.WithError(err).Error("Failed to unmarshal request")
 		return
 	}
+	log := a.log.WithField("gateway", req.Name)
 
 	err := a.db.AddGateway(ctx, &pb.Gateway{
 		Name:         req.Name,
@@ -91,14 +93,14 @@ func (a *AutoEnroll) receive(ctx context.Context, msg *pubsub.Message) {
 	})
 	if err != nil {
 		msg.Nack()
-		a.log.WithError(err).Error("Failed to add gateway")
+		log.WithError(err).Error("Failed to add gateway")
 		return
 	}
 
 	gw, err := a.db.ReadGateway(ctx, req.Name)
 	if err != nil {
 		msg.Nack()
-		a.log.WithError(err).Error("Failed to get gateway")
+		log.WithError(err).Error("Failed to get gateway")
 		return
 	}
 
@@ -111,7 +113,7 @@ func (a *AutoEnroll) receive(ctx context.Context, msg *pubsub.Message) {
 	b, err := json.Marshal(&resp)
 	if err != nil {
 		msg.Nack()
-		a.log.WithError(err).Error("Failed to marshal response")
+		log.WithError(err).Error("Failed to marshal response")
 		return
 	}
 
@@ -125,6 +127,8 @@ func (a *AutoEnroll) receive(ctx context.Context, msg *pubsub.Message) {
 	})
 	_, err = pubresp.Get(ctx)
 	if err != nil {
-		a.log.WithError(err).Error("Failed to publish response")
+		log.WithError(err).Error("Failed to publish response")
 	}
+
+	log.Infof("Enrolled gateway")
 }
