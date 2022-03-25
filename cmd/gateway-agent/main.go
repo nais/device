@@ -91,9 +91,17 @@ func run() error {
 		}
 		cfg.APIServerPassword = password
 
-		ecfg, wgPrivateKey, err := pubsubenroll.New(
-			ctx,
+		privateKey, err := wireguard.ReadOrCreatePrivateKey(
 			filepath.Join(cfg.ConfigDir, "private.key"),
+			log.WithField("component", "wireguard"),
+		)
+		if err != nil {
+			return fmt.Errorf("get private key: %w", err)
+		}
+
+		ecfg, err := pubsubenroll.New(
+			ctx,
+			privateKey.Public(),
 			hashedPassword,
 			wireguardListenPort,
 			log.WithField("component", "bootstrap"),
@@ -109,7 +117,7 @@ func run() error {
 			return fmt.Errorf("auto-bootstrap: %w", err)
 		}
 
-		cfg.PrivateKey = string(wgPrivateKey.Private())
+		cfg.PrivateKey = string(privateKey.Private())
 		cfg.APIServerURL = enrollResp.APIServerGRPCAddress
 		cfg.DeviceIP = enrollResp.WireGuardIP
 

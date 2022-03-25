@@ -6,15 +6,12 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/fs"
 	"net"
 	"net/http"
-	"os"
 	"strconv"
 
 	"cloud.google.com/go/pubsub"
 	"github.com/nais/device/pkg/pb"
-	"github.com/nais/device/pkg/wireguard"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -43,26 +40,21 @@ type Client struct {
 	ExternalIP       string `json:"external_ip"`
 }
 
-func New(ctx context.Context, privateKeyPath, hashedPassword string, wireguardListenPort int, log *log.Entry) (*Client, wireguard.PrivateKey, error) {
-	privateKey, err := readOrCreatePrivateKey(privateKeyPath, log)
-	if err != nil {
-		return nil, nil, err
-	}
-
+func New(ctx context.Context, publicKey []byte, hashedPassword string, wireguardListenPort int, log *log.Entry) (*Client, error) {
 	b, err := GetGoogleMetadata(ctx, "instance/attributes/enroll-config")
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
 	ec := &Client{
 		port:               wireguardListenPort,
-		wireGuardPublicKey: privateKey.Public(),
+		wireGuardPublicKey: publicKey,
 		hashedPassword:     hashedPassword,
 	}
 	if err := json.Unmarshal(b, ec); err != nil {
-		return nil, nil, err
+		return nil, err
 	}
-	return ec, privateKey, nil
+	return ec, nil
 }
 
 func (c *Client) Bootstrap(ctx context.Context) (*Response, error) {
@@ -127,29 +119,6 @@ func (c *Client) publishAndWait(ctx context.Context, topic *pubsub.Topic) error 
 
 	<-pubres.Ready()
 	return nil
-}
-
-func readOrCreatePrivateKey(path string, log *log.Entry) (wireguard.PrivateKey, error) {
-	b, err := os.ReadFile(path)
-	if err != nil && !errors.Is(err, fs.ErrNotExist) {
-		return nil, fmt.Errorf("read private key: %w", err)
-	}
-
-	if errors.Is(err, fs.ErrNotExist) {
-		log.Info("No private key found, generating new one...")
-		b, err = wireguard.GenKey()
-		if err != nil {
-			return nil, fmt.Errorf("generate private key: %w", err)
-		}
-
-		if err := os.WriteFile(path, b, 0o600); err != nil {
-			return nil, fmt.Errorf("write private key: %w", err)
-		}
-	} else {
-		log.Info("Found private key, using it...")
-	}
-
-	return wireguard.PrivateKey(b), nil
 }
 
 func GetGoogleMetadataString(ctx context.Context, path string) (string, error) {

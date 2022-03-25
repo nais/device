@@ -3,8 +3,13 @@ package wireguard
 import (
 	"crypto/rand"
 	"encoding/base64"
+	"errors"
 	"fmt"
+	"io/fs"
+	"os"
+	"path/filepath"
 
+	"github.com/sirupsen/logrus"
 	"golang.org/x/crypto/curve25519"
 )
 
@@ -48,4 +53,31 @@ func keyToBase64(key []byte) []byte {
 	dst := make([]byte, base64.StdEncoding.EncodedLen(len(key)))
 	base64.StdEncoding.Encode(dst, key)
 	return dst
+}
+
+func ReadOrCreatePrivateKey(path string, log *logrus.Entry) (PrivateKey, error) {
+	b, err := os.ReadFile(path)
+	if err != nil && !errors.Is(err, fs.ErrNotExist) {
+		return nil, fmt.Errorf("read private key: %w", err)
+	}
+
+	if errors.Is(err, fs.ErrNotExist) {
+		log.Info("No private key found, generating new one...")
+		b, err = GenKey()
+		if err != nil {
+			return nil, fmt.Errorf("generate private key: %w", err)
+		}
+
+		if err := os.MkdirAll(filepath.Dir(path), 0o700); err != nil {
+			return nil, fmt.Errorf("create config dir: %w", err)
+		}
+
+		if err := os.WriteFile(path, b, 0o600); err != nil {
+			return nil, fmt.Errorf("write private key: %w", err)
+		}
+	} else {
+		log.Info("Found private key, using it...")
+	}
+
+	return PrivateKey(b), nil
 }
