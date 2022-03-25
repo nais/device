@@ -188,4 +188,6 @@ func run() error {
 			}
 		}
 	}
+	log.Info("max reconnects reached, shutting down")
+	return nil
 }
