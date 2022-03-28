@@ -78,9 +78,6 @@ func run() error {
 
 	log.Infof("gateway-agent version %s, revision: %s", version.Version, version.Revision)
 
-	g.InitializeMetrics(cfg.Name, version.Version)
-	go g.Serve(cfg.PrometheusAddr)
-
 	log.Info("starting gateway-agent")
 
 	staticPeers := cfg.StaticPeers()
@@ -118,12 +115,16 @@ func run() error {
 			return fmt.Errorf("auto-bootstrap: %w", err)
 		}
 
+		cfg.Name = ecfg.Name
 		cfg.PrivateKey = string(privateKey.Private())
 		cfg.APIServerURL = enrollResp.APIServerGRPCAddress
 		cfg.DeviceIP = enrollResp.WireGuardIP
 
 		staticPeers = wireguard.MakePeers(nil, enrollResp.Peers)
 	}
+
+	g.InitializeMetrics(cfg.Name, version.Version)
+	go g.Serve(cfg.PrometheusAddr)
 
 	var netConf wireguard.NetworkConfigurer
 	if cfg.EnableRouting {
