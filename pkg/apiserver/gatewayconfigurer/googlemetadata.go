@@ -52,6 +52,8 @@ func (g *GoogleMetadata) syncConfig(ctx context.Context) error {
 		}
 
 		gateway.Routes = routes
+		gateway.AccessGroupIDs = []string{"allUsers"}
+		gateway.RequiresPrivilegedAccess = false
 
 		err = g.db.UpdateGateway(ctx, gateway)
 		if err != nil {
