@@ -9,12 +9,15 @@ import (
 	"github.com/nais/device/pkg/pb"
 	"github.com/nais/device/pkg/pubsubenroll"
 	"github.com/sirupsen/logrus"
+	"golang.org/x/sync/errgroup"
 )
 
 type autoEnrollConfig struct {
-	TopicName        string `json:"topic_name"`
-	ExternalIP       string `json:"external_ip"`
-	SubscriptionName string `json:"subscription_name"`
+	GatewayTopicName        string `json:"gateway_topic_name"`
+	GatewaySubscriptionName string `json:"gateway_subscription_name"`
+	DeviceTopicName         string `json:"device_topic_name"`
+	DeviceSubscriptionName  string `json:"device_subscription_name"`
+	ExternalIP              string `json:"external_ip"`
 }
 
 type AutoEnroll struct {
@@ -22,8 +25,10 @@ type AutoEnroll struct {
 	peers                []*pb.Gateway
 	apiServerGRPCAddress string
 	log                  *logrus.Entry
-	topic                *pubsub.Topic
-	subscription         *pubsub.Subscription
+	gatewayTopic         *pubsub.Topic
+	gatewaySubscription  *pubsub.Subscription
+	deviceTopic          *pubsub.Topic
+	deviceSubscription   *pubsub.Subscription
 	externalIP           string
 }
 
@@ -58,8 +63,10 @@ func NewAutoEnroll(
 		db:                   db,
 		peers:                peers,
 		apiServerGRPCAddress: apiServerGRPCAddress,
-		topic:                client.Topic(ec.TopicName),
-		subscription:         client.Subscription(ec.SubscriptionName),
+		gatewayTopic:         client.Topic(ec.GatewayTopicName),
+		gatewaySubscription:  client.Subscription(ec.GatewaySubscriptionName),
+		deviceTopic:          client.Topic(ec.DeviceTopicName),
+		deviceSubscription:   client.Subscription(ec.DeviceSubscriptionName),
 		externalIP:           ec.ExternalIP,
 		log:                  log,
 	}, nil
@@ -67,13 +74,22 @@ func NewAutoEnroll(
 
 func (a *AutoEnroll) Run(ctx context.Context) error {
 	a.log.WithFields(logrus.Fields{
-		"topic": a.topic.String(),
-		"sub":   a.subscription.String(),
+		"topic": a.gatewayTopic.String(),
+		"sub":   a.gatewaySubscription.String(),
 	}).Info("Starting auto enroll...")
-	return a.subscription.Receive(ctx, a.receive)
+	eg, ctx := errgroup.WithContext(ctx)
+
+	eg.Go(func() error {
+		return a.gatewaySubscription.Receive(ctx, a.receiveGateway)
+	})
+	eg.Go(func() error {
+		return a.deviceSubscription.Receive(ctx, a.receiveDevice)
+	})
+
+	return eg.Wait()
 }
 
-func (a *AutoEnroll) receive(ctx context.Context, msg *pubsub.Message) {
+func (a *AutoEnroll) receiveGateway(ctx context.Context, msg *pubsub.Message) {
 	defer msg.Ack()
 
 	if msg.Attributes["type"] != pubsubenroll.TypeEnrollRequest {
@@ -121,7 +137,7 @@ func (a *AutoEnroll) receive(ctx context.Context, msg *pubsub.Message) {
 		return
 	}
 
-	pubresp := a.topic.Publish(ctx, &pubsub.Message{
+	pubresp := a.gatewayTopic.Publish(ctx, &pubsub.Message{
 		Data: b,
 		Attributes: map[string]string{
 			"type":   pubsubenroll.TypeEnrollResponse,
@@ -135,4 +151,68 @@ func (a *AutoEnroll) receive(ctx context.Context, msg *pubsub.Message) {
 	}
 
 	log.Infof("Enrolled gateway")
+}
+
+func (a *AutoEnroll) receiveDevice(ctx context.Context, msg *pubsub.Message) {
+	defer msg.Ack()
+
+	if msg.Attributes["type"] != pubsubenroll.TypeEnrollRequest {
+		a.log.Debugf("ignoring pubsub message with attribtes: %#v", msg.Attributes)
+		msg.Nack()
+		return
+	}
+
+	var req *pubsubenroll.DeviceRequest
+	if err := json.Unmarshal(msg.Data, &req); err != nil {
+		a.log.WithError(err).Error("Failed to unmarshal request")
+		return
+	}
+	log := a.log.WithFields(logrus.Fields{"serial": req.Serial, "platform": req.Platform})
+
+	err := a.db.AddDevice(ctx, &pb.Device{
+		Username:  req.Owner,
+		PublicKey: string(req.WireGuardPublicKey),
+		Serial:    req.Serial,
+		Platform:  req.Platform,
+	})
+	if err != nil {
+		msg.Nack()
+		log.WithError(err).Error("Failed to add device")
+		return
+	}
+
+	gw, err := a.db.ReadDeviceBySerialPlatform(ctx, req.Serial, req.Platform)
+	if err != nil {
+		msg.Nack()
+		log.WithError(err).Error("Failed to get device")
+		return
+	}
+
+	resp := pubsubenroll.Response{
+		APIServerGRPCAddress: a.apiServerGRPCAddress,
+		WireGuardIP:          gw.Ip,
+		Peers:                a.peers,
+	}
+
+	b, err := json.Marshal(&resp)
+	if err != nil {
+		msg.Nack()
+		log.WithError(err).Error("Failed to marshal response")
+		return
+	}
+
+	pubresp := a.deviceTopic.Publish(ctx, &pubsub.Message{
+		Data: b,
+		Attributes: map[string]string{
+			"type":   pubsubenroll.TypeEnrollResponse,
+			"source": "apiserver",
+			"target": msg.Attributes["subscription"],
+		},
+	})
+	_, err = pubresp.Get(ctx)
+	if err != nil {
+		log.WithError(err).Error("Failed to publish response")
+	}
+
+	log.Infof("Enrolled device")
 }
