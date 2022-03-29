@@ -13,7 +13,6 @@ import (
 	"cloud.google.com/go/pubsub"
 	"github.com/nais/device/pkg/pb"
 	"github.com/sirupsen/logrus"
-	log "github.com/sirupsen/logrus"
 )
 
 type Request struct {
@@ -42,7 +41,7 @@ type Client struct {
 	ExternalIP       string `json:"external_ip"`
 }
 
-func New(ctx context.Context, publicKey []byte, hashedPassword string, wireguardListenPort int, log *log.Entry) (*Client, error) {
+func New(ctx context.Context, publicKey []byte, hashedPassword string, wireguardListenPort int, log *logrus.Entry) (*Client, error) {
 	b, err := GetGoogleMetadata(ctx, "instance/attributes/enroll-config")
 	if err != nil {
 		return nil, err
@@ -61,7 +60,7 @@ func New(ctx context.Context, publicKey []byte, hashedPassword string, wireguard
 }
 
 func (c *Client) Bootstrap(ctx context.Context) (*Response, error) {
-	log.Info("Bootstrapping...")
+	c.log.Info("Bootstrapping...")
 	projectID, err := GetGoogleMetadataString(ctx, "project/project-id")
 	if err != nil {
 		return nil, fmt.Errorf("get google metadata: %w", err)
@@ -75,7 +74,7 @@ func (c *Client) Bootstrap(ctx context.Context) (*Response, error) {
 	topic := client.TopicInProject(c.TopicName, c.EnrollProjectID)
 	sub := client.Subscription(c.SubscriptionName)
 
-	c.log.WithFields(log.Fields{"topic": topic.String(), "subscription": sub.String()}).Info("bootstrap using pubsub")
+	c.log.WithFields(logrus.Fields{"topic": topic.String(), "subscription": sub.String()}).Info("bootstrap using pubsub")
 
 	if err := c.publishAndWait(ctx, topic); err != nil {
 		return nil, fmt.Errorf("publish and wait: %w", err)
