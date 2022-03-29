@@ -66,7 +66,7 @@ func NewAutoEnroll(
 }
 
 func (a *AutoEnroll) Run(ctx context.Context) error {
-	a.log.Infof("Starting auto enroll...")
+	a.log.Infof("Starting auto enroll with config %#v...", a)
 	return a.subscription.Receive(ctx, a.receive)
 }
 
