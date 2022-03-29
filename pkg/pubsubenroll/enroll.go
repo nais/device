@@ -12,6 +12,7 @@ import (
 
 	"cloud.google.com/go/pubsub"
 	"github.com/nais/device/pkg/pb"
+	"github.com/sirupsen/logrus"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -32,6 +33,7 @@ type Client struct {
 	wireGuardPublicKey []byte
 	port               int
 	hashedPassword     string
+	log                *logrus.Entry
 
 	Name             string `json:"name"`
 	EnrollProjectID  string `json:"project_id"`
@@ -50,6 +52,7 @@ func New(ctx context.Context, publicKey []byte, hashedPassword string, wireguard
 		port:               wireguardListenPort,
 		wireGuardPublicKey: publicKey,
 		hashedPassword:     hashedPassword,
+		log:                log,
 	}
 	if err := json.Unmarshal(b, ec); err != nil {
 		return nil, err
@@ -72,7 +75,7 @@ func (c *Client) Bootstrap(ctx context.Context) (*Response, error) {
 	topic := client.TopicInProject(c.TopicName, c.EnrollProjectID)
 	sub := client.Subscription(c.SubscriptionName)
 
-	log.WithFields(log.Fields{"topic": topic.String(), "subscription": sub.String()}).Info("bootstrap using pubsub")
+	c.log.WithFields(log.Fields{"topic": topic.String(), "subscription": sub.String()}).Info("bootstrap using pubsub")
 
 	if err := c.publishAndWait(ctx, topic); err != nil {
 		return nil, fmt.Errorf("publish and wait: %w", err)
@@ -87,10 +90,15 @@ func (c *Client) Bootstrap(ctx context.Context) (*Response, error) {
 			return
 		}
 
+		c.log.Debug("received enroll-response")
 		msg.Ack()
 		unmarshalErr = json.Unmarshal(msg.Data, resp)
 		cancel()
 	})
+
+	c.log.Debugf("err is %#v", err)
+	c.log.Debugf("err canceled %#v", errors.Is(err, context.Canceled))
+	c.log.Debugf("err deadline %#v", errors.Is(err, context.DeadlineExceeded))
 	if err != nil && !errors.Is(err, context.Canceled) {
 		return nil, fmt.Errorf("bootstrap failed: %w", err)
 	}
