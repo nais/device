@@ -17,11 +17,16 @@ import (
 )
 
 type authFlowResponse struct {
-	Token *oauth2.Token
-	err   error
+	Tokens *Tokens
+	err    error
 }
 
-func GetDeviceAgentToken(ctx context.Context, conf oauth2.Config, authServer string) (*oauth2.Token, error) {
+type Tokens struct {
+	Token   *oauth2.Token
+	IDToken string
+}
+
+func GetDeviceAgentToken(ctx context.Context, conf oauth2.Config, authServer string) (*Tokens, error) {
 	// Ignoring impossible error
 	codeVerifier, _ := codeverifier.CreateCodeVerifier()
 
@@ -66,13 +71,13 @@ func GetDeviceAgentToken(ctx context.Context, conf oauth2.Config, authServer str
 			return nil, fmt.Errorf("authFlow: %w", authFlowResponse.err)
 		}
 
-		return authFlowResponse.Token, nil
+		return authFlowResponse.Tokens, nil
 	}
 }
 
 func failAuth(err error, w http.ResponseWriter, authFlowChan chan *authFlowResponse) {
 	failureResponse(w, err.Error())
-	authFlowChan <- &authFlowResponse{Token: nil, err: err}
+	authFlowChan <- &authFlowResponse{Tokens: nil, err: err}
 }
 
 func failureResponse(w http.ResponseWriter, msg string) {

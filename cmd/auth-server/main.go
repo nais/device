@@ -23,7 +23,8 @@ type ExchangeRequest struct {
 }
 
 type ExchangeResponse struct {
-	Token *oauth2.Token `json:"token"`
+	Token   *oauth2.Token `json:"token"`
+	IDToken string        `json:"id_token"`
 }
 
 func main() {
@@ -77,7 +78,8 @@ func exchange(oauth2config *oauth2.Config) http.HandlerFunc {
 		}
 
 		err = json.NewEncoder(w).Encode(ExchangeResponse{
-			Token: token,
+			Token:   token,
+			IDToken: token.Extra("id_token").(string),
 		})
 		if err != nil {
 			log.WithError(err).Warnf("encode response")

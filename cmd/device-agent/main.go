@@ -78,7 +78,7 @@ func main() {
 	if cfg.EnableGoogleAuth {
 		cfg.OAuth2Config = oauth2.Config{
 			ClientID:    "955023559628-g51n36t4icbd6lq7ils4r0ol9oo8kpk0.apps.googleusercontent.com",
-			Scopes:      []string{"https://www.googleapis.com/auth/userinfo.email"},
+			Scopes:      []string{"https://www.googleapis.com/auth/userinfo.email", "https://www.googleapis.com/auth/pubsub"},
 			Endpoint:    endpoints.Google,
 			RedirectURL: "http://localhost:PORT/google",
 		}

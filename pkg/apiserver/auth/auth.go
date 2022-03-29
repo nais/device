@@ -211,7 +211,7 @@ func (s *authenticator) AuthURL(w http.ResponseWriter, r *http.Request) {
 func (s *authenticator) Login(ctx context.Context, token, serial, platform string) (*pb.Session, error) {
 	parsedToken, err := jwt.ParseString(token, s.Azure.JwtOptions()...)
 	if err != nil {
-		return nil, fmt.Errorf("parse token: %s", err)
+		return nil, fmt.Errorf("parse token: %w", err)
 	}
 
 	claims, err := parsedToken.AsMap(ctx)

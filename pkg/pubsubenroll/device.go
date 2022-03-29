@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"strings"
 	"time"
 
 	"cloud.google.com/go/pubsub"
@@ -32,6 +33,8 @@ func Enroll(ctx context.Context, req *DeviceRequest, token *oauth2.Token, projec
 		return nil, err
 	}
 
+	subscriptionName := "enroll-" + subscriptionUUID.String()
+
 	creds := &google.Credentials{TokenSource: oauth2.StaticTokenSource(token)}
 	client, err := pubsub.NewClient(ctx, projectID, option.WithCredentials(creds))
 	if err != nil {
@@ -39,16 +42,15 @@ func Enroll(ctx context.Context, req *DeviceRequest, token *oauth2.Token, projec
 	}
 
 	topic := client.Topic(topicName)
-	subscription, err := client.CreateSubscription(ctx, subscriptionUUID.String(), pubsub.SubscriptionConfig{
+	subscription, err := client.CreateSubscription(ctx, subscriptionName, pubsub.SubscriptionConfig{
 		Topic:             topic,
 		RetentionDuration: 10 * time.Minute,
 		ExpirationPolicy:  24 * time.Hour,
 		Labels: map[string]string{
-			"serial":   req.Serial,
-			"owner":    req.Owner,
-			"platform": req.Platform,
+			"serial":   strings.ToLower(req.Serial),
+			"platform": strings.ToLower(req.Platform),
 		},
-		Filter: fmt.Sprintf("target = \"%s\"", subscriptionUUID.String()),
+		Filter: fmt.Sprintf("attributes.target = \"%s\"", subscriptionName),
 	})
 	if err != nil {
 		return nil, err
@@ -58,7 +60,7 @@ func Enroll(ctx context.Context, req *DeviceRequest, token *oauth2.Token, projec
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
-	err = publish(ctx, req, topic, subscriptionUUID.String(), log)
+	err = publish(ctx, req, topic, subscriptionName, log)
 	if err != nil {
 		return nil, err
 	}

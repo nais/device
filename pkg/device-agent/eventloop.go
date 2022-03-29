@@ -8,12 +8,10 @@ import (
 	"fmt"
 	"net"
 	"net/http"
-	"strings"
 	"sync"
 	"time"
 
 	"github.com/getsentry/sentry-go"
-	"golang.org/x/oauth2"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	grpcstatus "google.golang.org/grpc/status"
@@ -62,10 +60,10 @@ func (das *DeviceAgentServer) ConfigureHelper(ctx context.Context, rc *runtimeco
 	return err
 }
 
-func validateToken(token *oauth2.Token) error {
+func validateToken(token *auth.Tokens) error {
 	if token == nil {
 		return ErrTokenDoesNotExist
-	} else if time.Now().After(token.Expiry) {
+	} else if time.Now().After(token.Token.Expiry) {
 		return ErrExpiredToken
 	}
 
@@ -100,9 +98,9 @@ func (das *DeviceAgentServer) syncConfigLoop(ctx context.Context, gateways chan<
 			return err
 		}
 
-		token := das.rc.Token.AccessToken
+		token := das.rc.Tokens.Token.AccessToken
 		if das.Config.EnableGoogleAuth {
-			token = das.rc.Token.Extra("id_token").(string)
+			token = das.rc.Tokens.IDToken
 		}
 
 		loginResponse, err := apiserverClient.Login(ctx, &pb.APIServerLoginRequest{
@@ -324,16 +322,18 @@ func (das *DeviceAgentServer) EventLoop(ctx context.Context) {
 						req := &pubsubenroll.DeviceRequest{
 							Platform:           das.Config.Platform,
 							Serial:             serial,
+							Owner:              "vegar@nais.io",
 							WireGuardPublicKey: wireguard.PublicKey(das.rc.PrivateKey),
 						}
 						var resp *pubsubenroll.Response
-						resp, err = pubsubenroll.Enroll(ctx, req, das.rc.Token, das.Config.EnrollProjectID, das.Config.EnrollTopicName, log.WithField("component", "enroll"))
+						resp, err = pubsubenroll.Enroll(ctx, req, das.rc.Tokens.Token, das.Config.EnrollProjectID, das.Config.EnrollTopicName, log.WithField("component", "enroll"))
 						if err == nil {
+							apiserverPeer := findPeer(resp.Peers, "apiserver")
 							das.rc.BootstrapConfig = &bootstrap.Config{
 								DeviceIP:       resp.WireGuardIP,
-								PublicKey:      resp.Peers[0].PublicKey,
-								TunnelEndpoint: resp.Peers[0].Endpoint,
-								APIServerIP:    strings.SplitN(resp.APIServerGRPCAddress, ":", 2)[0],
+								PublicKey:      apiserverPeer.PublicKey,
+								TunnelEndpoint: apiserverPeer.Endpoint,
+								APIServerIP:    apiserverPeer.Ip,
 							}
 						}
 					} else {
@@ -378,7 +378,7 @@ func (das *DeviceAgentServer) EventLoop(ctx context.Context) {
 							time.Sleep(apiServerRetryInterval)
 						case codes.Unauthenticated:
 							log.Errorf("Logging in: %s", err)
-							das.rc.Token = nil
+							das.rc.Tokens = nil
 							log.Error("Cleaned up Azure AD Token")
 							fallthrough
 						default:
@@ -397,14 +397,14 @@ func (das *DeviceAgentServer) EventLoop(ctx context.Context) {
 				continue
 
 			case pb.AgentState_Authenticating:
-				err = validateToken(das.rc.Token)
+				err = validateToken(das.rc.Tokens)
 				if err == nil {
 					log.Infof("Already have valid Azure AD token")
 				} else {
 					log.Infof("validate token: %v", err)
 
 					ctx, cancel := context.WithTimeout(ctx, authFlowTimeout)
-					das.rc.Token, err = auth.GetDeviceAgentToken(ctx, das.rc.Config.OAuth2Config, das.Config.GoogleAuthServerAddress)
+					das.rc.Tokens, err = auth.GetDeviceAgentToken(ctx, das.rc.Config.OAuth2Config, das.Config.GoogleAuthServerAddress)
 					cancel()
 					if err != nil {
 						notify.Errorf("Get token: %v", err)
@@ -455,6 +455,16 @@ func (das *DeviceAgentServer) EventLoop(ctx context.Context) {
 			}
 		}
 	}
+}
+
+func findPeer(gateway []*pb.Gateway, s string) *pb.Gateway {
+	for _, gw := range gateway {
+		if gw.Name == s {
+			return gw
+		}
+	}
+
+	return nil
 }
 
 func newVersionAvailable(ctx context.Context) (bool, error) {

@@ -19,7 +19,8 @@ type ExchangeRequest struct {
 }
 
 type ExchangeResponse struct {
-	Token *oauth2.Token `json:"token"`
+	Token   *oauth2.Token `json:"token"`
+	IDToken string        `json:"id_token"`
 }
 
 func handleRedirectGoogle(state, redirectURI string, codeVerifier *codeverifier.CodeVerifier, authFlowChan chan *authFlowResponse, authServer string) http.HandlerFunc {
@@ -72,6 +73,7 @@ func handleRedirectGoogle(state, redirectURI string, codeVerifier *codeverifier.
 		}
 
 		successfulResponse(w, "Successfully authenticated 👌 Close me pls")
-		authFlowChan <- &authFlowResponse{Token: exchangeResponse.Token, err: nil}
+		tokens := &Tokens{Token: exchangeResponse.Token, IDToken: exchangeResponse.IDToken}
+		authFlowChan <- &authFlowResponse{Tokens: tokens, err: nil}
 	}
 }

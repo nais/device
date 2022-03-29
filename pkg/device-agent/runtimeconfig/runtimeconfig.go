@@ -7,9 +7,9 @@ import (
 	"io/ioutil"
 
 	"github.com/nais/device/pkg/bearertransport"
-	"golang.org/x/oauth2"
 
 	"github.com/nais/device/pkg/bootstrap"
+	"github.com/nais/device/pkg/device-agent/auth"
 	"github.com/nais/device/pkg/device-agent/bootstrapper"
 	"github.com/nais/device/pkg/device-agent/config"
 	"github.com/nais/device/pkg/device-agent/wireguard"
@@ -22,7 +22,7 @@ type RuntimeConfig struct {
 	Config          *config.Config
 	PrivateKey      []byte
 	SessionInfo     *pb.Session
-	Token           *oauth2.Token
+	Tokens          *auth.Tokens
 }
 
 func New(cfg *config.Config) (*RuntimeConfig, error) {
@@ -50,7 +50,7 @@ func New(cfg *config.Config) (*RuntimeConfig, error) {
 
 func EnsureBootstrapping(rc *RuntimeConfig, serial string, ctx context.Context) (*bootstrap.Config, error) {
 	log.Infoln("Bootstrapping device")
-	client := bearertransport.Transport{AccessToken: rc.Token.AccessToken}.Client()
+	client := bearertransport.Transport{AccessToken: rc.Tokens.Token.AccessToken}.Client()
 
 	cfg, err := bootstrapper.BootstrapDevice(
 		ctx,
