@@ -260,7 +260,13 @@ func run() error {
 		if err != nil {
 			return err
 		}
-		go e.Run(ctx)
+		go func() {
+			err := e.Run(ctx)
+			if err != nil {
+				log.WithError(err).Error("Run AutoEnroll failed")
+				cancel()
+			}
+		}()
 	}
 
 	jitaClient := jita.New(cfg.JitaUsername, cfg.JitaPassword, cfg.JitaUrl)

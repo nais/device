@@ -66,7 +66,10 @@ func NewAutoEnroll(
 }
 
 func (a *AutoEnroll) Run(ctx context.Context) error {
-	a.log.Infof("Starting auto enroll with config %#v...", a)
+	a.log.WithFields(logrus.Fields{
+		"topic": a.topic.String(),
+		"sub":   a.subscription.String(),
+	}).Info("Starting auto enroll...")
 	return a.subscription.Receive(ctx, a.receive)
 }
 
@@ -74,6 +77,7 @@ func (a *AutoEnroll) receive(ctx context.Context, msg *pubsub.Message) {
 	defer msg.Ack()
 
 	if msg.Attributes["type"] != pubsubenroll.TypeEnrollRequest {
+		a.log.Debugf("ignoring pubsub message with attribtes: %#v", msg.Attributes)
 		msg.Nack()
 		return
 	}
