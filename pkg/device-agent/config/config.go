@@ -43,6 +43,8 @@ type Config struct {
 	WireGuardBinary          string
 	WireGuardConfigPath      string
 	WireGuardGoBinary        string
+	EnrollProjectID          string
+	EnrollTopicName          string
 }
 
 func (c *Config) SetDefaults() {

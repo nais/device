@@ -7,7 +7,6 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
-	"time"
 
 	"github.com/nais/device/pkg/apiserver/kekw"
 	"github.com/nais/device/pkg/device-agent/open"
@@ -17,17 +16,12 @@ import (
 	"golang.org/x/oauth2"
 )
 
-type Token struct {
-	Token  string
-	Expiry time.Time
-}
-
 type authFlowResponse struct {
-	Token *Token
+	Token *oauth2.Token
 	err   error
 }
 
-func GetDeviceAgentToken(ctx context.Context, conf oauth2.Config, authServer string) (*Token, error) {
+func GetDeviceAgentToken(ctx context.Context, conf oauth2.Config, authServer string) (*oauth2.Token, error) {
 	// Ignoring impossible error
 	codeVerifier, _ := codeverifier.CreateCodeVerifier()
 

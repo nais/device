@@ -97,7 +97,7 @@ func run() error {
 			return fmt.Errorf("get private key: %w", err)
 		}
 
-		ecfg, err := pubsubenroll.New(
+		ecfg, err := pubsubenroll.NewGatewayClient(
 			ctx,
 			privateKey.Public(),
 			hashedPassword,

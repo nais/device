@@ -8,17 +8,22 @@ import (
 	"fmt"
 	"net"
 	"net/http"
+	"strings"
 	"sync"
 	"time"
 
 	"github.com/getsentry/sentry-go"
+	"golang.org/x/oauth2"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	grpcstatus "google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/timestamppb"
 
+	"github.com/nais/device/pkg/bootstrap"
 	"github.com/nais/device/pkg/device-agent/config"
+	"github.com/nais/device/pkg/device-agent/wireguard"
 	"github.com/nais/device/pkg/ioconvenience"
+	"github.com/nais/device/pkg/pubsubenroll"
 
 	log "github.com/sirupsen/logrus"
 
@@ -57,7 +62,7 @@ func (das *DeviceAgentServer) ConfigureHelper(ctx context.Context, rc *runtimeco
 	return err
 }
 
-func validateToken(token *auth.Token) error {
+func validateToken(token *oauth2.Token) error {
 	if token == nil {
 		return ErrTokenDoesNotExist
 	} else if time.Now().After(token.Expiry) {
@@ -95,8 +100,13 @@ func (das *DeviceAgentServer) syncConfigLoop(ctx context.Context, gateways chan<
 			return err
 		}
 
+		token := das.rc.Token.AccessToken
+		if das.Config.EnableGoogleAuth {
+			token = das.rc.Token.Extra("id_token").(string)
+		}
+
 		loginResponse, err := apiserverClient.Login(ctx, &pb.APIServerLoginRequest{
-			Token:    das.rc.Token.Token,
+			Token:    token,
 			Platform: config.Platform,
 			Serial:   serial,
 		})
@@ -303,9 +313,33 @@ func (das *DeviceAgentServer) EventLoop(ctx context.Context) {
 				} else {
 					ctx, cancel := context.WithTimeout(context.Background(), 1*time.Minute)
 					serial, err := das.getSerial(ctx)
-					if err == nil {
+					if err != nil {
+						notify.Errorf("Unable to get serial number: %v", err)
+						das.stateChange <- pb.AgentState_Disconnecting
+						cancel()
+						continue
+					}
+
+					if das.Config.EnableGoogleAuth {
+						req := &pubsubenroll.DeviceRequest{
+							Platform:           das.Config.Platform,
+							Serial:             serial,
+							WireGuardPublicKey: wireguard.PublicKey(das.rc.PrivateKey),
+						}
+						var resp *pubsubenroll.Response
+						resp, err = pubsubenroll.Enroll(ctx, req, das.rc.Token, das.Config.EnrollProjectID, das.Config.EnrollTopicName, log.WithField("component", "enroll"))
+						if err == nil {
+							das.rc.BootstrapConfig = &bootstrap.Config{
+								DeviceIP:       resp.WireGuardIP,
+								PublicKey:      resp.Peers[0].PublicKey,
+								TunnelEndpoint: resp.Peers[0].Endpoint,
+								APIServerIP:    strings.SplitN(resp.APIServerGRPCAddress, ":", 2)[0],
+							}
+						}
+					} else {
 						das.rc.BootstrapConfig, err = runtimeconfig.EnsureBootstrapping(das.rc, serial, ctx)
 					}
+
 					cancel()
 					if err != nil {
 						notify.Errorf("Bootstrap: %v", err)

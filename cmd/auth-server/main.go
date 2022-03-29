@@ -2,13 +2,13 @@ package main
 
 import (
 	"encoding/json"
+	"net/http"
+	"os"
+
 	"github.com/kelseyhightower/envconfig"
 	log "github.com/sirupsen/logrus"
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/endpoints"
-	"net/http"
-	"os"
-	"time"
 )
 
 type Config struct {
@@ -23,8 +23,7 @@ type ExchangeRequest struct {
 }
 
 type ExchangeResponse struct {
-	IDToken string    `json:"access_token"`
-	Expiry  time.Time `json:"expiry"`
+	Token *oauth2.Token `json:"token"`
 }
 
 func main() {
@@ -78,8 +77,7 @@ func exchange(oauth2config *oauth2.Config) http.HandlerFunc {
 		}
 
 		err = json.NewEncoder(w).Encode(ExchangeResponse{
-			IDToken: token.Extra("id_token").(string),
-			Expiry:  token.Expiry,
+			Token: token,
 		})
 		if err != nil {
 			log.WithError(err).Warnf("encode response")
@@ -88,5 +86,4 @@ func exchange(oauth2config *oauth2.Config) http.HandlerFunc {
 
 		log.Infof("successfully returned token")
 	}
-
 }

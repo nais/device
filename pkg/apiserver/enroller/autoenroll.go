@@ -82,7 +82,7 @@ func (a *AutoEnroll) receive(ctx context.Context, msg *pubsub.Message) {
 		return
 	}
 
-	var req *pubsubenroll.Request
+	var req *pubsubenroll.GatewayRequest
 	if err := json.Unmarshal(msg.Data, &req); err != nil {
 		a.log.WithError(err).Error("Failed to unmarshal request")
 		return

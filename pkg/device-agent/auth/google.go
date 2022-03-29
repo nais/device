@@ -9,6 +9,7 @@ import (
 	"time"
 
 	codeverifier "github.com/nirasan/go-oauth-pkce-code-verifier"
+	"golang.org/x/oauth2"
 )
 
 type ExchangeRequest struct {
@@ -18,8 +19,7 @@ type ExchangeRequest struct {
 }
 
 type ExchangeResponse struct {
-	IDToken string    `json:"access_token"`
-	Expiry  time.Time `json:"expiry"`
+	Token *oauth2.Token `json:"token"`
 }
 
 func handleRedirectGoogle(state, redirectURI string, codeVerifier *codeverifier.CodeVerifier, authFlowChan chan *authFlowResponse, authServer string) http.HandlerFunc {
@@ -71,12 +71,7 @@ func handleRedirectGoogle(state, redirectURI string, codeVerifier *codeverifier.
 			return
 		}
 
-		token := &Token{
-			Token:  exchangeResponse.IDToken,
-			Expiry: exchangeResponse.Expiry,
-		}
-
 		successfulResponse(w, "Successfully authenticated 👌 Close me pls")
-		authFlowChan <- &authFlowResponse{Token: token, err: nil}
+		authFlowChan <- &authFlowResponse{Token: exchangeResponse.Token, err: nil}
 	}
 }

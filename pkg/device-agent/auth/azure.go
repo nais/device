@@ -62,12 +62,7 @@ func handleRedirectAzure(state string, conf oauth2.Config, codeVerifier *codever
 			return
 		}
 
-		token := &Token{
-			Token:  t.AccessToken,
-			Expiry: t.Expiry,
-		}
-
 		successfulResponse(w, "Successfully authenticated 👌 Close me pls")
-		authFlowChan <- &authFlowResponse{Token: token, err: nil}
+		authFlowChan <- &authFlowResponse{Token: t, err: nil}
 	}
 }
