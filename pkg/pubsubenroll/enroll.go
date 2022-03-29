@@ -80,7 +80,7 @@ func (c *Client) Bootstrap(ctx context.Context) (*Response, error) {
 		return nil, fmt.Errorf("publish and wait: %w", err)
 	}
 
-	resp := &Response{}
+	var resp *Response
 	var unmarshalErr error
 	ctx, cancel := context.WithCancel(ctx)
 	err = sub.Receive(ctx, func(ctx context.Context, msg *pubsub.Message) {
@@ -91,19 +91,36 @@ func (c *Client) Bootstrap(ctx context.Context) (*Response, error) {
 
 		c.log.Debug("received enroll-response")
 		msg.Ack()
+		resp = &Response{}
 		unmarshalErr = json.Unmarshal(msg.Data, resp)
 		cancel()
 	})
 
-	c.log.Debugf("err is %#v", err)
-	c.log.Debugf("err canceled %#v", errors.Is(err, context.Canceled))
-	c.log.Debugf("err deadline %#v", errors.Is(err, context.DeadlineExceeded))
+	c.log.WithFields(logrus.Fields{
+		"err":      err,
+		"can":      errors.Is(err, context.Canceled),
+		"deadline": errors.Is(err, context.DeadlineExceeded),
+	}).Debug("receive err")
+	if err != nil && !errors.Is(err, context.Canceled) {
+		return nil, fmt.Errorf("bootstrap failed: %w", err)
+	}
+
+	err = ctx.Err()
+	c.log.WithFields(logrus.Fields{
+		"err":      err,
+		"can":      errors.Is(err, context.Canceled),
+		"deadline": errors.Is(err, context.DeadlineExceeded),
+	}).Debug("ctx err")
 	if err != nil && !errors.Is(err, context.Canceled) {
 		return nil, fmt.Errorf("bootstrap failed: %w", err)
 	}
 
 	if unmarshalErr != nil {
 		return nil, fmt.Errorf("parse json: %w", unmarshalErr)
+	}
+
+	if resp == nil {
+		return nil, fmt.Errorf("no resp")
 	}
 
 	return resp, nil
