@@ -15,6 +15,11 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+const (
+	TypeEnrollRequest  = "enroll-request"
+	TypeEnrollResponse = "enroll-response"
+)
+
 type Request struct {
 	WireGuardPublicKey []byte `json:"wireguard_public_key"`
 	Name               string `json:"name"`
@@ -84,7 +89,7 @@ func (c *Client) Bootstrap(ctx context.Context) (*Response, error) {
 	var unmarshalErr error
 	ctx, cancel := context.WithCancel(ctx)
 	err = sub.Receive(ctx, func(ctx context.Context, msg *pubsub.Message) {
-		if v, ok := msg.Attributes["type"]; !ok || v != "enroll-response" {
+		if v, ok := msg.Attributes["type"]; !ok || v != TypeEnrollResponse {
 			msg.Nack()
 			return
 		}
@@ -141,7 +146,7 @@ func (c *Client) publishAndWait(ctx context.Context, topic *pubsub.Topic) error 
 		Data: b,
 		Attributes: map[string]string{
 			"source": "gateway-agent",
-			"type":   "enroll-request",
+			"type":   TypeEnrollRequest,
 			"name":   c.Name,
 		},
 	})

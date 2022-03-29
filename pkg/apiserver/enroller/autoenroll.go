@@ -73,7 +73,7 @@ func (a *AutoEnroll) Run(ctx context.Context) error {
 func (a *AutoEnroll) receive(ctx context.Context, msg *pubsub.Message) {
 	defer msg.Ack()
 
-	if msg.Attributes["type"] != "enroll-request" {
+	if msg.Attributes["type"] != pubsubenroll.TypeEnrollRequest {
 		msg.Nack()
 		return
 	}
@@ -120,7 +120,7 @@ func (a *AutoEnroll) receive(ctx context.Context, msg *pubsub.Message) {
 	pubresp := a.topic.Publish(ctx, &pubsub.Message{
 		Data: b,
 		Attributes: map[string]string{
-			"type":   "enroll-response",
+			"type":   pubsubenroll.TypeEnrollResponse,
 			"source": "apiserver",
 			"target": req.Name,
 		},
