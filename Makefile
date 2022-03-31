@@ -195,3 +195,11 @@ mocks:
 release-frontend:
 	git tag ${VERSION}
 	git push --tags
+
+buildreleaseenroller:
+	docker build -t europe-north1-docker.pkg.dev/nais-io/nais/images/naisdevice-enroller:${VERSION} -f cmd/enroller/Dockerfile .
+	docker push europe-north1-docker.pkg.dev/nais-io/nais/images/naisdevice-enroller:${VERSION}
+
+buildreleaseauthserver:
+	cd cmd/auth-server && docker build -t europe-north1-docker.pkg.dev/nais-io/nais/images/naisdevice-auth-server:${VERSION} .
+	docker push europe-north1-docker.pkg.dev/nais-io/nais/images/naisdevice-auth-server:${VERSION}
