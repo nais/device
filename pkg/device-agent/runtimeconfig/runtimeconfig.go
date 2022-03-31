@@ -1,12 +1,17 @@
 package runtimeconfig
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"net/http"
+	"os"
 
 	"github.com/nais/device/pkg/bearertransport"
+	"github.com/nais/device/pkg/notify"
+	"github.com/nais/device/pkg/pubsubenroll"
 
 	"github.com/nais/device/pkg/bootstrap"
 	"github.com/nais/device/pkg/device-agent/auth"
@@ -48,8 +53,23 @@ func New(cfg *config.Config) (*RuntimeConfig, error) {
 	return rc, nil
 }
 
-func EnsureBootstrapping(rc *RuntimeConfig, serial string, ctx context.Context) (*bootstrap.Config, error) {
+func EnsureBootstrapping(ctx context.Context, rc *RuntimeConfig, serial string) (cfg *bootstrap.Config, err error) {
 	log.Infoln("Bootstrapping device")
+
+	if rc.Config.EnableGoogleAuth {
+		cfg, err = googleBootstrap(ctx, rc, serial)
+	} else {
+		cfg, err = azureBootstrap(ctx, rc, serial)
+	}
+
+	if err != nil {
+		return nil, fmt.Errorf("bootstrapping device: %w", err)
+	}
+
+	return cfg, writeToJSONFile(cfg, rc.Config.BootstrapConfigPath)
+}
+
+func azureBootstrap(ctx context.Context, rc *RuntimeConfig, serial string) (*bootstrap.Config, error) {
 	client := bearertransport.Transport{AccessToken: rc.Tokens.Token.AccessToken}.Client()
 
 	cfg, err := bootstrapper.BootstrapDevice(
@@ -66,23 +86,57 @@ func EnsureBootstrapping(rc *RuntimeConfig, serial string, ctx context.Context) 
 		return nil, err
 	}
 
-	err = writeToJSONFile(cfg, rc.Config.BootstrapConfigPath)
-	if err != nil {
-		return nil, fmt.Errorf("writing bootstrap config to disk: %w", err)
-	}
-
 	return cfg, nil
 }
 
-func writeToJSONFile(strct any, path string) error {
-	b, err := json.Marshal(&strct)
-	if err != nil {
-		return fmt.Errorf("marshaling struct into json: %w", err)
+func googleBootstrap(ctx context.Context, rc *RuntimeConfig, serial string) (*bootstrap.Config, error) {
+	req := &pubsubenroll.DeviceRequest{
+		Platform:           rc.Config.Platform,
+		Serial:             serial,
+		WireGuardPublicKey: wireguard.PublicKey(rc.PrivateKey),
 	}
-	if err := ioutil.WriteFile(path, b, 0o600); err != nil {
+
+	buf := &bytes.Buffer{}
+	_ = json.NewEncoder(buf).Encode(req)
+	hreq, err := http.NewRequestWithContext(ctx, http.MethodPost, "https://naisdevice-device-enroller-wvjph2xazq-lz.a.run.app/enroll", buf)
+	if err != nil {
+		return nil, fmt.Errorf("creating request: %w", err)
+	}
+
+	hreq.Header.Set("Content-Type", "application/json")
+	hreq.Header.Set("Authorization", "Bearer "+rc.Tokens.IDToken)
+
+	hresp, err := http.DefaultClient.Do(hreq)
+	if err != nil {
+		return nil, fmt.Errorf("sending request: %w", err)
+	}
+
+	if hresp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("got status code %d from device enrollment service", hresp.StatusCode)
+	}
+
+	resp := &pubsubenroll.Response{}
+	if err := json.NewDecoder(hresp.Body).Decode(resp); err != nil {
+		notify.Errorf("Unable to decode response: %v", err)
+	}
+
+	apiserverPeer := findPeer(resp.Peers, "apiserver")
+	return &bootstrap.Config{
+		DeviceIP:       resp.WireGuardIP,
+		PublicKey:      apiserverPeer.PublicKey,
+		TunnelEndpoint: apiserverPeer.Endpoint,
+		APIServerIP:    apiserverPeer.Ip,
+	}, nil
+}
+
+func writeToJSONFile(strct any, path string) error {
+	f, err := os.OpenFile(path, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0o600)
+	if err != nil {
 		return err
 	}
-	return nil
+	defer f.Close()
+
+	return json.NewEncoder(f).Encode(strct)
 }
 
 func readBootstrapConfigFromFile(bootstrapConfigPath string) (*bootstrap.Config, error) {
@@ -95,4 +149,14 @@ func readBootstrapConfigFromFile(bootstrapConfigPath string) (*bootstrap.Config,
 		return nil, fmt.Errorf("unmarshaling bootstrap config: %w", err)
 	}
 	return &bc, nil
+}
+
+func findPeer(gateway []*pb.Gateway, s string) *pb.Gateway {
+	for _, gw := range gateway {
+		if gw.Name == s {
+			return gw
+		}
+	}
+
+	return nil
 }

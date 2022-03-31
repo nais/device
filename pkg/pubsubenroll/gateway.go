@@ -14,13 +14,6 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-type GatewayRequest struct {
-	WireGuardPublicKey []byte `json:"wireguard_public_key"`
-	Name               string `json:"name"`
-	Endpoint           string `json:"endpoint"`
-	HashedPassword     string `json:"hashed_password"`
-}
-
 type GatewayClient struct {
 	wireGuardPublicKey []byte
 	port               int

@@ -17,11 +17,8 @@ import (
 	grpcstatus "google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/timestamppb"
 
-	"github.com/nais/device/pkg/bootstrap"
 	"github.com/nais/device/pkg/device-agent/config"
-	"github.com/nais/device/pkg/device-agent/wireguard"
 	"github.com/nais/device/pkg/ioconvenience"
-	"github.com/nais/device/pkg/pubsubenroll"
 
 	log "github.com/sirupsen/logrus"
 
@@ -318,27 +315,7 @@ func (das *DeviceAgentServer) EventLoop(ctx context.Context) {
 						continue
 					}
 
-					if das.Config.EnableGoogleAuth {
-						req := &pubsubenroll.DeviceRequest{
-							Platform:           das.Config.Platform,
-							Serial:             serial,
-							Owner:              "vegar@nais.io",
-							WireGuardPublicKey: wireguard.PublicKey(das.rc.PrivateKey),
-						}
-						var resp *pubsubenroll.Response
-						resp, err = pubsubenroll.Enroll(ctx, req, das.rc.Tokens.Token, das.Config.EnrollProjectID, das.Config.EnrollTopicName, log.WithField("component", "enroll"))
-						if err == nil {
-							apiserverPeer := findPeer(resp.Peers, "apiserver")
-							das.rc.BootstrapConfig = &bootstrap.Config{
-								DeviceIP:       resp.WireGuardIP,
-								PublicKey:      apiserverPeer.PublicKey,
-								TunnelEndpoint: apiserverPeer.Endpoint,
-								APIServerIP:    apiserverPeer.Ip,
-							}
-						}
-					} else {
-						das.rc.BootstrapConfig, err = runtimeconfig.EnsureBootstrapping(das.rc, serial, ctx)
-					}
+					das.rc.BootstrapConfig, err = runtimeconfig.EnsureBootstrapping(ctx, das.rc, serial)
 
 					cancel()
 					if err != nil {
@@ -455,16 +432,6 @@ func (das *DeviceAgentServer) EventLoop(ctx context.Context) {
 			}
 		}
 	}
-}
-
-func findPeer(gateway []*pb.Gateway, s string) *pb.Gateway {
-	for _, gw := range gateway {
-		if gw.Name == s {
-			return gw
-		}
-	}
-
-	return nil
 }
 
 func newVersionAvailable(ctx context.Context) (bool, error) {

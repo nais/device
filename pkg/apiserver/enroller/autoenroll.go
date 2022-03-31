@@ -204,9 +204,9 @@ func (a *AutoEnroll) receiveDevice(ctx context.Context, msg *pubsub.Message) {
 	pubresp := a.deviceTopic.Publish(ctx, &pubsub.Message{
 		Data: b,
 		Attributes: map[string]string{
-			"type":   pubsubenroll.TypeEnrollResponse,
-			"source": "apiserver",
-			"target": msg.Attributes["subscription"],
+			"type":    pubsubenroll.TypeEnrollResponse,
+			"source":  "apiserver",
+			"subject": msg.Attributes["subject"],
 		},
 	})
 	_, err = pubresp.Get(ctx)
