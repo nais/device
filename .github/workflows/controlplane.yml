@@ -45,6 +45,9 @@ jobs:
     runs-on: ubuntu-latest
     container:
       image: ghcr.io/nais/naisdevice-ci:v4
+    permissions:
+      contents: "read"
+      id-token: "write"
     steps:
       - uses: actions/checkout@v2
 
