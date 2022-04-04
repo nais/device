@@ -3,15 +3,18 @@ on:
   workflow_dispatch: {}
   push:
     paths:
-      - 'Makefile'
-      - 'go.mod'
-      - '**.go'
-      - '.github/workflows/controlplane.yml'
-      - 'packaging/controlplane/**'
+      - "Makefile"
+      - "go.mod"
+      - "**.go"
+      - ".github/workflows/controlplane.yml"
+      - "packaging/controlplane/**"
 env:
   go_version: "1.18"
+  REGISTRY: europe-north1-docker.pkg.dev/nais-io/nais/images
+
 jobs:
   test:
+    name: Test
     runs-on: ubuntu-latest
     services:
       postgres:
@@ -27,32 +30,33 @@ jobs:
           --health-timeout 5s
           --health-retries 5
     steps:
-    - uses: actions/checkout@v2
-    - uses: actions/setup-go@v2
-      with:
-        go-version: ${{ env.go_version }}
-    - name: run tests
-      run: |
-        make run-integration-test
+      - uses: actions/checkout@v2
+      - uses: actions/setup-go@v2
+        with:
+          go-version: ${{ env.go_version }}
+      - name: run tests
+        run: |
+          make run-integration-test
 
-  build:
+  build_debs:
+    name: Build debs
     needs:
-    - test
+      - test
     runs-on: ubuntu-latest
     container:
       image: ghcr.io/nais/naisdevice-ci:v4
     steps:
       - uses: actions/checkout@v2
 
-      - name: 'Build controlplane'
+      - name: "Build controlplane"
         run: make controlplane-debs
 
-      - name: 'Auth with Google'
-        uses: 'google-github-actions/auth@v0'
+      - name: "Auth with Google"
+        uses: "google-github-actions/auth@v0"
         with:
-          credentials_json: '${{ secrets.GOOGLE_DEB_UPLOAD_SA_JSON }}'
+          credentials_json: "${{ secrets.GOOGLE_DEB_UPLOAD_SA_JSON }}"
 
-      - name: 'Upload controlplane deb files to repository'
+      - name: "Upload controlplane deb files to repository"
         run: |
           for component in \
             "bootstrap-api" \
@@ -61,3 +65,58 @@ jobs:
             "prometheus-agent"; do
             gcloud beta artifacts apt upload controlplane --quiet --source "$component"*.deb --location europe-north1
           done
+
+  build_enroller:
+    name: Build enroller
+    needs:
+      - test
+    runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/nais/naisdevice-ci:v4
+    steps:
+      - uses: actions/checkout@v2
+
+      - id: "auth"
+        name: "Authenticate to Google Cloud"
+        uses: "google-github-actions/auth@v0.6.0"
+        with:
+          workload_identity_provider: ${{ secrets.NAIS_IO_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: "gh-naisdevice@nais-io.iam.gserviceaccount.com"
+          token_format: "access_token"
+
+      - name: Set up Docker Buildx
+        id: buildx
+        uses: docker/setup-buildx-action@v1
+
+      - name: Login to registry
+        uses: docker/login-action@v1
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: "oauth2accesstoken"
+          password: "${{ steps.auth.outputs.access_token }}"
+
+      - name: Docker meta enroller
+        id: metadata
+        uses: docker/metadata-action@v3
+        with:
+          images: ${{ env.REGISTRY }}/naisdevice-enroller
+          # Docker tags based on the following events/attributes
+          tags: |
+            type=schedule
+            type=ref,event=branch
+            type=ref,event=pr
+            type=semver,pattern=v{{version}}
+            type=semver,pattern=v{{major}}.{{minor}}
+            type=semver,pattern=v{{major}}
+            type=sha
+
+      - name: Build and push enroller
+        uses: docker/build-push-action@v2
+        with:
+          context: .
+          file: cmd/enroller/Dockerfile
+          push: true
+          tags: ${{ steps.metadata.outputs.tags }}
+          labels: ${{ steps.metadata.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max

@@ -2,20 +2,29 @@ package main
 
 import (
 	"context"
-	"encoding/json"
-	"fmt"
 	"net/http"
 	"os"
 	"os/signal"
-	"sync"
 	"time"
 
-	"cloud.google.com/go/pubsub"
+	"github.com/kelseyhightower/envconfig"
+	"github.com/nais/device/pkg/auth"
 	"github.com/nais/device/pkg/pubsubenroll"
 	"github.com/sirupsen/logrus"
 )
 
+type Config struct {
+	Azure  *auth.Azure
+	Google *auth.Google
+}
+
 func main() {
+	cfg := Config{}
+
+	if err := envconfig.Process("ENROLLER", &cfg); err != nil {
+		logrus.Fatal(err)
+	}
+
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = "8080"
@@ -27,24 +36,47 @@ func main() {
 	log := logrus.New()
 	log.Formatter = &logrus.JSONFormatter{}
 
-	worker, err := newWorker(context.Background(), log.WithField("component", "worker"))
+	worker, err := pubsubenroll.NewWorker(context.Background(), log.WithField("component", "worker"))
 	if err != nil {
 		log.WithError(err).Fatal("new worker")
 		return
 	}
 
+	var tokenValidator auth.TokenValidator
+	if cfg.Azure != nil && cfg.Google != nil {
+		log.Fatal("Both Google and Azure auth enabled - pick one")
+	}
+
+	if cfg.Azure != nil {
+		err := cfg.Azure.FetchCertificates()
+		if err != nil {
+			log.Fatalf("fetch Azure certs: %s", err)
+		}
+
+		tokenValidator = cfg.Azure.TokenValidatorMiddleware()
+	} else if cfg.Google != nil {
+		err := cfg.Google.SetupJwkAutoRefresh()
+		if err != nil {
+			log.Fatalf("fetch Google certs: %s", err)
+		}
+
+		tokenValidator = cfg.Google.TokenValidatorMiddleware()
+	} else {
+		log.Warnf("AUTH DISABLED, this should NOT run in production")
+		tokenValidator = auth.MockTokenValidator()
+	}
+
+	h := pubsubenroll.NewHandler(worker, log.WithField("component", "enroller"))
+
+	mux := http.NewServeMux()
+	mux.Handle("/enroll", h)
+
 	server := http.Server{
 		Addr:              ":" + port,
 		ReadHeaderTimeout: 3 * time.Second,
 		IdleTimeout:       10 * time.Minute,
+		Handler:           tokenValidator(mux),
 	}
-
-	h := &Handler{
-		log:    log.WithField("component", "enroller"),
-		worker: worker,
-	}
-
-	http.Handle("/enroll", h)
 
 	log.WithField("addr", ":"+port).Info("starting server")
 	ctx, cancel := context.WithCancel(ctx)
@@ -63,128 +95,6 @@ func main() {
 
 	if err := server.Shutdown(timeoutCtx); err != nil {
 		log.Error(err)
-	}
-}
-
-type Worker struct {
-	log          *logrus.Entry
-	topic        *pubsub.Topic
-	subscription *pubsub.Subscription
-
-	lock  sync.Mutex
-	queue map[string]chan *pubsubenroll.Response
-}
-
-func newWorker(ctx context.Context, log *logrus.Entry) (*Worker, error) {
-	projectID := os.Getenv("GCP_PROJECT")
-	topicName := os.Getenv("PUBSUB_TOPIC")
-	subscriptionName := os.Getenv("PUBSUB_SUBSCRIPTION")
-	client, err := pubsub.NewClient(ctx, projectID)
-	if err != nil {
-		return nil, err
-	}
-
-	return &Worker{
-		log:          log,
-		topic:        client.Topic(topicName),
-		subscription: client.Subscription(subscriptionName),
-		queue:        make(map[string]chan *pubsubenroll.Response),
-	}, nil
-}
-
-func (w *Worker) Run(ctx context.Context) error {
-	return w.subscription.Receive(ctx, w.receive)
-}
-
-func (w *Worker) receive(ctx context.Context, msg *pubsub.Message) {
-	defer msg.Ack()
-
-	subject := msg.Attributes["subject"]
-	if subject == "" {
-		w.log.WithFields(logrus.Fields{
-			"attributes": msg.Attributes,
-		}).Error("missing subject")
-		msg.Nack()
-		return
-	}
-
-	var resp pubsubenroll.Response
-	if err := json.Unmarshal(msg.Data, &resp); err != nil {
-		w.log.WithError(err).Error("unmarshal")
-		return
-	}
-
-	w.lock.Lock()
-	defer w.lock.Unlock()
-
-	if ch, ok := w.queue[subject]; ok {
-		ch <- &resp
-		delete(w.queue, subject)
-	} else {
-		msg.Nack()
-	}
-}
-
-func (w *Worker) Send(ctx context.Context, req *pubsubenroll.DeviceRequest) (*pubsubenroll.Response, error) {
-	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
-	defer cancel()
-
-	id := req.Serial + "-" + req.Platform
-	attrs := map[string]string{
-		"source":  "enroller",
-		"type":    pubsubenroll.TypeEnrollRequest,
-		"subject": id,
-	}
-
-	b, err := json.Marshal(req)
-	if err != nil {
-		return nil, err
-	}
-
-	msg := &pubsub.Message{
-		Data:       b,
-		Attributes: attrs,
-	}
-
-	if _, err := w.topic.Publish(ctx, msg).Get(ctx); err != nil {
-		return nil, err
-	}
-
-	ch := make(chan *pubsubenroll.Response, 1)
-	w.lock.Lock()
-	w.queue[id] = ch
-	w.lock.Unlock()
-
-	select {
-	case <-ctx.Done():
-		return nil, fmt.Errorf("timeout")
-	case resp := <-ch:
-		return resp, nil
-	}
-}
-
-type Handler struct {
-	log    *logrus.Entry
-	worker *Worker
-}
-
-func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	var req pubsubenroll.DeviceRequest
-
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
-	}
-
-	resp, err := h.worker.Send(r.Context(), &req)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	if err := json.NewEncoder(w).Encode(resp); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
 	}
 }
 
