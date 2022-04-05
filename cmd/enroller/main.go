@@ -14,8 +14,10 @@ import (
 )
 
 type Config struct {
-	Azure  *auth.Azure
-	Google *auth.Google
+	AzureEnabled  bool
+	Azure         *auth.Azure
+	GoogleEnabled bool
+	Google        *auth.Google
 }
 
 func main() {
@@ -43,18 +45,18 @@ func main() {
 	}
 
 	var tokenValidator auth.TokenValidator
-	if cfg.Azure != nil && cfg.Google != nil {
+	if cfg.AzureEnabled && cfg.GoogleEnabled {
 		log.Fatal("Both Google and Azure auth enabled - pick one")
 	}
 
-	if cfg.Azure != nil {
+	if cfg.AzureEnabled {
 		err := cfg.Azure.FetchCertificates()
 		if err != nil {
 			log.Fatalf("fetch Azure certs: %s", err)
 		}
 
 		tokenValidator = cfg.Azure.TokenValidatorMiddleware()
-	} else if cfg.Google != nil {
+	} else if cfg.GoogleEnabled {
 		err := cfg.Google.SetupJwkAutoRefresh()
 		if err != nil {
 			log.Fatalf("fetch Google certs: %s", err)
