@@ -44,7 +44,7 @@ jobs:
       - test
     runs-on: ubuntu-latest
     container:
-      image: ghcr.io/nais/naisdevice-ci:v4
+      image: ghcr.io/nais/naisdevice-ci:v5
     steps:
       - uses: actions/checkout@v2
 
@@ -76,7 +76,7 @@ jobs:
       packages: read
     runs-on: ubuntu-latest
     container:
-      image: ghcr.io/nais/naisdevice-ci:v4
+      image: ghcr.io/nais/naisdevice-ci:v5
     steps:
       - uses: actions/checkout@v2
 
