@@ -34,6 +34,7 @@ import (
 	"github.com/nais/device/pkg/logger"
 	"github.com/nais/device/pkg/pb"
 	"github.com/nais/device/pkg/version"
+	wg "github.com/nais/device/pkg/wireguard"
 	kolidepb "github.com/nais/kolide-event-handler/pkg/pb"
 	log "github.com/sirupsen/logrus"
 	flag "github.com/spf13/pflag"
@@ -83,7 +84,7 @@ func init() {
 	flag.BoolVar(&cfg.WireGuardEnabled, "wireguard-enabled", cfg.WireGuardEnabled, "enable WireGuard")
 	flag.StringVar(&cfg.WireGuardIP, "wireguard-ip", cfg.WireGuardIP, "WireGuard ip")
 	flag.StringVar(&cfg.WireGuardNetworkAddress, "wireguard-network-address", cfg.WireGuardNetworkAddress, "WireGuard network-address")
-	flag.StringVar(&cfg.WireGuardPrivateKey, "wireguard-private-key", cfg.WireGuardPrivateKey, "WireGuard private key")
+	flag.StringVar(&cfg.WireGuardPrivateKeyPath, "wireguard-private-key-path", cfg.WireGuardPrivateKeyPath, "WireGuard private key path")
 	flag.BoolVar(&cfg.CloudSQLProxyEnabled, "cloud-sql-proxy-enabled", cfg.CloudSQLProxyEnabled, "enable Google Cloud SQL proxy for database connection")
 	flag.StringVar(&cfg.GatewayConfigurer, "gateway-configurer", cfg.GatewayConfigurer, "which method to use for fetching gateway config (metadata or bucket)")
 	flag.BoolVar(&cfg.AutoEnrollEnabled, "auto-enroll-enabled", cfg.AutoEnrollEnabled, "enable auto enroll support using pub/sub")
@@ -187,11 +188,11 @@ func run() error {
 			return fmt.Errorf("set up WireGuard interface: %w", err)
 		}
 
-		publicKey, err := generatePublicKey([]byte(cfg.WireGuardPrivateKey), "wg")
+		key, err := wg.ReadOrCreatePrivateKey(cfg.WireGuardPrivateKeyPath, log.WithField("component", "wireguard"))
 		if err != nil {
-			return fmt.Errorf("generate WireGuard public key: %w", err)
+			return fmt.Errorf("generate WireGuard private key: %w", err)
 		}
-		cfg.WireGuardPublicKey = string(publicKey)
+		cfg.WireGuardPrivateKey = key
 
 		w := wireguard.New(cfg, db, cfg.WireGuardPrivateKey)
 

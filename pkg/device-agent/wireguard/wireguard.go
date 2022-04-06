@@ -56,7 +56,6 @@ func WGPubKey(privateKeySlice []byte) []byte {
 	return publicKey[:]
 }
 
-// TODO(jhrv): test
 func EnsurePrivateKey(keyPath string) ([]byte, error) {
 	if err := filesystem.FileMustExist(keyPath); os.IsNotExist(err) {
 		if err := os.WriteFile(keyPath, KeyToBase64(WgGenKey()), 0o600); err != nil {

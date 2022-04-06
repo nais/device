@@ -12,6 +12,7 @@ import (
 	"github.com/nais/device/pkg/apiserver/config"
 	"github.com/nais/device/pkg/apiserver/database"
 	"github.com/nais/device/pkg/pb"
+	wg "github.com/nais/device/pkg/wireguard"
 )
 
 type WireGuard interface {
@@ -24,10 +25,10 @@ type wireguard struct {
 	privateKey string
 }
 
-func New(config config.Config, db database.APIServer, privateKey string) WireGuard {
+func New(config config.Config, db database.APIServer, privateKey wg.PrivateKey) WireGuard {
 	return &wireguard{
 		cfg:        config,
-		privateKey: privateKey,
+		privateKey: string(privateKey.Private()),
 		db:         db,
 	}
 }

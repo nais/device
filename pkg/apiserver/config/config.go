@@ -6,6 +6,7 @@ import (
 
 	"github.com/nais/device/pkg/auth"
 	"github.com/nais/device/pkg/pb"
+	"github.com/nais/device/pkg/wireguard"
 )
 
 type Config struct {
@@ -41,8 +42,8 @@ type Config struct {
 	WireGuardEnabled                  bool
 	WireGuardIP                       string
 	WireGuardConfigPath               string
-	WireGuardPublicKey                string
-	WireGuardPrivateKey               string
+	WireGuardPrivateKey               wireguard.PrivateKey
+	WireGuardPrivateKeyPath           string
 	WireGuardNetworkAddress           string
 }
 
@@ -86,6 +87,7 @@ func DefaultConfig() Config {
 		WireGuardNetworkAddress:       "10.255.240.1/21",
 		WireGuardIP:                   "10.255.240.1",
 		WireGuardConfigPath:           "/run/wg0.conf",
+		WireGuardPrivateKeyPath:       "/etc/apiserver/private.key",
 		GatewayConfigurer:             "bucket",
 	}
 }
@@ -93,7 +95,7 @@ func DefaultConfig() Config {
 func (cfg *Config) APIServerPeer() *pb.Gateway {
 	return &pb.Gateway{
 		Name:      "apiserver",
-		PublicKey: cfg.WireGuardPublicKey,
+		PublicKey: string(cfg.WireGuardPrivateKey.Public()),
 		Endpoint:  cfg.Endpoint,
 		Ip:        cfg.WireGuardIP,
 	}
