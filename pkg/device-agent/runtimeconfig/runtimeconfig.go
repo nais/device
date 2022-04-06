@@ -5,12 +5,12 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"net/http"
 	"os"
 
 	"github.com/nais/device/pkg/bearertransport"
-	"github.com/nais/device/pkg/notify"
 	"github.com/nais/device/pkg/pubsubenroll"
 
 	"github.com/nais/device/pkg/bootstrap"
@@ -112,12 +112,17 @@ func googleBootstrap(ctx context.Context, rc *RuntimeConfig, serial string) (*bo
 	}
 
 	if hresp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("got status code %d from device enrollment service", hresp.StatusCode)
+		body, err := io.ReadAll(hresp.Body)
+		if err != nil {
+			return nil, fmt.Errorf("reading response body: %w", err)
+		}
+
+		return nil, fmt.Errorf("got status code %d from device enrollment service: %v", hresp.StatusCode, string(body))
 	}
 
 	resp := &pubsubenroll.Response{}
 	if err := json.NewDecoder(hresp.Body).Decode(resp); err != nil {
-		notify.Errorf("Unable to decode response: %v", err)
+		return nil, fmt.Errorf("decoding response: %w", err)
 	}
 
 	apiserverPeer := findPeer(resp.Peers, "apiserver")
