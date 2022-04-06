@@ -84,7 +84,7 @@ func DefaultConfig() Config {
 		GatewayConfigBucketObjectName: "gatewayconfig.json",
 		LogLevel:                      "info",
 		PrometheusAddr:                "127.0.0.1:3000",
-		WireGuardNetworkAddress:       "10.255.240.1/21",
+		WireGuardNetworkAddress:       "10.255.240.0/21",
 		WireGuardIP:                   "10.255.240.1",
 		WireGuardConfigPath:           "/run/wg0.conf",
 		WireGuardPrivateKeyPath:       "/etc/apiserver/private.key",

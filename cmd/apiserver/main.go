@@ -183,7 +183,7 @@ func run() error {
 	if cfg.WireGuardEnabled {
 		log.Infof("Setting up WireGuard integration...")
 
-		err = setupInterface(cfg.WireGuardNetworkAddress)
+		err = setupInterface(cfg.WireGuardIP, wireguardPrefix)
 		if err != nil {
 			return fmt.Errorf("set up WireGuard interface: %w", err)
 		}
@@ -506,7 +506,7 @@ func generatePublicKey(privateKey []byte, wireGuardPath string) ([]byte, error) 
 	return bytes.TrimSuffix(out, []byte("\n")), nil
 }
 
-func setupInterface(networkAddress string) error {
+func setupInterface(ip string, prefix netip.Prefix) error {
 	if err := exec.Command("ip", "link", "del", "wg0").Run(); err != nil {
 		log.Infof("Pre-deleting WireGuard interface (ok if this fails): %v", err)
 	}
@@ -527,7 +527,7 @@ func setupInterface(networkAddress string) error {
 	commands := [][]string{
 		{"ip", "link", "add", "dev", "wg0", "type", "wireguard"},
 		{"ip", "link", "set", "wg0", "mtu", "1360"},
-		{"ip", "address", "add", "dev", "wg0", networkAddress},
+		{"ip", "address", "add", "dev", "wg0", fmt.Sprintf("%s/%d", ip, prefix.Bits())},
 		{"ip", "link", "set", "wg0", "up"},
 	}
 
