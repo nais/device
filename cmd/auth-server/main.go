@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"os"
+	"strings"
 
 	"github.com/kelseyhightower/envconfig"
 	log "github.com/sirupsen/logrus"
@@ -33,6 +34,9 @@ func main() {
 	if err != nil {
 		log.Fatalf("process envconfig: %s", err)
 	}
+
+	cfg.ClientID = strings.TrimSpace(cfg.ClientID)
+	cfg.ClientSecret = strings.TrimSpace(cfg.ClientSecret)
 
 	port := os.Getenv("PORT")
 	if port == "" {

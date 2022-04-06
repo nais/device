@@ -51,7 +51,7 @@ var (
 func (das *DeviceAgentServer) ConfigureHelper(ctx context.Context, rc *runtimeconfig.RuntimeConfig, gateways []*pb.Gateway) error {
 	_, err := das.DeviceHelper.Configure(ctx, &pb.Configuration{
 		PrivateKey: base64.StdEncoding.EncodeToString(rc.PrivateKey),
-		DeviceIP:   rc.BootstrapConfig.DeviceIP,
+		DeviceIP:   rc.EnrollConfig.DeviceIP,
 		Gateways:   gateways,
 	})
 	return err
@@ -273,7 +273,7 @@ func (das *DeviceAgentServer) EventLoop(ctx context.Context) {
 			ctx, cancel := context.WithTimeout(syncctx, helperTimeout)
 			err = das.ConfigureHelper(ctx, das.rc, append(
 				[]*pb.Gateway{
-					das.rc.BootstrapConfig.Gateway(),
+					das.rc.EnrollConfig.Gateway(),
 				},
 				status.GetGateways()...,
 			))
@@ -303,7 +303,7 @@ func (das *DeviceAgentServer) EventLoop(ctx context.Context) {
 
 			switch status.ConnectionState {
 			case pb.AgentState_Bootstrapping:
-				if das.rc.BootstrapConfig != nil {
+				if das.rc.EnrollConfig != nil {
 					log.Infof("Already bootstrapped")
 				} else {
 					ctx, cancel := context.WithTimeout(context.Background(), 1*time.Minute)
@@ -315,7 +315,7 @@ func (das *DeviceAgentServer) EventLoop(ctx context.Context) {
 						continue
 					}
 
-					das.rc.BootstrapConfig, err = runtimeconfig.EnsureBootstrapping(ctx, das.rc, serial)
+					err = das.rc.EnsureEnrolled(ctx, serial)
 
 					cancel()
 					if err != nil {
@@ -327,7 +327,7 @@ func (das *DeviceAgentServer) EventLoop(ctx context.Context) {
 
 				ctx, cancel := context.WithTimeout(context.Background(), helperTimeout)
 				err = das.ConfigureHelper(ctx, das.rc, []*pb.Gateway{
-					das.rc.BootstrapConfig.Gateway(),
+					das.rc.EnrollConfig.Gateway(),
 				})
 				cancel()
 

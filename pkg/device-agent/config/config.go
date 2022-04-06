@@ -2,7 +2,6 @@ package config
 
 import (
 	"errors"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 
@@ -25,7 +24,6 @@ type Config struct {
 	APIServerGRPCAddress     string
 	AgentConfiguration       *pb.AgentConfiguration
 	BootstrapAPI             string
-	BootstrapConfigPath      string
 	BootstrapToken           string
 	ConfigDir                string
 	DeviceAgentHelperAddress string
@@ -37,6 +35,7 @@ type Config struct {
 	LogLevel                 string
 	OAuth2Config             oauth2.Config
 	OuttuneEnabled           bool
+	PartnerDomain            string
 	Platform                 string
 	PrivateKeyPath           string
 	SerialPath               string
@@ -52,7 +51,6 @@ func (c *Config) SetDefaults() {
 	c.SetPlatformDefaults()
 	c.PrivateKeyPath = filepath.Join(c.ConfigDir, "private.key")
 	c.WireGuardConfigPath = filepath.Join(c.ConfigDir, c.Interface+".conf")
-	c.BootstrapConfigPath = filepath.Join(c.ConfigDir, "bootstrapconfig.json")
 	c.SerialPath = filepath.Join(c.ConfigDir, "product_serial")
 }
 
@@ -91,14 +89,14 @@ func (c *Config) PersistAgentConfiguration() {
 
 	log.Debugf("persisting agent-config: %+v", c.AgentConfiguration)
 
-	if err := ioutil.WriteFile(agentConfigPath, out, 0o644); err != nil {
+	if err := os.WriteFile(agentConfigPath, out, 0o644); err != nil {
 		log.Errorf("Write AgentConfiguration: %v", err)
 	}
 }
 
 func (c *Config) PopulateAgentConfiguration() {
 	agentConfigPath := filepath.Join(c.ConfigDir, File)
-	in, err := ioutil.ReadFile(agentConfigPath)
+	in, err := os.ReadFile(agentConfigPath)
 	if err != nil {
 		if errors.Is(err, os.ErrNotExist) {
 			c.AgentConfiguration = &pb.AgentConfiguration{}

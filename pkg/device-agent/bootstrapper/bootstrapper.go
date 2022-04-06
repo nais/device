@@ -5,7 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"time"
 
@@ -51,7 +51,7 @@ func postDeviceInfo(ctx context.Context, url string, deviceInfo *bootstrap.Devic
 	defer ioconvenience.CloseWithLog(resp.Body)
 
 	if resp.StatusCode != http.StatusCreated {
-		body, err := ioutil.ReadAll(resp.Body)
+		body, err := io.ReadAll(resp.Body)
 		if err != nil {
 			return fmt.Errorf("parsing response: %w", err)
 		}

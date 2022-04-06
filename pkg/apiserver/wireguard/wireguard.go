@@ -3,7 +3,7 @@ package wireguard
 import (
 	"context"
 	"fmt"
-	"io/ioutil"
+	"os"
 	"os/exec"
 	"strings"
 
@@ -46,7 +46,7 @@ func (w wireguard) Sync(ctx context.Context) error {
 
 	wgConfigContent := generateWGConfig(devices, gateways, w.privateKey, w.cfg)
 
-	if err := ioutil.WriteFile(w.cfg.WireGuardConfigPath, wgConfigContent, 0600); err != nil {
+	if err := os.WriteFile(w.cfg.WireGuardConfigPath, wgConfigContent, 0o600); err != nil {
 		return fmt.Errorf("writing WireGuard config to disk: %w", err)
 	} else {
 		log.Debugf("Successfully wrote WireGuard config to: %v", w.cfg.WireGuardConfigPath)

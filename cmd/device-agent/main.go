@@ -43,8 +43,7 @@ func init() {
 	flag.BoolVar(&cfg.EnableGoogleAuth, "enable-google-auth", cfg.EnableGoogleAuth, "enables Google auth instead of Azure")
 	flag.StringVar(&cfg.GoogleAuthServerAddress, "google-auth-server-address", cfg.GoogleAuthServerAddress, "Google auth-server address")
 	flag.BoolVar(&cfg.OuttuneEnabled, "outtune-enabled", cfg.OuttuneEnabled, "Toggle fetching of outtune certificates")
-	flag.StringVar(&cfg.EnrollProjectID, "enroll-project-id", cfg.EnrollProjectID, "Google Project ID for device enroll")
-	flag.StringVar(&cfg.EnrollTopicName, "enroll-topic-name", cfg.EnrollTopicName, "Topic name for device enroll")
+	flag.StringVar(&cfg.PartnerDomain, "partner-domain", cfg.PartnerDomain, "Domain of partner to connect to. Defaults to auto-detection")
 }
 
 func handleSignals(cancel context.CancelFunc) {
@@ -78,7 +77,7 @@ func main() {
 	if cfg.EnableGoogleAuth {
 		cfg.OAuth2Config = oauth2.Config{
 			ClientID:    "955023559628-g51n36t4icbd6lq7ils4r0ol9oo8kpk0.apps.googleusercontent.com",
-			Scopes:      []string{"https://www.googleapis.com/auth/userinfo.email", "https://www.googleapis.com/auth/pubsub"},
+			Scopes:      []string{"https://www.googleapis.com/auth/userinfo.email"},
 			Endpoint:    endpoints.Google,
 			RedirectURL: "http://localhost:PORT/google",
 		}

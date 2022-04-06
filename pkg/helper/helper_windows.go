@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"io/ioutil"
 	"os/exec"
 	"time"
 
@@ -110,7 +109,7 @@ func (configurator *WindowsConfigurator) SetupRoutes(ctx context.Context, gatewa
 }
 
 func (configurator *WindowsConfigurator) SyncConf(ctx context.Context, cfg *pb.Configuration) error {
-	newWireGuardConfig, err := ioutil.ReadFile(WireGuardConfigPath)
+	newWireGuardConfig, err := os.ReadFile(WireGuardConfigPath)
 	if err != nil {
 		return fmt.Errorf("reading WireGuard config file: %w", err)
 	}
