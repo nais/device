@@ -55,13 +55,13 @@ func (a *Azure) TokenValidatorMiddleware() TokenValidator {
 		fn := func(w http.ResponseWriter, r *http.Request) {
 			token, err := jwt.ParseHeader(r.Header, "Authorization", a.JwtOptions()...)
 			if err != nil {
-				failAuth(w, fmt.Errorf("parse token: %w", err))
+				http.Error(w, err.Error(), http.StatusUnauthorized)
 				return
 			}
 
 			claims, err := token.AsMap(r.Context())
 			if err != nil {
-				failAuth(w, fmt.Errorf("convert claims to map: %s", err))
+				http.Error(w, err.Error(), http.StatusUnauthorized)
 				return
 			}
 

@@ -66,7 +66,7 @@ func (g *Google) TokenValidatorMiddleware() TokenValidator {
 
 			user, err := g.ParseAndValidateToken(token)
 			if err != nil {
-				failAuth(w, err)
+				http.Error(w, err.Error(), http.StatusUnauthorized)
 				return
 			}
 

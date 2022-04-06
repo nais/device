@@ -2,10 +2,7 @@ package auth
 
 import (
 	"context"
-	"fmt"
 	"net/http"
-
-	log "github.com/sirupsen/logrus"
 )
 
 type User struct {
@@ -28,13 +25,4 @@ func GetEmail(ctx context.Context) string {
 
 func WithEmail(ctx context.Context, email string) context.Context {
 	return context.WithValue(ctx, contextKeyEmail, email)
-}
-
-func failAuth(w http.ResponseWriter, cause error) {
-	log.Warn(cause)
-	w.WriteHeader(http.StatusForbidden)
-	_, err := fmt.Fprintf(w, "Unauthorized: %s", cause)
-	if err != nil {
-		log.Errorf("Writing http response: %v", err)
-	}
 }
