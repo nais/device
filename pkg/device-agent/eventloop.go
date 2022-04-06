@@ -325,6 +325,10 @@ func (das *DeviceAgentServer) EventLoop(ctx context.Context) {
 					}
 				}
 
+				if das.rc.Config.APIServerGRPCAddress == "" {
+					das.rc.Config.APIServerGRPCAddress = net.JoinHostPort(das.rc.EnrollConfig.APIServerIP, "8099")
+				}
+
 				ctx, cancel := context.WithTimeout(context.Background(), helperTimeout)
 				err = das.ConfigureHelper(ctx, das.rc, []*pb.Gateway{
 					das.rc.EnrollConfig.Gateway(),
