@@ -205,7 +205,7 @@ func (das *DeviceAgentServer) EventLoop(ctx context.Context) {
 		case <-certRenewalTicker.C:
 			certRenewalTicker.Reset(certCheckInterval)
 
-			if !das.Config.AgentConfiguration.CertRenewal {
+			if !das.Config.AgentConfiguration.CertRenewal || !das.Config.OuttuneEnabled {
 				break
 			}
 
