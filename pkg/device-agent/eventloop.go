@@ -429,6 +429,7 @@ func (das *DeviceAgentServer) EventLoop(ctx context.Context) {
 				das.stateChange <- pb.AgentState_Disconnected
 
 			case pb.AgentState_Unhealthy:
+				das.outtune.Cleanup(ctx)
 
 			case pb.AgentState_AgentConfigurationChanged:
 				certRenewalTicker.Reset(1 * time.Second)

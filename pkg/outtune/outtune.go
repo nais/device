@@ -23,6 +23,7 @@ const (
 
 type Outtune interface {
 	Install(ctx context.Context) error
+	Cleanup(ctx context.Context) error
 }
 
 type request struct {

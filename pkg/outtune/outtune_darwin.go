@@ -23,19 +23,42 @@ func New(helper pb.DeviceHelperClient) Outtune {
 	}
 }
 
-func (o *darwin) Install(ctx context.Context) error {
+// Cleans up all naisdevice-certificates and keys for the given serial.
+func (o *darwin) Cleanup(ctx context.Context) error {
 	serial, err := o.helper.GetSerial(ctx, &pb.GetSerialRequest{})
 	if err != nil {
 		return err
 	}
 
-	id, err := generateKeyAndCertificate(ctx, serial.Serial)
+	// find identities in Mac OS X keychain for this serial
+	identities, err := identities(ctx, serial.GetSerial())
 	if err != nil {
 		return err
 	}
 
-	// find old identities in Mac OS X keychain
-	oldIdentities, err := identities(ctx, serial.Serial)
+	// remove identities
+	for _, certificateSerial := range identities {
+		cmd := exec.CommandContext(ctx, "/usr/bin/security", "delete-identity", "-Z", certificateSerial, "-t")
+		err = cmd.Run()
+		if err != nil {
+			log.Errorf("unable to delete certificate and private key from keychain: %s", err)
+		} else {
+			log.Debugf("deleted identity '%s' from keychain", certificateSerial)
+		}
+	}
+
+	return nil
+}
+
+func (o *darwin) Install(ctx context.Context) error {
+	o.Cleanup(ctx)
+
+	serial, err := o.helper.GetSerial(ctx, &pb.GetSerialRequest{})
+	if err != nil {
+		return err
+	}
+
+	id, err := generateKeyAndCertificate(ctx, serial.GetSerial())
 	if err != nil {
 		return err
 	}
@@ -66,29 +89,12 @@ func (o *darwin) Install(ctx context.Context) error {
 		return err
 	}
 
-	// remove old identities
-	for _, certificateSerial := range oldIdentities {
-		cmd := exec.CommandContext(ctx, "/usr/bin/security", "delete-identity", "-Z", certificateSerial, "-t")
-		err = cmd.Run()
-		if err != nil {
-			log.Errorf("unable to delete certificate and private key from keychain: %s", err)
-		} else {
-			log.Debugf("deleted identity '%s' from keychain", certificateSerial)
-		}
-	}
-
-	// find old identities in Mac OS X keychain
-	oldIdentities, err = identities(ctx, serial.Serial)
+	currentIdentities, err := identities(ctx, serial.GetSerial())
 	if err != nil {
-		return err
+		return fmt.Errorf("unable to find identity in keychain: %s", err)
 	}
 
-	if len(oldIdentities) != 1 {
-		log.Errorf("unable to determine current active certificate")
-		return nil
-	}
-
-	cmd = exec.CommandContext(ctx, "/usr/bin/security", "set-identity-preference", "-Z", oldIdentities[0], "-s", aadLoginURL)
+	cmd = exec.CommandContext(ctx, "/usr/bin/security", "set-identity-preference", "-Z", currentIdentities[0], "-s", aadLoginURL)
 	err = cmd.Run()
 	if err != nil {
 		log.Errorf("set-identity-preference: %s", err)
