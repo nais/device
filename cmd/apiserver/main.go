@@ -118,7 +118,6 @@ func run() error {
 	var adminAuthenticator auth.UsernamePasswordAuthenticator
 	var gatewayAuthenticator auth.UsernamePasswordAuthenticator
 	var prometheusAuthenticator auth.UsernamePasswordAuthenticator
-	var wireguardPublicKey []byte
 
 	err := envconfig.Process("APISERVER", &cfg)
 	if err != nil {
@@ -247,7 +246,7 @@ func run() error {
 			Client:             basicauth.Transport{Username: username, Password: password}.Client(),
 			DB:                 db,
 			BootstrapAPIURL:    cfg.BootstrapAPIURL,
-			APIServerPublicKey: string(wireguardPublicKey),
+			APIServerPublicKey: string(cfg.WireGuardPrivateKey.Public()),
 			APIServerEndpoint:  cfg.Endpoint,
 			APIServerIP:        cfg.WireGuardIP,
 		}
