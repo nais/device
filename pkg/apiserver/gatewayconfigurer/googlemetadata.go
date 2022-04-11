@@ -16,6 +16,12 @@ type GoogleMetadata struct {
 	log *log.Entry
 }
 
+type GatewayMetadata struct {
+	Routes                   []string `json:"routes"`
+	AccessGroupIDs           []string `json:"access_group_ids"`
+	RequiresPrivilegedAccess bool     `json:"requires_privileged_access"`
+}
+
 func NewGoogleMetadata(db database.APIServer, log *log.Entry) *GoogleMetadata {
 	return &GoogleMetadata{
 		db:  db,
@@ -40,20 +46,20 @@ func (g *GoogleMetadata) SyncContinuously(ctx context.Context, syncInterval time
 }
 
 func (g *GoogleMetadata) syncConfig(ctx context.Context) error {
-	gatewayRoutes, err := getRoutesFromMetadata(ctx)
+	gatewayRoutes, err := getGatewayMetadatas(ctx)
 	if err != nil {
 		return err
 	}
-	for name, routes := range gatewayRoutes {
+	for name, gatewayMetadata := range gatewayRoutes {
 		gateway, err := g.db.ReadGateway(ctx, name)
 		if err != nil {
 			g.log.WithError(err).Error("read gateway")
 			continue
 		}
 
-		gateway.Routes = routes
-		gateway.AccessGroupIDs = []string{"allUsers"}
-		gateway.RequiresPrivilegedAccess = false
+		gateway.Routes = gatewayMetadata.Routes
+		gateway.AccessGroupIDs = gatewayMetadata.AccessGroupIDs
+		gateway.RequiresPrivilegedAccess = gatewayMetadata.RequiresPrivilegedAccess
 
 		err = g.db.UpdateGateway(ctx, gateway)
 		if err != nil {
@@ -63,7 +69,7 @@ func (g *GoogleMetadata) syncConfig(ctx context.Context) error {
 	return nil
 }
 
-func getRoutesFromMetadata(ctx context.Context) (map[string][]string, error) {
+func getGatewayMetadatas(ctx context.Context) (map[string]*GatewayMetadata, error) {
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, "http://metadata.google.internal/computeMetadata/v1/instance/attributes/gateway-routes", nil)
 	if err != nil {
 		return nil, err
@@ -80,11 +86,11 @@ func getRoutesFromMetadata(ctx context.Context) (map[string][]string, error) {
 		return nil, fmt.Errorf("non-200 status on metadata request: %v", resp.Status)
 	}
 
-	var gatewayRoutes map[string][]string
-	err = json.NewDecoder(resp.Body).Decode(&gatewayRoutes)
+	var gatewayMetadatas map[string]*GatewayMetadata
+	err = json.NewDecoder(resp.Body).Decode(&gatewayMetadatas)
 	if err != nil {
 		return nil, err
 	}
 
-	return gatewayRoutes, nil
+	return gatewayMetadatas, nil
 }
