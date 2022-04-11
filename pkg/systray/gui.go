@@ -3,6 +3,7 @@ package systray
 import (
 	"context"
 	"fmt"
+	"github.com/nais/device/pkg/helper"
 	"os"
 	"os/signal"
 	"path/filepath"
@@ -49,6 +50,7 @@ type Gui struct {
 		DeviceLog     *systray.MenuItem
 		HelperLog     *systray.MenuItem
 		SystrayLog    *systray.MenuItem
+		ZipLog        *systray.MenuItem
 		Version       *systray.MenuItem
 		Upgrade       *systray.MenuItem
 		GatewayItems  []*GatewayItem
@@ -63,6 +65,7 @@ const (
 	QuitClicked
 	DeviceLogClicked
 	HelperLogClicked
+	ZipLogsClicked
 	LogClicked
 	AutoConnectClicked
 	BlackAndWhiteClicked
@@ -99,6 +102,7 @@ func NewGUI(ctx context.Context, client pb.DeviceAgentClient, cfg Config) *Gui {
 	gui.MenuItems.DeviceLog = gui.MenuItems.Logs.AddSubMenuItem("Agent", "")
 	gui.MenuItems.HelperLog = gui.MenuItems.Logs.AddSubMenuItem("Helper", "")
 	gui.MenuItems.SystrayLog = gui.MenuItems.Logs.AddSubMenuItem("Systray", "")
+	gui.MenuItems.ZipLog = gui.MenuItems.Logs.AddSubMenuItem("Zip logfiles", "")
 	systray.AddSeparator()
 	gui.MenuItems.Connect = systray.AddMenuItem("Connect", "")
 	systray.AddSeparator()
@@ -172,6 +176,9 @@ func (gui *Gui) handleButtonClicks(ctx context.Context) {
 			gui.Events <- HelperLogClicked
 		case <-gui.MenuItems.SystrayLog.ClickedCh:
 			gui.Events <- LogClicked
+		case <-gui.MenuItems.ZipLog.ClickedCh:
+			gui.Events <- ZipLogsClicked
+			return
 		case <-gui.MenuItems.CertRenewal.ClickedCh:
 			gui.Events <- ClientCertClicked
 		case name := <-gui.PrivilegedGatewayClicked:
@@ -396,6 +403,22 @@ func (gui *Gui) handleGuiEvent(guiEvent GuiEvent) {
 		err := open.Open(filepath.Join(gui.Config.ConfigDir, "logs", "agent.log"))
 		if err != nil {
 			log.Warn("opening device agent log: %w", err)
+		}
+
+	case ZipLogsClicked:
+		logDir := filepath.Join(gui.Config.ConfigDir, "logs")
+		logFiles := [3]string{
+			filepath.Join(logDir, "helper.log"),
+			filepath.Join(logDir, "agent.log"),
+			filepath.Join(logDir, "systray.log"),
+		}
+		zipLocation, err := helper.ZipLogFiles(logFiles[:])
+		if err != nil {
+			log.Errorf("zipping log files: %v", err)
+		}
+		err = open.Open("file://" + filepath.Dir(zipLocation))
+		if err != nil {
+			log.Errorf("open %v", err)
 		}
 
 	case LogClicked:
