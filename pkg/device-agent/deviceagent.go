@@ -42,7 +42,7 @@ func (das *DeviceAgentServer) Logout(ctx context.Context, request *pb.LogoutRequ
 func (das *DeviceAgentServer) Status(request *pb.AgentStatusRequest, statusServer pb.DeviceAgent_StatusServer) error {
 	id := uuid.New()
 
-	log.Infof("grpc: client connection established to device helper")
+	log.Debug("grpc: client connection established to device helper")
 
 	das.lock.Lock()
 	das.streams[id] = statusServer
