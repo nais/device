@@ -1,4 +1,4 @@
-name: Update PPA repo
+name: Update PPA
 
 on:
   workflow_run:

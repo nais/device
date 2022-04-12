@@ -1,4 +1,4 @@
-name: Release naisdevice frontends
+name: Release naisdevice
 on:
   push:
     tags:
@@ -212,4 +212,3 @@ jobs:
           asset_path: ./naisdevice_${{ needs.set-version.outputs.version }}_amd64.deb
           asset_name: naisdevice.deb
           asset_content_type: application/octet-stream
-

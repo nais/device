@@ -1,4 +1,4 @@
-name: Controlplane
+name: Release controlplane
 on:
   workflow_dispatch: {}
   push:
