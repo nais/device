@@ -2,7 +2,7 @@ name: Update Homebrew
 
 on:
   workflow_run:
-    workflows: [ "Release naisdevice frontends" ]
+    workflows: [ "Release naisdevice" ]
     types:
       - completed
   workflow_dispatch:

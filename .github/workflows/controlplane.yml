@@ -2,6 +2,8 @@ name: Release controlplane
 on:
   workflow_dispatch: {}
   push:
+    branches:
+      - master
     paths:
       - "Makefile"
       - "go.mod"
