@@ -97,3 +97,5 @@ require (
 	cloud.google.com/go/pubsub v1.19.0
 	golang.org/x/xerrors v0.0.0-20200804184101-5ec99f83aff1 // indirect
 )
+
+require github.com/akavel/rsrc v0.10.2 // indirect
