@@ -2,7 +2,7 @@
 
 Database migrations must be compiled into the program. In order to accomplish this, a helper application
 in this directory scans the directory for SQL files containing database migration scripts.
-The contents of the SQL files are added to a string slice in the file `../zz-migrations-generated.go`.
+The contents of the SQL files are added to a embedded file system in `../migrations.go`.
 
 ## Adding database migrations
 
@@ -29,10 +29,6 @@ VALUES (xxx, now());
 COMMIT;
 ```
 
-After adding or updating the SQL file, you must run the migration helper using `go generate` from the project folder:
-
-```
-$ go generate ./...
-```
+Migrations will be embedded in the binary at compile time.
 
 The database migration will be performed when the application is started by calling the `Migrate()` function.

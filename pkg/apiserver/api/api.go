@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/nais/device/pkg/apiserver/auth"
 	"github.com/nais/device/pkg/apiserver/jita"
 	apiserver_metrics "github.com/nais/device/pkg/apiserver/metrics"
 	"github.com/nais/device/pkg/pb"
@@ -30,7 +31,7 @@ type GatewayConfig struct {
 }
 
 func (a *api) deviceConfig(w http.ResponseWriter, r *http.Request) {
-	sessionInfo := r.Context().Value("sessionInfo").(*pb.Session)
+	sessionInfo := auth.GetSessionInfo(r.Context())
 
 	logWithFields := log.WithFields(log.Fields{
 		"username":  sessionInfo.Device.Username,
@@ -111,7 +112,7 @@ func StringSliceHasIntersect(slice1 []string, slice2 []string) bool {
 	return false
 }
 
-func respondf(w http.ResponseWriter, statusCode int, format string, args ...interface{}) {
+func respondf(w http.ResponseWriter, statusCode int, format string, args ...any) {
 	w.WriteHeader(statusCode)
 
 	if _, wErr := w.Write([]byte(fmt.Sprintf(format, args...))); wErr != nil {

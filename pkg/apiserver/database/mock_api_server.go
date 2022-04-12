@@ -304,3 +304,17 @@ func (_m *MockAPIServer) UpdateGateway(ctx context.Context, gateway *pb.Gateway)
 
 	return r0
 }
+
+// UpdateGatewayDynamicFields provides a mock function with given fields: ctx, gateway
+func (_m *MockAPIServer) UpdateGatewayDynamicFields(ctx context.Context, gateway *pb.Gateway) error {
+	ret := _m.Called(ctx, gateway)
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(context.Context, *pb.Gateway) error); ok {
+		r0 = rf(ctx, gateway)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}

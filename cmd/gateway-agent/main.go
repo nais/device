@@ -3,13 +3,15 @@ package main
 import (
 	"context"
 	"fmt"
-	"os"
 	"os/signal"
+	"path/filepath"
 	"syscall"
 	"time"
 
 	g "github.com/nais/device/pkg/gateway-agent"
+	"github.com/nais/device/pkg/passwordhash"
 	"github.com/nais/device/pkg/pb"
+	"github.com/nais/device/pkg/pubsubenroll"
 	"github.com/nais/device/pkg/wireguard"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
@@ -24,18 +26,17 @@ import (
 	flag "github.com/spf13/pflag"
 )
 
-var (
-	cfg = g.DefaultConfig()
-)
+var cfg = g.DefaultConfig()
 
 const (
-	grpcConnectBackoff  = 5 * time.Second
-	wireguardInterface  = "wg0"
-	wireguardListenPort = 51820
+	grpcConnectBackoff   = 5 * time.Second
+	wireguardInterface   = "wg0"
+	wireguardListenPort  = 51820
+	enrollTimeout        = 20 * time.Second
+	maxReconnectAttempts = 10
 )
 
 func init() {
-
 	flag.BoolVar(&cfg.EnableRouting, "enable-routing", cfg.EnableRouting, "enable-routing enables setting up interface and configuring of WireGuard")
 	flag.StringVar(&cfg.APIServerEndpoint, "apiserver-endpoint", cfg.APIServerEndpoint, "WireGuard public endpoint at API server, host:port")
 	flag.StringVar(&cfg.APIServerPassword, "apiserver-password", cfg.APIServerPassword, "password to access apiserver")
@@ -50,11 +51,12 @@ func init() {
 	flag.StringVar(&cfg.PrometheusAddr, "prometheus-address", cfg.PrometheusAddr, "prometheus listen address")
 	flag.StringVar(&cfg.PrometheusPublicKey, "prometheus-public-key", cfg.PrometheusPublicKey, "prometheus public key")
 	flag.StringVar(&cfg.PrometheusTunnelIP, "prometheus-tunnel-ip", cfg.PrometheusTunnelIP, "prometheus tunnel ip")
-
-	flag.Parse()
+	flag.BoolVar(&cfg.AutoEnroll, "auto-enroll", cfg.AutoEnroll, "Auto enroll using pub/sub. Uses Google ADC.")
 }
 
 func main() {
+	flag.Parse()
+
 	err := run()
 	if err != nil {
 		log.Fatalf("Running gateway-agent: %s", err)
@@ -63,6 +65,9 @@ func main() {
 
 func run() error {
 	var err error
+
+	ctx, cancel := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
+	defer cancel()
 
 	err = envconfig.Process("GATEWAY_AGENT", &cfg)
 	if err != nil {
@@ -73,10 +78,53 @@ func run() error {
 
 	log.Infof("gateway-agent version %s, revision: %s", version.Version, version.Revision)
 
+	log.Info("starting gateway-agent")
+
+	staticPeers := cfg.StaticPeers()
+	if cfg.AutoEnroll {
+		log.Info("Auto bootstrap enabled")
+		password, hashedPassword, err := passwordhash.GeneratePasswordAndHash()
+		if err != nil {
+			return err
+		}
+		cfg.APIServerPassword = password
+
+		privateKey, err := wireguard.ReadOrCreatePrivateKey(
+			filepath.Join(cfg.ConfigDir, "private.key"),
+			log.WithField("component", "wireguard"),
+		)
+		if err != nil {
+			return fmt.Errorf("get private key: %w", err)
+		}
+
+		ecfg, err := pubsubenroll.NewGatewayClient(
+			ctx,
+			privateKey.Public(),
+			hashedPassword,
+			wireguardListenPort,
+			log.WithField("component", "bootstrap"),
+		)
+		if err != nil {
+			return fmt.Errorf("create enroll config: %w", err)
+		}
+
+		ctx, cancel := context.WithTimeout(ctx, enrollTimeout)
+		enrollResp, err := ecfg.Bootstrap(ctx)
+		cancel()
+		if err != nil {
+			return fmt.Errorf("auto-bootstrap: %w", err)
+		}
+
+		cfg.Name = ecfg.Name
+		cfg.PrivateKey = string(privateKey.Private())
+		cfg.APIServerURL = enrollResp.APIServerGRPCAddress
+		cfg.DeviceIP = enrollResp.WireGuardIP
+
+		staticPeers = wireguard.MakePeers(nil, enrollResp.Peers)
+	}
+
 	g.InitializeMetrics(cfg.Name, version.Version)
 	go g.Serve(cfg.PrometheusAddr)
-
-	log.Info("starting gateway-agent")
 
 	var netConf wireguard.NetworkConfigurer
 	if cfg.EnableRouting {
@@ -103,22 +151,10 @@ func run() error {
 		return fmt.Errorf("setup iptables defaults: %w", err)
 	}
 
-	err = netConf.ApplyWireGuardConfig(nil)
+	err = netConf.ApplyWireGuardConfig(staticPeers)
 	if err != nil {
 		return fmt.Errorf("apply wireguard config: %w", err)
 	}
-
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-
-	signals := make(chan os.Signal, 1)
-	signal.Notify(signals, syscall.SIGINT, syscall.SIGTERM)
-
-	go func() {
-		sig := <-signals
-		log.Infof("Received signal %s", sig)
-		cancel()
-	}()
 
 	log.Infof("Attempting gRPC connection to API server on %s...", cfg.APIServerURL)
 	apiserver, err := grpc.DialContext(
@@ -126,7 +162,6 @@ func run() error {
 		cfg.APIServerURL,
 		grpc.WithInsecure(),
 	)
-
 	if err != nil {
 		return fmt.Errorf("unable to connect to api server: %w", err)
 	}
@@ -135,8 +170,8 @@ func run() error {
 
 	apiserverClient := pb.NewAPIServerClient(apiserver)
 
-	for ctx.Err() == nil {
-		err := g.SyncFromStream(ctx, cfg, apiserverClient, netConf)
+	for attempt := 0; attempt < maxReconnectAttempts; attempt++ {
+		err := g.SyncFromStream(ctx, cfg.Name, cfg.APIServerPassword, staticPeers, apiserverClient, netConf)
 		if err != nil {
 			code := status.Code(err)
 			if code == codes.Unauthenticated {
@@ -144,14 +179,16 @@ func run() error {
 				// so we terminate here to let the OS restart us.
 				return err
 			}
-			log.Error(err)
+			log.Errorf("attempt %v: %v", attempt, err)
 			log.Debugf("Waiting %s before next retry...", grpcConnectBackoff)
 			select {
-			case <-ctx.Done(): //context cancelled
-			case <-time.After(grpcConnectBackoff): //timeout
+			case <-ctx.Done(): // context cancelled
+				log.Info("context done, shutting down")
+				return nil
+			case <-time.After(grpcConnectBackoff): // timeout
 			}
 		}
 	}
-
+	log.Info("max reconnects reached, shutting down")
 	return nil
 }

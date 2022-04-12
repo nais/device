@@ -12,4 +12,5 @@ type Enroller struct {
 	BootstrapAPIURL    string
 	APIServerPublicKey string
 	APIServerEndpoint  string
+	APIServerIP        string
 }

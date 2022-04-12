@@ -3,30 +3,30 @@ package auth
 import (
 	"context"
 	"fmt"
+	"net"
+	"net/http"
+	"strconv"
+	"strings"
+
 	"github.com/nais/device/pkg/apiserver/kekw"
 	"github.com/nais/device/pkg/device-agent/open"
 	"github.com/nais/device/pkg/random"
 	codeverifier "github.com/nirasan/go-oauth-pkce-code-verifier"
 	log "github.com/sirupsen/logrus"
 	"golang.org/x/oauth2"
-	"net"
-	"net/http"
-	"strconv"
-	"strings"
-	"time"
 )
 
-type Token struct {
-	AccessToken string
-	Expiry      time.Time
-}
-
 type authFlowResponse struct {
-	Token *Token
-	err   error
+	Tokens *Tokens
+	err    error
 }
 
-func GetDeviceAgentToken(ctx context.Context, conf oauth2.Config) (*Token, error) {
+type Tokens struct {
+	Token   *oauth2.Token
+	IDToken string
+}
+
+func GetDeviceAgentToken(ctx context.Context, conf oauth2.Config, authServer string) (*Tokens, error) {
 	// Ignoring impossible error
 	codeVerifier, _ := codeverifier.CreateCodeVerifier()
 
@@ -34,7 +34,6 @@ func GetDeviceAgentToken(ctx context.Context, conf oauth2.Config) (*Token, error
 	state := random.RandomString(16, random.LettersAndNumbers)
 
 	listener, err := net.Listen("tcp", "127.0.0.1:0")
-
 	if err != nil {
 		return nil, fmt.Errorf("creating listener: %w", err)
 	}
@@ -45,7 +44,7 @@ func GetDeviceAgentToken(ctx context.Context, conf oauth2.Config) (*Token, error
 	handler := http.NewServeMux()
 	// define a handler that will get the authorization code, call the authFlowResponse endpoint, and close the HTTP server
 	handler.HandleFunc("/", handleRedirectAzure(state, conf, codeVerifier, authFlowChan))
-	handler.HandleFunc("/google", handleRedirectGoogle(state, conf.RedirectURL, codeVerifier, authFlowChan))
+	handler.HandleFunc("/google", handleRedirectGoogle(state, conf.RedirectURL, codeVerifier, authFlowChan, authServer))
 
 	server := &http.Server{Handler: handler}
 	go server.Serve(listener)
@@ -72,13 +71,13 @@ func GetDeviceAgentToken(ctx context.Context, conf oauth2.Config) (*Token, error
 			return nil, fmt.Errorf("authFlow: %w", authFlowResponse.err)
 		}
 
-		return authFlowResponse.Token, nil
+		return authFlowResponse.Tokens, nil
 	}
 }
 
 func failAuth(err error, w http.ResponseWriter, authFlowChan chan *authFlowResponse) {
 	failureResponse(w, err.Error())
-	authFlowChan <- &authFlowResponse{Token: nil, err: err}
+	authFlowChan <- &authFlowResponse{Tokens: nil, err: err}
 }
 
 func failureResponse(w http.ResponseWriter, msg string) {

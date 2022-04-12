@@ -12,27 +12,28 @@ import (
 	_ "github.com/lib/pq"
 	log "github.com/sirupsen/logrus"
 
-	"github.com/nais/device/pkg/apiserver/cidr"
 	"github.com/nais/device/pkg/pb"
 )
 
-const (
-	TunnelCidr = "10.255.240.0/21"
-)
-
 type apiServerDB struct {
-	conn *sql.DB
+	conn                *sql.DB
+	IPAllocator         IPAllocator
+	defaultDeviceHealth bool
 }
 
 var _ APIServer = &apiServerDB{}
 
-func New(dsn, driver string) (*apiServerDB, error) {
+func New(dsn, driver string, ipAllocator IPAllocator, defaultDeviceHealth bool) (*apiServerDB, error) {
 	db, err := sql.Open(driver, dsn)
 	if err != nil {
 		return nil, fmt.Errorf("connecting to database: %s", err)
 	}
 
-	apiServerDB := apiServerDB{conn: db}
+	apiServerDB := apiServerDB{
+		conn:                db,
+		IPAllocator:         ipAllocator,
+		defaultDeviceHealth: defaultDeviceHealth,
+	}
 
 	ctx := context.Background()
 	for backoff := 0; backoff < 5; backoff++ {
@@ -65,7 +66,6 @@ func (db *apiServerDB) ReadDevices(ctx context.Context) ([]*pb.Device, error) {
 	devices := make([]*pb.Device, 0) // don't want nil declaration here as this JSON encodes to 'null' instead of '[]'
 	for rows.Next() {
 		device, err := scanDevice(rows)
-
 		if err != nil {
 			return nil, err
 		}
@@ -136,6 +136,27 @@ UPDATE gateway
 	return nil
 }
 
+func (db *apiServerDB) UpdateGatewayDynamicFields(ctx context.Context, gw *pb.Gateway) error {
+	statement := `
+UPDATE gateway
+    SET access_group_ids = $1,
+        routes = $2,
+        requires_privileged_access = $3
+ WHERE name = $4;`
+
+	_, err := db.conn.ExecContext(ctx, statement,
+		strings.Join(gw.AccessGroupIDs, ","),
+		strings.Join(gw.Routes, ","),
+		gw.RequiresPrivilegedAccess,
+		gw.Name)
+	if err != nil {
+		return fmt.Errorf("updating gateway dynamic fields: %w", err)
+	}
+
+	log.Debugf("Updated gateway dynamic fields: %s", gw.Name)
+	return nil
+}
+
 func (db *apiServerDB) AddGateway(ctx context.Context, gw *pb.Gateway) error {
 	mux.Lock()
 	defer mux.Unlock()
@@ -151,14 +172,15 @@ func (db *apiServerDB) AddGateway(ctx context.Context, gw *pb.Gateway) error {
 		return fmt.Errorf("reading existing ips: %w", err)
 	}
 
-	availableIp, err := cidr.FindAvailableIP(TunnelCidr, takenIps)
+	availableIp, err := db.IPAllocator.NextIP(takenIps)
 	if err != nil {
 		return fmt.Errorf("finding available ip: %w", err)
 	}
 
 	statement := `
 INSERT INTO gateway (name, endpoint, public_key, ip, password_hash, access_group_ids, routes, requires_privileged_access)
-             VALUES ($1, $2, $3, $4, $5, $6, $7, $8);`
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+ON CONFLICT (name) DO UPDATE SET endpoint = EXCLUDED.endpoint, public_key = EXCLUDED.public_key, password_hash = EXCLUDED.password_hash;`
 
 	_, err = db.conn.ExecContext(ctx, statement,
 		gw.Name,
@@ -196,16 +218,16 @@ func (db *apiServerDB) AddDevice(ctx context.Context, device *pb.Device) error {
 		return fmt.Errorf("reading existing ips: %w", err)
 	}
 
-	ip, err := cidr.FindAvailableIP(TunnelCidr, ips)
+	ip, err := db.IPAllocator.NextIP(ips)
 	if err != nil {
 		return fmt.Errorf("finding available ip: %w", err)
 	}
 
 	statement := `
 INSERT INTO device (serial, username, public_key, ip, healthy, psk, platform)
-            VALUES ($1, $2, $3, $4, false, '', $5)
+            VALUES ($1, $2, $3, $4, $5, '', $6)
 ON CONFLICT(serial, platform) DO UPDATE SET username = $2, public_key = $3;`
-	_, err = tx.ExecContext(ctx, statement, device.Serial, device.Username, device.PublicKey, ip, device.Platform)
+	_, err = tx.ExecContext(ctx, statement, device.Serial, device.Username, device.PublicKey, ip, db.defaultDeviceHealth, device.Platform)
 	if err != nil {
 		return fmt.Errorf("inserting new device: %w", err)
 	}
@@ -274,7 +296,6 @@ func (db *apiServerDB) ReadGateways(ctx context.Context) ([]*pb.Gateway, error) 
 	}
 
 	return gateways, nil
-
 }
 
 func (db *apiServerDB) ReadGateway(ctx context.Context, name string) (*pb.Gateway, error) {
@@ -285,9 +306,7 @@ func (db *apiServerDB) ReadGateway(ctx context.Context, name string) (*pb.Gatewa
 }
 
 func (db *apiServerDB) readExistingIPs(ctx context.Context) ([]string, error) {
-	ips := []string{
-		"10.255.240.1", // reserve apiserver ip
-	}
+	var ips []string
 
 	if devices, err := db.ReadDevices(ctx); err != nil {
 		return nil, fmt.Errorf("reading devices: %w", err)
@@ -385,27 +404,32 @@ LIMIT 1;`, sessionFields)
 }
 
 func (db *apiServerDB) Migrate(ctx context.Context) error {
-	var version int
+	var currentVersion int
 
 	query := "SELECT MAX(version) FROM migrations"
 	row := db.conn.QueryRowContext(ctx, query)
-	err := row.Scan(&version)
-
+	err := row.Scan(&currentVersion)
 	if err != nil {
 		// error might be due to no schema.
 		// no way to detect this, so log error and continue with migrations.
 		log.Warnf("unable to get current migration version: %s", err)
 	}
 
-	for version < len(migrations) {
-		log.Infof("migrating database schema to version %d", version+1)
-
-		_, err = db.conn.ExecContext(ctx, migrations[version])
-		if err != nil {
-			return fmt.Errorf("migrating to version %d: %s", version+1, err)
+	migrations, err := migrations()
+	if err != nil {
+		return fmt.Errorf("unable to read migrations: %w", err)
+	}
+	for _, migration := range migrations {
+		if migration.version <= currentVersion {
+			continue
 		}
 
-		version++
+		log.Infof("migrating database schema to version %d", migration.version)
+
+		_, err = db.conn.ExecContext(ctx, migration.sql)
+		if err != nil {
+			return fmt.Errorf("migrating to version %d: %s", migration.version, err)
+		}
 	}
 
 	return nil

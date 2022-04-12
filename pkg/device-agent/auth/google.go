@@ -5,15 +5,12 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	codeverifier "github.com/nirasan/go-oauth-pkce-code-verifier"
 	"net/http"
 	"time"
-)
 
-type ExchangeResponse struct {
-	AccessToken string    `json:"access_token"`
-	Expiry      time.Time `json:"expiry"`
-}
+	codeverifier "github.com/nirasan/go-oauth-pkce-code-verifier"
+	"golang.org/x/oauth2"
+)
 
 type ExchangeRequest struct {
 	CodeVerifier string `json:"code_verifier"`
@@ -21,7 +18,12 @@ type ExchangeRequest struct {
 	RedirectURI  string `json:"redirect_uri"`
 }
 
-func handleRedirectGoogle(state, redirectURI string, codeVerifier *codeverifier.CodeVerifier, authFlowChan chan *authFlowResponse) http.HandlerFunc {
+type ExchangeResponse struct {
+	Token   *oauth2.Token `json:"token"`
+	IDToken string        `json:"id_token"`
+}
+
+func handleRedirectGoogle(state, redirectURI string, codeVerifier *codeverifier.CodeVerifier, authFlowChan chan *authFlowResponse, authServer string) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		// Catch if user has not approved terms
 		responseState := r.URL.Query().Get("state")
@@ -51,7 +53,7 @@ func handleRedirectGoogle(state, redirectURI string, codeVerifier *codeverifier.
 			return
 		}
 
-		req, err := http.NewRequestWithContext(ctx, http.MethodPost, "https://naisdevice-auth-server-h2pjqrstja-lz.a.run.app/exchange", &buffer)
+		req, err := http.NewRequestWithContext(ctx, http.MethodPost, authServer+"/exchange", &buffer)
 		if err != nil {
 			failAuth(err, w, authFlowChan)
 			return
@@ -70,12 +72,8 @@ func handleRedirectGoogle(state, redirectURI string, codeVerifier *codeverifier.
 			return
 		}
 
-		token := &Token{
-			AccessToken: exchangeResponse.AccessToken,
-			Expiry:      exchangeResponse.Expiry,
-		}
-
 		successfulResponse(w, "Successfully authenticated 👌 Close me pls")
-		authFlowChan <- &authFlowResponse{Token: token, err: nil}
+		tokens := &Tokens{Token: exchangeResponse.Token, IDToken: exchangeResponse.IDToken}
+		authFlowChan <- &authFlowResponse{Tokens: tokens, err: nil}
 	}
 }

@@ -5,7 +5,6 @@ import (
 	"encoding/base64"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"sort"
 	"strings"
@@ -57,17 +56,16 @@ func WGPubKey(privateKeySlice []byte) []byte {
 	return publicKey[:]
 }
 
-// TODO(jhrv): test
 func EnsurePrivateKey(keyPath string) ([]byte, error) {
 	if err := filesystem.FileMustExist(keyPath); os.IsNotExist(err) {
-		if err := ioutil.WriteFile(keyPath, KeyToBase64(WgGenKey()), 0600); err != nil {
+		if err := os.WriteFile(keyPath, KeyToBase64(WgGenKey()), 0o600); err != nil {
 			return nil, fmt.Errorf("writing private key to disk: %w", err)
 		}
 	} else if err != nil {
 		return nil, fmt.Errorf("ensuring private key exists: %w", err)
 	}
 
-	privateKeyEncoded, err := ioutil.ReadFile(keyPath)
+	privateKeyEncoded, err := os.ReadFile(keyPath)
 	if err != nil {
 		return nil, fmt.Errorf("reading private key: %v", err)
 	}

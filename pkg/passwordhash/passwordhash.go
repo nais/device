@@ -65,3 +65,21 @@ func RandomBytes(length int) ([]byte, error) {
 	}
 	return buf, nil
 }
+
+func GeneratePasswordAndHash() (password, hash string, err error) {
+	passwordBytes, err := RandomBytes(32)
+	if err != nil {
+		return "", "", fmt.Errorf("generate password: %w", err)
+	}
+
+	password = base64.StdEncoding.EncodeToString(passwordBytes)
+
+	salt, err := RandomBytes(16)
+	if err != nil {
+		return "", "", fmt.Errorf("generate salt: %w", err)
+	}
+
+	key := HashPassword([]byte(password), salt)
+	passhash := FormatHash(key, salt)
+	return password, string(passhash), nil
+}

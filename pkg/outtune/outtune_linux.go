@@ -35,7 +35,45 @@ func New(helper pb.DeviceHelperClient) Outtune {
 	}
 }
 
+func (o *linux) Cleanup(ctx context.Context) error {
+	dbs, err := nssDatabases()
+	if err != nil {
+		return err
+	}
+
+	for _, db := range dbs {
+		oldCertificates, err := listNaisdeviceCertificates(ctx, db)
+		if err != nil {
+			log.Warnf("outtune: list certificates in db %s: %v", db, err)
+		}
+
+		for _, certificate := range oldCertificates {
+			err = deleteCertificate(ctx, db, certificate)
+			if err != nil {
+				log.Infof("outtune: delete certificate '%s' in db %s: %v", certificate, db, err)
+			}
+		}
+		orphanedKeys, err := listNaisdeviceKeys(ctx, db)
+		if err != nil {
+			log.Warnf("outtune: list keys in db %s: %v", db, err)
+		}
+
+		// Delete remaining keys (remains from old buggy code)
+		for _, orphanedKey := range orphanedKeys {
+			err = deleteKey(ctx, db, orphanedKey)
+			if err != nil {
+				log.Warnf("outtune: delete key '%s' in db %s: %v", orphanedKey, db, err)
+			}
+		}
+	}
+
+	return nil
+}
+
 func (o *linux) Install(ctx context.Context) error {
+	// We have to delete before install as all certs have the same nickname, and certutil can only delete by nickname :sadkek:
+	o.Cleanup(ctx)
+
 	serial, err := o.helper.GetSerial(ctx, &pb.GetSerialRequest{})
 	if err != nil {
 		return err
@@ -69,32 +107,8 @@ func (o *linux) Install(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
+
 	for _, db := range dbs {
-		oldCertificates, err := listNaisdeviceCertificates(ctx, db)
-		if err != nil {
-			log.Warnf("outtune: list certificates in db %s: %v", db, err)
-		}
-
-		// We have to delete before install as all certs have the same nickname, and certutil can only delete by nickname :sadkek:
-		for _, certificate := range oldCertificates {
-			err = deleteCertificate(ctx, db, certificate)
-			if err != nil {
-				log.Infof("outtune: delete certificate '%s' in db %s: %v", certificate, db, err)
-			}
-		}
-		orphanedKeys, err := listNaisdeviceKeys(ctx, db)
-		if err != nil {
-			log.Warnf("outtune: list keys in db %s: %v", db, err)
-		}
-
-		// Delete remaining keys (remains from old buggy code)
-		for _, orphanedKey := range orphanedKeys {
-			err = deleteKey(ctx, db, orphanedKey)
-			if err != nil {
-				log.Warnf("outtune: delete key '%s' in db %s: %v", orphanedKey, db, err)
-			}
-		}
-
 		err = installCert(ctx, db, w.Name())
 		if err != nil {
 			return err
@@ -169,11 +183,11 @@ func persistClientAuthRememberList(db string, cert *x509.Certificate) error {
 	var file *os.File
 	_, err = os.Stat(filename)
 	if os.IsNotExist(err) {
-		file, err = os.OpenFile(filename, os.O_EXCL|os.O_WRONLY|os.O_APPEND|os.O_CREATE, 0644)
+		file, err = os.OpenFile(filename, os.O_EXCL|os.O_WRONLY|os.O_APPEND|os.O_CREATE, 0o644)
 	} else {
 		// todo: consider reading the file in order to identify matching rememberlist-entries
 		// and replace them with our new entries
-		file, err = os.OpenFile(filename, os.O_APPEND|os.O_WRONLY|os.O_EXCL, 0644)
+		file, err = os.OpenFile(filename, os.O_APPEND|os.O_WRONLY|os.O_EXCL, 0o644)
 	}
 	if err != nil {
 		return err

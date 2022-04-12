@@ -1,4 +1,4 @@
-name: Update Homebrew cask
+name: Update Homebrew
 
 on:
   workflow_run:

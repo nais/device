@@ -1,4 +1,4 @@
-package azure
+package auth
 
 import (
 	"context"
@@ -23,6 +23,7 @@ type Azure struct {
 func (a Azure) DiscoveryURL() string {
 	return fmt.Sprintf("https://login.microsoftonline.com/%s/discovery/keys", a.Tenant)
 }
+
 func (a Azure) Issuer() string {
 	return fmt.Sprintf("https://login.microsoftonline.com/%s/v2.0", a.Tenant)
 }
@@ -30,22 +31,12 @@ func (a Azure) Issuer() string {
 func (a *Azure) FetchCertificates() error {
 	ctx := context.Background()
 	jwks, err := jwk.Fetch(ctx, a.DiscoveryURL())
-
 	if err != nil {
 		return fmt.Errorf("fetch jwks: %w", err)
 	}
 
 	a.Jwks = jwks
 	return nil
-}
-
-func failAuth(w http.ResponseWriter, cause error) {
-	log.Warn(cause)
-	w.WriteHeader(http.StatusForbidden)
-	_, err := fmt.Fprintf(w, "Unauthorized: %s", cause)
-	if err != nil {
-		log.Errorf("Writing http response: %v", err)
-	}
 }
 
 func (a *Azure) JwtOptions() []jwt.ParseOption {
@@ -59,19 +50,18 @@ func (a *Azure) JwtOptions() []jwt.ParseOption {
 	}
 }
 
-func (a *Azure) TokenValidatorMiddleware() func(next http.Handler) http.Handler {
+func (a *Azure) TokenValidatorMiddleware() TokenValidator {
 	return func(next http.Handler) http.Handler {
 		fn := func(w http.ResponseWriter, r *http.Request) {
 			token, err := jwt.ParseHeader(r.Header, "Authorization", a.JwtOptions()...)
-
 			if err != nil {
-				failAuth(w, fmt.Errorf("parse token: %w", err))
+				http.Error(w, err.Error(), http.StatusUnauthorized)
 				return
 			}
 
 			claims, err := token.AsMap(r.Context())
 			if err != nil {
-				failAuth(w, fmt.Errorf("convert claims to map: %s", err))
+				http.Error(w, err.Error(), http.StatusUnauthorized)
 				return
 			}
 
@@ -84,7 +74,7 @@ func (a *Azure) TokenValidatorMiddleware() func(next http.Handler) http.Handler 
 				return
 			}
 
-			r = r.WithContext(context.WithValue(r.Context(), "preferred_username", username))
+			r = r.WithContext(WithEmail(r.Context(), username))
 
 			next.ServeHTTP(w, r)
 		}
@@ -93,8 +83,8 @@ func (a *Azure) TokenValidatorMiddleware() func(next http.Handler) http.Handler 
 	}
 }
 
-func UserInNaisdeviceApprovalGroup(claims map[string]interface{}) bool {
-	for _, group := range claims["groups"].([]interface{}) {
+func UserInNaisdeviceApprovalGroup(claims map[string]any) bool {
+	for _, group := range claims["groups"].([]any) {
 		if group.(string) == NaisDeviceApprovalGroup {
 			return true
 		}

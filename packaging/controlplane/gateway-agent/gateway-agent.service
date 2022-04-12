@@ -5,10 +5,7 @@ Description=naisdevice gateway agent
 [Service]
 Restart=always
 EnvironmentFile=/etc/default/gateway-agent
-StandardOutput=append:/var/log/naisdevice/gateway-agent.json
-StandardError=append:/var/log/naisdevice/gateway-agent.json
-ExecStart=/usr/bin/gateway-agent
+ExecStart=/usr/bin/gateway-agent --enable-routing --auto-enroll --prometheus-address=:3000
 
 [Install]
 WantedBy=multi-user.target
-

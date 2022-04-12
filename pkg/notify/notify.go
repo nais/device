@@ -7,7 +7,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-type logFunc func(string, ...interface{})
+type logFunc func(string, ...any)
 
 func logfn(logLevel log.Level) logFunc {
 	switch logLevel {
@@ -20,7 +20,7 @@ func logfn(logLevel log.Level) logFunc {
 	}
 }
 
-func Printf(logLevel log.Level, format string, args ...interface{}) {
+func Printf(logLevel log.Level, format string, args ...any) {
 	message := fmt.Sprintf(format, args...)
 	logger := logfn(logLevel)
 	logger(message)
@@ -30,10 +30,10 @@ func Printf(logLevel log.Level, format string, args ...interface{}) {
 	}
 }
 
-func Infof(format string, args ...interface{}) {
+func Infof(format string, args ...any) {
 	Printf(log.InfoLevel, format, args...)
 }
 
-func Errorf(format string, args ...interface{}) {
+func Errorf(format string, args ...any) {
 	Printf(log.ErrorLevel, format, args...)
 }

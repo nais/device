@@ -10,17 +10,20 @@ import (
 	"encoding/json"
 	"encoding/pem"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 
 	log "github.com/sirupsen/logrus"
 )
 
-const entropyBits = 4096
-const dummyPassword = "asd123"
+const (
+	entropyBits   = 4096
+	dummyPassword = "asd123"
+)
 
 type Outtune interface {
 	Install(ctx context.Context) error
+	Cleanup(ctx context.Context) error
 }
 
 type request struct {
@@ -106,7 +109,7 @@ func download(ctx context.Context, serial string, privateKey *rsa.PrivateKey) (*
 	switch resp.StatusCode {
 	case http.StatusOK:
 	default:
-		msg, _ := ioutil.ReadAll(resp.Body)
+		msg, _ := io.ReadAll(resp.Body)
 		return nil, fmt.Errorf("CA signer returned %s: %s", resp.Status, string(msg))
 	}
 

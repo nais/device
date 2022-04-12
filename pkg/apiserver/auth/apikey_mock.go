@@ -1,7 +1,6 @@
 package auth
 
-type mockApikeyAuthenticator struct {
-}
+type mockApikeyAuthenticator struct{}
 
 func NewMockAPIKeyAuthenticator() UsernamePasswordAuthenticator {
 	return &mockApikeyAuthenticator{}

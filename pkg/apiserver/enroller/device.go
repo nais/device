@@ -41,7 +41,6 @@ func (e *Enroller) EnrollDevice(ctx context.Context) error {
 			Serial:    enrollment.Serial,
 			Platform:  enrollment.Platform,
 		})
-
 		if err != nil {
 			return fmt.Errorf("bootstrap: Adding device: %v", err)
 		}
@@ -55,7 +54,7 @@ func (e *Enroller) EnrollDevice(ctx context.Context) error {
 			DeviceIP:       device.Ip,
 			PublicKey:      e.APIServerPublicKey,
 			TunnelEndpoint: e.APIServerEndpoint,
-			APIServerIP:    "10.255.240.1",
+			APIServerIP:    e.APIServerIP,
 		}
 
 		err = e.postDeviceConfig(device.Serial, bootstrapConfig)
@@ -69,6 +68,7 @@ func (e *Enroller) EnrollDevice(ctx context.Context) error {
 
 	return nil
 }
+
 func (e *Enroller) postDeviceConfig(serial string, bootstrapConfig bootstrap.Config) error {
 	b, err := json.Marshal(bootstrapConfig)
 	if err != nil {

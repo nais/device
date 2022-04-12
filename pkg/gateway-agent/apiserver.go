@@ -11,19 +11,16 @@ import (
 
 type ErrGRPCConnection error
 
-func SyncFromStream(ctx context.Context, config Config, apiserverClient pb.APIServerClient, netConf wireguard.NetworkConfigurer) error {
+func SyncFromStream(ctx context.Context, name, password string, staticPeers []wireguard.Peer, apiserverClient pb.APIServerClient, netConf wireguard.NetworkConfigurer) error {
 	stream, err := apiserverClient.GetGatewayConfiguration(ctx, &pb.GetGatewayConfigurationRequest{
-		Gateway:  config.Name,
-		Password: config.APIServerPassword,
+		Gateway:  name,
+		Password: password,
 	})
-
 	if err != nil {
 		return err
 	}
 
 	log.Infof("Authenticated with API server and streaming configuration updates.")
-
-	staticPeers := config.StaticPeers()
 
 	for {
 		gwConfig, err := stream.Recv()

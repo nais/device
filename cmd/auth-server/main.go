@@ -2,13 +2,14 @@ package main
 
 import (
 	"encoding/json"
+	"net/http"
+	"os"
+	"strings"
+
 	"github.com/kelseyhightower/envconfig"
 	log "github.com/sirupsen/logrus"
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/endpoints"
-	"net/http"
-	"os"
-	"time"
 )
 
 type Config struct {
@@ -23,8 +24,8 @@ type ExchangeRequest struct {
 }
 
 type ExchangeResponse struct {
-	AccessToken string    `json:"access_token"`
-	Expiry      time.Time `json:"expiry"`
+	Token   *oauth2.Token `json:"token"`
+	IDToken string        `json:"id_token"`
 }
 
 func main() {
@@ -33,6 +34,9 @@ func main() {
 	if err != nil {
 		log.Fatalf("process envconfig: %s", err)
 	}
+
+	cfg.ClientID = strings.TrimSpace(cfg.ClientID)
+	cfg.ClientSecret = strings.TrimSpace(cfg.ClientSecret)
 
 	port := os.Getenv("PORT")
 	if port == "" {
@@ -43,7 +47,7 @@ func main() {
 	baseOAuth2Config := &oauth2.Config{
 		ClientSecret: cfg.ClientSecret,
 		ClientID:     cfg.ClientID,
-		Scopes:       []string{"https://www.googleapis.com/auth/userinfo.email"},
+		Scopes:       []string{".default"},
 		Endpoint:     endpoints.Google,
 	}
 
@@ -78,8 +82,8 @@ func exchange(oauth2config *oauth2.Config) http.HandlerFunc {
 		}
 
 		err = json.NewEncoder(w).Encode(ExchangeResponse{
-			AccessToken: token.AccessToken,
-			Expiry:      token.Expiry,
+			Token:   token,
+			IDToken: token.Extra("id_token").(string),
 		})
 		if err != nil {
 			log.WithError(err).Warnf("encode response")
@@ -88,5 +92,4 @@ func exchange(oauth2config *oauth2.Config) http.HandlerFunc {
 
 		log.Infof("successfully returned token")
 	}
-
 }

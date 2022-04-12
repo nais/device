@@ -10,7 +10,7 @@ type MockClient struct {
 }
 
 // GetPrivilegedUsersForGateway provides a mock function with given fields: gateway
-func (_m *MockClient) GetPrivilegedUsersForGateway(gateway string) ([]PrivilegedUser, error) {
+func (_m *MockClient) GetPrivilegedUsersForGateway(gateway string) []PrivilegedUser {
 	ret := _m.Called(gateway)
 
 	var r0 []PrivilegedUser
@@ -22,12 +22,19 @@ func (_m *MockClient) GetPrivilegedUsersForGateway(gateway string) ([]Privileged
 		}
 	}
 
-	var r1 error
-	if rf, ok := ret.Get(1).(func(string) error); ok {
-		r1 = rf(gateway)
+	return r0
+}
+
+// UpdatePrivilegedUsers provides a mock function with given fields:
+func (_m *MockClient) UpdatePrivilegedUsers() error {
+	ret := _m.Called()
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func() error); ok {
+		r0 = rf()
 	} else {
-		r1 = ret.Error(1)
+		r0 = ret.Error(0)
 	}
 
-	return r0, r1
+	return r0
 }

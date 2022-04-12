@@ -66,7 +66,6 @@ func main() {
 
 	conn, err := net.Dial("unix", cfg.GrpcAddress)
 	if err != nil {
-		// TODO: remove when agent runs as service
 		command := exec.CommandContext(programContext, AgentPath)
 		err := command.Start()
 		if err != nil {
@@ -85,4 +84,5 @@ func main() {
 
 	systray.Spawn(programContext, *cfg)
 	cancel()
+	log.Info("naisdevice-systray shutting down")
 }

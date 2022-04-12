@@ -29,9 +29,7 @@ import (
 	"github.com/nais/device/pkg/version"
 )
 
-var (
-	cfg = config.DefaultConfig()
-)
+var cfg = config.DefaultConfig()
 
 func init() {
 	flag.StringVar(&cfg.APIServer, "apiserver", cfg.APIServer, "base url to apiserver")
@@ -43,6 +41,9 @@ func init() {
 	flag.StringVar(&cfg.GrpcAddress, "grpc-address", cfg.GrpcAddress, "unix socket for gRPC server")
 	flag.StringVar(&cfg.DeviceAgentHelperAddress, "device-agent-helper-address", cfg.DeviceAgentHelperAddress, "device-agent-helper unix socket")
 	flag.BoolVar(&cfg.EnableGoogleAuth, "enable-google-auth", cfg.EnableGoogleAuth, "enables Google auth instead of Azure")
+	flag.StringVar(&cfg.GoogleAuthServerAddress, "google-auth-server-address", cfg.GoogleAuthServerAddress, "Google auth-server address")
+	flag.BoolVar(&cfg.OuttuneEnabled, "outtune-enabled", cfg.OuttuneEnabled, "Toggle fetching of outtune certificates")
+	flag.StringVar(&cfg.PartnerDomain, "partner-domain", cfg.PartnerDomain, "Domain of partner to connect to. Defaults to auto-detection")
 }
 
 func handleSignals(cancel context.CancelFunc) {
@@ -55,7 +56,7 @@ func handleSignals(cancel context.CancelFunc) {
 			Level:   sentry.LevelInfo,
 			Message: "signal received",
 			Type:    "debug",
-			Data: map[string]interface{}{
+			Data: map[string]any{
 				"signal": sig,
 			},
 			Category: "eventloop",
@@ -92,7 +93,7 @@ func main() {
 		Level:   sentry.LevelInfo,
 		Message: "main",
 		Type:    "type",
-		Data: map[string]interface{}{
+		Data: map[string]any{
 			"key": "value",
 		},
 		Category: "category",
@@ -156,7 +157,7 @@ func startDeviceAgent(ctx context.Context, cfg *config.Config) error {
 	client := pb.NewDeviceHelperClient(connection)
 	defer connection.Close()
 
-	listener, err := unixsocket.ListenWithFileMode(cfg.GrpcAddress, 0666)
+	listener, err := unixsocket.ListenWithFileMode(cfg.GrpcAddress, 0o666)
 	if err != nil {
 		return err
 	}

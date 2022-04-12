@@ -24,6 +24,7 @@ type Config struct {
 	PrometheusPublicKey string
 	PrometheusTunnelIP  string
 	WireGuardConfigPath string
+	AutoEnroll          bool
 }
 
 func DefaultConfig() Config {
@@ -38,6 +39,11 @@ func DefaultConfig() Config {
 }
 
 func (c Config) ValidateWireGuard() error {
+	// values are provided runtime -- no early validation needed
+	if c.AutoEnroll {
+		return nil
+	}
+
 	var err error
 
 	check := func(key, value string) error {

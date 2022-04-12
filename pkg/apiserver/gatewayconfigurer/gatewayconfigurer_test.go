@@ -17,8 +17,10 @@ import (
 	"github.com/nais/device/pkg/apiserver/gatewayconfigurer"
 )
 
-const gatewayName, route, accessGroupId = "name", "r", "agid"
-const requiresPrivilegedAccess = true
+const (
+	gatewayName, route, accessGroupId = "name", "r", "agid"
+	requiresPrivilegedAccess          = true
+)
 
 var expectedError = errors.New("expected error")
 
@@ -40,8 +42,7 @@ func TestGatewayConfigurer_SyncConfig(t *testing.T) {
 			TriggerGatewaySync: channel,
 		}
 
-		db.On("ReadGateway", mock.Anything, gatewayName).Return(&pb.Gateway{Name: gatewayName}, nil).Once()
-		db.On("UpdateGateway",
+		db.On("UpdateGatewayDynamicFields",
 			mock.Anything,
 			&pb.Gateway{
 				Name:                     gatewayName,
@@ -131,9 +132,7 @@ func TestGatewayConfigurer_SyncConfig(t *testing.T) {
 			TriggerGatewaySync: channel,
 		}
 
-		db.On("ReadGateway", mock.Anything, gatewayName).Return(&pb.Gateway{Name: gatewayName}, nil)
-
-		db.On("UpdateGateway",
+		db.On("UpdateGatewayDynamicFields",
 			mock.Anything,
 			mock.Anything,
 		).Return(expectedError).Once()
@@ -149,7 +148,6 @@ func TestGatewayConfigurer_SyncConfig(t *testing.T) {
 
 		mock.AssertExpectationsForObjects(t, db, mockClient, mockObject)
 	})
-
 }
 
 func gatewayConfig(gatewayName string, route string, accessGroupId string, requiresPrivilegedAccess bool) string {
