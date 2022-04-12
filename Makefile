@@ -129,7 +129,8 @@ bin/macos-client/wireguard-go:
 	rm -rf ./wireguard-go-*
 
 gon:
-	curl -L https://github.com/mitchellh/gon/releases/download/v0.2.5/gon_macos.zip | gunzip - > ./gon
+	curl -LO https://github.com/mitchellh/gon/releases/download/v0.2.5/gon_macos.zip
+	unzip gon_macos.zip
 	chmod +x ./gon
 
 app: wg wireguard-go macos-icon macos-client gon
