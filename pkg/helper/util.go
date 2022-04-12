@@ -1,10 +1,15 @@
 package helper
 
 import (
+	"archive/zip"
 	"context"
+	"errors"
 	"fmt"
+	"io"
+	"io/ioutil"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"time"
 
 	log "github.com/sirupsen/logrus"
@@ -49,4 +54,44 @@ func runCommands(ctx context.Context, commands [][]string) error {
 		time.Sleep(100 * time.Millisecond) // avoid serializable race conditions with kernel
 	}
 	return nil
+}
+
+func ZipLogFiles(files []string) (string, error) {
+	if len(files) == 0 {
+		return "nil", errors.New("can't be bothered to zip nothing")
+	}
+	archive, err := ioutil.TempFile(os.TempDir(), "naisdevice_logs.*.zip")
+	if err != nil {
+		return "nil", err
+	}
+	defer archive.Close()
+	zipWriter := zip.NewWriter(archive)
+	for _, filename := range files {
+		_, err = os.Stat(filename)
+		if os.IsNotExist(err) {
+			log.Printf("%s does not exist so I can't zip it\n", filename)
+			continue
+		}
+		logFile, err := os.Open(filename)
+		if err != nil {
+			log.Errorf("%s %v", filename, err)
+			return "nil", err
+		}
+		zipEntryWiter, err := zipWriter.Create(filepath.Base(filename))
+		if err != nil {
+			return "nil", err
+		}
+		if _, err := io.Copy(zipEntryWiter, logFile); err != nil {
+			return "nil", err
+		}
+		err = logFile.Close()
+		if err != nil {
+			return "nil", err
+		}
+	}
+	err = zipWriter.Close()
+	if err != nil {
+		return "nil", err
+	}
+	return archive.Name(), nil
 }
