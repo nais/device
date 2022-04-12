@@ -51,7 +51,7 @@ func init() {
 	flag.StringVar(&cfg.PrometheusAddr, "prometheus-address", cfg.PrometheusAddr, "prometheus listen address")
 	flag.StringVar(&cfg.PrometheusPublicKey, "prometheus-public-key", cfg.PrometheusPublicKey, "prometheus public key")
 	flag.StringVar(&cfg.PrometheusTunnelIP, "prometheus-tunnel-ip", cfg.PrometheusTunnelIP, "prometheus tunnel ip")
-	flag.BoolVar(&cfg.AutoBootstrap, "auto-bootstrap", cfg.AutoBootstrap, "Auto bootstrap using pub/sub. Uses Google ADC.")
+	flag.BoolVar(&cfg.AutoEnroll, "auto-enroll", cfg.AutoEnroll, "Auto enroll using pub/sub. Uses Google ADC.")
 }
 
 func main() {
@@ -81,7 +81,7 @@ func run() error {
 	log.Info("starting gateway-agent")
 
 	staticPeers := cfg.StaticPeers()
-	if cfg.AutoBootstrap {
+	if cfg.AutoEnroll {
 		log.Info("Auto bootstrap enabled")
 		password, hashedPassword, err := passwordhash.GeneratePasswordAndHash()
 		if err != nil {
