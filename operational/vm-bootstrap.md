@@ -1,31 +1,20 @@
-# add to terraform
-1. add to `github.com/naisdevice-terraform/gateways/terraform.tfvars`
-2. apply
-3. [onprem]:
-  a. `gcloud iam service-accounts keys create --iam-account=<account_email> key.json`
-  b. `cat key.json | pbcopy && rm key.json`
-  c. ssh to new gateway, paste key at: `/root/sa.json`
+# install prereqs
+sudo apt-get install ca-certificates curl apt-transport-https gnupg
 
-# install ansible-pull
-`sudo apt update && sudo apt install ansible`
-
-# add crontab entry
+# add repo signing key
 ```
-sudo contab -e
-*/5 * * * * [ $(pgrep ansible-pull -c) -eq 0 ] && /usr/bin/ansible-pull --only-if-changed -U https://github.com/nais/device ansible/site.yml -i /root/ansible-inventory.yaml >> /var/log/naisdevice/ansible.log
+HTTPS_PROXY=webproxy-internett.nav.no:8088 curl -L https://europe-north1-apt.pkg.dev/doc/repo-signing-key.gpg | \
+  gpg --dearmor | sudo tee /etc/apt/trusted.gpg.d/nais-ppa-google-artifact-registry.gpg
 ```
 
-# add ansible-inventory.yaml
-sudo vi /root/ansible-inventory.yaml
-Example:
-```yaml
-all:
-  vars:
-    gcp_project: nais-prod-020f
-    tunnel_ip: 10.255.240.6
-    name: nais-device-gw-k8s-prod
-  children:
-    gateways:
-      hosts:
-        nais-device-gw-k8s-prod:
+# add repository
+```
+echo 'deb [arch=amd64] https://europe-north1-apt.pkg.dev/projects/naisdevice controlplane main' | \
+  sudo tee europe_north1_apt_pkg_dev_projects_naisdevice.list
+```
+
+# update repo
+```
+sudo apt update
+sudo apt install gateway-agent
 ```
