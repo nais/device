@@ -7,6 +7,7 @@ import (
 	"os"
 	"os/exec"
 	"regexp"
+	"strings"
 
 	"github.com/nais/device/pkg/pb"
 	log "github.com/sirupsen/logrus"
@@ -124,7 +125,7 @@ func identities(ctx context.Context, serial string) ([]string, error) {
 	for scan.Scan() {
 		line := scan.Text()
 		certificateID := re.FindString(line)
-		if len(certificateID) == 0 {
+		if len(certificateID) == 0 || !strings.Contains(line, "naisdevice") {
 			continue
 		}
 		ids = append(ids, certificateID)
