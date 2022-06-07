@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"strings"
+	"time"
 
 	log "github.com/sirupsen/logrus"
 
@@ -130,6 +131,31 @@ func (o *linux) Install(ctx context.Context) error {
 	}
 
 	return nil
+}
+
+func (o *linux) Expired(ctx context.Context) (bool, error) {
+	serial, err := o.helper.GetSerial(ctx, &pb.GetSerialRequest{})
+	if err != nil {
+		return false, err
+	}
+
+	certname := fmt.Sprintf("naisdevice - %v - NAV", serial.GetSerial())
+
+	dbs, err := nssDatabases()
+	if err != nil {
+		return false, err
+	}
+
+	expiredAfter := time.Now().Add(time.Hour * 24 * 10).UTC()
+
+	for _, db := range dbs {
+		cmd := exec.CommandContext(ctx, certutilBinary, "-d", db, "-V", "-u", "A", "-n", certname, "-b", expiredAfter.Format("060102150405Z"))
+		if err := cmd.Run(); err != nil {
+			return true, err
+		}
+	}
+
+	return false, nil
 }
 
 func deleteCertificate(ctx context.Context, db, certname string) error {

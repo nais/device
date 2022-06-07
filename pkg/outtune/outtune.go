@@ -24,6 +24,7 @@ const (
 type Outtune interface {
 	Install(ctx context.Context) error
 	Cleanup(ctx context.Context) error
+	Expired(ctx context.Context) (bool, error)
 }
 
 type request struct {
