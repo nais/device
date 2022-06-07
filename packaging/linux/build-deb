@@ -21,6 +21,7 @@ fpm \
     --depends wireguard \
     --depends libnss3-tools \
     --depends openssl \
+    --depends libayatana-appindicator3-1 \
     --pre-install packaging/linux/preinstall \
     --after-install packaging/linux/postinstall \
     --after-upgrade packaging/linux/postinstall \
