@@ -206,16 +206,21 @@ func (das *DeviceAgentServer) EventLoop(ctx context.Context) {
 			certRenewalTicker.Reset(certCheckInterval)
 
 			if !das.Config.AgentConfiguration.CertRenewal || !das.Config.OuttuneEnabled {
+				log.WithFields(log.Fields{
+					"certRenewal": das.Config.AgentConfiguration.CertRenewal,
+					"outtune":     das.Config.OuttuneEnabled,
+				}).Info("skipped cert renewal - disabled")
 				break
 			}
 
 			nextFetch := lastCertificateFetch.Add(certificateLifetime)
 			if time.Now().Before(nextFetch) {
+				log.Info("skipped cert renewal - not yet time")
 				break
 			}
 
 			if status.ConnectionState != pb.AgentState_Connected {
-				log.Debugf("NAV Microsoft client certificate renewal not running because you are not connected")
+				log.Info("NAV Microsoft client certificate renewal not running because you are not connected")
 				break
 			}
 
