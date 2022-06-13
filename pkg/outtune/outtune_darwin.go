@@ -119,7 +119,7 @@ func identities(ctx context.Context, serial string) ([]string, error) {
 		return nil, err
 	}
 
-	ids := make([]string, 0)
+	idMap := make(map[string]struct{})
 	re := regexp.MustCompile("[A-Za-z0-9]{40}")
 	scan := bufio.NewScanner(stdout)
 	for scan.Scan() {
@@ -128,12 +128,17 @@ func identities(ctx context.Context, serial string) ([]string, error) {
 		if len(certificateID) == 0 || !strings.Contains(line, "naisdevice") {
 			continue
 		}
-		ids = append(ids, certificateID)
+		idMap[certificateID] = struct{}{}
 	}
 
 	err = cmd.Wait()
 	if err != nil {
 		return nil, err
+	}
+
+	ids := []string{}
+	for id := range idMap {
+		ids = append(ids, id)
 	}
 
 	return ids, nil
