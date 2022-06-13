@@ -398,6 +398,8 @@ func (das *DeviceAgentServer) EventLoop(ctx context.Context) {
 
 			case pb.AgentState_Connected:
 				sentry.CaptureMessage("Connected")
+
+				lastCertificateFetch = time.Time{}
 				healthCheckTicker.Reset(1 * time.Second)
 				certRenewalTicker.Reset(5 * time.Second)
 
@@ -407,6 +409,7 @@ func (das *DeviceAgentServer) EventLoop(ctx context.Context) {
 					autoConnectTriggered = true
 					das.stateChange <- pb.AgentState_Authenticating
 				}
+				lastCertificateFetch = time.Time{}
 
 			case pb.AgentState_Quitting:
 				return
@@ -429,9 +432,11 @@ func (das *DeviceAgentServer) EventLoop(ctx context.Context) {
 				das.stateChange <- pb.AgentState_Disconnected
 
 			case pb.AgentState_Unhealthy:
+				lastCertificateFetch = time.Time{}
 				das.outtune.Cleanup(ctx)
 
 			case pb.AgentState_AgentConfigurationChanged:
+				lastCertificateFetch = time.Time{}
 				certRenewalTicker.Reset(1 * time.Second)
 				das.stateChange <- previousState
 			}
