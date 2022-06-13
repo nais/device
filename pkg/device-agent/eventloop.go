@@ -204,6 +204,7 @@ func (das *DeviceAgentServer) EventLoop(ctx context.Context) {
 
 		case <-certRenewalTicker.C:
 			certRenewalTicker.Reset(certCheckInterval)
+			log.Info("CHECKING FOR CERTIFICATE")
 
 			if !das.Config.AgentConfiguration.CertRenewal || !das.Config.OuttuneEnabled {
 				log.WithFields(log.Fields{
