@@ -39,16 +39,14 @@ func (api *DeviceApi) postBootstrapConfig(w http.ResponseWriter, r *http.Request
 	ctxLog.WithField("event", "apiserver_posted_bootstrapconfig").Infof("Successful enrollment response came from apiserver")
 }
 
-func parseSerial(serial string) (string, error) {
-	re := regexp.MustCompile("^[a-zA-Z\\d]*$")
-	if !re.MatchString(serial) {
-		return "", fmt.Errorf("parsing: %v", serial)
-	}
-	return serial, nil
-}
-
 func (api *DeviceApi) getBootstrapConfig(w http.ResponseWriter, r *http.Request) {
-	serial := chi.URLParam(r, "serial")
+	serial, err := parseSerial(chi.URLParam(r, "serial"))
+	if err != nil {
+		api.log.Errorf("serial request input: %v", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
 	ctxLog := api.log.WithFields(log.Fields{
 		"serial":   serial,
 		"username": auth.GetEmail(r.Context()),
@@ -63,7 +61,7 @@ func (api *DeviceApi) getBootstrapConfig(w http.ResponseWriter, r *http.Request)
 	}
 
 	w.WriteHeader(http.StatusOK)
-	err := json.NewEncoder(w).Encode(bootstrapConfig)
+	err = json.NewEncoder(w).Encode(bootstrapConfig)
 	if err != nil {
 		ctxLog.Errorf("Unable to get bootstrap config: Encoding json: %v", err)
 		w.WriteHeader(http.StatusInternalServerError)
@@ -111,6 +109,14 @@ func (api *DeviceApi) getDeviceInfos(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
+}
+
+func parseSerial(serial string) (string, error) {
+	re := regexp.MustCompile("^[a-zA-Z\\d]*$")
+	if !re.MatchString(serial) {
+		return "", fmt.Errorf("parsing: %v", serial)
+	}
+	return serial, nil
 }
 
 type ActiveDeviceEnrollments struct {
