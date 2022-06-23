@@ -2,9 +2,8 @@ package bootstrap_api
 
 import (
 	"encoding/json"
-	"fmt"
 	"net/http"
-	"regexp"
+	"net/url"
 	"sync"
 
 	"github.com/go-chi/chi/v5"
@@ -47,9 +46,23 @@ func (api *DeviceApi) getBootstrapConfig(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
+	email := auth.GetEmail(r.Context())
+	if len(email) == 0 {
+		api.log.Errorf("bootstrap config without owner, abort")
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	owner, err := bootstrap.ParseOwner(email)
+	if err != nil {
+		api.log.Errorf("owner input: %v", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
 	ctxLog := api.log.WithFields(log.Fields{
 		"serial":   serial,
-		"username": auth.GetEmail(r.Context()),
+		"username": owner,
 	})
 
 	bootstrapConfig := api.enrollments.getBootstrapConfig(serial)
@@ -87,6 +100,13 @@ func (api *DeviceApi) postDeviceInfo(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	err = deviceInfo.Parse()
+	if err != nil {
+		api.log.Errorf("parsing: %v", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
 	api.enrollments.addDeviceInfo(deviceInfo)
 
 	api.log.WithFields(log.Fields{
@@ -100,10 +120,15 @@ func (api *DeviceApi) postDeviceInfo(w http.ResponseWriter, r *http.Request) {
 
 func (api *DeviceApi) getDeviceInfos(w http.ResponseWriter, r *http.Request) {
 	deviceInfos := api.enrollments.getDeviceInfos()
-	api.log.Infof("%s %s: %v", r.Method, r.URL, deviceInfos)
+
+	requestUrl, err := url.Parse(r.URL.String())
+	if err != nil {
+		log.Errorf("parsing request url: %v", err)
+	}
+	api.log.Infof("%s %s: %v", r.Method, requestUrl, deviceInfos)
 
 	w.WriteHeader(http.StatusOK)
-	err := json.NewEncoder(w).Encode(deviceInfos)
+	err = json.NewEncoder(w).Encode(deviceInfos)
 	if err != nil {
 		api.log.Errorf("Encoding json: %v", err)
 		w.WriteHeader(http.StatusInternalServerError)
@@ -112,9 +137,9 @@ func (api *DeviceApi) getDeviceInfos(w http.ResponseWriter, r *http.Request) {
 }
 
 func parseSerial(serial string) (string, error) {
-	re := regexp.MustCompile("^[a-zA-Z\\d]*$")
-	if !re.MatchString(serial) {
-		return "", fmt.Errorf("parsing: %v", serial)
+	err := bootstrap.ParseSerial(serial)
+	if err != nil {
+		return "", err
 	}
 	return serial, nil
 }
