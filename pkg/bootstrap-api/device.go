@@ -2,7 +2,9 @@ package bootstrap_api
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
+	"regexp"
 	"sync"
 
 	"github.com/go-chi/chi/v5"
@@ -13,12 +15,17 @@ import (
 )
 
 func (api *DeviceApi) postBootstrapConfig(w http.ResponseWriter, r *http.Request) {
-	serial := chi.URLParam(r, "serial")
+	serial, err := parseSerial(chi.URLParam(r, "serial"))
+	if err != nil {
+		api.log.Errorf("serial request input: %v", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
 
 	ctxLog := api.log.WithField("serial", serial)
 
 	var bootstrapConfig bootstrap.Config
-	err := json.NewDecoder(r.Body).Decode(&bootstrapConfig)
+	err = json.NewDecoder(r.Body).Decode(&bootstrapConfig)
 	if err != nil {
 		ctxLog.Errorf("Decoding json: %v", err)
 		w.WriteHeader(http.StatusInternalServerError)
@@ -30,6 +37,14 @@ func (api *DeviceApi) postBootstrapConfig(w http.ResponseWriter, r *http.Request
 	w.WriteHeader(http.StatusCreated)
 
 	ctxLog.WithField("event", "apiserver_posted_bootstrapconfig").Infof("Successful enrollment response came from apiserver")
+}
+
+func parseSerial(serial string) (string, error) {
+	re := regexp.MustCompile("^[a-zA-Z\\d]*$")
+	if !re.MatchString(serial) {
+		return "", fmt.Errorf("parsing: %v", serial)
+	}
+	return serial, nil
 }
 
 func (api *DeviceApi) getBootstrapConfig(w http.ResponseWriter, r *http.Request) {
