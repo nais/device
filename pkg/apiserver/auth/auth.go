@@ -202,9 +202,14 @@ func (s *authenticator) AuthURL(w http.ResponseWriter, r *http.Request) {
 		log.Errorf("parsing auth url: %v", err)
 	}
 
+	requestUrl, err := url.Parse(r.URL.Path)
+	if err != nil {
+		log.Errorf("parsing request url: %v", err)
+	}
+
 	_, err = w.Write([]byte(asUrl.String()))
 	if err != nil {
-		log.Errorf("responding to %v %v : %v", r.Method, r.URL.Path, err)
+		log.Errorf("responding to %v %v : %v", r.Method, requestUrl.Path, err)
 	}
 }
 
