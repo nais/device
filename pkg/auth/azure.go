@@ -48,7 +48,7 @@ func (a *Azure) KeySetFrom(t jwt.Token) (jwk.Set, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	return a.jwkAutoRefresh.Fetch(ctx, jwksEndpoint)
+	return a.jwkAutoRefresh.Fetch(ctx, a.JwksEndpoint())
 }
 
 func (a *Azure) JwtOptions() []jwt.ParseOption {

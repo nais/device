@@ -18,18 +18,18 @@ type Google struct {
 }
 
 const (
-	jwksEndpoint = "https://www.googleapis.com/oauth2/v3/certs"
-	googleIssuer = "https://accounts.google.com"
+	googleJwksEndpoint = "https://www.googleapis.com/oauth2/v3/certs"
+	googleIssuer       = "https://accounts.google.com"
 )
 
 func (g *Google) SetupJwkSetAutoRefresh() error {
 	ctx := context.Background()
 
 	ar := jwk.NewAutoRefresh(ctx)
-	ar.Configure(jwksEndpoint, jwk.WithMinRefreshInterval(time.Hour))
+	ar.Configure(googleJwksEndpoint, jwk.WithMinRefreshInterval(time.Hour))
 
 	// trigger initial token fetch
-	_, err := ar.Refresh(ctx, jwksEndpoint)
+	_, err := ar.Refresh(ctx, googleJwksEndpoint)
 	if err != nil {
 		return fmt.Errorf("fetch jwks: %w", err)
 	}
@@ -42,7 +42,7 @@ func (g *Google) KeySetFrom(t jwt.Token) (jwk.Set, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	return g.jwkAutoRefresh.Fetch(ctx, jwksEndpoint)
+	return g.jwkAutoRefresh.Fetch(ctx, googleJwksEndpoint)
 }
 
 func (g *Google) JwtOptions() []jwt.ParseOption {
