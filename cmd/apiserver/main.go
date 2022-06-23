@@ -157,7 +157,7 @@ func run() error {
 	switch cfg.DeviceAuthenticationProvider {
 	case "azure":
 		log.Infof("Fetching Azure OIDC configuration...")
-		err = cfg.Azure.FetchCertificates()
+		err = cfg.Azure.SetupJwkSetAutoRefresh()
 		if err != nil {
 			return fmt.Errorf("fetch Azure jwks: %w", err)
 		}
@@ -166,7 +166,7 @@ func run() error {
 		log.Infof("Azure OIDC authenticator configured to authenticate device sessions.")
 	case "google":
 		log.Infof("Setting up Google OIDC configuration...")
-		err = cfg.Google.SetupJwkAutoRefresh()
+		err = cfg.Google.SetupJwkSetAutoRefresh()
 		if err != nil {
 			return fmt.Errorf("set up Google jwks: %w", err)
 		}

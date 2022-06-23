@@ -14,13 +14,13 @@ import (
 const NaisDeviceApprovalGroup = "ffd89425-c75c-4618-b5ab-67149ddbbc2d"
 
 type Azure struct {
-	ClientID     string
-	ClientSecret string
-	Jwks         jwk.Set
-	Tenant       string
+	ClientID       string
+	ClientSecret   string
+	Tenant         string
+	jwkAutoRefresh *jwk.AutoRefresh
 }
 
-func (a Azure) DiscoveryURL() string {
+func (a Azure) JwksEndpoint() string {
 	return fmt.Sprintf("https://login.microsoftonline.com/%s/discovery/keys", a.Tenant)
 }
 
@@ -28,24 +28,36 @@ func (a Azure) Issuer() string {
 	return fmt.Sprintf("https://login.microsoftonline.com/%s/v2.0", a.Tenant)
 }
 
-func (a *Azure) FetchCertificates() error {
+func (a *Azure) SetupJwkSetAutoRefresh() error {
 	ctx := context.Background()
-	jwks, err := jwk.Fetch(ctx, a.DiscoveryURL())
+
+	ar := jwk.NewAutoRefresh(ctx)
+	ar.Configure(a.JwksEndpoint(), jwk.WithMinRefreshInterval(time.Hour))
+
+	// trigger initial token fetch
+	_, err := ar.Refresh(ctx, a.JwksEndpoint())
 	if err != nil {
 		return fmt.Errorf("fetch jwks: %w", err)
 	}
 
-	a.Jwks = jwks
+	a.jwkAutoRefresh = ar
 	return nil
+}
+
+func (a *Azure) KeySetFrom(t jwt.Token) (jwk.Set, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	return a.jwkAutoRefresh.Fetch(ctx, a.JwksEndpoint())
 }
 
 func (a *Azure) JwtOptions() []jwt.ParseOption {
 	return []jwt.ParseOption{
 		jwt.WithValidate(true),
 		jwt.InferAlgorithmFromKey(true),
+		jwt.WithKeySetProvider(a),
 		jwt.WithAcceptableSkew(5 * time.Second),
 		jwt.WithIssuer(a.Issuer()),
-		jwt.WithKeySet(a.Jwks),
 		jwt.WithAudience(a.ClientID),
 	}
 }
