@@ -50,14 +50,14 @@ func main() {
 	}
 
 	if cfg.AzureEnabled {
-		err := cfg.Azure.FetchCertificates()
+		err := cfg.Azure.SetupJwkSetAutoRefresh()
 		if err != nil {
 			log.Fatalf("fetch Azure certs: %s", err)
 		}
 
 		tokenValidator = cfg.Azure.TokenValidatorMiddleware()
 	} else if cfg.GoogleEnabled {
-		err := cfg.Google.SetupJwkAutoRefresh()
+		err := cfg.Google.SetupJwkSetAutoRefresh()
 		if err != nil {
 			log.Fatalf("fetch Google certs: %s", err)
 		}
