@@ -17,8 +17,8 @@ import (
 
 const (
 	defaultNSSPath             = ".pki/nssdb"
-	firefoxProfilesGlob        = ".mozilla/firefox/*.default-release*"
-	firefoxSnapProfilesGlob    = "snap/firefox/common/.mozilla/firefox/*.default-release"
+	firefoxProfilesGlob        = ".mozilla/firefox/*.default*"
+	firefoxSnapProfilesGlob    = "snap/firefox/common/.mozilla/firefox/*.default*"
 	certutilBinary             = "/usr/bin/certutil"
 	pk12utilBinary             = "/usr/bin/pk12util"
 	naisdeviceCertName         = "naisdevice"
