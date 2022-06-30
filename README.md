@@ -8,6 +8,9 @@ Each resource is protected by a gateway, and the developer is only granted acces
 - Device is [healthy](#what-is-a-healthy-device)
 - Is member of the AAD access group for the gateway (e.g. to connect to team A's DB, you must be member of team A's AAD-group)
 
+## Deploying client changes
+Executing `make release-frontend` is required for deploy of new naisdevice client to be released and made available for download/install/update.
+
 ## key attributes
 
 - minimal attack surface
