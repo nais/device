@@ -48,6 +48,10 @@ service DeviceAgent {
   // Get the current configuration for the device agent
   rpc GetAgentConfiguration (GetAgentConfigurationRequest) returns (GetAgentConfigurationResponse) {
   }
+
+  // Get available tenants
+  rpc GetTenants (GetTenantsRequest) returns (GetTenantsResponse) {
+  }
 }
 
 service APIServer {
@@ -116,8 +120,6 @@ message ConfigureResponse {
 
 }
 
-
-
 message ConfigureJITAResponse {
 
 }
@@ -164,6 +166,18 @@ message SetAgentConfigurationResponse {
 }
 
 message GetAgentConfigurationRequest {
+}
+
+message GetTenantsRequest {
+}
+
+message GetTenantsResponse {
+  repeated Tenant tenants = 1;
+}
+
+message Tenant {
+  string name = 1;
+  string id = 2;
 }
 
 message GetAgentConfigurationResponse {

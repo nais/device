@@ -1,1 +1,2 @@
-golang 1.18
+golang 1.18.4
+protoc 3.20.1

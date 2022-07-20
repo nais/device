@@ -3,8 +3,10 @@ package device_agent
 import (
 	"context"
 	"fmt"
+	"os"
 	"sync"
 
+	"cloud.google.com/go/storage"
 	"github.com/google/uuid"
 	"github.com/hashicorp/go-multierror"
 	"github.com/nais/device/pkg/outtune"
@@ -108,6 +110,43 @@ func (das *DeviceAgentServer) SetAgentConfiguration(ctx context.Context, req *pb
 func (das *DeviceAgentServer) GetAgentConfiguration(ctx context.Context, req *pb.GetAgentConfigurationRequest) (*pb.GetAgentConfigurationResponse, error) {
 	return &pb.GetAgentConfigurationResponse{
 		Config: das.Config.AgentConfiguration,
+	}, nil
+}
+
+func (das *DeviceAgentServer) GetTenants(ctx context.Context, req *pb.GetTenantsRequest) (*pb.GetTenantsResponse, error) {
+	bucketName := os.Getenv("NAISDEVICE_TENANTS_BUCKET")
+	if bucketName == "" {
+		return nil, status.Errorf(codes.PermissionDenied, "NAISDEVICE_TENANTS_BUCKET not set")
+	}
+
+	client, err := storage.NewClient(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	bucket := client.Bucket(bucketName)
+
+	objs := bucket.Objects(ctx, &storage.Query{})
+
+	var tenants []*pb.Tenant
+	for {
+		obj, err := objs.Next()
+		if err != nil {
+			return nil, err
+		}
+
+		if obj == nil {
+			break
+		}
+
+		tenants = append(tenants, &pb.Tenant{
+			Id:   obj.Name,
+			Name: obj.Name,
+		})
+	}
+
+	return &pb.GetTenantsResponse{
+		Tenants: tenants,
 	}, nil
 }
 
