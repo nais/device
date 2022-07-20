@@ -57,7 +57,7 @@ func parseFlags(cfg *Config) {
 
 	flag.BoolVar(&cfg.GoogleAuthEnabled, "google-auth-enabled", cfg.GoogleAuthEnabled, "Google auth enabled")
 	flag.StringVar(&cfg.Google.ClientID, "google-client-id", cfg.Google.ClientID, "Google credential client id")
-	flag.StringSliceVar(&cfg.Google.AllowedDomains, "google-allowed-domains", cfg.Google.AllowedDomains, "Comma-separated allowed domains on format: 'nais.io,partner.dev'")
+	flag.StringSliceVar(&cfg.Google.AllowedDomains, "google-allowed-domains", cfg.Google.AllowedDomains, "Comma-separated allowed domains on format: 'nais.io,tenant.dev'")
 
 	flag.StringSliceVar(&cfg.CredentialEntries, "credential-entries", cfg.CredentialEntries, "Comma-separated credentials on format: '<user>:<key>'")
 

@@ -43,7 +43,7 @@ func init() {
 	flag.BoolVar(&cfg.EnableGoogleAuth, "enable-google-auth", cfg.EnableGoogleAuth, "enables Google auth instead of Azure")
 	flag.StringVar(&cfg.GoogleAuthServerAddress, "google-auth-server-address", cfg.GoogleAuthServerAddress, "Google auth-server address")
 	flag.BoolVar(&cfg.OuttuneEnabled, "outtune-enabled", cfg.OuttuneEnabled, "Toggle fetching of outtune certificates")
-	flag.StringVar(&cfg.PartnerDomain, "partner-domain", cfg.PartnerDomain, "Domain of partner to connect to. Defaults to auto-detection")
+	flag.StringVar(&cfg.TenantDomain, "tenant-domain", cfg.TenantDomain, "Domain of tenant to connect to. Defaults to auto-detection")
 }
 
 func handleSignals(cancel context.CancelFunc) {

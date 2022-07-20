@@ -11,6 +11,7 @@ import (
 	"github.com/hashicorp/go-multierror"
 	"github.com/nais/device/pkg/outtune"
 	log "github.com/sirupsen/logrus"
+	"google.golang.org/api/iterator"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
@@ -132,6 +133,9 @@ func (das *DeviceAgentServer) GetTenants(ctx context.Context, req *pb.GetTenants
 	for {
 		obj, err := objs.Next()
 		if err != nil {
+			if err == iterator.Done {
+				break
+			}
 			return nil, err
 		}
 

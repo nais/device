@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"os/exec"
 	"os/signal"
 	"path/filepath"
 	"sort"
@@ -11,6 +12,8 @@ import (
 	"time"
 
 	"github.com/nais/device/pkg/helper"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 
 	"github.com/nais/device/assets"
 	"github.com/nais/device/pkg/device-agent/open"
@@ -29,6 +32,14 @@ type GatewayItem struct {
 	MenuItem *systray.MenuItem
 }
 
+type TenantItem struct {
+	Tenant     *pb.Tenant
+	MenuItem   *systray.MenuItem
+	client     pb.DeviceAgentClient
+	connection *grpc.ClientConn
+	cmd        *exec.Cmd
+}
+
 type Gui struct {
 	DeviceAgentClient        pb.DeviceAgentClient
 	AgentStatusChannel       chan *pb.AgentStatus
@@ -37,6 +48,7 @@ type Gui struct {
 	Interrupts               chan os.Signal
 	NewVersionAvailable      chan bool
 	PrivilegedGatewayClicked chan string
+	tenantClicked            chan int
 	ProgramContext           context.Context
 	MenuItems                struct {
 		Connect       *systray.MenuItem
@@ -55,6 +67,8 @@ type Gui struct {
 		Version       *systray.MenuItem
 		Upgrade       *systray.MenuItem
 		GatewayItems  []*GatewayItem
+		Tenants       *systray.MenuItem
+		TenantItems   []*TenantItem
 	}
 	Config Config
 }
@@ -116,6 +130,17 @@ func NewGUI(ctx context.Context, client pb.DeviceAgentClient, cfg Config) *Gui {
 		gui.MenuItems.GatewayItems[i].MenuItem.Hide()
 	}
 
+	tenants, err := client.GetTenants(ctx, &pb.GetTenantsRequest{})
+	if err == nil {
+		gui.MenuItems.Tenants = systray.AddMenuItem("Tenants", "")
+		for _, tenant := range tenants.Tenants {
+			gui.MenuItems.TenantItems = append(gui.MenuItems.TenantItems, &TenantItem{Tenant: tenant})
+			gui.MenuItems.TenantItems[len(gui.MenuItems.TenantItems)-1].MenuItem = gui.MenuItems.Tenants.AddSubMenuItemCheckbox(tenant.Name, "", false)
+		}
+	} else {
+		log.Errorf("Failed to get tenants: %v", err)
+	}
+
 	systray.AddSeparator()
 	gui.MenuItems.Quit = systray.AddMenuItem("Quit", "Exit the application")
 
@@ -126,6 +151,7 @@ func NewGUI(ctx context.Context, client pb.DeviceAgentClient, cfg Config) *Gui {
 	gui.Events = make(chan GuiEvent, 8)
 	gui.NewVersionAvailable = make(chan bool, 8)
 	gui.PrivilegedGatewayClicked = make(chan string)
+	gui.tenantClicked = make(chan int, 1)
 
 	return gui
 }
@@ -152,6 +178,7 @@ func (gui *Gui) EventLoop(ctx context.Context) {
 
 func (gui *Gui) handleButtonClicks(ctx context.Context) {
 	gui.aggregateGatewayButtonClicks()
+	gui.aggregateTenantButtonClicks()
 
 	for {
 		select {
@@ -184,6 +211,8 @@ func (gui *Gui) handleButtonClicks(ctx context.Context) {
 			gui.Events <- ClientCertClicked
 		case name := <-gui.PrivilegedGatewayClicked:
 			accessPrivilegedGateway(name)
+		case idx := <-gui.tenantClicked:
+			gui.connectToTenant(ctx, idx)
 		case <-ctx.Done():
 			return
 		}
@@ -484,10 +513,98 @@ func (gui *Gui) aggregateGatewayButtonClicks() {
 	}
 }
 
+func (gui *Gui) aggregateTenantButtonClicks() {
+	// Start a forwarder for each buttons click-channel and aggregates to a single channel
+	for i, tenantItem := range gui.MenuItems.TenantItems {
+		i := i
+		go func(t *TenantItem) {
+			for range t.MenuItem.ClickedCh {
+				gui.tenantClicked <- i
+			}
+		}(tenantItem)
+	}
+}
+
+func (gui *Gui) connectToTenant(ctx context.Context, idx int) {
+	tmi := gui.MenuItems.TenantItems[idx]
+	mi := tmi.MenuItem
+	if mi.Checked() {
+		_, err := tmi.client.Logout(ctx, &pb.LogoutRequest{})
+		if err != nil {
+			log.Errorf("while disconnecting from tenant: %v", err)
+		}
+
+		if err := tmi.connection.Close(); err != nil {
+			log.Errorf("while closing connection for tenant: %v", err)
+		}
+
+		if err := tmi.cmd.Process.Kill(); err != nil {
+			log.Errorf("while killing tenant process: %v", err)
+		}
+
+		mi.Uncheck()
+		return
+	}
+	mi.Disable()
+	defer mi.Enable()
+
+	socket := filepath.Join(os.TempDir(), "naisdevice-agent-"+tmi.Tenant.Name+".sock")
+	args := []string{
+		"--tenant-domain=" + tmi.Tenant.Name,
+		"--outtune-enabled=false",
+		"--enable-google-auth",
+		"--grpc-address=" + socket,
+	}
+	tmi.cmd = exec.CommandContext(ctx, gui.Config.AgentPath, args...)
+	go func() {
+		if err := tmi.cmd.Run(); err != nil {
+			log.Errorf("while running agent: %v", err)
+		}
+	}()
+
+	if !waitForSocket(socket) {
+		log.Errorf("while waiting for socket %s", socket)
+		return
+	}
+
+	var err error
+	tmi.connection, err = grpc.Dial(
+		"unix:"+socket,
+		grpc.WithTransportCredentials(insecure.NewCredentials()),
+	)
+	if err != nil {
+		log.Errorf("unable to connect to naisdevice-agent grpc server: %v", err)
+		return
+	}
+
+	tmi.client = pb.NewDeviceAgentClient(tmi.connection)
+
+	for {
+		_, err = tmi.client.Login(ctx, &pb.LoginRequest{})
+		if err != nil {
+			log.Errorf("while connecting: %v", err)
+			time.Sleep(100 * time.Millisecond)
+		} else {
+			mi.Check()
+			break
+		}
+	}
+}
+
 func accessPrivilegedGateway(gatewayName string) {
 	err := open.Open(fmt.Sprintf("https://naisdevice-jita.nais.io/?gateway=%s", gatewayName))
 	if err != nil {
 		log.Errorf("opening browser: %v", err)
 		// TODO: show error in gui (systray)
 	}
+}
+
+func waitForSocket(socket string) bool {
+	for i := 0; i < 100; i++ {
+		if _, err := os.Stat(socket); err == nil {
+			return true
+		}
+		time.Sleep(100 * time.Millisecond)
+	}
+	return false
 }

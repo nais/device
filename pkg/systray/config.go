@@ -17,6 +17,7 @@ type Config struct {
 	LogFilePath string
 
 	BlackAndWhiteIcons bool
+	AgentPath          string `json:"-"`
 }
 
 func (cfg *Config) Persist() {

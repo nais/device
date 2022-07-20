@@ -168,10 +168,10 @@ func findPeer(gateway []*pb.Gateway, s string) *pb.Gateway {
 }
 
 func (r *RuntimeConfig) getEnrollURL(ctx context.Context) (string, error) {
-	domain := r.Config.PartnerDomain
+	domain := r.Config.TenantDomain
 	if domain == "" {
 		var err error
-		domain, err = r.getPartnerDomain()
+		domain, err = r.getTenantDomain()
 		if err != nil {
 			return "", err
 		}
@@ -196,9 +196,9 @@ func (r *RuntimeConfig) getEnrollURL(ctx context.Context) (string, error) {
 	return string(b) + "/enroll", nil
 }
 
-func (r *RuntimeConfig) getPartnerDomain() (string, error) {
-	if r.Config.PartnerDomain != "" {
-		return r.Config.PartnerDomain, nil
+func (r *RuntimeConfig) getTenantDomain() (string, error) {
+	if r.Config.TenantDomain != "" {
+		return r.Config.TenantDomain, nil
 	}
 
 	t, err := jwt.ParseString(r.Tokens.IDToken)
@@ -212,9 +212,9 @@ func (r *RuntimeConfig) getPartnerDomain() (string, error) {
 }
 
 func (r *RuntimeConfig) path() string {
-	domain, err := r.getPartnerDomain()
+	domain, err := r.getTenantDomain()
 	if err != nil {
-		log.WithError(err).Error("could not determine partner domain")
+		log.WithError(err).Error("could not determine tenant domain")
 		domain = "unknown"
 	}
 

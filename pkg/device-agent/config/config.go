@@ -35,7 +35,7 @@ type Config struct {
 	LogLevel                 string
 	OAuth2Config             oauth2.Config
 	OuttuneEnabled           bool
-	PartnerDomain            string
+	TenantDomain             string
 	Platform                 string
 	PrivateKeyPath           string
 	SerialPath               string

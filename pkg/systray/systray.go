@@ -5,6 +5,7 @@ import (
 
 	"github.com/getlantern/systray"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 
 	"github.com/nais/device/pkg/pb"
 	log "github.com/sirupsen/logrus"
@@ -18,7 +19,7 @@ func onReady(ctx context.Context, cfg Config) {
 	log.Debugf("naisdevice-agent on unix socket %s", cfg.GrpcAddress)
 	connection, err := grpc.Dial(
 		"unix:"+cfg.GrpcAddress,
-		grpc.WithInsecure(),
+		grpc.WithTransportCredentials(insecure.NewCredentials()),
 	)
 	if err != nil {
 		log.Fatalf("unable to connect to naisdevice-agent grpc server: %v", err)

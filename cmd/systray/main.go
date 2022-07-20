@@ -57,6 +57,8 @@ func main() {
 	cfg.Populate()
 	cfg.Persist()
 
+	cfg.AgentPath = AgentPath
+
 	flag.StringVar(&cfg.LogLevel, "log-level", cfg.LogLevel, "which log level to output")
 	flag.StringVar(&cfg.GrpcAddress, "grpc-address", cfg.GrpcAddress, "path to device-agent unix socket")
 	flag.Parse()
