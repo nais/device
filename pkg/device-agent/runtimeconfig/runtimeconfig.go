@@ -29,6 +29,7 @@ type RuntimeConfig struct {
 	PrivateKey   []byte
 	SessionInfo  *pb.Session
 	Tokens       *auth.Tokens
+	Tenant       *pb.Tenant
 }
 
 func New(cfg *config.Config) (*RuntimeConfig, error) {
@@ -51,7 +52,7 @@ func (r *RuntimeConfig) EnsureEnrolled(ctx context.Context, serial string) error
 	log.Infoln("Enrolling device")
 
 	var err error
-	if r.Config.EnableGoogleAuth {
+	if r.Tenant.AuthProvider == pb.AuthProvider_Google {
 		err = r.enrollGoogle(ctx, serial)
 	} else {
 		err = r.enrollAzure(ctx, serial)
@@ -168,7 +169,7 @@ func findPeer(gateway []*pb.Gateway, s string) *pb.Gateway {
 }
 
 func (r *RuntimeConfig) getEnrollURL(ctx context.Context) (string, error) {
-	domain := r.Config.PartnerDomain
+	domain := r.Tenant.Domain
 	if domain == "" {
 		var err error
 		domain, err = r.getPartnerDomain()
@@ -197,8 +198,8 @@ func (r *RuntimeConfig) getEnrollURL(ctx context.Context) (string, error) {
 }
 
 func (r *RuntimeConfig) getPartnerDomain() (string, error) {
-	if r.Config.PartnerDomain != "" {
-		return r.Config.PartnerDomain, nil
+	if r.Tenant.Domain != "" {
+		return r.Tenant.Domain, nil
 	}
 
 	t, err := jwt.ParseString(r.Tokens.IDToken)

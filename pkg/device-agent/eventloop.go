@@ -96,7 +96,7 @@ func (das *DeviceAgentServer) syncConfigLoop(ctx context.Context, gateways chan<
 		}
 
 		token := das.rc.Tokens.Token.AccessToken
-		if das.Config.EnableGoogleAuth {
+		if das.rc.Tenant.AuthProvider == pb.AuthProvider_Google {
 			token = das.rc.Tokens.IDToken
 		}
 
@@ -177,8 +177,20 @@ func (das *DeviceAgentServer) EventLoop(ctx context.Context) {
 
 	das.stateChange <- status.ConnectionState
 
+	status.Tenants = das.rc.Config.AgentConfiguration.Tenants // static, at least for now
+
 	for {
 		das.UpdateAgentStatus(status)
+
+		if das.Config.AgentConfiguration.Tenants == nil {
+			notify.Errorf("No tenants configured. Please configure tenants in the configuration file.")
+			return
+		}
+
+		// default to first tenant in list
+		if das.rc.Tenant == nil {
+			das.rc.Tenant = das.Config.AgentConfiguration.Tenants[0]
+		}
 
 		select {
 		case <-ctx.Done():
@@ -206,10 +218,9 @@ func (das *DeviceAgentServer) EventLoop(ctx context.Context) {
 			certRenewalTicker.Reset(certCheckInterval)
 			log.Info("CHECKING FOR CERTIFICATE")
 
-			if !das.Config.AgentConfiguration.CertRenewal || !das.Config.OuttuneEnabled {
+			if !das.Config.AgentConfiguration.CertRenewal || !das.rc.Tenant.OuttuneEnabled {
 				log.WithFields(log.Fields{
-					"certRenewal": das.Config.AgentConfiguration.CertRenewal,
-					"outtune":     das.Config.OuttuneEnabled,
+					"rc.tenant": das.rc.Tenant,
 				}).Info("skipped cert renewal - disabled")
 				break
 			}
@@ -331,9 +342,7 @@ func (das *DeviceAgentServer) EventLoop(ctx context.Context) {
 					}
 				}
 
-				if das.rc.Config.APIServerGRPCAddress == "" {
-					das.rc.Config.APIServerGRPCAddress = net.JoinHostPort(das.rc.EnrollConfig.APIServerIP, "8099")
-				}
+				das.rc.Config.APIServerGRPCAddress = net.JoinHostPort(das.rc.EnrollConfig.APIServerIP, "8099")
 
 				ctx, cancel := context.WithTimeout(context.Background(), helperTimeout)
 				err = das.ConfigureHelper(ctx, das.rc, []*pb.Gateway{
@@ -391,7 +400,10 @@ func (das *DeviceAgentServer) EventLoop(ctx context.Context) {
 					log.Infof("validate token: %v", err)
 
 					ctx, cancel := context.WithTimeout(ctx, authFlowTimeout)
-					das.rc.Tokens, err = auth.GetDeviceAgentToken(ctx, das.rc.Config.OAuth2Config, das.Config.GoogleAuthServerAddress)
+					oauth2Config := das.rc.Config.OAuth2Config(das.rc.Tenant.AuthProvider)
+					log.Infof("%+v", das.rc.Tenant)
+					log.Infof("%+v", oauth2Config)
+					das.rc.Tokens, err = auth.GetDeviceAgentToken(ctx, oauth2Config, das.Config.GoogleAuthServerAddress)
 					cancel()
 					if err != nil {
 						notify.Errorf("Get token: %v", err)

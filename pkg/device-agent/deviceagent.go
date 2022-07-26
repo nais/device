@@ -7,6 +7,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/hashicorp/go-multierror"
+	"github.com/nais/device/pkg/notify"
 	"github.com/nais/device/pkg/outtune"
 	log "github.com/sirupsen/logrus"
 	"google.golang.org/grpc/codes"
@@ -109,6 +110,22 @@ func (das *DeviceAgentServer) GetAgentConfiguration(ctx context.Context, req *pb
 	return &pb.GetAgentConfigurationResponse{
 		Config: das.Config.AgentConfiguration,
 	}, nil
+}
+
+func (das *DeviceAgentServer) SetActiveTenant(ctx context.Context, req *pb.SetActiveTenantRequest) (*pb.SetActiveTenantResponse, error) {
+	for _, tenant := range das.Config.AgentConfiguration.Tenants {
+		if tenant.Name == req.Name {
+			das.rc.Tenant = tenant
+			das.rc.EnrollConfig = nil
+			das.rc.Tokens = nil
+			das.stateChange <- pb.AgentState_Disconnecting
+			log.Infof("activated tenant: %s", tenant.Name)
+			return &pb.SetActiveTenantResponse{}, nil
+		}
+	}
+
+	notify.Errorf("tenant %s not found", req.Name)
+	return &pb.SetActiveTenantResponse{}, nil
 }
 
 func NewServer(helper pb.DeviceHelperClient, cfg *config.Config, rc *runtimeconfig.RuntimeConfig, ot outtune.Outtune) *DeviceAgentServer {

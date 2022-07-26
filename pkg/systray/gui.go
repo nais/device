@@ -29,6 +29,11 @@ type GatewayItem struct {
 	MenuItem *systray.MenuItem
 }
 
+type TenantItem struct {
+	Tenant   *pb.Tenant
+	MenuItem *systray.MenuItem
+}
+
 type Gui struct {
 	DeviceAgentClient        pb.DeviceAgentClient
 	AgentStatusChannel       chan *pb.AgentStatus
@@ -37,6 +42,7 @@ type Gui struct {
 	Interrupts               chan os.Signal
 	NewVersionAvailable      chan bool
 	PrivilegedGatewayClicked chan string
+	TenantItemClicked        chan string
 	ProgramContext           context.Context
 	MenuItems                struct {
 		Connect       *systray.MenuItem
@@ -54,6 +60,8 @@ type Gui struct {
 		ZipLog        *systray.MenuItem
 		Version       *systray.MenuItem
 		Upgrade       *systray.MenuItem
+		Tenant        *systray.MenuItem
+		TenantItems   []*TenantItem
 		GatewayItems  []*GatewayItem
 	}
 	Config Config
@@ -72,6 +80,7 @@ const (
 	BlackAndWhiteClicked
 	ClientCertClicked
 
+	maxTenants          = 10
 	maxGateways         = 30
 	slackURL            = "slack://channel?team=T5LNAMWNA&id=D011T20LDHD"
 	softwareReleasePage = "https://doc.nais.io/device/update/"
@@ -104,16 +113,25 @@ func NewGUI(ctx context.Context, client pb.DeviceAgentClient, cfg Config) *Gui {
 	gui.MenuItems.HelperLog = gui.MenuItems.Logs.AddSubMenuItem("Helper", "")
 	gui.MenuItems.SystrayLog = gui.MenuItems.Logs.AddSubMenuItem("Systray", "")
 	gui.MenuItems.ZipLog = gui.MenuItems.Logs.AddSubMenuItem("Zip logfiles", "")
+	gui.MenuItems.Tenant = systray.AddMenuItem("Tenant", "")
 	systray.AddSeparator()
 	gui.MenuItems.Connect = systray.AddMenuItem("Connect", "")
 	systray.AddSeparator()
 	gui.MenuItems.GatewayItems = make([]*GatewayItem, maxGateways)
+	gui.MenuItems.TenantItems = make([]*TenantItem, maxTenants)
 
 	for i := range gui.MenuItems.GatewayItems {
 		gui.MenuItems.GatewayItems[i] = &GatewayItem{}
 		gui.MenuItems.GatewayItems[i].MenuItem = systray.AddMenuItem("", "")
 		gui.MenuItems.GatewayItems[i].MenuItem.Disable()
 		gui.MenuItems.GatewayItems[i].MenuItem.Hide()
+	}
+
+	for i := range gui.MenuItems.TenantItems {
+		gui.MenuItems.TenantItems[i] = &TenantItem{}
+		gui.MenuItems.TenantItems[i].MenuItem = gui.MenuItems.Tenant.AddSubMenuItem("", "")
+		gui.MenuItems.TenantItems[i].MenuItem.Disable()
+		gui.MenuItems.TenantItems[i].MenuItem.Hide()
 	}
 
 	systray.AddSeparator()
@@ -126,6 +144,7 @@ func NewGUI(ctx context.Context, client pb.DeviceAgentClient, cfg Config) *Gui {
 	gui.Events = make(chan GuiEvent, 8)
 	gui.NewVersionAvailable = make(chan bool, 8)
 	gui.PrivilegedGatewayClicked = make(chan string)
+	gui.TenantItemClicked = make(chan string)
 
 	return gui
 }
@@ -152,6 +171,7 @@ func (gui *Gui) EventLoop(ctx context.Context) {
 
 func (gui *Gui) handleButtonClicks(ctx context.Context) {
 	gui.aggregateGatewayButtonClicks()
+	gui.aggregateTenantButtonClicks()
 
 	for {
 		select {
@@ -184,6 +204,8 @@ func (gui *Gui) handleButtonClicks(ctx context.Context) {
 			gui.Events <- ClientCertClicked
 		case name := <-gui.PrivilegedGatewayClicked:
 			accessPrivilegedGateway(name)
+		case name := <-gui.TenantItemClicked:
+			gui.activateTenant(ctx, name)
 		case <-ctx.Done():
 			return
 		}
@@ -287,6 +309,20 @@ func (gui *Gui) handleAgentStatus(agentStatus *pb.AgentStatus) {
 	}
 	for i := max; i < maxGateways; i++ {
 		gui.MenuItems.GatewayItems[i].MenuItem.Hide()
+	}
+
+	tenants := agentStatus.GetTenants()
+	sort.Slice(tenants, func(i, j int) bool {
+		return tenants[i].GetName() < tenants[j].GetName()
+	})
+
+	for i, tenant := range tenants {
+		gui.MenuItems.TenantItems[i].Tenant = tenant
+
+		menuItem := gui.MenuItems.TenantItems[i].MenuItem
+		menuItem.SetTitle(tenant.Name)
+		menuItem.Show()
+		menuItem.Enable()
 	}
 }
 
@@ -484,10 +520,31 @@ func (gui *Gui) aggregateGatewayButtonClicks() {
 	}
 }
 
+func (gui *Gui) aggregateTenantButtonClicks() {
+	// Start a forwarder for each buttons click-channel and aggregates to a single channel
+	for _, tenantItem := range gui.MenuItems.TenantItems {
+		go func(item *TenantItem) {
+			for range item.MenuItem.ClickedCh {
+				gui.TenantItemClicked <- item.Tenant.Name
+			}
+		}(tenantItem)
+	}
+}
+
 func accessPrivilegedGateway(gatewayName string) {
 	err := open.Open(fmt.Sprintf("https://naisdevice-jita.nais.io/?gateway=%s", gatewayName))
 	if err != nil {
 		log.Errorf("opening browser: %v", err)
 		// TODO: show error in gui (systray)
+	}
+}
+
+func (gui *Gui) activateTenant(ctx context.Context, name string) {
+	req := &pb.SetActiveTenantRequest{
+		Name: name,
+	}
+	_, err := gui.DeviceAgentClient.SetActiveTenant(ctx, req)
+	if err != nil {
+		notify.Errorf("Failed to activate tenant, err: %v", err)
 	}
 }
