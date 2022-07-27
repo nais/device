@@ -138,13 +138,11 @@ func startDeviceAgent(ctx context.Context, cfg *config.Config) error {
 		},
 	}
 
-	tenantsBucketName := os.Getenv("NAISDEVICE_TENANTS_BUCKET")
-	if tenantsBucketName != "" {
-		err := rc.PopulateTenants(ctx, tenantsBucketName)
+	if cfg.AgentConfiguration.ILoveNinetiesBoybands {
+		err := rc.PopulateTenants(ctx)
 		if err != nil {
 			return fmt.Errorf("populate tenants from bucket: %w", err)
 		}
-
 	}
 
 	log.Infof("naisdevice-helper connection on unix socket %s", cfg.DeviceAgentHelperAddress)

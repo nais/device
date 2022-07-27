@@ -240,6 +240,7 @@ message Tenant {
 message AgentConfiguration {
   bool CertRenewal = 1;
   bool AutoConnect = 2;
+  bool ILoveNinetiesBoybands = 3;
 }
 
 message GetGatewayConfigurationRequest {

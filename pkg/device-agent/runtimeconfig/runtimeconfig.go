@@ -26,6 +26,10 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+const (
+	tenantDiscoveryBucket = "naisdevice-enroll-discovery"
+)
+
 type RuntimeConfig struct {
 	EnrollConfig *bootstrap.Config // TODO: convert to enroll.Config
 	Config       *config.Config
@@ -178,7 +182,7 @@ func (r *RuntimeConfig) getEnrollURL(ctx context.Context) (string, error) {
 		return "", err
 	}
 
-	url := "https://storage.googleapis.com/naisdevice-enroll-discovery/" + domain
+	url := fmt.Sprintf("https://storage.googleapis.com/%s/%s", tenantDiscoveryBucket, domain)
 	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
 	if err != nil {
 		return "", err
@@ -223,13 +227,13 @@ func (r *RuntimeConfig) path() string {
 	return filepath.Join(r.Config.ConfigDir, filename)
 }
 
-func (r *RuntimeConfig) PopulateTenants(ctx context.Context, bucketName string) error {
+func (r *RuntimeConfig) PopulateTenants(ctx context.Context) error {
 	client, err := storage.NewClient(ctx, option.WithoutAuthentication())
 	if err != nil {
 		return err
 	}
 
-	bucket := client.Bucket(bucketName)
+	bucket := client.Bucket(tenantDiscoveryBucket)
 
 	objs := bucket.Objects(ctx, &storage.Query{})
 
