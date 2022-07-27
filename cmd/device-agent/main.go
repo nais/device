@@ -130,6 +130,23 @@ func startDeviceAgent(ctx context.Context, cfg *config.Config) error {
 		return fmt.Errorf("unable to start naisdevice-agent, check logs for details")
 	}
 
+	rc.Tenants = []*pb.Tenant{
+		{
+			Name:           "NAV",
+			AuthProvider:   pb.AuthProvider_Azure,
+			OuttuneEnabled: true,
+		},
+	}
+
+	tenantsBucketName := os.Getenv("NAISDEVICE_TENANTS_BUCKET")
+	if tenantsBucketName != "" {
+		err := rc.PopulateTenants(ctx, tenantsBucketName)
+		if err != nil {
+			return fmt.Errorf("populate tenants from bucket: %w", err)
+		}
+
+	}
+
 	log.Infof("naisdevice-helper connection on unix socket %s", cfg.DeviceAgentHelperAddress)
 	connection, err := grpc.Dial(
 		"unix:"+cfg.DeviceAgentHelperAddress,

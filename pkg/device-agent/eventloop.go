@@ -96,7 +96,7 @@ func (das *DeviceAgentServer) syncConfigLoop(ctx context.Context, gateways chan<
 		}
 
 		token := das.rc.Tokens.Token.AccessToken
-		if das.rc.Tenant.AuthProvider == pb.AuthProvider_Google {
+		if das.rc.ActiveTenant.AuthProvider == pb.AuthProvider_Google {
 			token = das.rc.Tokens.IDToken
 		}
 
@@ -177,19 +177,19 @@ func (das *DeviceAgentServer) EventLoop(ctx context.Context) {
 
 	das.stateChange <- status.ConnectionState
 
-	status.Tenants = das.rc.Config.AgentConfiguration.Tenants // static, at least for now
+	status.Tenants = das.rc.Tenants
 
 	for {
 		das.UpdateAgentStatus(status)
 
-		if das.Config.AgentConfiguration.Tenants == nil {
+		if das.rc.Tenants == nil {
 			notify.Errorf("No tenants configured. Please configure tenants in the configuration file.")
 			return
 		}
 
 		// default to first tenant in list
-		if das.rc.Tenant == nil {
-			das.rc.Tenant = das.Config.AgentConfiguration.Tenants[0]
+		if das.rc.ActiveTenant == nil {
+			das.rc.ActiveTenant = das.rc.Tenants[0]
 		}
 
 		select {
@@ -218,9 +218,9 @@ func (das *DeviceAgentServer) EventLoop(ctx context.Context) {
 			certRenewalTicker.Reset(certCheckInterval)
 			log.Info("CHECKING FOR CERTIFICATE")
 
-			if !das.Config.AgentConfiguration.CertRenewal || !das.rc.Tenant.OuttuneEnabled {
+			if !das.Config.AgentConfiguration.CertRenewal || !das.rc.ActiveTenant.OuttuneEnabled {
 				log.WithFields(log.Fields{
-					"rc.tenant": das.rc.Tenant,
+					"rc.tenant": das.rc.ActiveTenant,
 				}).Info("skipped cert renewal - disabled")
 				break
 			}
@@ -400,8 +400,8 @@ func (das *DeviceAgentServer) EventLoop(ctx context.Context) {
 					log.Infof("validate token: %v", err)
 
 					ctx, cancel := context.WithTimeout(ctx, authFlowTimeout)
-					oauth2Config := das.rc.Config.OAuth2Config(das.rc.Tenant.AuthProvider)
-					log.Infof("%+v", das.rc.Tenant)
+					oauth2Config := das.rc.Config.OAuth2Config(das.rc.ActiveTenant.AuthProvider)
+					log.Infof("%+v", das.rc.ActiveTenant)
 					log.Infof("%+v", oauth2Config)
 					das.rc.Tokens, err = auth.GetDeviceAgentToken(ctx, oauth2Config, das.Config.GoogleAuthServerAddress)
 					cancel()

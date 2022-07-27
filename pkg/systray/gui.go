@@ -114,6 +114,7 @@ func NewGUI(ctx context.Context, client pb.DeviceAgentClient, cfg Config) *Gui {
 	gui.MenuItems.SystrayLog = gui.MenuItems.Logs.AddSubMenuItem("Systray", "")
 	gui.MenuItems.ZipLog = gui.MenuItems.Logs.AddSubMenuItem("Zip logfiles", "")
 	gui.MenuItems.Tenant = systray.AddMenuItem("Tenant", "")
+	gui.MenuItems.Tenant.Hide()
 	systray.AddSeparator()
 	gui.MenuItems.Connect = systray.AddMenuItem("Connect", "")
 	systray.AddSeparator()
@@ -312,6 +313,11 @@ func (gui *Gui) handleAgentStatus(agentStatus *pb.AgentStatus) {
 	}
 
 	tenants := agentStatus.GetTenants()
+	if len(tenants) <= 1 {
+		return
+	}
+
+	gui.MenuItems.Tenant.Show()
 	sort.Slice(tenants, func(i, j int) bool {
 		return tenants[i].GetName() < tenants[j].GetName()
 	})

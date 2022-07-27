@@ -89,7 +89,7 @@ func (c *Config) OAuth2Config(provider pb.AuthProvider) oauth2.Config {
 func (c *Config) PersistAgentConfiguration() {
 	agentConfigPath := filepath.Join(c.ConfigDir, File)
 
-	out, err := protojson.MarshalOptions{Indent: "  ", UseEnumNumbers: false, UseProtoNames: true, EmitUnpopulated: false}.Marshal(c.AgentConfiguration)
+	out, err := protojson.MarshalOptions{Indent: "  "}.Marshal(c.AgentConfiguration)
 	if err != nil {
 		log.Errorf("Encode AgentConfiguration: %v", err)
 	}
@@ -116,16 +116,6 @@ func (c *Config) PopulateAgentConfiguration() {
 	tempCfg := &pb.AgentConfiguration{}
 	if err := protojson.Unmarshal(in, tempCfg); err != nil {
 		log.Fatalln("Failed to parse address book:", err)
-	}
-
-	if tempCfg.Tenants == nil {
-		tempCfg.Tenants = []*pb.Tenant{
-			{
-				Name:           "NAV",
-				AuthProvider:   pb.AuthProvider_Google,
-				OuttuneEnabled: true,
-			},
-		}
 	}
 
 	c.AgentConfiguration = tempCfg

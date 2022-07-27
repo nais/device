@@ -10,9 +10,12 @@ import (
 	"os"
 	"path/filepath"
 
+	"cloud.google.com/go/storage"
 	"github.com/lestrrat-go/jwx/jwt"
 	"github.com/nais/device/pkg/bearertransport"
 	"github.com/nais/device/pkg/pubsubenroll"
+	"google.golang.org/api/iterator"
+	"google.golang.org/api/option"
 
 	"github.com/nais/device/pkg/bootstrap"
 	"github.com/nais/device/pkg/device-agent/auth"
@@ -29,7 +32,8 @@ type RuntimeConfig struct {
 	PrivateKey   []byte
 	SessionInfo  *pb.Session
 	Tokens       *auth.Tokens
-	Tenant       *pb.Tenant
+	ActiveTenant *pb.Tenant
+	Tenants      []*pb.Tenant
 }
 
 func New(cfg *config.Config) (*RuntimeConfig, error) {
@@ -52,7 +56,7 @@ func (r *RuntimeConfig) EnsureEnrolled(ctx context.Context, serial string) error
 	log.Infoln("Enrolling device")
 
 	var err error
-	if r.Tenant.AuthProvider == pb.AuthProvider_Google {
+	if r.ActiveTenant.AuthProvider == pb.AuthProvider_Google {
 		err = r.enrollGoogle(ctx, serial)
 	} else {
 		err = r.enrollAzure(ctx, serial)
@@ -169,13 +173,9 @@ func findPeer(gateway []*pb.Gateway, s string) *pb.Gateway {
 }
 
 func (r *RuntimeConfig) getEnrollURL(ctx context.Context) (string, error) {
-	domain := r.Tenant.Domain
-	if domain == "" {
-		var err error
-		domain, err = r.getPartnerDomain()
-		if err != nil {
-			return "", err
-		}
+	domain, err := r.getPartnerDomain()
+	if err != nil {
+		return "", err
 	}
 
 	url := "https://storage.googleapis.com/naisdevice-enroll-discovery/" + domain
@@ -198,8 +198,8 @@ func (r *RuntimeConfig) getEnrollURL(ctx context.Context) (string, error) {
 }
 
 func (r *RuntimeConfig) getPartnerDomain() (string, error) {
-	if r.Tenant.Domain != "" {
-		return r.Tenant.Domain, nil
+	if r.ActiveTenant.Domain != "" {
+		return r.ActiveTenant.Domain, nil
 	}
 
 	t, err := jwt.ParseString(r.Tokens.IDToken)
@@ -221,4 +221,39 @@ func (r *RuntimeConfig) path() string {
 
 	filename := fmt.Sprintf("enroll-%s.json", domain)
 	return filepath.Join(r.Config.ConfigDir, filename)
+}
+
+func (r *RuntimeConfig) PopulateTenants(ctx context.Context, bucketName string) error {
+	client, err := storage.NewClient(ctx, option.WithoutAuthentication())
+	if err != nil {
+		return err
+	}
+
+	bucket := client.Bucket(bucketName)
+
+	objs := bucket.Objects(ctx, &storage.Query{})
+
+	for {
+		obj, err := objs.Next()
+		if err != nil {
+			if err == iterator.Done {
+				break
+			}
+			return err
+		}
+
+		if obj == nil {
+			break
+		}
+
+		r.Tenants = append(r.Tenants, &pb.Tenant{
+			Name:           obj.Name,
+			AuthProvider:   pb.AuthProvider_Google,
+			OuttuneEnabled: false,
+			Domain:         obj.Name,
+		})
+
+	}
+
+	return nil
 }
