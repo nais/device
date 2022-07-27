@@ -41,6 +41,10 @@ service DeviceAgent {
   rpc Logout (LogoutRequest) returns (LogoutResponse) {
   }
 
+  // Set active tenant
+  rpc SetActiveTenant(SetActiveTenantRequest) returns (SetActiveTenantResponse) {
+  }
+
   // Set device agent configuration
   rpc SetAgentConfiguration (SetAgentConfigurationRequest) returns (SetAgentConfigurationResponse) {
   }
@@ -179,6 +183,7 @@ message AgentStatus {
   google.protobuf.Timestamp connectedSince = 2;
   bool newVersionAvailable = 3;
   repeated Gateway Gateways = 4;
+  repeated Tenant Tenants = 5;
 }
 
 message Configuration {
@@ -213,9 +218,29 @@ message Error {
   string message = 1;
 }
 
+message SetActiveTenantRequest {
+  string name = 1;
+}
+
+message SetActiveTenantResponse{
+}
+
+enum AuthProvider {
+  Azure = 0;
+  Google = 1;
+}
+
+message Tenant {
+  string name = 1;
+  AuthProvider authProvider = 2;
+  bool outtuneEnabled = 3;
+  string domain = 4;
+}
+
 message AgentConfiguration {
   bool CertRenewal = 1;
   bool AutoConnect = 2;
+  bool ILoveNinetiesBoybands = 3;
 }
 
 message GetGatewayConfigurationRequest {

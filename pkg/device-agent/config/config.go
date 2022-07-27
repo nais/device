@@ -20,22 +20,19 @@ import (
 const File = "agent-config.json"
 
 type Config struct {
-	APIServer                string
 	APIServerGRPCAddress     string
 	AgentConfiguration       *pb.AgentConfiguration
 	BootstrapAPI             string
 	BootstrapToken           string
 	ConfigDir                string
 	DeviceAgentHelperAddress string
-	EnableGoogleAuth         bool
 	GoogleAuthServerAddress  string
 	GrpcAddress              string
 	Interface                string
 	LogFilePath              string
 	LogLevel                 string
-	OAuth2Config             oauth2.Config
-	OuttuneEnabled           bool
-	PartnerDomain            string
+	AzureOAuth2Config        oauth2.Config
+	GoogleOAuth2Config       oauth2.Config
 	Platform                 string
 	PrivateKeyPath           string
 	SerialPath               string
@@ -61,27 +58,38 @@ func DefaultConfig() Config {
 	}
 
 	return Config{
-		APIServer:                "http://10.255.240.1",
 		BootstrapAPI:             "https://bootstrap.device.nais.io",
 		ConfigDir:                userConfigDir,
 		LogLevel:                 "info",
 		GrpcAddress:              filepath.Join(userConfigDir, "agent.sock"),
 		DeviceAgentHelperAddress: filepath.Join(config2.RuntimeDir, "helper.sock"),
 		GoogleAuthServerAddress:  "https://naisdevice-auth-server-h2pjqrstja-lz.a.run.app",
-		OuttuneEnabled:           true,
-		OAuth2Config: oauth2.Config{
+		AzureOAuth2Config: oauth2.Config{
 			ClientID:    "8086d321-c6d3-4398-87da-0d54e3d93967",
 			Scopes:      []string{"openid", "6e45010d-2637-4a40-b91d-d4cbb451fb57/.default", "offline_access"},
 			Endpoint:    endpoints.AzureAD("62366534-1ec3-4962-8869-9b5535279d0b"),
 			RedirectURL: "http://localhost:PORT/",
 		},
+		GoogleOAuth2Config: oauth2.Config{
+			ClientID:    "955023559628-g51n36t4icbd6lq7ils4r0ol9oo8kpk0.apps.googleusercontent.com",
+			Scopes:      []string{"https://www.googleapis.com/auth/userinfo.email"},
+			Endpoint:    endpoints.Google,
+			RedirectURL: "http://localhost:PORT/google",
+		},
 	}
+}
+
+func (c *Config) OAuth2Config(provider pb.AuthProvider) oauth2.Config {
+	if provider == pb.AuthProvider_Google {
+		return c.GoogleOAuth2Config
+	}
+	return c.AzureOAuth2Config
 }
 
 func (c *Config) PersistAgentConfiguration() {
 	agentConfigPath := filepath.Join(c.ConfigDir, File)
 
-	out, err := protojson.Marshal(c.AgentConfiguration)
+	out, err := protojson.MarshalOptions{Indent: "  "}.Marshal(c.AgentConfiguration)
 	if err != nil {
 		log.Errorf("Encode AgentConfiguration: %v", err)
 	}
@@ -111,5 +119,7 @@ func (c *Config) PopulateAgentConfiguration() {
 	}
 
 	c.AgentConfiguration = tempCfg
+	c.PersistAgentConfiguration()
+
 	log.Debugf("read agent-config: %v", c.AgentConfiguration)
 }

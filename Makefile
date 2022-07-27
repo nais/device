@@ -1,12 +1,17 @@
 .PHONY: test macos-client
 
-PROTOC = $(shell which protoc)
-PROTOC_GEN_GO = $(shell which protoc-gen-go)
 LAST_COMMIT = $(shell git --no-pager log -1 --pretty=%h)
 VERSION := $(shell date "+%Y-%m-%d-%H%M%S")
 LDFLAGS := -X github.com/nais/device/pkg/version.Revision=$(shell git rev-parse --short HEAD) -X github.com/nais/device/pkg/version.Version=$(VERSION)
 PKGID = io.nais.device
 GOPATH ?= ~/go
+
+PROTOC_VERSION := 21.4
+ifeq ($(shell uname -s),Linux)
+PROTOC_DOWNLOAD_URL := https://github.com/protocolbuffers/protobuf/releases/download/v${PROTOC_VERSION}/protoc-${PROTOC_VERSION}-linux-x86_64.zip
+else
+PROTOC_DOWNLOAD_URL := https://github.com/protocolbuffers/protobuf/releases/download/v${PROTOC_VERSION}/protoc-${PROTOC_VERSION}-osx-x86_64.zip
+endif
 
 all: test
 local-postgres: stop-postgres run-postgres
@@ -187,11 +192,17 @@ clean:
 	rm -rf ./packaging/linux/icons
 
 install-protobuf-go:
-	go install google.golang.org/protobuf/cmd/protoc-gen-go
-	go install google.golang.org/grpc/cmd/protoc-gen-go-grpc
+	go install google.golang.org/protobuf/cmd/protoc-gen-go@latest
+	go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@latest
 
-proto:
-	$(PROTOC) --go-grpc_opt=paths=source_relative --go_opt=paths=source_relative --go_out=. --go-grpc_out=. pkg/pb/protobuf-api.proto
+.protoc/bin/protoc:
+	mkdir -p .protoc && \
+		curl -L ${PROTOC_DOWNLOAD_URL} -o .protoc/protoc.zip && \
+		unzip .protoc/protoc.zip -d .protoc
+
+proto: .protoc/bin/protoc install-protobuf-go
+	export PATH=$(shell go env GOPATH)/bin:${PATH} && \
+		.protoc/bin/protoc --go-grpc_opt=paths=source_relative --go_opt=paths=source_relative --go_out=. --go-grpc_out=. pkg/pb/protobuf-api.proto
 
 mocks:
 	mockery --case underscore --all --dir pkg/ --inpackage --recursive
