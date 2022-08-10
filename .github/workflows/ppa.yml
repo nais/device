@@ -40,6 +40,7 @@ jobs:
           git config user.email "${EMAIL}"
           git config user.name "naisdevice pipeline"
           git add naisdevice-${LATEST}.deb
+          git add naisdevice-tenant-${LATEST}.deb
           git --no-pager diff --cached
           git commit --all --message "Add version ${LATEST} of naisdevice.deb"
           git push
