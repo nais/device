@@ -2,7 +2,7 @@ name: Update Homebrew
 
 on:
   workflow_run:
-    workflows: [ "Release naisdevice" ]
+    workflows: ["Release naisdevice"]
     types:
       - completed
   workflow_dispatch:
@@ -27,7 +27,9 @@ jobs:
         run: |
           echo "Version ${LATEST} was released at ${LATEST_DATE}"
           wget https://github.com/nais/device/releases/download/${LATEST}/naisdevice.pkg
+          wget https://github.com/nais/device/releases/download/${LATEST}/naisdevice-tenant.pkg
           CHECKSUM=$(sha256sum naisdevice.pkg | awk {'print $1}')
+          CHECKSUM_TENANT=$(sha256sum naisdevice-tenant.pkg | awk {'print $1}')
           eval "$(ssh-agent -s)"
           ssh-add - <<< "${HOMEBREW_TAP_KEY}"
           git clone git@github.com:nais/homebrew-tap.git taprepo
@@ -36,6 +38,8 @@ jobs:
           git config user.name "naisdevice pipeline"
           sed -E -i "s#version \".+\"#version \"${LATEST}\"#" Casks/naisdevice.rb
           sed -E -i "s#sha256 \".+\"#sha256 \"${CHECKSUM}\"#" Casks/naisdevice.rb
+          sed -E -i "s#version \".+\"#version \"${LATEST}\"#" Casks/naisdevice-tenant.rb
+          sed -E -i "s#sha256 \".+\"#sha256 \"${CHECKSUM_TENANT}\"#" Casks/naisdevice-tenant.rb
           git add .
           git --no-pager diff --cached
           git commit -a -m "Bump naisdevice.pkg version to ${LATEST}"
