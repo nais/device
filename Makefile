@@ -5,7 +5,7 @@ VERSION := $(shell date "+%Y-%m-%d-%H%M%S")
 LDFLAGS := -X github.com/nais/device/pkg/version.Revision=$(shell git rev-parse --short HEAD) -X github.com/nais/device/pkg/version.Version=$(VERSION)
 PKGID = io.nais.device
 GOPATH ?= ~/go
-GOTAGS ?= 'all'
+GOTAGS ?=
 
 PROTOC_VERSION := 21.4
 ifeq ($(shell uname -s),Linux)
@@ -29,24 +29,24 @@ linux-init:
 # Run by GitHub actions
 controlplane:
 	mkdir -p ./bin/controlplane
-	GOOS=linux GOARCH=amd64 go build -o bin/controlplane/apiserver --tags $(GOTAGS) -ldflags "-s $(LDFLAGS)" ./cmd/apiserver
-	GOOS=linux GOARCH=amd64 go build -o bin/controlplane/bootstrap-api --tags $(GOTAGS) -ldflags "-s $(LDFLAGS)" ./cmd/bootstrap-api
-	GOOS=linux GOARCH=amd64 go build -o bin/controlplane/gateway-agent --tags $(GOTAGS) -ldflags "-s $(LDFLAGS)" ./cmd/gateway-agent
-	GOOS=linux GOARCH=amd64 go build -o bin/controlplane/prometheus-agent --tags $(GOTAGS) -ldflags "-s $(LDFLAGS)" ./cmd/prometheus-agent
+	GOOS=linux GOARCH=amd64 go build -o bin/controlplane/apiserver --tags "$(GOTAGS)" -ldflags "-s $(LDFLAGS)" ./cmd/apiserver
+	GOOS=linux GOARCH=amd64 go build -o bin/controlplane/bootstrap-api --tags "$(GOTAGS)" -ldflags "-s $(LDFLAGS)" ./cmd/bootstrap-api
+	GOOS=linux GOARCH=amd64 go build -o bin/controlplane/gateway-agent --tags "$(GOTAGS)" -ldflags "-s $(LDFLAGS)" ./cmd/gateway-agent
+	GOOS=linux GOARCH=amd64 go build -o bin/controlplane/prometheus-agent --tags "$(GOTAGS)" -ldflags "-s $(LDFLAGS)" ./cmd/prometheus-agent
 
 # Run by GitHub actions on linux
 linux-client:
 	mkdir -p ./bin/linux-client
-	GOOS=linux GOARCH=amd64 go build -o bin/linux-client/naisdevice-systray --tags $(GOTAGS) -ldflags "-s $(LDFLAGS)" ./cmd/systray
-	GOOS=linux GOARCH=amd64 go build -o bin/linux-client/naisdevice-agent --tags $(GOTAGS) -ldflags "-s $(LDFLAGS)" ./cmd/device-agent
-	GOOS=linux GOARCH=amd64 go build -o bin/linux-client/naisdevice-helper --tags $(GOTAGS) -ldflags "-s $(LDFLAGS)" ./cmd/helper
+	GOOS=linux GOARCH=amd64 go build -o bin/linux-client/naisdevice-systray --tags "$(GOTAGS)" -ldflags "-s $(LDFLAGS)" ./cmd/systray
+	GOOS=linux GOARCH=amd64 go build -o bin/linux-client/naisdevice-agent --tags "$(GOTAGS)" -ldflags "-s $(LDFLAGS)" ./cmd/device-agent
+	GOOS=linux GOARCH=amd64 go build -o bin/linux-client/naisdevice-helper --tags "$(GOTAGS)" -ldflags "-s $(LDFLAGS)" ./cmd/helper
 
 # Run by GitHub actions on macos
 macos-client:
 	mkdir -p ./bin/macos-client
-	GOOS=darwin GOARCH=amd64 go build -o bin/macos-client/naisdevice-agent --tags $(GOTAGS) -ldflags "-s $(LDFLAGS)" ./cmd/device-agent
-	GOOS=darwin GOARCH=amd64 go build -o bin/macos-client/naisdevice-systray --tags $(GOTAGS) -ldflags "-s $(LDFLAGS)" ./cmd/systray
-	GOOS=darwin GOARCH=amd64 go build -o bin/macos-client/naisdevice-helper --tags $(GOTAGS) -ldflags "-s $(LDFLAGS)" ./cmd/helper
+	GOOS=darwin GOARCH=amd64 go build -o bin/macos-client/naisdevice-agent --tags "$(GOTAGS)" -ldflags "-s $(LDFLAGS)" ./cmd/device-agent
+	GOOS=darwin GOARCH=amd64 go build -o bin/macos-client/naisdevice-systray --tags "$(GOTAGS)" -ldflags "-s $(LDFLAGS)" ./cmd/systray
+	GOOS=darwin GOARCH=amd64 go build -o bin/macos-client/naisdevice-helper --tags "$(GOTAGS)" -ldflags "-s $(LDFLAGS)" ./cmd/helper
 
 # Run by GitHub actions on linux
 windows-client:
@@ -54,20 +54,20 @@ windows-client:
 	go install github.com/akavel/rsrc@latest
 	${GOPATH}/bin/rsrc -arch amd64 -manifest ./packaging/windows/admin_manifest.xml -ico assets/nais-logo-blue.ico -o ./cmd/helper/main_windows.syso
 	${GOPATH}/bin/rsrc -ico assets/nais-logo-blue.ico -o ./cmd/device-agent/main_windows.syso
-	GOOS=windows GOARCH=amd64 go build -o bin/windows-client/naisdevice-systray.exe --tags $(GOTAGS) -ldflags "-s $(LDFLAGS) -H=windowsgui" ./cmd/systray
-	GOOS=windows GOARCH=amd64 go build -o bin/windows-client/naisdevice-agent.exe --tags $(GOTAGS) -ldflags "-s $(LDFLAGS) -H=windowsgui" ./cmd/device-agent
-	GOOS=windows GOARCH=amd64 go build -o bin/windows-client/naisdevice-helper.exe --tags $(GOTAGS) -ldflags "-s $(LDFLAGS)" ./cmd/helper
+	GOOS=windows GOARCH=amd64 go build -o bin/windows-client/naisdevice-systray.exe --tags "$(GOTAGS)" -ldflags "-s $(LDFLAGS) -H=windowsgui" ./cmd/systray
+	GOOS=windows GOARCH=amd64 go build -o bin/windows-client/naisdevice-agent.exe --tags "$(GOTAGS)" -ldflags "-s $(LDFLAGS) -H=windowsgui" ./cmd/device-agent
+	GOOS=windows GOARCH=amd64 go build -o bin/windows-client/naisdevice-helper.exe --tags "$(GOTAGS)" -ldflags "-s $(LDFLAGS)" ./cmd/helper
 
 local:
 	mkdir -p ./bin/local
-	go build -o bin/local/apiserver --tags $(GOTAGS) -ldflags "-s $(LDFLAGS)" ./cmd/apiserver
-	go build -o bin/local/gateway-agent --tags $(GOTAGS) -ldflags "-s $(LDFLAGS)" ./cmd/gateway-agent
-	go build -o bin/local/prometheus-agent --tags $(GOTAGS) -ldflags "-s $(LDFLAGS)" ./cmd/prometheus-agent
-	go build -o bin/local/bootstrap-api --tags $(GOTAGS) -ldflags "-s $(LDFLAGS)" ./cmd/bootstrap-api
-	go build -o bin/local/controlplane-cli --tags $(GOTAGS) -ldflags "-s $(LDFLAGS)" ./cmd/controlplane-cli
-	go build -o bin/local/naisdevice-agent --tags $(GOTAGS) -ldflags "-s $(LDFLAGS)" ./cmd/device-agent
-	go build -o bin/local/naisdevice-systray --tags $(GOTAGS) -ldflags "-s $(LDFLAGS)" ./cmd/systray
-	go build -o bin/local/naisdevice-helper --tags $(GOTAGS) -ldflags "-s $(LDFLAGS)" ./cmd/helper
+	go build -o bin/local/apiserver --tags "$(GOTAGS)" -ldflags "-s $(LDFLAGS)" ./cmd/apiserver
+	go build -o bin/local/gateway-agent --tags "$(GOTAGS)" -ldflags "-s $(LDFLAGS)" ./cmd/gateway-agent
+	go build -o bin/local/prometheus-agent --tags "$(GOTAGS)" -ldflags "-s $(LDFLAGS)" ./cmd/prometheus-agent
+	go build -o bin/local/bootstrap-api --tags "$(GOTAGS)" -ldflags "-s $(LDFLAGS)" ./cmd/bootstrap-api
+	go build -o bin/local/controlplane-cli --tags "$(GOTAGS)" -ldflags "-s $(LDFLAGS)" ./cmd/controlplane-cli
+	go build -o bin/local/naisdevice-agent --tags "$(GOTAGS)" -ldflags "-s $(LDFLAGS)" ./cmd/device-agent
+	go build -o bin/local/naisdevice-systray --tags "$(GOTAGS)" -ldflags "-s $(LDFLAGS)" ./cmd/systray
+	go build -o bin/local/naisdevice-helper --tags "$(GOTAGS)" -ldflags "-s $(LDFLAGS)" ./cmd/helper
 
 update-fixtures:
 	PGPASSWORD=postgres pg_dump -U postgres -h localhost -d postgres --schema-only > fixtures/schema.sql
