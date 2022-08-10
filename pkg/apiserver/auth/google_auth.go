@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"strings"
 	"time"
 
 	"google.golang.org/protobuf/types/known/timestamppb"
@@ -40,6 +41,11 @@ func (g *googleAuthenticator) Login(ctx context.Context, token, serial, platform
 	device, err := g.db.ReadDeviceBySerialPlatform(ctx, serial, platform)
 	if err != nil {
 		return nil, fmt.Errorf("read device (%s, %s), user: %s, err: %v", serial, platform, user.Email, err)
+	}
+
+	if !strings.EqualFold(user.Email, device.Username) {
+		log.Errorf("GREP: username (%s) does not match device username (%s) id (%d)", user.Email, device.Username, device.Id)
+		// return nil, fmt.Errorf("username (%s) does not match device username (%s)", username, device.Username)
 	}
 
 	session := &pb.Session{

@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"net/url"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 
@@ -233,6 +234,11 @@ func (s *authenticator) Login(ctx context.Context, token, serial, platform strin
 	device, err := s.db.ReadDeviceBySerialPlatform(ctx, serial, platform)
 	if err != nil {
 		return nil, fmt.Errorf("read device (%s, %s), user: %s, err: %v", serial, platform, username, err)
+	}
+
+	if !strings.EqualFold(username, device.Username) {
+		log.Errorf("GREP: username (%s) does not match device username (%s) id (%d)", username, device.Username, device.Id)
+		// return nil, fmt.Errorf("username (%s) does not match device username (%s)", username, device.Username)
 	}
 
 	session := &pb.Session{
