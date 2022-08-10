@@ -95,18 +95,12 @@ jobs:
         run: |
           make pkg GOTAGS=${{ matrix.gotags }} VERSION=${{ needs.set-version.outputs.version }}
           md5 bin/macos-client/*
-
-          if [ "${{ matrix.gotags }}" == "tenant" ]; then
-            mv "naisdevice.pkg" "naisdevice-tenant.pkg"
-            md5 naisdevice-tenant.pkg
-          else
-            md5 naisdevice.pkg
-          fi
+          md5 naisdevice.pkg
       - name: upload pkg
         uses: actions/upload-artifact@v2
         with:
           name: pkg${{ matrix.output-suffix }}
-          path: naisdevice${{ matrix.output-suffix }}.pkg
+          path: naisdevice.pkg
           if-no-files-found: error
 
   build-windows:
@@ -135,13 +129,12 @@ jobs:
       - name: create windows installer
         run: |
           msbuild packaging\windows\naisdevice.wixproj
-          rename bin/windows/naisdevice.msi bin/windows/naisdevice${{ matrix.output-suffix }}.msi
-          md5sum bin/windows/naisdevice${{ matrix.output-suffix }}.msi
+          md5sum bin/windows/naisdevice.msi
       - name: upload windows installer
         uses: actions/upload-artifact@v2
         with:
           name: windows-installer${{ matrix.output-suffix }}
-          path: bin/windows/naisdevice${{ matrix.output-suffix }}.msi
+          path: bin/windows/naisdevice.msi
           if-no-files-found: error
 
   build-linux:
@@ -161,10 +154,8 @@ jobs:
         uses: actions/download-artifact@v2
         with:
           name: linux-client${{ matrix.output-suffix }}
-          path: bin/linux-client${{ matrix.output-suffix }}
+          path: bin/linux-client
       - name: create debian package
-        env:
-          DEB_NAME_SUFFIX: ${{ matrix.output-suffix }}
         run: |
           sudo apt update
           sudo apt install --yes build-essential ruby ruby-dev rubygems libgtk-3-dev libappindicator3-dev libindicator3-dev libayatana-appindicator3-dev
@@ -218,15 +209,6 @@ jobs:
     env:
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     steps:
-      - name: create release
-        id: create_release
-        uses: actions/create-release@v1
-        with:
-          tag_name: ${{ needs.set-version.outputs.version }}
-          release_name: Release ${{ needs.set-version.outputs.version }}
-          draft: false
-          prerelease: false
-
       - name: download windows installer
         uses: actions/download-artifact@v2
         with:
@@ -236,7 +218,7 @@ jobs:
         uses: actions/upload-release-asset@v1
         with:
           upload_url: ${{ needs.new_release.outputs.upload_url }}
-          asset_path: ./bin/windows/naisdevice${{ matrix.output-suffix }}.msi
+          asset_path: ./bin/windows/naisdevice.msi
           asset_name: naisdevice${{ matrix.output-suffix }}.msi
           asset_content_type: application/octet-stream
 
@@ -248,7 +230,7 @@ jobs:
         uses: actions/upload-release-asset@v1
         with:
           upload_url: ${{ needs.new_release.outputs.upload_url }}
-          asset_path: ./naisdevice${{ matrix.output-suffix }}.pkg
+          asset_path: ./naisdevice.pkg
           asset_name: naisdevice${{ matrix.output-suffix }}.pkg
           asset_content_type: application/octet-stream
 
@@ -260,6 +242,6 @@ jobs:
         uses: actions/upload-release-asset@v1
         with:
           upload_url: ${{ needs.new_release.outputs.upload_url }}
-          asset_path: ./naisdevice${{ matrix.output-suffix }}_${{ needs.set-version.outputs.version }}_amd64.deb
+          asset_path: ./naisdevice_${{ needs.set-version.outputs.version }}_amd64.deb
           asset_name: naisdevice${{ matrix.output-suffix }}.deb
           asset_content_type: application/octet-stream
