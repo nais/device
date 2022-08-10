@@ -5,7 +5,7 @@ VERSION := $(shell date "+%Y-%m-%d-%H%M%S")
 LDFLAGS := -X github.com/nais/device/pkg/version.Revision=$(shell git rev-parse --short HEAD) -X github.com/nais/device/pkg/version.Version=$(VERSION)
 PKGID = io.nais.device
 GOPATH ?= ~/go
-GOTAGS ?= ""
+GOTAGS ?= 'all'
 
 PROTOC_VERSION := 21.4
 ifeq ($(shell uname -s),Linux)
