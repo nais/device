@@ -51,7 +51,7 @@ macos-client:
 # Run by GitHub actions on linux
 windows-client:
 	mkdir -p ./bin/windows-client
-	go install github.com/akavel/rsrc
+	go install github.com/akavel/rsrc@latest
 	${GOPATH}/bin/rsrc -arch amd64 -manifest ./packaging/windows/admin_manifest.xml -ico assets/nais-logo-blue.ico -o ./cmd/helper/main_windows.syso
 	${GOPATH}/bin/rsrc -ico assets/nais-logo-blue.ico -o ./cmd/device-agent/main_windows.syso
 	GOOS=windows GOARCH=amd64 go build -o bin/windows-client/naisdevice-systray.exe --tags $(GOTAGS) -ldflags "-s $(LDFLAGS) -H=windowsgui" ./cmd/systray
