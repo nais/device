@@ -35,7 +35,6 @@ type Config struct {
 	GoogleOAuth2Config       oauth2.Config
 	Platform                 string
 	PrivateKeyPath           string
-	SerialPath               string
 	WireGuardBinary          string
 	WireGuardConfigPath      string
 	WireGuardGoBinary        string
@@ -48,7 +47,6 @@ func (c *Config) SetDefaults() {
 	c.SetPlatformDefaults()
 	c.PrivateKeyPath = filepath.Join(c.ConfigDir, "private.key")
 	c.WireGuardConfigPath = filepath.Join(c.ConfigDir, c.Interface+".conf")
-	c.SerialPath = filepath.Join(c.ConfigDir, "product_serial")
 }
 
 func DefaultConfig() Config {
