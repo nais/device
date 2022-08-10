@@ -40,6 +40,7 @@ linux-client:
 	GOOS=linux GOARCH=amd64 go build -o bin/linux-client/naisdevice-systray --tags "$(GOTAGS)" -ldflags "-s $(LDFLAGS)" ./cmd/systray
 	GOOS=linux GOARCH=amd64 go build -o bin/linux-client/naisdevice-agent --tags "$(GOTAGS)" -ldflags "-s $(LDFLAGS)" ./cmd/device-agent
 	GOOS=linux GOARCH=amd64 go build -o bin/linux-client/naisdevice-helper --tags "$(GOTAGS)" -ldflags "-s $(LDFLAGS)" ./cmd/helper
+	chmod a+x ./bin/linux-client/naisdevice*
 
 # Run by GitHub actions on macos
 macos-client:
