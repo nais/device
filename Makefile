@@ -47,6 +47,13 @@ macos-client:
 	GOOS=darwin GOARCH=amd64 go build -o bin/macos-client/naisdevice-systray -ldflags "-s $(LDFLAGS)" ./cmd/systray
 	GOOS=darwin GOARCH=amd64 go build -o bin/macos-client/naisdevice-helper -ldflags "-s $(LDFLAGS)" ./cmd/helper
 
+# Run by GitHub actions on macos
+macos-tenant-client:
+	mkdir -p ./bin/macos-client
+	GOOS=darwin GOARCH=arm64 go build -o bin/macos-client/naisdevice-agent -ldflags "-s $(LDFLAGS)" -tags=tenant ./cmd/device-agent
+	GOOS=darwin GOARCH=arm64 go build -o bin/macos-client/naisdevice-systray -ldflags "-s $(LDFLAGS)" -tags=tenant ./cmd/systray
+	GOOS=darwin GOARCH=arm64 go build -o bin/macos-client/naisdevice-helper -ldflags "-s $(LDFLAGS)" -tags=tenant ./cmd/helper
+
 # Run by GitHub actions on linux
 windows-client:
 	mkdir -p ./bin/windows-client
@@ -138,6 +145,16 @@ gon:
 	unzip gon_macos.zip
 	chmod +x ./gon
 
+tenant-app: wg wireguard-go macos-icon macos-tenant-client gon
+	rm -rf naisdevice.app
+	mkdir -p naisdevice.app/Contents/{MacOS,Resources}
+	cp bin/macos-client/* naisdevice.app/Contents/MacOS
+	cp packaging/macos/jq-osx-amd64 naisdevice.app/Contents/MacOS/jq
+	cp assets/naisdevice.icns naisdevice.app/Contents/Resources
+	sed 's/VERSIONSTRING/${VERSION}/' packaging/macos/Info.plist.tpl > naisdevice.app/Contents/Info.plist
+	#	./gon --log-level=debug packaging/macos/gon-app.json
+	codesign -s "Developer ID Application: Torbjorn Hallenberg (T7D7Y5484F)" -f -v --timestamp --deep --options runtime naisdevice.app/Contents/MacOS/*
+
 app: wg wireguard-go macos-icon macos-client gon
 	rm -rf naisdevice.app
 	mkdir -p naisdevice.app/Contents/{MacOS,Resources}
@@ -153,6 +170,21 @@ test:
 
 run-integration-test:
 	@go test $(shell go list ./... | grep -v systray) -count=1 -tags=integration_test
+
+# Run by GitHub actions on macos
+tenant-pkg: tenant-app gon
+	rm -f ./naisdevice*.pkg
+	rm -rf ./pkgtemp
+	mkdir -p ./pkgtemp/{scripts,pkgroot/Applications}
+	cp -r ./naisdevice.app ./pkgtemp/pkgroot/Applications/
+	cp ./packaging/macos/postinstall ./pkgtemp/scripts/postinstall
+	cp ./packaging/macos/preinstall ./pkgtemp/scripts/preinstall
+	pkgbuild --root ./pkgtemp/pkgroot --identifier ${PKGID} --scripts ./pkgtemp/scripts --version ${VERSION} --ownership recommended ./component.pkg
+	productbuild --identifier ${PKGID}.${VERSION} --package ./component.pkg ./unsigned.pkg
+	productsign --sign "Developer ID Installer: Torbjorn Hallenberg" unsigned.pkg naisdevice.pkg
+	rm -f ./component.pkg ./unsigned.pkg
+	rm -rf ./pkgtemp ./naisdevice.app
+	./gon --log-level=debug packaging/macos/gon-pkg.json
 
 # Run by GitHub actions on macos
 pkg: app gon
