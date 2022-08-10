@@ -2,7 +2,7 @@ name: Update PPA
 
 on:
   workflow_run:
-    workflows: [ "Release naisdevice" ]
+    workflows: ["Release naisdevice"]
     types:
       - completed
   workflow_dispatch:
@@ -34,6 +34,7 @@ jobs:
 
           # Fetch latest deb
           wget https://github.com/nais/device/releases/download/${LATEST}/naisdevice.deb -O naisdevice-${LATEST}.deb
+          wget https://github.com/nais/device/releases/download/${LATEST}/naisdevice-tenant.deb -O naisdevice-tenant-${LATEST}.deb
 
           # Commit and push changes
           git config user.email "${EMAIL}"
