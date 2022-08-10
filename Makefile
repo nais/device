@@ -5,6 +5,7 @@ VERSION := $(shell date "+%Y-%m-%d-%H%M%S")
 LDFLAGS := -X github.com/nais/device/pkg/version.Revision=$(shell git rev-parse --short HEAD) -X github.com/nais/device/pkg/version.Version=$(VERSION)
 PKGID = io.nais.device
 GOPATH ?= ~/go
+GOTAGS ?= ""
 
 PROTOC_VERSION := 21.4
 ifeq ($(shell uname -s),Linux)
@@ -28,31 +29,24 @@ linux-init:
 # Run by GitHub actions
 controlplane:
 	mkdir -p ./bin/controlplane
-	GOOS=linux GOARCH=amd64 go build -o bin/controlplane/apiserver -ldflags "-s $(LDFLAGS)" ./cmd/apiserver
-	GOOS=linux GOARCH=amd64 go build -o bin/controlplane/bootstrap-api -ldflags "-s $(LDFLAGS)" ./cmd/bootstrap-api
-	GOOS=linux GOARCH=amd64 go build -o bin/controlplane/gateway-agent -ldflags "-s $(LDFLAGS)" ./cmd/gateway-agent
-	GOOS=linux GOARCH=amd64 go build -o bin/controlplane/prometheus-agent -ldflags "-s $(LDFLAGS)" ./cmd/prometheus-agent
+	GOOS=linux GOARCH=amd64 go build -o bin/controlplane/apiserver --tags $(GOTAGS) -ldflags "-s $(LDFLAGS)" ./cmd/apiserver
+	GOOS=linux GOARCH=amd64 go build -o bin/controlplane/bootstrap-api --tags $(GOTAGS) -ldflags "-s $(LDFLAGS)" ./cmd/bootstrap-api
+	GOOS=linux GOARCH=amd64 go build -o bin/controlplane/gateway-agent --tags $(GOTAGS) -ldflags "-s $(LDFLAGS)" ./cmd/gateway-agent
+	GOOS=linux GOARCH=amd64 go build -o bin/controlplane/prometheus-agent --tags $(GOTAGS) -ldflags "-s $(LDFLAGS)" ./cmd/prometheus-agent
 
 # Run by GitHub actions on linux
 linux-client:
 	mkdir -p ./bin/linux-client
-	GOOS=linux GOARCH=amd64 go build -o bin/linux-client/naisdevice-systray -ldflags "-s $(LDFLAGS)" ./cmd/systray
-	GOOS=linux GOARCH=amd64 go build -o bin/linux-client/naisdevice-agent -ldflags "-s $(LDFLAGS)" ./cmd/device-agent
-	GOOS=linux GOARCH=amd64 go build -o bin/linux-client/naisdevice-helper -ldflags "-s $(LDFLAGS)" ./cmd/helper
+	GOOS=linux GOARCH=amd64 go build -o bin/linux-client/naisdevice-systray --tags $(GOTAGS) -ldflags "-s $(LDFLAGS)" ./cmd/systray
+	GOOS=linux GOARCH=amd64 go build -o bin/linux-client/naisdevice-agent --tags $(GOTAGS) -ldflags "-s $(LDFLAGS)" ./cmd/device-agent
+	GOOS=linux GOARCH=amd64 go build -o bin/linux-client/naisdevice-helper --tags $(GOTAGS) -ldflags "-s $(LDFLAGS)" ./cmd/helper
 
 # Run by GitHub actions on macos
 macos-client:
 	mkdir -p ./bin/macos-client
-	GOOS=darwin GOARCH=amd64 go build -o bin/macos-client/naisdevice-agent -ldflags "-s $(LDFLAGS)" ./cmd/device-agent
-	GOOS=darwin GOARCH=amd64 go build -o bin/macos-client/naisdevice-systray -ldflags "-s $(LDFLAGS)" ./cmd/systray
-	GOOS=darwin GOARCH=amd64 go build -o bin/macos-client/naisdevice-helper -ldflags "-s $(LDFLAGS)" ./cmd/helper
-
-# Run by GitHub actions on macos
-macos-tenant-client:
-	mkdir -p ./bin/macos-client
-	GOOS=darwin GOARCH=arm64 go build -o bin/macos-client/naisdevice-agent -ldflags "-s $(LDFLAGS)" -tags=tenant ./cmd/device-agent
-	GOOS=darwin GOARCH=arm64 go build -o bin/macos-client/naisdevice-systray -ldflags "-s $(LDFLAGS)" -tags=tenant ./cmd/systray
-	GOOS=darwin GOARCH=arm64 go build -o bin/macos-client/naisdevice-helper -ldflags "-s $(LDFLAGS)" -tags=tenant ./cmd/helper
+	GOOS=darwin GOARCH=amd64 go build -o bin/macos-client/naisdevice-agent --tags $(GOTAGS) -ldflags "-s $(LDFLAGS)" ./cmd/device-agent
+	GOOS=darwin GOARCH=amd64 go build -o bin/macos-client/naisdevice-systray --tags $(GOTAGS) -ldflags "-s $(LDFLAGS)" ./cmd/systray
+	GOOS=darwin GOARCH=amd64 go build -o bin/macos-client/naisdevice-helper --tags $(GOTAGS) -ldflags "-s $(LDFLAGS)" ./cmd/helper
 
 # Run by GitHub actions on linux
 windows-client:
@@ -60,20 +54,20 @@ windows-client:
 	go install github.com/akavel/rsrc
 	${GOPATH}/bin/rsrc -arch amd64 -manifest ./packaging/windows/admin_manifest.xml -ico assets/nais-logo-blue.ico -o ./cmd/helper/main_windows.syso
 	${GOPATH}/bin/rsrc -ico assets/nais-logo-blue.ico -o ./cmd/device-agent/main_windows.syso
-	GOOS=windows GOARCH=amd64 go build -o bin/windows-client/naisdevice-systray.exe -ldflags "-s $(LDFLAGS) -H=windowsgui" ./cmd/systray
-	GOOS=windows GOARCH=amd64 go build -o bin/windows-client/naisdevice-agent.exe -ldflags "-s $(LDFLAGS) -H=windowsgui" ./cmd/device-agent
-	GOOS=windows GOARCH=amd64 go build -o bin/windows-client/naisdevice-helper.exe -ldflags "-s $(LDFLAGS)" ./cmd/helper
+	GOOS=windows GOARCH=amd64 go build -o bin/windows-client/naisdevice-systray.exe --tags $(GOTAGS) -ldflags "-s $(LDFLAGS) -H=windowsgui" ./cmd/systray
+	GOOS=windows GOARCH=amd64 go build -o bin/windows-client/naisdevice-agent.exe --tags $(GOTAGS) -ldflags "-s $(LDFLAGS) -H=windowsgui" ./cmd/device-agent
+	GOOS=windows GOARCH=amd64 go build -o bin/windows-client/naisdevice-helper.exe --tags $(GOTAGS) -ldflags "-s $(LDFLAGS)" ./cmd/helper
 
 local:
 	mkdir -p ./bin/local
-	go build -o bin/local/apiserver -ldflags "-s $(LDFLAGS)" ./cmd/apiserver
-	go build -o bin/local/gateway-agent -ldflags "-s $(LDFLAGS)" ./cmd/gateway-agent
-	go build -o bin/local/prometheus-agent -ldflags "-s $(LDFLAGS)" ./cmd/prometheus-agent
-	go build -o bin/local/bootstrap-api -ldflags "-s $(LDFLAGS)" ./cmd/bootstrap-api
-	go build -o bin/local/controlplane-cli -ldflags "-s $(LDFLAGS)" ./cmd/controlplane-cli
-	go build -o bin/local/naisdevice-agent -ldflags "-s $(LDFLAGS)" ./cmd/device-agent
-	go build -o bin/local/naisdevice-systray -ldflags "-s $(LDFLAGS)" ./cmd/systray
-	go build -o bin/local/naisdevice-helper -ldflags "-s $(LDFLAGS)" ./cmd/helper
+	go build -o bin/local/apiserver --tags $(GOTAGS) -ldflags "-s $(LDFLAGS)" ./cmd/apiserver
+	go build -o bin/local/gateway-agent --tags $(GOTAGS) -ldflags "-s $(LDFLAGS)" ./cmd/gateway-agent
+	go build -o bin/local/prometheus-agent --tags $(GOTAGS) -ldflags "-s $(LDFLAGS)" ./cmd/prometheus-agent
+	go build -o bin/local/bootstrap-api --tags $(GOTAGS) -ldflags "-s $(LDFLAGS)" ./cmd/bootstrap-api
+	go build -o bin/local/controlplane-cli --tags $(GOTAGS) -ldflags "-s $(LDFLAGS)" ./cmd/controlplane-cli
+	go build -o bin/local/naisdevice-agent --tags $(GOTAGS) -ldflags "-s $(LDFLAGS)" ./cmd/device-agent
+	go build -o bin/local/naisdevice-systray --tags $(GOTAGS) -ldflags "-s $(LDFLAGS)" ./cmd/systray
+	go build -o bin/local/naisdevice-helper --tags $(GOTAGS) -ldflags "-s $(LDFLAGS)" ./cmd/helper
 
 update-fixtures:
 	PGPASSWORD=postgres pg_dump -U postgres -h localhost -d postgres --schema-only > fixtures/schema.sql
@@ -145,16 +139,6 @@ gon:
 	unzip gon_macos.zip
 	chmod +x ./gon
 
-tenant-app: wg wireguard-go macos-icon macos-tenant-client gon
-	rm -rf naisdevice.app
-	mkdir -p naisdevice.app/Contents/{MacOS,Resources}
-	cp bin/macos-client/* naisdevice.app/Contents/MacOS
-	cp packaging/macos/jq-osx-amd64 naisdevice.app/Contents/MacOS/jq
-	cp assets/naisdevice.icns naisdevice.app/Contents/Resources
-	sed 's/VERSIONSTRING/${VERSION}/' packaging/macos/Info.plist.tpl > naisdevice.app/Contents/Info.plist
-	#	./gon --log-level=debug packaging/macos/gon-app.json
-	codesign -s "Developer ID Application: Torbjorn Hallenberg (T7D7Y5484F)" -f -v --timestamp --deep --options runtime naisdevice.app/Contents/MacOS/*
-
 app: wg wireguard-go macos-icon macos-client gon
 	rm -rf naisdevice.app
 	mkdir -p naisdevice.app/Contents/{MacOS,Resources}
@@ -170,21 +154,6 @@ test:
 
 run-integration-test:
 	@go test $(shell go list ./... | grep -v systray) -count=1 -tags=integration_test
-
-# Run by GitHub actions on macos
-tenant-pkg: tenant-app gon
-	rm -f ./naisdevice*.pkg
-	rm -rf ./pkgtemp
-	mkdir -p ./pkgtemp/{scripts,pkgroot/Applications}
-	cp -r ./naisdevice.app ./pkgtemp/pkgroot/Applications/
-	cp ./packaging/macos/postinstall ./pkgtemp/scripts/postinstall
-	cp ./packaging/macos/preinstall ./pkgtemp/scripts/preinstall
-	pkgbuild --root ./pkgtemp/pkgroot --identifier ${PKGID} --scripts ./pkgtemp/scripts --version ${VERSION} --ownership recommended ./component.pkg
-	productbuild --identifier ${PKGID}.${VERSION} --package ./component.pkg ./unsigned.pkg
-	productsign --sign "Developer ID Installer: Torbjorn Hallenberg" unsigned.pkg naisdevice.pkg
-	rm -f ./component.pkg ./unsigned.pkg
-	rm -rf ./pkgtemp ./naisdevice.app
-	./gon --log-level=debug packaging/macos/gon-pkg.json
 
 # Run by GitHub actions on macos
 pkg: app gon
@@ -251,4 +220,3 @@ buildreleaseenroller:
 buildreleaseauthserver:
 	cd cmd/auth-server && docker build -t europe-north1-docker.pkg.dev/nais-io/nais/images/naisdevice-auth-server:${VERSION} .
 	docker push europe-north1-docker.pkg.dev/nais-io/nais/images/naisdevice-auth-server:${VERSION}
-

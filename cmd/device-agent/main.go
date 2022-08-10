@@ -14,6 +14,7 @@ import (
 	log "github.com/sirupsen/logrus"
 	flag "github.com/spf13/pflag"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 
 	deviceagent "github.com/nais/device/pkg/device-agent"
 	"github.com/nais/device/pkg/device-agent/config"
@@ -142,7 +143,7 @@ func startDeviceAgent(ctx context.Context, cfg *config.Config) error {
 	log.Infof("naisdevice-helper connection on unix socket %s", cfg.DeviceAgentHelperAddress)
 	connection, err := grpc.Dial(
 		"unix:"+cfg.DeviceAgentHelperAddress,
-		grpc.WithInsecure(),
+		grpc.WithTransportCredentials(insecure.NewCredentials()),
 	)
 	if err != nil {
 		return fmt.Errorf("connect to naisdevice-helper: %v", err)
