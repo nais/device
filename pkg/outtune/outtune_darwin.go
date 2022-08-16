@@ -46,6 +46,8 @@ func (o *darwin) Cleanup(ctx context.Context) error {
 		return err
 	}
 
+	certificates(ctx, serial.GetSerial())
+
 	// find identities in Mac OS X keychain for this serial
 	identities, err := identities(ctx, serial.GetSerial())
 	if err != nil {
@@ -54,7 +56,7 @@ func (o *darwin) Cleanup(ctx context.Context) error {
 
 	// remove identities
 	for _, certificateSerial := range identities {
-		cmd := exec.CommandContext(ctx, "/usr/bin/security", "delete-identity", "-Z", certificateSerial, "-t")
+		cmd := exec.CommandContext(ctx, "/usr/bin/security", "delete-certificate", "-Z", certificateSerial, "-t")
 		err = cmd.Run()
 		if err != nil {
 			log.Errorf("unable to delete certificate and private key from keychain: %s", err)
@@ -213,6 +215,46 @@ func identities(ctx context.Context, serial string) ([]string, error) {
 
 	ids := []string{}
 	for id := range idMap {
+		ids = append(ids, id)
+	}
+
+	return ids, nil
+}
+
+func certificates(ctx context.Context, serial string) ([]string, error) {
+	id := "naisdevice - " + serial
+	cmd := exec.CommandContext(ctx, "/usr/bin/security", "find-certificate", "-c", id, "-Z")
+	stdout, err := cmd.StdoutPipe()
+	if err != nil {
+		return nil, err
+	}
+	defer stdout.Close()
+
+	err = cmd.Start()
+	if err != nil {
+		return nil, err
+	}
+
+	idMap := make(map[string]struct{})
+	re := regexp.MustCompile(`SHA-1 hash:\s[A-Za-z0-9]{40}`)
+	scan := bufio.NewScanner(stdout)
+	for scan.Scan() {
+		line := scan.Text()
+		matches := re.FindAllStringSubmatch(line, 1)
+		if len(matches) < 2 {
+			continue
+		}
+		idMap[matches[1][1]] = struct{}{}
+	}
+
+	err = cmd.Wait()
+	if err != nil {
+		return nil, err
+	}
+
+	ids := []string{}
+	for id := range idMap {
+		fmt.Println("######### FOUND ", id)
 		ids = append(ids, id)
 	}
 
