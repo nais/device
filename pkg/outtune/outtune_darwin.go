@@ -2,21 +2,18 @@ package outtune
 
 import (
 	"bufio"
-	"bytes"
 	"context"
+	"crypto/rand"
+	"crypto/rsa"
 	"crypto/x509"
-	"encoding/base64"
-	"encoding/json"
+	"encoding/pem"
 	"errors"
 	"fmt"
-	"io"
 	"io/fs"
-	"net/http"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"regexp"
-	"strings"
 
 	"github.com/nais/device/pkg/pb"
 	log "github.com/sirupsen/logrus"
@@ -69,8 +66,6 @@ func (o *darwin) Cleanup(ctx context.Context) error {
 }
 
 func (o *darwin) Install(ctx context.Context) error {
-	o.Cleanup(ctx)
-
 	serial, err := o.helper.GetSerial(ctx, &pb.GetSerialRequest{})
 	if err != nil {
 		return err
@@ -83,80 +78,31 @@ func (o *darwin) Install(ctx context.Context) error {
 
 	pubKeyPath := filepath.Join(home, certPath)
 
-	pubKey, err := os.OpenFile(pubKeyPath, os.O_RDONLY, 0o644)
-	if errors.Is(err, fs.ErrNotExist) {
-		err := o.generate(ctx, serial.GetSerial(), pubKeyPath)
+	var pk *rsa.PrivateKey
+	_, err = os.Stat(pubKeyPath)
+	if err != nil {
+		if !errors.Is(err, fs.ErrNotExist) {
+			return err
+		}
+
+		pk, err = o.generate(ctx, serial.GetSerial(), pubKeyPath)
 		if err != nil {
 			return err
 		}
 	} else {
-		defer pubKey.Close()
-
-		publicKey, err := io.ReadAll(pubKey)
-		if err != nil {
-			return err
-		}
-
-		reqBody := &struct {
-			Serial       string `json:"serial"`
-			PublicKeyPEM string `json:"public_key_pem"`
-		}{
-			Serial:       serial.GetSerial(),
-			PublicKeyPEM: base64.StdEncoding.EncodeToString(publicKey),
-		}
-
-		payload, err := json.Marshal(reqBody)
-		if err != nil {
-			return err
-		}
-
-		req, err := http.NewRequestWithContext(ctx, "POST", "https://outtune-api.prod-gcp.nais.io/local/cert", bytes.NewReader(payload))
-		if err != nil {
-			return err
-		}
-		response, err := http.DefaultClient.Do(req)
-		if err != nil {
-			return err
-		}
-		defer response.Body.Close()
-
-		if response.StatusCode != http.StatusOK {
-			return fmt.Errorf("unexpected response from outtune-api: %s", response.Status)
-		}
-
-		body, err := io.ReadAll(response.Body)
-		if err != nil {
-			return err
-		}
-
-		certResponse := &certresponse{}
-		err = json.Unmarshal(body, certResponse)
-		if err != nil {
-			return err
-		}
-		tempCertFile, err := os.CreateTemp(os.TempDir(), "naisdevice-cert-")
-		if err != nil {
-			return err
-		}
-		defer tempCertFile.Close()
-		defer os.Remove(tempCertFile.Name())
-		_, err = tempCertFile.WriteString(certResponse.CertPem)
-		if err != nil {
-			return err
-		}
-		// flush contents to disk
-		err = tempCertFile.Close()
-		if err != nil {
-			return err
-		}
-		cmd := exec.CommandContext(ctx, "/usr/bin/security", "import", tempCertFile.Name())
-		err = cmd.Run()
-		if err != nil {
-			return err
-		}
+		o.Cleanup(ctx)
 	}
 
-	currentIdentities, err := identities(ctx, serial.GetSerial())
+	resp, err := o.download_cert(ctx, serial.GetSerial(), pubKeyPath)
+	if err != nil {
+		return err
+	}
+	err = o.importIdentity(ctx, pk, resp.CertificatePEM)
+	if err != nil {
+		return err
+	}
+
+	currentIdentities, err := certificates(ctx, serial.GetSerial())
 	if err != nil || len(currentIdentities) == 0 {
 		return fmt.Errorf("unable to find identity in keychain: %s", err)
 	}
@@ -170,22 +116,57 @@ func (o *darwin) Install(ctx context.Context) error {
 	return nil
 }
 
-func (o *darwin) generate(ctx context.Context, serial string, pubKeyPath string) error {
-	id, err := generateKeyAndCertificate(ctx, serial)
+func (o *darwin) download_cert(ctx context.Context, serial, pubKeyPath string) (*response, error) {
+	publicKey, err := os.ReadFile(pubKeyPath)
 	if err != nil {
-		return err
+		return nil, err
 	}
+
+	return downloadWithPublicKey(ctx, serial, publicKey)
+}
+
+func (o *darwin) generate(ctx context.Context, serial, pubKeyPath string) (*rsa.PrivateKey, error) {
+	privateKey, err := rsa.GenerateKey(rand.Reader, entropyBits)
+	if err != nil {
+		return nil, err
+	}
+
+	publicKey, err := x509.MarshalPKIXPublicKey(&privateKey.PublicKey)
+	if err != nil {
+		return nil, err
+	}
+
+	return privateKey, os.WriteFile(pubKeyPath, publicKey, 0o644)
+}
+
+func (o *darwin) importIdentity(ctx context.Context, privateKey *rsa.PrivateKey, certificate string) error {
 	w, err := os.CreateTemp(os.TempDir(), "naisdevice-")
 	if err != nil {
 		return err
 	}
 	defer w.Close()
 	defer os.Remove(w.Name())
-	// Write key+certificate pair to disk
-	err = id.SerializePEM(w)
+
+	if privateKey != nil {
+		pem.Encode(w, &pem.Block{
+			Type:  "RSA PRIVATE KEY",
+			Bytes: x509.MarshalPKCS1PrivateKey(privateKey),
+		})
+	}
+
+	block, rest := pem.Decode([]byte(certificate))
+	if len(rest) > 0 {
+		log.Warnf("certificate had remaining input which was ignored")
+	}
+	cert, err := x509.ParseCertificate(block.Bytes)
 	if err != nil {
 		return err
 	}
+	pem.Encode(w, &pem.Block{
+		Type:  "CERTIFICATE",
+		Bytes: cert.Raw,
+	})
+
 	// flush contents to disk
 	err = w.Close()
 	if err != nil {
@@ -193,56 +174,7 @@ func (o *darwin) generate(ctx context.Context, serial string, pubKeyPath string)
 	}
 	// run Mac OS X keychain import tool
 	cmd := exec.CommandContext(ctx, "/usr/bin/security", "import", w.Name(), "-A")
-	err = cmd.Run()
-	if err != nil {
-		return err
-	}
-
-	publicKey, err := x509.MarshalPKIXPublicKey(&id.privateKey.PublicKey)
-	if err != nil {
-		return err
-	}
-
-	return os.WriteFile(pubKeyPath, publicKey, 0o644)
-}
-
-func identities(ctx context.Context, serial string) ([]string, error) {
-	id := "naisdevice - " + serial
-	cmd := exec.CommandContext(ctx, "/usr/bin/security", "find-identity", "-s", id)
-	stdout, err := cmd.StdoutPipe()
-	if err != nil {
-		return nil, err
-	}
-	defer stdout.Close()
-
-	err = cmd.Start()
-	if err != nil {
-		return nil, err
-	}
-
-	idMap := make(map[string]struct{})
-	re := regexp.MustCompile("[A-Za-z0-9]{40}")
-	scan := bufio.NewScanner(stdout)
-	for scan.Scan() {
-		line := scan.Text()
-		certificateID := re.FindString(line)
-		if len(certificateID) == 0 || !strings.Contains(line, "naisdevice") {
-			continue
-		}
-		idMap[certificateID] = struct{}{}
-	}
-
-	err = cmd.Wait()
-	if err != nil {
-		return nil, err
-	}
-
-	ids := []string{}
-	for id := range idMap {
-		ids = append(ids, id)
-	}
-
-	return ids, nil
+	return cmd.Run()
 }
 
 func certificates(ctx context.Context, serial string) ([]string, error) {
