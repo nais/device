@@ -2,8 +2,10 @@ package outtune
 
 import (
 	"bufio"
+	"bytes"
 	"context"
 	"crypto/x509"
+	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -30,7 +32,7 @@ type darwin struct {
 }
 
 type certresponse struct {
-	certPem string `json:"cert_pem"`
+	CertPem string `json:"cert_pem"`
 }
 
 func New(helper pb.DeviceHelperClient) Outtune {
@@ -46,22 +48,20 @@ func (o *darwin) Cleanup(ctx context.Context) error {
 		return err
 	}
 
-	certificates(ctx, serial.GetSerial())
-
-	// find identities in Mac OS X keychain for this serial
-	identities, err := identities(ctx, serial.GetSerial())
+	// find certificates in Mac OS X keychain for this serial
+	certificates, err := certificates(ctx, serial.GetSerial())
 	if err != nil {
 		return err
 	}
 
 	// remove identities
-	for _, certificateSerial := range identities {
-		cmd := exec.CommandContext(ctx, "/usr/bin/security", "delete-certificate", "-Z", certificateSerial, "-t")
+	for _, certificateSerial := range certificates {
+		cmd := exec.CommandContext(ctx, "/usr/bin/security", "delete-certificate", "-Z", certificateSerial)
 		err = cmd.Run()
 		if err != nil {
 			log.Errorf("unable to delete certificate and private key from keychain: %s", err)
 		} else {
-			log.Debugf("deleted identity '%s' from keychain", certificateSerial)
+			log.Debugf("deleted certificate '%s' from keychain", certificateSerial)
 		}
 	}
 
@@ -92,7 +92,25 @@ func (o *darwin) Install(ctx context.Context) error {
 	} else {
 		defer pubKey.Close()
 
-		req, err := http.NewRequestWithContext(ctx, "POST", "https://outtune-api.prod-gcp.nais.io/local/cert", pubKey)
+		publicKey, err := io.ReadAll(pubKey)
+		if err != nil {
+			return err
+		}
+
+		reqBody := &struct {
+			Serial       string `json:"serial"`
+			PublicKeyPEM string `json:"public_key_pem"`
+		}{
+			Serial:       serial.GetSerial(),
+			PublicKeyPEM: base64.StdEncoding.EncodeToString(publicKey),
+		}
+
+		payload, err := json.Marshal(reqBody)
+		if err != nil {
+			return err
+		}
+
+		req, err := http.NewRequestWithContext(ctx, "POST", "https://outtune-api.prod-gcp.nais.io/local/cert", bytes.NewReader(payload))
 		if err != nil {
 			return err
 		}
@@ -101,10 +119,16 @@ func (o *darwin) Install(ctx context.Context) error {
 			return err
 		}
 		defer response.Body.Close()
+
+		if response.StatusCode != http.StatusOK {
+			return fmt.Errorf("unexpected response from outtune-api: %s", response.Status)
+		}
+
 		body, err := io.ReadAll(response.Body)
 		if err != nil {
 			return err
 		}
+
 		certResponse := &certresponse{}
 		err = json.Unmarshal(body, certResponse)
 		if err != nil {
@@ -116,7 +140,7 @@ func (o *darwin) Install(ctx context.Context) error {
 		}
 		defer tempCertFile.Close()
 		defer os.Remove(tempCertFile.Name())
-		_, err = tempCertFile.WriteString(certResponse.certPem)
+		_, err = tempCertFile.WriteString(certResponse.CertPem)
 		if err != nil {
 			return err
 		}
@@ -236,15 +260,15 @@ func certificates(ctx context.Context, serial string) ([]string, error) {
 	}
 
 	idMap := make(map[string]struct{})
-	re := regexp.MustCompile(`SHA-1 hash:\s[A-Za-z0-9]{40}`)
+	re := regexp.MustCompile(`SHA-1 hash:\s([A-Za-z0-9]{40})`)
 	scan := bufio.NewScanner(stdout)
 	for scan.Scan() {
 		line := scan.Text()
 		matches := re.FindAllStringSubmatch(line, 1)
-		if len(matches) < 2 {
+		if len(matches) == 0 {
 			continue
 		}
-		idMap[matches[1][1]] = struct{}{}
+		idMap[matches[0][1]] = struct{}{}
 	}
 
 	err = cmd.Wait()
@@ -254,7 +278,6 @@ func certificates(ctx context.Context, serial string) ([]string, error) {
 
 	ids := []string{}
 	for id := range idMap {
-		fmt.Println("######### FOUND ", id)
 		ids = append(ids, id)
 	}
 
