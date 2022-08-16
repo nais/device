@@ -2,8 +2,8 @@ package outtune
 
 import (
 	"bufio"
-	"bytes"
 	"context"
+	"crypto/x509"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -12,6 +12,7 @@ import (
 	"net/http"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"regexp"
 	"strings"
 
@@ -19,7 +20,10 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-const aadLoginURL = "https://nav-no.managed.us2.access-control.cas.ms/aad_login"
+const (
+	aadLoginURL = "https://nav-no.managed.us2.access-control.cas.ms/aad_login"
+	certPath    = "Library/Application Support/naisdevice/browser_cert_pubkey.pem"
+)
 
 type darwin struct {
 	helper pb.DeviceHelperClient
@@ -70,41 +74,23 @@ func (o *darwin) Install(ctx context.Context) error {
 		return err
 	}
 
-	_, err = os.Stat("/Library/Application Support/naisdevice/browser_cert_pubkey.pem")
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return fmt.Errorf("could not determine user home directory: %v", err)
+	}
 
+	pubKeyPath := filepath.Join(home, certPath)
+
+	pubKey, err := os.OpenFile(pubKeyPath, os.O_RDONLY, 0o644)
 	if errors.Is(err, fs.ErrNotExist) {
-		id, err := generateKeyAndCertificate(ctx, serial.GetSerial())
-		if err != nil {
-			return err
-		}
-		w, err := os.CreateTemp(os.TempDir(), "naisdevice-")
-		if err != nil {
-			return err
-		}
-		defer w.Close()
-		defer os.Remove(w.Name())
-		// Write key+certificate pair to disk
-		err = id.SerializePEM(w)
-		if err != nil {
-			return err
-		}
-		// flush contents to disk
-		err = w.Close()
-		if err != nil {
-			return err
-		}
-		// run Mac OS X keychain import tool
-		cmd := exec.CommandContext(ctx, "/usr/bin/security", "import", w.Name(), "-A")
-		err = cmd.Run()
+		err := o.generate(ctx, serial.GetSerial(), pubKeyPath)
 		if err != nil {
 			return err
 		}
 	} else {
-		pem, err := os.ReadFile("/Library/Application Support/naisdevice/browser_cert_pubkey.pem")
-		if err != nil {
-			return err
-		}
-		req, err := http.NewRequestWithContext(ctx, "POST", "https://outtune-api.prod-gcp.nais.io/local/cert", bytes.NewReader(pem))
+		defer pubKey.Close()
+
+		req, err := http.NewRequestWithContext(ctx, "POST", "https://outtune-api.prod-gcp.nais.io/local/cert", pubKey)
 		if err != nil {
 			return err
 		}
@@ -145,7 +131,7 @@ func (o *darwin) Install(ctx context.Context) error {
 	}
 
 	currentIdentities, err := identities(ctx, serial.GetSerial())
-	if err != nil {
+	if err != nil || len(currentIdentities) == 0 {
 		return fmt.Errorf("unable to find identity in keychain: %s", err)
 	}
 
@@ -156,6 +142,42 @@ func (o *darwin) Install(ctx context.Context) error {
 	}
 
 	return nil
+}
+
+func (o *darwin) generate(ctx context.Context, serial string, pubKeyPath string) error {
+	id, err := generateKeyAndCertificate(ctx, serial)
+	if err != nil {
+		return err
+	}
+	w, err := os.CreateTemp(os.TempDir(), "naisdevice-")
+	if err != nil {
+		return err
+	}
+	defer w.Close()
+	defer os.Remove(w.Name())
+	// Write key+certificate pair to disk
+	err = id.SerializePEM(w)
+	if err != nil {
+		return err
+	}
+	// flush contents to disk
+	err = w.Close()
+	if err != nil {
+		return err
+	}
+	// run Mac OS X keychain import tool
+	cmd := exec.CommandContext(ctx, "/usr/bin/security", "import", w.Name(), "-A")
+	err = cmd.Run()
+	if err != nil {
+		return err
+	}
+
+	publicKey, err := x509.MarshalPKIXPublicKey(&id.privateKey.PublicKey)
+	if err != nil {
+		return err
+	}
+
+	return os.WriteFile(pubKeyPath, publicKey, 0o644)
 }
 
 func identities(ctx context.Context, serial string) ([]string, error) {
