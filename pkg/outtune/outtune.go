@@ -67,13 +67,17 @@ func download(ctx context.Context, serial string, privateKey *rsa.PrivateKey) (*
 		return nil, err
 	}
 
+	return downloadWithPublicKey(ctx, serial, publicKey)
+}
+
+func downloadWithPublicKey(ctx context.Context, serial string, publicKey []byte) (*response, error) {
 	block := &pem.Block{
 		Type:  "PUBLIC KEY",
 		Bytes: publicKey,
 	}
 
 	buf := &bytes.Buffer{}
-	err = pem.Encode(buf, block)
+	err := pem.Encode(buf, block)
 	if err != nil {
 		return nil, fmt.Errorf("encode public key in PEM format: %w", err)
 	}
