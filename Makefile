@@ -102,6 +102,11 @@ packaging/linux/icons/*/apps/naisdevice.png: assets/nais-logo-blue.png
 		convert assets/nais-logo-blue.png -scale $$size^ -background none -gravity center -extent $$size packaging/linux/icons/$$size/apps/naisdevice.png ; \
   	done
 
+windows-icon: packaging/windows/naisdevice.ico
+packaging/windows/naisdevice.ico: assets/nais-logo-blue.png
+	convert assets/nais-logo-blue.png -background transparent -define icon:auto-resize=48,64,96,128,256 -gravity center packaging/windows/naisdevice.ico
+
+
 macos-icon: assets/naisdevice.icns
 assets/naisdevice.icns:
 	rm -rf MyIcon.iconset
@@ -173,6 +178,9 @@ pkg: app gon
 # Run by GitHub actions on linux
 deb: linux-client linux-icon
 	./packaging/linux/build-deb $(VERSION)
+
+nsis: windows-client windows-icon
+	makensis ./packaging/windows/naisdevice.nsi
 
 controlplane_paths = $(wildcard packaging/controlplane/*)
 controlplane_components = $(controlplane_paths:packaging/controlplane/%=%)
