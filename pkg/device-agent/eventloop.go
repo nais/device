@@ -96,7 +96,7 @@ func (das *DeviceAgentServer) syncConfigLoop(ctx context.Context, gateways chan<
 		}
 
 		token := das.rc.Tokens.Token.AccessToken
-		if das.rc.ActiveTenant.AuthProvider == pb.AuthProvider_Google {
+		if das.rc.GetActiveTenant().AuthProvider == pb.AuthProvider_Google {
 			token = das.rc.Tokens.IDToken
 		}
 
@@ -188,8 +188,8 @@ func (das *DeviceAgentServer) EventLoop(ctx context.Context) {
 		}
 
 		// default to first tenant in list
-		if das.rc.ActiveTenant == nil {
-			das.rc.ActiveTenant = das.rc.Tenants[0]
+		if das.rc.GetActiveTenant() == nil {
+			das.rc.Tenants[0].Active = true
 		}
 
 		select {
@@ -218,9 +218,9 @@ func (das *DeviceAgentServer) EventLoop(ctx context.Context) {
 			certRenewalTicker.Reset(certCheckInterval)
 			log.Info("CHECKING FOR CERTIFICATE")
 
-			if !das.Config.AgentConfiguration.CertRenewal || !das.rc.ActiveTenant.OuttuneEnabled {
+			if !das.Config.AgentConfiguration.CertRenewal || !das.rc.GetActiveTenant().OuttuneEnabled {
 				log.WithFields(log.Fields{
-					"rc.tenant": das.rc.ActiveTenant,
+					"rc.tenant": das.rc.GetActiveTenant(),
 				}).Info("skipped cert renewal - disabled")
 				break
 			}
@@ -400,8 +400,8 @@ func (das *DeviceAgentServer) EventLoop(ctx context.Context) {
 					log.Infof("validate token: %v", err)
 
 					ctx, cancel := context.WithTimeout(ctx, authFlowTimeout)
-					oauth2Config := das.rc.Config.OAuth2Config(das.rc.ActiveTenant.AuthProvider)
-					log.Infof("%+v", das.rc.ActiveTenant)
+					oauth2Config := das.rc.Config.OAuth2Config(das.rc.GetActiveTenant().AuthProvider)
+					log.Infof("%+v", das.rc.GetActiveTenant())
 					log.Infof("%+v", oauth2Config)
 					das.rc.Tokens, err = auth.GetDeviceAgentToken(ctx, oauth2Config, das.Config.GoogleAuthServerAddress)
 					cancel()

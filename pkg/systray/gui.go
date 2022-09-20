@@ -123,14 +123,14 @@ func NewGUI(ctx context.Context, client pb.DeviceAgentClient, cfg Config) *Gui {
 
 	for i := range gui.MenuItems.GatewayItems {
 		gui.MenuItems.GatewayItems[i] = &GatewayItem{}
-		gui.MenuItems.GatewayItems[i].MenuItem = systray.AddMenuItem("", "")
+		gui.MenuItems.GatewayItems[i].MenuItem = systray.AddMenuItemCheckbox("", "", false)
 		gui.MenuItems.GatewayItems[i].MenuItem.Disable()
 		gui.MenuItems.GatewayItems[i].MenuItem.Hide()
 	}
 
 	for i := range gui.MenuItems.TenantItems {
 		gui.MenuItems.TenantItems[i] = &TenantItem{}
-		gui.MenuItems.TenantItems[i].MenuItem = gui.MenuItems.Tenant.AddSubMenuItem("", "")
+		gui.MenuItems.TenantItems[i].MenuItem = gui.MenuItems.Tenant.AddSubMenuItemCheckbox("", "", false)
 		gui.MenuItems.TenantItems[i].MenuItem.Disable()
 		gui.MenuItems.TenantItems[i].MenuItem.Hide()
 	}
@@ -329,6 +329,11 @@ func (gui *Gui) handleAgentStatus(agentStatus *pb.AgentStatus) {
 		menuItem.SetTitle(tenant.Name)
 		menuItem.Show()
 		menuItem.Enable()
+		if tenant.Active {
+			menuItem.Check()
+		} else {
+			menuItem.Uncheck()
+		}
 	}
 }
 

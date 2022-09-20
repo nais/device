@@ -36,8 +36,16 @@ type RuntimeConfig struct {
 	PrivateKey   []byte
 	SessionInfo  *pb.Session
 	Tokens       *auth.Tokens
-	ActiveTenant *pb.Tenant
 	Tenants      []*pb.Tenant
+}
+
+func (rc *RuntimeConfig) GetActiveTenant() *pb.Tenant {
+	for _, tenant := range rc.Tenants {
+		if tenant.Active {
+			return tenant
+		}
+	}
+	return nil
 }
 
 func New(cfg *config.Config) (*RuntimeConfig, error) {
@@ -60,7 +68,7 @@ func (r *RuntimeConfig) EnsureEnrolled(ctx context.Context, serial string) error
 	log.Infoln("Enrolling device")
 
 	var err error
-	if r.ActiveTenant.AuthProvider == pb.AuthProvider_Google {
+	if r.GetActiveTenant().AuthProvider == pb.AuthProvider_Google {
 		err = r.enrollGoogle(ctx, serial)
 	} else {
 		err = r.enrollAzure(ctx, serial)
@@ -202,8 +210,8 @@ func (r *RuntimeConfig) getEnrollURL(ctx context.Context) (string, error) {
 }
 
 func (r *RuntimeConfig) getPartnerDomain() (string, error) {
-	if r.ActiveTenant.Domain != "" {
-		return r.ActiveTenant.Domain, nil
+	if r.GetActiveTenant().Domain != "" {
+		return r.GetActiveTenant().Domain, nil
 	}
 
 	t, err := jwt.ParseString(r.Tokens.IDToken)

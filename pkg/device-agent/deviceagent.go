@@ -113,9 +113,14 @@ func (das *DeviceAgentServer) GetAgentConfiguration(ctx context.Context, req *pb
 }
 
 func (das *DeviceAgentServer) SetActiveTenant(ctx context.Context, req *pb.SetActiveTenantRequest) (*pb.SetActiveTenantResponse, error) {
-	for _, tenant := range das.rc.Tenants {
+	// Mark all tenants inactive
+	for i := range das.rc.Tenants {
+		das.rc.Tenants[i].Active = false
+	}
+
+	for i, tenant := range das.rc.Tenants {
 		if tenant.Name == req.Name {
-			das.rc.ActiveTenant = tenant
+			das.rc.Tenants[i].Active = true
 			das.rc.EnrollConfig = nil
 			das.rc.Tokens = nil
 			das.stateChange <- pb.AgentState_Disconnecting

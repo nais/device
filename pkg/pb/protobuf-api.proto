@@ -235,6 +235,7 @@ message Tenant {
   AuthProvider authProvider = 2;
   bool outtuneEnabled = 3;
   string domain = 4;
+  bool active = 5;
 }
 
 message AgentConfiguration {
