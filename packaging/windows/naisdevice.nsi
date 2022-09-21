@@ -31,8 +31,13 @@ VIProductVersion "${VERSION}"
 
 ; Pages ------------------------------------
 
+!insertmacro MUI_PAGE_WELCOME
 !insertmacro MUI_PAGE_INSTFILES
-; TODO: Add uninstaller pages
+!insertmacro MUI_PAGE_FINISH
+
+!insertmacro MUI_UNPAGE_WELCOME
+!insertmacro MUI_UNPAGE_INSTFILES
+!insertmacro MUI_UNPAGE_FINISH
 
 ; Languages --------------------------------
 
@@ -43,9 +48,7 @@ VIProductVersion "${VERSION}"
 Section "-install files"
     CreateDirectory $INSTDIR
     SetOutPath $INSTDIR
-    File ${SOURCE}\naisdevice-agent.exe
-    File ${SOURCE}\naisdevice-systray.exe
-    File ${SOURCE}\naisdevice-helper.exe
+    File ${SOURCE}\naisdevice-*.exe
 SectionEnd
 
 Section "-create helper service"
