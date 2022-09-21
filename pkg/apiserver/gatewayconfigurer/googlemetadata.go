@@ -30,6 +30,8 @@ func NewGoogleMetadata(db database.APIServer, log *log.Entry) *GoogleMetadata {
 }
 
 func (g *GoogleMetadata) SyncContinuously(ctx context.Context, syncInterval time.Duration) {
+	log.Infof("Syncing gatway-config from google vm metadata every %q", syncInterval)
+
 	ticker := time.NewTicker(syncInterval)
 	defer ticker.Stop()
 

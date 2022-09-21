@@ -32,6 +32,8 @@ type GatewayConfig struct {
 }
 
 func (g *GatewayConfigurer) SyncContinuously(ctx context.Context) {
+	log.Infof("Syncing gateway-config from bucket %q every %q", g.Bucket, g.SyncInterval)
+
 	for {
 		select {
 		case <-time.After(g.SyncInterval):
