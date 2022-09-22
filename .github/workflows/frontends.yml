@@ -132,7 +132,11 @@ jobs:
   build-linux:
     strategy:
       matrix:
-        output-suffix: ["", "-tenant"]
+        include:
+          - gotags: ""
+            output-suffix: ""
+          - gotags: "tenant"
+            output-suffix: "-tenant"
     needs:
       - set-version
     runs-on: ubuntu-latest
