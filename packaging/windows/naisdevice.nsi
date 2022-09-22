@@ -5,11 +5,15 @@
 !define UNINSTALLER "uninstaller.exe"
 !define SOURCE "../../bin/windows-client"
 !define WIREGUARD "wireguard-amd64-0.5.3.msi"
+!define REG_UNINSTALL "Software\Microsoft\Windows\CurrentVersion\Uninstall"
+!define REG_ARP "${REG_UNINSTALL}\${APP_NAME}"
+!define REG_LEGACY "${REG_UNINSTALL}\{56053D33-DC41-43BC-99D0-C9569C306E79}"
 
 ; Includes ---------------------------------
 !include MUI2.nsh
 !include nsDialogs.nsh
 !include LogicLib.nsh
+!include FileFunc.nsh
 
 ; Settings ---------------------------------
 Name "${APP_NAME}"
@@ -39,6 +43,7 @@ VIProductVersion "${VERSION}"
 !insertmacro MUI_PAGE_WELCOME
 ; TODO: Add downgrade check
 ; TODO: Stop running instances of naisdevice *and* WireGuard
+; TODO: Uninstall legacy installer version
 !insertmacro MUI_PAGE_INSTFILES
 
 Var Dialog
@@ -81,14 +86,32 @@ Section "-uninstaller"
 SectionEnd
 
 Section "-add to add/remove"
-    ; TODO
+    ; Add simple details
+    WriteRegStr HKLM "${REG_ARP}" "DisplayName" "${APP_NAME}"
+    WriteRegStr HKLM "${REG_ARP}" "UninstallString" "$\"$INSTDIR\${UNINSTALLER}$\""
+    WriteRegStr HKLM "${REG_ARP}" "QuietUninstallString" "$\"$INSTDIR\${UNINSTALLER}$\" /S"
+    WriteRegStr HKLM "${REG_ARP}" "InstallLocation" "$INSTDIR"
+    WriteRegStr HKLM "${REG_ARP}" "DisplayIcon" "$INSTDIR\naisdevice.ico"
+    WriteRegStr HKLM "${REG_ARP}" "ProductID" ""
+    WriteRegStr HKLM "${REG_ARP}" "HelpLink" "https://doc.nais.io/device"
+    WriteRegStr HKLM "${REG_ARP}" "URLUpdateInfo" "https://github.com/nais/device/releases/latest"
+    WriteRegStr HKLM "${REG_ARP}" "URLInfoAbout" "slack://channel?team=T5LNAMWNA&amp;id=D011T20LDHD"
+    WriteRegStr HKLM "${REG_ARP}" "DisplayVersion" "${VERSION}"
+
+    WriteRegDWORD HKLM "${REG_ARP}" "NoModify" "1"
+    WriteRegDWORD HKLM "${REG_ARP}" "NoRepair" "1"
+
+    ; Add estimated size
+    ${GetSize} "$INSTDIR" "/S=0K" $0 $1 $2
+    IntFmt $0 "0x%08X" $0
+    WriteRegDWORD HKLM "${REG_ARP}" "EstimatedSize" "$0"
 SectionEnd
 
 Section "Uninstall"
-  ; TODO: Do proper cleanup
   Delete $INSTDIR\${UNINSTALLER} ; delete self (see explanation below why this works)
   Delete $INSTDIR\naisdevice-*.exe ; delete self (see explanation below why this works)
   RMDir $INSTDIR
+  DeleteRegKey HKLM "${REG_ARP}"
 SectionEnd
 
 ; Functions --------------------------------
