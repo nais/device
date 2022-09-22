@@ -104,7 +104,8 @@ packaging/linux/icons/*/apps/naisdevice.png: assets/nais-logo-blue.png
 
 windows-icon: packaging/windows/naisdevice.ico
 packaging/windows/naisdevice.ico: assets/nais-logo-blue.png
-	convert assets/nais-logo-blue.png -background transparent -define icon:auto-resize=48,64,96,128,256 -gravity center packaging/windows/naisdevice.ico
+	mkdir -p packaging/windows/assets/
+	convert assets/nais-logo-blue.png -background transparent -define icon:auto-resize=48,64,96,128,256 -gravity center packaging/windows/assets/naisdevice.ico
 
 
 macos-icon: assets/naisdevice.icns

@@ -12,7 +12,7 @@ cmd/helper/main_windows.syso
 packaging/windows/obj
 packaging/windows/.vagrant/
 packaging/windows/naisdevice-*.exe
-packaging/windows/naisdevice.ico
+packaging/windows/assets/
 packaging/linux/icons
 device-agent.log
 *.deb
