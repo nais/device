@@ -15,15 +15,14 @@
 Name "${APP_NAME}"
 OutFile "${APP_NAME}-${VERSION}.exe"
 RequestExecutionLevel user
-InstallDir "$PROGRAMFILES64\${APP_NAME}"
-
-SetCompressor /SOLID lzma
+InstallDir "$PROGRAMFILES64\NAV\${APP_NAME}"
 AllowSkipFiles off
 
 ; File properties details
 !if ${VERSION} != "develop"
+SetCompressor /SOLID lzma
 VIAddVersionKey "ProductName" "${APP_NAME}"
-VIAddVersionKey "CompanyName" "NAV - nais"
+VIAddVersionKey "CompanyName" "NAV"
 VIAddVersionKey "ProductVersion" "${VERSION}"
 VIAddVersionKey "FileVersion" "${VERSION}"
 VIAddVersionKey "FileDescription" "${APP_NAME}"
@@ -38,7 +37,8 @@ VIProductVersion "${VERSION}"
 ;; Installer pages
 
 !insertmacro MUI_PAGE_WELCOME
-
+; TODO: Add downgrade check
+; TODO: Stop running instances of naisdevice *and* WireGuard
 !insertmacro MUI_PAGE_INSTFILES
 
 Var Dialog
@@ -61,13 +61,27 @@ Section "-install files"
     CreateDirectory $INSTDIR
     SetOutPath $INSTDIR
     File ${SOURCE}\naisdevice-*.exe
+    File assets\naisdevice.ico
+SectionEnd
+
+Section "-create shortcuts"
+    ; TODO
 SectionEnd
 
 Section "-create helper service"
+    ; TODO
+SectionEnd
+
+Section "-create app_data folder (and logs)"
+    ; TODO
 SectionEnd
 
 Section "-uninstaller"
     WriteUninstaller $INSTDIR\${UNINSTALLER}
+SectionEnd
+
+Section "-add to add/remove"
+    ; TODO
 SectionEnd
 
 Section "Uninstall"
