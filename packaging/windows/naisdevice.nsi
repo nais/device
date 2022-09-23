@@ -1,3 +1,8 @@
+; Additional includes and plugins
+
+!addincludedir "nsis\include"
+!addplugindir "nsis\plugins"
+
 ; Definitions
 
 !define APP_NAME "naisdevice"
@@ -8,8 +13,12 @@
 !define REG_UNINSTALL "Software\Microsoft\Windows\CurrentVersion\Uninstall"
 !define REG_ARP "${REG_UNINSTALL}\${APP_NAME}"
 !define REG_LEGACY "${REG_UNINSTALL}\{56053D33-DC41-43BC-99D0-C9569C306E79}"
+!define SERVICE_NAME "NaisDeviceHelper"
+
+!define PBS_MARQUEE 0x08
 
 ; Includes ---------------------------------
+!include WinMessages.nsh
 !include MUI2.nsh
 !include nsDialogs.nsh
 !include LogicLib.nsh
@@ -34,20 +43,24 @@ VIAddVersionKey "LegalCopyright" "NAV - nais"
 VIProductVersion "${VERSION}"
 !endif
 
-; MUI settings
+; Global variables :scream:
+
+Var Dialog
+Var ProgressBar
+Var Label
+Var Countdown
 
 ; Pages ------------------------------------
 
 ;; Installer pages
 
 !insertmacro MUI_PAGE_WELCOME
-; TODO: Add downgrade check
-; TODO: Stop running instances of naisdevice *and* WireGuard
+; TODO: Add downgrade check?
+; TODO: Stop running userspace instances of naisdevice
+Page custom StopServices
 ; TODO: Uninstall legacy installer version
 !insertmacro MUI_PAGE_INSTFILES
 
-Var Dialog
-Var Label
 Page custom InstallWireGuard
 
 ;; Uninstaller pages
@@ -108,8 +121,9 @@ Section "-add to add/remove"
 SectionEnd
 
 Section "Uninstall"
-  Delete $INSTDIR\${UNINSTALLER} ; delete self (see explanation below why this works)
-  Delete $INSTDIR\naisdevice-*.exe ; delete self (see explanation below why this works)
+  Delete $INSTDIR\naisdevice-*.exe
+  Delete $INSTDIR\naisdevice.ico
+  Delete $INSTDIR\${UNINSTALLER}
   RMDir $INSTDIR
   DeleteRegKey HKLM "${REG_ARP}"
 SectionEnd
@@ -145,4 +159,55 @@ Function InstallWireGuard
         Delete $TEMP\${WIREGUARD}
         Abort
     done:
+FunctionEnd
+
+Function StopServices
+    ; TODO: Only do this if service exists
+    ;SimpleSC::ExistsService ${SERVICE_NAME}
+    ;Pop $0
+    ;${If} $0 = 0
+    ;    Goto end
+    ;${EndIf}
+
+    !define ss_header "Stopping running instances"
+    !define ss_subheader "Stopping previous version to allow overwriting files"
+    !define ss_main_text "Before we can install this version of naisdevice we need to stop any running instances.$\n$\n\
+                       This includes stopping the NaisDeviceHelper service running in the background.$\n$\n\
+                       Unfortunately, this may take some time, so please be patient while we attempt to stop everything."
+    !insertmacro MUI_HEADER_TEXT "${ss_header}" "${ss_subheader}"
+
+    nsDialogs::Create 1018
+	Pop $Dialog
+	${If} $Dialog == error
+		Abort
+	${EndIf}
+
+    ${NSD_CreateProgressBar} 0 0 100% 10% "Test"
+    Pop $ProgressBar
+	${If} $ProgressBar == error
+		Abort
+	${EndIf}
+
+    ${NSD_AddStyle} $ProgressBar ${PBS_MARQUEE}
+
+    EnableWindow $mui.Button.Next 0
+	${NSD_CreateLabel} 0 15% 100% 100% "${ss_main_text}"
+    Pop $Label
+
+    StrCpy $Countdown 60000
+    ${NSD_CreateTimer} ProgressStepCallback 50
+	nsDialogs::Show
+FunctionEnd
+
+Function ProgressStepCallback
+    ; TODO: Check if process still running instead of waiting for 60 seconds
+    ${If} $Countdown = 60000
+        SendMessage $ProgressBar ${PBM_SETMARQUEE} 1 50 ; start=1|stop=0 interval(ms)=+N
+        SimpleSC::StopService ${SERVICE_NAME} 1 30
+    ${ElseIf} $Countdown <= 0
+        ${NSD_KillTimer} ProgressStepCallback
+        SendMessage $ProgressBar ${PBM_SETMARQUEE} 0 0 ; start=1|stop=0 interval(ms)=+N
+        EnableWindow $mui.Button.Next 1
+    ${EndIf}
+    IntOp $Countdown $Countdown - 50
 FunctionEnd
