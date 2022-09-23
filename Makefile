@@ -168,7 +168,7 @@ pkg: app gon
 	productsign --sign "Developer ID Installer: Torbjorn Hallenberg" unsigned.pkg naisdevice.pkg
 	rm -f ./component.pkg ./unsigned.pkg
 	rm -rf ./pkgtemp ./naisdevice.app
-	./gon --log-level=debug packaging/macos/gon-pkg.json
+	#./gon --log-level=debug packaging/macos/gon-pkg.json
 
 # Run by GitHub actions on linux
 deb: linux-client linux-icon
