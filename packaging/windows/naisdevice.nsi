@@ -14,6 +14,7 @@
 !define REG_ARP "${REG_UNINSTALL}\${APP_NAME}"
 !define REG_LEGACY "${REG_UNINSTALL}\{56053D33-DC41-43BC-99D0-C9569C306E79}"
 !define SERVICE_NAME "NaisDeviceHelper"
+!define PAGE_TIMEOUT 60000
 
 !define PBS_MARQUEE 0x08
 
@@ -23,6 +24,7 @@
 !include nsDialogs.nsh
 !include LogicLib.nsh
 !include FileFunc.nsh
+!include nsProcess.nsh
 
 ; Settings ---------------------------------
 Name "${APP_NAME}"
@@ -48,7 +50,8 @@ VIProductVersion "${VERSION}"
 Var Dialog
 Var ProgressBar
 Var Label
-Var Countdown
+Var Timeout
+Var Result
 
 ; Pages ------------------------------------
 
@@ -57,7 +60,7 @@ Var Countdown
 !insertmacro MUI_PAGE_WELCOME
 ; TODO: Add downgrade check?
 ; TODO: Stop running userspace instances of naisdevice
-Page custom StopServices
+Page custom StopInstances
 ; TODO: Uninstall legacy installer version
 !insertmacro MUI_PAGE_INSTFILES
 
@@ -161,13 +164,57 @@ Function InstallWireGuard
     done:
 FunctionEnd
 
-Function StopServices
-    ; TODO: Only do this if service exists
-    ;SimpleSC::ExistsService ${SERVICE_NAME}
-    ;Pop $0
-    ;${If} $0 = 0
-    ;    Goto end
-    ;${EndIf}
+; Places number of running instances on stack
+Function CountRunningInstances
+    Push $R9
+    StrCpy $R9 0
+    ${nsProcess::FindProcess} "naisdevice-agent.exe" $Result
+    ${If} $Result = 0
+        IntOp $R9 $R9 + 1
+    ${EndIf}
+    ${nsProcess::FindProcess} "naisdevice-systray.exe" $Result
+    ${If} $Result = 0
+        IntOp $R9 $R9 + 1
+    ${EndIf}
+    ${nsProcess::FindProcess} "naisdevice-helper.exe" $Result
+    ${If} $Result = 0
+        IntOp $R9 $R9 + 1
+    ${EndIf}
+    Push $R9
+    Exch
+    Pop $R9
+FunctionEnd
+
+; Places number of closed processes on stack
+Function CloseRunningInstances
+    Push $R9
+    StrCpy $R9 0
+    ${nsProcess::CloseProcess} "naisdevice-agent.exe" $Result
+    ${If} $Result = 0
+        IntOp $R9 $R9 + 1
+    ${EndIf}
+    ${nsProcess::CloseProcess} "naisdevice-systray.exe" $Result
+    ${If} $Result = 0
+        IntOp $R9 $R9 + 1
+    ${EndIf}
+    ${nsProcess::CloseProcess} "naisdevice-helper.exe" $Result
+    ${If} $Result = 0
+        IntOp $R9 $R9 + 1
+    ${EndIf}
+    Push $R9
+    Exch
+    Pop $R9
+FunctionEnd
+
+Function StopInstances
+    SimpleSC::ExistsService ${SERVICE_NAME} ; <> 0 => service exists
+    Pop $0
+    Call CountRunningInstances
+    Pop $1
+    ${If} $0 = 0
+    ${AndIf} $1 = 0
+        Abort
+    ${EndIf}
 
     !define ss_header "Stopping running instances"
     !define ss_subheader "Stopping previous version to allow overwriting files"
@@ -194,20 +241,30 @@ Function StopServices
 	${NSD_CreateLabel} 0 15% 100% 100% "${ss_main_text}"
     Pop $Label
 
-    StrCpy $Countdown 60000
+    StrCpy $Timeout ${PAGE_TIMEOUT}
     ${NSD_CreateTimer} ProgressStepCallback 50
 	nsDialogs::Show
 FunctionEnd
 
 Function ProgressStepCallback
-    ; TODO: Check if process still running instead of waiting for 60 seconds
-    ${If} $Countdown = 60000
+    Call CountRunningInstances
+    Pop $0
+    ${If} $Timeout = ${PAGE_TIMEOUT}
+        ; Start progressbar and attempt stopping the service
         SendMessage $ProgressBar ${PBM_SETMARQUEE} 1 50 ; start=1|stop=0 interval(ms)=+N
         SimpleSC::StopService ${SERVICE_NAME} 1 30
-    ${ElseIf} $Countdown <= 0
+    ${ElseIf} $0 = 0
+        ; No more processes, clear timeout ending loop
+        IntOp $Timeout $Timeout - ${PAGE_TIMEOUT}
+    ${ElseIf} $Timeout <= 0
+        ; Timeout ended, clear progressbar and progress to next page
         ${NSD_KillTimer} ProgressStepCallback
         SendMessage $ProgressBar ${PBM_SETMARQUEE} 0 0 ; start=1|stop=0 interval(ms)=+N
         EnableWindow $mui.Button.Next 1
+        SendMessage $mui.Button.Next ${BM_CLICK} 0 0
+    ${Else}
+        ; Attempt to stop the processes forcefully
+        Call CloseRunningInstances
     ${EndIf}
-    IntOp $Countdown $Countdown - 50
+    IntOp $Timeout $Timeout - 50
 FunctionEnd
