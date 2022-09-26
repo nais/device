@@ -34,7 +34,6 @@ type RuntimeConfig struct {
 	EnrollConfig *bootstrap.Config // TODO: convert to enroll.Config
 	Config       *config.Config
 	PrivateKey   []byte
-	SessionInfo  *pb.Session
 	Tokens       *auth.Tokens
 	Tenants      []*pb.Tenant
 }
@@ -166,12 +165,19 @@ func (r *RuntimeConfig) SaveEnrollConfig() error {
 }
 
 func (r *RuntimeConfig) LoadEnrollConfig() error {
-	b, err := os.ReadFile(r.path())
+	path := r.path()
+	b, err := os.ReadFile(path)
 	if err != nil {
-		return fmt.Errorf("reading bootstrap config from disk: %w", err)
+		return fmt.Errorf("reading bootstrap config from %q: %w", path, err)
 	}
 
-	return json.Unmarshal(b, r.EnrollConfig)
+	ec := &bootstrap.Config{}
+	if err := json.Unmarshal(b, ec); err != nil {
+		return err
+	}
+
+	r.EnrollConfig = ec
+	return nil
 }
 
 func findPeer(gateway []*pb.Gateway, s string) *pb.Gateway {
@@ -214,14 +220,18 @@ func (r *RuntimeConfig) getPartnerDomain() (string, error) {
 		return r.GetActiveTenant().Domain, nil
 	}
 
-	t, err := jwt.ParseString(r.Tokens.IDToken)
-	if err != nil {
-		return "", fmt.Errorf("parse token: %w", err)
+	if r.Tokens != nil {
+		t, err := jwt.ParseString(r.Tokens.IDToken)
+		if err != nil {
+			return "", fmt.Errorf("parse token: %w", err)
+		}
+
+		hd, _ := t.Get("hd")
+
+		return hd.(string), nil
+	} else {
+		return "", fmt.Errorf("unable to identify tenant domain")
 	}
-
-	hd, _ := t.Get("hd")
-
-	return hd.(string), nil
 }
 
 func (r *RuntimeConfig) path() string {
@@ -268,4 +278,21 @@ func (r *RuntimeConfig) PopulateTenants(ctx context.Context) error {
 	}
 
 	return nil
+}
+
+func (rc *RuntimeConfig) SetTenantSession(session *pb.Session) error {
+	if tenant := rc.GetActiveTenant(); tenant != nil {
+		tenant.Session = session
+		return nil
+	}
+
+	return fmt.Errorf("no active tenant. tenants: %+v", rc.Tenants)
+}
+
+func (rc *RuntimeConfig) GetTenantSession() (*pb.Session, error) {
+	if tenant := rc.GetActiveTenant(); tenant != nil {
+		return tenant.Session, nil
+	}
+
+	return nil, fmt.Errorf("no active tenant. tenants: %+v", rc.Tenants)
 }
