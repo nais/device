@@ -16,10 +16,11 @@
 !define SERVICE_NAME "NaisDeviceHelper"
 !define PAGE_TIMEOUT 60000
 
+!define FOLDERID_ProgramData "{62AB5D82-FDC1-4DC3-A9DD-070D1D495D97}"
 !define PBS_MARQUEE 0x08
 
 ; Includes ---------------------------------
-!include WinMessages.nsh
+!include WinCore.nsh
 !include MUI2.nsh
 !include nsDialogs.nsh
 !include LogicLib.nsh
@@ -53,6 +54,7 @@ Var ProgressBar
 Var Label
 Var Timeout
 Var Result
+Var ProgramDataPath
 
 ; Pages ------------------------------------
 
@@ -93,7 +95,10 @@ Section "-create helper service"
 SectionEnd
 
 Section "-create app_data folder (and logs)"
-    ; TODO
+    GetKnownFolderPath $ProgramDataPath "${FOLDERID_ProgramData}"
+    CreateDirectory "$ProgramDataPath\NAV\naisdevice\etc"
+    CreateDirectory "$ProgramDataPath\NAV\naisdevice\logs"
+    CreateDirectory "$ProgramDataPath\NAV\naisdevice\run"
 SectionEnd
 
 Section "-uninstaller"
@@ -123,11 +128,13 @@ Section "-add to add/remove"
 SectionEnd
 
 Section "Uninstall"
-  Delete $INSTDIR\naisdevice-*.exe
-  Delete $INSTDIR\naisdevice.ico
-  Delete $INSTDIR\${UNINSTALLER}
-  RMDir $INSTDIR
-  DeleteRegKey HKLM "${REG_ARP}"
+    GetKnownFolderPath $ProgramDataPath "${FOLDERID_ProgramData}"
+    RMDir /r "$ProgramDataPath\NAV"
+    Delete $INSTDIR\naisdevice-*.exe
+    Delete $INSTDIR\naisdevice.ico
+    Delete $INSTDIR\${UNINSTALLER}
+    RMDir $INSTDIR
+    DeleteRegKey HKLM "${REG_ARP}"
 SectionEnd
 
 ; Functions --------------------------------
