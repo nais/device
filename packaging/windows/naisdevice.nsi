@@ -25,6 +25,7 @@
 !include LogicLib.nsh
 !include FileFunc.nsh
 !include nsProcess.nsh
+!include utils.nsh
 
 ; Settings ---------------------------------
 Name "${APP_NAME}"
@@ -59,11 +60,9 @@ Var Result
 
 !insertmacro MUI_PAGE_WELCOME
 ; TODO: Add downgrade check?
-; TODO: Stop running userspace instances of naisdevice
 Page custom StopInstances
-; TODO: Uninstall legacy installer version
 !insertmacro MUI_PAGE_INSTFILES
-
+; TODO: Uninstall legacy installer version
 Page custom InstallWireGuard
 
 ;; Uninstaller pages
@@ -170,14 +169,17 @@ Function CountRunningInstances
     StrCpy $R9 0
     ${nsProcess::FindProcess} "naisdevice-agent.exe" $Result
     ${If} $Result = 0
+        !insertmacro _Log "naisdevice-agent.exe still running"
         IntOp $R9 $R9 + 1
     ${EndIf}
     ${nsProcess::FindProcess} "naisdevice-systray.exe" $Result
     ${If} $Result = 0
+        !insertmacro _Log "naisdevice-systray.exe still running"
         IntOp $R9 $R9 + 1
     ${EndIf}
     ${nsProcess::FindProcess} "naisdevice-helper.exe" $Result
     ${If} $Result = 0
+        !insertmacro _Log "naisdevice-helper.exe still running"
         IntOp $R9 $R9 + 1
     ${EndIf}
     Push $R9
@@ -191,14 +193,17 @@ Function CloseRunningInstances
     StrCpy $R9 0
     ${nsProcess::CloseProcess} "naisdevice-agent.exe" $Result
     ${If} $Result = 0
+        !insertmacro _Log "naisdevice-agent.exe closed"
         IntOp $R9 $R9 + 1
     ${EndIf}
     ${nsProcess::CloseProcess} "naisdevice-systray.exe" $Result
     ${If} $Result = 0
+        !insertmacro _Log "naisdevice-systray.exe closed"
         IntOp $R9 $R9 + 1
     ${EndIf}
     ${nsProcess::CloseProcess} "naisdevice-helper.exe" $Result
     ${If} $Result = 0
+        !insertmacro _Log "naisdevice-helper.exe closed"
         IntOp $R9 $R9 + 1
     ${EndIf}
     Push $R9
@@ -213,8 +218,11 @@ Function StopInstances
     Pop $1
     ${If} $0 = 0
     ${AndIf} $1 = 0
+        !insertmacro _Log "Skipping stop instances"
         Abort
     ${EndIf}
+
+    !insertmacro _Log "Stopping instances"
 
     !define ss_header "Stopping running instances"
     !define ss_subheader "Stopping previous version to allow overwriting files"
@@ -247,24 +255,33 @@ Function StopInstances
 FunctionEnd
 
 Function ProgressStepCallback
+    !insertmacro _Log "ProgressStepCallback entered. Timeout=$Timeout"
     Call CountRunningInstances
     Pop $0
     ${If} $Timeout = ${PAGE_TIMEOUT}
         ; Start progressbar and attempt stopping the service
+        !insertmacro _Log "Starting progressbar. Timeout=$Timeout"
         SendMessage $ProgressBar ${PBM_SETMARQUEE} 1 50 ; start=1|stop=0 interval(ms)=+N
+        !insertmacro _Log "Attempting to stop ${SERVICE_NAME}. Timeout=$Timeout"
         SimpleSC::StopService ${SERVICE_NAME} 1 30
-    ${ElseIf} $0 = 0
-        ; No more processes, clear timeout ending loop
-        IntOp $Timeout $Timeout - ${PAGE_TIMEOUT}
-    ${ElseIf} $Timeout <= 0
+        !insertmacro _Log "Stopped ${SERVICE_NAME}. Timeout=$Timeout"
+    ${ElseIf} $Timeout < 0
         ; Timeout ended, clear progressbar and progress to next page
+        !insertmacro _Log "Timeout ended, killing timer, resetting progress, enabling and clicking Next. Timeout=$Timeout"
         ${NSD_KillTimer} ProgressStepCallback
         SendMessage $ProgressBar ${PBM_SETMARQUEE} 0 0 ; start=1|stop=0 interval(ms)=+N
         EnableWindow $mui.Button.Next 1
         SendMessage $mui.Button.Next ${BM_CLICK} 0 0
+    ${ElseIf} $0 = 0
+        ; No more processes, clear timeout ending loop
+        !insertmacro _Log "No more processes, clearing timeout. Timeout=$Timeout"
+        IntOp $Timeout $Timeout - ${PAGE_TIMEOUT}
+        !insertmacro _Log "Cleared timeout. Timeout=$Timeout"
     ${Else}
         ; Attempt to stop the processes forcefully
+        !insertmacro _Log "Attempt to stop running processes. Timeout=$Timeout"
         Call CloseRunningInstances
     ${EndIf}
     IntOp $Timeout $Timeout - 50
+    !insertmacro _Log "Leaving ProgressStepCallback. Timeout=$Timeout"
 FunctionEnd
