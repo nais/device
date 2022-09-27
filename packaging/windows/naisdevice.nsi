@@ -5,8 +5,9 @@
 
 ; Definitions
 
+!define /ifndef VERSION "develop" ; Override when building release, MUST match '\d+.\d+.\d+.\d+'
+
 !define APP_NAME "naisdevice"
-!define VERSION "develop" ; Override when building release, MUST match '\d+.\d+.\d+.\d+'
 !define UNINSTALLER "uninstaller.exe"
 !define SOURCE "../../bin/windows-client"
 !define WIREGUARD "wireguard-amd64-0.5.3.msi"
@@ -25,6 +26,11 @@
 !define SERVICE_AUTO_START 2
 
 ; Includes ---------------------------------
+
+!if ${VERSION} != "develop"
+SetCompressor /SOLID lzma
+!endif
+
 !include WinCore.nsh
 !include MUI2.nsh
 !include nsDialogs.nsh
@@ -42,7 +48,6 @@ AllowSkipFiles off
 
 ; File properties details
 !if ${VERSION} != "develop"
-SetCompressor /SOLID lzma
 VIAddVersionKey "ProductName" "${APP_NAME}"
 VIAddVersionKey "CompanyName" "NAV"
 VIAddVersionKey "ProductVersion" "${VERSION}"
@@ -104,7 +109,6 @@ Section "Install files"
 SectionEnd
 
 Section "Create data folder"
-    ; TODO: Check permissions on folders
     GetKnownFolderPath $ProgramDataPath "${FOLDERID_ProgramData}"
     CreateDirectory "$ProgramDataPath\NAV\naisdevice\etc"
     CreateDirectory "$ProgramDataPath\NAV\naisdevice\logs"
@@ -114,8 +118,10 @@ SectionEnd
 Section "Create shortcuts"
     GetKnownFolderPath $ProgramDataPath "${FOLDERID_ProgramData}"
     SetOutPath "$ProgramDataPath\NAV\naisdevice"
-    CreateShortcut "$SMPROGRAMS\naisdevice.lnk" "$INSTDIR\naisdevice-systray.exe" "" "$INSTDIR\naisdevice.ico" "" "" "" "naisdevice is a mechanism enabling NAVs developers to connect to internal resources in a secure and friendly manner."
-    CreateShortcut "$SMSTARTUP\naisdevice.lnk" "$INSTDIR\naisdevice-systray.exe" "" "$INSTDIR\naisdevice.ico" "" "" "" "naisdevice is a mechanism enabling NAVs developers to connect to internal resources in a secure and friendly manner."
+    CreateShortcut "$SMPROGRAMS\naisdevice.lnk" "$INSTDIR\naisdevice-systray.exe" "" "$INSTDIR\naisdevice.ico" \
+        "" "" "" "naisdevice is a mechanism enabling NAVs developers to connect to internal resources in a secure and friendly manner."
+    CreateShortcut "$SMSTARTUP\naisdevice.lnk" "$INSTDIR\naisdevice-systray.exe" "" "$INSTDIR\naisdevice.ico" \
+        "" "" "" "naisdevice is a mechanism enabling NAVs developers to connect to internal resources in a secure and friendly manner."
 SectionEnd
 
 Section "Create helper service"
