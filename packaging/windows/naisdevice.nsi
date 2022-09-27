@@ -104,6 +104,7 @@ Section "Install files"
 SectionEnd
 
 Section "Create data folder"
+    ; TODO: Check permissions on folders
     GetKnownFolderPath $ProgramDataPath "${FOLDERID_ProgramData}"
     CreateDirectory "$ProgramDataPath\NAV\naisdevice\etc"
     CreateDirectory "$ProgramDataPath\NAV\naisdevice\logs"
@@ -111,7 +112,10 @@ Section "Create data folder"
 SectionEnd
 
 Section "Create shortcuts"
-    ; TODO
+    GetKnownFolderPath $ProgramDataPath "${FOLDERID_ProgramData}"
+    SetOutPath "$ProgramDataPath\NAV\naisdevice"
+    CreateShortcut "$SMPROGRAMS\naisdevice.lnk" "$INSTDIR\naisdevice-systray.exe" "" "$INSTDIR\naisdevice.ico" "" "" "" "naisdevice is a mechanism enabling NAVs developers to connect to internal resources in a secure and friendly manner."
+    CreateShortcut "$SMSTARTUP\naisdevice.lnk" "$INSTDIR\naisdevice-systray.exe" "" "$INSTDIR\naisdevice.ico" "" "" "" "naisdevice is a mechanism enabling NAVs developers to connect to internal resources in a secure and friendly manner."
 SectionEnd
 
 Section "Create helper service"
@@ -155,8 +159,11 @@ Section "Uninstall"
     Call un.CloseRunningInstances
     !insertmacro _Log "Removing background service"
     SimpleSC::RemoveService ${SERVICE_NAME}
-    GetKnownFolderPath $ProgramDataPath "${FOLDERID_ProgramData}"
+    !insertmacro _Log "Deleting shortcuts"
+    Delete "$SMPROGRAMS\naisdevice.lnk"
+    Delete "$SMSTARTUP\naisdevice.lnk"
     !insertmacro _Log "Removing installed files"
+    GetKnownFolderPath $ProgramDataPath "${FOLDERID_ProgramData}"
     RMDir /r "$ProgramDataPath\NAV"
     Delete $INSTDIR\naisdevice-*.exe
     Delete $INSTDIR\naisdevice.ico
