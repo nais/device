@@ -180,8 +180,9 @@ pkg: app gon
 deb: linux-client linux-icon
 	./packaging/linux/build-deb $(VERSION)
 
+# Run by GitHub actions on linux(!)
 nsis: windows-client windows-icon
-	makensis ./packaging/windows/naisdevice.nsi
+	./packaging/windows/build-nsis $(VERSION) $(SUFFIX)
 
 controlplane_paths = $(wildcard packaging/controlplane/*)
 controlplane_components = $(controlplane_paths:packaging/controlplane/%=%)
@@ -198,8 +199,11 @@ clean:
 	rm -rf wireguard-tools-*
 	rm -rf naisdevice.app
 	rm -f naisdevice-*.pkg
+	rm -f naisdevice-*.deb
+	rm -f ./packaging/windows/naisdevice*.exe
 	rm -rf ./bin
 	rm -rf ./packaging/linux/icons
+	rm -rf ./packaging/windows/assets
 
 install-protobuf-go:
 	go install google.golang.org/protobuf/cmd/protoc-gen-go@latest

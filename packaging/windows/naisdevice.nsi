@@ -6,6 +6,7 @@
 ; Definitions
 
 !define /ifndef VERSION "develop" ; Override when building release, MUST match '\d+.\d+.\d+.\d+'
+!define /ifndef SUFFIX ""  ; Override when building tenant release
 
 !define APP_NAME "naisdevice"
 !define UNINSTALLER "uninstaller.exe"
@@ -41,7 +42,7 @@ SetCompressor /SOLID lzma
 
 ; Settings ---------------------------------
 Name "${APP_NAME}"
-OutFile "${APP_NAME}-${VERSION}.exe"
+OutFile "${APP_NAME}${SUFFIX}.exe"
 RequestExecutionLevel user
 InstallDir "$PROGRAMFILES64\NAV\${APP_NAME}"
 AllowSkipFiles off
