@@ -16,9 +16,13 @@
 !define REG_LEGACY "${REG_UNINSTALL}\${LEGACY_PRODUCT_CODE}"
 !define SERVICE_NAME "NaisDeviceHelper"
 !define PAGE_TIMEOUT 60000
+!define STEP_INTERVAL 100
 
+; Microsoft defined IDs not available in headers
 !define FOLDERID_ProgramData "{62AB5D82-FDC1-4DC3-A9DD-070D1D495D97}"
 !define PBS_MARQUEE 0x08
+!define SERVICE_WIN32_OWN_PROCESS 16
+!define SERVICE_AUTO_START 2
 
 ; Includes ---------------------------------
 !include WinCore.nsh
@@ -68,7 +72,6 @@ Var LegacyUninstallerCmd
 ;; Installer pages
 
 !insertmacro MUI_PAGE_WELCOME
-; TODO: Add downgrade check?
 Page custom StopInstances
 !insertmacro MUI_PAGE_INSTFILES
 Page custom InstallWireGuard
@@ -88,7 +91,7 @@ Page custom InstallWireGuard
 Section "Uninstall legacy version"
     ReadRegStr $LegacyUninstallerCmd HKLM "${REG_LEGACY}" "UninstallString"
     ${If} $LegacyUninstallerCmd != ""
-        DetailPrint "Executing legacy uninstaller"
+        !insertmacro _Log "Executing legacy uninstaller"
         ExecWait 'MsiExec.exe /uninstall ${LEGACY_PRODUCT_CODE} /qn'
     ${EndIf}
 SectionEnd
@@ -100,19 +103,23 @@ Section "Install files"
     File assets\naisdevice.ico
 SectionEnd
 
-Section "Create shortcuts"
-    ; TODO
-SectionEnd
-
-Section "Create helper service"
-    ; TODO
-SectionEnd
-
 Section "Create data folder"
     GetKnownFolderPath $ProgramDataPath "${FOLDERID_ProgramData}"
     CreateDirectory "$ProgramDataPath\NAV\naisdevice\etc"
     CreateDirectory "$ProgramDataPath\NAV\naisdevice\logs"
     CreateDirectory "$ProgramDataPath\NAV\naisdevice\run"
+SectionEnd
+
+Section "Create shortcuts"
+    ; TODO
+SectionEnd
+
+Section "Create helper service"
+    ; Install service
+    !insertmacro _Log "Installing NaisDeviceHelper service"
+    SimpleSC::InstallService ${SERVICE_NAME} "naisdevice helper" ${SERVICE_WIN32_OWN_PROCESS} ${SERVICE_AUTO_START} \
+        '"$INSTDIR\naisdevice-helper.exe" --interface utun69' "WireGuardManager" "NT AUTHORITY\SYSTEM"
+    SimpleSC::SetServiceDescription ${SERVICE_NAME} "Controls the WireGuard VPN connection"
 SectionEnd
 
 Section "-uninstaller"
@@ -142,28 +149,38 @@ Section "-add to add/remove"
 SectionEnd
 
 Section "Uninstall"
+    !insertmacro _Log "Stopping background service"
+    SimpleSC::StopService ${SERVICE_NAME} 1 60
+    !insertmacro _Log "Stopping running instances"
+    Call un.CloseRunningInstances
+    !insertmacro _Log "Removing background service"
+    SimpleSC::RemoveService ${SERVICE_NAME}
     GetKnownFolderPath $ProgramDataPath "${FOLDERID_ProgramData}"
+    !insertmacro _Log "Removing installed files"
     RMDir /r "$ProgramDataPath\NAV"
     Delete $INSTDIR\naisdevice-*.exe
     Delete $INSTDIR\naisdevice.ico
     Delete $INSTDIR\${UNINSTALLER}
-    DeleteRegKey HKLM "${REG_ARP}"
     RMDir $INSTDIR
+    !insertmacro _Log "Cleaning up registry"
+    DeleteRegKey HKLM "${REG_ARP}"
 SectionEnd
 
 ; Functions --------------------------------
 
 Function GUIInit
-    SetRegView 64
     !insertmacro _Log "Inside GUIInit"
+    SetRegView 64
 FunctionEnd
 
 Function un.GUIInit
-    SetRegView 64
     !insertmacro _Log "Inside un.GUIInit"
+    SetRegView 64
 FunctionEnd
 
 Function InstallWireGuard
+    !insertmacro _Log "InstallWireGuard entered."
+
     !define header "Installation almost complete"
     !define subheader "Installing WireGuard"
     !define main_text "Installation of naisdevice is almost finished.$\n$\n\
@@ -184,18 +201,46 @@ Function InstallWireGuard
 
     SetOutPath $TEMP
     File "${WIREGUARD}"
-    ExecWait 'msiexec /package "$TEMP\${WIREGUARD}"'
-    IfErrors error_installing_dotnet
+    ExecWait 'msiexec /package "$TEMP\${WIREGUARD}"' $R9
+    ${If} ${Errors}
+        !insertmacro _Log "Error while installing WireGuard"
+        !insertmacro _Log "Exit code from wireguard installer: $R9"
+    ${Else}
+        !insertmacro _Log "Exit code from wireguard installer: $R9"
+        Call StartService
+    ${EndIf}
     Delete $TEMP\${WIREGUARD}
-    Goto done
-    error_installing_dotnet:
-        Delete $TEMP\${WIREGUARD}
-        Abort
-    done:
+FunctionEnd
+
+Function StartService
+    !insertmacro _Log "StartService entered."
+
+    Push $R9
+    StrCpy $Timeout ${PAGE_TIMEOUT}
+    ${Do}
+        !insertmacro _Log "Attempting to start ${SERVICE_NAME} service"
+        SimpleSC::StartService ${SERVICE_NAME} "" 60
+        Pop $R9
+        !insertmacro _Log "Result of starting service: $R9 (errorcode (<>0) otherwise success (0))"
+        ${If} $R9 != 0
+            Push $R9
+            SimpleSC::GetErrorMessage
+            Pop $0
+            !insertmacro _Log "Starting service failed: $0"
+        ${EndIf}
+        IntOp $Timeout $Timeout - 100
+        ${If} $Timeout < 0
+            !insertmacro _Log "Timeout expired, breaking"
+            ${Break}
+        ${EndIf}
+    ${LoopUntil} $R9 = 0
+    Pop $R9
 FunctionEnd
 
 ; Places number of running instances on stack
 Function CountRunningInstances
+    !insertmacro _Log "CountRunningInstances entered."
+
     Push $R9
     StrCpy $R9 0
     ${nsProcess::FindProcess} "naisdevice-agent.exe" $Result
@@ -219,7 +264,10 @@ Function CountRunningInstances
 FunctionEnd
 
 ; Places number of closed processes on stack
-Function CloseRunningInstances
+!macro CloseRunningInstances un
+Function ${un}CloseRunningInstances
+    !insertmacro _Log "${un}CloseRunningInstances entered."
+
     Push $R9
     StrCpy $R9 0
     ${nsProcess::CloseProcess} "naisdevice-agent.exe" $Result
@@ -241,13 +289,20 @@ Function CloseRunningInstances
     Exch
     Pop $R9
 FunctionEnd
+!macroend
+!insertmacro CloseRunningInstances ""
+!insertmacro CloseRunningInstances "un."
 
 Function StopInstances
+    !insertmacro _Log "StopInstances entered."
+
     SimpleSC::ExistsService ${SERVICE_NAME} ; <> 0 => service exists
     Pop $0
+    !insertmacro _Log "Service exists: $0 (0: true, *: false)"
     Call CountRunningInstances
     Pop $1
-    ${If} $0 = 0
+    !insertmacro _Log "Number of running instances: $1"
+    ${If} $0 <> 0
     ${AndIf} $1 = 0
         !insertmacro _Log "Skipping stop instances"
         Abort
@@ -281,38 +336,41 @@ Function StopInstances
     Pop $Label
 
     StrCpy $Timeout ${PAGE_TIMEOUT}
-    ${NSD_CreateTimer} ProgressStepCallback 50
+    ${NSD_CreateTimer} ProgressStepCallback ${STEP_INTERVAL}
 	nsDialogs::Show
 FunctionEnd
 
 Function ProgressStepCallback
     !insertmacro _Log "ProgressStepCallback entered. Timeout=$Timeout"
+
     Call CountRunningInstances
     Pop $0
+    ${If} $0 = 0
+        ; No more processes, clear timeout ending loop
+        !insertmacro _Log "No more processes, clearing timeout. Timeout=$Timeout"
+        IntOp $Timeout $Timeout - ${PAGE_TIMEOUT}
+        !insertmacro _Log "Cleared timeout. Timeout=$Timeout"
+    ${EndIf}
+
     ${If} $Timeout = ${PAGE_TIMEOUT}
         ; Start progressbar and attempt stopping the service
         !insertmacro _Log "Starting progressbar. Timeout=$Timeout"
         SendMessage $ProgressBar ${PBM_SETMARQUEE} 1 50 ; start=1|stop=0 interval(ms)=+N
         !insertmacro _Log "Attempting to stop ${SERVICE_NAME}. Timeout=$Timeout"
-        SimpleSC::StopService ${SERVICE_NAME} 1 30
+        SimpleSC::StopService ${SERVICE_NAME} 1 40
         !insertmacro _Log "Stopped ${SERVICE_NAME}. Timeout=$Timeout"
-    ${ElseIf} $Timeout < 0
+    ${ElseIf} $Timeout <= 0
         ; Timeout ended, clear progressbar and progress to next page
         !insertmacro _Log "Timeout ended, killing timer, resetting progress, enabling and clicking Next. Timeout=$Timeout"
         ${NSD_KillTimer} ProgressStepCallback
         SendMessage $ProgressBar ${PBM_SETMARQUEE} 0 0 ; start=1|stop=0 interval(ms)=+N
         EnableWindow $mui.Button.Next 1
         SendMessage $mui.Button.Next ${BM_CLICK} 0 0
-    ${ElseIf} $0 = 0
-        ; No more processes, clear timeout ending loop
-        !insertmacro _Log "No more processes, clearing timeout. Timeout=$Timeout"
-        IntOp $Timeout $Timeout - ${PAGE_TIMEOUT}
-        !insertmacro _Log "Cleared timeout. Timeout=$Timeout"
     ${Else}
         ; Attempt to stop the processes forcefully
         !insertmacro _Log "Attempt to stop running processes. Timeout=$Timeout"
         Call CloseRunningInstances
     ${EndIf}
-    IntOp $Timeout $Timeout - 50
+    IntOp $Timeout $Timeout - ${STEP_INTERVAL}
     !insertmacro _Log "Leaving ProgressStepCallback. Timeout=$Timeout"
 FunctionEnd

@@ -37,10 +37,10 @@ Function ${UN}__TimeStamp
         IntFmt $4 "%02i" $4
         IntFmt $5 "%02i" $5
         IntFmt $6 "%02i" $6
+        IntFmt $7 "%03i" $7
 
     ## Generate Timestamp
-        ;StrCpy $0 "YEAR=$1$\nMONTH=$2$\nDAY=$3$\nHOUR=$4$\nMINUITES=$5$\nSECONDS=$6$\nMS$7"
-        StrCpy $0 "$1$2$3$4$5$6.$7"
+        StrCpy $0 "$1-$2-$3 $4:$5:$6.$7"
 
     ## Restore the Registers and add Timestamp to the Stack
         ;Pop $8  ; Stack $7 $6 $5 $4 $3 $2 $1 $0
@@ -70,6 +70,7 @@ Var _Log_Timestamp
     FileSeek $_Log_FileHandle 0 END
     ${TimeStamp} $_Log_Timestamp
     FileWrite $_Log_FileHandle "$_Log_Timestamp: ${text}"
+    DetailPrint "$_Log_Timestamp: ${text}"
     FileWrite $_Log_FileHandle "$\n"
     FileClose $_Log_FileHandle
 !macroend
