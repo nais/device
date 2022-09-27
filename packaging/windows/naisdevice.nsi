@@ -178,11 +178,13 @@ SectionEnd
 Function GUIInit
     !insertmacro _Log "Inside GUIInit"
     SetRegView 64
+    SetShellVarContext all
 FunctionEnd
 
 Function un.GUIInit
     !insertmacro _Log "Inside un.GUIInit"
     SetRegView 64
+    SetShellVarContext all
 FunctionEnd
 
 Function InstallWireGuard
