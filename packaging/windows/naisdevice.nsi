@@ -10,9 +10,10 @@
 !define UNINSTALLER "uninstaller.exe"
 !define SOURCE "../../bin/windows-client"
 !define WIREGUARD "wireguard-amd64-0.5.3.msi"
-!define REG_UNINSTALL "Software\Microsoft\Windows\CurrentVersion\Uninstall"
+!define LEGACY_PRODUCT_CODE "{56053D33-DC41-43BC-99D0-C9569C306E79}"
+!define REG_UNINSTALL "SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall"
 !define REG_ARP "${REG_UNINSTALL}\${APP_NAME}"
-!define REG_LEGACY "${REG_UNINSTALL}\{56053D33-DC41-43BC-99D0-C9569C306E79}"
+!define REG_LEGACY "${REG_UNINSTALL}\${LEGACY_PRODUCT_CODE}"
 !define SERVICE_NAME "NaisDeviceHelper"
 !define PAGE_TIMEOUT 60000
 
@@ -55,6 +56,12 @@ Var Label
 Var Timeout
 Var Result
 Var ProgramDataPath
+Var LegacyUninstallerCmd
+
+; MUI Settings -----------------------------
+
+!define MUI_CUSTOMFUNCTION_GUIINIT GUIInit
+!define MUI_CUSTOMFUNCTION_UNGUIINIT un.GUIInit
 
 ; Pages ------------------------------------
 
@@ -64,7 +71,6 @@ Var ProgramDataPath
 ; TODO: Add downgrade check?
 Page custom StopInstances
 !insertmacro MUI_PAGE_INSTFILES
-; TODO: Uninstall legacy installer version
 Page custom InstallWireGuard
 
 ;; Uninstaller pages
@@ -79,22 +85,30 @@ Page custom InstallWireGuard
 
 ; Sections ---------------------------------
 
-Section "-install files"
+Section "Uninstall legacy version"
+    ReadRegStr $LegacyUninstallerCmd HKLM "${REG_LEGACY}" "UninstallString"
+    ${If} $LegacyUninstallerCmd != ""
+        DetailPrint "Executing legacy uninstaller"
+        ExecWait 'MsiExec.exe /uninstall ${LEGACY_PRODUCT_CODE} /qn'
+    ${EndIf}
+SectionEnd
+
+Section "Install files"
     CreateDirectory $INSTDIR
     SetOutPath $INSTDIR
     File ${SOURCE}\naisdevice-*.exe
     File assets\naisdevice.ico
 SectionEnd
 
-Section "-create shortcuts"
+Section "Create shortcuts"
     ; TODO
 SectionEnd
 
-Section "-create helper service"
+Section "Create helper service"
     ; TODO
 SectionEnd
 
-Section "-create app_data folder (and logs)"
+Section "Create data folder"
     GetKnownFolderPath $ProgramDataPath "${FOLDERID_ProgramData}"
     CreateDirectory "$ProgramDataPath\NAV\naisdevice\etc"
     CreateDirectory "$ProgramDataPath\NAV\naisdevice\logs"
@@ -133,11 +147,21 @@ Section "Uninstall"
     Delete $INSTDIR\naisdevice-*.exe
     Delete $INSTDIR\naisdevice.ico
     Delete $INSTDIR\${UNINSTALLER}
-    RMDir $INSTDIR
     DeleteRegKey HKLM "${REG_ARP}"
+    RMDir $INSTDIR
 SectionEnd
 
 ; Functions --------------------------------
+
+Function GUIInit
+    SetRegView 64
+    !insertmacro _Log "Inside GUIInit"
+FunctionEnd
+
+Function un.GUIInit
+    SetRegView 64
+    !insertmacro _Log "Inside un.GUIInit"
+FunctionEnd
 
 Function InstallWireGuard
     !define header "Installation almost complete"

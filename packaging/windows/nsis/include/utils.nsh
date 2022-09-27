@@ -56,7 +56,7 @@ Function ${UN}__TimeStamp
 FunctionEnd
 !macroend
 !insertmacro __TimeStamp ""
-#!insertmacro __TimeStamp "un."
+!insertmacro __TimeStamp "un."
 !endif
 ###########
 
