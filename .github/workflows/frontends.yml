@@ -47,16 +47,26 @@ jobs:
         with:
           go-version: ${{ env.go_version }}
 
-      - name: build binaries
+      - name: build binaries and installer
         run: |
-          make windows-client GOTAGS=${{ matrix.gotags }} VERSION=${{ needs.set-version.outputs.version }}
+          sudo apt update
+          sudo apt install --yes nsis
+          make nsis GOTAGS=${{ matrix.gotags }} VERSION=${{ needs.set-version.outputs.version }}
           md5sum bin/windows-client/*
+          md5sum packaging/windows/naisdevice.exe
 
       - name: upload windows-client
         uses: actions/upload-artifact@v2
         with:
           name: windows-client${{ matrix.output-suffix }}
           path: bin/windows-client
+          if-no-files-found: error
+
+      - name: upload new windows-installer
+        uses: actions/upload-artifact@v2
+        with:
+          name: new-windows-installer{{ matrix.output-suffix }}
+          path: packaging/windows/naisdevice.exe
           if-no-files-found: error
 
   build-windows:
@@ -203,6 +213,19 @@ jobs:
           upload_url: ${{ needs.new_release.outputs.upload_url }}
           asset_path: ./bin/windows/naisdevice.msi
           asset_name: naisdevice${{ matrix.output-suffix }}.msi
+          asset_content_type: application/octet-stream
+
+      - name: download new windows installer
+        uses: actions/download-artifact@v2
+        with:
+          name: new-windows-installer${{ matrix.output-suffix }}
+          path: packaging/windows
+      - name: upload naisdevice.exe
+        uses: actions/upload-release-asset@v1
+        with:
+          upload_url: ${{ needs.new_release.outputs.upload_url }}
+          asset_path: ./packaging/windows/naisdevice.exe
+          asset_name: naisdevice${{ matrix.output-suffix }}.exe
           asset_content_type: application/octet-stream
 
       - name: download pkg
