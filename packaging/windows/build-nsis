@@ -18,12 +18,6 @@ if date -d"${VERSION%-*}" &> /dev/null ; then
   version_opt="-DVERSION=1.${isodate}.${isotime}.0"
 fi
 
-SUFFIX=${2:-}
-suffix_opt=""
-if [[ -n "${SUFFIX}" ]]; then
-  suffix_opt="-DSUFFIX=${SUFFIX}"
-fi
-
-makensis ${version_opt} ${suffix_opt} ./naisdevice.nsi
+makensis ${version_opt} ./naisdevice.nsi
 
 popd

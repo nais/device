@@ -182,7 +182,7 @@ deb: linux-client linux-icon
 
 # Run by GitHub actions on linux(!)
 nsis: windows-client windows-icon
-	./packaging/windows/build-nsis $(VERSION) $(SUFFIX)
+	./packaging/windows/build-nsis $(VERSION)
 
 controlplane_paths = $(wildcard packaging/controlplane/*)
 controlplane_components = $(controlplane_paths:packaging/controlplane/%=%)
