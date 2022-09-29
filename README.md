@@ -56,3 +56,7 @@ The apiserver also:
 ### What is a healthy device?
 ### How to install
 See https://doc.nais.io/device
+
+## Next gen naisdevice
+
+![Components](components.HEIC)
