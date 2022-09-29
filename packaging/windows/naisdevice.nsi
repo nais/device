@@ -42,7 +42,7 @@ SetCompressor /SOLID lzma
 ; Settings ---------------------------------
 Name "${APP_NAME}"
 OutFile "${APP_NAME}.exe"
-RequestExecutionLevel user
+RequestExecutionLevel admin
 InstallDir "$PROGRAMFILES64\NAV\${APP_NAME}"
 AllowSkipFiles off
 
