@@ -59,4 +59,4 @@ See https://doc.nais.io/device
 
 ## Next gen naisdevice
 
-![Components](components.HEIC)
+![Components](components.jpg)
