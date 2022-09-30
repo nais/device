@@ -167,7 +167,7 @@ func (a *AutoEnroll) receiveDevice(ctx context.Context, msg *pubsub.Message) {
 		a.log.WithError(err).Error("Failed to unmarshal request")
 		return
 	}
-	log := a.log.WithFields(logrus.Fields{"serial": req.Serial, "platform": req.Platform, "owner": req.Owner})
+	log := a.log.WithFields(logrus.Fields{"serial": req.Serial, "platform": req.Platform})
 
 	err := a.db.AddDevice(ctx, &pb.Device{
 		Username:  req.Owner,
