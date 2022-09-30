@@ -32,6 +32,7 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	req.Owner = auth.GetEmail(r.Context())
+	h.log.Warnf("Received request from %q", req.Owner)
 
 	resp, err := h.worker.Send(r.Context(), &req)
 	if err != nil {
