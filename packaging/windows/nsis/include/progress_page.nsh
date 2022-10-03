@@ -22,7 +22,7 @@ Var __PP__ProgressBar
 Var __PP__Label
 Var __PP__Timeout
 
-Function ${prefix}PP_Nop
+Function ${prefix}PP_NoOp
 FunctionEnd
 
 ; Usage:
@@ -31,9 +31,9 @@ FunctionEnd
 ; subheader - Sub-header of the page
 ; text - The descriptive text on the page, below the progressbar
 ; abort_cb - Function that should push 0 on the stack to skip the page, any other value to continue (required)
-; init_cb - Function to initialize any needed state, PP_Nop to skip
+; init_cb - Function to initialize any needed state, PP_NoOp to skip
 ; step_cb - Function called on every step. Should push 0 to the stack to leave the page, any other value to continue (required)
-; leaving_cb - Function called when successfully leaving the page, PP_Nop to skip
+; leaving_cb - Function called when successfully leaving the page, PP_NoOp to skip
 !macro _ProgressPage name header subheader text abort_cb init_cb step_cb leaving_cb
 
 Function ${prefix}${name}

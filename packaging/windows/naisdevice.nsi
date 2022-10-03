@@ -60,10 +60,6 @@ VIProductVersion "${VERSION}"
 
 ; Global variables :scream:
 
-Var Dialog
-Var ProgressBar
-Var Label
-Var Timeout
 Var Result
 Var ProgramDataPath
 Var LegacyUninstallerCmd
@@ -194,65 +190,6 @@ Function un.GUIInit
     SetShellVarContext all
 FunctionEnd
 
-Function InstallWireGuard ; TODO: Replace with ${ProgressPage}
-    !insertmacro _Log "InstallWireGuard entered."
-
-    !define header "Installation almost complete"
-    !define subheader "Installing WireGuard"
-    !define main_text "Installation of naisdevice is almost finished.$\n$\n\
-                       The final step is to install WireGuard, which is used by naisdevice to create the VPN tunnels.$\n$\n\
-                       The WireGuard installer finishes by launching WireGuard. You can close that window without making any changes.$\n$\n\
-                       Have a nais day!"
-    !insertmacro MUI_HEADER_TEXT "${header}" "${subheader}"
-
-    nsDialogs::Create 1018
-	Pop $Dialog
-	${If} $Dialog == error
-		Abort
-	${EndIf}
-	; Build info page
-	${NSD_CreateLabel} 0 0 100% 100% "${main_text}"
-    Pop $Label
-	nsDialogs::Show
-
-    SetOutPath $TEMP
-    File "${WIREGUARD}"
-    ExecWait 'msiexec /package "$TEMP\${WIREGUARD}"' $R9
-    ${If} ${Errors}
-        !insertmacro _Log "Error while installing WireGuard"
-        !insertmacro _Log "Exit code from wireguard installer: $R9"
-    ${Else}
-        !insertmacro _Log "Exit code from wireguard installer: $R9"
-        Call StartService
-    ${EndIf}
-    Delete $TEMP\${WIREGUARD}
-FunctionEnd
-
-Function StartService
-    !insertmacro _Log "StartService entered."
-
-    Push $R9
-    StrCpy $Timeout ${PAGE_TIMEOUT}
-    ${Do}
-        !insertmacro _Log "Attempting to start ${SERVICE_NAME} service"
-        SimpleSC::StartService ${SERVICE_NAME} "" 60
-        Pop $R9
-        !insertmacro _Log "Result of starting service: $R9 (errorcode (<>0) otherwise success (0))"
-        ${If} $R9 != 0
-            Push $R9
-            SimpleSC::GetErrorMessage
-            Pop $0
-            !insertmacro _Log "Starting service failed: $0"
-        ${EndIf}
-        IntOp $Timeout $Timeout - 100
-        ${If} $Timeout < 0
-            !insertmacro _Log "Timeout expired, breaking"
-            ${Break}
-        ${EndIf}
-    ${LoopUntil} $R9 = 0
-    Pop $R9
-FunctionEnd
-
 ; Places number of running instances on stack
 Function CountRunningInstances
     !insertmacro _Log "CountRunningInstances entered."
@@ -313,7 +250,6 @@ FunctionEnd
 
 ; Function that should push 0 on the stack to skip the page, any other value to continue (required)
 Function _StopInstances_Abort
-    !insertmacro _Log "DEBUG: Values before $$0: $0, $$1: $1"
     Push $0
     Push $1
 
@@ -334,7 +270,6 @@ Function _StopInstances_Abort
     Exch 2
     Pop $0
     Pop $1
-    !insertmacro _Log "DEBUG: Values after $$0: $0, $$1: $1"
 FunctionEnd
 
 ; Function to initialize any needed state, "" to skip
@@ -375,4 +310,68 @@ ${ProgressPage} \
     _StopInstances_Abort \
     _StopInstances_Init \
     _StopInstances_Step \
-    PP_Nop
+    PP_NoOp
+
+
+; -- InstallWireGuard --------------
+
+; Function that should push 0 on the stack to skip the page, any other value to continue (required)
+Function _InstallWireGuard_Abort
+    ; Never skip
+    Push 1
+FunctionEnd
+
+; Function to initialize any needed state, PP_NoOp to skip
+Function _InstallWireGuard_Init
+    Push $R9
+
+    SetOutPath $TEMP
+    File "${WIREGUARD}"
+    ExecWait 'msiexec /package "$TEMP\${WIREGUARD}"' $R9
+    ${If} ${Errors}
+        !insertmacro _Log "Error while installing WireGuard"
+        !insertmacro _Log "Exit code from wireguard installer: $R9"
+    ${EndIf}
+
+    Pop $R9
+FunctionEnd
+
+; Function called on every step. Should push 0 to the stack to leave the page, any other value to continue (required)
+Function _InstallWireGuard_Step
+    Push $R9
+
+    !insertmacro _Log "Attempting to start ${SERVICE_NAME} service"
+    SimpleSC::StartService ${SERVICE_NAME} "" 60
+    Pop $R9
+    !insertmacro _Log "Result of starting service: $R9 (errorcode (<>0) otherwise success (0))"
+    ${If} $R9 != 0
+        Push $R9
+        SimpleSC::GetErrorMessage
+        Pop $R9
+        !insertmacro _Log "Starting service failed: $R9"
+        Push 1
+    ${Else}
+        Push 0
+    ${EndIf}
+
+    Exch
+    Pop $R9
+FunctionEnd
+
+; Function called when successfully leaving the page, PP_NoOp to skip
+Function _InstallWireGuard_Leaving
+    Delete $TEMP\${WIREGUARD}
+FunctionEnd
+
+${ProgressPage} \
+    "InstallWireGuard" \
+    "Installation almost complete" \
+    "Installing WireGuard and starting services" \
+    "Installation of naisdevice is almost finished.$\n$\n\
+        The final steps are to install WireGuard, which is used by naisdevice to create the VPN tunnels, and start background services.$\n$\n\
+        The WireGuard installer finishes by launching WireGuard. You can close that window without making any changes.$\n$\n\
+        Have a nais day!" \
+    _InstallWireGuard_Abort \
+    _InstallWireGuard_Init \
+    _InstallWireGuard_Step \
+    _InstallWireGuard_Leaving
