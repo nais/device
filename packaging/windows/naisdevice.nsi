@@ -81,6 +81,7 @@ Page custom InstallWireGuard
 ;; Uninstaller pages
 
 !insertmacro MUI_UNPAGE_WELCOME
+UninstPage custom un.StopInstances
 !insertmacro MUI_UNPAGE_INSTFILES
 !insertmacro MUI_UNPAGE_FINISH
 
@@ -178,20 +179,20 @@ SectionEnd
 
 ; Functions --------------------------------
 
-Function GUIInit
+!macro GUIInit un
+Function ${un}GUIInit
     !insertmacro _Log "Inside GUIInit"
     SetRegView 64
     SetShellVarContext all
 FunctionEnd
+!macroend
+!insertmacro GUIInit ""
+!insertmacro GUIInit "un."
 
-Function un.GUIInit
-    !insertmacro _Log "Inside un.GUIInit"
-    SetRegView 64
-    SetShellVarContext all
-FunctionEnd
 
 ; Places number of running instances on stack
-Function CountRunningInstances
+!macro CountRunningInstances un
+Function ${un}CountRunningInstances
     !insertmacro _Log "CountRunningInstances entered."
 
     Push $R9
@@ -215,6 +216,9 @@ Function CountRunningInstances
     Exch
     Pop $R9
 FunctionEnd
+!macroend
+!insertmacro CountRunningInstances ""
+!insertmacro CountRunningInstances "un."
 
 ; Places number of closed processes on stack
 !macro CloseRunningInstances un
@@ -248,15 +252,16 @@ FunctionEnd
 
 ; -- StopInstances --------------
 
+!macro StopInstances action prefix
 ; Function that should push 0 on the stack to skip the page, any other value to continue (required)
-Function _StopInstances_Abort
+Function ${prefix}_StopInstances_Abort
     Push $0
     Push $1
 
     SimpleSC::ExistsService ${SERVICE_NAME} ; <> 0 => service exists
     Pop $0
     !insertmacro _Log "Service exists: $0 (0: true, *: false)"
-    Call CountRunningInstances
+    Call ${prefix}CountRunningInstances
     Pop $1
     !insertmacro _Log "Number of running instances: $1"
     ${If} $0 <> 0
@@ -273,20 +278,20 @@ Function _StopInstances_Abort
 FunctionEnd
 
 ; Function to initialize any needed state, "" to skip
-Function _StopInstances_Init
+Function ${prefix}_StopInstances_Init
     !insertmacro _Log "Attempting to stop ${SERVICE_NAME}"
     SimpleSC::StopService ${SERVICE_NAME} 1 40
     !insertmacro _Log "StopService ${SERVICE_NAME} completed"
 FunctionEnd
 
 ; Function called on every step. Should push 0 to the stack to leave the page, any other value to continue (required)
-Function _StopInstances_Step
+Function ${prefix}_StopInstances_Step
     Push $0
 
     !insertmacro _Log "Attempt to stop running processes"
-    Call CloseRunningInstances
+    Call ${prefix}CloseRunningInstances
 
-    Call CountRunningInstances
+    Call ${prefix}CountRunningInstances
     Pop $0
     ${If} $0 = 0
         ; No more processes, clear timeout ending loop
@@ -301,10 +306,10 @@ Function _StopInstances_Step
 FunctionEnd
 
 ${ProgressPage} \
-    "StopInstances" \
+    "${prefix}StopInstances" \
     "Stopping running instances" \
-    "Stopping previous version to allow overwriting files" \
-    "Before we can install this version of naisdevice we need to stop any running instances.$\n$\n\
+    " " \
+    "Before we can ${action} this version of naisdevice we need to stop any running instances.$\n$\n\
         This includes stopping the NaisDeviceHelper service running in the background.$\n$\n\
         Unfortunately, this may take some time, so please be patient while we attempt to stop everything." \
     _StopInstances_Abort \
@@ -312,6 +317,9 @@ ${ProgressPage} \
     _StopInstances_Step \
     PP_NoOp
 
+!macroend
+!insertmacro StopInstances "install" ""
+!insertmacro StopInstances "uninstall" "un."
 
 ; -- InstallWireGuard --------------
 

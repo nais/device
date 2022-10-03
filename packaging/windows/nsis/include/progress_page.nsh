@@ -22,7 +22,10 @@ Var __PP__ProgressBar
 Var __PP__Label
 Var __PP__Timeout
 
-Function ${prefix}PP_NoOp
+Function PP_NoOp
+FunctionEnd
+
+Function un.PP_NoOp
 FunctionEnd
 
 ; Usage:
@@ -36,18 +39,18 @@ FunctionEnd
 ; leaving_cb - Function called when successfully leaving the page, PP_NoOp to skip
 !macro _ProgressPage name header subheader text abort_cb init_cb step_cb leaving_cb
 
-Function ${prefix}${name}
-    !insertmacro _Log "${prefix}${name} entered."
+Function ${name}
+    !insertmacro _Log "${name} entered."
 
     Call ${prefix}${abort_cb}
     Pop $__PP__ResultCode
     ${If} $__PP__ResultCode = 0
-        !insertmacro _Log "${prefix}${name}: Aborting page"
+        !insertmacro _Log "${name}: Aborting page"
         Abort
         Return
     ${EndIf}
 
-    !insertmacro _Log "${prefix}${name}: Showing page"
+    !insertmacro _Log "${name}: Showing page"
 
     !insertmacro MUI_HEADER_TEXT "${header}" "${subheader}"
 
@@ -72,40 +75,40 @@ Function ${prefix}${name}
     Pop $__PP__Label
 
     StrCpy $__PP__Timeout ${PAGE_TIMEOUT}
-    ${NSD_CreateTimer} ${prefix}${name}__ProgressStepCallback ${STEP_INTERVAL}
+    ${NSD_CreateTimer} ${name}__ProgressStepCallback ${STEP_INTERVAL}
 	nsDialogs::Show
 FunctionEnd
 
-Function ${prefix}${name}__ProgressStepCallback
-    !insertmacro _Log "${prefix}${name}__ProgressStepCallback entered. __PP__Timeout=$__PP__Timeout"
+Function ${name}__ProgressStepCallback
+    !insertmacro _Log "${name}__ProgressStepCallback entered. __PP__Timeout=$__PP__Timeout"
 
     Call ${prefix}${step_cb}
     Pop $__PP__ResultCode
     ${If} $__PP__ResultCode = 0
-        !insertmacro _Log "${prefix}${name}__ProgressStepCallback: Progress completed. __PP__Timeout=$__PP__Timeout"
+        !insertmacro _Log "${name}__ProgressStepCallback: Progress completed. __PP__Timeout=$__PP__Timeout"
         IntOp $__PP__Timeout $__PP__Timeout - ${PAGE_TIMEOUT}
-        !insertmacro _Log "${prefix}${name}__ProgressStepCallback: Cleared timeout. __PP__Timeout=$__PP__Timeout"
+        !insertmacro _Log "${name}__ProgressStepCallback: Cleared timeout. __PP__Timeout=$__PP__Timeout"
     ${EndIf}
 
     ${If} $__PP__Timeout = ${PAGE_TIMEOUT}
         ; Start progressbar and attempt stopping the service
-        !insertmacro _Log "${prefix}${name}__ProgressStepCallback: Starting progressbar. __PP__Timeout=$__PP__Timeout"
+        !insertmacro _Log "${name}__ProgressStepCallback: Starting progressbar. __PP__Timeout=$__PP__Timeout"
         SendMessage $__PP__ProgressBar ${PBM_SETMARQUEE} 1 50 ; start=1|stop=0 interval(ms)=+N
-        !insertmacro _Log "${prefix}${name}__ProgressStepCallback: Calling init_cb"
+        !insertmacro _Log "${name}__ProgressStepCallback: Calling init_cb"
         Call ${prefix}${init_cb}
     ${ElseIf} $__PP__Timeout <= 0
         ; Timeout ended, clear progressbar and progress to next page
-        !insertmacro _Log "${prefix}${name}__ProgressStepCallback: Timeout ended, killing timer and resetting progress. __PP__Timeout=$__PP__Timeout"
-        ${NSD_KillTimer} ${prefix}${name}__ProgressStepCallback
+        !insertmacro _Log "${name}__ProgressStepCallback: Timeout ended, killing timer and resetting progress. __PP__Timeout=$__PP__Timeout"
+        ${NSD_KillTimer} ${name}__ProgressStepCallback
         SendMessage $__PP__ProgressBar ${PBM_SETMARQUEE} 0 0 ; start=1|stop=0 interval(ms)=+N
-        !insertmacro _Log "${prefix}${name}__ProgressStepCallback: Calling leaving_cb"
+        !insertmacro _Log "${name}__ProgressStepCallback: Calling leaving_cb"
         Call ${prefix}${leaving_cb}
-        !insertmacro _Log "${prefix}${name}__ProgressStepCallback: Enabling and clicking next button"
+        !insertmacro _Log "${name}__ProgressStepCallback: Enabling and clicking next button"
         EnableWindow $mui.Button.Next 1
         SendMessage $mui.Button.Next ${BM_CLICK} 0 0
     ${EndIf}
     IntOp $__PP__Timeout $__PP__Timeout - ${STEP_INTERVAL}
-    !insertmacro _Log "${prefix}${name}__ProgressStepCallback: Leaving. __PP__Timeout=$__PP__Timeout"
+    !insertmacro _Log "${name}__ProgressStepCallback: Leaving. __PP__Timeout=$__PP__Timeout"
 FunctionEnd
 
 !macroend
