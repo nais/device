@@ -62,6 +62,8 @@ FunctionEnd
 
 
 ## Logging
+!ifmacrondef _Log
+
 Var _Log_FileHandle
 Var _Log_Timestamp
 
@@ -74,3 +76,5 @@ Var _Log_Timestamp
     FileWrite $_Log_FileHandle "$\n"
     FileClose $_Log_FileHandle
 !macroend
+
+!endif

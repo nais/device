@@ -38,6 +38,7 @@ SetCompressor /SOLID lzma
 !include FileFunc.nsh
 !include nsProcess.nsh
 !include utils.nsh
+!include progress_page.nsh
 
 ; Settings ---------------------------------
 Name "${APP_NAME}"
@@ -193,7 +194,7 @@ Function un.GUIInit
     SetShellVarContext all
 FunctionEnd
 
-Function InstallWireGuard
+Function InstallWireGuard ; TODO: Replace with ${ProgressPage}
     !insertmacro _Log "InstallWireGuard entered."
 
     !define header "Installation almost complete"
@@ -308,8 +309,13 @@ FunctionEnd
 !insertmacro CloseRunningInstances ""
 !insertmacro CloseRunningInstances "un."
 
-Function StopInstances
-    !insertmacro _Log "StopInstances entered."
+; -- StopInstances --------------
+
+; Function that should push 0 on the stack to skip the page, any other value to continue (required)
+Function _StopInstances_Abort
+    !insertmacro _Log "DEBUG: Values before $$0: $0, $$1: $1"
+    Push $0
+    Push $1
 
     SimpleSC::ExistsService ${SERVICE_NAME} ; <> 0 => service exists
     Pop $0
@@ -320,72 +326,53 @@ Function StopInstances
     ${If} $0 <> 0
     ${AndIf} $1 = 0
         !insertmacro _Log "Skipping stop instances"
-        Abort
+        Push 0
+    ${Else}
+        Push 1
     ${EndIf}
 
-    !insertmacro _Log "Stopping instances"
-
-    !define ss_header "Stopping running instances"
-    !define ss_subheader "Stopping previous version to allow overwriting files"
-    !define ss_main_text "Before we can install this version of naisdevice we need to stop any running instances.$\n$\n\
-                       This includes stopping the NaisDeviceHelper service running in the background.$\n$\n\
-                       Unfortunately, this may take some time, so please be patient while we attempt to stop everything."
-    !insertmacro MUI_HEADER_TEXT "${ss_header}" "${ss_subheader}"
-
-    nsDialogs::Create 1018
-	Pop $Dialog
-	${If} $Dialog == error
-		Abort
-	${EndIf}
-
-    ${NSD_CreateProgressBar} 0 0 100% 10% "Test"
-    Pop $ProgressBar
-	${If} $ProgressBar == error
-		Abort
-	${EndIf}
-
-    ${NSD_AddStyle} $ProgressBar ${PBS_MARQUEE}
-
-    EnableWindow $mui.Button.Next 0
-	${NSD_CreateLabel} 0 15% 100% 100% "${ss_main_text}"
-    Pop $Label
-
-    StrCpy $Timeout ${PAGE_TIMEOUT}
-    ${NSD_CreateTimer} ProgressStepCallback ${STEP_INTERVAL}
-	nsDialogs::Show
+    Exch 2
+    Pop $0
+    Pop $1
+    !insertmacro _Log "DEBUG: Values after $$0: $0, $$1: $1"
 FunctionEnd
 
-Function ProgressStepCallback
-    !insertmacro _Log "ProgressStepCallback entered. Timeout=$Timeout"
+; Function to initialize any needed state, "" to skip
+Function _StopInstances_Init
+    !insertmacro _Log "Attempting to stop ${SERVICE_NAME}"
+    SimpleSC::StopService ${SERVICE_NAME} 1 40
+    !insertmacro _Log "StopService ${SERVICE_NAME} completed"
+FunctionEnd
+
+; Function called on every step. Should push 0 to the stack to leave the page, any other value to continue (required)
+Function _StopInstances_Step
+    Push $0
+
+    !insertmacro _Log "Attempt to stop running processes"
+    Call CloseRunningInstances
 
     Call CountRunningInstances
     Pop $0
     ${If} $0 = 0
         ; No more processes, clear timeout ending loop
-        !insertmacro _Log "No more processes, clearing timeout. Timeout=$Timeout"
-        IntOp $Timeout $Timeout - ${PAGE_TIMEOUT}
-        !insertmacro _Log "Cleared timeout. Timeout=$Timeout"
+        !insertmacro _Log "No more processes"
+        Push 0
+    ${Else}
+        Push 1
     ${EndIf}
 
-    ${If} $Timeout = ${PAGE_TIMEOUT}
-        ; Start progressbar and attempt stopping the service
-        !insertmacro _Log "Starting progressbar. Timeout=$Timeout"
-        SendMessage $ProgressBar ${PBM_SETMARQUEE} 1 50 ; start=1|stop=0 interval(ms)=+N
-        !insertmacro _Log "Attempting to stop ${SERVICE_NAME}. Timeout=$Timeout"
-        SimpleSC::StopService ${SERVICE_NAME} 1 40
-        !insertmacro _Log "Stopped ${SERVICE_NAME}. Timeout=$Timeout"
-    ${ElseIf} $Timeout <= 0
-        ; Timeout ended, clear progressbar and progress to next page
-        !insertmacro _Log "Timeout ended, killing timer, resetting progress, enabling and clicking Next. Timeout=$Timeout"
-        ${NSD_KillTimer} ProgressStepCallback
-        SendMessage $ProgressBar ${PBM_SETMARQUEE} 0 0 ; start=1|stop=0 interval(ms)=+N
-        EnableWindow $mui.Button.Next 1
-        SendMessage $mui.Button.Next ${BM_CLICK} 0 0
-    ${Else}
-        ; Attempt to stop the processes forcefully
-        !insertmacro _Log "Attempt to stop running processes. Timeout=$Timeout"
-        Call CloseRunningInstances
-    ${EndIf}
-    IntOp $Timeout $Timeout - ${STEP_INTERVAL}
-    !insertmacro _Log "Leaving ProgressStepCallback. Timeout=$Timeout"
+    Exch
+    Pop $0
 FunctionEnd
+
+${ProgressPage} \
+    "StopInstances" \
+    "Stopping running instances" \
+    "Stopping previous version to allow overwriting files" \
+    "Before we can install this version of naisdevice we need to stop any running instances.$\n$\n\
+        This includes stopping the NaisDeviceHelper service running in the background.$\n$\n\
+        Unfortunately, this may take some time, so please be patient while we attempt to stop everything." \
+    _StopInstances_Abort \
+    _StopInstances_Init \
+    _StopInstances_Step \
+    PP_Nop
