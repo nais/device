@@ -1,0 +1,23 @@
+#!/bin/bash
+
+set -o errexit
+set -o pipefail
+set -o nounset
+
+pushd "$(dirname "${0}")"
+
+rm -f ./naisdevice*.exe
+
+# Rewrite from versions like this 2022-09-23-090728 to 1.20220223.090728
+# If version not in correct format, do not pass VERSION at all
+VERSION=${1:-develop}
+version_opt=""
+if date -d"${VERSION%-*}" &> /dev/null ; then
+  isodate=$(date -d"${VERSION%-*}" +%Y%m%d)
+  isotime="${VERSION##*-}"
+  version_opt="-DVERSION=1.${isodate}.${isotime}.0"
+fi
+
+makensis ${version_opt} ./naisdevice.nsi
+
+popd

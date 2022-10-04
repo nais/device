@@ -102,6 +102,12 @@ packaging/linux/icons/*/apps/naisdevice.png: assets/nais-logo-blue.png
 		convert assets/nais-logo-blue.png -scale $$size^ -background none -gravity center -extent $$size packaging/linux/icons/$$size/apps/naisdevice.png ; \
   	done
 
+windows-icon: packaging/windows/naisdevice.ico
+packaging/windows/naisdevice.ico: assets/nais-logo-blue.png
+	mkdir -p packaging/windows/assets/
+	convert assets/nais-logo-blue.png -background transparent -define icon:auto-resize=48,64,96,128,256 -gravity center packaging/windows/assets/naisdevice.ico
+
+
 macos-icon: assets/naisdevice.icns
 assets/naisdevice.icns:
 	rm -rf MyIcon.iconset
@@ -174,6 +180,10 @@ pkg: app gon
 deb: linux-client linux-icon
 	./packaging/linux/build-deb $(VERSION)
 
+# Run by GitHub actions on linux(!)
+nsis: windows-client windows-icon
+	./packaging/windows/build-nsis $(VERSION)
+
 controlplane_paths = $(wildcard packaging/controlplane/*)
 controlplane_components = $(controlplane_paths:packaging/controlplane/%=%)
 
@@ -189,8 +199,11 @@ clean:
 	rm -rf wireguard-tools-*
 	rm -rf naisdevice.app
 	rm -f naisdevice-*.pkg
+	rm -f naisdevice-*.deb
+	rm -f ./packaging/windows/naisdevice*.exe
 	rm -rf ./bin
 	rm -rf ./packaging/linux/icons
+	rm -rf ./packaging/windows/assets
 
 install-protobuf-go:
 	go install google.golang.org/protobuf/cmd/protoc-gen-go@latest
