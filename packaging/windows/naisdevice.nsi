@@ -126,7 +126,7 @@ Section "Create helper service"
     ; Install service
     !insertmacro _Log "Installing NaisDeviceHelper service"
     SimpleSC::InstallService ${SERVICE_NAME} "naisdevice helper" ${SERVICE_WIN32_OWN_PROCESS} ${SERVICE_AUTO_START} \
-        '"$INSTDIR\naisdevice-helper.exe" --interface utun69' "WireGuardManager" "NT AUTHORITY\SYSTEM"
+        '"$INSTDIR\naisdevice-helper.exe" --interface utun69' "" "NT AUTHORITY\SYSTEM"
     SimpleSC::SetServiceDescription ${SERVICE_NAME} "Controls the WireGuard VPN connection"
 SectionEnd
 
@@ -335,7 +335,7 @@ Function _InstallWireGuard_Init
 
     SetOutPath $TEMP
     File "${WIREGUARD}"
-    ExecWait 'msiexec /package "$TEMP\${WIREGUARD}"' $R9
+    ExecWait 'msiexec /package "$TEMP\${WIREGUARD}" DO_NOT_LAUNCH=true' $R9
     ${If} ${Errors}
         !insertmacro _Log "Error while installing WireGuard"
         !insertmacro _Log "Exit code from wireguard installer: $R9"
