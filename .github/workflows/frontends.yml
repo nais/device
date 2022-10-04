@@ -65,7 +65,7 @@ jobs:
       - name: upload new windows-installer
         uses: actions/upload-artifact@v2
         with:
-          name: new-windows-installer{{ matrix.output-suffix }}
+          name: new-windows-installer${{ matrix.output-suffix }}
           path: packaging/windows/naisdevice.exe
           if-no-files-found: error
 
