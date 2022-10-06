@@ -58,6 +58,11 @@ VIAddVersionKey "LegalCopyright" "NAV - nais"
 VIProductVersion "${VERSION}"
 !endif
 
+; Configure signing if certificates available
+!ifdef CERT_FILE & KEY_FILE
+!finalize 'osslsigncode sign -certs "${CERT_FILE}" -key "${KEY_FILE}" -n "${APP_NAME}" -i "https://doc.nais.io/device" -verbose -in "%1" -out naisdevice-signed.exe' = 0
+!endif
+
 ; Global variables :scream:
 
 Var Result

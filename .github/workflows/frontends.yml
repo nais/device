@@ -1,8 +1,9 @@
 name: Release naisdevice
 on:
   push:
-    tags:
-      - "*"
+    branches:
+      - master
+
 env:
   go_version: "1.18"
 jobs:
@@ -48,12 +49,15 @@ jobs:
           go-version: ${{ env.go_version }}
 
       - name: build binaries and installer
+        env:
+          MSI_SIGN_CERT: "${{ secrets.MSI_SIGN_CERT }}"
+          MSI_SIGN_KEY: "${{ secrets.MSI_SIGN_KEY }}"
         run: |
           sudo apt update
-          sudo apt install --yes nsis
+          sudo apt install --yes nsis osslsigncode
           make nsis GOTAGS=${{ matrix.gotags }} VERSION=${{ needs.set-version.outputs.version }}
           md5sum bin/windows-client/*
-          md5sum packaging/windows/naisdevice.exe
+          md5sum packaging/windows/naisdevice-signed.exe
 
       - name: upload windows-client
         uses: actions/upload-artifact@v2
@@ -66,7 +70,7 @@ jobs:
         uses: actions/upload-artifact@v2
         with:
           name: new-windows-installer${{ matrix.output-suffix }}
-          path: packaging/windows/naisdevice.exe
+          path: packaging/windows/naisdevice-signed.exe
           if-no-files-found: error
 
   build-windows:
@@ -188,7 +192,7 @@ jobs:
         with:
           tag_name: ${{ needs.set-version.outputs.version }}
           release_name: Release ${{ needs.set-version.outputs.version }}
-          draft: false
+          draft: "${{ !startsWith(github.ref, 'refs/tags/') }}"
           prerelease: false
 
   release:
@@ -228,7 +232,7 @@ jobs:
         uses: actions/upload-release-asset@v1
         with:
           upload_url: ${{ needs.new_release.outputs.upload_url }}
-          asset_path: ./packaging/windows/naisdevice.exe
+          asset_path: ./packaging/windows/naisdevice-signed.exe
           asset_name: naisdevice${{ matrix.output-suffix }}.exe
           asset_content_type: application/octet-stream
 
