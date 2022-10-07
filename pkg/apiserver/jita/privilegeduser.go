@@ -20,7 +20,6 @@ func (j *client) GetPrivilegedUsersForGateway(gateway string) []PrivilegedUser {
 }
 
 func (j *client) UpdatePrivilegedUsers() error {
-
 	resp, err := j.HTTPClient.Get(fmt.Sprintf("%s/%s", j.URL, "gatewaysAccess"))
 	if err != nil {
 		return fmt.Errorf("getting all privileged users: %w", err)
@@ -35,9 +34,11 @@ func (j *client) UpdatePrivilegedUsers() error {
 	j.lock.Lock()
 	defer j.lock.Unlock()
 
-	if err := json.NewDecoder(resp.Body).Decode(&j.PrivilegedUsers); err != nil {
+	update := map[string][]PrivilegedUser{}
+	if err := json.NewDecoder(resp.Body).Decode(&update); err != nil {
 		return fmt.Errorf("decoding all privileged users: %w", err)
 	}
+	j.PrivilegedUsers = update
 
 	return nil
 }
