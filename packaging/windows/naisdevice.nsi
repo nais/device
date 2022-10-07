@@ -60,7 +60,8 @@ VIProductVersion "${VERSION}"
 
 ; Configure signing if certificates available
 !ifdef CERT_FILE & KEY_FILE
-!finalize 'osslsigncode sign -certs "${CERT_FILE}" -key "${KEY_FILE}" -n "${APP_NAME}" -i "https://doc.nais.io/device" -verbose -in "%1" -out naisdevice-signed.exe' = 0
+!finalize './sign-nsis "%1" "${CERT_FILE}" "${KEY_FILE}"' = 0
+!uninstfinalize './sign-nsis "%1" "${CERT_FILE}" "${KEY_FILE}"' = 0
 !endif
 
 ; Global variables :scream:

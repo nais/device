@@ -19,13 +19,25 @@ fi
 
 sign_opts=""
 if [[ -n "${MSI_SIGN_CERT}" && -n "${MSI_SIGN_KEY}" ]]; then
-  CERT_FILE=$(mktemp --suffix .cer)
-  echo "${MSI_SIGN_CERT}" > "${CERT_FILE}"
+  CERT_FILE=$(mktemp --suffix .crt)
+  if [[ -f "${MSI_SIGN_CERT}" ]]; then
+    cp "${MSI_SIGN_CERT}" "${CERT_FILE}"
+  else
+    echo "${MSI_SIGN_CERT}" > "${CERT_FILE}"
+  fi
+
   KEY_FILE=$(mktemp --suffix .key)
-  echo "${MSI_SIGN_KEY}" > "${KEY_FILE}"
+  if [[ -f "${MSI_SIGN_KEY}" ]]; then
+    cp "${MSI_SIGN_KEY}" "${KEY_FILE}"
+  else
+    echo "${MSI_SIGN_KEY}" > "${KEY_FILE}"
+  fi
+
   sign_opts="-DCERT_FILE=${CERT_FILE} -DKEY_FILE=${KEY_FILE}"
 fi
 
 makensis ${version_opt} ${sign_opts} ./naisdevice.nsi
+
+rm "${KEY_FILE}" "${CERT_FILE}"
 
 popd
