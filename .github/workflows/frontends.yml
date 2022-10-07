@@ -63,7 +63,7 @@ jobs:
           sudo apt install --yes nsis osslsigncode
           make nsis GOTAGS=${{ matrix.gotags }} VERSION=${{ needs.set-version.outputs.version }}
           md5sum bin/windows-client/*
-          md5sum packaging/windows/naisdevice-signed.exe
+          md5sum packaging/windows/naisdevice.exe
 
       - name: upload windows-client
         uses: actions/upload-artifact@v2
@@ -76,7 +76,7 @@ jobs:
         uses: actions/upload-artifact@v2
         with:
           name: new-windows-installer${{ matrix.output-suffix }}
-          path: packaging/windows/naisdevice-signed.exe
+          path: packaging/windows/naisdevice.exe
           if-no-files-found: error
 
   build-windows:
@@ -240,7 +240,7 @@ jobs:
         uses: actions/upload-release-asset@v1
         with:
           upload_url: ${{ needs.new_release.outputs.upload_url }}
-          asset_path: ./packaging/windows/naisdevice-signed.exe
+          asset_path: ./packaging/windows/naisdevice.exe
           asset_name: naisdevice${{ matrix.output-suffix }}.exe
           asset_content_type: application/octet-stream
 
