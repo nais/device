@@ -1,4 +1,4 @@
-name: Update Homebrew
+name: Update Scoop
 
 on:
   workflow_run:
