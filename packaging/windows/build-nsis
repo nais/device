@@ -38,6 +38,11 @@ fi
 
 makensis ${version_opt} ${sign_opts} ./naisdevice.nsi
 
-rm "${KEY_FILE}" "${CERT_FILE}"
+if [[ -f "${KEY_FILE}" ]]; then
+  rm "${KEY_FILE}"
+fi
+if [[ -f "${CERT_FILE}" ]]; then
+  rm "${CERT_FILE}"
+fi
 
 popd

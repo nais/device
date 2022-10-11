@@ -60,8 +60,8 @@ VIProductVersion "${VERSION}"
 
 ; Configure signing if certificates available
 !ifdef CERT_FILE & KEY_FILE
-!finalize './sign-nsis "%1" "${CERT_FILE}" "${KEY_FILE}"' = 0
-!uninstfinalize './sign-nsis "%1" "${CERT_FILE}" "${KEY_FILE}"' = 0
+!finalize './sign-exe "%1" "${CERT_FILE}" "${KEY_FILE}"' = 0
+!uninstfinalize './sign-exe "%1" "${CERT_FILE}" "${KEY_FILE}"' = 0
 !endif
 
 ; Global variables :scream:

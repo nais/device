@@ -61,6 +61,8 @@ jobs:
         run: |
           sudo apt update
           sudo apt install --yes nsis osslsigncode
+          echo "${MSI_SIGN_CERT}" > packaging/windows/naisdevice.crt
+          echo "${MSI_SIGN_KEY}" > packaging/windows/naisdevice.key
           make nsis GOTAGS=${{ matrix.gotags }} VERSION=${{ needs.set-version.outputs.version }}
           md5sum bin/windows-client/*
           md5sum packaging/windows/naisdevice.exe

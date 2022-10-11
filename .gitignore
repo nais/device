@@ -18,3 +18,5 @@ device-agent.log
 *.deb
 .vscode
 .protoc
+packaging/windows/naisdevice.crt
+packaging/windows/naisdevice.key
