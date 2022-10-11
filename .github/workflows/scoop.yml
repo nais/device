@@ -1,0 +1,60 @@
+name: Update Homebrew
+
+on:
+  workflow_run:
+    workflows: ["Release naisdevice"]
+    types:
+      - completed
+  workflow_dispatch:
+
+jobs:
+  update-scoop:
+    runs-on: ubuntu-20.04
+    steps:
+      - uses: actions/checkout@v2
+      - name: Get Latest version
+        id: latest_version
+        uses: abatilo/release-info-action@5876e1e74bcf971982cc7bef9b65a8814621cf44
+        with:
+          owner: nais
+          repo: device
+      - uses: navikt/github-app-token-generator@v1
+        id: get-scoop-token
+        with:
+          private-key: ${{ secrets.NAIS_APP_PRIVATE_KEY }}
+          app-id: ${{ secrets.NAIS_APP_ID }}
+          repo: nais/scoop-bucket
+      - name: Checkout scoop-bucket
+        uses: actions/checkout@v3
+        with:
+          repository: nais/scoop-bucket
+          token: ${{ steps.get-scoop-token.outputs.token }}
+          path: bucket
+      - name: Update version and checksum in manifest
+        id: update_manifest
+        env:
+          LATEST: ${{ steps.latest_version.outputs.latest_tag }}
+          LATEST_DATE: ${{ steps.latest_version.outputs.latest_tag_published_at }}
+          SCOOP_TOKEN: ${{ steps.get-scoop-token.outputs.token }}
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes jq
+          echo "Version ${LATEST} was released at ${LATEST_DATE}"
+
+          cd bucket
+          git config user.email "aura@nav.no"
+          git config user.name "naisdevice pipeline"
+
+          for exe in naisdevice naisdevice-tenant ; do
+            url=https://github.com/nais/device/releases/download/${LATEST}/${exe}.exe
+            wget "${url}"
+            checksum=$(sha256sum ${exe}.exe | awk {'print $1}')
+            cp ${exe}.json work.json
+            jq ".architecture[\"64bit\"].url = \"${url}\" | .architecture[\"64bit\"].hash = \"${checksum}\" | .version = \"${LATEST}\"" work.json > ${exe}.json
+            rm work.json
+          done
+          
+          git add .
+          git --no-pager diff --cached
+          git commit -a -m "Bump naisdevice version to ${LATEST}"
+          git push
