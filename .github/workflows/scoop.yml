@@ -51,10 +51,10 @@ jobs:
             checksum=$(sha256sum ${exe}.exe | awk {'print $1}')
             cp ${exe}.json work.json
             jq ".architecture[\"64bit\"].url = \"${url}\" | .architecture[\"64bit\"].hash = \"${checksum}\" | .version = \"${LATEST}\"" work.json > ${exe}.json
-            rm work.json
+            rm work.json ${exe}.exe
           done
           
-          git add .
+          git add naisdevice*.json
           git --no-pager diff --cached
           git commit -a -m "Bump naisdevice version to ${LATEST}"
           git push
