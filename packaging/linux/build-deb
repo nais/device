@@ -10,7 +10,7 @@ fpm \
     --verbose \
     --output-type deb \
     --input-type dir \
-    --name "naisdevice" \
+    --name "naisdevice${SUFFIX}" \
     --version "${1:-Unknown}" \
     --vendor "NAV / nais team" \
     --maintainer "NAV / nais team" \

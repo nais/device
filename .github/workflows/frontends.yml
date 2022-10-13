@@ -168,6 +168,8 @@ jobs:
         with:
           go-version: ${{ env.go_version }}
       - name: create debian package
+        env:
+          SUFFIX: "${{ matrix.output-suffix }}"
         run: |
           sudo apt update
           sudo apt install --yes build-essential ruby ruby-dev rubygems libgtk-3-dev libappindicator3-dev libindicator3-dev libayatana-appindicator3-dev
