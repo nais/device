@@ -72,7 +72,7 @@ func (das *DeviceAgentServer) syncConfigLoop(ctx context.Context, gateways chan<
 
 	apiserverClient := pb.NewAPIServerClient(apiserver)
 
-	session, _ := das.rc.GetTenantSession()
+	session, err := das.rc.GetTenantSession()
 	if err != nil {
 		return err
 	}
