@@ -46,15 +46,6 @@ func handleSignals(cancel context.CancelFunc) {
 
 	go func() {
 		sig := <-signals
-		sentry.AddBreadcrumb(&sentry.Breadcrumb{
-			Level:   sentry.LevelInfo,
-			Message: "signal received",
-			Type:    "debug",
-			Data: map[string]any{
-				"signal": sig,
-			},
-			Category: "eventloop",
-		})
 		log.Infof("signal handler: got signal '%s', canceling main context", sig)
 		cancel()
 		log.Info("signal handler: allowing 1s to stop gracefully...", sig)

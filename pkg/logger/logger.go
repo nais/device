@@ -10,13 +10,13 @@ import (
 )
 
 func SetupLogger(level, logDir, filename string) {
-	err := os.MkdirAll(logDir, 0755)
+	err := os.MkdirAll(logDir, 0o755)
 	if err != nil {
 		log.Fatalf("Creating log dir: %v", err)
 	}
 
 	logFilePath := filepath.Join(logDir, filename)
-	logFile, err := os.OpenFile(logFilePath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0664)
+	logFile, err := os.OpenFile(logFilePath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0o664)
 	if err != nil {
 		log.Fatalf("unable to open log file %s, error: %v", logFilePath, err)
 	}
@@ -33,7 +33,6 @@ func SetupLogger(level, logDir, filename string) {
 	log.SetLevel(loglevel)
 	log.SetFormatter(&easy.Formatter{TimestampFormat: "2006-01-02 15:04:05.00000", LogFormat: "%time% - [%lvl%] - %msg%\n"})
 	log.Infof("Successfully set up logging. Level %s", loglevel)
-	log.AddHook(NewSentryHook())
 }
 
 func Setup(level string) {
