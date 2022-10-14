@@ -268,6 +268,6 @@ jobs:
         uses: actions/upload-release-asset@v1
         with:
           upload_url: ${{ needs.new_release.outputs.upload_url }}
-          asset_path: ./naisdevice_${{ needs.set-version.outputs.version }}_amd64.deb
+          asset_path: ./naisdevice${{ matrix.output-suffix }}_${{ needs.set-version.outputs.version }}_amd64.deb
           asset_name: naisdevice${{ matrix.output-suffix }}.deb
           asset_content_type: application/octet-stream
