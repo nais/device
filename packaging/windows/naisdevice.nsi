@@ -117,6 +117,13 @@ Section "Create data folder"
     CreateDirectory "$ProgramDataPath\NAV\naisdevice\etc"
     CreateDirectory "$ProgramDataPath\NAV\naisdevice\logs"
     CreateDirectory "$ProgramDataPath\NAV\naisdevice\run"
+
+    AccessControl::GrantOnFile "$ProgramDataPath\NAV\naisdevice" "(BU)" "FullAccess"
+    Pop $R0
+    ${If} $R0 == error
+        Pop $R0
+        !insertmacro _Log "Failed to grant permissions to data folder: $R0"
+    ${EndIf}
 SectionEnd
 
 Section "Create shortcuts"
