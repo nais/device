@@ -12,7 +12,8 @@ Vagrant.configure("2") do |config|
 
   # Every Vagrant development environment requires a box. You can search for
   # boxes at https://vagrantcloud.com/search.
-  config.vm.box = "rgl/windows-server-2019-standard-amd64"
+  config.vm.box = "peru/windows-10-enterprise-x64-eval"
+  config.vm.box_version = "20221002.01"
 
   # Disable automatic box update checking. If you disable this, then
   # boxes will only be checked for updates when the user runs
@@ -44,7 +45,7 @@ Vagrant.configure("2") do |config|
   # the path on the guest to mount the folder. And the optional third
   # argument is a set of non-required options.
   # config.vm.synced_folder "../data", "/vagrant_data"
-  config.vm.synced_folder ".", "/vagrant", automount: true
+  config.vm.synced_folder ".", "/vagrant", automount: true, type: "virtualbox"
 
   # Provider-specific configuration so you can fine-tune various
   # backing providers for Vagrant. These expose provider-specific options.
@@ -57,12 +58,6 @@ config.vm.provider "virtualbox" do |vb|
   #   # Customize the amount of memory on the VM:
   #   vb.memory = "1024"
   vb.memory = "2048"
-
-  # Share a base vm for all instances
-  vb.linked_clone = true
-
-  # Cap cpu at 50% of host
-  vb.customize ["modifyvm", :id, "--cpuexecutioncap", "50"]
 end
 
   # View the documentation for the provider you are using for more
