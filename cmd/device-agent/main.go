@@ -9,7 +9,6 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/getsentry/sentry-go"
 	"github.com/nais/device/pkg/outtune"
 	log "github.com/sirupsen/logrus"
 	flag "github.com/spf13/pflag"
@@ -66,42 +65,12 @@ func main() {
 	logDir := filepath.Join(cfg.ConfigDir, "logs")
 	logger.SetupLogger(cfg.LogLevel, logDir, "agent.log")
 
-	sentry.AddBreadcrumb(&sentry.Breadcrumb{
-		Level:   sentry.LevelInfo,
-		Message: "main",
-		Type:    "type",
-		Data: map[string]any{
-			"key": "value",
-		},
-		Category: "category",
-	})
-
-	environment := "production"
-	if version.Version == "unknown" {
-		environment = "development"
-	}
-	err := sentry.Init(sentry.ClientOptions{
-		AttachStacktrace: true,
-		Debug:            true,
-		Release:          version.Version,
-		Dist:             config.Platform,
-		Environment:      environment,
-		// fixme: consider hiding this somewhere
-		Dsn: "https://f71422489ffe4731a59c5268159f1c09@sentry.gc.nav.no/93",
-	})
-	if err != nil {
-		log.Fatalf("BUG: Setup sentry sdk: %s", err)
-	}
-	defer sentry.Flush(2 * time.Second)
-
-	sentry.CaptureMessage("device-agent starting up")
-
 	cfg.PopulateAgentConfiguration()
 
 	log.Infof("naisdevice-agent %s starting up", version.Version)
 	log.Infof("configuration: %+v", cfg)
 
-	err = startDeviceAgent(programContext, &cfg)
+	err := startDeviceAgent(programContext, &cfg)
 	if err != nil {
 		notify.Errorf(err.Error())
 		log.Errorf("naisdevice-agent terminated with error.")

@@ -11,7 +11,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/getsentry/sentry-go"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	grpcstatus "google.golang.org/grpc/status"
@@ -304,16 +303,6 @@ func (das *DeviceAgentServer) EventLoop(ctx context.Context) {
 			}
 
 		case newState := <-das.stateChange:
-			sentry.AddBreadcrumb(&sentry.Breadcrumb{
-				Level:   sentry.LevelInfo,
-				Message: "state changed",
-				Type:    "debug",
-				Data: map[string]any{
-					"newState": newState.String(),
-				},
-				Category: "eventloop",
-			})
-
 			previousState := status.ConnectionState
 			status.ConnectionState = newState
 			log.Infof("state changed to %s", status.ConnectionState)
@@ -415,8 +404,6 @@ func (das *DeviceAgentServer) EventLoop(ctx context.Context) {
 				das.stateChange <- pb.AgentState_Bootstrapping
 
 			case pb.AgentState_Connected:
-				sentry.CaptureMessage("Connected")
-
 				lastCertificateFetch = time.Time{}
 				healthCheckTicker.Reset(1 * time.Second)
 				certRenewalTicker.Reset(5 * time.Second)
@@ -433,7 +420,6 @@ func (das *DeviceAgentServer) EventLoop(ctx context.Context) {
 				return
 
 			case pb.AgentState_Disconnecting:
-				sentry.CaptureMessage("Disconnected")
 				if synccancel != nil {
 					synccancel() // cancel streaming gateway updates
 				}
