@@ -11,10 +11,8 @@
 !define UNINSTALLER "uninstaller.exe"
 !define SOURCE "../../bin/windows-client"
 !define WIREGUARD "wireguard-amd64-0.5.3.msi"
-!define LEGACY_PRODUCT_CODE "{56053D33-DC41-43BC-99D0-C9569C306E79}"
 !define REG_UNINSTALL "SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall"
 !define REG_ARP "${REG_UNINSTALL}\${APP_NAME}"
-!define REG_LEGACY "${REG_UNINSTALL}\${LEGACY_PRODUCT_CODE}"
 !define SERVICE_NAME "NaisDeviceHelper"
 !define PAGE_TIMEOUT 60000
 !define STEP_INTERVAL 100
@@ -68,7 +66,6 @@ VIProductVersion "${VERSION}"
 
 Var Result
 Var ProgramDataPath
-Var LegacyUninstallerCmd
 
 ; MUI Settings -----------------------------
 
@@ -98,11 +95,19 @@ UninstPage custom un.StopInstances
 ; Sections ---------------------------------
 
 Section "Uninstall legacy version"
-    ReadRegStr $LegacyUninstallerCmd HKLM "${REG_LEGACY}" "UninstallString"
-    ${If} $LegacyUninstallerCmd != ""
-        !insertmacro _Log "Executing legacy uninstaller"
-        ExecWait 'MsiExec.exe /uninstall ${LEGACY_PRODUCT_CODE} /qn'
-    ${EndIf}
+    StrCpy $0 0
+    loop:
+      EnumRegKey $1 HKLM "${REG_UNINSTALL}" $0
+      IntOp $0 $0 + 1
+      StrCmp $1 "" done
+      StrCmp $1 "naisdevice" loop
+      ReadRegStr $2 HKLM "${REG_UNINSTALL}\$1" "DisplayName"
+      ${If} $2 == "naisdevice"
+        !insertmacro _Log "Found add/remove entry for legacy uninstaller"
+        ExecWait 'MsiExec.exe /uninstall $1 /qn'
+      ${EndIf}
+      Goto loop
+    done:
 SectionEnd
 
 Section "Install files"
