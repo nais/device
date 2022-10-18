@@ -37,8 +37,8 @@ jobs:
           for pkg in naisdevice naisdevice-tenant ; do
             url=https://github.com/nais/device/releases/download/${LATEST}/${pkg}.pkg
             checksum=$(curl --location ${url}.sha256)
-            sed -E -i "s#version \".+\"#version \"${LATEST}\"#" Casks/${pkg}.rb
-            sed -E -i "s#sha256 \".+\"#sha256 \"${CHECKSUM}\"#" Casks/${pkg}.rb
+            sed -E -i "s#version \".*?\"#version \"${LATEST}\"#" Casks/${pkg}.rb
+            sed -E -i "s#sha256 \".*?\"#sha256 \"${checksum}\"#" Casks/${pkg}.rb
           done
           
           git add Casks/naisdevice*.rb
