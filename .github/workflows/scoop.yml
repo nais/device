@@ -50,7 +50,7 @@ jobs:
           for exe in naisdevice naisdevice-tenant ; do
             url=https://github.com/nais/device/releases/download/${LATEST}/${exe}.exe
             update_url=https://github.com/nais/device/releases/download/\$version/${exe}.exe
-            checksum=$(curl --location "${url}.sha256)
+            checksum=$(curl --location ${url}.sha256)
             jq ".architecture[\"64bit\"].url = \"${url}\" | .architecture[\"64bit\"].hash = \"${checksum}\" | .version = \"${LATEST}\" | .autoupdate[\"64bit\"].url = \"${update_url}\"" ../packaging/windows/scoop-template.json > ${exe}.json
           done
           
