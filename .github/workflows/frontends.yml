@@ -226,12 +226,11 @@ jobs:
         uses: actions/download-artifact@v2
         with:
           name: windows-installer${{ matrix.output-suffix }}
-          path: bin/windows
       - name: upload naisdevice.msi
         uses: actions/upload-release-asset@v1
         with:
           upload_url: ${{ needs.new_release.outputs.upload_url }}
-          asset_path: ./bin/windows/naisdevice.msi
+          asset_path: ./naisdevice.msi
           asset_name: naisdevice${{ matrix.output-suffix }}.msi
           asset_content_type: application/octet-stream
 
@@ -239,19 +238,31 @@ jobs:
         uses: actions/download-artifact@v2
         with:
           name: new-windows-installer${{ matrix.output-suffix }}
-          path: packaging/windows
+      - name: Calculate checksum
+        run: |
+          sha256sum naisdevice.exe | awk {'print $1}' > naisdevice.exe.sha256
       - name: upload naisdevice.exe
         uses: actions/upload-release-asset@v1
         with:
           upload_url: ${{ needs.new_release.outputs.upload_url }}
-          asset_path: ./packaging/windows/naisdevice.exe
+          asset_path: ./naisdevice.exe
           asset_name: naisdevice${{ matrix.output-suffix }}.exe
           asset_content_type: application/octet-stream
+      - name: upload naisdevice.exe.sha256
+        uses: actions/upload-release-asset@v1
+        with:
+          upload_url: ${{ needs.new_release.outputs.upload_url }}
+          asset_path: ./naisdevice.exe.sha256
+          asset_name: naisdevice${{ matrix.output-suffix }}.exe.sha256
+          asset_content_type: text/plain
 
       - name: download pkg
         uses: actions/download-artifact@v2
         with:
           name: pkg${{ matrix.output-suffix }}
+      - name: Calculate checksum
+        run: |
+          sha256sum naisdevice.pkg | awk {'print $1}' > naisdevice.pkg.sha256
       - name: upload macos pkg to release
         uses: actions/upload-release-asset@v1
         with:
@@ -259,6 +270,13 @@ jobs:
           asset_path: ./naisdevice.pkg
           asset_name: naisdevice${{ matrix.output-suffix }}.pkg
           asset_content_type: application/octet-stream
+      - name: upload macos pkg checksum to release
+        uses: actions/upload-release-asset@v1
+        with:
+          upload_url: ${{ needs.new_release.outputs.upload_url }}
+          asset_path: ./naisdevice.pkg.sha256
+          asset_name: naisdevice${{ matrix.output-suffix }}.pkg.sha256
+          asset_content_type: text/plain
 
       - name: download deb
         uses: actions/download-artifact@v2
