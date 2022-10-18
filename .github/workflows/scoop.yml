@@ -49,10 +49,8 @@ jobs:
 
           for exe in naisdevice naisdevice-tenant ; do
             url=https://github.com/nais/device/releases/download/${LATEST}/${exe}.exe
-            wget "${url}"
-            checksum=$(sha256sum ${exe}.exe | awk {'print $1}')
+            checksum=$(curl --location "${url}.sha256)
             jq ".architecture[\"64bit\"].url = \"${url}\" | .architecture[\"64bit\"].hash = \"${checksum}\" | .version = \"${LATEST}\"" ../packaging/windows/scoop-template.json > ${exe}.json
-            rm ${exe}.exe
           done
           
           git add naisdevice*.json

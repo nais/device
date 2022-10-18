@@ -26,21 +26,22 @@ jobs:
           HOMEBREW_TAP_KEY: ${{ secrets.HOMEBREW_TAP_KEY }}
         run: |
           echo "Version ${LATEST} was released at ${LATEST_DATE}"
-          wget https://github.com/nais/device/releases/download/${LATEST}/naisdevice.pkg
-          wget https://github.com/nais/device/releases/download/${LATEST}/naisdevice-tenant.pkg
-          CHECKSUM=$(sha256sum naisdevice.pkg | awk {'print $1}')
-          CHECKSUM_TENANT=$(sha256sum naisdevice-tenant.pkg | awk {'print $1}')
+          
           eval "$(ssh-agent -s)"
           ssh-add - <<< "${HOMEBREW_TAP_KEY}"
           git clone git@github.com:nais/homebrew-tap.git taprepo
           cd taprepo
           git config user.email "aura@nav.no"
           git config user.name "naisdevice pipeline"
-          sed -E -i "s#version \".+\"#version \"${LATEST}\"#" Casks/naisdevice.rb
-          sed -E -i "s#sha256 \".+\"#sha256 \"${CHECKSUM}\"#" Casks/naisdevice.rb
-          sed -E -i "s#version \".+\"#version \"${LATEST}\"#" Casks/naisdevice-tenant.rb
-          sed -E -i "s#sha256 \".+\"#sha256 \"${CHECKSUM_TENANT}\"#" Casks/naisdevice-tenant.rb
-          git add .
+          
+          for pkg in naisdevice naisdevice-tenant ; do
+            url=https://github.com/nais/device/releases/download/${LATEST}/${pkg}.pkg
+            checksum=$(curl --location "${url}.sha256)
+            sed -E -i "s#version \".+\"#version \"${LATEST}\"#" Casks/${pkg}.rb
+            sed -E -i "s#sha256 \".+\"#sha256 \"${CHECKSUM}\"#" Casks/${pkg}.rb
+          done
+          
+          git add Casks/naisdevice*.rb
           git --no-pager diff --cached
           git commit -a -m "Bump naisdevice.pkg version to ${LATEST}"
           git push
