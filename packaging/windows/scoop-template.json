@@ -16,6 +16,7 @@
     }
   },
   "homepage": "https://github.com/nais/device",
+  "checkver": "github",
   "license": "MIT",
   "description": "naisdevice is a application suite that enables NAV developers to connect to internal resources in a secure and friendly manner."
 }
