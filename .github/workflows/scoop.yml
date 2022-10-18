@@ -7,6 +7,10 @@ on:
       - completed
   workflow_dispatch:
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   update-scoop:
     runs-on: ubuntu-20.04
@@ -37,8 +41,6 @@ jobs:
           LATEST_DATE: ${{ steps.latest_version.outputs.latest_tag_published_at }}
           SCOOP_TOKEN: ${{ steps.get-scoop-token.outputs.token }}
         run: |
-          sudo apt-get update
-          sudo apt-get install --yes jq
           echo "Version ${LATEST} was released at ${LATEST_DATE}"
 
           cd bucket
@@ -49,9 +51,8 @@ jobs:
             url=https://github.com/nais/device/releases/download/${LATEST}/${exe}.exe
             wget "${url}"
             checksum=$(sha256sum ${exe}.exe | awk {'print $1}')
-            cp ${exe}.json work.json
-            jq ".architecture[\"64bit\"].url = \"${url}\" | .architecture[\"64bit\"].hash = \"${checksum}\" | .version = \"${LATEST}\"" work.json > ${exe}.json
-            rm work.json ${exe}.exe
+            jq ".architecture[\"64bit\"].url = \"${url}\" | .architecture[\"64bit\"].hash = \"${checksum}\" | .version = \"${LATEST}\"" ../packaging/windows/scoop-template.json > ${exe}.json
+            rm ${exe}.exe
           done
           
           git add naisdevice*.json

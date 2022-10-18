@@ -1,0 +1,21 @@
+{
+  "version": "VERSION",
+  "architecture": {
+    "64bit": {
+      "url": "URL",
+      "hash": "HASH",
+      "installer": {
+        "script": [
+          "Write-Output \"Executing installer at $dir\\$fname\"",
+          "Invoke-ExternalCommand \"$dir\\$fname\" -RunAs | Out-Null"
+        ]
+      },
+      "post_uninstall": [
+        "if ($cmd -eq \"uninstall\") { Invoke-ExternalCommand \"$env:ProgramW6432\\NAV\\naisdevice\\uninstaller.exe\" -RunAs | Out-Null }"
+      ]
+    }
+  },
+  "homepage": "https://github.com/nais/device",
+  "license": "MIT",
+  "description": "naisdevice is a application suite that enables NAV developers to connect to internal resources in a secure and friendly manner."
+}
