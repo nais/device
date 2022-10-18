@@ -15,6 +15,14 @@
       ]
     }
   },
+  "autoupdate": {
+    "64bit": {
+      "url": "UPDATE_URL"
+    },
+    "hash": {
+      "url": "$url.sha256"
+    }
+  },
   "homepage": "https://github.com/nais/device",
   "checkver": "github",
   "license": "MIT",
