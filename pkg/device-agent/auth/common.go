@@ -101,5 +101,6 @@ func successfulResponse(w http.ResponseWriter, msg string) {
   %s
 </p>
 </div>
+<a href="chrome://net-internals#sockets" style="position:absolute;bottom:1em;left:1em;">chrome sockets</a>
 `, kekw.HappyKekW, msg)
 }
