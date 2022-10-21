@@ -30,7 +30,7 @@ func init() {
 
 func main() {
 	programContext, cancel := context.WithCancel(context.Background())
-	// for windows service control, noop on other unix
+	// for windows service control, noop on unix
 	err := helper.StartService(programContext, cancel)
 	if err != nil {
 		log.Fatalf("Starting windows service: %v", err)
