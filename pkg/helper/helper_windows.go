@@ -10,23 +10,9 @@ import (
 
 	"github.com/nais/device/pkg/pb"
 	log "github.com/sirupsen/logrus"
-	"golang.org/x/sys/windows/svc"
 )
 
-const (
-	serviceName     = "naisdevice-agent-helper"
-	wireGuardBinary = `c:\Program Files\WireGuard\wireguard.exe`
-)
-
-type MyService struct {
-	controlChannel chan ControlEvent
-}
-
-type ControlEvent int
-
-type Controllable interface {
-	ControlChannel() <-chan ControlEvent
-}
+const wireGuardBinary = `c:\Program Files\WireGuard\wireguard.exe`
 
 type WindowsConfigurator struct {
 	helperConfig       Config
@@ -40,41 +26,12 @@ func New(helperConfig Config) *WindowsConfigurator {
 	}
 }
 
-const (
-	Stop ControlEvent = iota
-	Pause
-	Continue
-)
-
 func (configurator *WindowsConfigurator) Prerequisites() error {
 	if err := filesExist(wireGuardBinary); err != nil {
 		return fmt.Errorf("verifying if file exists: %w", err)
 	}
 
-	isWindowsService, err := svc.IsWindowsService()
-	if err != nil {
-		log.Fatalf("Checking if session is windows service: %v", err)
-	}
-
-	if !isWindowsService {
-		return nil
-	}
-
-	go func() {
-		s := NewService()
-		err = svc.Run(serviceName, s)
-		if err != nil {
-			log.Fatalf("Running service: %v", err)
-		}
-	}()
-
-	log.Infof("ran service")
-
 	return nil
-}
-
-func (service *MyService) ControlChannel() <-chan ControlEvent {
-	return service.controlChannel
 }
 
 func interfaceExists(ctx context.Context, iface string) bool {
@@ -169,34 +126,4 @@ func fileActuallyChanged(old, new []byte) bool {
 	}
 
 	return !bytes.Equal(old, new)
-}
-
-func NewService() *MyService {
-	return &MyService{controlChannel: make(chan ControlEvent, 100)}
-}
-
-func (service *MyService) Execute(args []string, r <-chan svc.ChangeRequest, changes chan<- svc.Status) (ssec bool, errno uint32) {
-	const cmdsAccepted = svc.AcceptStop | svc.AcceptShutdown
-	changes <- svc.Status{State: svc.StartPending}
-	log.Infof("service started with args: %v", args)
-	changes <- svc.Status{State: svc.Running, Accepts: cmdsAccepted}
-loop:
-	for {
-		select {
-		case c := <-r:
-			switch c.Cmd {
-			case svc.Interrogate:
-				changes <- c.CurrentStatus
-				time.Sleep(100 * time.Millisecond)
-				changes <- c.CurrentStatus
-			case svc.Stop, svc.Shutdown:
-				service.controlChannel <- Stop
-				break loop
-			default:
-				log.Errorf("unexpected control request #%d", c)
-			}
-		}
-	}
-	changes <- svc.Status{State: svc.StopPending}
-	return
 }

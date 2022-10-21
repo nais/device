@@ -19,9 +19,7 @@ import (
 	"google.golang.org/grpc"
 )
 
-var (
-	cfg = helper.Config{}
-)
+var cfg = helper.Config{}
 
 func init() {
 	flag.StringVar(&cfg.LogLevel, "log-level", "info", "which log level to output")
@@ -31,6 +29,13 @@ func init() {
 }
 
 func main() {
+	programContext, cancel := context.WithCancel(context.Background())
+	// for windows service control, noop on other unix
+	err := helper.StartService(programContext, cancel)
+	if err != nil {
+		log.Fatalf("Starting windows service: %v", err)
+	}
+
 	osConfigurator := helper.New(cfg)
 
 	logger.SetupLogger(cfg.LogLevel, config.LogDir, "helper.log")
@@ -41,15 +46,15 @@ func main() {
 	if err := osConfigurator.Prerequisites(); err != nil {
 		log.Fatalf("Checking prerequisites: %v", err)
 	}
-	if err := os.MkdirAll(config.RuntimeDir, 0755); err != nil {
+	if err := os.MkdirAll(config.RuntimeDir, 0o755); err != nil {
 		log.Fatalf("Setting up runtime dir: %v", err)
 	}
-	if err := os.MkdirAll(config.ConfigDir, 0750); err != nil {
+	if err := os.MkdirAll(config.ConfigDir, 0o750); err != nil {
 		log.Fatalf("Setting up config dir: %v", err)
 	}
 
 	grpcPath := filepath.Join(config.RuntimeDir, "helper.sock")
-	listener, err := unixsocket.ListenWithFileMode(grpcPath, 0666)
+	listener, err := unixsocket.ListenWithFileMode(grpcPath, 0o666)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -65,7 +70,7 @@ func main() {
 	pb.RegisterDeviceHelperServer(grpcServer, dhs)
 
 	teardown := func() {
-		ctx, cancel := context.WithTimeout(context.Background(), time.Second*2)
+		ctx, cancel := context.WithTimeout(programContext, time.Second*2)
 		defer cancel()
 		_, err := dhs.Teardown(ctx, &pb.TeardownRequest{})
 		if err != nil {
@@ -92,6 +97,11 @@ func main() {
 		signal.Notify(interrupt, os.Interrupt, syscall.SIGTERM)
 		sig := <-interrupt
 		log.Infof("Received %s, shutting down gracefully.", sig)
+		grpcServer.Stop()
+	}()
+
+	go func() {
+		<-programContext.Done()
 		grpcServer.Stop()
 	}()
 
