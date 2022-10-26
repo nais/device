@@ -72,7 +72,7 @@ func handleRedirectGoogle(state, redirectURI string, codeVerifier *codeverifier.
 			return
 		}
 
-		successfulResponse(w, "Successfully authenticated 👌 Close me pls")
+		successfulResponse(w, "Successfully authenticated 👌 Close me pls", r.Header.Get("user-agent"))
 		tokens := &Tokens{Token: exchangeResponse.Token, IDToken: exchangeResponse.IDToken}
 		authFlowChan <- &authFlowResponse{Tokens: tokens, err: nil}
 	}

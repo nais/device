@@ -92,15 +92,27 @@ func failureResponse(w http.ResponseWriter, msg string) {
 `, kekw.SadKekW, msg)
 }
 
-func successfulResponse(w http.ResponseWriter, msg string) {
-	w.Header().Set("content-type", "text/html;charset=utf8")
-	_, _ = fmt.Fprintf(w, `
+func successfulResponse(w http.ResponseWriter, msg, userAgent string) {
+	content := fmt.Sprintf(`
 <div style="position:absolute;left:50%%;top:50%%;margin-top:-150px;margin-left:-200px;height:300px;width:400px;bottom:50%%;background-color:#f5f5f5;border:1px solid #d9d9d9;border-radius:4px">
-<img style="width:100px;display:block;margin:auto;margin-top:50px" width="100" src="data:image/jpeg;base64,%s"/>
-<p style="margin-top: 70px" align="center">
-  %s
-</p>
+	<img style="width:100px;display:block;margin:auto;margin-top:50px" width="100" src="data:image/jpeg;base64,%s"/>
+	<p style="margin-top: 70px" align="center">
+	%s
+	</p>
 </div>
-<a href="chrome://net-internals#sockets" style="position:absolute;bottom:1em;left:1em;">chrome sockets</a>
 `, kekw.HappyKekW, msg)
+
+	if isChrome(userAgent) {
+		content += `
+<div style="position:absolute;bottom:1em;left:1em;">
+	<p>Hvis du prøvde å åpne en side før du logget inn på naisdevice, vil ikke nettleseren Chrome merke det før du har sletta hurtigminnet. Dette kan du gjøre i <a href="chrome://net-internals#sockets">chrome://net-internals#sockets</a> (kan ikke trykkes på, må kopiere og lime inn i adressefeltet)</p>
+<div>`
+	}
+
+	w.Header().Set("content-type", "text/html;charset=utf8")
+	_, _ = fmt.Fprint(w, content)
+}
+
+func isChrome(userAgent string) bool {
+	return strings.Contains(userAgent, "Chrome/")
 }

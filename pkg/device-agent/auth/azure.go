@@ -62,7 +62,7 @@ func handleRedirectAzure(state string, conf oauth2.Config, codeVerifier *codever
 			return
 		}
 
-		successfulResponse(w, "Successfully authenticated 👌 Close me pls")
+		successfulResponse(w, "Successfully authenticated 👌 Close me pls", r.Header.Get("user-agent"))
 		authFlowChan <- &authFlowResponse{Tokens: &Tokens{Token: t}, err: nil}
 	}
 }
