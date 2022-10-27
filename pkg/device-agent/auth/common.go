@@ -105,7 +105,7 @@ func successfulResponse(w http.ResponseWriter, msg, userAgent string) {
 	if isChrome(userAgent) {
 		content += `
 <div style="position:absolute;bottom:1em;left:1em;">
-	<p>Hvis du prøvde å åpne en side før du logget inn på naisdevice, vil ikke nettleseren Chrome merke det før du har sletta hurtigminnet. Dette kan du gjøre i <a href="chrome://net-internals#sockets">chrome://net-internals#sockets</a> (kan ikke trykkes på, må kopiere og lime inn i adressefeltet)</p>
+	<p>Hvis du prøvde å åpne en side før du logget inn på naisdevice, vil ikke nettleseren Chrome merke det før du har sletta hurtigminnet. Dette kan du gjøre i <a href="chrome://net-internals#sockets">chrome://net-internals#sockets</a> (høyreklikk for å kopiere lenken, lim inn i nettleser)</p>
 <div>`
 	}
 
