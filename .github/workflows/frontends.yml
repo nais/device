@@ -34,7 +34,7 @@ jobs:
       - uses: actions/checkout@v2
       - name: set version
         id: set-version
-        run: echo ::set-output name=version::${GITHUB_REF#refs/*/}
+        run: echo "version=${GITHUB_REF#refs/*/}" >> ${GITHUB_OUTPUT}
 
   build-windows-bin:
     needs:
