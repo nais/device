@@ -59,6 +59,7 @@ func (g *GatewayConfigurer) SyncConfig(ctx context.Context) error {
 		return nil
 	}
 
+	log.Info("Syncing gateway configuration from bucket")
 	var gatewayConfigs map[string]GatewayConfig
 	if err := json.NewDecoder(object.Reader()).Decode(&gatewayConfigs); err != nil {
 		return fmt.Errorf("unmarshaling gateway config json: %v", err)
