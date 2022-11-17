@@ -11,7 +11,7 @@ jobs:
   update-cask:
     runs-on: ubuntu-20.04
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - name: Get Latest version
         id: latest_version
         uses: abatilo/release-info-action@5876e1e74bcf971982cc7bef9b65a8814621cf44
@@ -26,21 +26,21 @@ jobs:
           HOMEBREW_TAP_KEY: ${{ secrets.HOMEBREW_TAP_KEY }}
         run: |
           echo "Version ${LATEST} was released at ${LATEST_DATE}"
-          
+
           eval "$(ssh-agent -s)"
           ssh-add - <<< "${HOMEBREW_TAP_KEY}"
           git clone git@github.com:nais/homebrew-tap.git taprepo
           cd taprepo
           git config user.email "aura@nav.no"
           git config user.name "naisdevice pipeline"
-          
+
           for pkg in naisdevice naisdevice-tenant ; do
             url=https://github.com/nais/device/releases/download/${LATEST}/${pkg}.pkg
             checksum=$(curl --location ${url}.sha256)
             sed -E -i "s#version \".*?\"#version \"${LATEST}\"#" Casks/${pkg}.rb
             sed -E -i "s#sha256 \".*?\"#sha256 \"${checksum}\"#" Casks/${pkg}.rb
           done
-          
+
           git add Casks/naisdevice*.rb
           git --no-pager diff --cached
           git commit -a -m "Bump naisdevice.pkg version to ${LATEST}"
