@@ -18,7 +18,7 @@ jobs:
       - uses: actions/checkout@v3
       - name: Get Latest version
         id: latest_version
-        uses: abatilo/release-info-action@5876e1e74bcf971982cc7bef9b65a8814621cf44
+        uses: abatilo/release-info-action@5774bec4e3eabad433b4ae8f625e83afa0e7bb22
         with:
           owner: nais
           repo: device
