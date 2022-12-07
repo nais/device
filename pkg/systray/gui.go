@@ -561,7 +561,7 @@ func (gui *Gui) activateTenant(ctx context.Context, name string) {
 	}
 	
 	if gui.Config.AutoConnect {
-		_, err := gui.DeviceAgentClient.Login(context.Background(), &pb.LoginRequest{})
+		_, err = gui.DeviceAgentClient.Login(context.Background(), &pb.LoginRequest{})
 		if err != nil {
 			log.Errorf("connect: %v", err)
 		}
