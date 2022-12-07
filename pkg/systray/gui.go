@@ -557,5 +557,13 @@ func (gui *Gui) activateTenant(ctx context.Context, name string) {
 	_, err := gui.DeviceAgentClient.SetActiveTenant(ctx, req)
 	if err != nil {
 		notify.Errorf("Failed to activate tenant, err: %v", err)
+		return
+	}
+	
+	if gui.Config.AutoConnect {
+		_, err := gui.DeviceAgentClient.Login(context.Background(), &pb.LoginRequest{})
+		if err != nil {
+			log.Errorf("connect: %v", err)
+		}
 	}
 }
