@@ -408,6 +408,8 @@ func (das *DeviceAgentServer) EventLoop(ctx context.Context) {
 					das.stateChange <- pb.AgentState_Authenticating
 				}
 				lastCertificateFetch = time.Time{}
+        das.rc.Tokens = nil
+        das.rc.EnrollConfig = nil
 
 			case pb.AgentState_Quitting:
 				return

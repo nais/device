@@ -121,8 +121,6 @@ func (das *DeviceAgentServer) SetActiveTenant(ctx context.Context, req *pb.SetAc
 	for i, tenant := range das.rc.Tenants {
 		if tenant.Name == req.Name {
 			das.rc.Tenants[i].Active = true
-			das.rc.Tokens = nil
-			das.rc.EnrollConfig = nil
 			das.stateChange <- pb.AgentState_Disconnecting
 			log.Infof("activated tenant: %s", tenant.Name)
 			return &pb.SetActiveTenantResponse{}, nil
