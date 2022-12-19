@@ -83,9 +83,11 @@ func (das *DeviceAgentServer) syncConfigLoop(ctx context.Context, gateways chan<
 			return err
 		}
 
-		token := das.rc.Tokens.Token.AccessToken
+		var token string
 		if das.rc.GetActiveTenant().AuthProvider == pb.AuthProvider_Google {
 			token = das.rc.Tokens.IDToken
+		} else {
+			token = das.rc.Tokens.Token.AccessToken
 		}
 
 		loginResponse, err := apiserverClient.Login(ctx, &pb.APIServerLoginRequest{
