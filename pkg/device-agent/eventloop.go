@@ -362,7 +362,7 @@ func (das *DeviceAgentServer) EventLoop(ctx context.Context) {
 						case codes.Unauthenticated:
 							log.Errorf("Logging in: %s", err)
 							das.rc.Tokens = nil
-							log.Error("Cleaned up Azure AD Token")
+							log.Error("Cleaned up old tokens")
 							fallthrough
 						default:
 							notify.Errorf(err.Error())
