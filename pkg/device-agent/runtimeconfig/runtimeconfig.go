@@ -296,3 +296,14 @@ func (rc *RuntimeConfig) GetTenantSession() (*pb.Session, error) {
 
 	return nil, fmt.Errorf("no active tenant. tenants: %+v", rc.Tenants)
 }
+
+func (rc *RuntimeConfig) GetToken(ctx context.Context) (string, error) {
+	if rc.Tokens == nil {
+		return "", fmt.Errorf("no tokens in runtimeconfig")
+	}
+
+	if rc.GetActiveTenant().AuthProvider == pb.AuthProvider_Google {
+		return rc.Tokens.IDToken, nil
+	}
+	return rc.Tokens.Token.AccessToken, nil
+}

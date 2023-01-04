@@ -83,11 +83,9 @@ func (das *DeviceAgentServer) syncConfigLoop(ctx context.Context, gateways chan<
 			return err
 		}
 
-		var token string
-		if das.rc.GetActiveTenant().AuthProvider == pb.AuthProvider_Google {
-			token = das.rc.Tokens.IDToken
-		} else {
-			token = das.rc.Tokens.Token.AccessToken
+		token, err := das.rc.GetToken(ctx)
+		if err != nil {
+			return err
 		}
 
 		loginResponse, err := apiserverClient.Login(ctx, &pb.APIServerLoginRequest{
@@ -129,8 +127,7 @@ func (das *DeviceAgentServer) syncConfigLoop(ctx context.Context, gateways chan<
 		case pb.DeviceConfigurationStatus_InvalidSession:
 			log.Errorf("Unauthorized access from apiserver: %v", err)
 			log.Errorf("Assuming invalid session; disconnecting.")
-			das.stateChange <- pb.AgentState_Disconnecting
-			continue
+			return fmt.Errorf("config status: %v", cfg.Status)
 		case pb.DeviceConfigurationStatus_DeviceUnhealthy:
 			log.Errorf("Device is not healthy: %v", err)
 			// TODO consider moving all notify calls to systray code
@@ -299,10 +296,16 @@ func (das *DeviceAgentServer) EventLoop(ctx context.Context) {
 		case newState := <-das.stateChange:
 			previousState := status.ConnectionState
 			status.ConnectionState = newState
-			log.Infof("state changed to %s", status.ConnectionState)
+			log.Infof("state changed from %s to %s", previousState, status.ConnectionState)
 
 			switch status.ConnectionState {
 			case pb.AgentState_Bootstrapping:
+				if previousState != pb.AgentState_Authenticating {
+					log.Errorf("probably concurrency issue: came here from invalid state %q, aborting", previousState)
+					das.stateChange <- pb.AgentState_Disconnecting
+					break
+				}
+
 				if das.rc.EnrollConfig != nil {
 					log.Infof("Already bootstrapped")
 				} else if err := das.rc.LoadEnrollConfig(); err == nil {
@@ -366,7 +369,9 @@ func (das *DeviceAgentServer) EventLoop(ctx context.Context) {
 							fallthrough
 						default:
 							notify.Errorf(err.Error())
-							das.stateChange <- pb.AgentState_Disconnecting
+							if das.AgentStatus.ConnectionState != pb.AgentState_Disconnecting {
+								das.stateChange <- pb.AgentState_Disconnecting
+							}
 							synccancel()
 						}
 					}
@@ -380,6 +385,12 @@ func (das *DeviceAgentServer) EventLoop(ctx context.Context) {
 				continue
 
 			case pb.AgentState_Authenticating:
+				if previousState != pb.AgentState_Disconnected {
+					log.Errorf("probably concurrency issue: came here from invalid state %q, aborting", previousState)
+					das.stateChange <- pb.AgentState_Disconnecting
+					break
+				}
+
 				session, _ := das.rc.GetTenantSession()
 				if !session.Expired() {
 					das.stateChange <- pb.AgentState_Bootstrapping
