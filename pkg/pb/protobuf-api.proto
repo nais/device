@@ -236,6 +236,7 @@ message Tenant {
   bool outtuneEnabled = 3;
   string domain = 4;
   bool active = 5;
+  Session session = 6;
 }
 
 message AgentConfiguration {

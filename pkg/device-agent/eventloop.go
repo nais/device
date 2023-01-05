@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/base64"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"net"
 	"net/http"
@@ -42,11 +41,6 @@ const (
 	apiServerRetryInterval = time.Second * 5
 )
 
-var (
-	ErrExpiredToken      = errors.New("azure ad token expired")
-	ErrTokenDoesNotExist = errors.New("azure ad token does not exist")
-)
-
 func (das *DeviceAgentServer) ConfigureHelper(ctx context.Context, rc *runtimeconfig.RuntimeConfig, gateways []*pb.Gateway) error {
 	_, err := das.DeviceHelper.Configure(ctx, &pb.Configuration{
 		PrivateKey: base64.StdEncoding.EncodeToString(rc.PrivateKey),
@@ -54,16 +48,6 @@ func (das *DeviceAgentServer) ConfigureHelper(ctx context.Context, rc *runtimeco
 		Gateways:   gateways,
 	})
 	return err
-}
-
-func validateToken(token *auth.Tokens) error {
-	if token == nil {
-		return ErrTokenDoesNotExist
-	} else if time.Now().After(token.Token.Expiry) {
-		return ErrExpiredToken
-	}
-
-	return nil
 }
 
 func (das *DeviceAgentServer) syncConfigLoop(ctx context.Context, gateways chan<- []*pb.Gateway) error {
@@ -88,15 +72,20 @@ func (das *DeviceAgentServer) syncConfigLoop(ctx context.Context, gateways chan<
 
 	apiserverClient := pb.NewAPIServerClient(apiserver)
 
-	if das.rc.SessionInfo.Expired() {
+	session, err := das.rc.GetTenantSession()
+	if err != nil {
+		return err
+	}
+
+	if session.Expired() {
 		serial, err := das.getSerial(ctx)
 		if err != nil {
 			return err
 		}
 
-		token := das.rc.Tokens.Token.AccessToken
-		if das.rc.GetActiveTenant().AuthProvider == pb.AuthProvider_Google {
-			token = das.rc.Tokens.IDToken
+		token, err := das.rc.GetToken(ctx)
+		if err != nil {
+			return err
 		}
 
 		loginResponse, err := apiserverClient.Login(ctx, &pb.APIServerLoginRequest{
@@ -108,14 +97,17 @@ func (das *DeviceAgentServer) syncConfigLoop(ctx context.Context, gateways chan<
 			return err
 		}
 
-		das.rc.SessionInfo = loginResponse.Session
+		if err := das.rc.SetTenantSession(loginResponse.Session); err != nil {
+			return err
+		}
+		session = loginResponse.Session
 	}
 
-	streamContext, cancel := context.WithDeadline(ctx, das.rc.SessionInfo.Expiry.AsTime())
+	streamContext, cancel := context.WithDeadline(ctx, session.Expiry.AsTime())
 	defer cancel()
 
 	stream, err := apiserverClient.GetDeviceConfiguration(streamContext, &pb.GetDeviceConfigurationRequest{
-		SessionKey: das.rc.SessionInfo.Key,
+		SessionKey: session.Key,
 	})
 	if err != nil {
 		return err
@@ -135,8 +127,7 @@ func (das *DeviceAgentServer) syncConfigLoop(ctx context.Context, gateways chan<
 		case pb.DeviceConfigurationStatus_InvalidSession:
 			log.Errorf("Unauthorized access from apiserver: %v", err)
 			log.Errorf("Assuming invalid session; disconnecting.")
-			das.stateChange <- pb.AgentState_Disconnecting
-			continue
+			return fmt.Errorf("config status: %v", cfg.Status)
 		case pb.DeviceConfigurationStatus_DeviceUnhealthy:
 			log.Errorf("Device is not healthy: %v", err)
 			// TODO consider moving all notify calls to systray code
@@ -215,12 +206,12 @@ func (das *DeviceAgentServer) EventLoop(ctx context.Context) {
 
 		case <-certRenewalTicker.C:
 			certRenewalTicker.Reset(certCheckInterval)
-			log.Info("CHECKING FOR CERTIFICATE")
+			log.Debug("CHECKING FOR CERTIFICATE")
 
 			if !das.Config.AgentConfiguration.CertRenewal || !das.rc.GetActiveTenant().OuttuneEnabled {
 				log.WithFields(log.Fields{
-					"rc.tenant": das.rc.GetActiveTenant(),
-				}).Info("skipped cert renewal - disabled")
+					"das.rc.GetActiveTenant()": das.rc.GetActiveTenant(),
+				}).Debug("skipped cert renewal - disabled")
 				break
 			}
 
@@ -305,13 +296,23 @@ func (das *DeviceAgentServer) EventLoop(ctx context.Context) {
 		case newState := <-das.stateChange:
 			previousState := status.ConnectionState
 			status.ConnectionState = newState
-			log.Infof("state changed to %s", status.ConnectionState)
+			log.Infof("state changed from %s to %s", previousState, status.ConnectionState)
 
 			switch status.ConnectionState {
 			case pb.AgentState_Bootstrapping:
+				if previousState != pb.AgentState_Authenticating {
+					log.Errorf("probably concurrency issue: came here from invalid state %q, aborting", previousState)
+					das.stateChange <- pb.AgentState_Disconnecting
+					break
+				}
+
 				if das.rc.EnrollConfig != nil {
 					log.Infof("Already bootstrapped")
+				} else if err := das.rc.LoadEnrollConfig(); err == nil {
+					log.Infof("Loaded enroll config from disk")
 				} else {
+					log.Infof("Unable to load enroll config from disk: %s", err)
+					log.Infof("Enrolling device")
 					ctx, cancel := context.WithTimeout(context.Background(), 1*time.Minute)
 					serial, err := das.getSerial(ctx)
 					if err != nil {
@@ -364,11 +365,13 @@ func (das *DeviceAgentServer) EventLoop(ctx context.Context) {
 						case codes.Unauthenticated:
 							log.Errorf("Logging in: %s", err)
 							das.rc.Tokens = nil
-							log.Error("Cleaned up Azure AD Token")
+							log.Error("Cleaned up old tokens")
 							fallthrough
 						default:
 							notify.Errorf(err.Error())
-							das.stateChange <- pb.AgentState_Disconnecting
+							if das.AgentStatus.ConnectionState != pb.AgentState_Disconnecting {
+								das.stateChange <- pb.AgentState_Disconnecting
+							}
 							synccancel()
 						}
 					}
@@ -382,23 +385,26 @@ func (das *DeviceAgentServer) EventLoop(ctx context.Context) {
 				continue
 
 			case pb.AgentState_Authenticating:
-				err = validateToken(das.rc.Tokens)
-				if err == nil {
-					log.Infof("Already have valid Azure AD token")
-				} else {
-					log.Infof("validate token: %v", err)
+				if previousState != pb.AgentState_Disconnected {
+					log.Errorf("probably concurrency issue: came here from invalid state %q, aborting", previousState)
+					das.stateChange <- pb.AgentState_Disconnecting
+					break
+				}
 
-					ctx, cancel := context.WithTimeout(ctx, authFlowTimeout)
-					oauth2Config := das.rc.Config.OAuth2Config(das.rc.GetActiveTenant().AuthProvider)
-					log.Infof("%+v", das.rc.GetActiveTenant())
-					log.Infof("%+v", oauth2Config)
-					das.rc.Tokens, err = auth.GetDeviceAgentToken(ctx, oauth2Config, das.Config.GoogleAuthServerAddress)
-					cancel()
-					if err != nil {
-						notify.Errorf("Get token: %v", err)
-						das.stateChange <- pb.AgentState_Disconnected
-						break
-					}
+				session, _ := das.rc.GetTenantSession()
+				if !session.Expired() {
+					das.stateChange <- pb.AgentState_Bootstrapping
+					break
+				}
+
+				ctx, cancel := context.WithTimeout(ctx, authFlowTimeout)
+				oauth2Config := das.rc.Config.OAuth2Config(das.rc.GetActiveTenant().AuthProvider)
+				das.rc.Tokens, err = auth.GetDeviceAgentToken(ctx, oauth2Config, das.Config.GoogleAuthServerAddress)
+				cancel()
+				if err != nil {
+					notify.Errorf("Get token: %v", err)
+					das.stateChange <- pb.AgentState_Disconnected
+					break
 				}
 
 				das.stateChange <- pb.AgentState_Bootstrapping
@@ -415,6 +421,8 @@ func (das *DeviceAgentServer) EventLoop(ctx context.Context) {
 					das.stateChange <- pb.AgentState_Authenticating
 				}
 				lastCertificateFetch = time.Time{}
+				das.rc.Tokens = nil
+				das.rc.EnrollConfig = nil
 
 			case pb.AgentState_Quitting:
 				return
@@ -423,7 +431,6 @@ func (das *DeviceAgentServer) EventLoop(ctx context.Context) {
 				if synccancel != nil {
 					synccancel() // cancel streaming gateway updates
 				}
-				das.rc.SessionInfo = nil
 				log.Info("Tearing down network connections through device-helper...")
 				ctx, cancel := context.WithTimeout(context.Background(), helperTimeout)
 				_, err = das.DeviceHelper.Teardown(ctx, &pb.TeardownRequest{})

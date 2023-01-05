@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"sync"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/hashicorp/go-multierror"
@@ -30,9 +31,22 @@ type DeviceAgentServer struct {
 	outtune      outtune.Outtune
 }
 
+const maxLoginAttempts = 20
+
 func (das *DeviceAgentServer) Login(ctx context.Context, request *pb.LoginRequest) (*pb.LoginResponse, error) {
-	das.stateChange <- pb.AgentState_Authenticating
-	return &pb.LoginResponse{}, nil
+	var lastStatus pb.AgentState
+	for attempt := 1; attempt <= maxLoginAttempts; attempt += 1 {
+		lastStatus = das.AgentStatus.ConnectionState
+		if lastStatus == pb.AgentState_Disconnected {
+			das.stateChange <- pb.AgentState_Authenticating
+			return &pb.LoginResponse{}, nil
+		}
+
+		log.Debugf("[attempt %d/%d] device agent server login: agent not in correct state (state=%+v). wait 200ms and retry", attempt, maxLoginAttempts, lastStatus)
+		time.Sleep(200 * time.Millisecond)
+	}
+
+	return &pb.LoginResponse{}, fmt.Errorf("unable to connect, invalid state: %+v", lastStatus)
 }
 
 func (das *DeviceAgentServer) Logout(ctx context.Context, request *pb.LogoutRequest) (*pb.LogoutResponse, error) {
@@ -121,8 +135,6 @@ func (das *DeviceAgentServer) SetActiveTenant(ctx context.Context, req *pb.SetAc
 	for i, tenant := range das.rc.Tenants {
 		if tenant.Name == req.Name {
 			das.rc.Tenants[i].Active = true
-			das.rc.EnrollConfig = nil
-			das.rc.Tokens = nil
 			das.stateChange <- pb.AgentState_Disconnecting
 			log.Infof("activated tenant: %s", tenant.Name)
 			return &pb.SetActiveTenantResponse{}, nil
