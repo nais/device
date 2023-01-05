@@ -3,9 +3,9 @@ module github.com/nais/device
 go 1.18
 
 require (
-	cloud.google.com/go/secretmanager v0.1.0
-	cloud.google.com/go/storage v1.21.0
-	github.com/GoogleCloudPlatform/cloudsql-proxy v1.29.0
+	cloud.google.com/go/secretmanager v1.8.0
+	cloud.google.com/go/storage v1.27.0
+	github.com/GoogleCloudPlatform/cloudsql-proxy v1.33.1
 	github.com/coreos/go-iptables v0.6.0
 	github.com/gen2brain/beeep v0.0.0-20210529141713-5586760f0cc1
 	github.com/getlantern/golog v0.0.0-20211223150227-d4d95a44d873 // indirect
@@ -19,34 +19,34 @@ require (
 	github.com/hashicorp/go-multierror v1.1.1
 	github.com/kelseyhightower/envconfig v1.4.0
 	github.com/lestrrat-go/jwx v1.2.7
-	github.com/lib/pq v1.10.4
+	github.com/lib/pq v1.10.7
 	github.com/nais/kolide-event-handler v0.0.0-20220214150046-ca39d969eea0
 	github.com/nirasan/go-oauth-pkce-code-verifier v0.0.0-20170819232839-0fbfe93532da
 	github.com/prometheus/client_golang v1.11.0
 	github.com/prometheus/procfs v0.7.3 // indirect
 	github.com/sirupsen/logrus v1.8.1
 	github.com/spf13/pflag v1.0.5
-	github.com/stretchr/testify v1.7.1
+	github.com/stretchr/testify v1.8.1
 	github.com/t-tomalak/logrus-easy-formatter v0.0.0-20190827215021-c074f06c5816
 	github.com/urfave/cli/v2 v2.3.0
-	golang.org/x/crypto v0.0.0-20210921155107-089bfa567519
-	golang.org/x/net v0.0.0-20220225172249-27dd8689420f // indirect
-	golang.org/x/oauth2 v0.0.0-20220309155454-6242fa91716a
-	golang.org/x/sys v0.0.0-20220412211240-33da011f77ad
-	golang.org/x/text v0.3.7 // indirect
-	google.golang.org/api v0.73.0
-	google.golang.org/genproto v0.0.0-20220314164441-57ef72a4c106
-	google.golang.org/grpc v1.45.0
-	google.golang.org/protobuf v1.27.1
+	golang.org/x/crypto v0.0.0-20220722155217-630584e8d5aa
+	golang.org/x/net v0.0.0-20221014081412-f15817d10f9b // indirect
+	golang.org/x/oauth2 v0.0.0-20221014153046-6fdb5e3db783
+	golang.org/x/sys v0.0.0-20220731174439-a90be440212d
+	golang.org/x/text v0.4.0 // indirect
+	google.golang.org/api v0.103.0
+	google.golang.org/genproto v0.0.0-20221027153422-115e99e71e1c
+	google.golang.org/grpc v1.50.1
+	google.golang.org/protobuf v1.28.1
 )
 
 require (
 	github.com/golang/protobuf v1.5.2 // indirect
-	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c
+	golang.org/x/sync v0.1.0
 )
 
 require (
-	cloud.google.com/go v0.100.2 // indirect
+	cloud.google.com/go v0.105.0 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/cespare/xxhash/v2 v2.1.2 // indirect
 	github.com/cpuguy83/go-md2man/v2 v2.0.0-20190314233015-f79a8a8ca69d // indirect
@@ -60,8 +60,8 @@ require (
 	github.com/goccy/go-json v0.7.9 // indirect
 	github.com/godbus/dbus/v5 v5.0.5 // indirect
 	github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da // indirect
-	github.com/google/go-cmp v0.5.7 // indirect
-	github.com/googleapis/gax-go/v2 v2.1.1 // indirect
+	github.com/google/go-cmp v0.5.9 // indirect
+	github.com/googleapis/gax-go/v2 v2.7.0 // indirect
 	github.com/gopherjs/gopherwasm v1.1.0 // indirect
 	github.com/hashicorp/errwrap v1.1.0 // indirect
 	github.com/lestrrat-go/backoff/v2 v2.0.8 // indirect
@@ -78,28 +78,30 @@ require (
 	github.com/prometheus/common v0.30.0 // indirect
 	github.com/russross/blackfriday/v2 v2.0.1 // indirect
 	github.com/shurcooL/sanitized_anchor_name v1.0.0 // indirect
-	github.com/stretchr/objx v0.3.0 // indirect
+	github.com/stretchr/objx v0.5.0 // indirect
 	github.com/tadvi/systray v0.0.0-20190226123456-11a2b8fa57af // indirect
-	go.opencensus.io v0.23.0 // indirect
-	go.uber.org/atomic v1.9.0 // indirect
-	go.uber.org/multierr v1.8.0 // indirect
-	go.uber.org/zap v1.21.0 // indirect
-	golang.org/x/time v0.0.0-20220224211638-0e9765cccd65 // indirect
+	go.opencensus.io v0.24.0 // indirect
+	go.uber.org/atomic v1.10.0 // indirect
+	go.uber.org/multierr v1.9.0 // indirect
+	go.uber.org/zap v1.24.0 // indirect
+	golang.org/x/time v0.2.0 // indirect
 	google.golang.org/appengine v1.6.7 // indirect
-	gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b // indirect
+	gopkg.in/yaml.v3 v3.0.1 // indirect
 	software.sslmate.com/src/go-pkcs12 v0.0.0-20210415151418-c5206de65a78
 )
 
 require (
-	cloud.google.com/go/compute v1.5.0 // indirect
-	cloud.google.com/go/iam v0.3.0 // indirect
+	cloud.google.com/go/compute v1.12.1 // indirect
+	cloud.google.com/go/iam v0.6.0 // indirect
 	cloud.google.com/go/pubsub v1.19.0
-	golang.org/x/xerrors v0.0.0-20200804184101-5ec99f83aff1 // indirect
+	golang.org/x/xerrors v0.0.0-20220907171357-04be3eba64a2 // indirect
 )
 
 require (
+	cloud.google.com/go/compute/metadata v0.2.1 // indirect
 	github.com/go-logr/logr v1.2.3 // indirect
 	github.com/go-logr/stdr v1.2.2 // indirect
+	github.com/googleapis/enterprise-certificate-proxy v0.2.0 // indirect
 	go.opentelemetry.io/otel v1.6.3 // indirect
 	go.opentelemetry.io/otel/trace v1.6.3 // indirect
 )
