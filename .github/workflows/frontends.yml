@@ -11,7 +11,7 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  go_version: "1.18"
+  go_version: "1.19"
 jobs:
   test:
     runs-on: ubuntu-22.04
