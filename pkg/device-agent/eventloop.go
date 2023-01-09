@@ -437,7 +437,7 @@ func (das *DeviceAgentServer) EventLoop(ctx context.Context) {
 				cancel()
 
 				if err != nil {
-					notify.Errorf(err.Error())
+					notifyErrorDescription(err)
 				}
 
 				das.stateChange <- pb.AgentState_Disconnected
@@ -451,6 +451,25 @@ func (das *DeviceAgentServer) EventLoop(ctx context.Context) {
 				certRenewalTicker.Reset(1 * time.Second)
 				das.stateChange <- previousState
 			}
+		}
+	}
+}
+
+func notifyErrorDescription(err error) {
+	st, ok := grpcstatus.FromError(err)
+	if !ok {
+		errMessage := st.Message()
+		switch st.Code() {
+		case codes.Canceled:
+			notify.Errorf("Device interrupted: %v", errMessage)
+		case codes.DeadlineExceeded:
+			notify.Errorf("Device timed out: %v", errMessage)
+		case codes.Unavailable:
+			notify.Errorf("Device unavailable: %v", errMessage)
+		case codes.Unauthenticated:
+			notify.Errorf("Device unauthenticated: %v", errMessage)
+		default:
+			notify.Errorf("Device failed: %v", err)
 		}
 	}
 }

@@ -65,12 +65,18 @@ func GetDeviceAgentToken(ctx context.Context, conf oauth2.Config, authServer str
 
 	select {
 	case <-ctx.Done():
-		return nil, fmt.Errorf("authFlow: %w", ctx.Err())
+		switch ctx.Err() {
+		case context.DeadlineExceeded:
+			return nil, fmt.Errorf("timed out waiting for authorization")
+		case context.Canceled:
+			return nil, fmt.Errorf("authorization cancelled")
+		default:
+			return nil, fmt.Errorf("authorization failed: %w", ctx.Err())
+		}
 	case authFlowResponse := <-authFlowChan:
 		if authFlowResponse.err != nil {
 			return nil, fmt.Errorf("authFlow: %w", authFlowResponse.err)
 		}
-
 		return authFlowResponse.Tokens, nil
 	}
 }
