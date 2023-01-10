@@ -341,7 +341,7 @@ func (das *DeviceAgentServer) EventLoop(ctx context.Context) {
 				cancel()
 
 				if err != nil {
-					notify.Errorf(err.Error())
+					notifyErrorDescription(err)
 					das.stateChange <- pb.AgentState_Disconnecting
 					continue
 				}
