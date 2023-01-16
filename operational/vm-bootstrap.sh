@@ -1,37 +1,37 @@
 #!/usr/bin/env bash
-set -ex
+set -e
 
 if [[ $# -ne 2 ]]; then
-  echo "Usage: $0 <gateway_name> <gcp_project>"
-  exit 1
+	echo "Usage: $0 <gateway_name> <gcp_project>"
+	exit 1
 fi
-
-if [[ ! -f "/root/sa.json" ]]; then
-  echo "You need to place appropriate sa json at /root/sa.json before running this script."
-fi
-
-mkdir -p /var/log/naisdevice
-chmod 755 /var/log/naisdevice
 
 name="$1"
 project="$2"
-proxy=""
 proxy_yaml=""
 role="gateways"
+# onprem settings
 if [[ $(hostname) =~ a30drvl ]]; then
-  # onprem settings
-  role="onprem_gateways"
-  proxy="http://webproxy-internett.nav.no:8088"
-  proxy_yaml="proxy_env:
-      https_proxy: $proxy"
+	if [[ ! -f "/root/sa.json" ]]; then
+		echo "You need to place appropriate sa json at /root/sa.json before running this script."
+		exit 1
+	fi
+
+	role="onprem_gateways"
+	proxy_yaml="proxy_env:
+      https_proxy: http://webproxy-internett.nav.no:8088"
+	export HTTPS_PROXY="http://webproxy-internett.nav.no:8088"
 fi
 
-# Install Ansible
-apt update --yes
-apt install ansible --yes
+apt-get install --yes ca-certificates curl apt-transport-https gnupg
 
-# Configure ansible inventory
-cat <<EOF > /root/ansible-inventory.yaml
+curl -L https://europe-north1-apt.pkg.dev/doc/repo-signing-key.gpg | gpg --dearmor >/etc/apt/trusted.gpg.d/nais-ppa-google-artifact-registry.gpg
+echo 'deb [arch=amd64] https://europe-north1-apt.pkg.dev/projects/naisdevice controlplane main' >/etc/apt/sources.list.d/europe_north1_apt_pkg_dev_projects_naisdevice.list
+
+apt update --yes
+apt install ansible gateway-agent --yes
+
+cat <<EOF >/root/ansible-inventory.yaml
 all:
   vars:
     name: $name
@@ -43,8 +43,5 @@ all:
         $(hostname):
 EOF
 
-# Set up cron for Ansible
-if ! crontab -l 2>/dev/null | grep "ansible-pull"; then
- ( crontab -l 2>/dev/null; echo "*/5 * * * * [ \$(pgrep ansible-pull -c) -eq 0 ] && HTTPS_PROXY=$proxy /usr/bin/ansible-pull --only-if-changed -U https://github.com/nais/device ansible/site.yml -i /root/ansible-inventory.yaml >> /var/log/naisdevice/ansible.log") | crontab -
-fi
-
+echo "add the following line to crontab:"
+echo "*/5 * * * * [ \$(pgrep ansible-pull -c) -eq 0 ] && HTTPS_PROXY=$HTTPS_PROXY /usr/bin/ansible-pull --only-if-changed -U https://github.com/nais/device ansible/site.yml -i /root/ansible-inventory.yaml >> /var/log/naisdevice/ansible.log"
