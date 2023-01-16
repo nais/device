@@ -125,11 +125,11 @@ func (das *DeviceAgentServer) syncConfigLoop(ctx context.Context, gateways chan<
 
 		switch cfg.Status {
 		case pb.DeviceConfigurationStatus_InvalidSession:
-			log.Errorf("Unauthorized access from apiserver: %v", err)
+			log.Errorf("Unauthorized access from apiserver: %s", cfg.Status.String())
 			log.Errorf("Assuming invalid session; disconnecting.")
 			return fmt.Errorf("config status: %v", cfg.Status)
 		case pb.DeviceConfigurationStatus_DeviceUnhealthy:
-			log.Errorf("Device is not healthy: %v", err)
+			log.Errorf("Device is not healthy: %s", cfg.Status.String())
 			das.Notify("No access as your device is unhealthy. Run '/msg @Kolide status' on Slack and fix the errors")
 			das.stateChange <- pb.AgentState_Unhealthy
 			continue
