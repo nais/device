@@ -67,9 +67,9 @@ func GetDeviceAgentToken(ctx context.Context, conf oauth2.Config, authServer str
 	case <-ctx.Done():
 		switch ctx.Err() {
 		case context.DeadlineExceeded:
-			return nil, fmt.Errorf("timed out waiting for authorization")
+			return nil, fmt.Errorf("timed out waiting for authorization: %w", ctx.Err())
 		case context.Canceled:
-			return nil, fmt.Errorf("authorization cancelled")
+			return nil, fmt.Errorf("authorization cancelled: %w", ctx.Err())
 		default:
 			return nil, fmt.Errorf("authorization failed: %w", ctx.Err())
 		}
