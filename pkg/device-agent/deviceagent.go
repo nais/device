@@ -8,7 +8,6 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/hashicorp/go-multierror"
-	"github.com/nais/device/pkg/notify"
 	"github.com/nais/device/pkg/outtune"
 	log "github.com/sirupsen/logrus"
 	"google.golang.org/grpc/codes"
@@ -141,7 +140,7 @@ func (das *DeviceAgentServer) SetActiveTenant(ctx context.Context, req *pb.SetAc
 		}
 	}
 
-	notify.Errorf("tenant %s not found", req.Name)
+	das.Notify("Tenant %s not found", req.Name)
 	return &pb.SetActiveTenantResponse{}, nil
 }
 

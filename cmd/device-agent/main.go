@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"github.com/nais/device/pkg/systray"
 	"os"
 	"os/signal"
 	"path/filepath"
@@ -20,7 +21,6 @@ import (
 	"github.com/nais/device/pkg/device-agent/filesystem"
 	"github.com/nais/device/pkg/device-agent/runtimeconfig"
 	"github.com/nais/device/pkg/logger"
-	"github.com/nais/device/pkg/notify"
 	"github.com/nais/device/pkg/pb"
 	"github.com/nais/device/pkg/unixsocket"
 	"github.com/nais/device/pkg/version"
@@ -72,7 +72,7 @@ func main() {
 
 	err := startDeviceAgent(programContext, &cfg)
 	if err != nil {
-		notify.Errorf(err.Error())
+		systray.Errorf(cfg.AgentConfiguration.Notify, "Device Agent failed to start: %v", err)
 		log.Errorf("naisdevice-agent terminated with error.")
 		os.Exit(1)
 	}

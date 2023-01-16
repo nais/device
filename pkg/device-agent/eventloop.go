@@ -5,6 +5,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"github.com/nais/device/pkg/systray"
 	"net"
 	"net/http"
 	"sync"
@@ -22,7 +23,6 @@ import (
 
 	"github.com/nais/device/pkg/device-agent/auth"
 	"github.com/nais/device/pkg/device-agent/runtimeconfig"
-	"github.com/nais/device/pkg/notify"
 	"github.com/nais/device/pkg/pb"
 	"github.com/nais/device/pkg/version"
 )
@@ -130,8 +130,7 @@ func (das *DeviceAgentServer) syncConfigLoop(ctx context.Context, gateways chan<
 			return fmt.Errorf("config status: %v", cfg.Status)
 		case pb.DeviceConfigurationStatus_DeviceUnhealthy:
 			log.Errorf("Device is not healthy: %v", err)
-			// TODO consider moving all notify calls to systray code
-			notify.Errorf("No access as your device is unhealthy. Run '/msg @Kolide status' on Slack and fix the errors")
+			das.Notify("No access as your device is unhealthy. Run '/msg @Kolide status' on Slack and fix the errors")
 			das.stateChange <- pb.AgentState_Unhealthy
 			continue
 		case pb.DeviceConfigurationStatus_DeviceHealthy:
@@ -173,7 +172,7 @@ func (das *DeviceAgentServer) EventLoop(ctx context.Context) {
 		das.UpdateAgentStatus(status)
 
 		if das.rc.Tenants == nil {
-			notify.Errorf("No tenants configured. Please configure tenants in the configuration file.")
+			das.Notify("No tenants configured. Please configure tenants in the configuration file")
 			return
 		}
 
@@ -198,7 +197,7 @@ func (das *DeviceAgentServer) EventLoop(ctx context.Context) {
 			}
 
 			if status.NewVersionAvailable {
-				notify.Infof("New version of device agent available: https://doc.nais.io/device/install#installation")
+				das.Notify("New version of device agent available: https://doc.nais.io/device/install#installation")
 				versionCheckTicker.Stop()
 			} else {
 				versionCheckTicker.Reset(versionCheckInterval)
@@ -287,7 +286,7 @@ func (das *DeviceAgentServer) EventLoop(ctx context.Context) {
 			cancel()
 
 			if err != nil {
-				notifyErrorDescription(err)
+				das.UserNotify(err)
 				das.stateChange <- pb.AgentState_Disconnecting
 			} else {
 				das.stateChange <- pb.AgentState_Connected
@@ -316,7 +315,7 @@ func (das *DeviceAgentServer) EventLoop(ctx context.Context) {
 					ctx, cancel := context.WithTimeout(context.Background(), 1*time.Minute)
 					serial, err := das.getSerial(ctx)
 					if err != nil {
-						notify.Errorf("Unable to get serial number: %v", err)
+						das.Notify("Unable to get serial number: %v", err)
 						das.stateChange <- pb.AgentState_Disconnecting
 						cancel()
 						continue
@@ -326,7 +325,7 @@ func (das *DeviceAgentServer) EventLoop(ctx context.Context) {
 
 					cancel()
 					if err != nil {
-						notify.Errorf("Bootstrap: %v", err)
+						das.Notify("Bootstrap: %v", err)
 						das.stateChange <- pb.AgentState_Disconnecting
 						continue
 					}
@@ -341,7 +340,7 @@ func (das *DeviceAgentServer) EventLoop(ctx context.Context) {
 				cancel()
 
 				if err != nil {
-					notifyErrorDescription(err)
+					das.UserNotify(err)
 					das.stateChange <- pb.AgentState_Disconnecting
 					continue
 				}
@@ -368,7 +367,7 @@ func (das *DeviceAgentServer) EventLoop(ctx context.Context) {
 							log.Error("Cleaned up old tokens")
 							fallthrough
 						default:
-							notify.Errorf(err.Error())
+							das.UserNotify(err)
 							if das.AgentStatus.ConnectionState != pb.AgentState_Disconnecting {
 								das.stateChange <- pb.AgentState_Disconnecting
 							}
@@ -402,7 +401,7 @@ func (das *DeviceAgentServer) EventLoop(ctx context.Context) {
 				das.rc.Tokens, err = auth.GetDeviceAgentToken(ctx, oauth2Config, das.Config.GoogleAuthServerAddress)
 				cancel()
 				if err != nil {
-					notify.Errorf("Get token: %v", err)
+					das.Notify("Get token: %v", err)
 					das.stateChange <- pb.AgentState_Disconnected
 					break
 				}
@@ -437,7 +436,7 @@ func (das *DeviceAgentServer) EventLoop(ctx context.Context) {
 				cancel()
 
 				if err != nil {
-					notifyErrorDescription(err)
+					das.UserNotify(err)
 				}
 
 				das.stateChange <- pb.AgentState_Disconnected
@@ -455,23 +454,29 @@ func (das *DeviceAgentServer) EventLoop(ctx context.Context) {
 	}
 }
 
-func notifyErrorDescription(err error) {
+func (das *DeviceAgentServer) UserNotify(err error) {
 	st, ok := grpcstatus.FromError(err)
 	if !ok {
-		errMessage := st.Message()
 		switch st.Code() {
 		case codes.Canceled:
-			notify.Errorf("Device interrupted: %v", errMessage)
+			das.Notify("Device stopped: %v", err)
 		case codes.DeadlineExceeded:
-			notify.Errorf("Device timed out: %v", errMessage)
+			das.Notify("Device timed out: %v", err)
 		case codes.Unavailable:
-			notify.Errorf("Device unavailable: %v", errMessage)
+			das.Notify("Device unavailable: %v", err)
 		case codes.Unauthenticated:
-			notify.Errorf("Device unauthenticated: %v", errMessage)
+			das.Notify("Device unauthenticated: %v", err)
 		default:
-			notify.Errorf("Device failed: %v", err)
+			das.Notify("Device failed: %v", err)
 		}
 	}
+}
+
+func (das *DeviceAgentServer) Notify(format string, args ...any) {
+	if len(args) > 0 && systray.IsError(args) {
+		systray.Errorf(das.Config.AgentConfiguration.Notify, format, args...)
+	}
+	systray.Infof(das.Config.AgentConfiguration.Notify, format, args...)
 }
 
 func newVersionAvailable(ctx context.Context) (bool, error) {

@@ -2,6 +2,8 @@ package systray
 
 import (
 	"context"
+	"fmt"
+	"github.com/gen2brain/beeep"
 
 	"github.com/getlantern/systray"
 	"google.golang.org/grpc"
@@ -45,4 +47,58 @@ func onExit() {
 
 func Spawn(ctx context.Context, systrayConfig Config) {
 	systray.Run(func() { onReady(ctx, systrayConfig) }, onExit)
+}
+
+type Announcement interface {
+	Notify(format string, args ...any)
+}
+
+type logFunc func(string, ...any)
+
+func logfn(logLevel log.Level) logFunc {
+	switch logLevel {
+	case log.InfoLevel:
+		return log.Infof
+	case log.ErrorLevel:
+		return log.Errorf
+	default:
+		return log.Printf
+	}
+}
+
+func printf(logLevel log.Level, message string) {
+	logger := logfn(logLevel)
+	logger(message)
+}
+
+func announcement(message string) {
+	err := beeep.Notify("naisdevice", message, "../Resources/nais-logo-red.png")
+	if err != nil {
+		log.Errorf("sending notification: %s", err)
+	}
+}
+
+func Infof(notify bool, format string, args ...any) {
+	message := fmt.Sprintf(format, args...)
+	printf(log.InfoLevel, message)
+	if notify {
+		announcement(message)
+	}
+}
+
+func Errorf(notify bool, format string, args ...any) {
+	message := fmt.Sprintf(format, args...)
+	printf(log.ErrorLevel, message)
+	if notify {
+		announcement(message)
+	}
+}
+
+func IsError(args ...any) bool {
+	for _, arg := range args {
+		if _, ok := arg.(error); ok {
+			return true
+		}
+	}
+	return false
 }

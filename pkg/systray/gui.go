@@ -14,7 +14,6 @@ import (
 
 	"github.com/nais/device/assets"
 	"github.com/nais/device/pkg/device-agent/open"
-	"github.com/nais/device/pkg/notify"
 	"github.com/nais/device/pkg/pb"
 	"github.com/nais/device/pkg/version"
 
@@ -56,6 +55,7 @@ type Gui struct {
 		CertRenewal   *systray.MenuItem
 		DeviceLog     *systray.MenuItem
 		HelperLog     *systray.MenuItem
+		Notify        *systray.MenuItem
 		SystrayLog    *systray.MenuItem
 		ZipLog        *systray.MenuItem
 		Version       *systray.MenuItem
@@ -79,7 +79,7 @@ const (
 	AutoConnectClicked
 	BlackAndWhiteClicked
 	ClientCertClicked
-
+	NotifyClicked
 	maxTenants          = 10
 	maxGateways         = 30
 	slackURL            = "slack://channel?team=T5LNAMWNA&id=D011T20LDHD"
@@ -109,6 +109,7 @@ func NewGUI(ctx context.Context, client pb.DeviceAgentClient, cfg Config) *Gui {
 	gui.MenuItems.AutoConnect = gui.MenuItems.Settings.AddSubMenuItemCheckbox("Connect automatically on startup", "", false)
 	gui.MenuItems.BlackAndWhite = gui.MenuItems.Settings.AddSubMenuItemCheckbox("Black and white icons", "", cfg.BlackAndWhiteIcons)
 	gui.MenuItems.CertRenewal = gui.MenuItems.Settings.AddSubMenuItemCheckbox("Give me Microsoft Access Certificate", "", false)
+	gui.MenuItems.Notify = gui.MenuItems.Settings.AddSubMenuItemCheckbox("Give me Device notifications", "", false)
 	gui.MenuItems.DeviceLog = gui.MenuItems.Logs.AddSubMenuItem("Agent", "")
 	gui.MenuItems.HelperLog = gui.MenuItems.Logs.AddSubMenuItem("Helper", "")
 	gui.MenuItems.SystrayLog = gui.MenuItems.Logs.AddSubMenuItem("Systray", "")
@@ -223,6 +224,11 @@ func (gui *Gui) updateGuiAgentConfig(config *pb.AgentConfiguration) {
 	if config.CertRenewal {
 		gui.MenuItems.CertRenewal.Check()
 	}
+
+	gui.MenuItems.Notify.Enable()
+	if config.Notify {
+		gui.MenuItems.Notify.Check()
+	}
 }
 
 func (gui *Gui) resetGuiAgentConfig() {
@@ -230,6 +236,8 @@ func (gui *Gui) resetGuiAgentConfig() {
 	gui.MenuItems.AutoConnect.Uncheck()
 	gui.MenuItems.CertRenewal.Disable()
 	gui.MenuItems.CertRenewal.Uncheck()
+	gui.MenuItems.Notify.Disable()
+	gui.MenuItems.Notify.Uncheck()
 }
 
 func (gui *Gui) handleAgentConnect() {
@@ -237,7 +245,7 @@ func (gui *Gui) handleAgentConnect() {
 
 	response, err := gui.DeviceAgentClient.GetAgentConfiguration(gui.ProgramContext, &pb.GetAgentConfigurationRequest{})
 	if err != nil {
-		notify.Errorf("Failed to get initial agent config: %v", err)
+		gui.Notify("Failed to get initial agent config: %v", err)
 	}
 	gui.updateGuiAgentConfig(response.Config)
 	gui.MenuItems.Connect.Enable()
@@ -417,6 +425,28 @@ func (gui *Gui) handleGuiEvent(guiEvent GuiEvent) {
 			gui.MenuItems.CertRenewal.Check()
 		}
 
+	case NotifyClicked:
+		getConfigResponse, err := gui.DeviceAgentClient.GetAgentConfiguration(context.Background(), &pb.GetAgentConfigurationRequest{})
+		if err != nil {
+			log.Errorf("get agent config: %v", err)
+			break
+		}
+
+		getConfigResponse.Config.Notify = !gui.MenuItems.Notify.Checked()
+		setConfigRequest := &pb.SetAgentConfigurationRequest{Config: getConfigResponse.Config}
+
+		_, err = gui.DeviceAgentClient.SetAgentConfiguration(context.Background(), setConfigRequest)
+		if err != nil {
+			log.Errorf("set agent config: %v", err)
+			break
+		}
+
+		if gui.MenuItems.Notify.Checked() {
+			gui.MenuItems.Notify.Uncheck()
+		} else {
+			gui.MenuItems.Notify.Check()
+		}
+
 	case BlackAndWhiteClicked:
 		if gui.Config.BlackAndWhiteIcons {
 			gui.MenuItems.BlackAndWhite.Uncheck()
@@ -556,7 +586,7 @@ func (gui *Gui) activateTenant(ctx context.Context, name string) {
 	}
 	_, err := gui.DeviceAgentClient.SetActiveTenant(ctx, req)
 	if err != nil {
-		notify.Errorf("Failed to activate tenant, err: %v", err)
+		gui.Notify("Could not activate tenant: %v", err)
 		return
 	}
 
@@ -572,4 +602,17 @@ func (gui *Gui) activateTenant(ctx context.Context, name string) {
 			log.Errorf("connect: %v", err)
 		}
 	}
+}
+
+func (gui *Gui) Notify(format string, args ...any) {
+	getConfigResponse, err := gui.DeviceAgentClient.GetAgentConfiguration(gui.ProgramContext, &pb.GetAgentConfigurationRequest{})
+	if err != nil {
+		log.Errorf("Failed to get agent configuration: %v", err)
+		return
+	}
+
+	if len(args) > 0 && IsError(args) {
+		Errorf(getConfigResponse.Config.Notify, format, args...)
+	}
+	Infof(getConfigResponse.Config.Notify, format, args...)
 }

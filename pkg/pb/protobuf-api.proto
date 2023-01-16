@@ -243,6 +243,7 @@ message AgentConfiguration {
   bool CertRenewal = 1;
   bool AutoConnect = 2;
   bool ILoveNinetiesBoybands = 3;
+  bool Notify = 4;
 }
 
 message GetGatewayConfigurationRequest {

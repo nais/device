@@ -12,7 +12,6 @@ import (
 
 	"github.com/nais/device/pkg/config"
 	"github.com/nais/device/pkg/logger"
-	"github.com/nais/device/pkg/notify"
 	"github.com/nais/device/pkg/systray"
 	"github.com/nais/device/pkg/version"
 	log "github.com/sirupsen/logrus"
@@ -43,7 +42,7 @@ func main() {
 
 	configDir, err := config.UserConfigDir()
 	if err != nil {
-		notify.Errorf("start naisdevice-systray: unable to find configuration directory: %v", err)
+		systray.Errorf(true, "naisdevice-systray failed to start: unable to find configuration directory: %v", err)
 		os.Exit(1)
 	}
 
