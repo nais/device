@@ -114,10 +114,10 @@ func (o *linux) Install(ctx context.Context) error {
 			return err
 		}
 
-		err = persistClientAuthRememberList(db, id.certificate)
-		if err != nil {
-			return err
-		}
+		// err = persistClientAuthRememberList(db, id.certificate)
+		// if err != nil {
+		// 	return err
+		// }
 
 		certificates, err := listNaisdeviceCertificates(ctx, db)
 		if err != nil {
@@ -246,7 +246,12 @@ func listNaisdeviceKeys(ctx context.Context, db string) ([]string, error) {
 	cmd := exec.CommandContext(ctx, certutilBinary, "-d", db, "-K")
 	out, err := cmd.CombinedOutput()
 	if err != nil {
-		return nil, fmt.Errorf("%w: %s", err, string(out))
+		outS := string(out)
+		if strings.Contains(outS, "no keys found") {
+			return nil, nil
+		}
+
+		return nil, fmt.Errorf("%w: %s", err, outS)
 	}
 
 	lines := strings.Split(string(out), "\n")
