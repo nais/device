@@ -295,7 +295,7 @@ func (das *DeviceAgentServer) EventLoop(ctx context.Context) {
 		case newState := <-das.stateChange:
 			previousState := status.ConnectionState
 			status.ConnectionState = newState
-			log.Infof("state changed from %s to %s", previousState, status.ConnectionState)
+			log.Infof("State changed from %s to %s", previousState, status.ConnectionState)
 
 			switch status.ConnectionState {
 			case pb.AgentState_Bootstrapping:

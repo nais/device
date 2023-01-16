@@ -237,7 +237,7 @@ func (r *RuntimeConfig) getPartnerDomain() (string, error) {
 func (r *RuntimeConfig) path() string {
 	domain, err := r.getPartnerDomain()
 	if err != nil {
-		log.WithError(err).Error("could not determine partner domain")
+		log.WithError(err).Error("Could not determine partner domain")
 		domain = "unknown"
 	}
 
