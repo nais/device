@@ -66,11 +66,6 @@ func logfn(logLevel log.Level) logFunc {
 	}
 }
 
-func printf(logLevel log.Level, message string) {
-	logger := logfn(logLevel)
-	logger(message)
-}
-
 func announcement(message string) {
 	err := beeep.Notify("naisdevice", message, "../Resources/nais-logo-red.png")
 	if err != nil {
@@ -78,7 +73,12 @@ func announcement(message string) {
 	}
 }
 
-func Infof(notify bool, format string, args ...any) {
+func printf(logLevel log.Level, message string) {
+	logger := logfn(logLevel)
+	logger(message)
+}
+
+func infof(notify bool, format string, args ...any) {
 	message := fmt.Sprintf(format, args...)
 	printf(log.InfoLevel, message)
 	if notify {
@@ -86,7 +86,7 @@ func Infof(notify bool, format string, args ...any) {
 	}
 }
 
-func Errorf(notify bool, format string, args ...any) {
+func errorf(notify bool, format string, args ...any) {
 	message := fmt.Sprintf(format, args...)
 	printf(log.ErrorLevel, message)
 	if notify {
@@ -94,11 +94,18 @@ func Errorf(notify bool, format string, args ...any) {
 	}
 }
 
-func IsError(args ...any) bool {
+func isError(args ...any) bool {
 	for _, arg := range args {
 		if _, ok := arg.(error); ok {
 			return true
 		}
 	}
 	return false
+}
+
+func Printf(notify bool, format string, args ...any) {
+	if len(args) > 0 && isError(args) {
+		errorf(notify, format, args...)
+	}
+	infof(notify, format, args...)
 }

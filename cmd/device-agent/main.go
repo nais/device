@@ -72,7 +72,7 @@ func main() {
 
 	err := startDeviceAgent(programContext, &cfg)
 	if err != nil {
-		systray.Errorf(cfg.AgentConfiguration.Notify, "Device Agent failed to start: %v", err)
+		systray.Printf(cfg.AgentConfiguration.Notify, "Device Agent failed to start: %v", err)
 		log.Errorf("naisdevice-agent terminated with error.")
 		os.Exit(1)
 	}

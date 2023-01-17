@@ -42,7 +42,7 @@ func main() {
 
 	configDir, err := config.UserConfigDir()
 	if err != nil {
-		systray.Errorf(true, "naisdevice-systray failed to start: unable to find configuration directory: %v", err)
+		systray.Printf(true, "naisdevice-systray failed to start: unable to find configuration directory: %v", err)
 		os.Exit(1)
 	}
 

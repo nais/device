@@ -611,8 +611,5 @@ func (gui *Gui) Notify(format string, args ...any) {
 		return
 	}
 
-	if len(args) > 0 && IsError(args) {
-		Errorf(getConfigResponse.Config.Notify, format, args...)
-	}
-	Infof(getConfigResponse.Config.Notify, format, args...)
+	Printf(getConfigResponse.Config.Notify, format, args...)
 }

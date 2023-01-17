@@ -473,10 +473,7 @@ func (das *DeviceAgentServer) UserNotify(err error) {
 }
 
 func (das *DeviceAgentServer) Notify(format string, args ...any) {
-	if len(args) > 0 && systray.IsError(args) {
-		systray.Errorf(das.Config.AgentConfiguration.Notify, format, args...)
-	}
-	systray.Infof(das.Config.AgentConfiguration.Notify, format, args...)
+	systray.Printf(das.Config.AgentConfiguration.Notify, format, args...)
 }
 
 func newVersionAvailable(ctx context.Context) (bool, error) {
