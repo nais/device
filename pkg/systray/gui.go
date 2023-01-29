@@ -3,6 +3,7 @@ package systray
 import (
 	"context"
 	"fmt"
+	"github.com/nais/device/pkg/logger"
 	"os"
 	"os/signal"
 	"path/filepath"
@@ -442,35 +443,44 @@ func (gui *Gui) handleGuiEvent(guiEvent GuiEvent) {
 		}
 
 	case HelperLogClicked:
-		err := open.Open(filepath.Join(gui.Config.ConfigDir, "logs", "helper.log"))
+		err := open.Open(filepath.Join(gui.Config.ConfigDir, logger.LogDir, logger.HelperLogFileType.String()))
 		if err != nil {
 			log.Warn("opening device agent helper log: %w", err)
 		}
 
 	case DeviceLogClicked:
-		err := open.Open(filepath.Join(gui.Config.ConfigDir, "logs", "agent.log"))
+		logDir := gui.logDir()
+		logFiles := gui.getLogFiles(logDir, logger.AgentLogFileType)
+		err := open.Open(filepath.Join(logDir, logFiles[len(logFiles)-1].Name()))
 		if err != nil {
 			log.Warn("opening device agent log: %w", err)
 		}
 
 	case ZipLogsClicked:
-		logDir := filepath.Join(gui.Config.ConfigDir, "logs")
-		logFiles := [3]string{
-			filepath.Join(logDir, "helper.log"),
-			filepath.Join(logDir, "agent.log"),
-			filepath.Join(logDir, "systray.log"),
+		logDir := gui.logDir()
+
+		logFiles := []string{
+			filepath.Join(logDir, logger.HelperLogFileType.String()),
+			filepath.Join(logDir, logger.SystrayLogFileType.String()),
 		}
+
+		agentLogFiles := gui.getLogFiles(logDir, logger.AgentLogFileType)
+		for _, agentLogFile := range agentLogFiles {
+			logFiles = append(logFiles, filepath.Join(logDir, agentLogFile.Name()))
+		}
+
 		zipLocation, err := helper.ZipLogFiles(logFiles[:])
 		if err != nil {
 			log.Errorf("zipping log files: %v", err)
 		}
+
 		err = open.Open("file://" + filepath.Dir(zipLocation))
 		if err != nil {
 			log.Errorf("open %v", err)
 		}
 
 	case LogClicked:
-		err := open.Open(filepath.Join(gui.Config.ConfigDir, "logs", "systray.log"))
+		err := open.Open(filepath.Join(gui.Config.ConfigDir, logger.LogDir, logger.SystrayLogFileType.String()))
 		if err != nil {
 			log.Warn("opening device agent log: %w", err)
 		}
@@ -572,4 +582,20 @@ func (gui *Gui) activateTenant(ctx context.Context, name string) {
 			log.Errorf("connect: %v", err)
 		}
 	}
+}
+
+func (gui *Gui) getLogFiles(logDir string, logFileType logger.LogFileType) []os.DirEntry {
+	logFiles, err := logger.AssembleLogFilesDescend(logDir, logFileType)
+	if len(logFiles) < 1 {
+		log.Warn("no device agent log files found")
+	}
+
+	if err != nil {
+		log.Warn("assembling device agent log: %w", err)
+	}
+	return logFiles
+}
+
+func (gui *Gui) logDir() string {
+	return filepath.Join(gui.Config.ConfigDir, logger.LogDir)
 }

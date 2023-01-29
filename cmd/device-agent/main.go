@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
-	"path/filepath"
 	"syscall"
 	"time"
 
@@ -62,15 +61,23 @@ func main() {
 	programContext, programCancel := context.WithCancel(context.Background())
 	handleSignals(programCancel)
 
-	logDir := filepath.Join(cfg.ConfigDir, "logs")
-	logger.SetupLogger(cfg.LogLevel, logDir, "agent.log")
+	logDir := logger.GetLogDir(cfg.ConfigDir)
+	agentLogName := fmt.Sprintf("%s-%s", time.Now().Format("2006-01-02"), logger.AgentLogFileType)
+	err := logger.CleanUpLogFiles(logDir, logger.AgentLogFileType)
+	if err != nil {
+		notify.Errorf(err.Error())
+		log.Errorf("naisdevice-agent terminated with error.")
+		os.Exit(1)
+	}
+
+	logger.SetupLogger(cfg.LogLevel, logDir, agentLogName)
 
 	cfg.PopulateAgentConfiguration()
 
 	log.Infof("naisdevice-agent %s starting up", version.Version)
 	log.Infof("configuration: %+v", cfg)
 
-	err := startDeviceAgent(programContext, &cfg)
+	err = startDeviceAgent(programContext, &cfg)
 	if err != nil {
 		notify.Errorf(err.Error())
 		log.Errorf("naisdevice-agent terminated with error.")
