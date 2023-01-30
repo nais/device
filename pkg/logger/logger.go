@@ -91,13 +91,15 @@ func (l *LogFile) removeOldest(fileList []os.DirEntry) {
 		if err != nil {
 			log.Errorf("unable to remove legacy log file: %v", err)
 		}
-		return
+		fileList = append(fileList[:0], fileList[1:]...)
 	}
 
-	for _, file := range fileList[3:] {
-		err := os.Remove(filepath.Join(l.Dir, file.Name()))
-		if err != nil {
-			log.Errorf("unable to remove oldest log file: %v", err)
+	if len(fileList) > 3 {
+		for _, file := range fileList[3:] {
+			err := os.Remove(filepath.Join(l.Dir, file.Name()))
+			if err != nil {
+				log.Errorf("unable to remove oldest log file: %v", err)
+			}
 		}
 	}
 }

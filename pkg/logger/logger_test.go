@@ -25,6 +25,14 @@ func TestLogFiles(t *testing.T) {
 		extraFiles int
 	}{
 		{
+			name:       "assemble log files. first file is legacy",
+			dir:        localLogDir,
+			want:       []string{"agent.log", "2023-01-02-agent.log", "2023-01-01-agent.log"},
+			prefixed:   true,
+			legacy:     true,
+			extraFiles: 1,
+		},
+		{
 			name:       "assemble log files",
 			dir:        localLogDir,
 			want:       []string{"2023-01-03-agent.log", "2023-01-02-agent.log", "2023-01-01-agent.log"},
@@ -47,6 +55,15 @@ func TestLogFiles(t *testing.T) {
 			tidy:       true,
 			prefixed:   true,
 			extraFiles: 2,
+		},
+		{
+			name:       "tidy log files with legacy log file, should remove legacy file and oldest file",
+			dir:        localLogDir,
+			want:       []string{"2023-01-04-agent.log", "2023-01-03-agent.log", "2023-01-02-agent.log"},
+			legacy:     true,
+			tidy:       true,
+			prefixed:   true,
+			extraFiles: 3,
 		},
 	}
 	for _, tt := range tests {
