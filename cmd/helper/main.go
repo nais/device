@@ -30,7 +30,7 @@ func init() {
 
 func main() {
 	programContext, cancel := context.WithCancel(context.Background())
-	// for windows service control, noop on unix
+	// for Windows service control, noop on unix
 	err := helper.StartService(programContext, cancel)
 	if err != nil {
 		log.Fatalf("Starting windows service: %v", err)
@@ -38,7 +38,8 @@ func main() {
 
 	osConfigurator := helper.New(cfg)
 
-	logger.SetupLogger(cfg.LogLevel, config.LogDir, logger.HelperLogFileType.String())
+	logFile := logger.NewLogFile(config.LogDir, logger.HelperLogFileType)
+	logFile.Setup(cfg.LogLevel, time.Now(), false)
 
 	log.Infof("naisdevice-helper %s starting up", version.Version)
 	log.Infof("configuration: %+v", cfg)

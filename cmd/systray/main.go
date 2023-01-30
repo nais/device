@@ -61,8 +61,8 @@ func main() {
 	flag.StringVar(&cfg.GrpcAddress, "grpc-address", cfg.GrpcAddress, "path to device-agent unix socket")
 	flag.Parse()
 
-	logDir := filepath.Join(cfg.ConfigDir, logger.LogDir)
-	logger.SetupLogger(cfg.LogLevel, logDir, logger.SystrayLogFileType.String())
+	logFile := logger.NewLogFile(cfg.ConfigDir, logger.SystrayLogFileType)
+	logFile.Setup(cfg.LogLevel, time.Now(), false)
 
 	conn, err := net.Dial("unix", cfg.GrpcAddress)
 	if err != nil {
