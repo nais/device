@@ -40,10 +40,13 @@ func NewLogFile(configDir string, fileType LogFileType) LogFile {
 func (l *LogFile) Setup(level string, date time.Time, prefixed bool) {
 	err := os.MkdirAll(l.Dir, 0o755)
 	if err != nil {
-		log.Fatalf("Creating log dir: %v", err)
+		log.Fatalf("creating log dir %s: %v", l.Dir, err)
 	}
 
 	logFile := l.OpenFile(date.Format("2006-01-02"), prefixed)
+	// file must be before os.Stdout here because when running as Windows service writes to stdout fail.
+	mw := io.MultiWriter(logFile, os.Stdout)
+	log.SetOutput(mw)
 
 	loglevel, err := log.ParseLevel(level)
 	if err != nil {
@@ -51,9 +54,6 @@ func (l *LogFile) Setup(level string, date time.Time, prefixed bool) {
 		return
 	}
 
-	// file must be before os.Stdout here because when running as Windows service writes to stdout fail.
-	mw := io.MultiWriter(logFile, os.Stdout)
-	log.SetOutput(mw)
 	log.SetLevel(loglevel)
 	log.SetFormatter(&easy.Formatter{TimestampFormat: "2006-01-02 15:04:05.00000", LogFormat: "%time% - [%lvl%] - %msg%\n"})
 	log.Infof("Successfully set up logging. Level %s", loglevel)
