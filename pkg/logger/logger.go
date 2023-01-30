@@ -79,13 +79,16 @@ func (l *LogFile) Tidy() error {
 	if err != nil {
 		return err
 	}
+
 	if len(fileList) > 3 {
-		l.removeOldest(fileList)
+		files := l.removeLegacyLogFile(fileList)
+		l.removeOldest(files)
 	}
 	return nil
 }
 
-func (l *LogFile) removeOldest(fileList []os.DirEntry) {
+// Temporary function to remove legacy log file
+func (l *LogFile) removeLegacyLogFile(fileList []os.DirEntry) []os.DirEntry {
 	if fileList[0].Name() == AgentLogFileType.String() {
 		err := os.Remove(filepath.Join(l.Dir, fileList[0].Name()))
 		if err != nil {
@@ -93,13 +96,14 @@ func (l *LogFile) removeOldest(fileList []os.DirEntry) {
 		}
 		fileList = append(fileList[:0], fileList[1:]...)
 	}
+	return fileList
+}
 
-	if len(fileList) > 3 {
-		for _, file := range fileList[3:] {
-			err := os.Remove(filepath.Join(l.Dir, file.Name()))
-			if err != nil {
-				log.Errorf("unable to remove oldest log file: %v", err)
-			}
+func (l *LogFile) removeOldest(fileList []os.DirEntry) {
+	for _, file := range fileList[3:] {
+		err := os.Remove(filepath.Join(l.Dir, file.Name()))
+		if err != nil {
+			log.Errorf("unable to remove oldest log file: %v", err)
 		}
 	}
 }

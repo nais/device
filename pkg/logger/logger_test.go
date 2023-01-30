@@ -48,6 +48,15 @@ func TestLogFiles(t *testing.T) {
 			extraFiles: 3,
 		},
 		{
+			name:       "tidy log files with legacy log file, should not remove legacy file",
+			dir:        localLogDir,
+			want:       []string{"agent.log", "2023-01-02-agent.log", "2023-01-01-agent.log"},
+			legacy:     true,
+			tidy:       true,
+			prefixed:   true,
+			extraFiles: 1,
+		},
+		{
 			name:       "tidy log files with legacy log file, should remove legacy file",
 			dir:        localLogDir,
 			want:       []string{"2023-01-03-agent.log", "2023-01-02-agent.log", "2023-01-01-agent.log"},
