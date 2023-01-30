@@ -61,9 +61,9 @@ func main() {
 	programContext, programCancel := context.WithCancel(context.Background())
 	handleSignals(programCancel)
 
-	logFiles := logger.NewLogFile(cfg.ConfigDir, logger.AgentLogFileType)
-	logFiles.Setup(cfg.LogLevel, time.Now(), true)
-	err := logFiles.Tidy()
+	logFile := logger.NewLogFile(cfg.ConfigDir, logger.AgentLogFileType)
+	logFile.Setup(cfg.LogLevel, time.Now(), true)
+	err := logFile.Tidy()
 	if err != nil {
 		log.Errorf("tidy log files: %v", err)
 	}
