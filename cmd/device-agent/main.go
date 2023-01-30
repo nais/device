@@ -62,14 +62,12 @@ func main() {
 	handleSignals(programCancel)
 
 	logFiles := logger.NewLogFile(cfg.ConfigDir, logger.AgentLogFileType)
+	logFiles.Setup(cfg.LogLevel, time.Now(), true)
 	err := logFiles.Tidy()
 	if err != nil {
-		notify.Errorf(err.Error())
-		log.Errorf("naisdevice-agent terminated with error.")
-		os.Exit(1)
+		log.Errorf("tidy log files: %v", err)
 	}
 
-	logFiles.Setup(cfg.LogLevel, time.Now(), true)
 	cfg.PopulateAgentConfiguration()
 
 	log.Infof("naisdevice-agent %s starting up", version.Version)
