@@ -21,11 +21,18 @@ func TestLogFiles(t *testing.T) {
 		want       []string
 		legacy     bool
 		prefixed   bool
-		tidy       bool
 		extraFiles int
 	}{
 		{
-			name:       "assemble log files. first file is legacy",
+			name:       "assemble 2 log files first file is legacy",
+			dir:        localLogDir,
+			want:       []string{"agent.log", "2023-01-01-agent.log"},
+			prefixed:   true,
+			legacy:     true,
+			extraFiles: 0,
+		},
+		{
+			name:       "assemble  3 log files. first file is legacy",
 			dir:        localLogDir,
 			want:       []string{"agent.log", "2023-01-02-agent.log", "2023-01-01-agent.log"},
 			prefixed:   true,
@@ -33,35 +40,46 @@ func TestLogFiles(t *testing.T) {
 			extraFiles: 1,
 		},
 		{
-			name:       "assemble log files",
+			name:       "assemble 3, should remove legacy file",
 			dir:        localLogDir,
 			want:       []string{"2023-01-03-agent.log", "2023-01-02-agent.log", "2023-01-01-agent.log"},
+			legacy:     true,
 			prefixed:   true,
 			extraFiles: 2,
 		},
 		{
-			name:       "tidy log files, should remove the oldest file (descending)",
+			name:       "assemble 3, should remove legacy file and oldest file",
 			dir:        localLogDir,
 			want:       []string{"2023-01-04-agent.log", "2023-01-03-agent.log", "2023-01-02-agent.log"},
-			tidy:       true,
+			legacy:     true,
 			prefixed:   true,
 			extraFiles: 3,
 		},
 		{
-			name:       "tidy log files with legacy log file, should remove legacy file",
+			name:       "assemble 1 log files, no legacy file",
+			dir:        localLogDir,
+			want:       []string{"2023-01-01-agent.log"},
+			prefixed:   true,
+			extraFiles: 0,
+		},
+		{
+			name:       "assemble 2 log files, no legacy file",
+			dir:        localLogDir,
+			want:       []string{"2023-01-02-agent.log", "2023-01-01-agent.log"},
+			prefixed:   true,
+			extraFiles: 1,
+		},
+		{
+			name:       "assemble 3 log files, no legacy file",
 			dir:        localLogDir,
 			want:       []string{"2023-01-03-agent.log", "2023-01-02-agent.log", "2023-01-01-agent.log"},
-			legacy:     true,
-			tidy:       true,
 			prefixed:   true,
 			extraFiles: 2,
 		},
 		{
-			name:       "tidy log files with legacy log file, should remove legacy file and oldest file",
+			name:       "assemble 3 log files, no legacy file, should remove the oldest file",
 			dir:        localLogDir,
 			want:       []string{"2023-01-04-agent.log", "2023-01-03-agent.log", "2023-01-02-agent.log"},
-			legacy:     true,
-			tidy:       true,
 			prefixed:   true,
 			extraFiles: 3,
 		},
@@ -76,10 +94,8 @@ func TestLogFiles(t *testing.T) {
 			testLogFile.Setup("DEBUG", time, tt.prefixed)
 			writeExtraTestLogFiles(testLogFile, tt.dir, time, tt.extraFiles, tt.prefixed, tt.legacy)
 
-			if tt.tidy {
-				if err := testLogFile.Tidy(); err != nil {
-					t.Errorf("Tidy() error = %v", err)
-				}
+			if err := testLogFile.Tidy(); err != nil {
+				t.Errorf("Tidy() error = %v", err)
 			}
 
 			got, err := AssembleLogFilesDescend(tt.dir, AgentLogFileType)
