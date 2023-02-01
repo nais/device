@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"reflect"
 	"testing"
 	"time"
 )
@@ -16,114 +15,69 @@ const (
 
 func TestLogFiles(t *testing.T) {
 	tests := []struct {
-		name       string
-		dir        string
-		want       []string
-		legacy     bool
-		prefixed   bool
-		extraFiles int
+		name    string
+		dir     string
+		want    string
+		rotated bool
 	}{
 		{
-			name:       "assemble 2 log files first file is legacy",
-			dir:        localLogDir,
-			want:       []string{"agent.log", "2023-01-01-agent.log"},
-			prefixed:   true,
-			legacy:     true,
-			extraFiles: 0,
+			name: "create agent log file",
+			dir:  localLogDir,
+			want: "agent.log",
 		},
 		{
-			name:       "assemble  3 log files. first file is legacy",
-			dir:        localLogDir,
-			want:       []string{"agent.log", "2023-01-02-agent.log", "2023-01-01-agent.log"},
-			prefixed:   true,
-			legacy:     true,
-			extraFiles: 1,
-		},
-		{
-			name:       "assemble 3, should remove legacy file",
-			dir:        localLogDir,
-			want:       []string{"2023-01-03-agent.log", "2023-01-02-agent.log", "2023-01-01-agent.log"},
-			legacy:     true,
-			prefixed:   true,
-			extraFiles: 2,
-		},
-		{
-			name:       "assemble 3, should remove legacy file and oldest file",
-			dir:        localLogDir,
-			want:       []string{"2023-01-04-agent.log", "2023-01-03-agent.log", "2023-01-02-agent.log"},
-			legacy:     true,
-			prefixed:   true,
-			extraFiles: 3,
-		},
-		{
-			name:       "assemble 1 log files, no legacy file",
-			dir:        localLogDir,
-			want:       []string{"2023-01-01-agent.log"},
-			prefixed:   true,
-			extraFiles: 0,
-		},
-		{
-			name:       "assemble 2 log files, no legacy file",
-			dir:        localLogDir,
-			want:       []string{"2023-01-02-agent.log", "2023-01-01-agent.log"},
-			prefixed:   true,
-			extraFiles: 1,
-		},
-		{
-			name:       "assemble 3 log files, no legacy file",
-			dir:        localLogDir,
-			want:       []string{"2023-01-03-agent.log", "2023-01-02-agent.log", "2023-01-01-agent.log"},
-			prefixed:   true,
-			extraFiles: 2,
-		},
-		{
-			name:       "assemble 3 log files, no legacy file, should remove the oldest file",
-			dir:        localLogDir,
-			want:       []string{"2023-01-04-agent.log", "2023-01-03-agent.log", "2023-01-02-agent.log"},
-			prefixed:   true,
-			extraFiles: 3,
+			name:    "create or update agent log file and rotated log file if expired",
+			dir:     localLogDir,
+			want:    "agent.log",
+			rotated: true,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			testLogFile := NewLogFile(configDir, AgentLogFileType)
+			testLogFile.Setup("DEBUG")
+			testLogFiles(tt.dir)
 
-			// remove local logs
-			_ = os.RemoveAll(tt.dir)
-			time := time.Date(2023, time.January, 1, 0, 0, 0, 0, time.UTC)
-			testLogFile.Setup("DEBUG", time, tt.prefixed)
-			writeExtraTestLogFiles(testLogFile, tt.dir, time, tt.extraFiles, tt.prefixed, tt.legacy)
-
-			if err := testLogFile.Tidy(); err != nil {
-				t.Errorf("Tidy() error = %v", err)
+			stat := getStat(t, tt.dir, tt.want)
+			// log file should not be empty
+			if isEmpty(stat) {
+				t.Errorf("os.Stat() file size = %v", stat)
 			}
 
-			got, err := AssembleLogFilesDescend(tt.dir, AgentLogFileType)
-			if err != nil {
-				t.Errorf("AssembleLogFilesDescend() error = %v", err)
+			if err := TidyLogFiles(tt.dir, tt.rotated, testLogFile.FileType); err != nil {
+				t.Errorf("TidyLogFiles() error = %v", err)
 			}
 
-			var gotFileNames []string
-			for _, file := range got {
-				gotFileNames = append(gotFileNames, file.Name())
-			}
-
-			if !reflect.DeepEqual(gotFileNames, tt.want) {
-				t.Errorf("AssembleLogFilesDescend() = %v, want %v", gotFileNames, tt.want)
+			if tt.rotated {
+				stat = getStat(t, tt.dir, tt.want)
+				if !isEmpty(stat) {
+					t.Errorf("os.Stat() file size = %v", stat)
+				}
 			}
 		})
 	}
 }
 
-func writeExtraTestLogFiles(logFile LogFile, dir string, time time.Time, files int, prefixed, legacy bool) {
-	for i := 0; i < files; i++ {
-		_ = logFile.OpenFile(time.AddDate(0, 0, i+1).Format("2006-01-02"), prefixed)
+func getStat(t *testing.T, dir, path string) int64 {
+	file, err := os.Stat(filepath.Join(dir, path))
+	if err != nil {
+		t.Errorf("os.Stat() error = %v", err)
 	}
 
+	return file.Size()
+}
+
+func isEmpty(fileState int64) bool {
+	return fileState == 0
+}
+
+func testLogFiles(dir string) {
 	_ = os.WriteFile(filepath.Join(dir, fmt.Sprintf("%s", HelperLogFileType.String())), []byte("test"), 0644)
 	_ = os.WriteFile(filepath.Join(dir, fmt.Sprintf("%s", SystrayLogFileType.String())), []byte("test"), 0644)
-
-	if legacy {
-		_ = os.WriteFile(filepath.Join(dir, AgentLogFileType.String()), []byte("test"), 0644)
-	}
+	// overwrite agent.log initial content with a date in the past
+	t := time.Date(2023, time.January, 1, 0, 0, 0, 0, time.UTC).Format(Layout)
+	_ = os.WriteFile(filepath.Join(
+		dir,
+		AgentLogFileType.String()),
+		[]byte(fmt.Sprintf("%s 23:12:34.80559 - [INFO] - Successfully set up logging. Level info", t)), 0644)
 }

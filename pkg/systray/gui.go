@@ -51,6 +51,7 @@ type Gui struct {
 		State         *systray.MenuItem
 		StateInfo     *systray.MenuItem
 		Logs          *systray.MenuItem
+		LogRotation   *systray.MenuItem
 		Settings      *systray.MenuItem
 		AutoConnect   *systray.MenuItem
 		BlackAndWhite *systray.MenuItem
@@ -80,7 +81,7 @@ const (
 	AutoConnectClicked
 	BlackAndWhiteClicked
 	ClientCertClicked
-
+	RotateAgentLogsClicked
 	maxTenants          = 10
 	maxGateways         = 30
 	slackURL            = "slack://channel?team=T5LNAMWNA&id=D011T20LDHD"
@@ -110,6 +111,7 @@ func NewGUI(ctx context.Context, client pb.DeviceAgentClient, cfg Config) *Gui {
 	gui.MenuItems.AutoConnect = gui.MenuItems.Settings.AddSubMenuItemCheckbox("Connect automatically on startup", "", false)
 	gui.MenuItems.BlackAndWhite = gui.MenuItems.Settings.AddSubMenuItemCheckbox("Black and white icons", "", cfg.BlackAndWhiteIcons)
 	gui.MenuItems.CertRenewal = gui.MenuItems.Settings.AddSubMenuItemCheckbox("Give me Microsoft Access Certificate", "", false)
+	gui.MenuItems.LogRotation = gui.MenuItems.Settings.AddSubMenuItemCheckbox("Rotate agent logs", "Purged after 60 days", false)
 	gui.MenuItems.DeviceLog = gui.MenuItems.Logs.AddSubMenuItem("Agent", "")
 	gui.MenuItems.HelperLog = gui.MenuItems.Logs.AddSubMenuItem("Helper", "")
 	gui.MenuItems.SystrayLog = gui.MenuItems.Logs.AddSubMenuItem("Systray", "")
@@ -209,6 +211,8 @@ func (gui *Gui) handleButtonClicks(ctx context.Context) {
 		case name := <-gui.TenantItemClicked:
 			gui.activateTenant(ctx, name)
 		case <-ctx.Done():
+		case <-gui.MenuItems.LogRotation.ClickedCh:
+			gui.Events <- RotateAgentLogsClicked
 			return
 		}
 	}
@@ -223,6 +227,11 @@ func (gui *Gui) updateGuiAgentConfig(config *pb.AgentConfiguration) {
 	gui.MenuItems.CertRenewal.Enable()
 	if config.CertRenewal {
 		gui.MenuItems.CertRenewal.Check()
+	}
+
+	gui.MenuItems.LogRotation.Enable()
+	if config.LogRotation {
+		gui.MenuItems.LogRotation.Check()
 	}
 }
 
@@ -396,6 +405,28 @@ func (gui *Gui) handleGuiEvent(guiEvent GuiEvent) {
 			gui.MenuItems.AutoConnect.Check()
 		}
 
+	case RotateAgentLogsClicked:
+		getConfigResponse, err := gui.DeviceAgentClient.GetAgentConfiguration(context.Background(), &pb.GetAgentConfigurationRequest{})
+		if err != nil {
+			log.Errorf("get agent config: %v", err)
+			break
+		}
+
+		getConfigResponse.Config.LogRotation = !gui.MenuItems.LogRotation.Checked()
+		setConfigRequest := &pb.SetAgentConfigurationRequest{Config: getConfigResponse.Config}
+
+		_, err = gui.DeviceAgentClient.SetAgentConfiguration(context.Background(), setConfigRequest)
+		if err != nil {
+			log.Errorf("set agent config: %v", err)
+			break
+		}
+
+		if gui.MenuItems.LogRotation.Checked() {
+			gui.MenuItems.LogRotation.Uncheck()
+		} else {
+			gui.MenuItems.LogRotation.Check()
+		}
+
 	case ClientCertClicked:
 		getConfigResponse, err := gui.DeviceAgentClient.GetAgentConfiguration(context.Background(), &pb.GetAgentConfigurationRequest{})
 		if err != nil {
@@ -449,9 +480,7 @@ func (gui *Gui) handleGuiEvent(guiEvent GuiEvent) {
 		}
 
 	case DeviceLogClicked:
-		logDir := gui.logDir()
-		logFiles := gui.getLogFiles(logDir, logger.AgentLogFileType)
-		err := open.Open(filepath.Join(logDir, logFiles[len(logFiles)-1].Name()))
+		err := open.Open(filepath.Join(gui.logDir(), logger.AgentLogFileType.String()))
 		if err != nil {
 			log.Warn("opening device agent log: %w", err)
 		}
@@ -459,14 +488,10 @@ func (gui *Gui) handleGuiEvent(guiEvent GuiEvent) {
 	case ZipLogsClicked:
 		logDir := gui.logDir()
 
-		logFiles := []string{
+		logFiles := [3]string{
 			filepath.Join(logDir, logger.HelperLogFileType.String()),
+			filepath.Join(logDir, logger.AgentLogFileType.String()),
 			filepath.Join(logDir, logger.SystrayLogFileType.String()),
-		}
-
-		agentLogFiles := gui.getLogFiles(logDir, logger.AgentLogFileType)
-		for _, agentLogFile := range agentLogFiles {
-			logFiles = append(logFiles, filepath.Join(logDir, agentLogFile.Name()))
 		}
 
 		zipLocation, err := helper.ZipLogFiles(logFiles[:])
@@ -582,18 +607,6 @@ func (gui *Gui) activateTenant(ctx context.Context, name string) {
 			log.Errorf("connect: %v", err)
 		}
 	}
-}
-
-func (gui *Gui) getLogFiles(logDir string, logFileType logger.LogFileType) []os.DirEntry {
-	logFiles, err := logger.AssembleLogFilesDescend(logDir, logFileType)
-	if len(logFiles) < 1 {
-		log.Warn("no device agent log files found")
-	}
-
-	if err != nil {
-		log.Warn("assembling device agent log: %w", err)
-	}
-	return logFiles
 }
 
 func (gui *Gui) logDir() string {

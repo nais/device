@@ -1,13 +1,11 @@
 package logger
 
 import (
-	"fmt"
 	log "github.com/sirupsen/logrus"
 	easy "github.com/t-tomalak/logrus-easy-formatter"
 	"io"
 	"os"
 	"path/filepath"
-	"sort"
 	"strings"
 	"time"
 )
@@ -19,6 +17,8 @@ const (
 	AgentLogFileType   LogFileType = "agent.log"
 	HelperLogFileType  LogFileType = "helper.log"
 	SystrayLogFileType LogFileType = "systray.log"
+	DaysToKeep                     = 60
+	Layout                         = "2006-01-02"
 )
 
 func (c LogFileType) String() string {
@@ -37,13 +37,13 @@ func NewLogFile(configDir string, fileType LogFileType) LogFile {
 	}
 }
 
-func (l *LogFile) Setup(level string, date time.Time, prefixed bool) {
+func (l *LogFile) Setup(level string) {
 	err := os.MkdirAll(l.Dir, 0o755)
 	if err != nil {
 		log.Fatalf("creating log dir %s: %v", l.Dir, err)
 	}
 
-	logFile := l.OpenFile(date.Format("2006-01-02"), prefixed)
+	logFile := l.OpenFile()
 	// file must be before os.Stdout here because when running as Windows service writes to stdout fail.
 	mw := io.MultiWriter(logFile, os.Stdout)
 	log.SetOutput(mw)
@@ -59,13 +59,8 @@ func (l *LogFile) Setup(level string, date time.Time, prefixed bool) {
 	log.Infof("Successfully set up logging. Level %s", loglevel)
 }
 
-func (l *LogFile) OpenFile(format string, prefixed bool) *os.File {
-	var logFileName = l.FileType.String()
-	if prefixed {
-		logFileName = fmt.Sprintf("%s-%s", format, l.FileType.String())
-	}
-
-	logFilePath := filepath.Join(l.Dir, logFileName)
+func (l *LogFile) OpenFile() *os.File {
+	logFilePath := filepath.Join(l.Dir, l.FileType.String())
 	logFile, err := os.OpenFile(logFilePath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0o664)
 	if err != nil {
 		log.Fatalf("unable to open log file %s, error: %v", logFilePath, err)
@@ -74,60 +69,70 @@ func (l *LogFile) OpenFile(format string, prefixed bool) *os.File {
 	return logFile
 }
 
-func (l *LogFile) Tidy() error {
-	fileList, err := AssembleLogFilesDescend(l.Dir, l.FileType)
-	if err != nil {
-		return err
-	}
-
-	if len(fileList) > 3 {
-		files := l.removeLegacyLogFile(fileList)
-		l.removeOldest(files)
+func TidyLogFiles(configDir string, logRotation bool, fileType LogFileType) error {
+	logFilePath := filepath.Join(configDir, "/", fileType.String())
+	if logRotation {
+		err := TruncateLogFile(logFilePath)
+		if err != nil {
+			return err
+		}
 	}
 	return nil
 }
 
-// Temporary function to remove legacy log file
-func (l *LogFile) removeLegacyLogFile(fileList []os.DirEntry) []os.DirEntry {
-	if fileList[0].Name() == AgentLogFileType.String() {
-		err := os.Remove(filepath.Join(l.Dir, fileList[0].Name()))
-		if err != nil {
-			log.Errorf("unable to remove legacy log file: %v", err)
-		}
-		fileList = append(fileList[:0], fileList[1:]...)
-	}
-	return fileList
-}
-
-func (l *LogFile) removeOldest(fileList []os.DirEntry) {
-	for _, file := range fileList[3:] {
-		err := os.Remove(filepath.Join(l.Dir, file.Name()))
-		if err != nil {
-			log.Errorf("unable to remove oldest log file: %v", err)
-		}
-	}
-}
-
-func AssembleLogFilesDescend(logDir string, logFileType LogFileType) ([]os.DirEntry, error) {
-	files, err := os.ReadDir(logDir)
+func TruncateLogFile(logFilePath string) error {
+	content, err := readFileContent(logFilePath)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	sortFileNameDescend(files)
-	fileList := make([]os.DirEntry, 0)
-	for _, file := range files {
-		if strings.Contains(file.Name(), logFileType.String()) {
-			fileList = append(fileList, file)
+	startDate := getLogFileStartDate(content)
+	if startDate == "" {
+		log.Errorf("unable to get log file start date")
+		return nil
+	}
+
+	if rotate(startDate) {
+		_, err = os.Create(logFilePath)
+		if err != nil {
+			return err
 		}
 	}
-	return fileList, nil
+	return nil
 }
 
-func sortFileNameDescend(files []os.DirEntry) {
-	sort.Slice(files, func(i, j int) bool {
-		return files[i].Name() > files[j].Name()
-	})
+func rotate(startDate string) bool {
+	date, err := time.Parse(Layout, startDate)
+	if err != nil {
+		log.Errorf("unable to parse log file start date %s, error: %v", startDate, err)
+		return false
+	}
+
+	return time.Now().After(date.AddDate(0, 0, -DaysToKeep))
+}
+
+func readFileContent(logFilePath string) (string, error) {
+	rawBytes, err := os.ReadFile(logFilePath)
+	if err != nil {
+		return "", err
+	}
+
+	lines := strings.Split(string(rawBytes), "\n")
+	for i, line := range lines {
+		if i == 0 {
+			return line, nil
+		}
+		break
+	}
+	return "", nil
+}
+
+func getLogFileStartDate(line string) string {
+	l := strings.Split(line, " ")
+	if l != nil && l[0] != "" {
+		return l[0]
+	}
+	return ""
 }
 
 func Setup(level string) {

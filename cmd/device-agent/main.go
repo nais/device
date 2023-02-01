@@ -62,8 +62,8 @@ func main() {
 	handleSignals(programCancel)
 
 	logFile := logger.NewLogFile(cfg.ConfigDir, logger.AgentLogFileType)
-	logFile.Setup(cfg.LogLevel, time.Now(), true)
-	err := logFile.Tidy()
+	logFile.Setup(cfg.LogLevel)
+	err := logger.TidyLogFiles(cfg.ConfigDir, cfg.AgentConfiguration.LogRotation, logFile.FileType)
 	if err != nil {
 		log.Errorf("tidy log files: %v", err)
 	}
