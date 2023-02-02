@@ -62,7 +62,7 @@ func main() {
 	flag.Parse()
 
 	logFile := logger.NewLogFile(cfg.ConfigDir, logger.SystrayLogFileType)
-	logFile.Setup(cfg.LogLevel, time.Now(), false)
+	logFile.Setup(cfg.LogLevel)
 
 	conn, err := net.Dial("unix", cfg.GrpcAddress)
 	if err != nil {
