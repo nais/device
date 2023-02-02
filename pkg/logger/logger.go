@@ -18,7 +18,8 @@ const (
 	HelperLogFileType  LogFileType = "helper.log"
 	SystrayLogFileType LogFileType = "systray.log"
 	DaysToKeep                     = 60
-	Layout                         = "2006-01-02"
+	TimeStampFormat                = "2006-01-02 15:04:05.00000"
+	ExpiredLayout                  = "2006-01-02"
 )
 
 func (c LogFileType) String() string {
@@ -55,7 +56,7 @@ func (l *LogFile) Setup(level string) {
 	}
 
 	log.SetLevel(loglevel)
-	log.SetFormatter(&easy.Formatter{TimestampFormat: "2006-01-02 15:04:05.00000", LogFormat: "%time% - [%lvl%] - %msg%\n"})
+	log.SetFormatter(&easy.Formatter{TimestampFormat: TimeStampFormat, LogFormat: "%time% - [%lvl%] - %msg%\n"})
 	log.Infof("Successfully set up logging. Level %s", loglevel)
 }
 
@@ -70,7 +71,7 @@ func (l *LogFile) OpenFile() *os.File {
 }
 
 func TidyLogFiles(configDir string, logRotation bool, fileType LogFileType) error {
-	logFilePath := filepath.Join(configDir, "/", fileType.String())
+	logFilePath := filepath.Join(configDir, fileType.String())
 	if logRotation {
 		err := TruncateLogFile(logFilePath)
 		if err != nil {
@@ -92,8 +93,10 @@ func TruncateLogFile(logFilePath string) error {
 		return nil
 	}
 
-	if rotate(startDate) {
-		_, err = os.Create(logFilePath)
+	if expired(startDate) {
+		logFile, err := os.Create(logFilePath)
+		mw := io.MultiWriter(logFile, os.Stdout)
+		log.SetOutput(mw)
 		if err != nil {
 			return err
 		}
@@ -101,14 +104,14 @@ func TruncateLogFile(logFilePath string) error {
 	return nil
 }
 
-func rotate(startDate string) bool {
-	date, err := time.Parse(Layout, startDate)
+func expired(startDate string) bool {
+	date, err := time.Parse(ExpiredLayout, startDate)
 	if err != nil {
 		log.Errorf("unable to parse log file start date %s, error: %v", startDate, err)
 		return false
 	}
 
-	return time.Now().After(date.AddDate(0, 0, -DaysToKeep))
+	return time.Now().After(date.AddDate(0, 0, DaysToKeep))
 }
 
 func readFileContent(logFilePath string) (string, error) {
