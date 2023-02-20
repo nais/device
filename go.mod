@@ -1,6 +1,6 @@
 module github.com/nais/device
 
-go 1.19
+go 1.20
 
 require (
 	cloud.google.com/go/secretmanager v1.9.0
@@ -22,7 +22,7 @@ require (
 	github.com/lib/pq v1.10.7
 	github.com/nais/kolide-event-handler v0.0.0-20220214150046-ca39d969eea0
 	github.com/nirasan/go-oauth-pkce-code-verifier v0.0.0-20170819232839-0fbfe93532da
-	github.com/prometheus/client_golang v1.11.0
+	github.com/prometheus/client_golang v1.11.1
 	github.com/prometheus/procfs v0.7.3 // indirect
 	github.com/sirupsen/logrus v1.8.1
 	github.com/spf13/pflag v1.0.5
@@ -30,10 +30,10 @@ require (
 	github.com/t-tomalak/logrus-easy-formatter v0.0.0-20190827215021-c074f06c5816
 	github.com/urfave/cli/v2 v2.3.0
 	golang.org/x/crypto v0.0.0-20220722155217-630584e8d5aa
-	golang.org/x/net v0.5.0 // indirect
+	golang.org/x/net v0.7.0 // indirect
 	golang.org/x/oauth2 v0.4.0
-	golang.org/x/sys v0.4.0
-	golang.org/x/text v0.6.0 // indirect
+	golang.org/x/sys v0.5.0
+	golang.org/x/text v0.7.0 // indirect
 	google.golang.org/api v0.106.0
 	google.golang.org/genproto v0.0.0-20230104163317-caabf589fcbf
 	google.golang.org/grpc v1.51.0
