@@ -9,6 +9,8 @@ import (
 	"github.com/nais/device/pkg/pb"
 )
 
+const PrometheusPeerName = "prometheus"
+
 type Peer interface {
 	GetName() string
 	GetPublicKey() string
@@ -47,6 +49,9 @@ func (cfg *Config) MarshalINI(w io.Writer) error {
 		fprintNonEmpty(ew, "PublicKey = %s\n", peer.GetPublicKey())
 		fprintNonEmpty(ew, "AllowedIPs = %s\n", strings.Join(peer.GetAllowedIPs(), ","))
 		fprintNonEmpty(ew, "Endpoint = %s\n", peer.GetEndpoint())
+		if peer.GetName() == PrometheusPeerName {
+			fmt.Fprint(ew, "PersistentKeepalive = 25\n")
+		}
 		fmt.Fprintf(ew, "\n")
 	}
 
