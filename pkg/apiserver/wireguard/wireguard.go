@@ -77,7 +77,7 @@ AllowedIPs = %s/32
 PublicKey = %s
 `
 	wgConfig += fmt.Sprintf(peerTemplate, conf.PrometheusTunnelIP, conf.PrometheusPublicKey)
-	wgConfig += "PersistentKeepalive = 25"
+	wgConfig += "PersistentKeepalive = 25\n"
 
 	for _, device := range devices {
 		wgConfig += fmt.Sprintf(peerTemplate, device.Ip, device.PublicKey)
