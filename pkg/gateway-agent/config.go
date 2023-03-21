@@ -67,17 +67,23 @@ func (c Config) ValidateWireGuard() error {
 }
 
 func (c Config) StaticPeers() []wireguard.Peer {
-	return []wireguard.Peer{
+	peers := []wireguard.Peer{
 		&pb.Gateway{
 			Name:      "apiserver",
 			PublicKey: c.APIServerPublicKey,
 			Endpoint:  c.APIServerEndpoint,
 			Ip:        c.APIServerPrivateIP,
 		},
-		&pb.Gateway{
-			Name:      "prometheus",
-			PublicKey: c.PrometheusPublicKey,
-			Ip:        c.PrometheusTunnelIP,
-		},
 	}
+
+	if c.PrometheusTunnelIP != "" {
+		peers = append(peers,
+			&pb.Gateway{
+				Name:      "prometheus",
+				PublicKey: c.PrometheusPublicKey,
+				Ip:        c.PrometheusTunnelIP,
+			})
+	}
+
+	return peers
 }

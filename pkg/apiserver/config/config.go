@@ -102,11 +102,15 @@ func (cfg *Config) APIServerPeer() *pb.Gateway {
 }
 
 func (cfg *Config) StaticPeers() []*pb.Gateway {
-	return []*pb.Gateway{
-		{
+	peers := []*pb.Gateway{}
+
+	if cfg.PrometheusTunnelIP != "" {
+		peers = append(peers, &pb.Gateway{
 			Name:      "prometheus",
 			PublicKey: cfg.PrometheusPublicKey,
 			Ip:        cfg.PrometheusTunnelIP,
-		},
+		})
 	}
+
+	return peers
 }
