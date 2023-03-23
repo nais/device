@@ -12,6 +12,7 @@ import (
 )
 
 func (s *grpcServer) GetDeviceConfiguration(request *pb.GetDeviceConfigurationRequest, stream pb.APIServer_GetDeviceConfigurationServer) error {
+	log.WithField("session", request.SessionKey).Debugf("get device configuration: started")
 	s.deviceLock.Lock()
 	s.deviceConfigStreams[request.SessionKey] = stream
 	apiserver_metrics.DevicesConnected.Set(float64(len(s.deviceConfigStreams)))
@@ -22,19 +23,24 @@ func (s *grpcServer) GetDeviceConfiguration(request *pb.GetDeviceConfigurationRe
 	if err != nil {
 		log.Errorf("send initial device configuration: %s", err)
 	}
+	log.WithField("session", request.SessionKey).Debugf("get device configuration: sent initial")
 
 	// wait for disconnect
 	<-stream.Context().Done()
+	log.WithField("session", request.SessionKey).Debugf("get device configuration: finished")
 
 	s.deviceLock.Lock()
 	delete(s.deviceConfigStreams, request.SessionKey)
 	apiserver_metrics.DevicesConnected.Set(float64(len(s.deviceConfigStreams)))
 	s.deviceLock.Unlock()
 
+	log.WithField("session", request.SessionKey).Debugf("get device configuration: cleaned up stream map")
+
 	return nil
 }
 
 func (s *grpcServer) SendDeviceConfiguration(ctx context.Context, sessionKey string) error {
+	log.WithField("session", sessionKey).Debugf("send device configuration: started")
 	s.deviceLock.RLock()
 	stream, ok := s.deviceConfigStreams[sessionKey]
 	s.deviceLock.RUnlock()
