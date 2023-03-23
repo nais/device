@@ -47,6 +47,10 @@ func (s *grpcServer) SendDeviceConfiguration(ctx context.Context, sessionKey str
 		return err
 	}
 
+	if len(sessionInfo.GetGroups()) == 0 {
+		log.WithField("deviceId", sessionInfo.GetDevice().GetId()).Warnf("session with no groups detected")
+	}
+
 	device, err := s.db.ReadDeviceById(ctx, sessionInfo.GetDevice().GetId())
 	if err != nil {
 		return fmt.Errorf("read device from db: %w", err)
@@ -58,7 +62,7 @@ func (s *grpcServer) SendDeviceConfiguration(ctx context.Context, sessionKey str
 		})
 	}
 
-	gateways, err := s.UserGateways(ctx, sessionInfo.Groups)
+	gateways, err := s.UserGateways(ctx, sessionInfo.GetGroups())
 	if err != nil {
 		return fmt.Errorf("get user gateways: %w", err)
 	}
@@ -88,6 +92,14 @@ func (s *grpcServer) UserGateways(ctx context.Context, userGroups []string) ([]*
 			gw.PasswordHash = ""
 			filtered = append(filtered, gw)
 		}
+	}
+
+	if len(filtered) == 0 {
+		var gwIds map[string][]string
+		for _, gw := range gateways {
+			gwIds[gw.GetName()] = gw.GetAccessGroupIDs()
+		}
+		log.Warnf("returning empty filtered gateway list for userGroups: %+v and gateways: %+v", userGroups, gwIds)
 	}
 
 	return filtered, nil
