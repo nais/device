@@ -394,7 +394,7 @@ func run() error {
 			return err
 		}
 		sendDeviceConfig(device)
-		gatewaySyncTimer.Reset(time.Second)
+		triggerGatewaySync <- struct{}{}
 		return nil
 	}
 
@@ -447,6 +447,18 @@ func run() error {
 	defer srv.Close()
 	defer grpcServer.Stop()
 
+	go func() {
+		for event := range deviceUpdates {
+			if updateDevice(event) != nil {
+				if errors.Is(err, sql.ErrNoRows) {
+					log.Debugf("Update device health: %s", err)
+				} else {
+					log.Errorf("Update device health: %s", err)
+				}
+			}
+		}
+	}()
+
 	for {
 		select {
 		case <-ctx.Done():
@@ -464,16 +476,6 @@ func run() error {
 		case <-gatewaySyncTimer.C:
 			log.Debugf("triggered gateway sync")
 			sendGatewayUpdates()
-
-		case event := <-deviceUpdates:
-			err = updateDevice(event)
-			if err != nil {
-				if errors.Is(err, sql.ErrNoRows) {
-					log.Debugf("Update device health: %s", err)
-				} else {
-					log.Errorf("Update device health: %s", err)
-				}
-			}
 
 		case <-triggerGatewaySync:
 			gatewaySyncTimer.Reset(time.Second)
