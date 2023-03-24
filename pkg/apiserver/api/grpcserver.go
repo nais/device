@@ -8,7 +8,7 @@ import (
 	"github.com/nais/device/pkg/apiserver/database"
 	"github.com/nais/device/pkg/apiserver/jita"
 	"github.com/nais/device/pkg/pb"
-	"github.com/rs/zerolog/log"
+	log "github.com/sirupsen/logrus"
 )
 
 type grpcServer struct {
