@@ -8,6 +8,7 @@ import (
 	"github.com/nais/device/pkg/apiserver/database"
 	"github.com/nais/device/pkg/apiserver/jita"
 	"github.com/nais/device/pkg/pb"
+	"github.com/rs/zerolog/log"
 )
 
 type grpcServer struct {
@@ -45,7 +46,11 @@ func NewGRPCServer(db database.APIServer, authenticator auth.Authenticator, admi
 }
 
 func (s *grpcServer) triggerGatewayConfigurationSync() {
-	s.triggerGatewaySync <- struct{}{}
+	select {
+	case s.triggerGatewaySync <- struct{}{}:
+	default:
+		log.Warn("dropped trigger gateway sync, channel full")
+	}
 }
 
 func authenticateAny(username, password string, auths ...auth.UsernamePasswordAuthenticator) error {
