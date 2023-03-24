@@ -3,7 +3,7 @@ package systray
 import (
 	"context"
 
-	"github.com/getlantern/systray"
+	"fyne.io/systray"
 	"google.golang.org/grpc"
 
 	"github.com/nais/device/pkg/pb"

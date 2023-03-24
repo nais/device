@@ -8,10 +8,6 @@ require (
 	github.com/GoogleCloudPlatform/cloudsql-proxy v1.33.1
 	github.com/coreos/go-iptables v0.6.0
 	github.com/gen2brain/beeep v0.0.0-20210529141713-5586760f0cc1
-	github.com/getlantern/golog v0.0.0-20211223150227-d4d95a44d873 // indirect
-	github.com/getlantern/hidden v0.0.0-20220104173330-f221c5a24770 // indirect
-	github.com/getlantern/ops v0.0.0-20220418195917-45286e0140f6 // indirect
-	github.com/getlantern/systray v1.2.1
 	github.com/go-chi/chi/v5 v5.0.4
 	github.com/google/uuid v1.3.0
 	github.com/gopherjs/gopherjs v0.0.0-20210918183006-daae65060a40 // indirect
@@ -52,13 +48,9 @@ require (
 	github.com/cpuguy83/go-md2man/v2 v2.0.0-20190314233015-f79a8a8ca69d // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/decred/dcrd/dcrec/secp256k1/v4 v4.0.0 // indirect
-	github.com/getlantern/context v0.0.0-20220418194847-3d5e7a086201 // indirect
-	github.com/getlantern/errors v1.0.1 // indirect
-	github.com/getlantern/hex v0.0.0-20220104173244-ad7e4b9194dc // indirect
-	github.com/go-stack/stack v1.8.1 // indirect
 	github.com/go-toast/toast v0.0.0-20190211030409-01e6764cf0a4 // indirect
 	github.com/goccy/go-json v0.7.9 // indirect
-	github.com/godbus/dbus/v5 v5.0.5 // indirect
+	github.com/godbus/dbus/v5 v5.1.0 // indirect
 	github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da // indirect
 	github.com/google/go-cmp v0.5.9 // indirect
 	github.com/googleapis/gax-go/v2 v2.7.0 // indirect
@@ -71,7 +63,6 @@ require (
 	github.com/lestrrat-go/option v1.0.0 // indirect
 	github.com/matttproud/golang_protobuf_extensions v1.0.1 // indirect
 	github.com/nu7hatch/gouuid v0.0.0-20131221200532-179d4d0c4d8d // indirect
-	github.com/oxtoacart/bpool v0.0.0-20190530202638-03653db5a59c // indirect
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/prometheus/client_model v0.2.0 // indirect
@@ -98,6 +89,8 @@ require (
 )
 
 require (
+	fyne.io/systray v1.10.0
+	github.com/rs/zerolog v1.15.0
 	golang.org/x/vuln v0.0.0-20230322160202-f2d9b5a6e023
 	google.golang.org/grpc/cmd/protoc-gen-go-grpc v1.1.0
 	honnef.co/go/tools v0.2.2
@@ -107,11 +100,8 @@ require (
 require (
 	cloud.google.com/go/compute/metadata v0.2.3 // indirect
 	github.com/BurntSushi/toml v0.3.1 // indirect
-	github.com/go-logr/logr v1.2.3 // indirect
-	github.com/go-logr/stdr v1.2.2 // indirect
 	github.com/googleapis/enterprise-certificate-proxy v0.2.3 // indirect
-	go.opentelemetry.io/otel v1.6.3 // indirect
-	go.opentelemetry.io/otel/trace v1.6.3 // indirect
+	github.com/tevino/abool v1.2.0 // indirect
 	golang.org/x/mod v0.8.0 // indirect
 	golang.org/x/tools v0.6.1-0.20230217175706-3102dad5faf9 // indirect
 )

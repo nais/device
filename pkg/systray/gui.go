@@ -10,6 +10,7 @@ import (
 	"syscall"
 	"time"
 
+	"fyne.io/systray"
 	"github.com/nais/device/pkg/helper"
 
 	"github.com/nais/device/assets"
@@ -18,7 +19,6 @@ import (
 	"github.com/nais/device/pkg/pb"
 	"github.com/nais/device/pkg/version"
 
-	"github.com/getlantern/systray"
 	log "github.com/sirupsen/logrus"
 )
 
