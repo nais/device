@@ -89,7 +89,7 @@ require (
 )
 
 require (
-	fyne.io/systray v1.10.0
+	fyne.io/systray v1.10.1-0.20230324172440-85b5346e1f16
 	github.com/rs/zerolog v1.15.0
 	golang.org/x/vuln v0.0.0-20230322160202-f2d9b5a6e023
 	google.golang.org/grpc/cmd/protoc-gen-go-grpc v1.1.0
