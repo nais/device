@@ -9,7 +9,6 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/nais/device/pkg/outtune"
 	log "github.com/sirupsen/logrus"
 	flag "github.com/spf13/pflag"
 	"google.golang.org/grpc"
@@ -118,10 +117,8 @@ func startDeviceAgent(ctx context.Context, cfg *config.Config) error {
 	}
 	log.Infof("accepting network connections on unix socket %s", cfg.GrpcAddress)
 
-	ot := outtune.New(client)
-
 	grpcServer := grpc.NewServer()
-	das := deviceagent.NewServer(client, cfg, rc, ot)
+	das := deviceagent.NewServer(client, cfg, rc)
 	pb.RegisterDeviceAgentServer(grpcServer, das)
 
 	go func() {

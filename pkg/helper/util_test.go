@@ -2,10 +2,11 @@ package helper
 
 import (
 	"archive/zip"
-	"github.com/stretchr/testify/assert"
 	"io/ioutil"
 	"os"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestAllFilesAreZippedWhenPresent(t *testing.T) {

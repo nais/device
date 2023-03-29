@@ -9,7 +9,6 @@ import (
 	"github.com/google/uuid"
 	"github.com/hashicorp/go-multierror"
 	"github.com/nais/device/pkg/notify"
-	"github.com/nais/device/pkg/outtune"
 	log "github.com/sirupsen/logrus"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -28,7 +27,6 @@ type DeviceAgentServer struct {
 	streams      map[uuid.UUID]pb.DeviceAgent_StatusServer
 	Config       *config.Config
 	rc           *runtimeconfig.RuntimeConfig
-	outtune      outtune.Outtune
 }
 
 const maxLoginAttempts = 20
@@ -145,13 +143,12 @@ func (das *DeviceAgentServer) SetActiveTenant(ctx context.Context, req *pb.SetAc
 	return &pb.SetActiveTenantResponse{}, nil
 }
 
-func NewServer(helper pb.DeviceHelperClient, cfg *config.Config, rc *runtimeconfig.RuntimeConfig, ot outtune.Outtune) *DeviceAgentServer {
+func NewServer(helper pb.DeviceHelperClient, cfg *config.Config, rc *runtimeconfig.RuntimeConfig) *DeviceAgentServer {
 	return &DeviceAgentServer{
 		DeviceHelper: helper,
 		stateChange:  make(chan pb.AgentState, 32),
 		streams:      make(map[uuid.UUID]pb.DeviceAgent_StatusServer),
 		Config:       cfg,
-		outtune:      ot,
 		rc:           rc,
 	}
 }

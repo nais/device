@@ -11,13 +11,13 @@ import (
 //
 // Add to gRPC server with:
 //
-//		notifier := NewConnectionNotifier()
-// 		grpc.NewServer(grpc.StatsHandler(notifier))
+//	notifier := NewConnectionNotifier()
+//	grpc.NewServer(grpc.StatsHandler(notifier))
 //
 // Listen for events with:
 //
-//		<- notifier.Connect()
-//		<- notifier.Disconnect()
+//	<- notifier.Connect()
+//	<- notifier.Disconnect()
 type ConnectionNotifier struct {
 	connect    chan interface{}
 	disconnect chan interface{}

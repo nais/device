@@ -269,10 +269,9 @@ func (r *RuntimeConfig) PopulateTenants(ctx context.Context) error {
 		}
 
 		r.Tenants = append(r.Tenants, &pb.Tenant{
-			Name:           obj.Name,
-			AuthProvider:   pb.AuthProvider_Google,
-			OuttuneEnabled: false,
-			Domain:         obj.Name,
+			Name:         obj.Name,
+			AuthProvider: pb.AuthProvider_Google,
+			Domain:       obj.Name,
 		})
 
 	}
