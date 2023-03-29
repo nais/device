@@ -7,8 +7,7 @@ import "github.com/nais/device/pkg/pb"
 
 var defaultTenant = []*pb.Tenant{
 	{
-		Name:           "tenant",
-		AuthProvider:   pb.AuthProvider_Google,
-		OuttuneEnabled: false,
+		Name:         "tenant",
+		AuthProvider: pb.AuthProvider_Google,
 	},
 }
