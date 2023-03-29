@@ -28,16 +28,12 @@ import (
 )
 
 const (
-	healthCheckInterval    = 20 * time.Second   // how often to healthcheck gateways
-	syncConfigDialTimeout  = 1 * time.Second    // sleep time between failed configuration syncs
-	versionCheckInterval   = 1 * time.Hour      // how often to check for a new version of naisdevice
-	versionCheckTimeout    = 3 * time.Second    // timeout for new version check
-	getSerialTimeout       = 2 * time.Second    // timeout for getting device serial from helper
-	authFlowTimeout        = 1 * time.Minute    // total timeout for authenticating user (AAD login in browser, redirect to localhost, exchange code for token)
-	approximateInfinity    = time.Hour * 69_420 // Name describes purpose. Used for renewing microsoft client certs automatically
-	certificateLifetime    = time.Hour * 23     // Microsoft Client certificate validity/renewal interval
-	certCheckInterval      = time.Minute * 1    // Self-explanatory (Microsoft Client certificate)
-	certRenewTimeout       = time.Second * 20
+	healthCheckInterval    = 20 * time.Second // how often to healthcheck gateways
+	syncConfigDialTimeout  = 1 * time.Second  // sleep time between failed configuration syncs
+	versionCheckInterval   = 1 * time.Hour    // how often to check for a new version of naisdevice
+	versionCheckTimeout    = 3 * time.Second  // timeout for new version check
+	getSerialTimeout       = 2 * time.Second  // timeout for getting device serial from helper
+	authFlowTimeout        = 1 * time.Minute  // total timeout for authenticating user (AAD login in browser, redirect to localhost, exchange code for token)
 	apiServerRetryInterval = time.Second * 5
 )
 
@@ -160,8 +156,6 @@ func (das *DeviceAgentServer) EventLoop(ctx context.Context) {
 
 	healthCheckTicker := time.NewTicker(healthCheckInterval)
 	versionCheckTicker := time.NewTicker(5 * time.Second)
-	certRenewalTicker := time.NewTicker(approximateInfinity)
-	lastCertificateFetch := time.Time{}
 
 	autoConnectTriggered := false
 
@@ -203,43 +197,6 @@ func (das *DeviceAgentServer) EventLoop(ctx context.Context) {
 			} else {
 				versionCheckTicker.Reset(versionCheckInterval)
 			}
-
-		case <-certRenewalTicker.C:
-			certRenewalTicker.Reset(certCheckInterval)
-			log.Debug("CHECKING FOR CERTIFICATE")
-
-			if !das.Config.AgentConfiguration.CertRenewal || !das.rc.GetActiveTenant().OuttuneEnabled {
-				log.WithFields(log.Fields{
-					"das.rc.GetActiveTenant()": das.rc.GetActiveTenant(),
-				}).Debug("skipped cert renewal - disabled")
-				break
-			}
-
-			nextFetch := lastCertificateFetch.Add(certificateLifetime)
-			if time.Now().Before(nextFetch) {
-				log.Info("skipped cert renewal - not yet time")
-				break
-			}
-
-			if status.ConnectionState != pb.AgentState_Connected {
-				log.Info("NAV Microsoft client certificate renewal not running because you are not connected")
-				break
-			}
-
-			log.Infof("Attempting to install new NAV Microsoft client certificate")
-
-			renewContext, renewCancel := context.WithTimeout(ctx, certRenewTimeout)
-			err = das.outtune.Install(renewContext)
-			renewCancel()
-
-			if err != nil {
-				log.Errorf("Renewing NAV Microsoft client certificate: %v", err)
-				break
-			}
-
-			lastCertificateFetch = time.Now()
-
-			log.Info("NAV Microsoft client certificate renewed")
 
 		case <-healthCheckTicker.C:
 			healthCheckTicker.Reset(healthCheckInterval)
@@ -410,9 +367,7 @@ func (das *DeviceAgentServer) EventLoop(ctx context.Context) {
 				das.stateChange <- pb.AgentState_Bootstrapping
 
 			case pb.AgentState_Connected:
-				lastCertificateFetch = time.Time{}
 				healthCheckTicker.Reset(1 * time.Second)
-				certRenewalTicker.Reset(5 * time.Second)
 
 			case pb.AgentState_Disconnected:
 				status.Gateways = make([]*pb.Gateway, 0)
@@ -420,7 +375,6 @@ func (das *DeviceAgentServer) EventLoop(ctx context.Context) {
 					autoConnectTriggered = true
 					das.stateChange <- pb.AgentState_Authenticating
 				}
-				lastCertificateFetch = time.Time{}
 				das.rc.Tokens = nil
 				das.rc.EnrollConfig = nil
 
@@ -443,12 +397,8 @@ func (das *DeviceAgentServer) EventLoop(ctx context.Context) {
 				das.stateChange <- pb.AgentState_Disconnected
 
 			case pb.AgentState_Unhealthy:
-				lastCertificateFetch = time.Time{}
-				das.outtune.Cleanup(ctx)
 
 			case pb.AgentState_AgentConfigurationChanged:
-				lastCertificateFetch = time.Time{}
-				certRenewalTicker.Reset(1 * time.Second)
 				das.stateChange <- previousState
 			}
 		}
