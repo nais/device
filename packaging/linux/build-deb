@@ -29,9 +29,13 @@ fpm \
     --deb-systemd-enable \
     --deb-systemd-auto-start \
     --deb-systemd-restart-after-upgrade \
-    bin/linux-client/naisdevice-helper=/usr/sbin/naisdevice-helper \
-    bin/linux-client/naisdevice-agent=/usr/bin/naisdevice-agent \
-    bin/linux-client/naisdevice-systray=/usr/bin/naisdevice-systray \
-    packaging/linux/naisdevice.desktop=/usr/share/applications/ \
-    packaging/linux/nav_bundle.crt=/usr/local/share/ca-certificates/ \
-    packaging/linux/icons/=/usr/share/icons/hicolor/
+    "bin/linux-client/naisdevice-helper=/usr/sbin/naisdevice-helper" \
+    "bin/linux-client/naisdevice-agent=/usr/bin/naisdevice-agent" \
+    "bin/linux-client/naisdevice-systray=/usr/bin/naisdevice-systray" \
+    "packaging/linux/naisdevice.desktop=/usr/share/applications/" \
+    "packaging/linux/certs/NAV_Issuing_CA_ekstern.crt=/usr/share/ca-certificates/nav/" \
+    "packaging/linux/certs/NAV_Partner_Issuing_CA.crt=/usr/share/ca-certificates/nav/" \
+    "packaging/linux/certs/NAV_Partner_Sub_CA.crt=/usr/share/ca-certificates/nav/" \
+    "packaging/linux/certs/NAV_Root_CA.crt=/usr/share/ca-certificates/nav/" \
+    "packaging/linux/certs/NAV_Sub_CA.crt=/usr/share/ca-certificates/nav/" \
+    "packaging/linux/icons/=/usr/share/icons/hicolor/"

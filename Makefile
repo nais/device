@@ -183,7 +183,7 @@ pkg: app gon
 
 # Run by GitHub actions on linux
 deb: linux-client linux-icon
-	./packaging/linux/build-deb $(VERSION)
+	SUFFIX="" ./packaging/linux/build-deb $(VERSION)
 
 # Run by GitHub actions on linux(!)
 nsis: windows-client windows-icon

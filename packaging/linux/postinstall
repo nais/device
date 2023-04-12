@@ -1,6 +1,21 @@
 #!/bin/sh
 set -o errexit
 
+ensure_line() {
+	line="$1"
+	file="$2"
+
+	if ! grep -q "$1" "$2"; then
+		sed -i -e '$a'"$line" "$file"
+	fi
+}
+
+ensure_line "nav/NAV_Issuing_CA_ekstern.crt" "/etc/ca-certificates.conf"
+ensure_line "nav/NAV_Partner_Issuing_CA.crt" "/etc/ca-certificates.conf"
+ensure_line "nav/NAV_Partner_Sub_CA.crt" "/etc/ca-certificates.conf"
+ensure_line "nav/NAV_Root_CA.crt" "/etc/ca-certificates.conf"
+ensure_line "nav/NAV_Sub_CA.crt" "/etc/ca-certificates.conf"
+
 update-ca-certificates
 
 # Assert just _one_ logged-in user
