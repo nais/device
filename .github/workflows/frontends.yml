@@ -175,7 +175,7 @@ jobs:
           sudo apt update
           sudo apt remove --yes libappindicator3-dev
           sudo apt install --yes build-essential ruby ruby-dev rubygems libgtk-3-dev libayatana-appindicator3-dev
-          sudo gem install --no-document fpm -v 1.13.1
+          sudo gem install --no-document fpm -v 1.15.1
           make deb GOTAGS=${{ matrix.gotags }} VERSION=${{ needs.set-version.outputs.version }}
           md5sum naisdevice*.deb
       - name: upload debian package
