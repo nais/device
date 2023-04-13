@@ -17,7 +17,7 @@ if [ -f "$config_dir/agent-config.json" ]; then
 	mv "$tmp" "$config_dir/agent-config.json"
 fi
 
-chown -R "${user}:" "${config_dir}"
+chown -R "${user}:staff" "${config_dir}"
 
 
 cat << EOF > "$destination"
