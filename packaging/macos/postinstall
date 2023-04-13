@@ -11,13 +11,14 @@ log_dir="${config_dir}/logs"
 mkdir -p -m 0700 "${config_dir}"
 mkdir -p -m 0700 "${log_dir}"
 
-chown -R "${user}:" "${config_dir}"
-
 if [ -f "$config_dir/agent-config.json" ]; then
 	tmp="$(mktemp)"
 	/Applications/naisdevice.app/Contents/MacOS/jq 'del(.CertRenewal)' "$config_dir/agent-config.json" > "$tmp"
 	mv "$tmp" "$config_dir/agent-config.json"
 fi
+
+chown -R "${user}:" "${config_dir}"
+
 
 cat << EOF > "$destination"
 <?xml version="1.0" encoding="UTF-8"?>
