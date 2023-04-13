@@ -61,6 +61,13 @@ done
 
 cp /sys/devices/virtual/dmi/id/product_serial "${config_dir}"
 
+if [ -f "$config_dir/agent-config.json" ]; then
+	tmp="$(mktemp)"
+	jq 'del(.CertRenewal)' "$config_dir/agent-config.json" > "$tmp"
+	mv "$tmp" "$config_dir/agent-config.json"
+fi
+
+
 chown -R "${user}:" "${config_dir}"
 
 set +e
