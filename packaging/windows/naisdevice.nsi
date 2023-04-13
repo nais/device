@@ -186,7 +186,7 @@ Section "Uninstall"
     Delete "$SMSTARTUP\naisdevice.lnk"
     !insertmacro _Log "Removing installed files"
     GetKnownFolderPath $ProgramDataPath "${FOLDERID_ProgramData}"
-    RMDir /r "$ProgramDataPath\NAV"
+    RMDir /r "$ProgramDataPath\NAV\naisdevice"
     Delete $INSTDIR\naisdevice-*.exe
     Delete $INSTDIR\naisdevice.ico
     Delete $INSTDIR\${UNINSTALLER}
