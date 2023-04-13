@@ -27,6 +27,12 @@ jobs:
           EMAIL: aura@nav.no
         run: |
           echo "Version ${LATEST} was released at ${LATEST_DATE}"
+
+          if [[ "${LATEST}" == "null" ]]; then
+            echo "Invalid version!"
+            exit 1
+          fi
+
           eval "$(ssh-agent -s)"
           ssh-add - <<< "${PPA_REPO_KEY}"
           git clone git@github.com:nais/nais-ppa.git pparepo
@@ -79,6 +85,11 @@ jobs:
         run: |
           echo "Version ${LATEST} was released at ${LATEST_DATE}"
           
+          if [[ "${LATEST}" == "null" ]]; then
+            echo "Invalid version!"
+            exit 1
+          fi
+
           # Fetch latest debs
           wget https://github.com/nais/device/releases/download/${LATEST}/naisdevice.deb -O naisdevice-${LATEST}.deb
           wget https://github.com/nais/device/releases/download/${LATEST}/naisdevice-tenant.deb -O naisdevice-tenant-${LATEST}.deb
