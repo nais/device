@@ -98,6 +98,8 @@ enum AgentState {
   reserved 8;
   AuthenticateBackoff = 9;
   AgentConfigurationChanged = 10;
+  reserved 'RenewCert';
+  reserved 11;
 }
 
 enum DeviceConfigurationStatus {
@@ -231,12 +233,16 @@ enum AuthProvider {
 message Tenant {
   string name = 1;
   AuthProvider authProvider = 2;
+  reserved 'outtuneEnabled';
+  reserved 3;
   string domain = 4;
   bool active = 5;
   Session session = 6;
 }
 
 message AgentConfiguration {
+  reserved 'CertRenewal';
+  reserved 1;
   bool AutoConnect = 2;
   bool ILoveNinetiesBoybands = 3;
 }

@@ -15,7 +15,7 @@ dev-apiserver: local-postgres local-apiserver stop-postgres
 integration-test: stop-postgres-test run-postgres-test run-integration-test stop-postgres-test
 clients: linux-client macos-client windows-client
 
-proto:
+proto: install-protobuf-go
 	${PROTOC} --go-grpc_opt=paths=source_relative --go_opt=paths=source_relative --go_out=. --go-grpc_out=. pkg/pb/protobuf-api.proto
 
 install-protobuf-go:
