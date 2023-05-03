@@ -62,6 +62,7 @@ type Gui struct {
 		Tenant        *systray.MenuItem
 		TenantItems   []*TenantItem
 		GatewayItems  []*GatewayItem
+		AcceptableUse *systray.MenuItem
 	}
 	Config Config
 }
@@ -77,6 +78,7 @@ const (
 	LogClicked
 	AutoConnectClicked
 	BlackAndWhiteClicked
+	AcceptableUseClicked
 
 	maxTenants          = 10
 	maxGateways         = 30
@@ -102,6 +104,8 @@ func NewGUI(ctx context.Context, client pb.DeviceAgentClient, cfg Config) *Gui {
 	gui.MenuItems.StateInfo = systray.AddMenuItem("", "")
 	gui.MenuItems.StateInfo.Hide()
 	gui.MenuItems.State.Disable()
+	gui.MenuItems.AcceptableUse = systray.AddMenuItem("Acceptable use policy", "")
+	gui.MenuItems.AcceptableUse.Hide()
 	gui.MenuItems.Logs = systray.AddMenuItem("Logs", "")
 	gui.MenuItems.Settings = systray.AddMenuItem("Settings", "")
 	gui.MenuItems.AutoConnect = gui.MenuItems.Settings.AddSubMenuItemCheckbox("Connect automatically on startup", "", false)
@@ -202,6 +206,8 @@ func (gui *Gui) handleButtonClicks(ctx context.Context) {
 			accessPrivilegedGateway(name)
 		case name := <-gui.TenantItemClicked:
 			gui.activateTenant(ctx, name)
+		case <-gui.MenuItems.AcceptableUse.ClickedCh:
+			gui.Events <- AcceptableUseClicked
 		case <-ctx.Done():
 			return
 		}
@@ -302,6 +308,9 @@ func (gui *Gui) handleAgentStatus(agentStatus *pb.AgentStatus) {
 
 	tenants := agentStatus.GetTenants()
 	if len(tenants) <= 1 {
+		if len(tenants) == 1 && (tenants[0].Name == "NAV" || tenants[0].Name == "nav.no") {
+			gui.MenuItems.AcceptableUse.Show()
+		}
 		return
 	}
 
@@ -310,6 +319,7 @@ func (gui *Gui) handleAgentStatus(agentStatus *pb.AgentStatus) {
 		return tenants[i].GetName() < tenants[j].GetName()
 	})
 
+	gui.MenuItems.AcceptableUse.Hide()
 	for i, tenant := range tenants {
 		gui.MenuItems.TenantItems[i].Tenant = tenant
 
@@ -318,6 +328,9 @@ func (gui *Gui) handleAgentStatus(agentStatus *pb.AgentStatus) {
 		menuItem.Show()
 		menuItem.Enable()
 		if tenant.Active {
+			if tenant.Name == "NAV" || tenant.Name == "nav.no" {
+				gui.MenuItems.AcceptableUse.Show()
+			}
 			menuItem.Check()
 		} else {
 			menuItem.Uncheck()
@@ -441,6 +454,11 @@ func (gui *Gui) handleGuiEvent(guiEvent GuiEvent) {
 			log.Warn("opening device agent log: %w", err)
 		}
 
+	case AcceptableUseClicked:
+		err := open.Open("https://naisdevice-approval.nais.io/")
+		if err != nil {
+			log.Warn("opening device agent log: %w", err)
+		}
 	case QuitClicked:
 		_, err := gui.DeviceAgentClient.Logout(context.Background(), &pb.LogoutRequest{})
 		if err != nil {
