@@ -43,9 +43,9 @@ import (
 
 const (
 	gatewayConfigSyncInterval = 1 * time.Minute
-	WireGuardSyncInterval     = 10 * time.Second
-	sendGatewayConfigTimeout  = 5 * time.Second
-	sendDeviceUpdateTimeout   = 5 * time.Second
+	WireGuardSyncInterval     = 20 * time.Second
+	sendGatewayConfigTimeout  = 10 * time.Second
+	sendDeviceUpdateTimeout   = 10 * time.Second
 	shutdownGracePeriod       = 20 * time.Millisecond // time to allow server processes to finish their goroutines
 )
 
