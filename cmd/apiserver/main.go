@@ -449,7 +449,7 @@ func run() error {
 
 	go func() {
 		for event := range deviceUpdates {
-			if updateDevice(event) != nil {
+			if err := updateDevice(event); err != nil {
 				if errors.Is(err, sql.ErrNoRows) {
 					log.Debugf("Update device health: %s", err)
 				} else {
