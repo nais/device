@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/nais/device/pkg/apiserver/api"
 	"github.com/nais/device/pkg/apiserver/bucket"
 	"github.com/nais/device/pkg/apiserver/database"
 	"github.com/nais/device/pkg/ioconvenience"
@@ -80,7 +81,7 @@ func (g *GatewayConfigurer) SyncConfig(ctx context.Context) error {
 	}
 
 	g.lastUpdated = lastUpdated
-	g.TriggerGatewaySync <- struct{}{}
+	api.TriggerGatewaySync(g.TriggerGatewaySync)
 
 	return nil
 }

@@ -204,7 +204,7 @@ func run() error {
 	}
 
 	deviceUpdates := make(chan *kolidepb.DeviceEvent, 64)
-	triggerGatewaySync := make(chan struct{}, 64)
+	triggerGatewaySync := make(chan struct{}, 1)
 
 	// TODO: remove when we've improved JITA
 	// This triggers sync every 10 sec to let gateways know if someone has JITA'd
@@ -213,8 +213,7 @@ func run() error {
 		for {
 			select {
 			case <-ticker.C:
-				log.Debugf("Hack: triggering gateway-sync")
-				triggerGatewaySync <- struct{}{}
+				api.TriggerGatewaySync(triggerGatewaySync)
 
 			case <-ctx.Done():
 				log.Infof("Stopped gateway-sync hack")
@@ -353,9 +352,6 @@ func run() error {
 		return fmt.Errorf("unable to set up gRPC server: %w", err)
 	}
 
-	gatewaySyncTimer := time.NewTimer(time.Second)
-	gatewaySyncTimer.Stop()
-
 	sendDeviceConfig := func(device *pb.Device) {
 		ctx, cancel := context.WithTimeout(ctx, sendDeviceUpdateTimeout)
 		defer cancel()
@@ -394,7 +390,7 @@ func run() error {
 			return err
 		}
 		sendDeviceConfig(device)
-		triggerGatewaySync <- struct{}{}
+		api.TriggerGatewaySync(triggerGatewaySync)
 		return nil
 	}
 
@@ -473,12 +469,8 @@ func run() error {
 			time.Sleep(shutdownGracePeriod)
 			return nil
 
-		case <-gatewaySyncTimer.C:
-			log.Debugf("triggered gateway sync")
-			sendGatewayUpdates()
-
 		case <-triggerGatewaySync:
-			gatewaySyncTimer.Reset(time.Second)
+			sendGatewayUpdates()
 		}
 	}
 }

@@ -117,7 +117,7 @@ func (s *grpcServer) Login(ctx context.Context, r *pb.APIServerLoginRequest) (*p
 		return nil, status.Errorf(codes.Unauthenticated, "login: %v", err)
 	}
 
-	s.triggerGatewayConfigurationSync()
+	TriggerGatewaySync(s.triggerGatewaySync)
 
 	return &pb.APIServerLoginResponse{
 		Session: session,

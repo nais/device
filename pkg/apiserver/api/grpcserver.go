@@ -8,7 +8,6 @@ import (
 	"github.com/nais/device/pkg/apiserver/database"
 	"github.com/nais/device/pkg/apiserver/jita"
 	"github.com/nais/device/pkg/pb"
-	log "github.com/sirupsen/logrus"
 )
 
 type grpcServer struct {
@@ -31,6 +30,13 @@ var _ pb.APIServerServer = &grpcServer{}
 
 var ErrNoSession = errors.New("no session")
 
+func TriggerGatewaySync(channel chan<- struct{}) {
+	select {
+	case channel <- struct{}{}:
+	default:
+	}
+}
+
 func NewGRPCServer(db database.APIServer, authenticator auth.Authenticator, adminAuth, gatewayAuth, prometheusAuth auth.UsernamePasswordAuthenticator, jita jita.Client, triggerGatewaySync chan<- struct{}) *grpcServer {
 	return &grpcServer{
 		deviceConfigStreams:  make(map[string]pb.APIServer_GetDeviceConfigurationServer),
@@ -42,14 +48,6 @@ func NewGRPCServer(db database.APIServer, authenticator auth.Authenticator, admi
 		db:                   db,
 		jita:                 jita,
 		triggerGatewaySync:   triggerGatewaySync,
-	}
-}
-
-func (s *grpcServer) triggerGatewayConfigurationSync() {
-	select {
-	case s.triggerGatewaySync <- struct{}{}:
-	default:
-		log.Warn("dropped trigger gateway sync, channel full")
 	}
 }
 
