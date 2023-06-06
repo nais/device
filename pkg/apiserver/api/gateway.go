@@ -56,6 +56,9 @@ func (s *grpcServer) GetGatewayConfiguration(request *pb.GetGatewayConfiguration
 }
 
 func (s *grpcServer) SendInitialGatewayConfiguration(ctx context.Context, gatewayName string) error {
+	log.Infof("sending initial gateway config to %s", gatewayName)
+	defer func() { log.Infof("done sending initial gateway config to %s", gatewayName) }()
+
 	sessionInfos, err := s.db.ReadSessionInfos(ctx)
 	if err != nil {
 		return fmt.Errorf("read session infos from database: %w", err)
@@ -65,6 +68,9 @@ func (s *grpcServer) SendInitialGatewayConfiguration(ctx context.Context, gatewa
 }
 
 func (s *grpcServer) SendAllGatewayConfigurations(ctx context.Context) error {
+	log.Info("sending all gateway configs")
+	defer func() { log.Info("done sending all gateway configs") }()
+
 	s.gatewayLock.RLock()
 	defer s.gatewayLock.RUnlock()
 
@@ -83,6 +89,9 @@ func (s *grpcServer) SendAllGatewayConfigurations(ctx context.Context) error {
 }
 
 func (s *grpcServer) SendGatewayConfiguration(ctx context.Context, gatewayName string, sessionInfos []*pb.Session) error {
+	log.Infof("sending gateway config to %s", gatewayName)
+	defer func() { log.Infof("done sending gateway config to %s", gatewayName) }()
+
 	stream, ok := s.gatewayConfigStreams[gatewayName]
 	if !ok {
 		return ErrNoSession
