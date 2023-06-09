@@ -31,7 +31,7 @@ linux-init:
 # Run by GitHub actions
 controlplane:
 	mkdir -p ./bin/controlplane
-	GOOS=linux GOARCH=amd64 go build -o bin/controlplane/apiserver --tags "$(GOTAGS)" -ldflags "-s $(LDFLAGS)" ./cmd/apiserver
+	GOOS=linux GOARCH=amd64 go build -o bin/controlplane/apiserver --race --tags "$(GOTAGS)" -ldflags "-s $(LDFLAGS)" ./cmd/apiserver
 	GOOS=linux GOARCH=amd64 go build -o bin/controlplane/bootstrap-api --tags "$(GOTAGS)" -ldflags "-s $(LDFLAGS)" ./cmd/bootstrap-api
 	GOOS=linux GOARCH=amd64 go build -o bin/controlplane/gateway-agent --tags "$(GOTAGS)" -ldflags "-s $(LDFLAGS)" ./cmd/gateway-agent
 	GOOS=linux GOARCH=amd64 go build -o bin/controlplane/prometheus-agent --tags "$(GOTAGS)" -ldflags "-s $(LDFLAGS)" ./cmd/prometheus-agent
