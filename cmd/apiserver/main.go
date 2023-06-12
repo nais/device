@@ -17,7 +17,6 @@ import (
 	"time"
 
 	cloudsqlproxylog "github.com/GoogleCloudPlatform/cloudsql-proxy/logging"
-	grpc_prometheus "github.com/grpc-ecosystem/go-grpc-prometheus"
 	"github.com/kelseyhightower/envconfig"
 	"github.com/nais/device/pkg/apiserver/api"
 	"github.com/nais/device/pkg/apiserver/auth"
@@ -340,10 +339,8 @@ func run() error {
 		jitaClient,
 		triggerGatewaySync,
 	)
-	grpcServer := grpc.NewServer(
-		grpc.UnaryInterceptor(grpc_prometheus.UnaryServerInterceptor),
-		grpc.StreamInterceptor(grpc_prometheus.StreamServerInterceptor),
-	)
+
+	grpcServer := grpc.NewServer()
 	pb.RegisterAPIServerServer(grpcServer, grpcHandler)
 	grpc_prometheus.Register(grpcServer)
 
