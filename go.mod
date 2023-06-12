@@ -4,8 +4,8 @@ go 1.20
 
 require (
 	cloud.google.com/go/secretmanager v1.10.0
-	cloud.google.com/go/storage v1.28.1
-	github.com/GoogleCloudPlatform/cloudsql-proxy v1.33.1
+	cloud.google.com/go/storage v1.29.0
+	github.com/GoogleCloudPlatform/cloudsql-proxy v1.33.7
 	github.com/coreos/go-iptables v0.6.0
 	github.com/gen2brain/beeep v0.0.0-20210529141713-5586760f0cc1
 	github.com/getlantern/golog v0.0.0-20211223150227-d4d95a44d873 // indirect
@@ -56,7 +56,7 @@ require (
 	github.com/getlantern/hex v0.0.0-20220104173244-ad7e4b9194dc // indirect
 	github.com/go-stack/stack v1.8.1 // indirect
 	github.com/go-toast/toast v0.0.0-20190211030409-01e6764cf0a4 // indirect
-	github.com/goccy/go-json v0.7.9 // indirect
+	github.com/goccy/go-json v0.9.11 // indirect
 	github.com/godbus/dbus/v5 v5.0.5 // indirect
 	github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da // indirect
 	github.com/google/go-cmp v0.5.9 // indirect
