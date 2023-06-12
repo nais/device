@@ -342,7 +342,6 @@ func run() error {
 
 	grpcServer := grpc.NewServer()
 	pb.RegisterAPIServerServer(grpcServer, grpcHandler)
-	grpc_prometheus.Register(grpcServer)
 
 	grpcListener, err := net.Listen("tcp", cfg.GRPCBindAddress)
 	if err != nil {
