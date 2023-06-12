@@ -29,10 +29,10 @@ require (
 	github.com/t-tomalak/logrus-easy-formatter v0.0.0-20190827215021-c074f06c5816
 	github.com/urfave/cli/v2 v2.3.0
 	golang.org/x/crypto v0.0.0-20220722155217-630584e8d5aa
-	golang.org/x/net v0.8.0 // indirect
+	golang.org/x/net v0.9.0 // indirect
 	golang.org/x/oauth2 v0.5.0
-	golang.org/x/sys v0.6.0
-	golang.org/x/text v0.8.0 // indirect
+	golang.org/x/sys v0.7.0
+	golang.org/x/text v0.9.0 // indirect
 	google.golang.org/api v0.110.0
 	google.golang.org/genproto v0.0.0-20230322174352-cde4c949918d
 	google.golang.org/grpc v1.54.0
@@ -99,7 +99,7 @@ require (
 	golang.org/x/vuln v0.0.0-20230322160202-f2d9b5a6e023
 	google.golang.org/grpc/cmd/protoc-gen-go-grpc v1.1.0
 	honnef.co/go/tools v0.2.2
-	mvdan.cc/gofumpt v0.4.0
+	mvdan.cc/gofumpt v0.5.0
 )
 
 require (
@@ -110,6 +110,6 @@ require (
 	github.com/googleapis/enterprise-certificate-proxy v0.2.3 // indirect
 	go.opentelemetry.io/otel v1.6.3 // indirect
 	go.opentelemetry.io/otel/trace v1.6.3 // indirect
-	golang.org/x/mod v0.8.0 // indirect
-	golang.org/x/tools v0.6.1-0.20230217175706-3102dad5faf9 // indirect
+	golang.org/x/mod v0.10.0 // indirect
+	golang.org/x/tools v0.8.0 // indirect
 )
