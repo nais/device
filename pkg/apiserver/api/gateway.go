@@ -17,31 +17,31 @@ func (s *grpcServer) GetGatewayConfiguration(request *pb.GetGatewayConfiguration
 		return status.Error(codes.Unauthenticated, err.Error())
 	}
 
-	s.gatewayLock.RLock()
+	s.gatewayMapLock.RLock()
 	_, hasSession := s.gatewayConfigStreams[request.Gateway]
-	s.gatewayLock.RUnlock()
+	s.gatewayMapLock.RUnlock()
 
 	if hasSession {
 		return status.Errorf(codes.Aborted, "this gateway already has an open session")
 	}
 
-	s.gatewayLock.Lock()
+	s.gatewayMapLock.Lock()
 	s.gatewayConfigStreams[request.Gateway] = stream
 	s.reportOnlineGateways()
 	log.Infof("Gateway %s connected (%d active gateways)", request.Gateway, len(s.gatewayConfigStreams))
-	s.gatewayLock.Unlock()
+	s.gatewayMapLock.Unlock()
 
 	defer func() {
-		s.gatewayLock.Lock()
+		s.gatewayMapLock.Lock()
 		delete(s.gatewayConfigStreams, request.Gateway)
 		s.reportOnlineGateways()
-		s.gatewayLock.Unlock()
+		s.gatewayMapLock.Unlock()
 	}()
 
 	// send initial device configuration
-	s.gatewayLock.RLock()
+	s.gatewayMapLock.RLock()
 	err = s.SendInitialGatewayConfiguration(stream.Context(), request.Gateway)
-	s.gatewayLock.RUnlock()
+	s.gatewayMapLock.RUnlock()
 	if err != nil {
 		return fmt.Errorf("send initial gateway configuration: %s", err)
 	}
@@ -49,7 +49,9 @@ func (s *grpcServer) GetGatewayConfiguration(request *pb.GetGatewayConfiguration
 	// wait for disconnect
 	<-stream.Context().Done()
 
+	s.gatewayMapLock.RLock()
 	log.Infof("Gateway %s disconnected (%d active gateways)", request.Gateway, len(s.gatewayConfigStreams))
+	s.gatewayMapLock.RUnlock()
 
 	return nil
 }
@@ -70,13 +72,13 @@ func (s *grpcServer) SendAllGatewayConfigurations(ctx context.Context) error {
 	log.Info("sending all gateway configs")
 	defer func() { log.Info("done sending all gateway configs") }()
 
-	s.gatewayLock.RLock()
-	defer s.gatewayLock.RUnlock()
-
 	sessionInfos, err := s.db.ReadSessionInfos(ctx)
 	if err != nil {
 		return fmt.Errorf("read session infos from database: %w", err)
 	}
+
+	s.gatewayMapLock.RLock()
+	defer s.gatewayMapLock.RUnlock()
 
 	for gateway := range s.gatewayConfigStreams {
 		err := s.SendGatewayConfiguration(ctx, gateway, sessionInfos)

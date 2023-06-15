@@ -20,7 +20,7 @@ type grpcServer struct {
 	jita                 jita.Client
 	deviceConfigStreams  map[string]pb.APIServer_GetDeviceConfigurationServer
 	gatewayConfigStreams map[string]pb.APIServer_GetGatewayConfigurationServer
-	gatewayLock          sync.RWMutex
+	gatewayMapLock       sync.RWMutex
 	deviceLock           sync.RWMutex
 	db                   database.APIServer
 	triggerGatewaySync   chan<- struct{}
