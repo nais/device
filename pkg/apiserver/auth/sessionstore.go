@@ -81,6 +81,9 @@ func (store *sessionStore) Warmup(ctx context.Context) error {
 }
 
 func (store *sessionStore) CachedSessionFromDeviceID(deviceID int64) (*pb.Session, error) {
+	store.lock.Lock()
+	defer store.lock.Unlock()
+
 	for _, session := range store.cache {
 		if session.GetDevice().GetId() == deviceID {
 			return session, nil
