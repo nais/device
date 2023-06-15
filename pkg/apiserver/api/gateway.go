@@ -28,9 +28,8 @@ func (s *grpcServer) GetGatewayConfiguration(request *pb.GetGatewayConfiguration
 	s.gatewayLock.Lock()
 	s.gatewayConfigStreams[request.Gateway] = stream
 	s.reportOnlineGateways()
-	s.gatewayLock.Unlock()
-
 	log.Infof("Gateway %s connected (%d active gateways)", request.Gateway, len(s.gatewayConfigStreams))
+	s.gatewayLock.Unlock()
 
 	defer func() {
 		s.gatewayLock.Lock()
