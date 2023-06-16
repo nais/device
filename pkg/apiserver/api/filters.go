@@ -78,3 +78,23 @@ func unique(devices []*pb.Device) []*pb.Device {
 
 	return ret
 }
+
+func StringSliceHasIntersect(slice1 []string, slice2 []string) bool {
+	for _, a := range slice1 {
+		for _, b := range slice2 {
+			if a == b {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+func userIsPrivileged(privilegedUsers []jita.PrivilegedUser, users string) bool {
+	for _, privilegedUser := range privilegedUsers {
+		if privilegedUser.UserId == users {
+			return true
+		}
+	}
+	return false
+}

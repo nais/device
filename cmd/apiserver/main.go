@@ -7,7 +7,6 @@ import (
 	"errors"
 	"fmt"
 	"net"
-	"net/http"
 	"net/netip"
 	"os"
 	"os/exec"
@@ -270,19 +269,13 @@ func run() error {
 		log.Warn("no valid gateway configurer set, gateways won't be updated.")
 	}
 
-	apiConfig := api.Config{
-		DB:            db,
-		Jita:          jitaClient,
-		Authenticator: authenticator,
-	}
-
 	if cfg.ControlPlaneAuthenticationEnabled {
-		apiConfig.APIKeys, err = config.Credentials(cfg.AdminCredentialEntries)
+		apiKeys, err := config.Credentials(cfg.AdminCredentialEntries)
 		if err != nil {
 			return fmt.Errorf("parse admin credentials: %w", err)
 		}
 
-		if len(apiConfig.APIKeys) == 0 {
+		if len(apiKeys) == 0 {
 			return fmt.Errorf("control plane basic authentication enabled, but no admin credentials provided (try --admin-credential-entries)")
 		}
 
@@ -295,7 +288,7 @@ func run() error {
 			return fmt.Errorf("control plane basic authentication enabled, but no prometheus credentials provided (try --prometheus-credential-entries)")
 		}
 
-		adminAuthenticator = auth.NewAPIKeyAuthenticator(apiConfig.APIKeys)
+		adminAuthenticator = auth.NewAPIKeyAuthenticator(apiKeys)
 		gatewayAuthenticator = auth.NewGatewayAuthenticator(db)
 		prometheusAuthenticator = auth.NewAPIKeyAuthenticator(promauth)
 
@@ -376,26 +369,6 @@ func run() error {
 		}
 	}()
 
-	router := api.New(apiConfig)
-
-	srv := &http.Server{
-		Handler: router,
-		Addr:    cfg.BindAddress,
-	}
-
-	go func() {
-		log.Infof("Legacy HTTP API starting on %s", cfg.BindAddress)
-		err := srv.ListenAndServe()
-		cancel()
-		switch err {
-		case http.ErrServerClosed:
-			log.Infof("HTTP server stopped successfully.")
-		case nil:
-		default:
-			log.Errorf("HTTP server terminated with error: %s", err)
-		}
-	}()
-
 	go func() {
 		log.Infof("gRPC server starting on %s", cfg.GRPCBindAddress)
 		err := grpcServer.Serve(grpcListener)
@@ -413,7 +386,6 @@ func run() error {
 		cancel()
 	}()
 
-	defer srv.Close()
 	defer grpcServer.Stop()
 
 	go func() {
