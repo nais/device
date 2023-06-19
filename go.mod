@@ -3,7 +3,7 @@ module github.com/nais/device
 go 1.20
 
 require (
-	cloud.google.com/go/secretmanager v1.10.0
+	cloud.google.com/go/secretmanager v1.11.0
 	cloud.google.com/go/storage v1.29.0
 	github.com/GoogleCloudPlatform/cloudsql-proxy v1.33.7
 	github.com/coreos/go-iptables v0.6.0
@@ -90,7 +90,7 @@ require (
 
 require (
 	cloud.google.com/go/compute v1.19.3 // indirect
-	cloud.google.com/go/iam v0.13.0 // indirect
+	cloud.google.com/go/iam v1.0.1 // indirect
 	cloud.google.com/go/pubsub v1.30.0
 	golang.org/x/xerrors v0.0.0-20220907171357-04be3eba64a2 // indirect
 )
