@@ -357,7 +357,6 @@ func run() error {
 			return err
 		}
 		sendDeviceConfig(device)
-		grpcHandler.SendAllGatewayConfigurations(ctx)
 		return nil
 	}
 
@@ -434,6 +433,10 @@ func run() error {
 				} else {
 					log.Errorf("Update device health: %s", err)
 				}
+			}
+
+			if len(deviceUpdates) == 0 {
+				grpcHandler.SendAllGatewayConfigurations(ctx)
 			}
 		}
 	}()
