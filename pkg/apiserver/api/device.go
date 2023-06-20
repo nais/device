@@ -13,10 +13,10 @@ import (
 
 func (s *grpcServer) GetDeviceConfiguration(request *pb.GetDeviceConfigurationRequest, stream pb.APIServer_GetDeviceConfigurationServer) error {
 	log.WithField("session", request.SessionKey).Debugf("get device configuration: started")
-	s.deviceLock.Lock()
+	s.deviceConfigStreamsLock.Lock()
 	s.deviceConfigStreams[request.SessionKey] = stream
 	apiserver_metrics.DevicesConnected.Set(float64(len(s.deviceConfigStreams)))
-	s.deviceLock.Unlock()
+	s.deviceConfigStreamsLock.Unlock()
 
 	// send initial device configuration
 	err := s.SendDeviceConfiguration(stream.Context(), request.SessionKey)
@@ -29,10 +29,10 @@ func (s *grpcServer) GetDeviceConfiguration(request *pb.GetDeviceConfigurationRe
 	<-stream.Context().Done()
 	log.WithField("session", request.SessionKey).Debugf("get device configuration: finished")
 
-	s.deviceLock.Lock()
+	s.deviceConfigStreamsLock.Lock()
 	delete(s.deviceConfigStreams, request.SessionKey)
 	apiserver_metrics.DevicesConnected.Set(float64(len(s.deviceConfigStreams)))
-	s.deviceLock.Unlock()
+	s.deviceConfigStreamsLock.Unlock()
 
 	log.WithField("session", request.SessionKey).Debugf("get device configuration: cleaned up stream map")
 
@@ -41,9 +41,9 @@ func (s *grpcServer) GetDeviceConfiguration(request *pb.GetDeviceConfigurationRe
 
 func (s *grpcServer) SendDeviceConfiguration(ctx context.Context, sessionKey string) error {
 	log.WithField("session", sessionKey).Debugf("send device configuration: started")
-	s.deviceLock.RLock()
+	s.deviceConfigStreamsLock.RLock()
 	stream, ok := s.deviceConfigStreams[sessionKey]
-	s.deviceLock.RUnlock()
+	s.deviceConfigStreamsLock.RUnlock()
 	if !ok {
 		return ErrNoSession
 	}
@@ -117,7 +117,7 @@ func (s *grpcServer) Login(ctx context.Context, r *pb.APIServerLoginRequest) (*p
 		return nil, status.Errorf(codes.Unauthenticated, "login: %v", err)
 	}
 
-	TriggerGatewaySync(s.triggerGatewaySync)
+	s.SendAllGatewayConfigurations(ctx)
 
 	return &pb.APIServerLoginResponse{
 		Session: session,

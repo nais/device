@@ -17,113 +17,89 @@ func (s *grpcServer) GetGatewayConfiguration(request *pb.GetGatewayConfiguration
 		return status.Error(codes.Unauthenticated, err.Error())
 	}
 
-	s.gatewayMapLock.RLock()
-	_, hasSession := s.gatewayConfigStreams[request.Gateway]
-	s.gatewayMapLock.RUnlock()
+	s.gatewayConfigTriggerLock.RLock()
+	_, hasSession := s.gatewayConfigTrigger[request.Gateway]
+	s.gatewayConfigTriggerLock.RUnlock()
 
 	if hasSession {
 		return status.Errorf(codes.Aborted, "this gateway already has an open session")
 	}
 
-	s.gatewayMapLock.Lock()
-	s.gatewayConfigStreams[request.Gateway] = stream
+	s.gatewayConfigTriggerLock.Lock()
+	c := make(chan struct{}, 1)
+	c <- struct{}{} // trigger config send immediately
+	s.gatewayConfigTrigger[request.Gateway] = c
 	s.reportOnlineGateways()
-	log.Infof("Gateway %s connected (%d active gateways)", request.Gateway, len(s.gatewayConfigStreams))
-	s.gatewayMapLock.Unlock()
+	log.Infof("Gateway %s connected (%d active gateways)", request.Gateway, len(s.gatewayConfigTrigger))
+	s.gatewayConfigTriggerLock.Unlock()
 
-	defer func() {
-		s.gatewayMapLock.Lock()
-		delete(s.gatewayConfigStreams, request.Gateway)
-		s.reportOnlineGateways()
-		s.gatewayMapLock.Unlock()
-	}()
+	for {
+		select {
+		case <-c:
+			cfg, err := s.MakeGatewayConfiguration(stream.Context(), request.Gateway)
+			if err != nil {
+				log.Errorf("make gateway config: %v", err)
+			}
 
-	// send initial device configuration
-	s.gatewayMapLock.RLock()
-	err = s.SendInitialGatewayConfiguration(stream.Context(), request.Gateway)
-	s.gatewayMapLock.RUnlock()
-	if err != nil {
-		return fmt.Errorf("send initial gateway configuration: %s", err)
-	}
+			log.Infof("sending gateway config to %s", request.Gateway)
+			err = stream.Send(cfg)
+			if err != nil {
+				log.Errorf("send gateway config: %v", err)
+			} else {
+				log.Infof("sent gateway config to %s", request.Gateway)
+			}
 
-	// wait for disconnect
-	<-stream.Context().Done()
+		case <-stream.Context().Done():
+			s.gatewayConfigTriggerLock.Lock()
+			delete(s.gatewayConfigTrigger, request.Gateway)
+			log.Infof("Gateway %s disconnected (%d active gateways)", request.Gateway, len(s.gatewayConfigTrigger))
+			s.reportOnlineGateways()
+			s.gatewayConfigTriggerLock.Unlock()
 
-	s.gatewayMapLock.RLock()
-	log.Infof("Gateway %s disconnected (%d active gateways)", request.Gateway, len(s.gatewayConfigStreams))
-	s.gatewayMapLock.RUnlock()
-
-	return nil
-}
-
-func (s *grpcServer) SendInitialGatewayConfiguration(ctx context.Context, gatewayName string) error {
-	log.Infof("sending initial gateway config to %s", gatewayName)
-	defer func() { log.Infof("done sending initial gateway config to %s", gatewayName) }()
-
-	sessionInfos, err := s.db.ReadSessionInfos(ctx)
-	if err != nil {
-		return fmt.Errorf("read session infos from database: %w", err)
-	}
-
-	return s.SendGatewayConfiguration(ctx, gatewayName, sessionInfos)
-}
-
-func (s *grpcServer) SendAllGatewayConfigurations(ctx context.Context) error {
-	log.Info("sending all gateway configs")
-	defer func() { log.Info("done sending all gateway configs") }()
-
-	sessionInfos, err := s.db.ReadSessionInfos(ctx)
-	if err != nil {
-		return fmt.Errorf("read session infos from database: %w", err)
-	}
-
-	s.gatewayMapLock.RLock()
-	defer s.gatewayMapLock.RUnlock()
-
-	for gateway := range s.gatewayConfigStreams {
-		err := s.SendGatewayConfiguration(ctx, gateway, sessionInfos)
-		if err != nil {
-			return fmt.Errorf("send gateway config: %w", err)
+			return nil
 		}
 	}
-	return nil
 }
 
-func (s *grpcServer) SendGatewayConfiguration(ctx context.Context, gatewayName string, sessionInfos []*pb.Session) error {
+func (s *grpcServer) SendAllGatewayConfigurations(ctx context.Context) {
+	s.gatewayConfigTriggerLock.RLock()
+	defer s.gatewayConfigTriggerLock.RUnlock()
+
+	for _, c := range s.gatewayConfigTrigger {
+		select {
+		case c <- struct{}{}:
+		default:
+		}
+	}
+}
+
+func (s *grpcServer) MakeGatewayConfiguration(ctx context.Context, gatewayName string) (*pb.GetGatewayConfigurationResponse, error) {
 	log.Infof("sending gateway config to %s", gatewayName)
 	defer func() { log.Infof("done sending gateway config to %s", gatewayName) }()
 
-	stream, ok := s.gatewayConfigStreams[gatewayName]
-	if !ok {
-		return ErrNoSession
-	}
-
 	gateway, err := s.db.ReadGateway(ctx, gatewayName)
 	if err != nil {
-		return fmt.Errorf("read gateway from database: %w", err)
+		return nil, fmt.Errorf("read gateway from database: %w", err)
 	}
 
-	gatewayPrivilegedDevices := privileged(s.jita, gateway, sessionInfos)
-	authorizedDevices := authorized(gateway.AccessGroupIDs, gatewayPrivilegedDevices)
+	allSessions := s.sessionStore.All()
+	privilegedDevices := privileged(s.jita, gateway, allSessions)
+	authorizedDevices := authorized(gateway.AccessGroupIDs, privilegedDevices)
 	healthyDevices := healthy(authorizedDevices)
+
 	gatewayConfig := &pb.GetGatewayConfigurationResponse{
 		Devices: healthyDevices,
 		Routes:  gateway.Routes,
 	}
 
-	m, err := apiserver_metrics.GatewayConfigsReturned.GetMetricWithLabelValues(gateway.Name)
-	if err != nil {
-		log.Errorf("getting metric metric: %v", err)
-	} else {
-		m.Inc()
-	}
+	apiserver_metrics.GatewayConfigsReturned.WithLabelValues(gateway.Name).Inc()
 
-	return stream.Send(gatewayConfig)
+	return gatewayConfig, nil
 }
 
 func (s *grpcServer) onlineGateways() []string {
-	gateways := make([]string, 0, len(s.gatewayConfigStreams))
-	for k := range s.gatewayConfigStreams {
+	gateways := make([]string, 0, len(s.gatewayConfigTrigger))
+	for k := range s.gatewayConfigTrigger {
 		gateways = append(gateways, k)
 	}
 	return gateways

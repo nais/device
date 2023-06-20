@@ -23,6 +23,7 @@ type SessionStore interface {
 	Get(context.Context, string) (*pb.Session, error)
 	Set(context.Context, *pb.Session) error
 	CachedSessionFromDeviceID(int64) (*pb.Session, error)
+	All() []*pb.Session
 }
 
 func NewSessionStore(db database.APIServer) *sessionStore {
@@ -91,4 +92,18 @@ func (store *sessionStore) CachedSessionFromDeviceID(deviceID int64) (*pb.Sessio
 	}
 
 	return nil, fmt.Errorf("%w: device %d", ErrNoSession, deviceID)
+}
+
+func (store *sessionStore) All() []*pb.Session {
+	store.lock.Lock()
+	defer store.lock.Unlock()
+
+	all := make([]*pb.Session, len(store.cache))
+	i := 0
+	for _, s := range store.cache {
+		all[i] = s
+		i++
+	}
+
+	return all
 }

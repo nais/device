@@ -211,7 +211,7 @@ clean:
 	rm -rf ./packaging/windows/assets
 
 mocks:
-	mockery --case underscore --all --dir pkg/ --inpackage --recursive
+	go run github.com/vektra/mockery/v2 --case underscore --all --dir pkg/ --inpackage --recursive
 
 # controlplane is autoreleased for every push
 release-frontend:

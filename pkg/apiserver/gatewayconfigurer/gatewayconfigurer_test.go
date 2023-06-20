@@ -29,7 +29,6 @@ func TestGatewayConfigurer_SyncConfig(t *testing.T) {
 	defer cancel()
 
 	t.Run("updates gateway config in database according to bucket definition", func(t *testing.T) {
-		channel := make(chan struct{}, 2)
 		db := &database.MockAPIServer{}
 		mockClient := &bucket.MockClient{}
 		mockObject := &bucket.MockObject{}
@@ -37,9 +36,8 @@ func TestGatewayConfigurer_SyncConfig(t *testing.T) {
 		reader := strings.NewReader(gatewayConfig(gatewayName, route, accessGroupId, requiresPrivilegedAccess))
 
 		gc := gatewayconfigurer.GatewayConfigurer{
-			DB:                 db,
-			Bucket:             mockClient,
-			TriggerGatewaySync: channel,
+			DB:     db,
+			Bucket: mockClient,
 		}
 
 		db.On("UpdateGatewayDynamicFields",
@@ -60,26 +58,21 @@ func TestGatewayConfigurer_SyncConfig(t *testing.T) {
 		err := gc.SyncConfig(ctx)
 
 		assert.NoError(t, err)
-		assert.Len(t, channel, 1)
-		<-channel
 
 		err = gc.SyncConfig(ctx)
 		assert.NoError(t, err)
-		assert.Len(t, channel, 0)
 
 		mock.AssertExpectationsForObjects(t, db, mockClient, mockObject)
 	})
 
 	t.Run("handles errors from bucket interface", func(t *testing.T) {
-		channel := make(chan struct{}, 2)
 		db := &database.MockAPIServer{}
 		mockClient := &bucket.MockClient{}
 		mockObject := &bucket.MockObject{}
 
 		gc := gatewayconfigurer.GatewayConfigurer{
-			DB:                 db,
-			Bucket:             mockClient,
-			TriggerGatewaySync: channel,
+			DB:     db,
+			Bucket: mockClient,
 		}
 
 		mockClient.On("Open", mock.Anything).Return(nil, expectedError).Once()
@@ -87,12 +80,10 @@ func TestGatewayConfigurer_SyncConfig(t *testing.T) {
 		err := gc.SyncConfig(ctx)
 
 		assert.EqualError(t, err, "open bucket: expected error")
-		assert.Len(t, channel, 0)
 		mock.AssertExpectationsForObjects(t, mockClient, mockObject)
 	})
 
 	t.Run("handles errors from unmarshal", func(t *testing.T) {
-		channel := make(chan struct{}, 2)
 		db := &database.MockAPIServer{}
 		mockClient := &bucket.MockClient{}
 		mockObject := &bucket.MockObject{}
@@ -100,9 +91,8 @@ func TestGatewayConfigurer_SyncConfig(t *testing.T) {
 		reader := strings.NewReader(`this is not valid json`)
 
 		gc := gatewayconfigurer.GatewayConfigurer{
-			DB:                 db,
-			Bucket:             mockClient,
-			TriggerGatewaySync: channel,
+			DB:     db,
+			Bucket: mockClient,
 		}
 
 		mockClient.On("Open", mock.Anything).Return(mockObject, nil).Once()
@@ -113,13 +103,11 @@ func TestGatewayConfigurer_SyncConfig(t *testing.T) {
 		err := gc.SyncConfig(ctx)
 
 		assert.Error(t, err)
-		assert.Len(t, channel, 0)
 
 		mock.AssertExpectationsForObjects(t, mockClient, mockObject)
 	})
 
 	t.Run("handles errors from updategateway", func(t *testing.T) {
-		channel := make(chan struct{}, 2)
 		db := &database.MockAPIServer{}
 		mockClient := &bucket.MockClient{}
 		mockObject := &bucket.MockObject{}
@@ -127,9 +115,8 @@ func TestGatewayConfigurer_SyncConfig(t *testing.T) {
 		reader := strings.NewReader(gatewayConfig(gatewayName, route, accessGroupId, requiresPrivilegedAccess))
 
 		gc := gatewayconfigurer.GatewayConfigurer{
-			DB:                 db,
-			Bucket:             mockClient,
-			TriggerGatewaySync: channel,
+			DB:     db,
+			Bucket: mockClient,
 		}
 
 		db.On("UpdateGatewayDynamicFields",
@@ -144,7 +131,6 @@ func TestGatewayConfigurer_SyncConfig(t *testing.T) {
 		err := gc.SyncConfig(ctx)
 
 		assert.Error(t, err)
-		assert.Len(t, channel, 0)
 
 		mock.AssertExpectationsForObjects(t, db, mockClient, mockObject)
 	})

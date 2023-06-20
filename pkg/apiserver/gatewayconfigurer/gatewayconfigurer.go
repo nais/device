@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/nais/device/pkg/apiserver/api"
 	"github.com/nais/device/pkg/apiserver/bucket"
 	"github.com/nais/device/pkg/apiserver/database"
 	"github.com/nais/device/pkg/ioconvenience"
@@ -15,11 +14,10 @@ import (
 )
 
 type GatewayConfigurer struct {
-	DB                 database.APIServer
-	Bucket             bucket.Client
-	SyncInterval       time.Duration
-	TriggerGatewaySync chan<- struct{}
-	lastUpdated        time.Time
+	DB           database.APIServer
+	Bucket       bucket.Client
+	SyncInterval time.Duration
+	lastUpdated  time.Time
 }
 
 type Route struct {
@@ -81,7 +79,6 @@ func (g *GatewayConfigurer) SyncConfig(ctx context.Context) error {
 	}
 
 	g.lastUpdated = lastUpdated
-	api.TriggerGatewaySync(g.TriggerGatewaySync)
 
 	return nil
 }

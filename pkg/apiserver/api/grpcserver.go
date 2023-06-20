@@ -13,17 +13,20 @@ import (
 type grpcServer struct {
 	pb.UnimplementedAPIServerServer
 
-	authenticator        auth.Authenticator
-	adminAuth            auth.UsernamePasswordAuthenticator
-	gatewayAuth          auth.UsernamePasswordAuthenticator
-	prometheusAuth       auth.UsernamePasswordAuthenticator
-	jita                 jita.Client
-	deviceConfigStreams  map[string]pb.APIServer_GetDeviceConfigurationServer
-	gatewayConfigStreams map[string]pb.APIServer_GetGatewayConfigurationServer
-	gatewayMapLock       sync.RWMutex
-	deviceLock           sync.RWMutex
-	db                   database.APIServer
-	triggerGatewaySync   chan<- struct{}
+	authenticator  auth.Authenticator
+	adminAuth      auth.UsernamePasswordAuthenticator
+	gatewayAuth    auth.UsernamePasswordAuthenticator
+	prometheusAuth auth.UsernamePasswordAuthenticator
+	jita           jita.Client
+
+	deviceConfigStreams     map[string]pb.APIServer_GetDeviceConfigurationServer
+	deviceConfigStreamsLock sync.RWMutex
+
+	gatewayConfigTrigger     map[string]chan struct{}
+	gatewayConfigTriggerLock sync.RWMutex
+
+	db           database.APIServer
+	sessionStore auth.SessionStore
 }
 
 var _ pb.APIServerServer = &grpcServer{}
@@ -37,17 +40,17 @@ func TriggerGatewaySync(channel chan<- struct{}) {
 	}
 }
 
-func NewGRPCServer(db database.APIServer, authenticator auth.Authenticator, adminAuth, gatewayAuth, prometheusAuth auth.UsernamePasswordAuthenticator, jita jita.Client, triggerGatewaySync chan<- struct{}) *grpcServer {
+func NewGRPCServer(db database.APIServer, authenticator auth.Authenticator, adminAuth, gatewayAuth, prometheusAuth auth.UsernamePasswordAuthenticator, jita jita.Client, sessionStore auth.SessionStore) *grpcServer {
 	return &grpcServer{
 		deviceConfigStreams:  make(map[string]pb.APIServer_GetDeviceConfigurationServer),
-		gatewayConfigStreams: make(map[string]pb.APIServer_GetGatewayConfigurationServer),
+		gatewayConfigTrigger: make(map[string]chan struct{}),
 		authenticator:        authenticator,
 		adminAuth:            adminAuth,
 		gatewayAuth:          gatewayAuth,
 		prometheusAuth:       prometheusAuth,
 		db:                   db,
 		jita:                 jita,
-		triggerGatewaySync:   triggerGatewaySync,
+		sessionStore:         sessionStore,
 	}
 }
 

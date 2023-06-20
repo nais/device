@@ -203,23 +203,6 @@ func run() error {
 	}
 
 	deviceUpdates := make(chan *kolidepb.DeviceEvent, 64)
-	triggerGatewaySync := make(chan struct{}, 1)
-
-	// TODO: remove when we've improved JITA
-	// This triggers sync every 10 sec to let gateways know if someone has JITA'd
-	go func() {
-		ticker := time.NewTicker(10 * time.Second)
-		for {
-			select {
-			case <-ticker.C:
-				api.TriggerGatewaySync(triggerGatewaySync)
-
-			case <-ctx.Done():
-				log.Infof("Stopped gateway-sync hack")
-				return
-			}
-		}
-	}()
 
 	if cfg.KolideEventHandlerEnabled {
 		if len(cfg.KolideEventHandlerAddress) == 0 {
@@ -277,10 +260,9 @@ func run() error {
 		buck := bucket.NewClient(cfg.GatewayConfigBucketName, cfg.GatewayConfigBucketObjectName)
 
 		updater := gatewayconfigurer.GatewayConfigurer{
-			DB:                 db,
-			Bucket:             buck,
-			SyncInterval:       gatewayConfigSyncInterval,
-			TriggerGatewaySync: triggerGatewaySync,
+			DB:           db,
+			Bucket:       buck,
+			SyncInterval: gatewayConfigSyncInterval,
 		}
 
 		go updater.SyncContinuously(ctx)
@@ -337,7 +319,7 @@ func run() error {
 		gatewayAuthenticator,
 		prometheusAuthenticator,
 		jitaClient,
-		triggerGatewaySync,
+		sessions,
 	)
 
 	grpcServer := grpc.NewServer()
@@ -363,17 +345,6 @@ func run() error {
 		}
 	}
 
-	sendGatewayUpdates := func() {
-		ctx, cancel := context.WithTimeout(ctx, sendGatewayConfigTimeout)
-		defer cancel()
-
-		err = grpcHandler.SendAllGatewayConfigurations(ctx)
-		if err != nil {
-			// fixme: metrics
-			log.Error(err)
-		}
-	}
-
 	updateDevice := func(event *kolidepb.DeviceEvent) error {
 		device, err := kolide.LookupDevice(ctx, db, event)
 		if err != nil {
@@ -386,9 +357,25 @@ func run() error {
 			return err
 		}
 		sendDeviceConfig(device)
-		api.TriggerGatewaySync(triggerGatewaySync)
+		grpcHandler.SendAllGatewayConfigurations(ctx)
 		return nil
 	}
+
+	// TODO: remove when we've improved JITA
+	// This triggers sync every 10 sec to let gateways know if someone has JITA'd
+	go func() {
+		ticker := time.NewTicker(10 * time.Second)
+		for {
+			select {
+			case <-ticker.C:
+				grpcHandler.SendAllGatewayConfigurations(ctx)
+
+			case <-ctx.Done():
+				log.Infof("Stopped gateway-sync hack")
+				return
+			}
+		}
+	}()
 
 	go func() {
 		log.Infof("Prometheus serving metrics at %v", cfg.PrometheusAddr)
@@ -451,24 +438,10 @@ func run() error {
 		}
 	}()
 
-	for {
-		select {
-		case <-ctx.Done():
-			log.Warnf("Program context canceled; shutting down.")
-			log.Warnf("Stopping legacy HTTP API...")
-			err = srv.Close()
-			if err != nil {
-				log.Errorf("Shutdown: %s", err)
-			}
-			log.Warnf("Stopping gRPC API...")
-			grpcServer.Stop()
-			time.Sleep(shutdownGracePeriod)
-			return nil
+	<-ctx.Done()
 
-		case <-triggerGatewaySync:
-			sendGatewayUpdates()
-		}
-	}
+	log.Warnf("Program context canceled; shutting down.")
+	return nil
 }
 
 func generatePublicKey(privateKey []byte, wireGuardPath string) ([]byte, error) {
