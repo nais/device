@@ -42,7 +42,11 @@ service DeviceAgent {
   }
 
   // Set active tenant
-  rpc SetActiveTenant(SetActiveTenantRequest) returns (SetActiveTenantResponse) {
+  rpc SetActiveTenant (SetActiveTenantRequest) returns (SetActiveTenantResponse) {
+  }
+
+  // Get active tenant
+  rpc GetActiveTenant (EmptyRequest) returns (GetActiveTenantResponse) {
   }
 
   // Set device agent configuration
@@ -223,6 +227,13 @@ message SetActiveTenantRequest {
 }
 
 message SetActiveTenantResponse{
+}
+
+message EmptyRequest {
+}
+
+message GetActiveTenantResponse {
+  string Tenant = 1;
 }
 
 enum AuthProvider {

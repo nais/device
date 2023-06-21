@@ -229,6 +229,8 @@ type DeviceAgentClient interface {
 	Logout(ctx context.Context, in *LogoutRequest, opts ...grpc.CallOption) (*LogoutResponse, error)
 	// Set active tenant
 	SetActiveTenant(ctx context.Context, in *SetActiveTenantRequest, opts ...grpc.CallOption) (*SetActiveTenantResponse, error)
+	// Get active tenant
+	GetActiveTenant(ctx context.Context, in *EmptyRequest, opts ...grpc.CallOption) (*GetActiveTenantResponse, error)
 	// Set device agent configuration
 	SetAgentConfiguration(ctx context.Context, in *SetAgentConfigurationRequest, opts ...grpc.CallOption) (*SetAgentConfigurationResponse, error)
 	// Get the current configuration for the device agent
@@ -311,6 +313,15 @@ func (c *deviceAgentClient) SetActiveTenant(ctx context.Context, in *SetActiveTe
 	return out, nil
 }
 
+func (c *deviceAgentClient) GetActiveTenant(ctx context.Context, in *EmptyRequest, opts ...grpc.CallOption) (*GetActiveTenantResponse, error) {
+	out := new(GetActiveTenantResponse)
+	err := c.cc.Invoke(ctx, "/naisdevice.DeviceAgent/GetActiveTenant", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *deviceAgentClient) SetAgentConfiguration(ctx context.Context, in *SetAgentConfigurationRequest, opts ...grpc.CallOption) (*SetAgentConfigurationResponse, error) {
 	out := new(SetAgentConfigurationResponse)
 	err := c.cc.Invoke(ctx, "/naisdevice.DeviceAgent/SetAgentConfiguration", in, out, opts...)
@@ -344,6 +355,8 @@ type DeviceAgentServer interface {
 	Logout(context.Context, *LogoutRequest) (*LogoutResponse, error)
 	// Set active tenant
 	SetActiveTenant(context.Context, *SetActiveTenantRequest) (*SetActiveTenantResponse, error)
+	// Get active tenant
+	GetActiveTenant(context.Context, *EmptyRequest) (*GetActiveTenantResponse, error)
 	// Set device agent configuration
 	SetAgentConfiguration(context.Context, *SetAgentConfigurationRequest) (*SetAgentConfigurationResponse, error)
 	// Get the current configuration for the device agent
@@ -369,6 +382,9 @@ func (UnimplementedDeviceAgentServer) Logout(context.Context, *LogoutRequest) (*
 }
 func (UnimplementedDeviceAgentServer) SetActiveTenant(context.Context, *SetActiveTenantRequest) (*SetActiveTenantResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method SetActiveTenant not implemented")
+}
+func (UnimplementedDeviceAgentServer) GetActiveTenant(context.Context, *EmptyRequest) (*GetActiveTenantResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetActiveTenant not implemented")
 }
 func (UnimplementedDeviceAgentServer) SetAgentConfiguration(context.Context, *SetAgentConfigurationRequest) (*SetAgentConfigurationResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method SetAgentConfiguration not implemented")
@@ -482,6 +498,24 @@ func _DeviceAgent_SetActiveTenant_Handler(srv interface{}, ctx context.Context, 
 	return interceptor(ctx, in, info, handler)
 }
 
+func _DeviceAgent_GetActiveTenant_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(EmptyRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(DeviceAgentServer).GetActiveTenant(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/naisdevice.DeviceAgent/GetActiveTenant",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(DeviceAgentServer).GetActiveTenant(ctx, req.(*EmptyRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _DeviceAgent_SetAgentConfiguration_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(SetAgentConfigurationRequest)
 	if err := dec(in); err != nil {
@@ -540,6 +574,10 @@ var DeviceAgent_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "SetActiveTenant",
 			Handler:    _DeviceAgent_SetActiveTenant_Handler,
+		},
+		{
+			MethodName: "GetActiveTenant",
+			Handler:    _DeviceAgent_GetActiveTenant_Handler,
 		},
 		{
 			MethodName: "SetAgentConfiguration",

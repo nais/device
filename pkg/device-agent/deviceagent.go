@@ -143,6 +143,16 @@ func (das *DeviceAgentServer) SetActiveTenant(ctx context.Context, req *pb.SetAc
 	return &pb.SetActiveTenantResponse{}, nil
 }
 
+func (das *DeviceAgentServer) GetActiveTenant(ctx context.Context, req *pb.GetActiveTenantRequest) (*pb.GetActiveTenantResponse, error) {
+	for _, tenant := range das.rc.Tenants {
+		if tenant.Active {
+			return &pb.GetActiveTenantResponse{Tenant: tenant.Name}, nil
+		}
+	}
+
+	return &pb.GetActiveTenantResponse{}, nil
+}
+
 func NewServer(helper pb.DeviceHelperClient, cfg *config.Config, rc *runtimeconfig.RuntimeConfig) *DeviceAgentServer {
 	return &DeviceAgentServer{
 		DeviceHelper: helper,
