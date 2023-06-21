@@ -98,11 +98,13 @@ func (store *sessionStore) All() []*pb.Session {
 	store.lock.Lock()
 	defer store.lock.Unlock()
 
-	all := make([]*pb.Session, len(store.cache))
-	i := 0
+	all := make([]*pb.Session, 0)
 	for _, s := range store.cache {
-		all[i] = s
-		i++
+		if s.Expired() {
+			continue
+		}
+
+		all = append(all, s)
 	}
 
 	return all
