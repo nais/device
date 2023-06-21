@@ -578,6 +578,8 @@ type APIServerClient interface {
 	EnrollGateway(ctx context.Context, in *ModifyGatewayRequest, opts ...grpc.CallOption) (*ModifyGatewayResponse, error)
 	// Admin endpoint for adding gateway credentials to the database
 	UpdateGateway(ctx context.Context, in *ModifyGatewayRequest, opts ...grpc.CallOption) (*ModifyGatewayResponse, error)
+	// Admin endpoint for reading sessions from the cache
+	GetSessions(ctx context.Context, in *GetSessionsRequest, opts ...grpc.CallOption) (*GetSessionsResponse, error)
 }
 
 type aPIServerClient struct {
@@ -720,6 +722,15 @@ func (c *aPIServerClient) UpdateGateway(ctx context.Context, in *ModifyGatewayRe
 	return out, nil
 }
 
+func (c *aPIServerClient) GetSessions(ctx context.Context, in *GetSessionsRequest, opts ...grpc.CallOption) (*GetSessionsResponse, error) {
+	out := new(GetSessionsResponse)
+	err := c.cc.Invoke(ctx, "/naisdevice.APIServer/GetSessions", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // APIServerServer is the server API for APIServer service.
 // All implementations must embed UnimplementedAPIServerServer
 // for forward compatibility
@@ -738,6 +749,8 @@ type APIServerServer interface {
 	EnrollGateway(context.Context, *ModifyGatewayRequest) (*ModifyGatewayResponse, error)
 	// Admin endpoint for adding gateway credentials to the database
 	UpdateGateway(context.Context, *ModifyGatewayRequest) (*ModifyGatewayResponse, error)
+	// Admin endpoint for reading sessions from the cache
+	GetSessions(context.Context, *GetSessionsRequest) (*GetSessionsResponse, error)
 	mustEmbedUnimplementedAPIServerServer()
 }
 
@@ -765,6 +778,9 @@ func (UnimplementedAPIServerServer) EnrollGateway(context.Context, *ModifyGatewa
 }
 func (UnimplementedAPIServerServer) UpdateGateway(context.Context, *ModifyGatewayRequest) (*ModifyGatewayResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method UpdateGateway not implemented")
+}
+func (UnimplementedAPIServerServer) GetSessions(context.Context, *GetSessionsRequest) (*GetSessionsResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetSessions not implemented")
 }
 func (UnimplementedAPIServerServer) mustEmbedUnimplementedAPIServerServer() {}
 
@@ -914,6 +930,24 @@ func _APIServer_UpdateGateway_Handler(srv interface{}, ctx context.Context, dec 
 	return interceptor(ctx, in, info, handler)
 }
 
+func _APIServer_GetSessions_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetSessionsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(APIServerServer).GetSessions(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/naisdevice.APIServer/GetSessions",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(APIServerServer).GetSessions(ctx, req.(*GetSessionsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // APIServer_ServiceDesc is the grpc.ServiceDesc for APIServer service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -936,6 +970,10 @@ var APIServer_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "UpdateGateway",
 			Handler:    _APIServer_UpdateGateway_Handler,
+		},
+		{
+			MethodName: "GetSessions",
+			Handler:    _APIServer_GetSessions_Handler,
 		},
 	},
 	Streams: []grpc.StreamDesc{

@@ -37,6 +37,18 @@ func main() {
 				Action: controlplanecli.HashPassword,
 			},
 			{
+				Name:    "session",
+				Aliases: []string{"s"},
+				Usage:   "options for sessions",
+				Subcommands: []*cli.Command{
+					{
+						Name:   "list",
+						Usage:  "list sessions",
+						Action: controlplanecli.ListSessions,
+					},
+				},
+			},
+			{
 				Name:    "gateway",
 				Aliases: []string{"gw"},
 				Usage:   "options for gateways",

@@ -212,6 +212,8 @@ clean:
 
 mocks:
 	go run github.com/vektra/mockery/v2 --case underscore --all --dir pkg/ --inpackage --recursive
+	rm ./pkg/apiserver/auth/mock_authenticator.go
+	rm ./pkg/auth/mock_token_validator.go
 
 # controlplane is autoreleased for every push
 release-frontend:

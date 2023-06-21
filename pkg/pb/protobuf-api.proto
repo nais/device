@@ -82,6 +82,10 @@ service APIServer {
   // Admin endpoint for adding gateway credentials to the database
   rpc UpdateGateway (ModifyGatewayRequest) returns (ModifyGatewayResponse) {
   }
+
+  // Admin endpoint for reading sessions from the cache
+  rpc GetSessions (GetSessionsRequest) returns (GetSessionsResponse) {
+  }
 }
 
 enum AgentState {
@@ -300,4 +304,13 @@ message Session {
   Device device = 3;
   repeated string groups = 4;
   string objectID = 5;
+}
+
+message GetSessionsRequest{
+  string password = 1;
+  string username = 2;
+}
+
+message GetSessionsResponse{
+  repeated Session sessions = 1;
 }

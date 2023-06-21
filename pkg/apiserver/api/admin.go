@@ -70,3 +70,14 @@ func (s *grpcServer) ListGateways(request *pb.ListGatewayRequest, stream pb.APIS
 
 	return nil
 }
+
+func (s *grpcServer) GetSessions(ctx context.Context, r *pb.GetSessionsRequest) (*pb.GetSessionsResponse, error) {
+	err := s.adminAuth.Authenticate(r.GetUsername(), r.GetPassword())
+	if err != nil {
+		return nil, status.Errorf(codes.Unauthenticated, err.Error())
+	}
+
+	return &pb.GetSessionsResponse{
+		Sessions: s.sessionStore.All(),
+	}, nil
+}
