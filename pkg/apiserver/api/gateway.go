@@ -25,13 +25,15 @@ func (s *grpcServer) GetGatewayConfiguration(request *pb.GetGatewayConfiguration
 		return status.Errorf(codes.Aborted, "this gateway already has an open session")
 	}
 
-	s.gatewayConfigTriggerLock.Lock()
 	c := make(chan struct{}, 1)
 	c <- struct{}{} // trigger config send immediately
+
+	s.gatewayConfigTriggerLock.Lock()
 	s.gatewayConfigTrigger[request.Gateway] = c
-	s.reportOnlineGateways()
 	log.Infof("Gateway %s connected (%d active gateways)", request.Gateway, len(s.gatewayConfigTrigger))
 	s.gatewayConfigTriggerLock.Unlock()
+
+	s.reportOnlineGateways()
 
 	for {
 		select {
@@ -53,8 +55,9 @@ func (s *grpcServer) GetGatewayConfiguration(request *pb.GetGatewayConfiguration
 			s.gatewayConfigTriggerLock.Lock()
 			delete(s.gatewayConfigTrigger, request.Gateway)
 			log.Infof("Gateway %s disconnected (%d active gateways)", request.Gateway, len(s.gatewayConfigTrigger))
-			s.reportOnlineGateways()
 			s.gatewayConfigTriggerLock.Unlock()
+
+			s.reportOnlineGateways()
 
 			return nil
 		}
@@ -97,14 +100,14 @@ func (s *grpcServer) MakeGatewayConfiguration(ctx context.Context, gatewayName s
 	return gatewayConfig, nil
 }
 
-func (s *grpcServer) onlineGateways() []string {
+func (s *grpcServer) reportOnlineGateways() {
+	s.gatewayConfigTriggerLock.RLock()
+	defer s.gatewayConfigTriggerLock.RUnlock()
+
 	gateways := make([]string, 0, len(s.gatewayConfigTrigger))
 	for k := range s.gatewayConfigTrigger {
 		gateways = append(gateways, k)
 	}
-	return gateways
-}
 
-func (s *grpcServer) reportOnlineGateways() {
-	apiserver_metrics.SetConnectedGateways(s.onlineGateways())
+	apiserver_metrics.SetConnectedGateways(gateways)
 }
