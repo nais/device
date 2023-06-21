@@ -143,7 +143,7 @@ func (das *DeviceAgentServer) SetActiveTenant(ctx context.Context, req *pb.SetAc
 	return &pb.SetActiveTenantResponse{}, nil
 }
 
-func (das *DeviceAgentServer) GetActiveTenant(ctx context.Context, req *pb.GetActiveTenantRequest) (*pb.GetActiveTenantResponse, error) {
+func (das *DeviceAgentServer) GetActiveTenant(ctx context.Context, req *pb.EmptyRequest) (*pb.GetActiveTenantResponse, error) {
 	for _, tenant := range das.rc.Tenants {
 		if tenant.Active {
 			return &pb.GetActiveTenantResponse{Tenant: tenant.Name}, nil
