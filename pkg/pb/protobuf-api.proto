@@ -113,40 +113,30 @@ enum DeviceConfigurationStatus {
 }
 
 message TeardownRequest {
-
 }
 
 message TeardownResponse {
-
 }
 
 message ConfigureResponse {
-
 }
 
-
-
 message ConfigureJITAResponse {
-
 }
 
 message LoginResponse {
 }
 
 message LogoutResponse {
-
 }
 
 message UpgradeRequest {
-
 }
 
 message UpgradeResponse {
-
 }
 
 message GetSerialRequest {
-
 }
 
 message GetSerialResponse {
@@ -226,7 +216,7 @@ message SetActiveTenantRequest {
   string name = 1;
 }
 
-message SetActiveTenantResponse{
+message SetActiveTenantResponse {
 }
 
 message EmptyRequest {
