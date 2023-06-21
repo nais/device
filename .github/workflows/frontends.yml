@@ -37,7 +37,7 @@ jobs:
         id: set-version
         run: echo "version=${GITHUB_REF#refs/*/}" >> ${GITHUB_OUTPUT}
 
-  build-windows-bin:
+  build-windows:
     needs:
       - set-version
     runs-on: ubuntu-22.04
@@ -75,45 +75,11 @@ jobs:
           path: bin/windows-client
           if-no-files-found: error
 
-      - name: upload new windows-installer
-        uses: actions/upload-artifact@v2
-        with:
-          name: new-windows-installer${{ matrix.output-suffix }}
-          path: packaging/windows/naisdevice.exe
-          if-no-files-found: error
-
-  build-windows:
-    strategy:
-      matrix:
-        output-suffix: ["", "-tenant"]
-    needs:
-      - build-windows-bin
-    runs-on: windows-latest
-    steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-go@v2
-        with:
-          go-version: ${{ env.go_version }}
-      - name: Add msbuild to PATH
-        uses: microsoft/setup-msbuild@v1
-      - name: download windows binaries
-        uses: actions/download-artifact@v3
-        with:
-          name: windows-client${{ matrix.output-suffix }}
-          path: bin/windows
-      - name: set version env var
-        run: |
-          $version = 800+[int]$Env:GITHUB_RUN_NUMBER
-          "WINDOWS_BUILD_NUMBER=$version" >> $Env:GITHUB_ENV
-      - name: create windows installer
-        run: |
-          msbuild packaging\windows\naisdevice.wixproj
-          md5sum bin/windows/naisdevice.msi
-      - name: upload windows installer
+      - name: upload windows-installer
         uses: actions/upload-artifact@v2
         with:
           name: windows-installer${{ matrix.output-suffix }}
-          path: bin/windows/naisdevice.msi
+          path: packaging/windows/naisdevice.exe
           if-no-files-found: error
 
   build-macos:
@@ -228,18 +194,6 @@ jobs:
         uses: actions/download-artifact@v3
         with:
           name: windows-installer${{ matrix.output-suffix }}
-      - name: upload naisdevice.msi
-        uses: actions/upload-release-asset@v1
-        with:
-          upload_url: ${{ needs.new_release.outputs.upload_url }}
-          asset_path: ./naisdevice.msi
-          asset_name: naisdevice${{ matrix.output-suffix }}.msi
-          asset_content_type: application/octet-stream
-
-      - name: download new windows installer
-        uses: actions/download-artifact@v3
-        with:
-          name: new-windows-installer${{ matrix.output-suffix }}
       - name: Calculate checksum
         run: |
           sha256sum naisdevice.exe | awk {'print $1}' > naisdevice.exe.sha256
