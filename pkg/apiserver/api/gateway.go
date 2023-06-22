@@ -89,15 +89,31 @@ func (s *grpcServer) MakeGatewayConfiguration(ctx context.Context, gatewayName s
 	privilegedDevices := privileged(s.jita, gateway, allSessions)
 	authorizedDevices := authorized(gateway.AccessGroupIDs, privilegedDevices)
 	healthyDevices := healthy(authorizedDevices)
+	uniqueDevices := unique(healthyDevices)
 
 	gatewayConfig := &pb.GetGatewayConfigurationResponse{
-		Devices: healthyDevices,
+		Devices: uniqueDevices,
 		Routes:  gateway.Routes,
 	}
 
 	apiserver_metrics.GatewayConfigsReturned.WithLabelValues(gateway.Name).Inc()
 
 	return gatewayConfig, nil
+}
+
+func unique(devices []*pb.Device) []*pb.Device {
+	visited := make(map[int64]struct{})
+	var ret []*pb.Device
+	for _, d := range devices {
+		if _, exists := visited[d.GetId()]; exists {
+			continue
+		}
+
+		visited[d.GetId()] = struct{}{}
+		ret = append(ret, d)
+	}
+
+	return ret
 }
 
 func (s *grpcServer) reportOnlineGateways() {
