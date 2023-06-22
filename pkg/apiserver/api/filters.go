@@ -62,3 +62,19 @@ func authorized(gatewayGroups []string, sessions []*pb.Session) []*pb.Device {
 
 	return authorizedDevices
 }
+
+// filter out duplicate devices (duplicate entries cause issues with the generated config on the gateway)
+func unique(devices []*pb.Device) []*pb.Device {
+	visited := make(map[int64]struct{})
+	var ret []*pb.Device
+	for _, d := range devices {
+		if _, exists := visited[d.GetId()]; exists {
+			continue
+		}
+
+		visited[d.GetId()] = struct{}{}
+		ret = append(ret, d)
+	}
+
+	return ret
+}
