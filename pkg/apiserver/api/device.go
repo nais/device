@@ -84,21 +84,20 @@ func (s *grpcServer) makeDeviceConfiguration(ctx context.Context, sessionInfo *p
 	}, nil
 }
 
-func (s *grpcServer) SendDeviceConfiguration(device *pb.Device) error {
+func (s *grpcServer) SendDeviceConfiguration(device *pb.Device) {
 	s.deviceConfigTriggerLock.RLock()
 	defer s.deviceConfigTriggerLock.RUnlock()
 
 	c, ok := s.deviceConfigTrigger[device.GetId()]
 	if !ok {
-		return ErrNoActiveStream
+		log.Errorf("send device config: no active stream found")
+		return
 	}
 
 	select {
 	case c <- struct{}{}:
 	default:
 	}
-
-	return nil
 }
 
 func (s *grpcServer) UserGateways(ctx context.Context, userGroups []string) ([]*pb.Gateway, error) {
@@ -132,7 +131,7 @@ func (s *grpcServer) Login(ctx context.Context, r *pb.APIServerLoginRequest) (*p
 		return nil, status.Errorf(codes.Unauthenticated, "login: %v", err)
 	}
 
-	s.SendAllGatewayConfigurations(ctx)
+	s.SendAllGatewayConfigurations()
 
 	return &pb.APIServerLoginResponse{
 		Session: session,

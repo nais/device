@@ -1,7 +1,6 @@
 package api
 
 import (
-	"errors"
 	"sync"
 
 	"github.com/nais/device/pkg/apiserver/auth"
@@ -30,8 +29,6 @@ type grpcServer struct {
 }
 
 var _ pb.APIServerServer = &grpcServer{}
-
-var ErrNoActiveStream = errors.New("no session")
 
 func NewGRPCServer(db database.APIServer, authenticator auth.Authenticator, adminAuth, gatewayAuth, prometheusAuth auth.UsernamePasswordAuthenticator, jita jita.Client, sessionStore auth.SessionStore) *grpcServer {
 	return &grpcServer{

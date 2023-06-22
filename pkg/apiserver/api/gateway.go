@@ -64,7 +64,7 @@ func (s *grpcServer) GetGatewayConfiguration(request *pb.GetGatewayConfiguration
 	}
 }
 
-func (s *grpcServer) SendAllGatewayConfigurations(ctx context.Context) {
+func (s *grpcServer) SendAllGatewayConfigurations() {
 	s.gatewayConfigTriggerLock.RLock()
 	defer s.gatewayConfigTriggerLock.RUnlock()
 

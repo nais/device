@@ -43,9 +43,6 @@ import (
 const (
 	gatewayConfigSyncInterval = 1 * time.Minute
 	WireGuardSyncInterval     = 20 * time.Second
-	sendGatewayConfigTimeout  = 10 * time.Second
-	sendDeviceUpdateTimeout   = 10 * time.Second
-	shutdownGracePeriod       = 20 * time.Millisecond // time to allow server processes to finish their goroutines
 )
 
 var cfg = config.DefaultConfig()
@@ -330,26 +327,27 @@ func run() error {
 		return fmt.Errorf("unable to set up gRPC server: %w", err)
 	}
 
-	sendDeviceConfig := func(device *pb.Device) {
-		err = grpcHandler.SendDeviceConfiguration(device)
-		if err != nil && !errors.Is(err, api.ErrNoActiveStream) {
-			// fixme: metrics
-			log.Error(err)
-		}
-	}
-
 	updateDevice := func(event *kolidepb.DeviceEvent) error {
 		device, err := kolide.LookupDevice(ctx, db, event)
 		if err != nil {
 			return err
 		}
+
+		changed := false
+		if device.Healthy != event.GetState().Healthy() {
+			changed = true
+		}
+
 		device.Healthy = event.GetState().Healthy()
 		device.LastUpdated = event.GetTimestamp()
 		err = db.UpdateDevices(ctx, []*pb.Device{device})
 		if err != nil {
 			return err
 		}
-		sendDeviceConfig(device)
+		if changed {
+			grpcHandler.SendDeviceConfiguration(device)
+			grpcHandler.SendAllGatewayConfigurations()
+		}
 		return nil
 	}
 
@@ -360,7 +358,7 @@ func run() error {
 		for {
 			select {
 			case <-ticker.C:
-				grpcHandler.SendAllGatewayConfigurations(ctx)
+				grpcHandler.SendAllGatewayConfigurations()
 
 			case <-ctx.Done():
 				log.Infof("Stopped gateway-sync hack")
@@ -426,10 +424,6 @@ func run() error {
 				} else {
 					log.Errorf("Update device health: %s", err)
 				}
-			}
-
-			if len(deviceUpdates) == 0 {
-				grpcHandler.SendAllGatewayConfigurations(ctx)
 			}
 		}
 	}()
