@@ -101,21 +101,6 @@ func (s *grpcServer) MakeGatewayConfiguration(ctx context.Context, gatewayName s
 	return gatewayConfig, nil
 }
 
-func unique(devices []*pb.Device) []*pb.Device {
-	visited := make(map[int64]struct{})
-	var ret []*pb.Device
-	for _, d := range devices {
-		if _, exists := visited[d.GetId()]; exists {
-			continue
-		}
-
-		visited[d.GetId()] = struct{}{}
-		ret = append(ret, d)
-	}
-
-	return ret
-}
-
 func (s *grpcServer) reportOnlineGateways() {
 	s.gatewayConfigTriggerLock.RLock()
 	defer s.gatewayConfigTriggerLock.RUnlock()

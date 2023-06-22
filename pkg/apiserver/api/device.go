@@ -3,6 +3,7 @@ package api
 import (
 	"context"
 	"fmt"
+	"time"
 
 	apiserver_metrics "github.com/nais/device/pkg/apiserver/metrics"
 	"github.com/nais/device/pkg/pb"
@@ -13,77 +14,91 @@ import (
 
 func (s *grpcServer) GetDeviceConfiguration(request *pb.GetDeviceConfigurationRequest, stream pb.APIServer_GetDeviceConfigurationServer) error {
 	log.WithField("session", request.SessionKey).Debugf("get device configuration: started")
-	s.deviceConfigStreamsLock.Lock()
-	s.deviceConfigStreams[request.SessionKey] = stream
-	apiserver_metrics.DevicesConnected.Set(float64(len(s.deviceConfigStreams)))
-	s.deviceConfigStreamsLock.Unlock()
+	trigger := make(chan struct{}, 1)
+	trigger <- struct{}{} // immediately send one config back on the stream
 
-	// send initial device configuration
-	err := s.SendDeviceConfiguration(stream.Context(), request.SessionKey)
-	if err != nil {
-		log.Errorf("send initial device configuration: %s", err)
-	}
-	log.WithField("session", request.SessionKey).Debugf("get device configuration: sent initial")
-
-	// wait for disconnect
-	<-stream.Context().Done()
-	log.WithField("session", request.SessionKey).Debugf("get device configuration: finished")
-
-	s.deviceConfigStreamsLock.Lock()
-	delete(s.deviceConfigStreams, request.SessionKey)
-	apiserver_metrics.DevicesConnected.Set(float64(len(s.deviceConfigStreams)))
-	s.deviceConfigStreamsLock.Unlock()
-
-	log.WithField("session", request.SessionKey).Debugf("get device configuration: cleaned up stream map")
-
-	return nil
-}
-
-func (s *grpcServer) SendDeviceConfiguration(ctx context.Context, sessionKey string) error {
-	log.WithField("session", sessionKey).Debugf("send device configuration: started")
-	s.deviceConfigStreamsLock.RLock()
-	stream, ok := s.deviceConfigStreams[sessionKey]
-	s.deviceConfigStreamsLock.RUnlock()
-	if !ok {
-		return ErrNoSession
-	}
-
-	sessionInfo, err := s.db.ReadSessionInfo(ctx, sessionKey)
+	session, err := s.sessionStore.Get(stream.Context(), request.SessionKey)
 	if err != nil {
 		return err
 	}
 
-	if len(sessionInfo.GetGroups()) == 0 {
-		log.WithField("deviceId", sessionInfo.GetDevice().GetId()).Warnf("session with no groups detected")
+	s.deviceConfigTriggerLock.Lock()
+	s.deviceConfigTrigger[session.GetDevice().GetId()] = trigger
+	apiserver_metrics.DevicesConnected.Set(float64(len(s.deviceConfigTrigger)))
+	s.deviceConfigTriggerLock.Unlock()
+
+	if len(session.GetGroups()) == 0 {
+		log.WithField("deviceId", session.GetDevice().GetId()).Warnf("session with no groups detected")
 	}
 
+	teardown := func() {
+		s.deviceConfigTriggerLock.Lock()
+		delete(s.deviceConfigTrigger, session.GetDevice().GetId())
+		apiserver_metrics.DevicesConnected.Set(float64(len(s.deviceConfigTrigger)))
+		s.deviceConfigTriggerLock.Unlock()
+	}
+
+	timeout := time.After(time.Until(session.GetExpiry().AsTime()))
+
+	for {
+		select {
+		case <-timeout:
+			log.Debugf("session for device %d timed out, tearing down", session.GetDevice().GetId())
+			teardown()
+			return nil
+		case <-stream.Context().Done(): // Disconnect
+			log.Debugf("stream context for device %d done, tearing down", session.GetDevice().GetId())
+			teardown()
+			return nil
+		case <-trigger: // Send config triggered
+			cfg, err := s.makeDeviceConfiguration(stream.Context(), session)
+			if err != nil {
+				log.Errorf("make device config: %v", err)
+			} else {
+				stream.Send(cfg)
+			}
+		}
+	}
+}
+
+func (s *grpcServer) makeDeviceConfiguration(ctx context.Context, sessionInfo *pb.Session) (*pb.GetDeviceConfigurationResponse, error) {
 	device, err := s.db.ReadDeviceById(ctx, sessionInfo.GetDevice().GetId())
 	if err != nil {
-		return fmt.Errorf("read device from db: %w", err)
+		return nil, fmt.Errorf("read device from db: %w", err)
 	}
 
 	if !device.GetHealthy() {
-		return stream.Send(&pb.GetDeviceConfigurationResponse{
-			Status: pb.DeviceConfigurationStatus_DeviceUnhealthy,
-		})
+		return &pb.GetDeviceConfigurationResponse{Status: pb.DeviceConfigurationStatus_DeviceUnhealthy}, nil
 	}
 
 	gateways, err := s.UserGateways(ctx, sessionInfo.GetGroups())
 	if err != nil {
-		return fmt.Errorf("get user gateways: %w", err)
+		return nil, fmt.Errorf("get user gateways: %w", err)
 	}
 
-	m, err := apiserver_metrics.DeviceConfigsReturned.GetMetricWithLabelValues(device.Serial, device.Username)
-	if err != nil {
-		log.Errorf("BUG: get metric: %s", err)
-	} else {
-		m.Inc()
-	}
+	apiserver_metrics.DeviceConfigsReturned.WithLabelValues(device.Serial, device.Username).Inc()
 
-	return stream.Send(&pb.GetDeviceConfigurationResponse{
+	return &pb.GetDeviceConfigurationResponse{
 		Status:   pb.DeviceConfigurationStatus_DeviceHealthy,
 		Gateways: gateways,
-	})
+	}, nil
+}
+
+func (s *grpcServer) SendDeviceConfiguration(device *pb.Device) error {
+	s.deviceConfigTriggerLock.RLock()
+	defer s.deviceConfigTriggerLock.RUnlock()
+
+	c, ok := s.deviceConfigTrigger[device.GetId()]
+	if !ok {
+		return ErrNoActiveStream
+	}
+
+	select {
+	case c <- struct{}{}:
+	default:
+	}
+
+	return nil
 }
 
 func (s *grpcServer) UserGateways(ctx context.Context, userGroups []string) ([]*pb.Gateway, error) {

@@ -331,15 +331,8 @@ func run() error {
 	}
 
 	sendDeviceConfig := func(device *pb.Device) {
-		ctx, cancel := context.WithTimeout(ctx, sendDeviceUpdateTimeout)
-		defer cancel()
-
-		session, err := sessions.CachedSessionFromDeviceID(device.Id)
-		log.Debugf("Pushing configuration for device %d, error %s", device.Id, err)
-		if err == nil {
-			err = grpcHandler.SendDeviceConfiguration(ctx, session.GetKey())
-		}
-		if err != nil && !errors.Is(err, api.ErrNoSession) && !errors.Is(err, auth.ErrNoSession) {
+		err = grpcHandler.SendDeviceConfiguration(device)
+		if err != nil && !errors.Is(err, api.ErrNoActiveStream) {
 			// fixme: metrics
 			log.Error(err)
 		}

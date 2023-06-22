@@ -84,11 +84,6 @@ func TestSessionStore_Errors(t *testing.T) {
 	err = store.Set(ctx, session)
 	assert.EqualError(t, err, "store session in database: error from database")
 
-	// Get cached device
-	session, err = store.CachedSessionFromDeviceID(14)
-	assert.EqualError(t, err, "no active session: device 14")
-	assert.Nil(t, session)
-
 	// Fail warmup
 	err = store.Warmup(ctx)
 	assert.EqualError(t, err, "warm cache from database: error from database")
@@ -146,15 +141,5 @@ func TestSessionStore_CachedSessionFromDeviceID(t *testing.T) {
 	assert.NoError(t, err)
 
 	// Retrieve cached session
-	expected := &pb.Session{
-		Key: "14",
-		Device: &pb.Device{
-			Id: 14,
-		},
-	}
-	retrieved, err := store.CachedSessionFromDeviceID(14)
-	assert.Equal(t, expected, retrieved)
-	assert.NoError(t, err)
-
 	db.AssertExpectations(t)
 }

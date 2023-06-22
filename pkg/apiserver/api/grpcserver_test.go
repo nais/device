@@ -53,7 +53,7 @@ func TestGetDeviceConfiguration(t *testing.T) {
 
 	gatewayAuthenticator := auth.NewGatewayAuthenticator(db)
 
-	server := api.NewGRPCServer(db, nil, nil, gatewayAuthenticator, nil, nil, nil)
+	server := api.NewGRPCServer(db, nil, nil, gatewayAuthenticator, nil, nil, auth.NewSessionStore(db))
 
 	s := grpc.NewServer()
 	pb.RegisterAPIServerServer(s, server)

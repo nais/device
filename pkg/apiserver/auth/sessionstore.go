@@ -22,7 +22,6 @@ type sessionStore struct {
 type SessionStore interface {
 	Get(context.Context, string) (*pb.Session, error)
 	Set(context.Context, *pb.Session) error
-	CachedSessionFromDeviceID(int64) (*pb.Session, error)
 	All() []*pb.Session
 }
 
@@ -79,19 +78,6 @@ func (store *sessionStore) Warmup(ctx context.Context) error {
 	}
 
 	return nil
-}
-
-func (store *sessionStore) CachedSessionFromDeviceID(deviceID int64) (*pb.Session, error) {
-	store.lock.Lock()
-	defer store.lock.Unlock()
-
-	for _, session := range store.cache {
-		if session.GetDevice().GetId() == deviceID {
-			return session, nil
-		}
-	}
-
-	return nil, fmt.Errorf("%w: device %d", ErrNoSession, deviceID)
 }
 
 func (store *sessionStore) All() []*pb.Session {

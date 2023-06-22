@@ -19,8 +19,8 @@ type grpcServer struct {
 	prometheusAuth auth.UsernamePasswordAuthenticator
 	jita           jita.Client
 
-	deviceConfigStreams     map[string]pb.APIServer_GetDeviceConfigurationServer
-	deviceConfigStreamsLock sync.RWMutex
+	deviceConfigTrigger     map[int64]chan struct{}
+	deviceConfigTriggerLock sync.RWMutex
 
 	gatewayConfigTrigger     map[string]chan struct{}
 	gatewayConfigTriggerLock sync.RWMutex
@@ -31,18 +31,11 @@ type grpcServer struct {
 
 var _ pb.APIServerServer = &grpcServer{}
 
-var ErrNoSession = errors.New("no session")
-
-func TriggerGatewaySync(channel chan<- struct{}) {
-	select {
-	case channel <- struct{}{}:
-	default:
-	}
-}
+var ErrNoActiveStream = errors.New("no session")
 
 func NewGRPCServer(db database.APIServer, authenticator auth.Authenticator, adminAuth, gatewayAuth, prometheusAuth auth.UsernamePasswordAuthenticator, jita jita.Client, sessionStore auth.SessionStore) *grpcServer {
 	return &grpcServer{
-		deviceConfigStreams:  make(map[string]pb.APIServer_GetDeviceConfigurationServer),
+		deviceConfigTrigger:  make(map[int64]chan struct{}),
 		gatewayConfigTrigger: make(map[string]chan struct{}),
 		authenticator:        authenticator,
 		adminAuth:            adminAuth,
