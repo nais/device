@@ -329,7 +329,6 @@ func run() error {
 		changed := false
 		if device.Healthy != event.GetState().Healthy() {
 			changed = true
-			sessions.UpdateDevice(device)
 		}
 
 		device.Healthy = event.GetState().Healthy()
@@ -339,6 +338,7 @@ func run() error {
 			return err
 		}
 		if changed {
+			sessions.UpdateDevice(device)
 			grpcHandler.SendDeviceConfiguration(device)
 			grpcHandler.SendAllGatewayConfigurations()
 		}
