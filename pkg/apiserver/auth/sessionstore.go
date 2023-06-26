@@ -95,3 +95,14 @@ func (store *sessionStore) All() []*pb.Session {
 
 	return all
 }
+
+func (store *sessionStore) UpdateDevice(device *pb.Device) {
+	store.lock.Lock()
+	defer store.lock.Unlock()
+
+	for _, s := range store.cache {
+		if s.GetDevice().GetId() == device.GetId() {
+			s.Device = device
+		}
+	}
+}

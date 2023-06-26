@@ -329,6 +329,7 @@ func run() error {
 		changed := false
 		if device.Healthy != event.GetState().Healthy() {
 			changed = true
+			sessions.UpdateDevice(device)
 		}
 
 		device.Healthy = event.GetState().Healthy()
