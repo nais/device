@@ -118,9 +118,9 @@ func TestSessionStore_Warmup(t *testing.T) {
 	db.AssertExpectations(t)
 }
 
-func TestSessionStore_CachedSessionFromDeviceID(t *testing.T) {
+func TestSessionStore_UpdateDevice(t *testing.T) {
 	ctx := context.Background()
-	db := &database.MockAPIServer{}
+	db := database.NewMockAPIServer(t)
 	store := auth.NewSessionStore(db)
 
 	sessions := make([]*pb.Session, 20)
@@ -128,7 +128,8 @@ func TestSessionStore_CachedSessionFromDeviceID(t *testing.T) {
 		sessions[i] = &pb.Session{
 			Key: strconv.Itoa(i),
 			Device: &pb.Device{
-				Id: int64(i),
+				Id:      int64(i),
+				Healthy: false,
 			},
 		}
 	}
@@ -140,6 +141,17 @@ func TestSessionStore_CachedSessionFromDeviceID(t *testing.T) {
 	err := store.Warmup(ctx)
 	assert.NoError(t, err)
 
-	// Retrieve cached session
-	db.AssertExpectations(t)
+	updatedDevice := &pb.Device{
+		Id:      int64(0),
+		Healthy: true,
+	}
+
+	sess, err := store.Get(ctx, "0")
+	assert.False(t, sess.GetDevice().GetHealthy())
+
+	store.UpdateDevice(updatedDevice)
+
+	sess, err = store.Get(ctx, "0")
+	assert.NoError(t, err)
+	assert.True(t, sess.GetDevice().GetHealthy())
 }

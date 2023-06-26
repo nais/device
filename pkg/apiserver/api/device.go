@@ -21,9 +21,10 @@ func (s *grpcServer) GetDeviceConfiguration(request *pb.GetDeviceConfigurationRe
 	if err != nil {
 		return err
 	}
+	deviceId := session.GetDevice().GetId()
 
 	s.deviceConfigTriggerLock.Lock()
-	s.deviceConfigTrigger[session.GetDevice().GetId()] = trigger
+	s.deviceConfigTrigger[deviceId] = trigger
 	apiserver_metrics.DevicesConnected.Set(float64(len(s.deviceConfigTrigger)))
 	s.deviceConfigTriggerLock.Unlock()
 
@@ -31,26 +32,29 @@ func (s *grpcServer) GetDeviceConfiguration(request *pb.GetDeviceConfigurationRe
 		log.WithField("deviceId", session.GetDevice().GetId()).Warnf("session with no groups detected")
 	}
 
-	teardown := func() {
+	defer func() {
 		s.deviceConfigTriggerLock.Lock()
-		delete(s.deviceConfigTrigger, session.GetDevice().GetId())
+		delete(s.deviceConfigTrigger, deviceId)
 		apiserver_metrics.DevicesConnected.Set(float64(len(s.deviceConfigTrigger)))
 		s.deviceConfigTriggerLock.Unlock()
-	}
+	}()
 
 	timeout := time.After(time.Until(session.GetExpiry().AsTime()))
 
 	for {
 		select {
 		case <-timeout:
-			log.Debugf("session for device %d timed out, tearing down", session.GetDevice().GetId())
-			teardown()
+			log.Debugf("session for device %d timed out, tearing down", deviceId)
 			return nil
 		case <-stream.Context().Done(): // Disconnect
-			log.Debugf("stream context for device %d done, tearing down", session.GetDevice().GetId())
-			teardown()
+			log.Debugf("stream context for device %d done, tearing down", deviceId)
 			return nil
 		case <-trigger: // Send config triggered
+			session, err := s.sessionStore.Get(stream.Context(), request.SessionKey)
+			if err != nil {
+				return err
+			}
+
 			cfg, err := s.makeDeviceConfiguration(stream.Context(), session)
 			if err != nil {
 				log.Errorf("make device config: %v", err)

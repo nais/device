@@ -57,7 +57,10 @@ func TestGetDeviceConfiguration(t *testing.T) {
 
 	s := grpc.NewServer()
 	pb.RegisterAPIServerServer(s, server)
-	go s.Serve(lis)
+	go func() {
+		err := s.Serve(lis)
+		assert.NoError(t, err)
+	}()
 
 	conn, err := grpc.DialContext(
 		ctx,
