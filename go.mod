@@ -95,6 +95,9 @@ require (
 
 require (
 	github.com/akavel/rsrc v0.10.2
+	github.com/jackc/pgconn v1.14.0
+	github.com/jackc/pgx/v4 v4.18.1
+	github.com/kyleconroy/sqlc v1.18.0
 	github.com/vektra/mockery/v2 v2.30.1
 	golang.org/x/vuln v0.1.0
 	google.golang.org/grpc/cmd/protoc-gen-go-grpc v1.1.0
@@ -105,7 +108,12 @@ require (
 require (
 	cloud.google.com/go/compute/metadata v0.2.3 // indirect
 	github.com/BurntSushi/toml v1.3.2 // indirect
+	github.com/antlr/antlr4/runtime/Go/antlr/v4 v4.0.0-20230321174746-8dcc6526cfb1 // indirect
+	github.com/benbjohnson/clock v1.1.0 // indirect
+	github.com/bytecodealliance/wasmtime-go/v8 v8.0.0 // indirect
 	github.com/chigopher/pathlib v0.15.0 // indirect
+	github.com/cubicdaiya/gonp v1.0.4 // indirect
+	github.com/cznic/mathutil v0.0.0-20181122101859-297441e03548 // indirect
 	github.com/fsnotify/fsnotify v1.6.0 // indirect
 	github.com/go-logr/logr v1.2.3 // indirect
 	github.com/go-logr/stdr v1.2.2 // indirect
@@ -114,23 +122,37 @@ require (
 	github.com/hashicorp/hcl v1.0.0 // indirect
 	github.com/iancoleman/strcase v0.2.0 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
+	github.com/jackc/chunkreader/v2 v2.0.1 // indirect
+	github.com/jackc/pgio v1.0.0 // indirect
+	github.com/jackc/pgpassfile v1.0.0 // indirect
+	github.com/jackc/pgproto3/v2 v2.3.2 // indirect
+	github.com/jackc/pgservicefile v0.0.0-20221227161230-091c0ba34f0a // indirect
+	github.com/jackc/pgtype v1.14.0 // indirect
 	github.com/jinzhu/copier v0.3.5 // indirect
+	github.com/jinzhu/inflection v1.0.0 // indirect
 	github.com/magiconair/properties v1.8.7 // indirect
 	github.com/mattn/go-colorable v0.1.13 // indirect
 	github.com/mattn/go-isatty v0.0.17 // indirect
 	github.com/mitchellh/go-homedir v1.1.0 // indirect
 	github.com/mitchellh/mapstructure v1.5.0 // indirect
 	github.com/pelletier/go-toml/v2 v2.0.6 // indirect
+	github.com/pganalyze/pg_query_go/v4 v4.2.0 // indirect
+	github.com/pingcap/errors v0.11.5-0.20210425183316-da1aaba5fb63 // indirect
+	github.com/pingcap/log v0.0.0-20210906054005-afc726e70354 // indirect
+	github.com/pingcap/tidb/parser v0.0.0-20220725134311-c80026e61f00 // indirect
+	github.com/remyoudompheng/bigfft v0.0.0-20200410134404-eec4a21b6bb0 // indirect
+	github.com/riza-io/grpc-go v0.1.0 // indirect
 	github.com/rs/zerolog v1.29.0 // indirect
 	github.com/spf13/afero v1.9.3 // indirect
 	github.com/spf13/cast v1.5.0 // indirect
-	github.com/spf13/cobra v1.6.1 // indirect
+	github.com/spf13/cobra v1.7.0 // indirect
 	github.com/spf13/jwalterweatherman v1.1.0 // indirect
 	github.com/spf13/viper v1.15.0 // indirect
 	github.com/subosito/gotenv v1.4.2 // indirect
 	github.com/xrash/smetrics v0.0.0-20201216005158-039620a65673 // indirect
 	go.opentelemetry.io/otel v1.6.3 // indirect
 	go.opentelemetry.io/otel/trace v1.6.3 // indirect
+	golang.org/x/exp v0.0.0-20220827204233-334a2380cb91 // indirect
 	golang.org/x/exp/typeparams v0.0.0-20221208152030-732eee02a75a // indirect
 	golang.org/x/mod v0.10.0 // indirect
 	golang.org/x/term v0.8.0 // indirect
@@ -138,5 +160,6 @@ require (
 	google.golang.org/genproto/googleapis/api v0.0.0-20230530153820-e85fd2cbaebc // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20230530153820-e85fd2cbaebc // indirect
 	gopkg.in/ini.v1 v1.67.0 // indirect
+	gopkg.in/natefinch/lumberjack.v2 v2.0.0 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 )
