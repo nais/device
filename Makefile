@@ -227,3 +227,7 @@ buildreleaseenroller:
 buildreleaseauthserver:
 	cd cmd/auth-server && docker build -t europe-north1-docker.pkg.dev/nais-io/nais/images/naisdevice-auth-server:${VERSION} .
 	docker push europe-north1-docker.pkg.dev/nais-io/nais/images/naisdevice-auth-server:${VERSION}
+
+generate-sqlc:
+	go run github.com/kyleconroy/sqlc/cmd/sqlc generate
+	go run mvdan.cc/gofumpt -w ./pkg/apiserver/sqlc/
