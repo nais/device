@@ -1,46 +1,35 @@
 package database
 
 import (
-	"embed"
-	"fmt"
-	"io/fs"
-	"path/filepath"
-	"strconv"
+	"errors"
+
+	"github.com/golang-migrate/migrate/v4"
+	_ "github.com/golang-migrate/migrate/v4/database/postgres"
+	"github.com/golang-migrate/migrate/v4/source/iofs"
+	"github.com/nais/device/pkg/apiserver/database/schema"
+	log "github.com/sirupsen/logrus"
 )
 
-//go:embed schema/*.sql
-var embedMigrations embed.FS
-
-type migration struct {
-	version int
-	sql     string
-}
-
-func migrations() ([]migration, error) {
-	var files []migration
-	err := fs.WalkDir(embedMigrations, "schema", func(path string, d fs.DirEntry, err error) error {
-		if err != nil {
-			return err
+func runMigrations(dsn string) error {
+	sourceDriver, err := iofs.New(schema.FS, ".")
+	if err != nil {
+		return err
+	}
+	defer func() {
+		if err := sourceDriver.Close(); err != nil {
+			log.WithError(err).Errorf("close database connection")
 		}
-		if d.IsDir() {
-			return nil
-		}
+	}()
 
-		version, err := strconv.Atoi(filepath.Base(path)[:4])
-		if err != nil {
-			return fmt.Errorf("invalid version number in %q: %w", path, err)
-		}
+	m, err := migrate.NewWithSourceInstance("iofs", sourceDriver, dsn)
+	if err != nil {
+		return err
+	}
 
-		b, err := fs.ReadFile(embedMigrations, path)
-		if err != nil {
-			return err
-		}
+	err = m.Up()
+	if err != nil && !errors.Is(err, migrate.ErrNoChange) {
+		return err
+	}
 
-		files = append(files, migration{
-			version: version,
-			sql:     string(b),
-		})
-		return nil
-	})
-	return files, err
+	return nil
 }

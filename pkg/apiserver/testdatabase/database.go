@@ -14,25 +14,17 @@ import (
 )
 
 // New creates and returns a new nais device database within the provided database instance
-func New(ctx context.Context, dsn string, ipAllocator database.IPAllocator) (database.APIServer, error) {
-	databaseName, err := createDatabase(dsn)
+func New(ctx context.Context, ipAllocator database.IPAllocator) (database.APIServer, error) {
+	dsn, err := createDatabase()
 	if err != nil {
 		return nil, fmt.Errorf("creating database: %w", err)
 	}
 
-	dsn = fmt.Sprintf("%s dbname=%s", dsn, databaseName)
-	db, err := database.New(dsn, "postgres", ipAllocator, false)
-	if err != nil {
-		return nil, err
-	}
-	err = db.Migrate(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("migrating: %w", err)
-	}
-	return db, nil
+	return database.New(ctx, dsn, ipAllocator, false)
 }
 
-func createDatabase(dsn string) (string, error) {
+func createDatabase() (string, error) {
+	dsn := fmt.Sprintf("postgres://postgres:postgres@localhost:5433?sslmode=disable")
 	initialConn, err := connect(dsn)
 	if err != nil {
 		log.Fatal("unable to connect to database")
@@ -41,13 +33,11 @@ func createDatabase(dsn string) (string, error) {
 	defer initialConn.Close()
 
 	databaseName := random.RandomString(5, random.LowerCaseLetters)
-
-	_, err = initialConn.Exec(fmt.Sprintf("CREATE DATABASE %s", databaseName))
-	if err != nil {
+	if _, err = initialConn.Exec(fmt.Sprintf("CREATE DATABASE %s", databaseName)); err != nil {
 		return "", fmt.Errorf("creating database: %w", err)
 	}
 
-	return databaseName, nil
+	return dsn + fmt.Sprintf("&dbname=%s", databaseName), nil
 }
 
 func connect(dsn string) (*sql.DB, error) {

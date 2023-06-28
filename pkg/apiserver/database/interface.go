@@ -22,5 +22,4 @@ type APIServer interface {
 	ReadSessionInfo(ctx context.Context, key string) (*pb.Session, error)
 	ReadSessionInfos(ctx context.Context) ([]*pb.Session, error)
 	ReadMostRecentSessionInfo(ctx context.Context, deviceID int64) (*pb.Session, error)
-	Migrate(ctx context.Context) error
 }

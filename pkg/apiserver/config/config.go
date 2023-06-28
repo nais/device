@@ -61,13 +61,6 @@ func Credentials(entries []string) (map[string]string, error) {
 	return credentials, nil
 }
 
-func (c *Config) DatabaseDriver() string {
-	if c.CloudSQLProxyEnabled {
-		return "cloudsqlpostgres"
-	}
-	return "postgres"
-}
-
 func DefaultConfig() Config {
 	return Config{
 		Azure: &auth.Azure{

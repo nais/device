@@ -27,7 +27,7 @@ func setup(t *testing.T) database.APIServer {
 	defer cancel()
 
 	ipAllocator := database.NewIPAllocator(netip.MustParsePrefix(wireguardNetworkAddress), []string{apiserverWireGuardIP})
-	db, err := testdatabase.New(ctx, "user=postgres password=postgres host=localhost port=5433 sslmode=disable", ipAllocator)
+	db, err := testdatabase.New(ctx, ipAllocator)
 	if err != nil {
 		t.Fatalf("Instantiating database: %v", err)
 	}

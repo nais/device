@@ -82,7 +82,7 @@ func TestWatchDeviceEnrollments(t *testing.T) {
 	defer cancel()
 
 	ipAllocator := database.NewIPAllocator(netip.MustParsePrefix(wireguardNetworkAddress), []string{apiserverWireGuardIP})
-	testDB, err := testdatabase.New(ctx, "user=postgres password=postgres host=localhost port=5433 sslmode=disable", ipAllocator)
+	testDB, err := testdatabase.New(ctx, ipAllocator)
 	assert.NoError(t, err)
 	server := httptest.NewServer(mux)
 	enr := enroller.Enroller{

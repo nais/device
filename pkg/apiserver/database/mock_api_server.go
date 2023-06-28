@@ -56,20 +56,6 @@ func (_m *MockAPIServer) AddSessionInfo(ctx context.Context, si *pb.Session) err
 	return r0
 }
 
-// Migrate provides a mock function with given fields: ctx
-func (_m *MockAPIServer) Migrate(ctx context.Context) error {
-	ret := _m.Called(ctx)
-
-	var r0 error
-	if rf, ok := ret.Get(0).(func(context.Context) error); ok {
-		r0 = rf(ctx)
-	} else {
-		r0 = ret.Error(0)
-	}
-
-	return r0
-}
-
 // ReadDevice provides a mock function with given fields: ctx, publicKey
 func (_m *MockAPIServer) ReadDevice(ctx context.Context, publicKey string) (*pb.Device, error) {
 	ret := _m.Called(ctx, publicKey)
