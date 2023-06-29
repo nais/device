@@ -104,7 +104,7 @@ func (cfg *Config) APIServerPeer() *pb.Gateway {
 func (cfg *Config) StaticPeers() []*pb.Gateway {
 	return []*pb.Gateway{
 		{
-			Name:      "prometheus",
+			Name:      wireguard.PrometheusPeerName,
 			PublicKey: cfg.PrometheusPublicKey,
 			Ip:        cfg.PrometheusTunnelIP,
 		},

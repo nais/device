@@ -75,7 +75,7 @@ func (c Config) StaticPeers() []wireguard.Peer {
 			Ip:        c.APIServerPrivateIP,
 		},
 		&pb.Gateway{
-			Name:      "prometheus",
+			Name:      wireguard.PrometheusPeerName,
 			PublicKey: c.PrometheusPublicKey,
 			Ip:        c.PrometheusTunnelIP,
 		},
