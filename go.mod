@@ -10,7 +10,7 @@ require (
 	github.com/getlantern/golog v0.0.0-20211223150227-d4d95a44d873 // indirect
 	github.com/getlantern/hidden v0.0.0-20220104173330-f221c5a24770 // indirect
 	github.com/getlantern/ops v0.0.0-20220418195917-45286e0140f6 // indirect
-	github.com/getlantern/systray v1.2.1
+	github.com/getlantern/systray v1.2.2
 	github.com/go-chi/chi/v5 v5.0.4
 	github.com/google/uuid v1.3.0
 	github.com/gopherjs/gopherjs v0.0.0-20210918183006-daae65060a40 // indirect
