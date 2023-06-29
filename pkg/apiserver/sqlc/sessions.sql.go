@@ -11,15 +11,14 @@ import (
 )
 
 const addSession = `-- name: AddSession :exec
-INSERT INTO sessions (key, expiry, device_id, groups, object_id)
-VALUES ($1, $2, $3, $4, $5)
+INSERT INTO sessions (key, expiry, device_id, object_id)
+VALUES ($1, $2, $3, $4)
 `
 
 type AddSessionParams struct {
 	Key      string
 	Expiry   time.Time
 	DeviceID int32
-	Groups   string
 	ObjectID string
 }
 
@@ -28,14 +27,28 @@ func (q *Queries) AddSession(ctx context.Context, arg AddSessionParams) error {
 		arg.Key,
 		arg.Expiry,
 		arg.DeviceID,
-		arg.Groups,
 		arg.ObjectID,
 	)
 	return err
 }
 
+const addSessionAccessGroupID = `-- name: AddSessionAccessGroupID :exec
+INSERT INTO session_access_group_ids (session_key, group_id)
+VALUES ($1, $2)
+`
+
+type AddSessionAccessGroupIDParams struct {
+	SessionKey string
+	GroupID    string
+}
+
+func (q *Queries) AddSessionAccessGroupID(ctx context.Context, arg AddSessionAccessGroupIDParams) error {
+	_, err := q.db.Exec(ctx, addSessionAccessGroupID, arg.SessionKey, arg.GroupID)
+	return err
+}
+
 const getMostRecentDeviceSession = `-- name: GetMostRecentDeviceSession :one
-SELECT s.key, s.expiry, s.device_id, s.groups, s.object_id, d.id, d.username, d.serial, d.platform, d.healthy, d.last_updated, d.public_key, d.ip FROM sessions s
+SELECT s.key, s.expiry, s.device_id, s.object_id, d.id, d.username, d.serial, d.platform, d.healthy, d.last_updated, d.public_key, d.ip FROM sessions s
 JOIN devices d ON d.id = s.device_id
 WHERE s.device_id = $1
 ORDER BY s.expiry DESC
@@ -54,7 +67,6 @@ func (q *Queries) GetMostRecentDeviceSession(ctx context.Context, deviceID int32
 		&i.Session.Key,
 		&i.Session.Expiry,
 		&i.Session.DeviceID,
-		&i.Session.Groups,
 		&i.Session.ObjectID,
 		&i.Device.ID,
 		&i.Device.Username,
@@ -69,7 +81,7 @@ func (q *Queries) GetMostRecentDeviceSession(ctx context.Context, deviceID int32
 }
 
 const getSessionByKey = `-- name: GetSessionByKey :one
-SELECT s.key, s.expiry, s.device_id, s.groups, s.object_id, d.id, d.username, d.serial, d.platform, d.healthy, d.last_updated, d.public_key, d.ip FROM sessions s
+SELECT s.key, s.expiry, s.device_id, s.object_id, d.id, d.username, d.serial, d.platform, d.healthy, d.last_updated, d.public_key, d.ip FROM sessions s
 JOIN devices d ON d.id = s.device_id WHERE s.key = $1
 `
 
@@ -85,7 +97,6 @@ func (q *Queries) GetSessionByKey(ctx context.Context, key string) (*GetSessionB
 		&i.Session.Key,
 		&i.Session.Expiry,
 		&i.Session.DeviceID,
-		&i.Session.Groups,
 		&i.Session.ObjectID,
 		&i.Device.ID,
 		&i.Device.Username,
@@ -99,8 +110,32 @@ func (q *Queries) GetSessionByKey(ctx context.Context, key string) (*GetSessionB
 	return &i, err
 }
 
+const getSessionGroupIDs = `-- name: GetSessionGroupIDs :many
+SELECT group_id FROM session_access_group_ids WHERE session_key = $1
+`
+
+func (q *Queries) GetSessionGroupIDs(ctx context.Context, sessionKey string) ([]string, error) {
+	rows, err := q.db.Query(ctx, getSessionGroupIDs, sessionKey)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []string
+	for rows.Next() {
+		var group_id string
+		if err := rows.Scan(&group_id); err != nil {
+			return nil, err
+		}
+		items = append(items, group_id)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getSessions = `-- name: GetSessions :many
-SELECT s.key, s.expiry, s.device_id, s.groups, s.object_id, d.id, d.username, d.serial, d.platform, d.healthy, d.last_updated, d.public_key, d.ip FROM sessions s
+SELECT s.key, s.expiry, s.device_id, s.object_id, d.id, d.username, d.serial, d.platform, d.healthy, d.last_updated, d.public_key, d.ip FROM sessions s
 JOIN devices d ON d.id = s.device_id WHERE s.expiry > NOW()
 `
 
@@ -122,7 +157,6 @@ func (q *Queries) GetSessions(ctx context.Context) ([]*GetSessionsRow, error) {
 			&i.Session.Key,
 			&i.Session.Expiry,
 			&i.Session.DeviceID,
-			&i.Session.Groups,
 			&i.Session.ObjectID,
 			&i.Device.ID,
 			&i.Device.Username,

@@ -83,21 +83,32 @@ type Device struct {
 }
 
 type Gateway struct {
-	ID                       int32
 	Name                     string
-	AccessGroupIds           string
 	Endpoint                 string
 	PublicKey                string
 	Ip                       string
-	Routes                   string
 	RequiresPrivilegedAccess bool
 	PasswordHash             string
+}
+
+type GatewayAccessGroupID struct {
+	GatewayName string
+	GroupID     string
+}
+
+type GatewayRoute struct {
+	GatewayName string
+	Route       string
 }
 
 type Session struct {
 	Key      string
 	Expiry   time.Time
 	DeviceID int32
-	Groups   string
 	ObjectID string
+}
+
+type SessionAccessGroupID struct {
+	SessionKey string
+	GroupID    string
 }

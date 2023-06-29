@@ -3,7 +3,6 @@ package database
 import (
 	"context"
 	"fmt"
-	"strings"
 	"sync"
 
 	"github.com/jackc/pgx/v4"
@@ -81,15 +80,50 @@ func (db *ApiServerDB) UpdateDevices(ctx context.Context, devices []*pb.Device) 
 }
 
 func (db *ApiServerDB) UpdateGateway(ctx context.Context, gw *pb.Gateway) error {
-	err := db.queries.UpdateGateway(ctx, sqlc.UpdateGatewayParams{
-		PublicKey:                gw.PublicKey,
-		AccessGroupIds:           strings.Join(gw.AccessGroupIDs, ","),
-		Endpoint:                 gw.Endpoint,
-		Ip:                       gw.Ip,
-		Routes:                   strings.Join(gw.Routes, ","),
-		RequiresPrivilegedAccess: gw.RequiresPrivilegedAccess,
-		PasswordHash:             gw.PasswordHash,
-		Name:                     gw.Name,
+	err := db.queries.Transaction(ctx, func(ctx context.Context, qtx *sqlc.Queries) error {
+		err := qtx.UpdateGateway(ctx, sqlc.UpdateGatewayParams{
+			PublicKey:                gw.PublicKey,
+			Endpoint:                 gw.Endpoint,
+			Ip:                       gw.Ip,
+			RequiresPrivilegedAccess: gw.RequiresPrivilegedAccess,
+			PasswordHash:             gw.PasswordHash,
+			Name:                     gw.Name,
+		})
+		if err != nil {
+			return err
+		}
+
+		err = qtx.DeleteGatewayAccessGroupIDs(ctx, gw.Name)
+		if err != nil {
+			return err
+		}
+
+		err = qtx.DeleteGatewayRoutes(ctx, gw.Name)
+		if err != nil {
+			return err
+		}
+
+		for _, groupID := range gw.AccessGroupIDs {
+			err = qtx.AddGatewayAccessGroupID(ctx, sqlc.AddGatewayAccessGroupIDParams{
+				GatewayName: gw.Name,
+				GroupID:     groupID,
+			})
+			if err != nil {
+				return err
+			}
+		}
+
+		for _, route := range gw.Routes {
+			err = qtx.AddGatewayRoute(ctx, sqlc.AddGatewayRouteParams{
+				GatewayName: gw.Name,
+				Route:       route,
+			})
+			if err != nil {
+				return err
+			}
+		}
+
+		return nil
 	})
 	if err != nil {
 		return fmt.Errorf("updating gateway: %w", err)
@@ -99,11 +133,46 @@ func (db *ApiServerDB) UpdateGateway(ctx context.Context, gw *pb.Gateway) error 
 }
 
 func (db *ApiServerDB) UpdateGatewayDynamicFields(ctx context.Context, gw *pb.Gateway) error {
-	err := db.queries.UpdateGatewayDynamicFields(ctx, sqlc.UpdateGatewayDynamicFieldsParams{
-		AccessGroupIds:           strings.Join(gw.AccessGroupIDs, ","),
-		Routes:                   strings.Join(gw.Routes, ","),
-		RequiresPrivilegedAccess: gw.RequiresPrivilegedAccess,
-		Name:                     gw.Name,
+	err := db.queries.Transaction(ctx, func(ctx context.Context, qtx *sqlc.Queries) error {
+		err := qtx.UpdateGatewayDynamicFields(ctx, sqlc.UpdateGatewayDynamicFieldsParams{
+			RequiresPrivilegedAccess: gw.RequiresPrivilegedAccess,
+			Name:                     gw.Name,
+		})
+		if err != nil {
+			return err
+		}
+
+		err = qtx.DeleteGatewayAccessGroupIDs(ctx, gw.Name)
+		if err != nil {
+			return err
+		}
+
+		err = qtx.DeleteGatewayRoutes(ctx, gw.Name)
+		if err != nil {
+			return err
+		}
+
+		for _, groupID := range gw.AccessGroupIDs {
+			err = qtx.AddGatewayAccessGroupID(ctx, sqlc.AddGatewayAccessGroupIDParams{
+				GatewayName: gw.Name,
+				GroupID:     groupID,
+			})
+			if err != nil {
+				return err
+			}
+		}
+
+		for _, route := range gw.Routes {
+			err = qtx.AddGatewayRoute(ctx, sqlc.AddGatewayRouteParams{
+				GatewayName: gw.Name,
+				Route:       route,
+			})
+			if err != nil {
+				return err
+			}
+		}
+
+		return nil
 	})
 	if err != nil {
 		return fmt.Errorf("updating gateway dynamic fields: %w", err)
@@ -121,18 +190,40 @@ func (db *ApiServerDB) AddGateway(ctx context.Context, gw *pb.Gateway) error {
 		return fmt.Errorf("finding available ip: %w", err)
 	}
 
-	accessGroupIDs := strings.Join(gw.AccessGroupIDs, ",")
-	routes := strings.Join(gw.Routes, ",")
+	err = db.queries.Transaction(ctx, func(ctx context.Context, qtx *sqlc.Queries) error {
+		err = qtx.AddGateway(ctx, sqlc.AddGatewayParams{
+			Name:                     gw.Name,
+			Endpoint:                 gw.Endpoint,
+			PublicKey:                gw.PublicKey,
+			Ip:                       availableIp,
+			PasswordHash:             gw.PasswordHash,
+			RequiresPrivilegedAccess: gw.RequiresPrivilegedAccess,
+		})
+		if err != nil {
+			return err
+		}
 
-	err = db.queries.AddGateway(ctx, sqlc.AddGatewayParams{
-		Name:                     gw.Name,
-		Endpoint:                 gw.Endpoint,
-		PublicKey:                gw.PublicKey,
-		Ip:                       availableIp,
-		PasswordHash:             gw.PasswordHash,
-		AccessGroupIds:           accessGroupIDs,
-		Routes:                   routes,
-		RequiresPrivilegedAccess: gw.RequiresPrivilegedAccess,
+		for _, groupID := range gw.AccessGroupIDs {
+			err = qtx.AddGatewayAccessGroupID(ctx, sqlc.AddGatewayAccessGroupIDParams{
+				GatewayName: gw.Name,
+				GroupID:     groupID,
+			})
+			if err != nil {
+				return err
+			}
+		}
+
+		for _, route := range gw.Routes {
+			err = qtx.AddGatewayRoute(ctx, sqlc.AddGatewayRouteParams{
+				GatewayName: gw.Name,
+				Route:       route,
+			})
+			if err != nil {
+				return err
+			}
+		}
+
+		return nil
 	})
 	if err != nil {
 		return fmt.Errorf("inserting new gateway: %w", err)
@@ -191,8 +282,17 @@ func (db *ApiServerDB) ReadGateways(ctx context.Context) ([]*pb.Gateway, error) 
 
 	gateways := make([]*pb.Gateway, 0)
 	for _, row := range rows {
-		gateway := sqlcGatewayToPbGateway(*row)
-		gateways = append(gateways, gateway)
+		accessGroupIDs, err := db.queries.GetGatewayAccessGroupIDs(ctx, row.Name)
+		if err != nil {
+			return nil, err
+		}
+
+		routes, err := db.queries.GetGatewayRoutes(ctx, row.Name)
+		if err != nil {
+			return nil, err
+		}
+
+		gateways = append(gateways, sqlcGatewayToPbGateway(*row, accessGroupIDs, routes))
 	}
 
 	return gateways, nil
@@ -204,7 +304,17 @@ func (db *ApiServerDB) ReadGateway(ctx context.Context, name string) (*pb.Gatewa
 		return nil, err
 	}
 
-	return sqlcGatewayToPbGateway(*gateway), nil
+	accessGroupIDs, err := db.queries.GetGatewayAccessGroupIDs(ctx, name)
+	if err != nil {
+		return nil, err
+	}
+
+	routes, err := db.queries.GetGatewayRoutes(ctx, name)
+	if err != nil {
+		return nil, err
+	}
+
+	return sqlcGatewayToPbGateway(*gateway, accessGroupIDs, routes), nil
 }
 
 func (db *ApiServerDB) readExistingIPs(ctx context.Context) ([]string, error) {
@@ -244,12 +354,27 @@ func (db *ApiServerDB) ReadDeviceBySerialPlatform(ctx context.Context, serial, p
 }
 
 func (db *ApiServerDB) AddSessionInfo(ctx context.Context, si *pb.Session) error {
-	err := db.queries.AddSession(ctx, sqlc.AddSessionParams{
-		Key:      si.Key,
-		Expiry:   si.Expiry.AsTime(),
-		DeviceID: int32(si.GetDevice().GetId()),
-		Groups:   strings.Join(si.Groups, ","),
-		ObjectID: si.ObjectID,
+	err := db.queries.Transaction(ctx, func(ctx context.Context, qtx *sqlc.Queries) error {
+		err := qtx.AddSession(ctx, sqlc.AddSessionParams{
+			Key:      si.Key,
+			Expiry:   si.Expiry.AsTime(),
+			DeviceID: int32(si.GetDevice().GetId()),
+			ObjectID: si.ObjectID,
+		})
+		if err != nil {
+			return err
+		}
+
+		for _, groupID := range si.Groups {
+			err = qtx.AddSessionAccessGroupID(ctx, sqlc.AddSessionAccessGroupIDParams{
+				SessionKey: si.Key,
+				GroupID:    groupID,
+			})
+			if err != nil {
+				return err
+			}
+		}
+		return nil
 	})
 	if err != nil {
 		return fmt.Errorf("create session: %w", err)
@@ -264,7 +389,12 @@ func (db *ApiServerDB) ReadSessionInfo(ctx context.Context, key string) (*pb.Ses
 		return nil, err
 	}
 
-	return sqlcSessionAndDeviceToPbSession(row.Session, row.Device), nil
+	groupIDs, err := db.queries.GetSessionGroupIDs(ctx, key)
+	if err != nil {
+		return nil, err
+	}
+
+	return sqlcSessionAndDeviceToPbSession(row.Session, row.Device, groupIDs), nil
 }
 
 func (db *ApiServerDB) ReadSessionInfos(ctx context.Context) ([]*pb.Session, error) {
@@ -275,7 +405,12 @@ func (db *ApiServerDB) ReadSessionInfos(ctx context.Context) ([]*pb.Session, err
 
 	sessions := make([]*pb.Session, 0)
 	for _, row := range rows {
-		sessions = append(sessions, sqlcSessionAndDeviceToPbSession(row.Session, row.Device))
+		groupIDs, err := db.queries.GetSessionGroupIDs(ctx, row.Session.Key)
+		if err != nil {
+			return nil, err
+		}
+
+		sessions = append(sessions, sqlcSessionAndDeviceToPbSession(row.Session, row.Device, groupIDs))
 	}
 
 	return sessions, nil
@@ -287,7 +422,12 @@ func (db *ApiServerDB) ReadMostRecentSessionInfo(ctx context.Context, deviceID i
 		return nil, err
 	}
 
-	return sqlcSessionAndDeviceToPbSession(row.Session, row.Device), nil
+	groupIDs, err := db.queries.GetSessionGroupIDs(ctx, row.Session.Key)
+	if err != nil {
+		return nil, err
+	}
+
+	return sqlcSessionAndDeviceToPbSession(row.Session, row.Device, groupIDs), nil
 }
 
 func (db *ApiServerDB) getNextAvailableIp(ctx context.Context) (string, error) {
@@ -302,20 +442,6 @@ func (db *ApiServerDB) getNextAvailableIp(ctx context.Context) (string, error) {
 	}
 
 	return availableIp, nil
-}
-
-func derefString(s *string) string {
-	if s != nil {
-		return *s
-	}
-	return ""
-}
-
-func derefBool(b *bool) bool {
-	if b != nil {
-		return *b
-	}
-	return false
 }
 
 func sqlcDeviceToPbDevice(d sqlc.Device) *pb.Device {
@@ -336,38 +462,25 @@ func sqlcDeviceToPbDevice(d sqlc.Device) *pb.Device {
 	return device
 }
 
-func sqlcGatewayToPbGateway(g sqlc.Gateway) *pb.Gateway {
-	gateway := &pb.Gateway{
+func sqlcGatewayToPbGateway(g sqlc.Gateway, groupIDs, routes []string) *pb.Gateway {
+	return &pb.Gateway{
 		Name:                     g.Name,
 		PublicKey:                g.PublicKey,
 		Endpoint:                 g.Endpoint,
 		Ip:                       g.Ip,
 		RequiresPrivilegedAccess: g.RequiresPrivilegedAccess,
 		PasswordHash:             g.PasswordHash,
+		AccessGroupIDs:           groupIDs,
+		Routes:                   routes,
 	}
-
-	if len(g.AccessGroupIds) > 0 {
-		gateway.AccessGroupIDs = strings.Split(g.AccessGroupIds, ",")
-	}
-
-	if len(g.Routes) > 0 {
-		gateway.Routes = strings.Split(g.Routes, ",")
-	}
-
-	return gateway
 }
 
-func sqlcSessionAndDeviceToPbSession(s sqlc.Session, d sqlc.Device) *pb.Session {
-	session := &pb.Session{
+func sqlcSessionAndDeviceToPbSession(s sqlc.Session, d sqlc.Device, groupIDs []string) *pb.Session {
+	return &pb.Session{
 		Key:      s.Key,
 		Device:   sqlcDeviceToPbDevice(d),
 		ObjectID: s.ObjectID,
 		Expiry:   timestamppb.New(s.Expiry),
+		Groups:   groupIDs,
 	}
-
-	if len(s.Groups) > 0 {
-		session.Groups = strings.Split(s.Groups, ",")
-	}
-
-	return session
 }

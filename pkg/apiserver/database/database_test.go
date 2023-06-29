@@ -104,13 +104,13 @@ func TestAddGateway(t *testing.T) {
 		assert.Equal(t, existingGateway.Endpoint, updatedGateway.Endpoint)
 		assert.Equal(t, existingGateway.PasswordHash, updatedGateway.PasswordHash)
 	})
-	t.Run("updating non-existent gateway is ok", func(t *testing.T) {
+	t.Run("updating non-existent gateway is not ok", func(t *testing.T) {
 		nonExistentGateway := pb.Gateway{
 			Name:           "non-existent",
 			Routes:         []string{"r", "o", "u", "t", "e", "s"},
 			AccessGroupIDs: []string{"a1", "b2", "c3"},
 		}
-		assert.NoError(t, db.UpdateGateway(ctx, &nonExistentGateway))
+		assert.Error(t, db.UpdateGateway(ctx, &nonExistentGateway))
 	})
 }
 
