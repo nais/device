@@ -16,7 +16,6 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/grpc/test/bufconn"
-	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 const bufSize = 1024 * 1024
@@ -38,8 +37,7 @@ func TestGetDeviceConfiguration(t *testing.T) {
 	db := &database.MockAPIServer{}
 	db.On("ReadSessionInfo", mock.Anything, mock.Anything).Return(&pb.Session{Groups: accessGroups}, nil)
 	db.On("ReadDeviceById", mock.Anything, mock.Anything).Return(&pb.Device{
-		Healthy:        true,
-		KolideLastSeen: timestamppb.New(time.Now()),
+		Healthy: true,
 	}, nil)
 	db.On("ReadGateways", mock.Anything).Return([]*pb.Gateway{
 		{

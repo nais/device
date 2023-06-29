@@ -61,12 +61,10 @@ func (db *ApiServerDB) ReadDevices(ctx context.Context) ([]*pb.Device, error) {
 func (db *ApiServerDB) UpdateDevices(ctx context.Context, devices []*pb.Device) error {
 	err := db.queries.Transaction(ctx, func(ctx context.Context, queries *sqlc.Queries) error {
 		for _, device := range devices {
-			kolideLastSeen := device.KolideLastSeen.AsTime()
 			err := queries.UpdateDevice(ctx, sqlc.UpdateDeviceParams{
-				Healthy:        &device.Healthy,
-				KolideLastSeen: &kolideLastSeen,
-				Serial:         &device.Serial,
-				Platform:       sqlc.Platform(device.Platform),
+				Healthy:  &device.Healthy,
+				Serial:   &device.Serial,
+				Platform: sqlc.Platform(device.Platform),
 			})
 			if err != nil {
 				return err
@@ -333,7 +331,6 @@ func sqlcDeviceToPbDevice(d sqlc.Device) *pb.Device {
 	device := &pb.Device{
 		Id:        int64(d.ID),
 		Serial:    derefString(d.Serial),
-		Psk:       derefString(d.Psk),
 		Healthy:   derefBool(d.Healthy),
 		PublicKey: d.PublicKey,
 		Ip:        derefString(d.Ip),
@@ -343,9 +340,6 @@ func sqlcDeviceToPbDevice(d sqlc.Device) *pb.Device {
 
 	if d.LastUpdated != nil {
 		device.LastUpdated = timestamppb.New(*d.LastUpdated)
-	}
-	if d.KolideLastSeen != nil {
-		device.KolideLastSeen = timestamppb.New(*d.KolideLastSeen)
 	}
 
 	return device

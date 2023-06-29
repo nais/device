@@ -7,12 +7,11 @@ package sqlc
 
 import (
 	"context"
-	"time"
 )
 
 const addDevice = `-- name: AddDevice :exec
-INSERT INTO devices (serial, username, public_key, ip, healthy, psk, platform)
-VALUES ($1, $2, $3, $4, $5, '', $6)
+INSERT INTO devices (serial, username, public_key, ip, healthy, platform)
+VALUES ($1, $2, $3, $4, $5, $6)
 ON CONFLICT(serial, platform) DO
     UPDATE SET username = excluded.username, public_key = excluded.public_key
 `
@@ -39,7 +38,7 @@ func (q *Queries) AddDevice(ctx context.Context, arg AddDeviceParams) error {
 }
 
 const getDeviceByID = `-- name: GetDeviceByID :one
-SELECT id, username, serial, psk, platform, healthy, last_updated, kolide_last_seen, public_key, ip FROM devices WHERE id = $1
+SELECT id, username, serial, platform, healthy, last_updated, public_key, ip FROM devices WHERE id = $1
 `
 
 func (q *Queries) GetDeviceByID(ctx context.Context, id int32) (*Device, error) {
@@ -49,11 +48,9 @@ func (q *Queries) GetDeviceByID(ctx context.Context, id int32) (*Device, error) 
 		&i.ID,
 		&i.Username,
 		&i.Serial,
-		&i.Psk,
 		&i.Platform,
 		&i.Healthy,
 		&i.LastUpdated,
-		&i.KolideLastSeen,
 		&i.PublicKey,
 		&i.Ip,
 	)
@@ -61,7 +58,7 @@ func (q *Queries) GetDeviceByID(ctx context.Context, id int32) (*Device, error) 
 }
 
 const getDeviceByPublicKey = `-- name: GetDeviceByPublicKey :one
-SELECT id, username, serial, psk, platform, healthy, last_updated, kolide_last_seen, public_key, ip FROM devices WHERE public_key = $1
+SELECT id, username, serial, platform, healthy, last_updated, public_key, ip FROM devices WHERE public_key = $1
 `
 
 func (q *Queries) GetDeviceByPublicKey(ctx context.Context, publicKey string) (*Device, error) {
@@ -71,11 +68,9 @@ func (q *Queries) GetDeviceByPublicKey(ctx context.Context, publicKey string) (*
 		&i.ID,
 		&i.Username,
 		&i.Serial,
-		&i.Psk,
 		&i.Platform,
 		&i.Healthy,
 		&i.LastUpdated,
-		&i.KolideLastSeen,
 		&i.PublicKey,
 		&i.Ip,
 	)
@@ -83,7 +78,7 @@ func (q *Queries) GetDeviceByPublicKey(ctx context.Context, publicKey string) (*
 }
 
 const getDeviceBySerialAndPlatform = `-- name: GetDeviceBySerialAndPlatform :one
-SELECT id, username, serial, psk, platform, healthy, last_updated, kolide_last_seen, public_key, ip from devices WHERE serial = $1 AND platform = $2
+SELECT id, username, serial, platform, healthy, last_updated, public_key, ip from devices WHERE serial = $1 AND platform = $2
 `
 
 type GetDeviceBySerialAndPlatformParams struct {
@@ -98,11 +93,9 @@ func (q *Queries) GetDeviceBySerialAndPlatform(ctx context.Context, arg GetDevic
 		&i.ID,
 		&i.Username,
 		&i.Serial,
-		&i.Psk,
 		&i.Platform,
 		&i.Healthy,
 		&i.LastUpdated,
-		&i.KolideLastSeen,
 		&i.PublicKey,
 		&i.Ip,
 	)
@@ -110,7 +103,7 @@ func (q *Queries) GetDeviceBySerialAndPlatform(ctx context.Context, arg GetDevic
 }
 
 const getDevices = `-- name: GetDevices :many
-SELECT id, username, serial, psk, platform, healthy, last_updated, kolide_last_seen, public_key, ip FROM devices
+SELECT id, username, serial, platform, healthy, last_updated, public_key, ip FROM devices
 `
 
 func (q *Queries) GetDevices(ctx context.Context) ([]*Device, error) {
@@ -126,11 +119,9 @@ func (q *Queries) GetDevices(ctx context.Context) ([]*Device, error) {
 			&i.ID,
 			&i.Username,
 			&i.Serial,
-			&i.Psk,
 			&i.Platform,
 			&i.Healthy,
 			&i.LastUpdated,
-			&i.KolideLastSeen,
 			&i.PublicKey,
 			&i.Ip,
 		); err != nil {
@@ -146,23 +137,17 @@ func (q *Queries) GetDevices(ctx context.Context) ([]*Device, error) {
 
 const updateDevice = `-- name: UpdateDevice :exec
 UPDATE devices
-SET healthy = $1, kolide_last_seen = $2, last_updated = NOW()
-WHERE serial = $3 AND platform = $4
+SET healthy = $1, last_updated = NOW()
+WHERE serial = $2 AND platform = $3
 `
 
 type UpdateDeviceParams struct {
-	Healthy        *bool
-	KolideLastSeen *time.Time
-	Serial         *string
-	Platform       Platform
+	Healthy  *bool
+	Serial   *string
+	Platform Platform
 }
 
 func (q *Queries) UpdateDevice(ctx context.Context, arg UpdateDeviceParams) error {
-	_, err := q.db.Exec(ctx, updateDevice,
-		arg.Healthy,
-		arg.KolideLastSeen,
-		arg.Serial,
-		arg.Platform,
-	)
+	_, err := q.db.Exec(ctx, updateDevice, arg.Healthy, arg.Serial, arg.Platform)
 	return err
 }

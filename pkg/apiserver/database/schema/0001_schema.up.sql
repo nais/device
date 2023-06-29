@@ -6,22 +6,20 @@ CREATE TYPE platform AS ENUM ('darwin', 'linux', 'windows');
 
 -- tables
 
-CREATE TABLE device
+CREATE TABLE devices
 (
     id SERIAL PRIMARY KEY,
     username VARCHAR,
     serial VARCHAR,
-    psk VARCHAR(44),
     platform platform NOT NULL,
     healthy BOOLEAN,
     last_updated TIMESTAMP WITH TIME ZONE,
-    kolide_last_seen TIMESTAMP WITH TIME ZONE,
     public_key VARCHAR(44) NOT NULL UNIQUE,
     ip VARCHAR(15) UNIQUE,
     UNIQUE (serial, platform)
 );
 
-CREATE TABLE gateway
+CREATE TABLE gateways
 (
     id SERIAL PRIMARY KEY,
     name VARCHAR NOT NULL UNIQUE,
@@ -34,7 +32,7 @@ CREATE TABLE gateway
     password_hash VARCHAR(255) NULL
 );
 
-CREATE TABLE session
+CREATE TABLE sessions
 (
     key VARCHAR UNIQUE,
     expiry TIMESTAMP WITH TIME ZONE,
@@ -45,12 +43,12 @@ CREATE TABLE session
 
 -- indexes
 
-CREATE INDEX ON session (expiry);
-CREATE INDEX ON device (LOWER(username));
+CREATE INDEX ON sessions (expiry);
+CREATE INDEX ON devices (LOWER(username));
 
 -- foreign keys
 
-ALTER TABLE session
-ADD FOREIGN KEY (device_id) REFERENCES device(id) ON DELETE CASCADE;
+ALTER TABLE sessions
+ADD FOREIGN KEY (device_id) REFERENCES devices(id) ON DELETE CASCADE;
 
 COMMIT;

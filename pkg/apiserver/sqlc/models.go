@@ -72,16 +72,14 @@ func AllPlatformValues() []Platform {
 }
 
 type Device struct {
-	ID             int32
-	Username       *string
-	Serial         *string
-	Psk            *string
-	Platform       Platform
-	Healthy        *bool
-	LastUpdated    *time.Time
-	KolideLastSeen *time.Time
-	PublicKey      string
-	Ip             *string
+	ID          int32
+	Username    *string
+	Serial      *string
+	Platform    Platform
+	Healthy     *bool
+	LastUpdated *time.Time
+	PublicKey   string
+	Ip          *string
 }
 
 type Gateway struct {

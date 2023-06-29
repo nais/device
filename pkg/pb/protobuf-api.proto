@@ -288,9 +288,11 @@ message ListGatewayRequest {
 message Device {
   int64 id = 1;
   string serial = 2;
-  string psk = 3;
+  reserved 'psk';
+  reserved 3;
   google.protobuf.Timestamp lastUpdated = 4;
-  google.protobuf.Timestamp kolideLastSeen = 5;
+  reserved 'kolideLastSeen';
+  reserved 5;
   bool healthy = 6;
   string publicKey = 7;
   string ip = 8;
