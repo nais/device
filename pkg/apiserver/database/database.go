@@ -62,8 +62,8 @@ func (db *ApiServerDB) UpdateDevices(ctx context.Context, devices []*pb.Device) 
 	err := db.queries.Transaction(ctx, func(ctx context.Context, queries *sqlc.Queries) error {
 		for _, device := range devices {
 			err := queries.UpdateDevice(ctx, sqlc.UpdateDeviceParams{
-				Healthy:  &device.Healthy,
-				Serial:   &device.Serial,
+				Healthy:  device.Healthy,
+				Serial:   device.Serial,
 				Platform: sqlc.Platform(device.Platform),
 			})
 			if err != nil {
@@ -81,17 +81,14 @@ func (db *ApiServerDB) UpdateDevices(ctx context.Context, devices []*pb.Device) 
 }
 
 func (db *ApiServerDB) UpdateGateway(ctx context.Context, gw *pb.Gateway) error {
-	accessGroupIDs := strings.Join(gw.AccessGroupIDs, ",")
-	routes := strings.Join(gw.Routes, ",")
-
 	err := db.queries.UpdateGateway(ctx, sqlc.UpdateGatewayParams{
 		PublicKey:                gw.PublicKey,
-		AccessGroupIds:           &accessGroupIDs,
-		Endpoint:                 &gw.Endpoint,
-		Ip:                       &gw.Ip,
-		Routes:                   &routes,
-		RequiresPrivilegedAccess: &gw.RequiresPrivilegedAccess,
-		PasswordHash:             &gw.PasswordHash,
+		AccessGroupIds:           strings.Join(gw.AccessGroupIDs, ","),
+		Endpoint:                 gw.Endpoint,
+		Ip:                       gw.Ip,
+		Routes:                   strings.Join(gw.Routes, ","),
+		RequiresPrivilegedAccess: gw.RequiresPrivilegedAccess,
+		PasswordHash:             gw.PasswordHash,
 		Name:                     gw.Name,
 	})
 	if err != nil {
@@ -102,13 +99,10 @@ func (db *ApiServerDB) UpdateGateway(ctx context.Context, gw *pb.Gateway) error 
 }
 
 func (db *ApiServerDB) UpdateGatewayDynamicFields(ctx context.Context, gw *pb.Gateway) error {
-	accessGroupIDs := strings.Join(gw.AccessGroupIDs, ",")
-	routes := strings.Join(gw.Routes, ",")
-
 	err := db.queries.UpdateGatewayDynamicFields(ctx, sqlc.UpdateGatewayDynamicFieldsParams{
-		AccessGroupIds:           &accessGroupIDs,
-		Routes:                   &routes,
-		RequiresPrivilegedAccess: &gw.RequiresPrivilegedAccess,
+		AccessGroupIds:           strings.Join(gw.AccessGroupIDs, ","),
+		Routes:                   strings.Join(gw.Routes, ","),
+		RequiresPrivilegedAccess: gw.RequiresPrivilegedAccess,
 		Name:                     gw.Name,
 	})
 	if err != nil {
@@ -132,13 +126,13 @@ func (db *ApiServerDB) AddGateway(ctx context.Context, gw *pb.Gateway) error {
 
 	err = db.queries.AddGateway(ctx, sqlc.AddGatewayParams{
 		Name:                     gw.Name,
-		Endpoint:                 &gw.Endpoint,
+		Endpoint:                 gw.Endpoint,
 		PublicKey:                gw.PublicKey,
 		Ip:                       availableIp,
-		PasswordHash:             &gw.PasswordHash,
-		AccessGroupIds:           &accessGroupIDs,
-		Routes:                   &routes,
-		RequiresPrivilegedAccess: &gw.RequiresPrivilegedAccess,
+		PasswordHash:             gw.PasswordHash,
+		AccessGroupIds:           accessGroupIDs,
+		Routes:                   routes,
+		RequiresPrivilegedAccess: gw.RequiresPrivilegedAccess,
 	})
 	if err != nil {
 		return fmt.Errorf("inserting new gateway: %w", err)
@@ -157,11 +151,11 @@ func (db *ApiServerDB) AddDevice(ctx context.Context, device *pb.Device) error {
 	}
 
 	err = db.queries.AddDevice(ctx, sqlc.AddDeviceParams{
-		Serial:    &device.Serial,
-		Username:  &device.Username,
+		Serial:    device.Serial,
+		Username:  device.Username,
 		PublicKey: device.PublicKey,
 		Ip:        availableIp,
-		Healthy:   &db.defaultDeviceHealth,
+		Healthy:   db.defaultDeviceHealth,
 		Platform:  sqlc.Platform(device.Platform),
 	})
 	if err != nil {
@@ -239,7 +233,7 @@ func (db *ApiServerDB) readExistingIPs(ctx context.Context) ([]string, error) {
 
 func (db *ApiServerDB) ReadDeviceBySerialPlatform(ctx context.Context, serial, platform string) (*pb.Device, error) {
 	gateway, err := db.queries.GetDeviceBySerialAndPlatform(ctx, sqlc.GetDeviceBySerialAndPlatformParams{
-		Serial:   &serial,
+		Serial:   serial,
 		Platform: sqlc.Platform(platform),
 	})
 	if err != nil {
@@ -250,15 +244,12 @@ func (db *ApiServerDB) ReadDeviceBySerialPlatform(ctx context.Context, serial, p
 }
 
 func (db *ApiServerDB) AddSessionInfo(ctx context.Context, si *pb.Session) error {
-	expiry := si.Expiry.AsTime()
-	groups := strings.Join(si.Groups, ",")
-
 	err := db.queries.AddSession(ctx, sqlc.AddSessionParams{
-		Key:      &si.Key,
-		Expiry:   &expiry,
+		Key:      si.Key,
+		Expiry:   si.Expiry.AsTime(),
 		DeviceID: int32(si.GetDevice().GetId()),
-		Groups:   &groups,
-		ObjectID: &si.ObjectID,
+		Groups:   strings.Join(si.Groups, ","),
+		ObjectID: si.ObjectID,
 	})
 	if err != nil {
 		return fmt.Errorf("create session: %w", err)
@@ -268,7 +259,7 @@ func (db *ApiServerDB) AddSessionInfo(ctx context.Context, si *pb.Session) error
 }
 
 func (db *ApiServerDB) ReadSessionInfo(ctx context.Context, key string) (*pb.Session, error) {
-	row, err := db.queries.GetSessionByKey(ctx, &key)
+	row, err := db.queries.GetSessionByKey(ctx, key)
 	if err != nil {
 		return nil, err
 	}
@@ -299,18 +290,18 @@ func (db *ApiServerDB) ReadMostRecentSessionInfo(ctx context.Context, deviceID i
 	return sqlcSessionAndDeviceToPbSession(row.Session, row.Device), nil
 }
 
-func (db *ApiServerDB) getNextAvailableIp(ctx context.Context) (*string, error) {
+func (db *ApiServerDB) getNextAvailableIp(ctx context.Context) (string, error) {
 	existingIps, err := db.readExistingIPs(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("reading existing ips: %w", err)
+		return "", fmt.Errorf("reading existing ips: %w", err)
 	}
 
 	availableIp, err := db.IPAllocator.NextIP(existingIps)
 	if err != nil {
-		return nil, fmt.Errorf("finding available ip: %w", err)
+		return "", fmt.Errorf("finding available ip: %w", err)
 	}
 
-	return &availableIp, nil
+	return availableIp, nil
 }
 
 func derefString(s *string) string {
@@ -330,11 +321,11 @@ func derefBool(b *bool) bool {
 func sqlcDeviceToPbDevice(d sqlc.Device) *pb.Device {
 	device := &pb.Device{
 		Id:        int64(d.ID),
-		Serial:    derefString(d.Serial),
-		Healthy:   derefBool(d.Healthy),
+		Serial:    d.Serial,
+		Healthy:   d.Healthy,
 		PublicKey: d.PublicKey,
-		Ip:        derefString(d.Ip),
-		Username:  derefString(d.Username),
+		Ip:        d.Ip,
+		Username:  d.Username,
 		Platform:  string(d.Platform),
 	}
 
@@ -349,21 +340,18 @@ func sqlcGatewayToPbGateway(g sqlc.Gateway) *pb.Gateway {
 	gateway := &pb.Gateway{
 		Name:                     g.Name,
 		PublicKey:                g.PublicKey,
-		Endpoint:                 derefString(g.Endpoint),
-		Ip:                       derefString(g.Ip),
-		RequiresPrivilegedAccess: derefBool(g.RequiresPrivilegedAccess),
+		Endpoint:                 g.Endpoint,
+		Ip:                       g.Ip,
+		RequiresPrivilegedAccess: g.RequiresPrivilegedAccess,
+		PasswordHash:             g.PasswordHash,
 	}
 
-	if g.PasswordHash != nil {
-		gateway.PasswordHash = *g.PasswordHash
+	if len(g.AccessGroupIds) > 0 {
+		gateway.AccessGroupIDs = strings.Split(g.AccessGroupIds, ",")
 	}
 
-	if g.AccessGroupIds != nil && len(*g.AccessGroupIds) > 0 {
-		gateway.AccessGroupIDs = strings.Split(*g.AccessGroupIds, ",")
-	}
-
-	if g.Routes != nil && len(*g.Routes) > 0 {
-		gateway.Routes = strings.Split(*g.Routes, ",")
+	if len(g.Routes) > 0 {
+		gateway.Routes = strings.Split(g.Routes, ",")
 	}
 
 	return gateway
@@ -371,17 +359,14 @@ func sqlcGatewayToPbGateway(g sqlc.Gateway) *pb.Gateway {
 
 func sqlcSessionAndDeviceToPbSession(s sqlc.Session, d sqlc.Device) *pb.Session {
 	session := &pb.Session{
-		Key:      derefString(s.Key),
+		Key:      s.Key,
 		Device:   sqlcDeviceToPbDevice(d),
-		ObjectID: derefString(s.ObjectID),
+		ObjectID: s.ObjectID,
+		Expiry:   timestamppb.New(s.Expiry),
 	}
 
-	if s.Expiry != nil {
-		session.Expiry = timestamppb.New(*s.Expiry)
-	}
-
-	if s.Groups != nil && len(*s.Groups) > 0 {
-		session.Groups = strings.Split(*s.Groups, ",")
+	if len(s.Groups) > 0 {
+		session.Groups = strings.Split(s.Groups, ",")
 	}
 
 	return session

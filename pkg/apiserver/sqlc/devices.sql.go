@@ -17,11 +17,11 @@ ON CONFLICT(serial, platform) DO
 `
 
 type AddDeviceParams struct {
-	Serial    *string
-	Username  *string
+	Serial    string
+	Username  string
 	PublicKey string
-	Ip        *string
-	Healthy   *bool
+	Ip        string
+	Healthy   bool
 	Platform  Platform
 }
 
@@ -82,7 +82,7 @@ SELECT id, username, serial, platform, healthy, last_updated, public_key, ip fro
 `
 
 type GetDeviceBySerialAndPlatformParams struct {
-	Serial   *string
+	Serial   string
 	Platform Platform
 }
 
@@ -142,8 +142,8 @@ WHERE serial = $2 AND platform = $3
 `
 
 type UpdateDeviceParams struct {
-	Healthy  *bool
-	Serial   *string
+	Healthy  bool
+	Serial   string
 	Platform Platform
 }
 

@@ -9,36 +9,42 @@ CREATE TYPE platform AS ENUM ('darwin', 'linux', 'windows');
 CREATE TABLE devices
 (
     id SERIAL PRIMARY KEY,
-    username VARCHAR,
-    serial VARCHAR,
+    username TEXT NOT NULL,
+    serial TEXT NOT NULL,
     platform platform NOT NULL,
-    healthy BOOLEAN,
+    healthy BOOLEAN NOT NULL DEFAULT false,
     last_updated TIMESTAMP WITH TIME ZONE,
-    public_key VARCHAR(44) NOT NULL UNIQUE,
-    ip VARCHAR(15) UNIQUE,
-    UNIQUE (serial, platform)
+    public_key TEXT NOT NULL,
+    ip TEXT NOT NULL,
+    UNIQUE (serial, platform),
+    UNIQUE (public_key),
+    UNIQUE (ip)
 );
 
 CREATE TABLE gateways
 (
     id SERIAL PRIMARY KEY,
-    name VARCHAR NOT NULL UNIQUE,
-    access_group_ids VARCHAR DEFAULT '',
-    endpoint VARCHAR(21),
-    public_key VARCHAR(44) NOT NULL UNIQUE,
-    ip VARCHAR(15) UNIQUE,
-    routes VARCHAR DEFAULT '',
-    requires_privileged_access BOOLEAN DEFAULT FALSE,
-    password_hash VARCHAR(255) NULL
+    name TEXT NOT NULL,
+    access_group_ids TEXT NOT NULL DEFAULT '',
+    endpoint TEXT NOT NULL,
+    public_key TEXT NOT NULL,
+    ip TEXT NOT NULL,
+    routes TEXT NOT NULL DEFAULT '',
+    requires_privileged_access BOOLEAN NOT NULL DEFAULT false,
+    password_hash TEXT NOT NULL,
+    UNIQUE (name),
+    UNIQUE (public_key),
+    UNIQUE (ip)
 );
 
 CREATE TABLE sessions
 (
-    key VARCHAR UNIQUE,
-    expiry TIMESTAMP WITH TIME ZONE,
+    key TEXT NOT NULL,
+    expiry TIMESTAMP WITH TIME ZONE NOT NULL,
     device_id INTEGER NOT NULL,
-    groups VARCHAR,
-    object_id VARCHAR
+    groups TEXT NOT NULL DEFAULT '',
+    object_id TEXT NOT NULL,
+    UNIQUE (key)
 );
 
 -- indexes

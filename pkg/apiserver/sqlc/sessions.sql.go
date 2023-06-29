@@ -16,11 +16,11 @@ VALUES ($1, $2, $3, $4, $5)
 `
 
 type AddSessionParams struct {
-	Key      *string
-	Expiry   *time.Time
+	Key      string
+	Expiry   time.Time
 	DeviceID int32
-	Groups   *string
-	ObjectID *string
+	Groups   string
+	ObjectID string
 }
 
 func (q *Queries) AddSession(ctx context.Context, arg AddSessionParams) error {
@@ -78,7 +78,7 @@ type GetSessionByKeyRow struct {
 	Device  Device
 }
 
-func (q *Queries) GetSessionByKey(ctx context.Context, key *string) (*GetSessionByKeyRow, error) {
+func (q *Queries) GetSessionByKey(ctx context.Context, key string) (*GetSessionByKeyRow, error) {
 	row := q.db.QueryRow(ctx, getSessionByKey, key)
 	var i GetSessionByKeyRow
 	err := row.Scan(

@@ -17,13 +17,13 @@ ON CONFLICT (name) DO UPDATE SET endpoint = excluded.endpoint, public_key = excl
 
 type AddGatewayParams struct {
 	Name                     string
-	Endpoint                 *string
+	Endpoint                 string
 	PublicKey                string
-	Ip                       *string
-	PasswordHash             *string
-	AccessGroupIds           *string
-	Routes                   *string
-	RequiresPrivilegedAccess *bool
+	Ip                       string
+	PasswordHash             string
+	AccessGroupIds           string
+	Routes                   string
+	RequiresPrivilegedAccess bool
 }
 
 func (q *Queries) AddGateway(ctx context.Context, arg AddGatewayParams) error {
@@ -103,12 +103,12 @@ WHERE name = $8
 
 type UpdateGatewayParams struct {
 	PublicKey                string
-	AccessGroupIds           *string
-	Endpoint                 *string
-	Ip                       *string
-	Routes                   *string
-	RequiresPrivilegedAccess *bool
-	PasswordHash             *string
+	AccessGroupIds           string
+	Endpoint                 string
+	Ip                       string
+	Routes                   string
+	RequiresPrivilegedAccess bool
+	PasswordHash             string
 	Name                     string
 }
 
@@ -133,9 +133,9 @@ WHERE name = $4
 `
 
 type UpdateGatewayDynamicFieldsParams struct {
-	AccessGroupIds           *string
-	Routes                   *string
-	RequiresPrivilegedAccess *bool
+	AccessGroupIds           string
+	Routes                   string
+	RequiresPrivilegedAccess bool
 	Name                     string
 }
 
