@@ -1,19 +1,15 @@
 BEGIN;
 
--- types
-
-CREATE TYPE platform AS ENUM ('darwin', 'linux', 'windows');
-
 -- tables
 
 CREATE TABLE devices
 (
-    id SERIAL PRIMARY KEY,
+    id INTEGER PRIMARY KEY,
     username TEXT NOT NULL,
     serial TEXT NOT NULL,
-    platform platform NOT NULL,
-    healthy BOOLEAN NOT NULL DEFAULT false,
-    last_updated TIMESTAMP WITH TIME ZONE,
+    platform TEXT CHECK(platform IN ('darwin', 'linux', 'windows')) NOT NULL,
+    healthy INTEGER NOT NULL DEFAULT 0,
+    last_updated TEXT,
     public_key TEXT NOT NULL,
     ip TEXT NOT NULL,
     UNIQUE (serial, platform),
@@ -27,7 +23,7 @@ CREATE TABLE gateways
     endpoint TEXT NOT NULL,
     public_key TEXT NOT NULL,
     ip TEXT NOT NULL,
-    requires_privileged_access BOOLEAN NOT NULL DEFAULT false,
+    requires_privileged_access INTEGER NOT NULL DEFAULT 0,
     password_hash TEXT NOT NULL,
     UNIQUE (public_key),
     UNIQUE (ip)
@@ -37,48 +33,38 @@ CREATE TABLE gateway_access_group_ids
 (
     gateway_name TEXT NOT NULL,
     group_id TEXT NOT NULL,
-    PRIMARY KEY(gateway_name, group_id)
+    PRIMARY KEY(gateway_name, group_id),
+    FOREIGN KEY (gateway_name) REFERENCES gateways(name) ON DELETE CASCADE
 );
 
 CREATE TABLE gateway_routes
 (
     gateway_name TEXT NOT NULL,
     route TEXT NOT NULL,
-    PRIMARY KEY(gateway_name, route)
+    PRIMARY KEY(gateway_name, route),
+    FOREIGN KEY (gateway_name) REFERENCES gateways(name) ON DELETE CASCADE
 );
 
 CREATE TABLE sessions
 (
     key TEXT NOT NULL,
-    expiry TIMESTAMP WITH TIME ZONE NOT NULL,
+    expiry TEXT NOT NULL,
     device_id INTEGER NOT NULL,
     object_id TEXT NOT NULL,
-    UNIQUE (key)
+    UNIQUE (key),
+    FOREIGN KEY (device_id) REFERENCES devices(id) ON DELETE CASCADE
 );
 
 CREATE TABLE session_access_group_ids (
     session_key TEXT NOT NULL,
     group_id TEXT NOT NULL,
-    PRIMARY KEY(session_key, group_id)
+    PRIMARY KEY(session_key, group_id),
+    FOREIGN KEY (session_key) REFERENCES sessions(key) ON DELETE CASCADE
 );
 
 -- indexes
 
-CREATE INDEX ON sessions (expiry);
-CREATE INDEX ON devices (LOWER(username));
-
--- foreign keys
-
-ALTER TABLE sessions
-ADD FOREIGN KEY (device_id) REFERENCES devices(id) ON DELETE CASCADE;
-
-ALTER TABLE gateway_access_group_ids
-ADD FOREIGN KEY (gateway_name) REFERENCES gateways(name) ON DELETE CASCADE;
-
-ALTER TABLE gateway_routes
-ADD FOREIGN KEY (gateway_name) REFERENCES gateways(name) ON DELETE CASCADE;
-
-ALTER TABLE session_access_group_ids
-ADD FOREIGN KEY (session_key) REFERENCES sessions(key) ON DELETE CASCADE;
+CREATE INDEX session_expiry_idx ON sessions (expiry);
+CREATE INDEX devices_username_idx ON devices (LOWER(username));
 
 COMMIT;
