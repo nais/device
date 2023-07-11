@@ -20,3 +20,6 @@ device-agent.log
 .protoc
 packaging/windows/naisdevice.crt
 packaging/windows/naisdevice.key
+.envrc
+*.db
+operational/scripts/data/
