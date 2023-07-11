@@ -3,6 +3,7 @@ package device_agent
 import (
 	"context"
 	"fmt"
+	"strings"
 	"sync"
 	"time"
 
@@ -131,7 +132,7 @@ func (das *DeviceAgentServer) SetActiveTenant(ctx context.Context, req *pb.SetAc
 	}
 
 	for i, tenant := range das.rc.Tenants {
-		if tenant.Name == req.Name {
+		if strings.ToLower(tenant.Name) == strings.ToLower(tenant.Name) {
 			das.rc.Tenants[i].Active = true
 			das.stateChange <- pb.AgentState_Disconnecting
 			log.Infof("activated tenant: %s", tenant.Name)
