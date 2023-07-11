@@ -80,7 +80,6 @@ func EditGateway(c *cli.Context) error {
 		c.String(FlagAPIServer),
 		grpc.WithInsecure(),
 	)
-
 	if err != nil {
 		return err
 	}
@@ -161,7 +160,6 @@ func EnrollGateway(c *cli.Context) error {
 		c.String(FlagAPIServer),
 		grpc.WithInsecure(),
 	)
-
 	if err != nil {
 		return err
 	}

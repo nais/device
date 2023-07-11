@@ -11,7 +11,7 @@ import (
 
 const addGateway = `-- name: AddGateway :exec
 INSERT INTO gateways (name, endpoint, public_key, ip, password_hash, requires_privileged_access)
-VALUES (?, ?, ?, ?, ?, ?)
+VALUES (?1, ?2, ?3, ?4, ?5, ?6)
 ON CONFLICT (name) DO
     UPDATE SET endpoint = excluded.endpoint, public_key = excluded.public_key, password_hash = excluded.password_hash
 `
@@ -22,7 +22,7 @@ type AddGatewayParams struct {
 	PublicKey                string
 	Ip                       string
 	PasswordHash             string
-	RequiresPrivilegedAccess int64
+	RequiresPrivilegedAccess bool
 }
 
 func (q *Queries) AddGateway(ctx context.Context, arg AddGatewayParams) error {
@@ -39,7 +39,7 @@ func (q *Queries) AddGateway(ctx context.Context, arg AddGatewayParams) error {
 
 const addGatewayAccessGroupID = `-- name: AddGatewayAccessGroupID :exec
 INSERT INTO gateway_access_group_ids (gateway_name, group_id)
-VALUES (?, ?)
+VALUES (?1, ?2)
 ON CONFLICT DO NOTHING
 `
 
@@ -55,7 +55,7 @@ func (q *Queries) AddGatewayAccessGroupID(ctx context.Context, arg AddGatewayAcc
 
 const addGatewayRoute = `-- name: AddGatewayRoute :exec
 INSERT INTO gateway_routes (gateway_name, route)
-VALUES (?, ?)
+VALUES (?1, ?2)
 ON CONFLICT DO NOTHING
 `
 
@@ -70,7 +70,7 @@ func (q *Queries) AddGatewayRoute(ctx context.Context, arg AddGatewayRouteParams
 }
 
 const deleteGatewayAccessGroupIDs = `-- name: DeleteGatewayAccessGroupIDs :exec
-DELETE FROM gateway_access_group_ids WHERE gateway_name = ?
+DELETE FROM gateway_access_group_ids WHERE gateway_name = ?1
 `
 
 func (q *Queries) DeleteGatewayAccessGroupIDs(ctx context.Context, gatewayName string) error {
@@ -79,7 +79,7 @@ func (q *Queries) DeleteGatewayAccessGroupIDs(ctx context.Context, gatewayName s
 }
 
 const deleteGatewayRoutes = `-- name: DeleteGatewayRoutes :exec
-DELETE FROM gateway_routes WHERE gateway_name = ?
+DELETE FROM gateway_routes WHERE gateway_name = ?1
 `
 
 func (q *Queries) DeleteGatewayRoutes(ctx context.Context, gatewayName string) error {
@@ -88,7 +88,7 @@ func (q *Queries) DeleteGatewayRoutes(ctx context.Context, gatewayName string) e
 }
 
 const getGatewayAccessGroupIDs = `-- name: GetGatewayAccessGroupIDs :many
-SELECT group_id FROM gateway_access_group_ids WHERE gateway_name = ?
+SELECT group_id FROM gateway_access_group_ids WHERE gateway_name = ?1 ORDER BY group_id
 `
 
 func (q *Queries) GetGatewayAccessGroupIDs(ctx context.Context, gatewayName string) ([]string, error) {
@@ -115,7 +115,7 @@ func (q *Queries) GetGatewayAccessGroupIDs(ctx context.Context, gatewayName stri
 }
 
 const getGatewayByName = `-- name: GetGatewayByName :one
-SELECT name, endpoint, public_key, ip, requires_privileged_access, password_hash FROM gateways WHERE name = ?
+SELECT name, endpoint, public_key, ip, requires_privileged_access, password_hash FROM gateways WHERE name = ?1
 `
 
 func (q *Queries) GetGatewayByName(ctx context.Context, name string) (*Gateway, error) {
@@ -133,7 +133,7 @@ func (q *Queries) GetGatewayByName(ctx context.Context, name string) (*Gateway, 
 }
 
 const getGatewayRoutes = `-- name: GetGatewayRoutes :many
-SELECT route FROM gateway_routes WHERE gateway_name = ?
+SELECT route FROM gateway_routes WHERE gateway_name = ?1 ORDER BY route
 `
 
 func (q *Queries) GetGatewayRoutes(ctx context.Context, gatewayName string) ([]string, error) {
@@ -160,7 +160,7 @@ func (q *Queries) GetGatewayRoutes(ctx context.Context, gatewayName string) ([]s
 }
 
 const getGateways = `-- name: GetGateways :many
-SELECT name, endpoint, public_key, ip, requires_privileged_access, password_hash FROM gateways
+SELECT name, endpoint, public_key, ip, requires_privileged_access, password_hash FROM gateways ORDER BY name
 `
 
 func (q *Queries) GetGateways(ctx context.Context) ([]*Gateway, error) {
@@ -195,15 +195,15 @@ func (q *Queries) GetGateways(ctx context.Context) ([]*Gateway, error) {
 
 const updateGateway = `-- name: UpdateGateway :exec
 UPDATE gateways
-SET public_key = ?, endpoint = ?, ip = ?, requires_privileged_access = ?, password_hash = ?
-WHERE name = ?
+SET public_key = ?1, endpoint = ?2, ip = ?3, requires_privileged_access = ?4, password_hash = ?5
+WHERE name = ?6
 `
 
 type UpdateGatewayParams struct {
 	PublicKey                string
 	Endpoint                 string
 	Ip                       string
-	RequiresPrivilegedAccess int64
+	RequiresPrivilegedAccess bool
 	PasswordHash             string
 	Name                     string
 }
@@ -222,12 +222,12 @@ func (q *Queries) UpdateGateway(ctx context.Context, arg UpdateGatewayParams) er
 
 const updateGatewayDynamicFields = `-- name: UpdateGatewayDynamicFields :exec
 UPDATE gateways
-SET requires_privileged_access = ?
-WHERE name = ?
+SET requires_privileged_access = ?1
+WHERE name = ?2
 `
 
 type UpdateGatewayDynamicFieldsParams struct {
-	RequiresPrivilegedAccess int64
+	RequiresPrivilegedAccess bool
 	Name                     string
 }
 

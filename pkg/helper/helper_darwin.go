@@ -88,7 +88,6 @@ func (c *DarwinConfigurator) TeardownInterface(ctx context.Context) error {
 
 	cmd := exec.CommandContext(ctx, "pkill", "-f", fmt.Sprintf("%s %s", wireGuardGoBinary, c.helperConfig.Interface))
 	out, err := cmd.CombinedOutput()
-
 	if err != nil {
 		log.Errorf("teardown output: %v", string(out))
 		return err

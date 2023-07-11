@@ -16,8 +16,10 @@ PrivateKey = %s
 `
 
 // mtu is no-op on non-windows platforms
-const mtu = 0
-const windows = false
+const (
+	mtu     = 0
+	windows = false
+)
 
 func MarshalHeader(w io.Writer, x *pb.Configuration) (int, error) {
 	return fmt.Fprintf(w, wireGuardTemplateHeader, x.GetPrivateKey())

@@ -1,6 +1,3 @@
-//go:build integration_test
-// +build integration_test
-
 package enroller_test
 
 import (
@@ -9,14 +6,12 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
-	"net/netip"
 	"sync"
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/nais/device/pkg/apiserver/database"
 	"github.com/nais/device/pkg/apiserver/enroller"
 	"github.com/nais/device/pkg/apiserver/testdatabase"
 	"github.com/nais/device/pkg/bootstrap"
@@ -81,9 +76,7 @@ func TestWatchDeviceEnrollments(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 
-	ipAllocator := database.NewIPAllocator(netip.MustParsePrefix(wireguardNetworkAddress), []string{apiserverWireGuardIP})
-	testDB, err := testdatabase.New(ctx, ipAllocator)
-	assert.NoError(t, err)
+	testDB := testdatabase.Setup(t)
 	server := httptest.NewServer(mux)
 	enr := enroller.Enroller{
 		Client:             server.Client(),

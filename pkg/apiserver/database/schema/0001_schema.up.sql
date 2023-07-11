@@ -1,4 +1,4 @@
-BEGIN;
+-- BEGIN; # golang migrate automatically wraps migrations in a transaction
 
 -- tables
 
@@ -8,7 +8,7 @@ CREATE TABLE devices
     username TEXT NOT NULL,
     serial TEXT NOT NULL,
     platform TEXT CHECK(platform IN ('darwin', 'linux', 'windows')) NOT NULL,
-    healthy INTEGER NOT NULL DEFAULT 0,
+    healthy BOOLEAN NOT NULL DEFAULT 0,
     last_updated TEXT,
     public_key TEXT NOT NULL,
     ip TEXT NOT NULL,
@@ -23,7 +23,7 @@ CREATE TABLE gateways
     endpoint TEXT NOT NULL,
     public_key TEXT NOT NULL,
     ip TEXT NOT NULL,
-    requires_privileged_access INTEGER NOT NULL DEFAULT 0,
+    requires_privileged_access BOOLEAN NOT NULL DEFAULT 0,
     password_hash TEXT NOT NULL,
     UNIQUE (public_key),
     UNIQUE (ip)
@@ -67,4 +67,4 @@ CREATE TABLE session_access_group_ids (
 CREATE INDEX session_expiry_idx ON sessions (expiry);
 CREATE INDEX devices_username_idx ON devices (LOWER(username));
 
-COMMIT;
+-- COMMIT; # golang migrate automatically wraps migrations in a transaction

@@ -39,8 +39,7 @@ func TestMarshalConfiguration(t *testing.T) {
 
 	assert.NoError(t, err)
 
-	expected :=
-		`[Interface]
+	expected := `[Interface]
 PrivateKey = abc
 
 [Peer] # gateway-1

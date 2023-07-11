@@ -21,7 +21,7 @@ func NewEnroller(cfg Config) Enroller {
 }
 
 func (e *Enroller) persistPassword(password []byte, file string) error {
-	fd, err := os.OpenFile(file, os.O_WRONLY|os.O_APPEND, 0600)
+	fd, err := os.OpenFile(file, os.O_WRONLY|os.O_APPEND, 0o600)
 	if err != nil {
 		return fmt.Errorf("open file: %w", err)
 	}

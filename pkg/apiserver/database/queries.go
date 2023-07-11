@@ -2,15 +2,14 @@ package database
 
 import (
 	"context"
+	"database/sql"
 
-	"github.com/jackc/pgx/v4"
 	"github.com/nais/device/pkg/apiserver/sqlc"
-	log "github.com/sirupsen/logrus"
 )
 
 type Queries struct {
 	*sqlc.Queries
-	conn *pgx.Conn
+	db *sql.DB
 }
 
 type Querier interface {
@@ -18,28 +17,24 @@ type Querier interface {
 	Transaction(ctx context.Context, callback func(ctx context.Context, queries *sqlc.Queries) error) error
 }
 
-func NewQuerier(conn *pgx.Conn) *Queries {
+func NewQuerier(db *sql.DB) *Queries {
 	return &Queries{
-		Queries: sqlc.New(conn),
-		conn:    conn,
+		Queries: sqlc.New(db),
+		db:      db,
 	}
 }
 
 func (q *Queries) Transaction(ctx context.Context, callback func(ctx context.Context, queries *sqlc.Queries) error) error {
-	tx, err := q.conn.Begin(ctx)
+	tx, err := q.db.BeginTx(ctx, &sql.TxOptions{})
 	if err != nil {
 		return err
 	}
 
-	defer func() {
-		if err := tx.Rollback(ctx); err != nil {
-			log.WithError(err).Errorf("rollback")
-		}
-	}()
+	defer tx.Rollback()
 
 	if err = callback(ctx, q.WithTx(tx)); err != nil {
 		return err
 	}
 
-	return tx.Commit(ctx)
+	return tx.Commit()
 }

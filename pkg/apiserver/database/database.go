@@ -2,12 +2,14 @@ package database
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 	"sync"
+	"time"
 
-	"github.com/jackc/pgx/v4"
 	"github.com/nais/device/pkg/apiserver/sqlc"
 	"github.com/nais/device/pkg/pb"
+	log "github.com/sirupsen/logrus"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
@@ -19,24 +21,19 @@ type ApiServerDB struct {
 
 var mux sync.Mutex
 
-func New(ctx context.Context, dsn string, ipAllocator IPAllocator, defaultDeviceHealth bool) (APIServer, error) {
-	cfg, err := pgx.ParseConfig(dsn)
+func New(ctx context.Context, databasePath string, ipAllocator IPAllocator, defaultDeviceHealth bool) (APIServer, error) {
+	db, err := sql.Open("sqlite3", databasePath)
 	if err != nil {
-		return nil, fmt.Errorf("parse DSN: %w", err)
-	}
-
-	conn, err := pgx.ConnectConfig(ctx, cfg)
-	if err != nil {
-		return nil, fmt.Errorf("connecting to database: %w", err)
+		return nil, fmt.Errorf("open database: %w", err)
 	}
 
 	apiServerDB := ApiServerDB{
-		queries:             NewQuerier(conn),
+		queries:             NewQuerier(db),
 		IPAllocator:         ipAllocator,
 		defaultDeviceHealth: defaultDeviceHealth,
 	}
 
-	if err = runMigrations(cfg.ConnString()); err != nil {
+	if err = runMigrations(databasePath); err != nil {
 		return nil, fmt.Errorf("migrating database: %w", err)
 	}
 
@@ -61,9 +58,9 @@ func (db *ApiServerDB) UpdateDevices(ctx context.Context, devices []*pb.Device) 
 	err := db.queries.Transaction(ctx, func(ctx context.Context, queries *sqlc.Queries) error {
 		for _, device := range devices {
 			err := queries.UpdateDevice(ctx, sqlc.UpdateDeviceParams{
-				Healthy:  device.Healthy,
+				Healthy:  true,
 				Serial:   device.Serial,
-				Platform: sqlc.Platform(device.Platform),
+				Platform: device.Platform,
 			})
 			if err != nil {
 				return err
@@ -247,7 +244,7 @@ func (db *ApiServerDB) AddDevice(ctx context.Context, device *pb.Device) error {
 		PublicKey: device.PublicKey,
 		Ip:        availableIp,
 		Healthy:   db.defaultDeviceHealth,
-		Platform:  sqlc.Platform(device.Platform),
+		Platform:  device.Platform,
 	})
 	if err != nil {
 		return fmt.Errorf("inserting new device: %w", err)
@@ -266,7 +263,7 @@ func (db *ApiServerDB) ReadDevice(ctx context.Context, publicKey string) (*pb.De
 }
 
 func (db *ApiServerDB) ReadDeviceById(ctx context.Context, deviceID int64) (*pb.Device, error) {
-	device, err := db.queries.GetDeviceByID(ctx, int32(deviceID))
+	device, err := db.queries.GetDeviceByID(ctx, deviceID)
 	if err != nil {
 		return nil, err
 	}
@@ -344,7 +341,7 @@ func (db *ApiServerDB) readExistingIPs(ctx context.Context) ([]string, error) {
 func (db *ApiServerDB) ReadDeviceBySerialPlatform(ctx context.Context, serial, platform string) (*pb.Device, error) {
 	gateway, err := db.queries.GetDeviceBySerialAndPlatform(ctx, sqlc.GetDeviceBySerialAndPlatformParams{
 		Serial:   serial,
-		Platform: sqlc.Platform(platform),
+		Platform: platform,
 	})
 	if err != nil {
 		return nil, err
@@ -357,8 +354,8 @@ func (db *ApiServerDB) AddSessionInfo(ctx context.Context, si *pb.Session) error
 	err := db.queries.Transaction(ctx, func(ctx context.Context, qtx *sqlc.Queries) error {
 		err := qtx.AddSession(ctx, sqlc.AddSessionParams{
 			Key:      si.Key,
-			Expiry:   si.Expiry.AsTime(),
-			DeviceID: int32(si.GetDevice().GetId()),
+			Expiry:   timeToString(si.Expiry.AsTime().UTC()),
+			DeviceID: si.GetDevice().GetId(),
 			ObjectID: si.ObjectID,
 		})
 		if err != nil {
@@ -417,7 +414,7 @@ func (db *ApiServerDB) ReadSessionInfos(ctx context.Context) ([]*pb.Session, err
 }
 
 func (db *ApiServerDB) ReadMostRecentSessionInfo(ctx context.Context, deviceID int64) (*pb.Session, error) {
-	row, err := db.queries.GetMostRecentDeviceSession(ctx, int32(deviceID))
+	row, err := db.queries.GetMostRecentDeviceSession(ctx, deviceID)
 	if err != nil {
 		return nil, err
 	}
@@ -444,22 +441,35 @@ func (db *ApiServerDB) getNextAvailableIp(ctx context.Context) (string, error) {
 	return availableIp, nil
 }
 
-func sqlcDeviceToPbDevice(d sqlc.Device) *pb.Device {
-	device := &pb.Device{
-		Id:        int64(d.ID),
-		Serial:    d.Serial,
-		Healthy:   d.Healthy,
-		PublicKey: d.PublicKey,
-		Ip:        d.Ip,
-		Username:  d.Username,
-		Platform:  string(d.Platform),
+func sqlcDeviceToPbDevice(sqlcDevice sqlc.Device) *pb.Device {
+	pbDevice := &pb.Device{
+		Id:        int64(sqlcDevice.ID),
+		Serial:    sqlcDevice.Serial,
+		Healthy:   sqlcDevice.Healthy,
+		PublicKey: sqlcDevice.PublicKey,
+		Ip:        sqlcDevice.Ip,
+		Username:  sqlcDevice.Username,
+		Platform:  string(sqlcDevice.Platform),
 	}
 
-	if d.LastUpdated != nil {
-		device.LastUpdated = timestamppb.New(*d.LastUpdated)
+	if sqlcDevice.LastUpdated.Valid {
+		pbDevice.LastUpdated = timestamppb.New(stringToTime(sqlcDevice.LastUpdated.String))
 	}
 
-	return device
+	return pbDevice
+}
+
+func timeToString(t time.Time) string {
+	return t.Format(time.RFC3339)
+}
+
+func stringToTime(s string) time.Time {
+	t, err := time.Parse(time.RFC3339, s)
+	if err != nil {
+		log.WithError(err).Warnf("format device LastUpdated time: %s", s)
+		return time.Time{}
+	}
+	return t
 }
 
 func sqlcGatewayToPbGateway(g sqlc.Gateway, groupIDs, routes []string) *pb.Gateway {
@@ -480,7 +490,7 @@ func sqlcSessionAndDeviceToPbSession(s sqlc.Session, d sqlc.Device, groupIDs []s
 		Key:      s.Key,
 		Device:   sqlcDeviceToPbDevice(d),
 		ObjectID: s.ObjectID,
-		Expiry:   timestamppb.New(s.Expiry),
+		Expiry:   timestamppb.New(stringToTime(s.Expiry)),
 		Groups:   groupIDs,
 	}
 }

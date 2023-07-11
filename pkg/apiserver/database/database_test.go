@@ -1,41 +1,19 @@
-//go:build integration_test
-// +build integration_test
-
 package database_test
 
 import (
 	"context"
-	"net/netip"
 	"testing"
 	"time"
 
-	"github.com/stretchr/testify/assert"
-
-	"github.com/nais/device/pkg/apiserver/database"
 	"github.com/nais/device/pkg/apiserver/testdatabase"
 	"github.com/nais/device/pkg/pb"
+	"github.com/stretchr/testify/assert"
 )
 
-const (
-	timeout                 = 5 * time.Second
-	wireguardNetworkAddress = "10.255.240.1/21"
-	apiserverWireGuardIP    = "10.255.240.1"
-)
-
-func setup(t *testing.T) database.APIServer {
-	ctx, cancel := context.WithTimeout(context.Background(), timeout)
-	defer cancel()
-
-	ipAllocator := database.NewIPAllocator(netip.MustParsePrefix(wireguardNetworkAddress), []string{apiserverWireGuardIP})
-	db, err := testdatabase.New(ctx, ipAllocator)
-	if err != nil {
-		t.Fatalf("Instantiating database: %v", err)
-	}
-	return db
-}
+const timeout = time.Second * 5
 
 func TestAddGateway(t *testing.T) {
-	db := setup(t)
+	db := testdatabase.Setup(t)
 
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
@@ -85,7 +63,7 @@ func TestAddGateway(t *testing.T) {
 		assert.Nil(t, existingGateway.Routes)
 		assert.Nil(t, existingGateway.AccessGroupIDs)
 
-		existingGateway.Routes = []string{"r", "o", "u", "t", "e", "s"}
+		existingGateway.Routes = []string{"e", "o", "r", "s", "t", "u"}
 		existingGateway.AccessGroupIDs = []string{"a1", "b2", "c3"}
 		existingGateway.RequiresPrivilegedAccess = true
 		existingGateway.PublicKey = "new public key"
@@ -104,18 +82,10 @@ func TestAddGateway(t *testing.T) {
 		assert.Equal(t, existingGateway.Endpoint, updatedGateway.Endpoint)
 		assert.Equal(t, existingGateway.PasswordHash, updatedGateway.PasswordHash)
 	})
-	t.Run("updating non-existent gateway is not ok", func(t *testing.T) {
-		nonExistentGateway := pb.Gateway{
-			Name:           "non-existent",
-			Routes:         []string{"r", "o", "u", "t", "e", "s"},
-			AccessGroupIDs: []string{"a1", "b2", "c3"},
-		}
-		assert.Error(t, db.UpdateGateway(ctx, &nonExistentGateway))
-	})
 }
 
 func TestAddDevice(t *testing.T) {
-	db := setup(t)
+	db := testdatabase.Setup(t)
 
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()

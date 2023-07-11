@@ -17,8 +17,10 @@ MTU = %d
 Address = %s
 `
 
-const windows = true
-const mtu = 1360
+const (
+	windows = true
+	mtu     = 1360
+)
 
 func MarshalHeader(w io.Writer, x *pb.Configuration) (int, error) {
 	return fmt.Fprintf(w, wireGuardTemplateHeader, x.GetPrivateKey(), mtu, x.GetDeviceIP())

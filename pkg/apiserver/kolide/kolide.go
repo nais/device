@@ -56,7 +56,6 @@ func DeviceEventStreamer(ctx context.Context, grpcAddress, grpcToken string, grp
 		grpcAddress,
 		dialOpts...,
 	)
-
 	if err != nil {
 		return err
 	}
@@ -67,7 +66,6 @@ func DeviceEventStreamer(ctx context.Context, grpcAddress, grpcToken string, grp
 
 	for ctx.Err() == nil {
 		events, err := s.Events(ctx, &kolidepb.EventsRequest{})
-
 		if err != nil {
 			log.Errorf("Start Kolide event stream: %v", err)
 			log.Warnf("Restarting event stream in %s...", eventStreamBackoff)

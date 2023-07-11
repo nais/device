@@ -4,13 +4,13 @@ import (
 	"errors"
 
 	"github.com/golang-migrate/migrate/v4"
-	_ "github.com/golang-migrate/migrate/v4/database/postgres"
+	_ "github.com/golang-migrate/migrate/v4/database/sqlite3"
 	"github.com/golang-migrate/migrate/v4/source/iofs"
 	"github.com/nais/device/pkg/apiserver/database/schema"
 	log "github.com/sirupsen/logrus"
 )
 
-func runMigrations(dsn string) error {
+func runMigrations(databasePath string) error {
 	sourceDriver, err := iofs.New(schema.FS, ".")
 	if err != nil {
 		return err
@@ -21,7 +21,7 @@ func runMigrations(dsn string) error {
 		}
 	}()
 
-	m, err := migrate.NewWithSourceInstance("iofs", sourceDriver, dsn)
+	m, err := migrate.NewWithSourceInstance("iofs", sourceDriver, "sqlite3://"+databasePath)
 	if err != nil {
 		return err
 	}

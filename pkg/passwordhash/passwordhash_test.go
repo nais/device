@@ -8,12 +8,12 @@ import (
 )
 
 func TestValidate(t *testing.T) {
-	var salt = []byte(`hello world`)
-	var password = []byte(`very secret`)
-	var wrong = []byte(`wrong`)
-	var null = []byte(``)
+	salt := []byte(`hello world`)
+	password := []byte(`very secret`)
+	wrong := []byte(`wrong`)
+	null := []byte(``)
 
-	var expectedHash = "$1$aGVsbG8gd29ybGQ=$TIcZEnPT5+xd2JPGcHOi+ZhzC+0nhQeWx621Gp7KhuUNwq0bStpEL8LU8DEFQCGOxx7DNfXcnjsTlEsWN+Vfkw=="
+	expectedHash := "$1$aGVsbG8gd29ybGQ=$TIcZEnPT5+xd2JPGcHOi+ZhzC+0nhQeWx621Gp7KhuUNwq0bStpEL8LU8DEFQCGOxx7DNfXcnjsTlEsWN+Vfkw=="
 
 	key := passwordhash.HashPassword(password, salt)
 	hash := passwordhash.FormatHash(key, salt)

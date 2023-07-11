@@ -13,7 +13,7 @@ type Device struct {
 	Username    string
 	Serial      string
 	Platform    string
-	Healthy     int64
+	Healthy     bool
 	LastUpdated sql.NullString
 	PublicKey   string
 	Ip          string
@@ -24,7 +24,7 @@ type Gateway struct {
 	Endpoint                 string
 	PublicKey                string
 	Ip                       string
-	RequiresPrivilegedAccess int64
+	RequiresPrivilegedAccess bool
 	PasswordHash             string
 }
 

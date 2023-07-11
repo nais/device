@@ -7,12 +7,11 @@ package sqlc
 
 import (
 	"context"
-	"database/sql"
 )
 
 const addSession = `-- name: AddSession :exec
 INSERT INTO sessions (key, expiry, device_id, object_id)
-VALUES (?, ?, ?, ?)
+VALUES (?1, ?2, ?3, ?4)
 `
 
 type AddSessionParams struct {
@@ -34,7 +33,7 @@ func (q *Queries) AddSession(ctx context.Context, arg AddSessionParams) error {
 
 const addSessionAccessGroupID = `-- name: AddSessionAccessGroupID :exec
 INSERT INTO session_access_group_ids (session_key, group_id)
-VALUES (?, ?)
+VALUES (?1, ?2)
 `
 
 type AddSessionAccessGroupIDParams struct {
@@ -50,82 +49,68 @@ func (q *Queries) AddSessionAccessGroupID(ctx context.Context, arg AddSessionAcc
 const getMostRecentDeviceSession = `-- name: GetMostRecentDeviceSession :one
 SELECT s."key", s.expiry, s.device_id, s.object_id, d.id, d.username, d.serial, d.platform, d.healthy, d.last_updated, d.public_key, d.ip FROM sessions s
 JOIN devices d ON d.id = s.device_id
-WHERE s.device_id = ?
+WHERE s.device_id = ?1
 ORDER BY s.expiry DESC
 LIMIT 1
 `
 
 type GetMostRecentDeviceSessionRow struct {
-	Session     Session
-	ID          int64
-	Username    string
-	Serial      string
-	Platform    string
-	Healthy     int64
-	LastUpdated sql.NullString
-	PublicKey   string
-	Ip          string
+	Session Session
+	Device  Device
 }
 
-func (q *Queries) GetMostRecentDeviceSession(ctx context.Context, deviceID int64) (*GetMostRecentDeviceSessionRow, error) {
-	row := q.queryRow(ctx, q.getMostRecentDeviceSessionStmt, getMostRecentDeviceSession, deviceID)
+func (q *Queries) GetMostRecentDeviceSession(ctx context.Context, sessionDeviceID int64) (*GetMostRecentDeviceSessionRow, error) {
+	row := q.queryRow(ctx, q.getMostRecentDeviceSessionStmt, getMostRecentDeviceSession, sessionDeviceID)
 	var i GetMostRecentDeviceSessionRow
 	err := row.Scan(
 		&i.Session.Key,
 		&i.Session.Expiry,
 		&i.Session.DeviceID,
 		&i.Session.ObjectID,
-		&i.ID,
-		&i.Username,
-		&i.Serial,
-		&i.Platform,
-		&i.Healthy,
-		&i.LastUpdated,
-		&i.PublicKey,
-		&i.Ip,
+		&i.Device.ID,
+		&i.Device.Username,
+		&i.Device.Serial,
+		&i.Device.Platform,
+		&i.Device.Healthy,
+		&i.Device.LastUpdated,
+		&i.Device.PublicKey,
+		&i.Device.Ip,
 	)
 	return &i, err
 }
 
 const getSessionByKey = `-- name: GetSessionByKey :one
 SELECT s."key", s.expiry, s.device_id, s.object_id, d.id, d.username, d.serial, d.platform, d.healthy, d.last_updated, d.public_key, d.ip FROM sessions s
-JOIN devices d ON d.id = s.device_id WHERE s.key = ?
+JOIN devices d ON d.id = s.device_id WHERE s.key = ?1
 `
 
 type GetSessionByKeyRow struct {
-	Session     Session
-	ID          int64
-	Username    string
-	Serial      string
-	Platform    string
-	Healthy     int64
-	LastUpdated sql.NullString
-	PublicKey   string
-	Ip          string
+	Session Session
+	Device  Device
 }
 
-func (q *Queries) GetSessionByKey(ctx context.Context, key string) (*GetSessionByKeyRow, error) {
-	row := q.queryRow(ctx, q.getSessionByKeyStmt, getSessionByKey, key)
+func (q *Queries) GetSessionByKey(ctx context.Context, sessionKey string) (*GetSessionByKeyRow, error) {
+	row := q.queryRow(ctx, q.getSessionByKeyStmt, getSessionByKey, sessionKey)
 	var i GetSessionByKeyRow
 	err := row.Scan(
 		&i.Session.Key,
 		&i.Session.Expiry,
 		&i.Session.DeviceID,
 		&i.Session.ObjectID,
-		&i.ID,
-		&i.Username,
-		&i.Serial,
-		&i.Platform,
-		&i.Healthy,
-		&i.LastUpdated,
-		&i.PublicKey,
-		&i.Ip,
+		&i.Device.ID,
+		&i.Device.Username,
+		&i.Device.Serial,
+		&i.Device.Platform,
+		&i.Device.Healthy,
+		&i.Device.LastUpdated,
+		&i.Device.PublicKey,
+		&i.Device.Ip,
 	)
 	return &i, err
 }
 
 const getSessionGroupIDs = `-- name: GetSessionGroupIDs :many
-SELECT group_id FROM session_access_group_ids WHERE session_key = ?
+SELECT group_id FROM session_access_group_ids WHERE session_key = ?1 ORDER BY group_id
 `
 
 func (q *Queries) GetSessionGroupIDs(ctx context.Context, sessionKey string) ([]string, error) {
@@ -154,18 +139,12 @@ func (q *Queries) GetSessionGroupIDs(ctx context.Context, sessionKey string) ([]
 const getSessions = `-- name: GetSessions :many
 SELECT s."key", s.expiry, s.device_id, s.object_id, d.id, d.username, d.serial, d.platform, d.healthy, d.last_updated, d.public_key, d.ip FROM sessions s
 JOIN devices d ON d.id = s.device_id WHERE s.expiry > DATE('now')
+ORDER BY s.expiry
 `
 
 type GetSessionsRow struct {
-	Session     Session
-	ID          int64
-	Username    string
-	Serial      string
-	Platform    string
-	Healthy     int64
-	LastUpdated sql.NullString
-	PublicKey   string
-	Ip          string
+	Session Session
+	Device  Device
 }
 
 func (q *Queries) GetSessions(ctx context.Context) ([]*GetSessionsRow, error) {
@@ -182,14 +161,14 @@ func (q *Queries) GetSessions(ctx context.Context) ([]*GetSessionsRow, error) {
 			&i.Session.Expiry,
 			&i.Session.DeviceID,
 			&i.Session.ObjectID,
-			&i.ID,
-			&i.Username,
-			&i.Serial,
-			&i.Platform,
-			&i.Healthy,
-			&i.LastUpdated,
-			&i.PublicKey,
-			&i.Ip,
+			&i.Device.ID,
+			&i.Device.Username,
+			&i.Device.Serial,
+			&i.Device.Platform,
+			&i.Device.Healthy,
+			&i.Device.LastUpdated,
+			&i.Device.PublicKey,
+			&i.Device.Ip,
 		); err != nil {
 			return nil, err
 		}

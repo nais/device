@@ -10,9 +10,7 @@ GOTAGS ?=
 PROTOC = $(shell which protoc)
 
 all: test
-local-postgres: stop-postgres run-postgres
-dev-apiserver: local-postgres local-apiserver stop-postgres
-integration-test: stop-postgres-test run-postgres-test run-integration-test stop-postgres-test
+dev-apiserver: local-apiserver
 clients: linux-client macos-client windows-client
 
 proto: install-protobuf-go
@@ -73,22 +71,6 @@ local:
 	go build -o bin/local/naisdevice-agent --tags "$(GOTAGS)" -ldflags "-s $(LDFLAGS)" ./cmd/device-agent
 	go build -o bin/local/naisdevice-systray --tags "$(GOTAGS)" -ldflags "-s $(LDFLAGS)" ./cmd/systray
 	go build -o bin/local/naisdevice-helper --tags "$(GOTAGS)" -ldflags "-s $(LDFLAGS)" ./cmd/helper
-
-update-fixtures:
-	PGPASSWORD=postgres pg_dump -U postgres -h localhost -d postgres --schema-only > fixtures/schema.sql
-	PGPASSWORD=postgres pg_dump -U postgres -h localhost -d postgres --inserts --data-only > fixtures/data.sql
-
-run-postgres:
-	docker-compose up --detach
-
-run-postgres-test:
-	docker run -e POSTGRES_PASSWORD=postgres --name postgres-test -p 5433:5432 -d postgres:12
-
-stop-postgres:
-	docker-compose rm --force --stop
-
-stop-postgres-test:
-	docker stop postgres-test || true && docker rm postgres-test || true
 
 local-gateway-agent:
 	$(eval config_dir := $(shell mktemp -d))
@@ -163,9 +145,6 @@ app: wg wireguard-go macos-icon macos-client gon
 test:
 	@go test $(shell go list ./... | grep -v systray) -count=1
 
-run-integration-test:
-	@go test $(shell go list ./... | grep -v systray) -count=1 -tags=integration_test
-
 # Run by GitHub actions on macos
 pkg: app gon
 	rm -f ./naisdevice*.pkg
@@ -231,3 +210,6 @@ buildreleaseauthserver:
 generate-sqlc:
 	go run github.com/kyleconroy/sqlc/cmd/sqlc generate
 	go run mvdan.cc/gofumpt -w ./pkg/apiserver/sqlc/
+
+fmt:
+	go run mvdan.cc/gofumpt -w ./

@@ -39,9 +39,7 @@ type DeviceHelperServer struct {
 	Wireguard      *wireguard2.Config
 }
 
-var (
-	WireGuardConfigPath = filepath.Join(config.ConfigDir, "utun69.conf")
-)
+var WireGuardConfigPath = filepath.Join(config.ConfigDir, "utun69.conf")
 
 func (dhs *DeviceHelperServer) Teardown(ctx context.Context, req *pb.TeardownRequest) (*pb.TeardownResponse, error) {
 	log.Infof("Removing network interface '%s' and all routes", dhs.Config.Interface)
@@ -98,7 +96,7 @@ func (dhs *DeviceHelperServer) writeConfigFile(cfg *pb.Configuration) error {
 		return fmt.Errorf("render configuration: %s", err)
 	}
 
-	fd, err := os.OpenFile(WireGuardConfigPath, os.O_CREATE|os.O_RDWR|os.O_TRUNC, 0600)
+	fd, err := os.OpenFile(WireGuardConfigPath, os.O_CREATE|os.O_RDWR|os.O_TRUNC, 0o600)
 	if err != nil {
 		return fmt.Errorf("open file: %s", err)
 	}

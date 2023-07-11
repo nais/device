@@ -11,7 +11,7 @@ import (
 
 const addDevice = `-- name: AddDevice :exec
 INSERT INTO devices (serial, username, public_key, ip, healthy, platform)
-VALUES (?, ?, ?, ?, ?, ?)
+VALUES (?1, ?2, ?3, ?4, ?5, ?6)
 ON CONFLICT(serial, platform) DO
     UPDATE SET username = excluded.username, public_key = excluded.public_key
 `
@@ -21,7 +21,7 @@ type AddDeviceParams struct {
 	Username  string
 	PublicKey string
 	Ip        string
-	Healthy   int64
+	Healthy   bool
 	Platform  string
 }
 
@@ -38,7 +38,7 @@ func (q *Queries) AddDevice(ctx context.Context, arg AddDeviceParams) error {
 }
 
 const getDeviceByID = `-- name: GetDeviceByID :one
-SELECT id, username, serial, platform, healthy, last_updated, public_key, ip FROM devices WHERE id = ?
+SELECT id, username, serial, platform, healthy, last_updated, public_key, ip FROM devices WHERE id = ?1
 `
 
 func (q *Queries) GetDeviceByID(ctx context.Context, id int64) (*Device, error) {
@@ -58,7 +58,7 @@ func (q *Queries) GetDeviceByID(ctx context.Context, id int64) (*Device, error) 
 }
 
 const getDeviceByPublicKey = `-- name: GetDeviceByPublicKey :one
-SELECT id, username, serial, platform, healthy, last_updated, public_key, ip FROM devices WHERE public_key = ?
+SELECT id, username, serial, platform, healthy, last_updated, public_key, ip FROM devices WHERE public_key = ?1
 `
 
 func (q *Queries) GetDeviceByPublicKey(ctx context.Context, publicKey string) (*Device, error) {
@@ -78,7 +78,7 @@ func (q *Queries) GetDeviceByPublicKey(ctx context.Context, publicKey string) (*
 }
 
 const getDeviceBySerialAndPlatform = `-- name: GetDeviceBySerialAndPlatform :one
-SELECT id, username, serial, platform, healthy, last_updated, public_key, ip from devices WHERE serial = ? AND platform = ?
+SELECT id, username, serial, platform, healthy, last_updated, public_key, ip from devices WHERE serial = ?1 AND platform = ?2
 `
 
 type GetDeviceBySerialAndPlatformParams struct {
@@ -103,7 +103,7 @@ func (q *Queries) GetDeviceBySerialAndPlatform(ctx context.Context, arg GetDevic
 }
 
 const getDevices = `-- name: GetDevices :many
-SELECT id, username, serial, platform, healthy, last_updated, public_key, ip FROM devices
+SELECT id, username, serial, platform, healthy, last_updated, public_key, ip FROM devices ORDER BY id
 `
 
 func (q *Queries) GetDevices(ctx context.Context) ([]*Device, error) {
@@ -140,12 +140,12 @@ func (q *Queries) GetDevices(ctx context.Context) ([]*Device, error) {
 
 const updateDevice = `-- name: UpdateDevice :exec
 UPDATE devices
-SET healthy = ?, last_updated = DATE('now')
-WHERE serial = ? AND platform = ?
+SET healthy = ?1, last_updated = DATE('now')
+WHERE serial = ?2 AND platform = ?3
 `
 
 type UpdateDeviceParams struct {
-	Healthy  int64
+	Healthy  bool
 	Serial   string
 	Platform string
 }

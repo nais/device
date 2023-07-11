@@ -36,8 +36,7 @@ func TestMarshalConfiguration(t *testing.T) {
 
 	assert.NoError(t, err)
 
-	expected :=
-		`[Interface]
+	expected := `[Interface]
 PrivateKey = YWJj
 MTU = 1360
 Address = 127.0.0.1

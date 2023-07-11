@@ -22,8 +22,7 @@ func TestWriteWireGuardBase(t *testing.T) {
 
 	assert.NoError(t, err)
 
-	expected :=
-		`[Interface]
+	expected := `[Interface]
 PrivateKey = abc
 ListenPort = 51820
 
