@@ -460,11 +460,11 @@ func sqlcDeviceToPbDevice(sqlcDevice sqlc.Device) *pb.Device {
 }
 
 func timeToString(t time.Time) string {
-	return t.Format(time.RFC3339)
+	return t.Format(time.RFC3339Nano)
 }
 
 func stringToTime(s string) time.Time {
-	t, err := time.Parse(time.RFC3339, s)
+	t, err := time.Parse(time.RFC3339Nano, s)
 	if err != nil {
 		log.WithError(err).Warnf("format device LastUpdated time: %s", s)
 		return time.Time{}
