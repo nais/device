@@ -12,7 +12,7 @@ SELECT * from devices WHERE serial = @serial AND platform = @platform;
 
 -- name: UpdateDevice :exec
 UPDATE devices
-SET healthy = @healthy, last_updated = DATE('now')
+SET healthy = @healthy, last_updated = @last_updated
 WHERE serial = @serial AND platform = @platform;
 
 -- name: AddDevice :exec

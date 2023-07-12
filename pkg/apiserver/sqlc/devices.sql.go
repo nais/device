@@ -7,6 +7,7 @@ package sqlc
 
 import (
 	"context"
+	"database/sql"
 )
 
 const addDevice = `-- name: AddDevice :exec
@@ -140,17 +141,23 @@ func (q *Queries) GetDevices(ctx context.Context) ([]*Device, error) {
 
 const updateDevice = `-- name: UpdateDevice :exec
 UPDATE devices
-SET healthy = ?1, last_updated = DATE('now')
-WHERE serial = ?2 AND platform = ?3
+SET healthy = ?1, last_updated = ?2
+WHERE serial = ?3 AND platform = ?4
 `
 
 type UpdateDeviceParams struct {
-	Healthy  bool
-	Serial   string
-	Platform string
+	Healthy     bool
+	LastUpdated sql.NullString
+	Serial      string
+	Platform    string
 }
 
 func (q *Queries) UpdateDevice(ctx context.Context, arg UpdateDeviceParams) error {
-	_, err := q.exec(ctx, q.updateDeviceStmt, updateDevice, arg.Healthy, arg.Serial, arg.Platform)
+	_, err := q.exec(ctx, q.updateDeviceStmt, updateDevice,
+		arg.Healthy,
+		arg.LastUpdated,
+		arg.Serial,
+		arg.Platform,
+	)
 	return err
 }

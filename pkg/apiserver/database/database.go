@@ -61,6 +61,10 @@ func (db *ApiServerDB) UpdateDevices(ctx context.Context, devices []*pb.Device) 
 				Healthy:  true,
 				Serial:   device.Serial,
 				Platform: device.Platform,
+				LastUpdated: sql.NullString{
+					String: timeToString(time.Now().UTC()),
+					Valid:  true,
+				},
 			})
 			if err != nil {
 				return err
