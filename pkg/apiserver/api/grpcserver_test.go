@@ -2,6 +2,7 @@ package api_test
 
 import (
 	"context"
+	"io"
 	"net"
 	"testing"
 	"time"
@@ -73,7 +74,23 @@ func TestGetDeviceConfiguration(t *testing.T) {
 	configClient, err := client.GetDeviceConfiguration(ctx, &pb.GetDeviceConfigurationRequest{})
 	assert.NoError(t, err)
 
-	resp, err := configClient.Recv()
+	var resp *pb.GetDeviceConfigurationResponse
+	for attempt := 0; attempt < 10; attempt++ {
+		resp, err = configClient.Recv()
+		if err == nil {
+			break
+		}
+
+		if err == io.EOF {
+			time.Sleep(100 * time.Millisecond)
+			continue
+		} else {
+			t.Fatalf("get device config: got unexpected err: %v", err)
+		}
+	}
+	if err != nil {
+		t.Fatalf("could not get device config in 10 attempts, last was err: %v", err)
+	}
 	assert.NoError(t, err)
 
 	gw := resp.Gateways[0]
