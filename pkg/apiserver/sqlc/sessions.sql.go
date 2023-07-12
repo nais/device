@@ -138,7 +138,7 @@ func (q *Queries) GetSessionGroupIDs(ctx context.Context, sessionKey string) ([]
 
 const getSessions = `-- name: GetSessions :many
 SELECT s."key", s.expiry, s.device_id, s.object_id, d.id, d.username, d.serial, d.platform, d.healthy, d.last_updated, d.public_key, d.ip FROM sessions s
-JOIN devices d ON d.id = s.device_id WHERE s.expiry > DATE('now')
+JOIN devices d ON d.id = s.device_id
 ORDER BY s.expiry
 `
 
