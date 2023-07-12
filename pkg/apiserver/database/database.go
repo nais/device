@@ -21,8 +21,8 @@ type ApiServerDB struct {
 
 var mux sync.Mutex
 
-func New(ctx context.Context, databasePath string, ipAllocator IPAllocator, defaultDeviceHealth bool) (APIServer, error) {
-	db, err := sql.Open("sqlite3", databasePath)
+func New(ctx context.Context, dsn string, ipAllocator IPAllocator, defaultDeviceHealth bool) (APIServer, error) {
+	db, err := sql.Open("sqlite3", dsn)
 	if err != nil {
 		return nil, fmt.Errorf("open database: %w", err)
 	}
@@ -33,7 +33,7 @@ func New(ctx context.Context, databasePath string, ipAllocator IPAllocator, defa
 		defaultDeviceHealth: defaultDeviceHealth,
 	}
 
-	if err = runMigrations(databasePath); err != nil {
+	if err = runMigrations(dsn); err != nil {
 		return nil, fmt.Errorf("migrating database: %w", err)
 	}
 

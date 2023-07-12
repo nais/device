@@ -80,7 +80,6 @@ func init() {
 	flag.StringVar(&cfg.WireGuardIP, "wireguard-ip", cfg.WireGuardIP, "WireGuard ip")
 	flag.StringVar(&cfg.WireGuardNetworkAddress, "wireguard-network-address", cfg.WireGuardNetworkAddress, "WireGuard network-address")
 	flag.StringVar(&cfg.WireGuardPrivateKeyPath, "wireguard-private-key-path", cfg.WireGuardPrivateKeyPath, "WireGuard private key path")
-	flag.BoolVar(&cfg.CloudSQLProxyEnabled, "cloud-sql-proxy-enabled", cfg.CloudSQLProxyEnabled, "enable Google Cloud SQL proxy for database connection")
 	flag.StringVar(&cfg.GatewayConfigurer, "gateway-configurer", cfg.GatewayConfigurer, "which method to use for fetching gateway config (metadata or bucket)")
 	flag.BoolVar(&cfg.AutoEnrollEnabled, "auto-enroll-enabled", cfg.AutoEnrollEnabled, "enable auto enroll support using pub/sub")
 

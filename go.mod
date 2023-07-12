@@ -17,7 +17,6 @@ require (
 	github.com/hashicorp/go-multierror v1.1.1
 	github.com/kelseyhightower/envconfig v1.4.0
 	github.com/lestrrat-go/jwx v1.2.26
-	github.com/lib/pq v1.10.9
 	github.com/nais/kolide-event-handler v0.0.0-20220214150046-ca39d969eea0
 	github.com/nirasan/go-oauth-pkce-code-verifier v0.0.0-20170819232839-0fbfe93532da
 	github.com/prometheus/client_golang v1.16.0
