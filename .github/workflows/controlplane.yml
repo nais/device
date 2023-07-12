@@ -11,29 +11,16 @@ on:
       - ".github/workflows/controlplane.yml"
       - "packaging/controlplane/**"
 env:
-  go_version: "1.19"
+  go_version: "^1.20"
   REGISTRY: europe-north1-docker.pkg.dev/nais-io/nais/images
 
 jobs:
   test:
     name: Test
     runs-on: ubuntu-latest
-    services:
-      postgres:
-        image: postgres:11.7
-        env:
-          POSTGRES_PASSWORD: postgres
-        ports:
-          - 5433:5432
-        # Set health checks to wait until postgres has started
-        options: >-
-          --health-cmd pg_isready
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
     steps:
       - uses: actions/checkout@v3
-      - uses: actions/setup-go@v2
+      - uses: actions/setup-go@v3
         with:
           go-version: ${{ env.go_version }}
       - name: run tests
