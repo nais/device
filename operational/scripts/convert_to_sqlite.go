@@ -6,20 +6,21 @@ import (
 	"io"
 	"os"
 	"strings"
+	"time"
 )
 
 func convert(path string, convertFn func(map[string]string)) {
 	file, err := os.Open(path)
 	if err != nil {
 		fmt.Printf("open: %v", err)
-		os.Exit(1)
+		panic(err)
 	}
 
 	csvReader := csv.NewReader(file)
 	csvHeader, err := csvReader.Read()
 	if err != nil {
 		fmt.Printf("get csv keys row: %v", err)
-		os.Exit(1)
+		panic(err)
 	}
 
 	for {
@@ -64,13 +65,18 @@ sqlite> PRAGMA table_info(devices);
 7|ip|TEXT|1||0
 */
 func convertDevice(device map[string]string) {
+	if device["last_updated"] == "" {
+		// device never checked in, ingore it
+		return
+	}
+
 	fmt.Printf("INSERT INTO devices(id, username, serial, platform, healthy, last_updated, public_key, ip) VALUES(%s, '%s', '%s', '%s', %s, '%s', '%s', '%s');\n",
 		device["id"],
 		device["username"],
 		device["serial"],
 		device["platform"],
 		convertBool(device["healthy"]),
-		device["last_updated"],
+		convertTime(device["last_updated"]),
 		device["public_key"],
 		device["ip"],
 	)
@@ -151,7 +157,7 @@ sqlite> PRAGMA table_info(session_access_group_ids);
 func convertSessions(sessions map[string]string) {
 	fmt.Printf("INSERT INTO sessions(key, expiry, device_id, object_id) VALUES('%s', '%s', %s, '%s');\n",
 		sessions["key"],
-		sessions["expiry"],
+		convertTime(sessions["expiry"]),
 		sessions["device_id"],
 		sessions["object_id"],
 	)
@@ -171,4 +177,13 @@ func convertBool(b string) string {
 	default:
 		return "false"
 	}
+}
+
+func convertTime(t string) string {
+	format := "2006-01-02 15:04:05.999999+00"
+	dt, err := time.Parse(format, t)
+	if err != nil {
+		panic(err)
+	}
+	return dt.Format(time.RFC3339Nano)
 }
