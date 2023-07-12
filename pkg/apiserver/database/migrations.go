@@ -10,7 +10,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-func runMigrations(dsn string) error {
+func runMigrations(dbPath string) error {
 	sourceDriver, err := iofs.New(schema.FS, ".")
 	if err != nil {
 		return err
@@ -21,7 +21,7 @@ func runMigrations(dsn string) error {
 		}
 	}()
 
-	m, err := migrate.NewWithSourceInstance("iofs", sourceDriver, dsn)
+	m, err := migrate.NewWithSourceInstance("iofs", sourceDriver, "sqlite3://"+dbPath)
 	if err != nil {
 		return err
 	}

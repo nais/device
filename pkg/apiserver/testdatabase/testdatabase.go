@@ -20,10 +20,11 @@ func Setup(t *testing.T) database.APIServer {
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 
-	tempFile, err := os.CreateTemp(os.TempDir(), "*.sqlite")
+	tempFile, err := os.CreateTemp(os.TempDir(), "*.db")
 	if err != nil {
 		t.Fatalf("unable to setup test database: %v", err)
 	}
+	t.Logf("Created tmp database in: %v", tempFile.Name())
 	t.Cleanup(func() {
 		if err := os.Remove(tempFile.Name()); err != nil {
 			t.Logf("unable to clean up test database: %v", err)

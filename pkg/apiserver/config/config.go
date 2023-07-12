@@ -19,7 +19,7 @@ type Config struct {
 	ControlPlaneAuthenticationEnabled bool
 	AdminCredentialEntries            []string
 	PrometheusCredentialEntries       []string
-	DbConnDSN                         string
+	DBPath                            string
 	DeviceAuthenticationProvider      string
 	Endpoint                          string
 	GRPCBindAddress                   string
@@ -71,7 +71,7 @@ func DefaultConfig() Config {
 			ClientID: "955023559628-g51n36t4icbd6lq7ils4r0ol9oo8kpk0.apps.googleusercontent.com",
 		},
 		BindAddress:                   "127.0.0.1:8080",
-		DbConnDSN:                     "sqlite3:///tmp/naisdevice.db",
+		DBPath:                        "sqlite3:///tmp/naisdevice.db",
 		GRPCBindAddress:               "127.0.0.1:8099",
 		GatewayConfigBucketName:       "gatewayconfig",
 		GatewayConfigBucketObjectName: "gatewayconfig.json",

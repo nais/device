@@ -47,7 +47,7 @@ const (
 var cfg = config.DefaultConfig()
 
 func init() {
-	flag.StringVar(&cfg.DbConnDSN, "db-connection-dsn", cfg.DbConnDSN, "database connection DSN")
+	flag.StringVar(&cfg.DBPath, "db-path", cfg.DBPath, "database file path")
 	flag.StringVar(&cfg.JitaUsername, "jita-username", cfg.JitaUsername, "jita username")
 	flag.StringVar(&cfg.JitaPassword, "jita-password", cfg.JitaPassword, "jita password")
 	flag.StringVar(&cfg.JitaUrl, "jita-url", cfg.JitaUrl, "jita URL")
@@ -135,7 +135,7 @@ func run() error {
 	}
 
 	ipAllocator := database.NewIPAllocator(wireguardPrefix, []string{cfg.WireGuardIP})
-	db, err := database.New(ctx, cfg.DbConnDSN, ipAllocator, !cfg.KolideEventHandlerEnabled)
+	db, err := database.New(ctx, cfg.DBPath, ipAllocator, !cfg.KolideEventHandlerEnabled)
 	if err != nil {
 		return fmt.Errorf("initialize database: %w", err)
 	}
