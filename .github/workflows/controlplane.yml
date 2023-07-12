@@ -38,7 +38,7 @@ jobs:
           go-version: ${{ env.go_version }}
       - name: run tests
         run: |
-          make run-integration-test
+          make test
 
   build_debs:
     name: Build debs
