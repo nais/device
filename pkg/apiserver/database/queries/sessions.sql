@@ -4,7 +4,7 @@ JOIN devices d ON d.id = s.device_id WHERE s.key = @session_key;
 
 -- name: GetSessions :many
 SELECT sqlc.embed(s), sqlc.embed(d) FROM sessions s
-JOIN devices d ON d.id = s.device_id WHERE s.expiry > DATE('now')
+JOIN devices d ON d.id = s.device_id
 ORDER BY s.expiry;
 
 -- name: GetMostRecentDeviceSession :one
