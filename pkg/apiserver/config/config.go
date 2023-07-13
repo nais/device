@@ -15,7 +15,6 @@ type Config struct {
 	BindAddress                       string
 	BootstrapAPIURL                   string
 	BootstrapApiCredentials           string
-	CloudSQLProxyEnabled              bool
 	ControlPlaneAuthenticationEnabled bool
 	AdminCredentialEntries            []string
 	PrometheusCredentialEntries       []string

@@ -4,7 +4,6 @@ go 1.20
 
 require (
 	cloud.google.com/go/storage v1.29.0
-	github.com/GoogleCloudPlatform/cloudsql-proxy v1.33.7
 	github.com/coreos/go-iptables v0.6.0
 	github.com/gen2brain/beeep v0.0.0-20210529141713-5586760f0cc1
 	github.com/getlantern/golog v0.0.0-20211223150227-d4d95a44d873 // indirect

@@ -15,7 +15,6 @@ import (
 	"syscall"
 	"time"
 
-	cloudsqlproxylog "github.com/GoogleCloudPlatform/cloudsql-proxy/logging"
 	"github.com/kelseyhightower/envconfig"
 	"github.com/nais/device/pkg/apiserver/api"
 	"github.com/nais/device/pkg/apiserver/auth"
@@ -120,9 +119,6 @@ func run() error {
 
 	// sets up logger based on envconfig
 	logger.Setup(cfg.LogLevel)
-	if cfg.CloudSQLProxyEnabled {
-		setupCloudSQLProxyLogging()
-	}
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -490,11 +486,4 @@ func SyncJitaContinuosly(ctx context.Context, j jita.Client) {
 			return
 		}
 	}
-}
-
-func setupCloudSQLProxyLogging() {
-	cloudsqlproxylog.Errorf = log.Errorf
-	cloudsqlproxylog.Infof = log.Infof
-	cloudsqlproxylog.Verbosef = log.Debugf
-	// cloudsqlproxylog.EnableStructuredLogs(false, false)
 }
