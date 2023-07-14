@@ -59,7 +59,10 @@ func (s *grpcServer) GetDeviceConfiguration(request *pb.GetDeviceConfigurationRe
 			if err != nil {
 				log.Errorf("make device config: %v", err)
 			} else {
-				stream.Send(cfg)
+				err := stream.Send(cfg)
+				if err != nil {
+					log.Debugf("stream end for device %d failed, err: %v", deviceId, err)
+				}
 			}
 		}
 	}

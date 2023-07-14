@@ -2,7 +2,6 @@ package api_test
 
 import (
 	"context"
-	"io"
 	"net"
 	"testing"
 	"time"
@@ -17,6 +16,7 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/grpc/test/bufconn"
+	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 const bufSize = 1024 * 1024
@@ -36,7 +36,11 @@ func TestGetDeviceConfiguration(t *testing.T) {
 	accessGroups := []string{"auth"}
 
 	db := &database.MockAPIServer{}
-	db.On("ReadSessionInfo", mock.Anything, mock.Anything).Return(&pb.Session{Groups: accessGroups}, nil)
+	db.On("ReadSessionInfo", mock.Anything, mock.Anything).Return(
+		&pb.Session{
+			Groups: accessGroups,
+			Expiry: timestamppb.New(time.Now().Add(10 * time.Second)),
+		}, nil)
 	db.On("ReadDeviceById", mock.Anything, mock.Anything).Return(&pb.Device{
 		Healthy: true,
 	}, nil)
@@ -74,23 +78,7 @@ func TestGetDeviceConfiguration(t *testing.T) {
 	configClient, err := client.GetDeviceConfiguration(ctx, &pb.GetDeviceConfigurationRequest{})
 	assert.NoError(t, err)
 
-	var resp *pb.GetDeviceConfigurationResponse
-	for attempt := 0; attempt < 10; attempt++ {
-		resp, err = configClient.Recv()
-		if err == nil {
-			break
-		}
-
-		if err == io.EOF {
-			time.Sleep(100 * time.Millisecond)
-			continue
-		} else {
-			t.Fatalf("get device config: got unexpected err: %v", err)
-		}
-	}
-	if err != nil {
-		t.Fatalf("could not get device config in 10 attempts, last was err: %v", err)
-	}
+	resp, err := configClient.Recv()
 	assert.NoError(t, err)
 
 	gw := resp.Gateways[0]
