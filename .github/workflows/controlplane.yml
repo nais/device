@@ -36,6 +36,9 @@ jobs:
       image: ghcr.io/nais/naisdevice-ci:v5
     steps:
       - uses: actions/checkout@v3
+      - uses: actions/setup-go@v3
+        with:
+          go-version: ${{ env.go_version }}
 
       - name: "Build controlplane"
         run: make controlplane-debs
