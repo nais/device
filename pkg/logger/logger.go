@@ -4,18 +4,31 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"time"
 
 	log "github.com/sirupsen/logrus"
 	easy "github.com/t-tomalak/logrus-easy-formatter"
 )
 
-func SetupLogger(level, logDir, filename string) {
+const logfileMaxAge = time.Hour * 24 * 7
+
+func SetupLogger(level, logDir, name string) {
 	err := os.MkdirAll(logDir, 0o755)
 	if err != nil {
 		log.Fatalf("Creating log dir: %v", err)
 	}
 
+	err = deleteOldLogFiles(logDir, time.Now().Add(-logfileMaxAge))
+	if err != nil {
+		log.Errorf("unable to delete old log files: %v", err)
+	}
+
+	// clean up old log file without date
+	_ = os.Remove(filepath.Join(logDir, name+".log"))
+
+	filename := createLogFileName(name, time.Now())
 	logFilePath := filepath.Join(logDir, filename)
+
 	logFile, err := os.OpenFile(logFilePath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0o664)
 	if err != nil {
 		log.Fatalf("unable to open log file %s, error: %v", logFilePath, err)

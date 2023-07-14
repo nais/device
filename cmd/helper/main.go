@@ -38,7 +38,7 @@ func main() {
 
 	osConfigurator := helper.New(cfg)
 
-	logger.SetupLogger(cfg.LogLevel, config.LogDir, "helper.log")
+	logger.SetupLogger(cfg.LogLevel, config.LogDir, "helper")
 
 	log.Infof("naisdevice-helper %s starting up", version.Version)
 	log.Infof("configuration: %+v", cfg)

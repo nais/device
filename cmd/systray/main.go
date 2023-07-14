@@ -62,7 +62,7 @@ func main() {
 	flag.Parse()
 
 	logDir := filepath.Join(cfg.ConfigDir, "logs")
-	logger.SetupLogger(cfg.LogLevel, logDir, "systray.log")
+	logger.SetupLogger(cfg.LogLevel, logDir, "systray")
 
 	conn, err := net.Dial("unix", cfg.GrpcAddress)
 	if err != nil {
