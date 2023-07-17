@@ -3,7 +3,7 @@ module github.com/nais/device
 go 1.20
 
 require (
-	cloud.google.com/go/storage v1.29.0
+	cloud.google.com/go/storage v1.31.0
 	github.com/coreos/go-iptables v0.6.0
 	github.com/gen2brain/beeep v0.0.0-20210529141713-5586760f0cc1
 	github.com/getlantern/golog v0.0.0-20211223150227-d4d95a44d873 // indirect
@@ -85,7 +85,7 @@ require (
 
 require (
 	cloud.google.com/go/compute v1.20.1 // indirect
-	cloud.google.com/go/iam v0.13.0 // indirect
+	cloud.google.com/go/iam v1.1.0 // indirect
 	cloud.google.com/go/pubsub v1.30.0
 	golang.org/x/xerrors v0.0.0-20220907171357-04be3eba64a2 // indirect
 )
