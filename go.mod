@@ -85,8 +85,8 @@ require (
 
 require (
 	cloud.google.com/go/compute v1.20.1 // indirect
-	cloud.google.com/go/iam v0.13.0 // indirect
-	cloud.google.com/go/pubsub v1.30.0
+	cloud.google.com/go/iam v1.1.0 // indirect
+	cloud.google.com/go/pubsub v1.32.0
 	golang.org/x/xerrors v0.0.0-20220907171357-04be3eba64a2 // indirect
 )
 
