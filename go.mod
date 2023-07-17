@@ -96,7 +96,7 @@ require (
 	github.com/jackc/pgconn v1.14.0
 	github.com/jackc/pgx/v4 v4.18.1
 	github.com/kyleconroy/sqlc v1.19.0
-	github.com/vektra/mockery/v2 v2.30.1
+	github.com/vektra/mockery/v2 v2.32.0
 	golang.org/x/vuln v0.1.0
 	google.golang.org/grpc/cmd/protoc-gen-go-grpc v1.3.0
 	honnef.co/go/tools v0.4.3
