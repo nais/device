@@ -107,3 +107,71 @@ func TestRotate(t *testing.T) {
 	}
 
 }
+
+func TestLatestFilename(t *testing.T) {
+	now, err := time.Parse(time.DateOnly, "2021-01-05")
+	assert.NoError(t, err)
+	existingFiles := []string{
+		createLogFileName("agent", now),
+		createLogFileName("agent", now.Add(-time.Hour*24*3)),
+		createLogFileName("systray", now),
+		createLogFileName("systray", now.Add(-time.Hour*24*3)),
+		createLogFileName("helper", now),
+		createLogFileName("helper", now.Add(-time.Hour*24*4)),
+	}
+
+	tests := []struct {
+		name   string
+		prefix string
+		files  []string
+		want   string
+	}{
+		{
+			name:   "latest agent file name",
+			prefix: "agent",
+			files:  existingFiles,
+			want:   createLogFileName("agent", now),
+		},
+		{
+			name:   "latest helper file name",
+			prefix: "helper",
+			files:  existingFiles,
+			want:   createLogFileName("helper", now),
+		},
+		{
+			name:   "latest systray file name",
+			prefix: "systray",
+			files:  existingFiles,
+			want:   createLogFileName("systray", now),
+		},
+		{
+			name:   "current date if no matching files",
+			prefix: "systray",
+			files: []string{
+				createLogFileName("agent", now),
+				createLogFileName("agent", now.Add(-time.Hour*24*3)),
+				createLogFileName("helper", now),
+				createLogFileName("helper", now.Add(-time.Hour*24*4)),
+			},
+			want: createLogFileName("systray", time.Now()),
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			testDir := t.TempDir()
+			assert.NoError(t, err)
+
+			err := os.Chdir(testDir)
+			assert.NoError(t, err)
+
+			for _, fileName := range tt.files {
+				_, err = os.Create(fileName)
+				assert.NoError(t, err)
+			}
+
+			actual := LatestFilename(testDir, tt.prefix)
+			assert.Equal(t, tt.want, actual)
+		})
+	}
+}
