@@ -10,9 +10,17 @@ import (
 	easy "github.com/t-tomalak/logrus-easy-formatter"
 )
 
-const logfileMaxAge = time.Hour * 24 * 7
+const (
+	Agent   = "agent"
+	Helper  = "helper"
+	Systray = "systray"
 
-func SetupLogger(level, logDir, name string) {
+	LogDir = "logs"
+
+	logfileMaxAge = time.Hour * 24 * 7
+)
+
+func SetupLogger(level, logDir, prefix string) {
 	err := os.MkdirAll(logDir, 0o755)
 	if err != nil {
 		log.Fatalf("Creating log dir: %v", err)
@@ -24,9 +32,9 @@ func SetupLogger(level, logDir, name string) {
 	}
 
 	// clean up old log file without date
-	_ = os.Remove(filepath.Join(logDir, name+".log"))
+	_ = os.Remove(filepath.Join(logDir, prefix+".log"))
 
-	filename := createLogFileName(name, time.Now())
+	filename := createLogFileName(prefix, time.Now())
 	logFilePath := filepath.Join(logDir, filename)
 
 	logFile, err := os.OpenFile(logFilePath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0o664)

@@ -8,15 +8,16 @@ import (
 	"syscall"
 	"time"
 
+	log "github.com/sirupsen/logrus"
+	flag "github.com/spf13/pflag"
+	"google.golang.org/grpc"
+
 	"github.com/nais/device/pkg/helper"
 	"github.com/nais/device/pkg/helper/config"
 	"github.com/nais/device/pkg/logger"
 	"github.com/nais/device/pkg/pb"
 	"github.com/nais/device/pkg/unixsocket"
 	"github.com/nais/device/pkg/version"
-	log "github.com/sirupsen/logrus"
-	flag "github.com/spf13/pflag"
-	"google.golang.org/grpc"
 )
 
 var cfg = helper.Config{}
@@ -38,7 +39,7 @@ func main() {
 
 	osConfigurator := helper.New(cfg)
 
-	logger.SetupLogger(cfg.LogLevel, config.LogDir, "helper")
+	logger.SetupLogger(cfg.LogLevel, config.LogDir, logger.Helper)
 
 	log.Infof("naisdevice-helper %s starting up", version.Version)
 	log.Infof("configuration: %+v", cfg)
