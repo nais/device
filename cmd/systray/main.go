@@ -10,13 +10,14 @@ import (
 	"syscall"
 	"time"
 
+	log "github.com/sirupsen/logrus"
+	flag "github.com/spf13/pflag"
+
 	"github.com/nais/device/pkg/config"
 	"github.com/nais/device/pkg/logger"
 	"github.com/nais/device/pkg/notify"
 	"github.com/nais/device/pkg/systray"
 	"github.com/nais/device/pkg/version"
-	log "github.com/sirupsen/logrus"
-	flag "github.com/spf13/pflag"
 )
 
 func handleSignals(cancel context.CancelFunc) {
@@ -61,8 +62,8 @@ func main() {
 	flag.StringVar(&cfg.GrpcAddress, "grpc-address", cfg.GrpcAddress, "path to device-agent unix socket")
 	flag.Parse()
 
-	logDir := filepath.Join(cfg.ConfigDir, "logs")
-	logger.SetupLogger(cfg.LogLevel, logDir, "systray")
+	logDir := filepath.Join(cfg.ConfigDir, logger.LogDir)
+	logger.SetupLogger(cfg.LogLevel, logDir, logger.Systray)
 
 	conn, err := net.Dial("unix", cfg.GrpcAddress)
 	if err != nil {
