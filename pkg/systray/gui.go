@@ -423,13 +423,13 @@ func (gui *Gui) handleGuiEvent(guiEvent GuiEvent) {
 	case HelperLogClicked:
 		err := open.Open(filepath.Join(gui.Config.ConfigDir, "logs", "helper.log"))
 		if err != nil {
-			log.Warn("opening device agent helper log: %w", err)
+			log.Warnf("opening device agent helper log: %v", err)
 		}
 
 	case DeviceLogClicked:
 		err := open.Open(filepath.Join(gui.Config.ConfigDir, "logs", "agent.log"))
 		if err != nil {
-			log.Warn("opening device agent log: %w", err)
+			log.Warnf("opening device agent log: %v", err)
 		}
 
 	case ZipLogsClicked:
@@ -451,13 +451,13 @@ func (gui *Gui) handleGuiEvent(guiEvent GuiEvent) {
 	case LogClicked:
 		err := open.Open(filepath.Join(gui.Config.ConfigDir, "logs", "systray.log"))
 		if err != nil {
-			log.Warn("opening device agent log: %w", err)
+			log.Warnf("opening systray log: %v", err)
 		}
 
 	case AcceptableUseClicked:
 		err := open.Open("https://naisdevice-approval.nais.io/")
 		if err != nil {
-			log.Warn("opening device agent log: %w", err)
+			log.Warnf("opening naisdevice approval page: %v", err)
 		}
 	case QuitClicked:
 		_, err := gui.DeviceAgentClient.Logout(context.Background(), &pb.LogoutRequest{})
