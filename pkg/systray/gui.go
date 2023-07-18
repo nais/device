@@ -423,16 +423,14 @@ func (gui *Gui) handleGuiEvent(guiEvent GuiEvent) {
 		}
 
 	case HelperLogClicked:
-		logFilename := logger.LatestFilename(helperconfig.LogDir, logger.Helper)
-		err := open.Open(filepath.Join(helperconfig.LogDir, logFilename))
+		err := open.Open(logger.LatestFilepath(helperconfig.LogDir, logger.Helper))
 		if err != nil {
 			log.Warnf("opening device agent helper log: %v", err)
 		}
 
 	case DeviceLogClicked:
 		logDirPath := filepath.Join(gui.Config.ConfigDir, logger.LogDir)
-		logFilename := logger.LatestFilename(logDirPath, logger.Agent)
-		err := open.Open(filepath.Join(logDirPath, logFilename))
+		err := open.Open(logger.LatestFilepath(logDirPath, logger.Agent))
 		if err != nil {
 			log.Warnf("opening device agent log: %v", err)
 		}
@@ -440,9 +438,9 @@ func (gui *Gui) handleGuiEvent(guiEvent GuiEvent) {
 	case ZipLogsClicked:
 		userLogDirPath := filepath.Join(gui.Config.ConfigDir, logger.LogDir)
 		logFiles := [3]string{
-			filepath.Join(userLogDirPath, logger.LatestFilename(userLogDirPath, logger.Agent)),
-			filepath.Join(helperconfig.LogDir, logger.LatestFilename(helperconfig.LogDir, logger.Helper)),
-			filepath.Join(userLogDirPath, logger.LatestFilename(userLogDirPath, logger.Systray)),
+			logger.LatestFilepath(userLogDirPath, logger.Agent),
+			logger.LatestFilepath(helperconfig.LogDir, logger.Helper),
+			logger.LatestFilepath(userLogDirPath, logger.Systray),
 		}
 		zipLocation, err := helper.ZipLogFiles(logFiles[:])
 		if err != nil {
@@ -455,8 +453,7 @@ func (gui *Gui) handleGuiEvent(guiEvent GuiEvent) {
 
 	case LogClicked:
 		logDirPath := filepath.Join(gui.Config.ConfigDir, logger.LogDir)
-		logFilename := logger.LatestFilename(logDirPath, logger.Systray)
-		err := open.Open(filepath.Join(logDirPath, logFilename))
+		err := open.Open(logger.LatestFilepath(logDirPath, logger.Systray))
 		if err != nil {
 			log.Warnf("opening systray log: %v", err)
 		}

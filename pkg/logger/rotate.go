@@ -61,6 +61,10 @@ func createLogFileName(prefix string, t time.Time) string {
 	return fmt.Sprintf("%s_%s.log", prefix, t.Format(time.DateOnly))
 }
 
+func LatestFilepath(logDirPath, prefix string) string {
+	return filepath.Join(logDirPath, LatestFilename(logDirPath, prefix))
+}
+
 func LatestFilename(logDirPath, prefix string) string {
 	logFiles, err := os.ReadDir(logDirPath)
 	if err != nil {
