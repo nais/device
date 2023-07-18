@@ -60,3 +60,37 @@ func filterOldFilesByDate(files []os.DirEntry, treshold time.Time) ([]os.DirEntr
 func createLogFileName(prefix string, t time.Time) string {
 	return fmt.Sprintf("%s_%s.log", prefix, t.Format(time.DateOnly))
 }
+
+func LatestFilename(logDirPath, prefix string) string {
+	logFiles, err := os.ReadDir(logDirPath)
+	if err != nil {
+		log.Errorf("open log dir: %v", err)
+	}
+
+	newestFilename := createLogFileName(prefix, time.Now())
+	newestDate := time.Time{}
+
+	filenameFormat := regexp.MustCompile(fmt.Sprintf(`^(%s)_(\d{4}-\d{2}-\d{2})\.log$`, prefix))
+
+	for _, logFile := range logFiles {
+		matches := filenameFormat.FindAllStringSubmatch(logFile.Name(), -1)
+		if len(matches) != 1 || len(matches[0]) != 3 {
+			log.Debug("ignoring file: ", logFile)
+			continue
+		}
+
+		date := matches[0][2]
+		logDate, err := time.Parse(time.DateOnly, date)
+		if err != nil {
+			log.Errorf("inferring latest log file: unable to parse date: %q, err: %v", date, err)
+			continue
+		}
+
+		if logDate.After(newestDate) {
+			newestDate = logDate
+			newestFilename = logFile.Name()
+		}
+	}
+
+	return newestFilename
+}

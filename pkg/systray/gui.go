@@ -11,6 +11,8 @@ import (
 	"time"
 
 	"github.com/nais/device/pkg/helper"
+	helperconfig "github.com/nais/device/pkg/helper/config"
+	"github.com/nais/device/pkg/logger"
 
 	"github.com/nais/device/assets"
 	"github.com/nais/device/pkg/device-agent/open"
@@ -421,23 +423,26 @@ func (gui *Gui) handleGuiEvent(guiEvent GuiEvent) {
 		}
 
 	case HelperLogClicked:
-		err := open.Open(filepath.Join(gui.Config.ConfigDir, "logs", "helper.log"))
+		logFilename := logger.LatestFilename(helperconfig.LogDir, logger.Helper)
+		err := open.Open(filepath.Join(helperconfig.LogDir, logFilename))
 		if err != nil {
 			log.Warnf("opening device agent helper log: %v", err)
 		}
 
 	case DeviceLogClicked:
-		err := open.Open(filepath.Join(gui.Config.ConfigDir, "logs", "agent.log"))
+		logDirPath := filepath.Join(gui.Config.ConfigDir, logger.LogDir)
+		logFilename := logger.LatestFilename(logDirPath, logger.Agent)
+		err := open.Open(filepath.Join(logDirPath, logFilename))
 		if err != nil {
 			log.Warnf("opening device agent log: %v", err)
 		}
 
 	case ZipLogsClicked:
-		logDir := filepath.Join(gui.Config.ConfigDir, "logs")
+		userLogDirPath := filepath.Join(gui.Config.ConfigDir, logger.LogDir)
 		logFiles := [3]string{
-			filepath.Join(logDir, "helper.log"),
-			filepath.Join(logDir, "agent.log"),
-			filepath.Join(logDir, "systray.log"),
+			filepath.Join(userLogDirPath, logger.LatestFilename(userLogDirPath, logger.Agent)),
+			filepath.Join(helperconfig.LogDir, logger.LatestFilename(helperconfig.LogDir, logger.Helper)),
+			filepath.Join(userLogDirPath, logger.LatestFilename(userLogDirPath, logger.Systray)),
 		}
 		zipLocation, err := helper.ZipLogFiles(logFiles[:])
 		if err != nil {
@@ -449,7 +454,9 @@ func (gui *Gui) handleGuiEvent(guiEvent GuiEvent) {
 		}
 
 	case LogClicked:
-		err := open.Open(filepath.Join(gui.Config.ConfigDir, "logs", "systray.log"))
+		logDirPath := filepath.Join(gui.Config.ConfigDir, logger.LogDir)
+		logFilename := logger.LatestFilename(logDirPath, logger.Systray)
+		err := open.Open(filepath.Join(logDirPath, logFilename))
 		if err != nil {
 			log.Warnf("opening systray log: %v", err)
 		}
