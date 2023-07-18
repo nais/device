@@ -317,7 +317,7 @@ func (das *DeviceAgentServer) EventLoop(ctx context.Context) {
 						case codes.OK:
 							attempt = 0
 						case codes.Unavailable:
-							log.Warnf("Synchronize config: not connected to API server!")
+							log.Warnf("Synchronize config: not connected to API server: %v", err)
 							time.Sleep(apiServerRetryInterval)
 						case codes.Unauthenticated:
 							log.Errorf("Logging in: %s", err)
