@@ -61,8 +61,8 @@ func main() {
 	programContext, programCancel := context.WithCancel(context.Background())
 	handleSignals(programCancel)
 
-	logDir := filepath.Join(cfg.ConfigDir, "logs")
-	logger.SetupLogger(cfg.LogLevel, logDir, "agent")
+	logDir := filepath.Join(cfg.ConfigDir, logger.LogDir)
+	logger.SetupLogger(cfg.LogLevel, logDir, logger.Agent)
 
 	cfg.PopulateAgentConfiguration()
 

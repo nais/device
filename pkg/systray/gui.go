@@ -11,6 +11,8 @@ import (
 	"time"
 
 	"github.com/nais/device/pkg/helper"
+	helperconfig "github.com/nais/device/pkg/helper/config"
+	"github.com/nais/device/pkg/logger"
 
 	"github.com/nais/device/assets"
 	"github.com/nais/device/pkg/device-agent/open"
@@ -421,23 +423,24 @@ func (gui *Gui) handleGuiEvent(guiEvent GuiEvent) {
 		}
 
 	case HelperLogClicked:
-		err := open.Open(filepath.Join(gui.Config.ConfigDir, "logs", "helper.log"))
+		err := open.Open(logger.LatestFilepath(helperconfig.LogDir, logger.Helper))
 		if err != nil {
-			log.Warn("opening device agent helper log: %w", err)
+			log.Warnf("opening device agent helper log: %v", err)
 		}
 
 	case DeviceLogClicked:
-		err := open.Open(filepath.Join(gui.Config.ConfigDir, "logs", "agent.log"))
+		logDirPath := filepath.Join(gui.Config.ConfigDir, logger.LogDir)
+		err := open.Open(logger.LatestFilepath(logDirPath, logger.Agent))
 		if err != nil {
-			log.Warn("opening device agent log: %w", err)
+			log.Warnf("opening device agent log: %v", err)
 		}
 
 	case ZipLogsClicked:
-		logDir := filepath.Join(gui.Config.ConfigDir, "logs")
+		userLogDirPath := filepath.Join(gui.Config.ConfigDir, logger.LogDir)
 		logFiles := [3]string{
-			filepath.Join(logDir, "helper.log"),
-			filepath.Join(logDir, "agent.log"),
-			filepath.Join(logDir, "systray.log"),
+			logger.LatestFilepath(userLogDirPath, logger.Agent),
+			logger.LatestFilepath(helperconfig.LogDir, logger.Helper),
+			logger.LatestFilepath(userLogDirPath, logger.Systray),
 		}
 		zipLocation, err := helper.ZipLogFiles(logFiles[:])
 		if err != nil {
@@ -449,15 +452,16 @@ func (gui *Gui) handleGuiEvent(guiEvent GuiEvent) {
 		}
 
 	case LogClicked:
-		err := open.Open(filepath.Join(gui.Config.ConfigDir, "logs", "systray.log"))
+		logDirPath := filepath.Join(gui.Config.ConfigDir, logger.LogDir)
+		err := open.Open(logger.LatestFilepath(logDirPath, logger.Systray))
 		if err != nil {
-			log.Warn("opening device agent log: %w", err)
+			log.Warnf("opening systray log: %v", err)
 		}
 
 	case AcceptableUseClicked:
 		err := open.Open("https://naisdevice-approval.nais.io/")
 		if err != nil {
-			log.Warn("opening device agent log: %w", err)
+			log.Warnf("opening naisdevice approval page: %v", err)
 		}
 	case QuitClicked:
 		_, err := gui.DeviceAgentClient.Logout(context.Background(), &pb.LogoutRequest{})
