@@ -203,7 +203,6 @@ func (gui *Gui) handleButtonClicks(ctx context.Context) {
 			gui.Events <- LogClicked
 		case <-gui.MenuItems.ZipLog.ClickedCh:
 			gui.Events <- ZipLogsClicked
-			return
 		case name := <-gui.PrivilegedGatewayClicked:
 			accessPrivilegedGateway(name)
 		case name := <-gui.TenantItemClicked:
