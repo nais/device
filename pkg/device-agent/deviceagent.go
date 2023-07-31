@@ -9,10 +9,11 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/hashicorp/go-multierror"
-	"github.com/nais/device/pkg/notify"
 	log "github.com/sirupsen/logrus"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+
+	"github.com/nais/device/pkg/notify"
 
 	"github.com/nais/device/pkg/device-agent/config"
 	"github.com/nais/device/pkg/device-agent/runtimeconfig"
@@ -132,7 +133,7 @@ func (das *DeviceAgentServer) SetActiveTenant(ctx context.Context, req *pb.SetAc
 	}
 
 	for i, tenant := range das.rc.Tenants {
-		if strings.ToLower(tenant.Name) == strings.ToLower(tenant.Name) {
+		if strings.ToLower(tenant.Name) == strings.ToLower(req.Name) {
 			das.rc.Tenants[i].Active = true
 			das.stateChange <- pb.AgentState_Disconnecting
 			log.Infof("activated tenant: %s", tenant.Name)
