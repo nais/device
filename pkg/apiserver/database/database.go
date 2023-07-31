@@ -7,10 +7,11 @@ import (
 	"sync"
 	"time"
 
-	"github.com/nais/device/pkg/apiserver/sqlc"
-	"github.com/nais/device/pkg/pb"
 	log "github.com/sirupsen/logrus"
 	"google.golang.org/protobuf/types/known/timestamppb"
+
+	"github.com/nais/device/pkg/apiserver/sqlc"
+	"github.com/nais/device/pkg/pb"
 )
 
 type ApiServerDB struct {
@@ -58,7 +59,7 @@ func (db *ApiServerDB) UpdateDevices(ctx context.Context, devices []*pb.Device) 
 	err := db.queries.Transaction(ctx, func(ctx context.Context, queries *sqlc.Queries) error {
 		for _, device := range devices {
 			err := queries.UpdateDevice(ctx, sqlc.UpdateDeviceParams{
-				Healthy:  true,
+				Healthy:  device.Healthy,
 				Serial:   device.Serial,
 				Platform: device.Platform,
 				LastUpdated: sql.NullString{
