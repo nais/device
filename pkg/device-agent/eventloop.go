@@ -192,7 +192,7 @@ func (das *DeviceAgentServer) EventLoop(ctx context.Context) {
 			}
 
 			if status.NewVersionAvailable {
-				notify.Infof("New version of device agent available: https://doc.nais.io/device/install#installation")
+				notify.Infof("New version of device agent available: https://doc.nais.io/device/update/")
 				versionCheckTicker.Stop()
 			} else {
 				versionCheckTicker.Reset(versionCheckInterval)
