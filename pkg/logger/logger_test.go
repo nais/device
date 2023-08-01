@@ -9,7 +9,6 @@ import (
 )
 
 func TestRotate(t *testing.T) {
-
 	now, err := time.Parse(time.DateOnly, "2021-01-05")
 
 	week := time.Hour * 24 * 7
@@ -105,7 +104,6 @@ func TestRotate(t *testing.T) {
 			}
 		})
 	}
-
 }
 
 func TestLatestFilename(t *testing.T) {
