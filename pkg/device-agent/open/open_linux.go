@@ -1,8 +1,16 @@
 package open
 
-import "os/exec"
+import (
+	"os/exec"
 
-func Open(url string) error {
-	command := exec.Command("xdg-open", url)
-	return command.Start()
+	log "github.com/sirupsen/logrus"
+)
+
+func Open(url string) {
+	go func() {
+		command := exec.Command("xdg-open", url)
+		if err := command.Run(); err != nil {
+			log.Errorf("open.Open(%q): %v", url, err)
+		}
+	}()
 }

@@ -364,16 +364,10 @@ func (gui *Gui) updateIcons() {
 func (gui *Gui) handleGuiEvent(guiEvent GuiEvent) {
 	switch guiEvent {
 	case VersionClicked:
-		err := open.Open(softwareReleasePage)
-		if err != nil {
-			log.Warnf("opening latest release url: %v", err)
-		}
+		open.Open(softwareReleasePage)
 
 	case StateInfoClicked:
-		err := open.Open(slackURL)
-		if err != nil {
-			log.Warnf("opening slack: %v", err)
-		}
+		open.Open(slackURL)
 
 	case AutoConnectClicked:
 		getConfigResponse, err := gui.DeviceAgentClient.GetAgentConfiguration(context.Background(), &pb.GetAgentConfigurationRequest{})
@@ -422,17 +416,11 @@ func (gui *Gui) handleGuiEvent(guiEvent GuiEvent) {
 		}
 
 	case HelperLogClicked:
-		err := open.Open(logger.LatestFilepath(helperconfig.LogDir, logger.Helper))
-		if err != nil {
-			log.Warnf("opening device agent helper log: %v", err)
-		}
+		open.Open(logger.LatestFilepath(helperconfig.LogDir, logger.Helper))
 
 	case DeviceLogClicked:
 		logDirPath := filepath.Join(gui.Config.ConfigDir, logger.LogDir)
-		err := open.Open(logger.LatestFilepath(logDirPath, logger.Agent))
-		if err != nil {
-			log.Warnf("opening device agent log: %v", err)
-		}
+		open.Open(logger.LatestFilepath(logDirPath, logger.Agent))
 
 	case ZipLogsClicked:
 		userLogDirPath := filepath.Join(gui.Config.ConfigDir, logger.LogDir)
@@ -445,23 +433,14 @@ func (gui *Gui) handleGuiEvent(guiEvent GuiEvent) {
 		if err != nil {
 			log.Errorf("zipping log files: %v", err)
 		}
-		err = open.Open("file://" + filepath.Dir(zipLocation))
-		if err != nil {
-			log.Errorf("open %v", err)
-		}
+		open.Open("file://" + filepath.Dir(zipLocation))
 
 	case LogClicked:
 		logDirPath := filepath.Join(gui.Config.ConfigDir, logger.LogDir)
-		err := open.Open(logger.LatestFilepath(logDirPath, logger.Systray))
-		if err != nil {
-			log.Warnf("opening systray log: %v", err)
-		}
+		open.Open(logger.LatestFilepath(logDirPath, logger.Systray))
 
 	case AcceptableUseClicked:
-		err := open.Open("https://naisdevice-approval.nais.io/")
-		if err != nil {
-			log.Warnf("opening naisdevice approval page: %v", err)
-		}
+		open.Open("https://naisdevice-approval.nais.io/")
 	case QuitClicked:
 		_, err := gui.DeviceAgentClient.Logout(context.Background(), &pb.LogoutRequest{})
 		if err != nil {
@@ -530,11 +509,7 @@ func (gui *Gui) aggregateTenantButtonClicks() {
 }
 
 func accessPrivilegedGateway(gatewayName string) {
-	err := open.Open(fmt.Sprintf("https://naisdevice-jita.nais.io/?gateway=%s", gatewayName))
-	if err != nil {
-		log.Errorf("opening browser: %v", err)
-		// TODO: show error in gui (systray)
-	}
+	open.Open(fmt.Sprintf("https://naisdevice-jita.nais.io/?gateway=%s", gatewayName))
 }
 
 func (gui *Gui) activateTenant(ctx context.Context, name string) {

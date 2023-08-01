@@ -56,11 +56,7 @@ func GetDeviceAgentToken(ctx context.Context, conf oauth2.Config, authServer str
 		oauth2.SetAuthURLParam("code_challenge_method", "S256"),
 		oauth2.SetAuthURLParam("code_challenge", codeVerifier.CodeChallengeS256()))
 
-	err = open.Open(url)
-	if err != nil {
-		log.Errorf("opening browser, err: %v", err)
-		// Don't return, as this is not fatal (user can open browser manually)
-	}
+	open.Open(url)
 	log.Infof("If the browser didn't open, visit this url to sign in: %v\n", url)
 
 	select {
