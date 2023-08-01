@@ -207,7 +207,7 @@ func (das *DeviceAgentServer) EventLoop(ctx context.Context) {
 			wg := &sync.WaitGroup{}
 
 			total := len(status.GetGateways())
-			log.Infof("Pinging %d gateways...", total)
+			log.Debugf("Pinging %d gateways...", total)
 			for i, gw := range status.GetGateways() {
 				wg.Add(1)
 				go func(i int, gw *pb.Gateway) {
@@ -218,7 +218,7 @@ func (das *DeviceAgentServer) EventLoop(ctx context.Context) {
 						log.Debugf("%s %s: successfully pinged %v", pos, gw.Name, gw.Ip)
 					} else {
 						gw.Healthy = false
-						log.Infof("%s %s: unable to ping %s: %v", pos, gw.Name, gw.Ip, err)
+						log.Debugf("%s %s: unable to ping %s: %v", pos, gw.Name, gw.Ip, err)
 					}
 					wg.Done()
 				}(i, gw)
