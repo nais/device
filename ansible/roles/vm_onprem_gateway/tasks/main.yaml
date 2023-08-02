@@ -1,0 +1,40 @@
+- name: Create admin group
+  ansible.builtin.group:
+    name: admin
+    gid: 1069
+    state: present
+
+- name: Set nopasswd for members of 'sudo' group
+  ansible.builtin.copy:
+    mode: '0600'
+    owner: root
+    group: root
+    dest: /etc/sudoers.d/sudo-group-nopasswd
+    content: '%sudo ALL=(ALL:ALL) NOPASSWD:ALL'
+
+- name: Create admin users
+  ansible.builtin.user:
+    name: "{{ item.name }}"
+    comment: "{{ item.name }}"
+    shell: "/bin/bash"
+    group: "admin"
+    groups: "sudo"
+    state: present
+  when: admin_users is defined
+  loop: "{{ admin_users }}"
+
+- name: Add admin_users ssh keys
+  ansible.posix.authorized_key.authorized_key:
+    user: "{{ item.name }}"
+    key: "{{ item.authorized_key }}"
+    state: present
+  when: admin_users is defined and item.authorized_key is defined
+  loop: "{{ admin_users }}"
+
+- name: Add logrotate config
+  ansible.builtin.template:
+    owner: root
+    group: root
+    mode: '0640'
+    src: logrotate-gateway-agent.j2
+    dest: /etc/logrotate.d/naisdevice-gateway-agent

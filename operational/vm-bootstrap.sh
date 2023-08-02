@@ -44,4 +44,4 @@ all:
 EOF
 
 echo "add the following line to crontab:"
-echo "*/5 * * * * [ \$(pgrep ansible-pull -c) -eq 0 ] && HTTPS_PROXY=$HTTPS_PROXY /usr/bin/ansible-pull --only-if-changed -U https://github.com/nais/device ansible/site.yml -i /root/ansible-inventory.yaml >> /var/log/naisdevice/ansible.log"
+echo "*/15 * * * * [ \$(pgrep ansible-pull -c) -eq 0 ] && HTTPS_PROXY=$HTTPS_PROXY /usr/bin/ansible-pull --only-if-changed -U https://github.com/nais/device ansible/site.yml -i /root/ansible-inventory.yaml >> /var/log/naisdevice/ansible.log"

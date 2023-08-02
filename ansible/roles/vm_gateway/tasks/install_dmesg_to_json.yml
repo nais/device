@@ -1,0 +1,35 @@
+- name: Ensure directory exists
+  ansible.builtin.file:
+    state: directory
+    path: /opt/naisdevice/bin/
+    mode: '0755'
+    owner: root
+    group: root
+
+- name: Download dmesg-to-json
+  ansible.builtin.get_url:
+    dest: /opt/naisdevice/bin/dmesg-to-json
+    force: true
+    url: https://github.com/nais/dmesg-to-json/releases/download/2022-11-04-746cb93/dmesg-to-json
+    backup: false
+    mode: '0755'
+  notify:
+    - Restart naisdevice fwds logging
+
+- name: Install naisdevice-fwds-logging systemd unit file
+  ansible.builtin.template:
+    src: naisdevice-fwds-logging.service.j2
+    dest: /etc/systemd/system/naisdevice-fwds-logging.service
+    mode: '0640'
+  notify:
+    - Restart naisdevice fwds logging
+
+- name: Ensure naisdevice-fwds-logging is enabled
+  ansible.builtin.systemd:
+    name: naisdevice-fwds-logging
+    enabled: true
+
+- name: Ensure naisdevice-fwds-logging is started
+  ansible.builtin.systemd:
+    name: naisdevice-fwds-logging
+    state: started

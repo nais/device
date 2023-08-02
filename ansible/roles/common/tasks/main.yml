@@ -1,0 +1,23 @@
+- name: Ensure prometheus-node-exporter package installed
+  ansible.builtin.apt:
+    name: prometheus-node-exporter
+    state: present
+
+- name: Ensure curl is installed
+  ansible.builtin.apt:
+    name: curl
+    state: present
+
+- name: Ensure ca-certificates is installed
+  ansible.builtin.apt:
+    name: ca-certificates
+    state: present
+
+- name: Ensure apt-transport-https is installed
+  ansible.builtin.apt:
+    name: apt-transport-https
+    state: present
+
+- name: Ensure gnupg is installed
+  ansible.builtin.apt:
+    name: gnupg

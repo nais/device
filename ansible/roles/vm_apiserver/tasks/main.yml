@@ -1,0 +1,11 @@
+- name: Ensure apiserver package installed
+  ansible.builtin.apt:
+    name: apiserver
+    state: present
+
+- name: Add logrotate config
+  ansible.builtin.template:
+    owner: root
+    mode: '0640'
+    src: logrotate-apiserver.j2
+    dest: /etc/logrotate.d/naisdevice-apiserver

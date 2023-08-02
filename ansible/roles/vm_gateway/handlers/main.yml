@@ -1,0 +1,5 @@
+- name: Restart naisdevice fwds logging
+  ansible.builtin.systemd:
+    state: restarted
+    name: naisdevice-fwds-logging
+    daemon_reload: true

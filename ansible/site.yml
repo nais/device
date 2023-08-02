@@ -1,28 +1,29 @@
 ---
-- hosts: bootstrap_api
+- name: Set up bootstrap-api vm
+  hosts: bootstrap_api
   roles:
-    - logging
-    - bootstrap-api
+    - vm_bootstrap_api
 
-- hosts: prometheus
+- name: Set up prometheus vm
+  hosts: prometheus
   roles:
-    - logging
-    - prometheus
+    - vm_prometheus
 
-- hosts: apiservers
+- name: Set up apiserver vm
+  hosts: apiservers
   roles:
-    - logging
-    - apiserver
+    - vm_apiserver
 
-- hosts: gateways
+- name: Set up gateway vm
+  hosts: gateways
   roles:
-    - logging
-    - gateway
+    - vm_gateway
   vars:
-    K8S_CLUSTER_API_IP_ADDRESS: 172.16.0.2
+    cluter_ip: 172.16.0.2
     onprem: false
 
-- hosts: onprem_gateways
+- name: Set up onprem gateway vm
+  hosts: onprem_gateways
   environment: "{{ proxy_env }}"
   vars:
     onprem: true
@@ -38,6 +39,4 @@
       - name: j152316
         authorized_key: "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQC7FMHEQwqc0RiVaYzGGW54F9M4YnMqP8mJXCsMJdu3PmzoZL5bhTpMcnXbCfMXAyd0opvA2hrWCQNmGid8QWO13Fm2fNe1VkJ+UekputK15euJM0DfDRadLJJbHOFt5Bin3Te6a/9YP+415DUUlzaSncRxwKMdrTZZl80cj4xSLDZx2mqnCO6JHn+p4Vw6XtyR+tE4ocJCpV6DAG7eJqWitoW4FOnl5L1hX8gl+JAX2z8JlBg433a69fQwQfGjdPJqlJZTC1Zk7ltC4xiZ/j5JtGDfmc0ascoZnZXEuICFuZ6Y1PnH2T9t7U6uwjqe7te/EGgqDYBib/VKOTOa+nsHDQIRul1uXdRH2rul7aWUjBG8btpmcZv2cgeuKxwqLR21IG5KuK916q1Rrj3X9vR859u4KlD8KYqOEF/SkgbKMBteue4b8pqk6JK+8C1yR+0GBiRuQq+4GRArikgpew30XNZAF4/hieYqGnp+eso9GZfh4L9KFTLM8NuGt1ydzl0= kimt@avatar"
   roles:
-    - onprem-gateway
-    - gateway
-    - logging
+    - vm_onprem_gateway

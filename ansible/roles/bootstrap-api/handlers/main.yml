@@ -1,5 +1,0 @@
-- name: restart_bootstrap-api
-  systemd:
-    state: restarted
-    name: bootstrap-api
-    daemon_reload: yes

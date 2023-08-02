@@ -1,0 +1,3 @@
+skip_list:
+  - meta-no-info
+  - yaml[line-length]

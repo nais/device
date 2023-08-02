@@ -1,5 +1,5 @@
-- name: Restart google fluentd
+- name: Restart prometheus
   ansible.builtin.systemd:
     state: restarted
-    name: google-fluentd
+    name: prometheus
     daemon_reload: true

@@ -1,0 +1,25 @@
+- name: Ensure prometheus package installed
+  ansible.builtin.apt:
+    name: prometheus
+    state: present
+
+- name: Ensure prometheus-agent package installed
+  ansible.builtin.apt:
+    name: prometheus-agent
+    state: present
+
+- name: Copy prometheus config
+  ansible.builtin.copy:
+    src: prometheus.yml
+    dest: /etc/prometheus/
+    mode: '0640'
+  notify:
+    - Restart prometheus
+
+- name: Add logrotate config
+  ansible.builtin.template:
+    owner: root
+    group: root
+    mode: '0640'
+    src: logrotate-prometheus-agent.j2
+    dest: /etc/logrotate.d/naisdevice-prometheus-agent

@@ -1,0 +1,30 @@
+- name: Ensure gateway-agent package installed
+  ansible.builtin.apt:
+    name: gateway-agent
+    state: present
+
+- name: Enable IPv4 forwarding in sysctl
+  ansible.posix.sysctl:
+    name: net.ipv4.ip_forward
+    value: '1'
+    reload: true
+
+- name: Enable IPv6 forwarding in sysctl
+  ansible.posix.sysctl:
+    name: net.ipv6.conf.all.forwarding
+    value: '1'
+    reload: true
+
+- name: Install dmesg-to-json
+  ansible.builtin.include_tasks: install_dmesg_to_json.yml
+
+- name: Set up iptables rules
+  ansible.builtin.include_tasks: set_iptables_rulesv4_outset.yml
+
+- name: Add logrotate config
+  ansible.builtin.template:
+    owner: root
+    group: root
+    mode: '0640'
+    src: logrotate-gateway-agent.j2
+    dest: /etc/logrotate.d/naisdevice-gateway-agent
