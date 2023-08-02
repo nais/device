@@ -1,54 +1,54 @@
-- name: Add Google Cloud Logging apt key
-  ansible.builtin.apt_key:
-    url: https://packages.cloud.google.com/apt/doc/apt-key.gpg
-
-- name: Add Google Cloud Logging repository
-  ansible.builtin.apt_repository:
-    repo: deb https://packages.cloud.google.com/apt google-cloud-logging-focal-all main
-    update_cache: true
-
-- name: Install Google Cloud Logging agent
-  ansible.builtin.apt:
-    name: google-fluentd
-    state: present
-    policy_rc_d: 101 # disable automatic start
-
-- name: Ensure /etc/google/auth/ directory
-  ansible.builtin.file:
-    path: /etc/google/auth/
-    state: directory
-    mode: '0755'
-
-- name: Download google cloud log write SA credentials
-  ansible.builtin.shell: gcloud --project nais-device secrets versions access latest --secret logwriter-credentials > /etc/google/auth/application_default_credentials.json
-  args:
-    creates: /etc/google/auth/application_default_credentials.json
-    executable: /bin/bash
-  environment:
-    PATH: /usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/snap/bin
-
-- name: Logging configuration
-  ansible.builtin.template:
-    src: naisdevice.conf.j2
-    dest: /etc/google-fluentd/google-fluentd.conf
-    mode: '0640'
-  notify:
-    - Restart google fluentd
-
-- name: Create systemd unit override directory
-  when: onprem
-  ansible.builtin.file:
-    path: /etc/systemd/system/google-fluentd.service.d
-    state: directory
-    owner: root
-    group: root
-    mode: '0755'
-
-- name: Add systemd unit override
-  when: onprem
-  ansible.builtin.template:
-    src: override.conf.j2
-    dest: /etc/systemd/system/google-fluentd.service.d/override.conf
-    mode: '0640'
-  notify:
-    - Restart google fluentd
+# - name: Add Google Cloud Logging apt key
+#   ansible.builtin.apt_key:
+#     url: https://packages.cloud.google.com/apt/doc/apt-key.gpg
+#
+# - name: Add Google Cloud Logging repository
+#   ansible.builtin.apt_repository:
+#     repo: deb https://packages.cloud.google.com/apt google-cloud-logging-focal-all main
+#     update_cache: true
+#
+# - name: Install Google Cloud Logging agent
+#   ansible.builtin.apt:
+#     name: google-fluentd
+#     state: present
+#     policy_rc_d: 101 # disable automatic start
+#
+# - name: Ensure /etc/google/auth/ directory
+#   ansible.builtin.file:
+#     path: /etc/google/auth/
+#     state: directory
+#     mode: '0755'
+#
+# - name: Download google cloud log write SA credentials
+#   ansible.builtin.shell: gcloud --project nais-device secrets versions access latest --secret logwriter-credentials > /etc/google/auth/application_default_credentials.json
+#   args:
+#     creates: /etc/google/auth/application_default_credentials.json
+#     executable: /bin/bash
+#   environment:
+#     PATH: /usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/snap/bin
+#
+# - name: Logging configuration
+#   ansible.builtin.template:
+#     src: naisdevice.conf.j2
+#     dest: /etc/google-fluentd/google-fluentd.conf
+#     mode: '0640'
+#   notify:
+#     - Restart google fluentd
+#
+# - name: Create systemd unit override directory
+#   when: onprem
+#   ansible.builtin.file:
+#     path: /etc/systemd/system/google-fluentd.service.d
+#     state: directory
+#     owner: root
+#     group: root
+#     mode: '0755'
+#
+# - name: Add systemd unit override
+#   when: onprem
+#   ansible.builtin.template:
+#     src: override.conf.j2
+#     dest: /etc/systemd/system/google-fluentd.service.d/override.conf
+#     mode: '0640'
+#   notify:
+#     - Restart google fluentd
