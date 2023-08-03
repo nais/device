@@ -5,6 +5,8 @@ on:
     workflows: ["Release naisdevice"]
     types:
       - completed
+    tags:
+      - **
   workflow_dispatch:
 
 jobs:
