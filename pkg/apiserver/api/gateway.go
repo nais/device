@@ -103,12 +103,31 @@ func (s *grpcServer) MakeGatewayConfiguration(ctx context.Context, gatewayName s
 
 func (s *grpcServer) reportOnlineGateways() {
 	s.gatewayConfigTriggerLock.RLock()
-	defer s.gatewayConfigTriggerLock.RUnlock()
-
-	gateways := make([]string, 0, len(s.gatewayConfigTrigger))
+	connectedGatewayNames := make([]string, 0, len(s.gatewayConfigTrigger))
 	for k := range s.gatewayConfigTrigger {
-		gateways = append(gateways, k)
+		connectedGatewayNames = append(connectedGatewayNames, k)
+	}
+	s.gatewayConfigTriggerLock.RUnlock()
+
+	allGatewayNames, err := s.getAllGatewayNames()
+	if err != nil {
+		log.Errorf("unable to report online gateways: %v", err)
+		return
 	}
 
-	apiserver_metrics.SetConnectedGateways(gateways)
+	apiserver_metrics.SetConnectedGateways(allGatewayNames, connectedGatewayNames)
+}
+
+func (s *grpcServer) getAllGatewayNames() ([]string, error) {
+	allGateways, err := s.db.ReadGateways(s.programContext)
+	allGatewayNames := make([]string, len(allGateways))
+	if err != nil {
+		return nil, fmt.Errorf("read gateways from database: %w", err)
+	}
+
+	for i := range allGateways {
+		allGatewayNames[i] = allGateways[i].Name
+	}
+
+	return allGatewayNames, nil
 }

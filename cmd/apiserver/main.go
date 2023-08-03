@@ -298,6 +298,7 @@ func run() error {
 	}
 
 	grpcHandler := api.NewGRPCServer(
+		ctx,
 		db,
 		authenticator,
 		adminAuthenticator,

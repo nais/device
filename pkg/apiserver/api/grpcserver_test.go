@@ -56,7 +56,7 @@ func TestGetDeviceConfiguration(t *testing.T) {
 
 	gatewayAuthenticator := auth.NewGatewayAuthenticator(db)
 
-	server := api.NewGRPCServer(db, nil, nil, gatewayAuthenticator, nil, nil, auth.NewSessionStore(db))
+	server := api.NewGRPCServer(ctx, db, nil, nil, gatewayAuthenticator, nil, nil, auth.NewSessionStore(db))
 
 	s := grpc.NewServer()
 	pb.RegisterAPIServerServer(s, server)
@@ -106,13 +106,18 @@ func TestGatewayPasswordAuthentication(t *testing.T) {
 	}
 	db := &database.MockAPIServer{}
 	db.On("ReadGateway", mock.Anything, "gateway").Return(gwResponse, nil).Times(2)
+	db.On("ReadGateways", mock.Anything).Return([]*pb.Gateway{
+		{
+			Name: "gateway",
+		},
+	}, nil)
 
 	sessionStore := auth.NewMockSessionStore(t)
 	sessionStore.On("All", mock.Anything).Return([]*pb.Session{}, nil)
 
 	gatewayAuthenticator := auth.NewGatewayAuthenticator(db)
 
-	server := api.NewGRPCServer(db, nil, nil, gatewayAuthenticator, nil, nil, sessionStore)
+	server := api.NewGRPCServer(ctx, db, nil, nil, gatewayAuthenticator, nil, nil, sessionStore)
 
 	s := grpc.NewServer()
 	pb.RegisterAPIServerServer(s, server)
@@ -167,7 +172,7 @@ func TestGatewayPasswordAuthenticationFail(t *testing.T) {
 
 	gatewayAuthenticator := auth.NewGatewayAuthenticator(db)
 
-	server := api.NewGRPCServer(db, nil, nil, gatewayAuthenticator, nil, nil, nil)
+	server := api.NewGRPCServer(ctx, db, nil, nil, gatewayAuthenticator, nil, nil, nil)
 
 	s := grpc.NewServer()
 	pb.RegisterAPIServerServer(s, server)

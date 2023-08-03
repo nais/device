@@ -1,6 +1,7 @@
 package api
 
 import (
+	"context"
 	"sync"
 
 	"github.com/nais/device/pkg/apiserver/auth"
@@ -26,11 +27,13 @@ type grpcServer struct {
 
 	db           database.APIServer
 	sessionStore auth.SessionStore
+
+	programContext context.Context
 }
 
 var _ pb.APIServerServer = &grpcServer{}
 
-func NewGRPCServer(db database.APIServer, authenticator auth.Authenticator, adminAuth, gatewayAuth, prometheusAuth auth.UsernamePasswordAuthenticator, jita jita.Client, sessionStore auth.SessionStore) *grpcServer {
+func NewGRPCServer(ctx context.Context, db database.APIServer, authenticator auth.Authenticator, adminAuth, gatewayAuth, prometheusAuth auth.UsernamePasswordAuthenticator, jita jita.Client, sessionStore auth.SessionStore) *grpcServer {
 	return &grpcServer{
 		deviceConfigTrigger:  make(map[int64]chan struct{}),
 		gatewayConfigTrigger: make(map[string]chan struct{}),
@@ -41,6 +44,7 @@ func NewGRPCServer(db database.APIServer, authenticator auth.Authenticator, admi
 		db:                   db,
 		jita:                 jita,
 		sessionStore:         sessionStore,
+		programContext:       ctx,
 	}
 }
 

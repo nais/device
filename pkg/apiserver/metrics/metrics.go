@@ -13,29 +13,25 @@ var (
 	GatewayConfigsReturned    *prometheus.CounterVec
 	PrivilegedUsersPerGateway *prometheus.GaugeVec
 
-	gatewayStatus      *prometheus.GaugeVec
-	gatewayConnections = make(map[string]bool)
+	gatewayStatus *prometheus.GaugeVec
 )
 
 func Serve(address string) error {
 	return http.ListenAndServe(address, promhttp.Handler())
 }
 
-func SetConnectedGateways(gateways []string) {
-	for k := range gatewayConnections {
-		gatewayConnections[k] = false
-	}
-	for _, k := range gateways {
-		gatewayConnections[k] = true
-	}
-	for k := range gatewayConnections {
-		i := 0.0
-		if gatewayConnections[k] {
-			i = 1.0
+func SetConnectedGateways(allGateways, connectedGateways []string) {
+	for _, gateway := range allGateways {
+		value := 0.0
+		for _, conntectedGateway := range connectedGateways {
+			if gateway == conntectedGateway {
+				value = 1.0
+				break
+			}
 		}
 		gatewayStatus.With(prometheus.Labels{
-			"gateway": k,
-		}).Set(i)
+			"gateway": gateway,
+		}).Set(value)
 	}
 }
 
