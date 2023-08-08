@@ -70,14 +70,14 @@ jobs:
           md5sum packaging/windows/naisdevice.exe
 
       - name: upload windows-client
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: windows-client${{ matrix.output-suffix }}
           path: bin/windows-client
           if-no-files-found: error
 
       - name: upload windows-installer
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: windows-installer${{ matrix.output-suffix }}
           path: packaging/windows/naisdevice.exe
@@ -113,7 +113,7 @@ jobs:
           md5 bin/macos-client/*
           md5 naisdevice.pkg
       - name: upload pkg
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: pkg${{ matrix.output-suffix }}
           path: naisdevice.pkg
@@ -146,7 +146,7 @@ jobs:
           make deb GOTAGS=${{ matrix.gotags }} VERSION=${{ needs.set-version.outputs.version }}
           md5sum naisdevice*.deb
       - name: upload debian package
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: deb${{ matrix.output-suffix }}
           path: naisdevice*.deb
