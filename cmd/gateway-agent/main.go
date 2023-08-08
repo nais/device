@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"os"
 	"os/signal"
 	"path/filepath"
 	"syscall"
@@ -33,7 +34,7 @@ const (
 	wireguardInterface   = "wg0"
 	wireguardListenPort  = 51820
 	enrollTimeout        = 20 * time.Second
-	maxReconnectAttempts = 10
+	maxReconnectAttempts = 24 // ~ 2 minutes
 )
 
 func init() {
