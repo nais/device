@@ -19,7 +19,7 @@
   roles:
     - vm_gateway
   vars:
-    cluter_ip: 172.16.0.2
+    cluster_ip: 172.16.0.2
     onprem: false
 
 - name: Set up onprem gateway vm
