@@ -6,7 +6,7 @@ on:
     types:
       - completed
     tags:
-      - *
+      - '*'
   workflow_dispatch:
 
 concurrency:
