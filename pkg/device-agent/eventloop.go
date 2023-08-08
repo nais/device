@@ -88,6 +88,7 @@ func (das *DeviceAgentServer) syncConfigLoop(ctx context.Context, gateways chan<
 			Token:    token,
 			Platform: config.Platform,
 			Serial:   serial,
+			Version:  version.Version,
 		})
 		if err != nil {
 			return err
