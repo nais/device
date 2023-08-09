@@ -12,6 +12,7 @@ var (
 	DevicesConnected          prometheus.Gauge
 	GatewayConfigsReturned    *prometheus.CounterVec
 	PrivilegedUsersPerGateway *prometheus.GaugeVec
+	LoginRequests             *prometheus.CounterVec
 
 	gatewayStatus *prometheus.GaugeVec
 )
@@ -71,11 +72,19 @@ func init() {
 		Help:      "Total number of configs returned to gateway since apiserver started.",
 	}, []string{"gateway"})
 
+	LoginRequests = prometheus.NewCounterVec(prometheus.CounterOpts{
+		Namespace: "naisdevice",
+		Subsystem: "apiserver",
+		Name:      "device_login_requests",
+		Help:      "Device logins with agent version.",
+	}, []string{"version"})
+
 	prometheus.MustRegister(
 		DevicesConnected,
 		gatewayStatus,
 		PrivilegedUsersPerGateway,
 		DeviceConfigsReturned,
 		GatewayConfigsReturned,
+		LoginRequests,
 	)
 }

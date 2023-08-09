@@ -133,6 +133,12 @@ func (s *grpcServer) UserGateways(ctx context.Context, userGroups []string) ([]*
 }
 
 func (s *grpcServer) Login(ctx context.Context, r *pb.APIServerLoginRequest) (*pb.APIServerLoginResponse, error) {
+	version := r.Version
+	if version == "" {
+		version = "unknown"
+	}
+	apiserver_metrics.LoginRequests.WithLabelValues(version).Inc()
+
 	session, err := s.authenticator.Login(ctx, r.Token, r.Serial, r.Platform)
 	if err != nil {
 		return nil, status.Errorf(codes.Unauthenticated, "login: %v", err)
