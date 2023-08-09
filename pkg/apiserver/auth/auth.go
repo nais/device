@@ -114,7 +114,7 @@ func (s *authenticator) validAuthState(state string) error {
 	_, ok := s.states[state]
 
 	if !ok {
-		return fmt.Errorf("state not found (CSRF attack?): %v", state)
+		return fmt.Errorf("state not found (CSRF attack?)")
 	}
 
 	delete(s.states, state)

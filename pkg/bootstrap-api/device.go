@@ -6,8 +6,6 @@ import (
 	"sync"
 
 	"github.com/go-chi/chi/v5"
-	log "github.com/sirupsen/logrus"
-
 	"github.com/nais/device/pkg/auth"
 	"github.com/nais/device/pkg/bootstrap"
 )
@@ -15,7 +13,7 @@ import (
 func (api *DeviceApi) postBootstrapConfig(w http.ResponseWriter, r *http.Request) {
 	serial := chi.URLParam(r, "serial")
 
-	ctxLog := api.log.WithField("serial", serial)
+	ctxLog := api.log
 
 	var bootstrapConfig bootstrap.Config
 	err := json.NewDecoder(r.Body).Decode(&bootstrapConfig)
@@ -34,16 +32,12 @@ func (api *DeviceApi) postBootstrapConfig(w http.ResponseWriter, r *http.Request
 
 func (api *DeviceApi) getBootstrapConfig(w http.ResponseWriter, r *http.Request) {
 	serial := chi.URLParam(r, "serial")
-	ctxLog := api.log.WithFields(log.Fields{
-		"serial":   serial,
-		"username": auth.GetEmail(r.Context()),
-	})
+	ctxLog := api.log
 
 	bootstrapConfig := api.enrollments.getBootstrapConfig(serial)
 
 	if bootstrapConfig == nil {
 		w.WriteHeader(http.StatusNotFound)
-		ctxLog.Warnf("no bootstrap config for serial: %v", serial)
 		return
 	}
 
@@ -76,18 +70,13 @@ func (api *DeviceApi) postDeviceInfo(w http.ResponseWriter, r *http.Request) {
 
 	api.enrollments.addDeviceInfo(deviceInfo)
 
-	api.log.WithFields(log.Fields{
-		"serial":   deviceInfo.Serial,
-		"username": deviceInfo.Owner,
-		"platform": deviceInfo.Platform,
-	}).Infof("Enrollment request for apiserver queued")
+	api.log.Infof("Enrollment request for apiserver queued")
 
 	w.WriteHeader(http.StatusCreated)
 }
 
 func (api *DeviceApi) getDeviceInfos(w http.ResponseWriter, r *http.Request) {
 	deviceInfos := api.enrollments.getDeviceInfos()
-	api.log.Infof("%s %s: %v", r.Method, r.URL, deviceInfos)
 
 	w.WriteHeader(http.StatusOK)
 	err := json.NewEncoder(w).Encode(deviceInfos)
