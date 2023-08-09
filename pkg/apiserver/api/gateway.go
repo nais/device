@@ -43,12 +43,9 @@ func (s *grpcServer) GetGatewayConfiguration(request *pb.GetGatewayConfiguration
 				log.Errorf("make gateway config: %v", err)
 			}
 
-			log.Infof("sending gateway config to %s", request.Gateway)
 			err = stream.Send(cfg)
 			if err != nil {
 				log.Errorf("send gateway config: %v", err)
-			} else {
-				log.Infof("sent gateway config to %s", request.Gateway)
 			}
 
 		case <-stream.Context().Done():
@@ -77,9 +74,6 @@ func (s *grpcServer) SendAllGatewayConfigurations() {
 }
 
 func (s *grpcServer) MakeGatewayConfiguration(ctx context.Context, gatewayName string) (*pb.GetGatewayConfigurationResponse, error) {
-	log.Infof("sending gateway config to %s", gatewayName)
-	defer func() { log.Infof("done sending gateway config to %s", gatewayName) }()
-
 	gateway, err := s.db.ReadGateway(ctx, gatewayName)
 	if err != nil {
 		return nil, fmt.Errorf("read gateway from database: %w", err)
