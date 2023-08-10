@@ -2,7 +2,6 @@ package helper
 
 import (
 	"archive/zip"
-	"io/ioutil"
 	"os"
 	"testing"
 
@@ -41,7 +40,7 @@ func TestEmptyFileListYieldsError(t *testing.T) {
 func createTempFiles() []string {
 	var files []string
 	for i := 0; i <= 5; i++ {
-		file, _ := ioutil.TempFile(os.TempDir(), "txt")
+		file, _ := os.CreateTemp(os.TempDir(), "txt")
 		files = append(files, file.Name())
 	}
 	return files

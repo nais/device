@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -60,7 +59,7 @@ func ZipLogFiles(files []string) (string, error) {
 	if len(files) == 0 {
 		return "nil", errors.New("can't be bothered to zip nothing")
 	}
-	archive, err := ioutil.TempFile(os.TempDir(), "naisdevice_logs.*.zip")
+	archive, err := os.CreateTemp(os.TempDir(), "naisdevice_logs.*.zip")
 	if err != nil {
 		return "nil", err
 	}
