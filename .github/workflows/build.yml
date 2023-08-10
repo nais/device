@@ -14,7 +14,7 @@ jobs:
           #sudo gem install --no-document fpm -v 1.13.1
       - uses: actions/setup-go@v3
         with:
-          go-version: "^1.21"
+          go-version: '1.21.0'
       - name: Test and Build
         run: |
           make check
