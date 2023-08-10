@@ -25,6 +25,7 @@ jobs:
           go-version: ${{ env.go_version }}
       - name: run tests
         run: |
+          make check
           make test
 
   build_debs:
