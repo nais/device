@@ -22,7 +22,7 @@ const (
 	requiresPrivilegedAccess          = true
 )
 
-var expectedError = errors.New("expected error")
+var errExpected = errors.New("expected error")
 
 func TestGatewayConfigurer_SyncConfig(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
@@ -75,7 +75,7 @@ func TestGatewayConfigurer_SyncConfig(t *testing.T) {
 			Bucket: mockClient,
 		}
 
-		mockClient.On("Open", mock.Anything).Return(nil, expectedError).Once()
+		mockClient.On("Open", mock.Anything).Return(nil, errExpected).Once()
 
 		err := gc.SyncConfig(ctx)
 
@@ -122,7 +122,7 @@ func TestGatewayConfigurer_SyncConfig(t *testing.T) {
 		db.On("UpdateGatewayDynamicFields",
 			mock.Anything,
 			mock.Anything,
-		).Return(expectedError).Once()
+		).Return(errExpected).Once()
 		mockClient.On("Open", mock.Anything).Return(mockObject, nil).Once()
 		mockObject.On("LastUpdated").Return(lastUpdated).Once()
 		mockObject.On("Close").Return(nil).Once()
