@@ -16,6 +16,7 @@ import (
 	log "github.com/sirupsen/logrus"
 	flag "github.com/spf13/pflag"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 
 	"github.com/nais/device/pkg/logger"
 	prometheusagent "github.com/nais/device/pkg/prometheus-agent"
@@ -113,7 +114,7 @@ func run() error {
 		return fmt.Errorf("apply initial WireGuard config: %w", err)
 	}
 
-	grpcClient, err := grpc.DialContext(ctx, cfg.APIServerURL, grpc.WithInsecure())
+	grpcClient, err := grpc.DialContext(ctx, cfg.APIServerURL, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		return fmt.Errorf("grpc dial: %w", err)
 	}

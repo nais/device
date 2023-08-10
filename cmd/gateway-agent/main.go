@@ -15,6 +15,7 @@ import (
 	"github.com/nais/device/pkg/wireguard"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/status"
 
 	"github.com/nais/device/pkg/logger"
@@ -160,7 +161,7 @@ func run() error {
 	apiserver, err := grpc.DialContext(
 		ctx,
 		cfg.APIServerURL,
-		grpc.WithInsecure(),
+		grpc.WithTransportCredentials(insecure.NewCredentials()),
 	)
 	if err != nil {
 		return fmt.Errorf("unable to connect to api server: %w", err)

@@ -14,6 +14,7 @@ import (
 	log "github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
+	"google.golang.org/grpc/credentials/insecure"
 )
 
 type ClientInterceptor struct {
@@ -48,7 +49,7 @@ func DeviceEventStreamer(ctx context.Context, grpcAddress, grpcToken string, grp
 		dialOpts = append(dialOpts, grpc.WithTransportCredentials(cred))
 		dialOpts = append(dialOpts, grpc.WithPerRPCCredentials(interceptor))
 	} else {
-		dialOpts = append(dialOpts, grpc.WithInsecure())
+		dialOpts = append(dialOpts, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	}
 
 	conn, err := grpc.DialContext(

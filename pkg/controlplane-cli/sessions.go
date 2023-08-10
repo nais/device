@@ -6,13 +6,14 @@ import (
 	"github.com/nais/device/pkg/pb"
 	"github.com/urfave/cli/v2"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 )
 
 func ListSessions(c *cli.Context) error {
 	conn, err := grpc.DialContext(
 		c.Context,
 		c.String(FlagAPIServer),
-		grpc.WithInsecure(),
+		grpc.WithTransportCredentials(insecure.NewCredentials()),
 	)
 	if err != nil {
 		return err

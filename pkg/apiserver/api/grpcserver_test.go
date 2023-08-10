@@ -14,6 +14,7 @@ import (
 	"github.com/stretchr/testify/mock"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/status"
 	"google.golang.org/grpc/test/bufconn"
 	"google.golang.org/protobuf/types/known/timestamppb"
@@ -69,7 +70,7 @@ func TestGetDeviceConfiguration(t *testing.T) {
 		ctx,
 		"bufnet",
 		grpc.WithContextDialer(contextBufDialer(lis)),
-		grpc.WithInsecure(),
+		grpc.WithTransportCredentials(insecure.NewCredentials()),
 	)
 	assert.NoError(t, err)
 	defer conn.Close()
@@ -127,7 +128,7 @@ func TestGatewayPasswordAuthentication(t *testing.T) {
 		ctx,
 		"bufnet",
 		grpc.WithContextDialer(contextBufDialer(lis)),
-		grpc.WithInsecure(),
+		grpc.WithTransportCredentials(insecure.NewCredentials()),
 	)
 	assert.NoError(t, err)
 	defer conn.Close()
@@ -182,7 +183,7 @@ func TestGatewayPasswordAuthenticationFail(t *testing.T) {
 		ctx,
 		"bufnet",
 		grpc.WithContextDialer(contextBufDialer(lis)),
-		grpc.WithInsecure(),
+		grpc.WithTransportCredentials(insecure.NewCredentials()),
 	)
 	assert.NoError(t, err)
 	defer conn.Close()
