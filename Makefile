@@ -116,26 +116,21 @@ bin/macos-client/wireguard-go:
 	cd wireguard-go-*/ && make && cp wireguard-go ../bin/macos-client/
 	rm -rf ./wireguard-go-*
 
-gon:
-	curl -LO https://github.com/mitchellh/gon/releases/download/v0.2.5/gon_macos.zip
-	unzip gon_macos.zip
-	chmod +x ./gon
 
-app: wg wireguard-go macos-icon macos-client gon
+app: wg wireguard-go macos-icon macos-client
 	rm -rf naisdevice.app
 	mkdir -p naisdevice.app/Contents/{MacOS,Resources}
 	cp bin/macos-client/* naisdevice.app/Contents/MacOS
 	cp packaging/macos/jq-osx-amd64 naisdevice.app/Contents/MacOS/jq
 	cp assets/naisdevice.icns naisdevice.app/Contents/Resources
 	sed 's/VERSIONSTRING/${VERSION}/' packaging/macos/Info.plist.tpl > naisdevice.app/Contents/Info.plist
-	#	./gon --log-level=debug packaging/macos/gon-app.json
 	codesign -s "Developer ID Application: Torbjorn Hallenberg (T7D7Y5484F)" -f -v --timestamp --deep --options runtime naisdevice.app/Contents/MacOS/*
 
 test:
 	@go test $(shell go list ./... | grep -v systray) -count=1
 
 # Run by GitHub actions on macos
-pkg: app gon
+pkg: app
 	rm -f ./naisdevice*.pkg
 	rm -rf ./pkgtemp
 	mkdir -p ./pkgtemp/{scripts,pkgroot/Applications}
@@ -147,7 +142,6 @@ pkg: app gon
 	productsign --sign "Developer ID Installer: Torbjorn Hallenberg" unsigned.pkg naisdevice.pkg
 	rm -f ./component.pkg ./unsigned.pkg
 	rm -rf ./pkgtemp ./naisdevice.app
-	#./gon --log-level=debug packaging/macos/gon-pkg.json
 
 # Run by GitHub actions on linux
 deb: linux-client linux-icon
