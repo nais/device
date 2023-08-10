@@ -11,7 +11,7 @@ on:
       - ".github/workflows/controlplane.yml"
       - "packaging/controlplane/**"
 env:
-  go_version: '1.21.0'
+  go_version: '1.21.x'
   REGISTRY: europe-north1-docker.pkg.dev/nais-io/nais/images
 
 jobs:
@@ -20,7 +20,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-      - uses: actions/setup-go@v3
+      - uses: actions/setup-go@v4
         with:
           go-version: ${{ env.go_version }}
       - name: run tests
@@ -37,7 +37,7 @@ jobs:
       image: ghcr.io/nais/naisdevice-ci:v5
     steps:
       - uses: actions/checkout@v3
-      - uses: actions/setup-go@v3
+      - uses: actions/setup-go@v4
         with:
           go-version: ${{ env.go_version }}
 
