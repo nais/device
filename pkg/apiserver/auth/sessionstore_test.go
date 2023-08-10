@@ -147,6 +147,7 @@ func TestSessionStore_UpdateDevice(t *testing.T) {
 	}
 
 	sess, err := store.Get(ctx, "0")
+	assert.NoError(t, err)
 	assert.False(t, sess.GetDevice().GetHealthy())
 
 	store.UpdateDevice(updatedDevice)
