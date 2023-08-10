@@ -121,14 +121,6 @@ func (s *grpcServer) UserGateways(ctx context.Context, userGroups []string) ([]*
 		}
 	}
 
-	if len(filtered) == 0 {
-		var gwIds map[string][]string
-		for _, gw := range gateways {
-			gwIds[gw.GetName()] = gw.GetAccessGroupIDs()
-		}
-		log.Warnf("returning empty filtered gateway list for userGroups: %+v and gateways: %+v", userGroups, gwIds)
-	}
-
 	return filtered, nil
 }
 
