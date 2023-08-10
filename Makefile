@@ -10,7 +10,6 @@ GOTAGS ?=
 PROTOC = $(shell which protoc)
 
 all: test
-dev-apiserver: local-apiserver
 clients: linux-client macos-client windows-client
 
 proto: install-protobuf-go
@@ -71,16 +70,6 @@ local:
 	go build -o bin/local/naisdevice-agent --tags "$(GOTAGS)" -ldflags "-s $(LDFLAGS)" ./cmd/device-agent
 	go build -o bin/local/naisdevice-systray --tags "$(GOTAGS)" -ldflags "-s $(LDFLAGS)" ./cmd/systray
 	go build -o bin/local/naisdevice-helper --tags "$(GOTAGS)" -ldflags "-s $(LDFLAGS)" ./cmd/helper
-
-local-gateway-agent:
-	$(eval config_dir := $(shell mktemp -d))
-	wg genkey > $(config_dir)/private.key
-	go run ./cmd/gateway-agent/main.go --api-server-url=http://localhost:8080 --name=gateway-1 --prometheus-address=127.0.0.1:3000 --development-mode=true --config-dir $(config_dir) --log-level debug
-
-local-apiserver:
-	go run ./cmd/apiserver/main.go \
-		--db-connection-dsn= \
-		--credential-entries="nais:device,gateway-1:password" \
 
 linux-icon: packaging/linux/icons/*/apps/naisdevice.png
 packaging/linux/icons/*/apps/naisdevice.png: assets/nais-logo-blue.png
