@@ -1,6 +1,6 @@
 module github.com/nais/device
 
-go 1.20
+go 1.21
 
 require (
 	cloud.google.com/go/storage v1.31.0
