@@ -86,6 +86,7 @@ func TestRotate(t *testing.T) {
 			deleteOldLogFiles(testDir, now.Add(-time.Hour*24*7))
 
 			logdirFiles, err := os.ReadDir(".")
+			assert.NoError(t, err)
 			for _, shouldBeDeleted := range tt.expectDelete {
 				for _, f := range logdirFiles {
 					if f.Name() == shouldBeDeleted {
