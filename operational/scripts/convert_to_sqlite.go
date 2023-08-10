@@ -115,7 +115,7 @@ func convertGateway(gateway map[string]string) {
 
 	routes := make(map[string]bool)
 	for _, route := range strings.Split(gateway["routes"], ",") {
-		if routes[route] == true {
+		if routes[route] {
 			continue
 		}
 		routes[route] = true
@@ -127,7 +127,7 @@ func convertGateway(gateway map[string]string) {
 
 	groupIDs := make(map[string]bool)
 	for _, groupID := range strings.Split(gateway["access_group_ids"], ",") {
-		if groupIDs[groupID] == true {
+		if groupIDs[groupID] {
 			continue
 		}
 		groupIDs[groupID] = true
