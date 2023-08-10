@@ -1,7 +1,6 @@
 package main
 
 import (
-	"bytes"
 	"context"
 	"database/sql"
 	"errors"
@@ -401,30 +400,6 @@ func run() error {
 
 	log.Warnf("Program context canceled; shutting down.")
 	return nil
-}
-
-func generatePublicKey(privateKey []byte, wireGuardPath string) ([]byte, error) {
-	cmd := exec.Command(wireGuardPath, "pubkey")
-	stdin, err := cmd.StdinPipe()
-	if err != nil {
-		return nil, fmt.Errorf("opening stdin pipe to wg genkey: %w", err)
-	}
-
-	_, err = stdin.Write(privateKey)
-	if err != nil {
-		return nil, fmt.Errorf("writing to wg genkey stdin pipe: %w", err)
-	}
-
-	if err = stdin.Close(); err != nil {
-		return nil, fmt.Errorf("closing stdin %w", err)
-	}
-
-	out, err := cmd.CombinedOutput()
-	if err != nil {
-		return nil, fmt.Errorf("executing command: %v: %w: %v", cmd, err, string(out))
-	}
-
-	return bytes.TrimSuffix(out, []byte("\n")), nil
 }
 
 func setupInterface(ip string, prefix netip.Prefix) error {
