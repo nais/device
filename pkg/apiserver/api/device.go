@@ -97,7 +97,6 @@ func (s *grpcServer) SendDeviceConfiguration(device *pb.Device) {
 
 	c, ok := s.deviceConfigTrigger[device.GetId()]
 	if !ok {
-		log.Errorf("send device config: no active stream found")
 		return
 	}
 
