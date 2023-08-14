@@ -12,7 +12,6 @@ var (
 	FailedConfigFetches       prometheus.Counter
 	LastSuccessfulConfigFetch prometheus.Gauge
 	RegisteredDevices         prometheus.Gauge
-	ConnectedDevices          prometheus.Gauge
 	CurrentVersion            prometheus.Counter
 )
 
@@ -50,17 +49,9 @@ func InitializeMetrics(name, version string) {
 		Subsystem:   "gateway_agent",
 		ConstLabels: prometheus.Labels{"name": name, "version": version},
 	})
-	ConnectedDevices = prometheus.NewGauge(prometheus.GaugeOpts{
-		Name:        "number_of_connected_devices",
-		Help:        "number of connected devices on a gateway",
-		Namespace:   "naisdevice",
-		Subsystem:   "gateway_agent",
-		ConstLabels: prometheus.Labels{"name": name, "version": version},
-	})
 
 	prometheus.MustRegister(FailedConfigFetches)
 	prometheus.MustRegister(LastSuccessfulConfigFetch)
 	prometheus.MustRegister(RegisteredDevices)
-	prometheus.MustRegister(ConnectedDevices)
 	prometheus.MustRegister(CurrentVersion)
 }

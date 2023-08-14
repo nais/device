@@ -26,10 +26,6 @@ func (n *noopConfigurer) ForwardRoutes(routes []string) error {
 	return nil
 }
 
-func (n *noopConfigurer) ConnectedDeviceCount() (int, error) {
-	return 0, nil
-}
-
 func (n *noopConfigurer) SetupInterface() error {
 	log.Debugf("SetupInterface()")
 	return nil

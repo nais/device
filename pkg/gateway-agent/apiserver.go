@@ -41,15 +41,8 @@ func applyGatewayConfig(configurer wireguard.NetworkConfigurer, gatewayConfig *p
 	RegisteredDevices.Set(float64(len(gatewayConfig.Devices)))
 	LastSuccessfulConfigFetch.SetToCurrentTime()
 
-	c, err := configurer.ConnectedDeviceCount()
-	if err != nil {
-		log.Errorf("getting connected device count: %v", err)
-	} else {
-		ConnectedDevices.Set(float64(c))
-	}
-
 	peers := wireguard.MakePeers(gatewayConfig.Devices, nil)
-	err = configurer.ApplyWireGuardConfig(append(staticPeers, peers...))
+	err := configurer.ApplyWireGuardConfig(append(staticPeers, peers...))
 	if err != nil {
 		return fmt.Errorf("actuating WireGuard config: %w", err)
 	}

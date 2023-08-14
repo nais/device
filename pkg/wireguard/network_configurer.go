@@ -13,7 +13,6 @@ import (
 type NetworkConfigurer interface {
 	ApplyWireGuardConfig(peers []Peer) error
 	ForwardRoutes(routes []string) error
-	ConnectedDeviceCount() (int, error)
 	SetupInterface() error
 	SetupIPTables() error
 }
