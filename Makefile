@@ -191,7 +191,7 @@ buildreleaseauthserver:
 	docker push europe-north1-docker.pkg.dev/nais-io/nais/images/naisdevice-auth-server:${VERSION}
 
 generate-sqlc:
-	go run github.com/kyleconroy/sqlc/cmd/sqlc generate
+	go run github.com/sqlc-dev/sqlc/cmd/sqlc generate
 	go run mvdan.cc/gofumpt -w ./pkg/apiserver/sqlc/
 
 fmt:
