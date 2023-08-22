@@ -94,7 +94,7 @@ require (
 	github.com/akavel/rsrc v0.10.2
 	github.com/golang-migrate/migrate/v4 v4.16.2
 	github.com/sqlc-dev/sqlc v1.20.0
-	github.com/vektra/mockery/v2 v2.32.2
+	github.com/vektra/mockery/v2 v2.33.0
 	golang.org/x/vuln v1.0.0
 	google.golang.org/grpc/cmd/protoc-gen-go-grpc v1.3.0
 	honnef.co/go/tools v0.4.3
