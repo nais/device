@@ -18,4 +18,5 @@ jobs:
       - name: Test and Build
         run: |
           make check
+          make test
           make local
