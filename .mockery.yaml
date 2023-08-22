@@ -1,0 +1,23 @@
+with-expecter: false
+disable-version-string: false
+inpackage: true
+dir: "{{.InterfaceDir}}"
+filename: "mock_{{.InterfaceNameSnake}}.go"
+packages:
+  github.com/nais/device/pkg/apiserver/auth:
+    interfaces:
+      SessionStore:
+  github.com/nais/device/pkg/apiserver/bucket:
+    interfaces:
+      Client:
+      Object:
+  github.com/nais/device/pkg/apiserver/database:
+    interfaces:
+      APIServer:
+  github.com/nais/device/pkg/pb:
+    interfaces:
+      APIServerClient:
+      APIServer_GetGatewayConfigurationClient:
+  github.com/nais/device/pkg/wireguard:
+    interfaces:
+      NetworkConfigurer:

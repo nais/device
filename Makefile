@@ -173,9 +173,8 @@ clean:
 	rm -rf ./packaging/windows/assets
 
 mocks:
-	go run github.com/vektra/mockery/v2 --case underscore --all --dir pkg/ --inpackage --recursive
-	rm ./pkg/apiserver/auth/mock_authenticator.go
-	rm ./pkg/auth/mock_token_validator.go
+	go run github.com/vektra/mockery/v2
+	find pkg -type f -name "mock_*.go" -exec go run mvdan.cc/gofumpt -w {} \;
 
 # controlplane is autoreleased for every push
 release-frontend:
