@@ -57,8 +57,8 @@ func handleRedirectAzure(state string, conf oauth2.Config, codeVerifier *codever
 		}
 
 		if !approvalOK {
-			http.Redirect(w, r, "https://naisdevice-approval.nais.io/", http.StatusSeeOther)
-			authFlowChan <- &authFlowResponse{Tokens: nil, err: fmt.Errorf("do's and don'ts not accepted, opening https://naisdevice-approval.nais.io/ in browser")}
+			http.Redirect(w, r, "https://naisdevice-approval.external.prod-gcp.nav.cloud.nais.io/", http.StatusSeeOther)
+			authFlowChan <- &authFlowResponse{Tokens: nil, err: fmt.Errorf("do's and don'ts not accepted, opening https://naisdevice-approval.external.prod-gcp.nav.cloud.nais.io/ in browser")}
 			return
 		}
 

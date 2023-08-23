@@ -440,7 +440,7 @@ func (gui *Gui) handleGuiEvent(guiEvent GuiEvent) {
 		open.Open(logger.LatestFilepath(logDirPath, logger.Systray))
 
 	case AcceptableUseClicked:
-		open.Open("https://naisdevice-approval.nais.io/")
+		open.Open("https://naisdevice-approval.external.prod-gcp.nav.cloud.nais.io/")
 	case QuitClicked:
 		_, err := gui.DeviceAgentClient.Logout(context.Background(), &pb.LogoutRequest{})
 		if err != nil {

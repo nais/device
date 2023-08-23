@@ -4,7 +4,7 @@ naisdevice is a mechanism enabling NAVs developers to connect to internal resour
 
 Each resource is protected by a gateway, and the developer is only granted access to the gateway if all of the following requirements are met:
 - Has a valid nav.no account
-- Has accepted naisdevice [terms and conditions](https://naisdevice-approval.nais.io/)
+- Has accepted naisdevice [terms and conditions](https://naisdevice-approval.external.prod-gcp.nav.cloud.nais.io/)
 - Device is [healthy](#what-is-a-healthy-device)
 - Is member of the AAD access group for the gateway (e.g. to connect to team A's DB, you must be member of team A's AAD-group)
 

@@ -226,7 +226,7 @@ func (s *authenticator) Login(ctx context.Context, token, serial, platform strin
 	}
 
 	if !auth.UserInNaisdeviceApprovalGroup(claims) {
-		return nil, fmt.Errorf("do's and don'ts not accepted, visit: https://naisdevice-approval.nais.io/ to read and accept")
+		return nil, fmt.Errorf("do's and don'ts not accepted, visit: https://naisdevice-approval.external.prod-gcp.nav.cloud.nais.io/ to read and accept")
 	}
 
 	username := claims["preferred_username"].(string)

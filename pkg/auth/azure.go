@@ -81,7 +81,7 @@ func (a *Azure) TokenValidatorMiddleware() TokenValidator {
 
 			if !UserInNaisdeviceApprovalGroup(claims) {
 				w.WriteHeader(http.StatusSeeOther)
-				http.Redirect(w, r, "https://naisdevice-approval.nais.io/", http.StatusSeeOther)
+				http.Redirect(w, r, "https://naisdevice-approval.external.prod-gcp.nav.cloud.nais.io/", http.StatusSeeOther)
 				log.Infof("Redirected user(%s) to do's and don'ts", username)
 				return
 			}
