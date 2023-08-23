@@ -509,7 +509,7 @@ func (gui *Gui) aggregateTenantButtonClicks() {
 }
 
 func accessPrivilegedGateway(gatewayName string) {
-	open.Open(fmt.Sprintf("https://naisdevice-jita.nais.io/?gateway=%s", gatewayName))
+	open.Open(fmt.Sprintf("https://naisdevice-jita.external.prod-gcp.nav.cloud.nais.io/?gateway=%s", gatewayName))
 }
 
 func (gui *Gui) activateTenant(ctx context.Context, name string) {
