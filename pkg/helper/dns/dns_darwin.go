@@ -19,7 +19,7 @@ func apply(zones []string) error {
 	}
 
 	for _, zone := range zones {
-		configFilePath := filepath.oin(configFileDir, zone)
+		configFilePath := filepath.Join(configFileDir, zone)
 		f, err := os.OpenFile(configFilePath, os.O_CREATE|os.O_WRONLY, 0644)
 		if err != nil {
 			return err
