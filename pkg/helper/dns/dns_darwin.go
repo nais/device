@@ -10,7 +10,7 @@ import (
 	"path/filepath"
 )
 
-const configFileDir = "/etc/resolved"
+const configFileDir = "/etc/resolver"
 
 func apply(zones []string) error {
 	err := os.Mkdir(configFileDir, 0755)
