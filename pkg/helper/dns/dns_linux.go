@@ -21,7 +21,7 @@ func apply(zones []string) error {
 		return err
 	}
 
-	f, err := os.OpenFile(configFilePath, os.O_WRONLY, 0644)
+	f, err := os.OpenFile(configFilePath, os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {
 		return err
 	}
