@@ -14,6 +14,7 @@ import (
 
 	"github.com/nais/device/pkg/helper"
 	"github.com/nais/device/pkg/helper/config"
+	"github.com/nais/device/pkg/helper/dns"
 	"github.com/nais/device/pkg/logger"
 	"github.com/nais/device/pkg/pb"
 	"github.com/nais/device/pkg/unixsocket"
@@ -77,6 +78,11 @@ func main() {
 		if err != nil {
 			log.Warn(err)
 		}
+	}
+
+	zones := []string{"nais.io", "nav.no"}
+	if err := dns.Apply(zones); err != nil {
+		log.Errorf("applying dns config: %v", err)
 	}
 
 	defer teardown()
