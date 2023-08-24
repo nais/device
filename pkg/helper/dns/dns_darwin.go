@@ -42,7 +42,7 @@ nameserver 8.8.4.4`
 }
 
 func reload() error {
-	out, err := exec.Command("sudo", "killall", "-HUP", "mDNSResponder").CombinedOutput()
+	out, err := exec.Command("killall", "-HUP", "mDNSResponder").CombinedOutput()
 	if err != nil {
 		return fmt.Errorf("reloading mDNSResponder config: %w: %s", err, string(out))
 	}
