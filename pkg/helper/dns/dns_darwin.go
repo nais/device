@@ -19,7 +19,7 @@ func apply(zones []string) error {
 	}
 
 	for _, zone := range zones {
-		configFilePath := filepath.Join(configFileDir, fmt.Sprintf("%s.conf", zone))
+		configFilePath := filepath.oin(configFileDir, zone)
 		f, err := os.OpenFile(configFilePath, os.O_CREATE|os.O_WRONLY, 0644)
 		if err != nil {
 			return err
@@ -36,7 +36,8 @@ func apply(zones []string) error {
 
 func write(out io.Writer) error {
 	tpl := `nameserver 8.8.8.8
-nameserver 8.8.4.4`
+nameserver 8.8.4.4
+`
 	_, err := io.WriteString(out, tpl)
 	return err
 }
