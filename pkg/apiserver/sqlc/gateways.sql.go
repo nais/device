@@ -7,7 +7,6 @@ package sqlc
 
 import (
 	"context"
-	"database/sql"
 )
 
 const addGateway = `-- name: AddGateway :exec
@@ -22,7 +21,7 @@ type AddGatewayParams struct {
 	Endpoint                 string
 	PublicKey                string
 	Ip                       string
-	Ipv6                     sql.NullString
+	Ipv6                     string
 	PasswordHash             string
 	RequiresPrivilegedAccess bool
 }
@@ -208,7 +207,7 @@ type UpdateGatewayParams struct {
 	PublicKey                string
 	Endpoint                 string
 	Ip                       string
-	Ipv6                     sql.NullString
+	Ipv6                     string
 	RequiresPrivilegedAccess bool
 	PasswordHash             string
 	Name                     string

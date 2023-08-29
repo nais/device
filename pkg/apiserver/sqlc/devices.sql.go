@@ -22,7 +22,7 @@ type AddDeviceParams struct {
 	Username  string
 	PublicKey string
 	Ip        string
-	Ipv6      sql.NullString
+	Ipv6      string
 	Healthy   bool
 	Platform  string
 }
