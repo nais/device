@@ -16,7 +16,7 @@ SET healthy = @healthy, last_updated = @last_updated
 WHERE serial = @serial AND platform = @platform;
 
 -- name: AddDevice :exec
-INSERT INTO devices (serial, username, public_key, ip, healthy, platform)
-VALUES (@serial, @username, @public_key, @ip, @healthy, @platform)
+INSERT INTO devices (serial, username, public_key, ip, ipv6, healthy, platform)
+VALUES (@serial, @username, @public_key, @ip, @ipv6, @healthy, @platform)
 ON CONFLICT(serial, platform) DO
     UPDATE SET username = excluded.username, public_key = excluded.public_key;

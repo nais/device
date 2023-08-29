@@ -17,6 +17,7 @@ type Device struct {
 	LastUpdated sql.NullString
 	PublicKey   string
 	Ip          string
+	Ipv6        sql.NullString
 }
 
 type Gateway struct {
@@ -26,6 +27,7 @@ type Gateway struct {
 	Ip                       string
 	RequiresPrivilegedAccess bool
 	PasswordHash             string
+	Ipv6                     sql.NullString
 }
 
 type GatewayAccessGroupID struct {

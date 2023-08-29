@@ -47,7 +47,7 @@ func (q *Queries) AddSessionAccessGroupID(ctx context.Context, arg AddSessionAcc
 }
 
 const getMostRecentDeviceSession = `-- name: GetMostRecentDeviceSession :one
-SELECT s."key", s.expiry, s.device_id, s.object_id, d.id, d.username, d.serial, d.platform, d.healthy, d.last_updated, d.public_key, d.ip FROM sessions s
+SELECT s."key", s.expiry, s.device_id, s.object_id, d.id, d.username, d.serial, d.platform, d.healthy, d.last_updated, d.public_key, d.ip, d.ipv6 FROM sessions s
 JOIN devices d ON d.id = s.device_id
 WHERE s.device_id = ?1
 ORDER BY s.expiry DESC
@@ -75,12 +75,13 @@ func (q *Queries) GetMostRecentDeviceSession(ctx context.Context, sessionDeviceI
 		&i.Device.LastUpdated,
 		&i.Device.PublicKey,
 		&i.Device.Ip,
+		&i.Device.Ipv6,
 	)
 	return &i, err
 }
 
 const getSessionByKey = `-- name: GetSessionByKey :one
-SELECT s."key", s.expiry, s.device_id, s.object_id, d.id, d.username, d.serial, d.platform, d.healthy, d.last_updated, d.public_key, d.ip FROM sessions s
+SELECT s."key", s.expiry, s.device_id, s.object_id, d.id, d.username, d.serial, d.platform, d.healthy, d.last_updated, d.public_key, d.ip, d.ipv6 FROM sessions s
 JOIN devices d ON d.id = s.device_id WHERE s.key = ?1
 `
 
@@ -105,6 +106,7 @@ func (q *Queries) GetSessionByKey(ctx context.Context, sessionKey string) (*GetS
 		&i.Device.LastUpdated,
 		&i.Device.PublicKey,
 		&i.Device.Ip,
+		&i.Device.Ipv6,
 	)
 	return &i, err
 }
@@ -137,7 +139,7 @@ func (q *Queries) GetSessionGroupIDs(ctx context.Context, sessionKey string) ([]
 }
 
 const getSessions = `-- name: GetSessions :many
-SELECT s."key", s.expiry, s.device_id, s.object_id, d.id, d.username, d.serial, d.platform, d.healthy, d.last_updated, d.public_key, d.ip FROM sessions s
+SELECT s."key", s.expiry, s.device_id, s.object_id, d.id, d.username, d.serial, d.platform, d.healthy, d.last_updated, d.public_key, d.ip, d.ipv6 FROM sessions s
 JOIN devices d ON d.id = s.device_id
 ORDER BY s.expiry
 `
@@ -169,6 +171,7 @@ func (q *Queries) GetSessions(ctx context.Context) ([]*GetSessionsRow, error) {
 			&i.Device.LastUpdated,
 			&i.Device.PublicKey,
 			&i.Device.Ip,
+			&i.Device.Ipv6,
 		); err != nil {
 			return nil, err
 		}
