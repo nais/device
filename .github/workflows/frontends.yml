@@ -66,6 +66,7 @@ jobs:
           sudo apt install --yes nsis osslsigncode
           echo "${MSI_SIGN_CERT}" > packaging/windows/naisdevice.crt
           echo "${MSI_SIGN_KEY}" > packaging/windows/naisdevice.key
+          GOOS=windows make check
           make nsis GOTAGS=${{ matrix.gotags }} VERSION=${{ needs.set-version.outputs.version }}
           md5sum bin/windows-client/*
           md5sum packaging/windows/naisdevice.exe
@@ -110,6 +111,7 @@ jobs:
           AC_USERNAME: ${{ secrets.AC_USERNAME }}
           AC_PASSWORD: ${{ secrets.AC_PASSWORD }}
         run: |
+          make check
           make pkg GOTAGS=${{ matrix.gotags }} VERSION=${{ needs.set-version.outputs.version }}
           md5 bin/macos-client/*
           md5 naisdevice.pkg
@@ -144,6 +146,7 @@ jobs:
           sudo apt remove --yes libappindicator3-dev
           sudo apt install --yes build-essential ruby ruby-dev rubygems libgtk-3-dev libayatana-appindicator3-dev
           sudo gem install --no-document fpm -v 1.15.1
+          make check
           make deb GOTAGS=${{ matrix.gotags }} VERSION=${{ needs.set-version.outputs.version }}
           md5sum naisdevice*.deb
       - name: upload debian package
