@@ -80,7 +80,7 @@ func main() {
 		}
 	}
 
-	zones := []string{"nais.io", "nav.no"}
+	zones := []string{"cloud.nais.io", "intern.nav.no", "intern.dev.nav.no"}
 	if err := dns.Apply(zones); err != nil {
 		log.Errorf("applying dns config: %v", err)
 	}

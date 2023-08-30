@@ -13,6 +13,9 @@ func apply(zones []string) error {
 	}
 	go func() {
 		defer stdin.Close()
+		for _, zone := range []string{"nais.io", "nav.no"} {
+			fmt.Fprintf(stdin, "Get-DnsClientNrptRule | Where { $_.Namespace -match '%s' } | Remove-DnsClientNrptRule -force\n", zone)
+		}
 		for _, zone := range zones {
 			fmt.Fprintf(stdin, "Get-DnsClientNrptRule | Where { $_.Namespace -match '%s' } | Remove-DnsClientNrptRule -force\n", zone)
 			fmt.Fprintf(stdin, "Add-DnsClientNrptRule -Namespace '%s' -NameServers @('8.8.8.8','8.8.4.4')\n", zone)

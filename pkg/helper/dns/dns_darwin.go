@@ -12,7 +12,17 @@ import (
 
 const configFileDir = "/etc/resolver"
 
+func cleanup() {
+	for _, zone := range []string{"nais.io", "nav.no"} {
+		configFilePath := filepath.Join(configFileDir, zone)
+		_ := os.Remove(configFilePath)
+	}
+
+	return nil
+}
+
 func apply(zones []string) error {
+	cleanup()
 	err := os.Mkdir(configFileDir, 0755)
 	if err != nil && !errors.Is(err, fs.ErrExist) {
 		return err
