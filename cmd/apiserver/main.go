@@ -22,6 +22,7 @@ import (
 	"github.com/nais/device/pkg/apiserver/database"
 	"github.com/nais/device/pkg/apiserver/enroller"
 	"github.com/nais/device/pkg/apiserver/gatewayconfigurer"
+	"github.com/nais/device/pkg/apiserver/ip"
 	"github.com/nais/device/pkg/apiserver/jita"
 	"github.com/nais/device/pkg/apiserver/kolide"
 	apiserver_metrics "github.com/nais/device/pkg/apiserver/metrics"
@@ -129,7 +130,7 @@ func run() error {
 		return fmt.Errorf("parse wireguard network address: %w", err)
 	}
 
-	ipAllocator := database.NewIPAllocator(wireguardPrefix, []string{cfg.WireGuardIP})
+	ipAllocator := ip.NewAllocator(wireguardPrefix, []string{cfg.WireGuardIP})
 	db, err := database.New(ctx, cfg.DBPath, ipAllocator, !cfg.KolideEventHandlerEnabled)
 	if err != nil {
 		return fmt.Errorf("initialize database: %w", err)

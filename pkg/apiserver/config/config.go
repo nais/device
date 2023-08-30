@@ -2,12 +2,15 @@ package config
 
 import (
 	"fmt"
+	"net/netip"
 	"strings"
 
 	"github.com/nais/device/pkg/auth"
 	"github.com/nais/device/pkg/pb"
 	"github.com/nais/device/pkg/wireguard"
 )
+
+const wireGuardV6PrefixAddress = "fd75:568f:0d24::/48"
 
 type Config struct {
 	AutoEnrollEnabled                 bool
@@ -44,6 +47,15 @@ type Config struct {
 	WireGuardPrivateKey               wireguard.PrivateKey
 	WireGuardPrivateKeyPath           string
 	WireGuardNetworkAddress           string
+	WireGuardNetworkAddressV6         string
+}
+
+// Generate a unique IPv6 /64 address for a tenant, placing the tenant id as the 7th and 8th bytes of the IPv6 prefix.
+func GetPrefixAddress(tenantId uint16) netip.Prefix {
+	b := netip.MustParsePrefix(wireGuardV6PrefixAddress).Addr().As16()
+	b[6] = byte(tenantId >> 8)
+	b[7] = byte(tenantId)
+	return netip.PrefixFrom(netip.AddrFrom16(b), 64)
 }
 
 func Credentials(entries []string) (map[string]string, error) {

@@ -10,19 +10,20 @@ import (
 	log "github.com/sirupsen/logrus"
 	"google.golang.org/protobuf/types/known/timestamppb"
 
+	"github.com/nais/device/pkg/apiserver/ip"
 	"github.com/nais/device/pkg/apiserver/sqlc"
 	"github.com/nais/device/pkg/pb"
 )
 
 type ApiServerDB struct {
 	queries             Querier
-	IPAllocator         IPAllocator
+	IPAllocator         ip.Allocator
 	defaultDeviceHealth bool
 }
 
 var mux sync.Mutex
 
-func New(ctx context.Context, dbPath string, ipAllocator IPAllocator, defaultDeviceHealth bool) (APIServer, error) {
+func New(_ context.Context, dbPath string, ipAllocator ip.Allocator, defaultDeviceHealth bool) (APIServer, error) {
 	db, err := sql.Open("sqlite3", dbPath)
 	if err != nil {
 		return nil, fmt.Errorf("open database: %w", err)
