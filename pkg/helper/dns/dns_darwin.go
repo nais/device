@@ -15,10 +15,8 @@ const configFileDir = "/etc/resolver"
 func cleanup() {
 	for _, zone := range []string{"nais.io", "nav.no"} {
 		configFilePath := filepath.Join(configFileDir, zone)
-		_ := os.Remove(configFilePath)
+		_ = os.Remove(configFilePath)
 	}
-
-	return nil
 }
 
 func apply(zones []string) error {
