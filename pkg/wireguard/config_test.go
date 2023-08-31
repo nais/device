@@ -19,13 +19,13 @@ func TestConfig_MarshalINI(t *testing.T) {
 				Name:      "gw-name",
 				PublicKey: "gw-pubkey",
 				Endpoint:  "gw-ep",
-				Ip:        "gw-ip",
-				Routes:    []string{"route1", "route2"},
+				Ipv4:      "gw-ip",
+				Routes:    []string{"route1/32", "route2/24"},
 			},
 			&pb.Device{
 				Serial:    "device-serial",
 				PublicKey: "device-pubkey",
-				Ip:        "device-private-ip",
+				Ipv4:      "device-private-ip",
 			},
 		},
 		PrivateKey: "privkey",
@@ -44,12 +44,12 @@ Address = address
 
 [Peer] # gw-name
 PublicKey = gw-pubkey
-AllowedIPs = route1,route2,gw-ip
+AllowedIPs = route1/32,route2/24,gw-ip/32
 Endpoint = gw-ep
 
 [Peer] # device-serial
 PublicKey = device-pubkey
-AllowedIPs = device-private-ip
+AllowedIPs = device-private-ip/32
 
 `
 
@@ -64,7 +64,7 @@ func TestConfig_MarshalINI_Minimal(t *testing.T) {
 				Name:      "gw-name",
 				PublicKey: "gw-pubkey",
 				Endpoint:  "gw-ep",
-				Ip:        "gw-ip",
+				Ipv4:      "gw-ip",
 				Routes:    []string{},
 			},
 		},
@@ -80,7 +80,7 @@ PrivateKey = privkey
 
 [Peer] # gw-name
 PublicKey = gw-pubkey
-AllowedIPs = gw-ip
+AllowedIPs = gw-ip/32
 Endpoint = gw-ep
 
 `

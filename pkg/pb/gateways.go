@@ -25,5 +25,9 @@ func MergeGatewayHealth(dst []*Gateway, src []*Gateway) {
 // Satisfy WireGuard interface.
 // IP addresses routed by a gateway includes configured routes plus the gateway itself.
 func (x *Gateway) GetAllowedIPs() []string {
-	return append(x.GetRoutes(), x.GetIp())
+	ips := append(x.GetRoutes(), x.GetIpv4()+"/32")
+	if x.GetIpv6() != "" {
+		ips = append(ips, x.GetIpv6()+"/128")
+	}
+	return ips
 }

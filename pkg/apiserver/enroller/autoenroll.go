@@ -126,7 +126,8 @@ func (a *AutoEnroll) receiveGateway(ctx context.Context, msg *pubsub.Message) {
 
 	resp := pubsubenroll.Response{
 		APIServerGRPCAddress: a.apiServerGRPCAddress,
-		WireGuardIP:          gw.Ip,
+		WireGuardIPv4:        gw.Ipv4,
+		WireGuardIPv6:        gw.Ipv6,
 		Peers:                a.peers,
 	}
 
@@ -190,7 +191,8 @@ func (a *AutoEnroll) receiveDevice(ctx context.Context, msg *pubsub.Message) {
 
 	resp := pubsubenroll.Response{
 		APIServerGRPCAddress: a.apiServerGRPCAddress,
-		WireGuardIP:          gw.Ip,
+		WireGuardIPv4:        gw.Ipv4,
+		WireGuardIPv6:        gw.Ipv6,
 		Peers:                a.peers,
 	}
 

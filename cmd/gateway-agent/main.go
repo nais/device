@@ -119,7 +119,7 @@ func run() error {
 		cfg.Name = ecfg.Name
 		cfg.PrivateKey = string(privateKey.Private())
 		cfg.APIServerURL = enrollResp.APIServerGRPCAddress
-		cfg.DeviceIP = enrollResp.WireGuardIP
+		cfg.DeviceIP = enrollResp.WireGuardIPv4
 
 		staticPeers = wireguard.MakePeers(nil, enrollResp.Peers)
 	}

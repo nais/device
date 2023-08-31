@@ -8,7 +8,6 @@ import (
 	"net"
 	"net/netip"
 	"os"
-	"os/exec"
 	"os/signal"
 	"strings"
 	"syscall"
@@ -26,7 +25,6 @@ import (
 	"github.com/nais/device/pkg/apiserver/jita"
 	"github.com/nais/device/pkg/apiserver/kolide"
 	apiserver_metrics "github.com/nais/device/pkg/apiserver/metrics"
-	"github.com/nais/device/pkg/apiserver/wireguard"
 	"github.com/nais/device/pkg/basicauth"
 	"github.com/nais/device/pkg/logger"
 	"github.com/nais/device/pkg/pb"
@@ -76,7 +74,7 @@ func init() {
 	flag.StringVar(&cfg.DeviceAuthenticationProvider, "device-authentication-provider", cfg.DeviceAuthenticationProvider, "set device authentication provider")
 	flag.BoolVar(&cfg.ControlPlaneAuthenticationEnabled, "control-plane-authentication-enabled", cfg.ControlPlaneAuthenticationEnabled, "enable authentication for control plane (api keys)")
 	flag.BoolVar(&cfg.WireGuardEnabled, "wireguard-enabled", cfg.WireGuardEnabled, "enable WireGuard")
-	flag.StringVar(&cfg.WireGuardIP, "wireguard-ip", cfg.WireGuardIP, "WireGuard ip")
+	flag.StringVar(&cfg.WireGuardIPv4, "wireguard-ip", cfg.WireGuardIPv4, "WireGuard ip")
 	flag.StringVar(&cfg.WireGuardNetworkAddress, "wireguard-network-address", cfg.WireGuardNetworkAddress, "WireGuard network-address")
 	flag.StringVar(&cfg.WireGuardPrivateKeyPath, "wireguard-private-key-path", cfg.WireGuardPrivateKeyPath, "WireGuard private key path")
 	flag.StringVar(&cfg.GatewayConfigurer, "gateway-configurer", cfg.GatewayConfigurer, "which method to use for fetching gateway config (metadata or bucket)")
@@ -116,6 +114,7 @@ func run() error {
 	if err != nil {
 		return fmt.Errorf("parse environment variables: %w", err)
 	}
+	cfg.Parse() // sets dynamic defaults for some config values
 
 	// sets up logger based on envconfig
 	logger.Setup(cfg.LogLevel)
@@ -130,8 +129,9 @@ func run() error {
 		return fmt.Errorf("parse wireguard network address: %w", err)
 	}
 
-	ipAllocator := ip.NewAllocator(wireguardPrefix, []string{cfg.WireGuardIP})
-	db, err := database.New(ctx, cfg.DBPath, ipAllocator, !cfg.KolideEventHandlerEnabled)
+	v4Allocator := ip.NewV4Allocator(wireguardPrefix, []string{cfg.WireGuardIPv4})
+	v6Allocator := ip.NewV6Allocator(cfg.WireGuardIPv6)
+	db, err := database.New(ctx, cfg.DBPath, v4Allocator, v6Allocator, !cfg.KolideEventHandlerEnabled)
 	if err != nil {
 		return fmt.Errorf("initialize database: %w", err)
 	}
@@ -172,20 +172,20 @@ func run() error {
 	if cfg.WireGuardEnabled {
 		log.Infof("Setting up WireGuard integration...")
 
-		err = setupInterface(cfg.WireGuardIP, wireguardPrefix)
-		if err != nil {
-			return fmt.Errorf("set up WireGuard interface: %w", err)
-		}
-
 		key, err := wg.ReadOrCreatePrivateKey(cfg.WireGuardPrivateKeyPath, log.WithField("component", "wireguard"))
 		if err != nil {
 			return fmt.Errorf("generate WireGuard private key: %w", err)
 		}
 		cfg.WireGuardPrivateKey = key
 
-		w := wireguard.New(cfg, db, cfg.WireGuardPrivateKey)
+		netConf := wg.NewConfigurer(cfg.WireGuardConfigPath, cfg.WireGuardIPv4, string(cfg.WireGuardPrivateKey.Private()), "wg0", 51820, nil)
 
-		go SyncLoop(w)
+		err = netConf.SetupInterface()
+		if err != nil {
+			return fmt.Errorf("setup interface: %w", err)
+		}
+
+		go SyncLoop(ctx, db, netConf, cfg.StaticPeers())
 
 		log.Infof("WireGuard successfully configured.")
 
@@ -220,7 +220,7 @@ func run() error {
 			BootstrapAPIURL:    cfg.BootstrapAPIURL,
 			APIServerPublicKey: string(cfg.WireGuardPrivateKey.Public()),
 			APIServerEndpoint:  cfg.Endpoint,
-			APIServerIP:        cfg.WireGuardIP,
+			APIServerIP:        cfg.WireGuardIPv4,
 		}
 
 		go en.WatchDeviceEnrollments(ctx)
@@ -403,44 +403,44 @@ func run() error {
 	return nil
 }
 
-func setupInterface(ip string, prefix netip.Prefix) error {
-	if err := exec.Command("ip", "link", "del", "wg0").Run(); err != nil {
-		log.Infof("Pre-deleting WireGuard interface (ok if this fails): %v", err)
-	}
+func SyncLoop(ctx context.Context, db database.APIServer, netConf wg.NetworkConfigurer, staticPeers []*pb.Gateway) {
+	log.Debugf("Starting config sync")
 
-	run := func(commands [][]string) error {
-		for _, s := range commands {
-			cmd := exec.Command(s[0], s[1:]...)
-			out, err := cmd.CombinedOutput()
-			if err != nil {
-				return fmt.Errorf("running %v: %w: %v", cmd, err, string(out))
-			} else {
-				log.Debugf("%v: %v\n", cmd, string(out))
-			}
+	sync := func(ctx context.Context) error {
+		devices, err := db.ReadDevices(ctx)
+		if err != nil {
+			return fmt.Errorf("reading devices from database: %v", err)
 		}
+
+		gateways, err := db.ReadGateways(ctx)
+		if err != nil {
+			return fmt.Errorf("reading gateways from database: %v", err)
+		}
+
+		peers := []wg.Peer{}
+		for _, peer := range staticPeers {
+			peers = append(peers, peer)
+		}
+		for _, device := range devices {
+			peers = append(peers, device)
+		}
+		for _, gateway := range gateways {
+			peers = append(peers, gateway)
+		}
+
+		err = netConf.ApplyWireGuardConfig(peers)
+		if err != nil {
+			return fmt.Errorf("apply wireguard config: %v", err)
+		}
+
 		return nil
 	}
 
-	commands := [][]string{
-		{"ip", "link", "add", "dev", "wg0", "type", "wireguard"},
-		{"ip", "link", "set", "wg0", "mtu", "1360"},
-		{"ip", "address", "add", "dev", "wg0", fmt.Sprintf("%s/%d", ip, prefix.Bits())},
-		{"ip", "link", "set", "wg0", "up"},
-	}
-
-	return run(commands)
-}
-
-func SyncLoop(w wireguard.WireGuard) {
-	log.Debugf("Starting config sync")
-
 	ticker := time.NewTicker(WireGuardSyncInterval)
 	for range ticker.C {
-		ctx, cancel := context.WithTimeout(context.Background(), WireGuardSyncInterval)
-
-		err := w.Sync(ctx)
+		ctx, cancel := context.WithTimeout(ctx, WireGuardSyncInterval)
+		err := sync(ctx)
 		cancel()
-
 		if err != nil {
 			log.Errorf("syncing wg config: %s", err)
 		}

@@ -105,7 +105,7 @@ func run() error {
 		Name:      "apiserver",
 		PublicKey: cfg.APIServerPublicKey,
 		Endpoint:  cfg.APIServerEndpoint,
-		Ip:        cfg.APIServerTunnelIP,
+		Ipv4:      cfg.APIServerTunnelIP,
 	}
 
 	// apply initial base config
@@ -189,7 +189,7 @@ func applyGateways(netConf wireguard.NetworkConfigurer, gateways []*pb.Gateway, 
 
 	for i := range gateways {
 		peers[i] = gateways[i]
-		ips[i] = gateways[i].GetIp()
+		ips[i] = gateways[i].GetIpv4()
 	}
 
 	peers = append(peers, staticPeers...)

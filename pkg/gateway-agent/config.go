@@ -72,12 +72,12 @@ func (c Config) StaticPeers() []wireguard.Peer {
 			Name:      "apiserver",
 			PublicKey: c.APIServerPublicKey,
 			Endpoint:  c.APIServerEndpoint,
-			Ip:        c.APIServerPrivateIP,
+			Ipv4:      c.APIServerPrivateIP,
 		},
 		&pb.Gateway{
 			Name:      wireguard.PrometheusPeerName,
 			PublicKey: c.PrometheusPublicKey,
-			Ip:        c.PrometheusTunnelIP,
+			Ipv4:      c.PrometheusTunnelIP,
 		},
 	}
 }

@@ -213,14 +213,14 @@ func (das *DeviceAgentServer) EventLoop(ctx context.Context) {
 			for i, gw := range status.GetGateways() {
 				wg.Add(1)
 				go func(i int, gw *pb.Gateway) {
-					err := ping(gw.Ip)
+					err := ping(gw.Ipv4)
 					pos := fmt.Sprintf("[%02d/%02d]", i+1, total)
 					if err == nil {
 						gw.Healthy = true
-						log.Debugf("%s %s: successfully pinged %v", pos, gw.Name, gw.Ip)
+						log.Debugf("%s %s: successfully pinged %v", pos, gw.Name, gw.Ipv4)
 					} else {
 						gw.Healthy = false
-						log.Debugf("%s %s: unable to ping %s: %v", pos, gw.Name, gw.Ip, err)
+						log.Debugf("%s %s: unable to ping %s: %v", pos, gw.Name, gw.Ipv4, err)
 					}
 					wg.Done()
 				}(i, gw)

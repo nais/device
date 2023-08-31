@@ -25,6 +25,7 @@ type Querier interface {
 	GetGatewayByName(ctx context.Context, name string) (*Gateway, error)
 	GetGatewayRoutes(ctx context.Context, gatewayName string) ([]string, error)
 	GetGateways(ctx context.Context) ([]*Gateway, error)
+	GetLastUsedIPV6(ctx context.Context) (string, error)
 	GetMostRecentDeviceSession(ctx context.Context, sessionDeviceID int64) (*GetMostRecentDeviceSessionRow, error)
 	GetSessionByKey(ctx context.Context, sessionKey string) (*GetSessionByKeyRow, error)
 	GetSessionGroupIDs(ctx context.Context, sessionKey string) ([]string, error)

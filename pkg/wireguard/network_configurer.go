@@ -88,12 +88,17 @@ func (nc *networkConfigurer) ApplyWireGuardConfig(peers []Peer) error {
 		return fmt.Errorf("write WireGuard config: %w", err)
 	}
 
+	// err = configFile.Sync()
+	// if err != nil {
+	// 	return fmt.Errorf("make sure contents are written to disk: %w", err)
+	// }
+
 	err = configFile.Close()
 	if err != nil {
 		return fmt.Errorf("close WireGuard config: %w", err)
 	}
 
-	time.Sleep(1 * time.Second)
+	time.Sleep(1 * time.Second) // TODO: switch to configFile.Sync() commented out above
 	cmd := exec.Command("wg", "syncconf", nc.wireguardInterface, nc.configPath)
 	log.Info(cmd.String())
 

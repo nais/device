@@ -32,8 +32,9 @@ func Setup(t *testing.T) database.APIServer {
 		}
 	})
 
-	ipAllocator := ip.NewAllocator(netip.MustParsePrefix(wireguardNetworkAddress), []string{apiserverWireGuardIP})
-	db, err := database.New(ctx, tempFile.Name(), ipAllocator, false)
+	ipAllocator := ip.NewV4Allocator(netip.MustParsePrefix(wireguardNetworkAddress), []string{apiserverWireGuardIP})
+	ip6Allocator := ip.NewV6Allocator(netip.MustParsePrefix("fd00::/64"))
+	db, err := database.New(ctx, tempFile.Name(), ipAllocator, ip6Allocator, false)
 	if err != nil {
 		t.Fatalf("Instantiating database: %v", err)
 	}

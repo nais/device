@@ -42,16 +42,17 @@ type Config struct {
 	PrometheusTunnelIP                string
 	GatewayConfigurer                 string
 	WireGuardEnabled                  bool
-	WireGuardIP                       string
+	WireGuardIPv4                     string
+	WireGuardIPv6                     netip.Prefix
 	WireGuardConfigPath               string
 	WireGuardPrivateKey               wireguard.PrivateKey
 	WireGuardPrivateKeyPath           string
 	WireGuardNetworkAddress           string
-	WireGuardNetworkAddressV6         string
+	TenantID                          uint16
 }
 
 // Generate a unique IPv6 /64 address for a tenant, placing the tenant id as the 7th and 8th bytes of the IPv6 prefix.
-func GetPrefixAddress(tenantId uint16) netip.Prefix {
+func getWireGuardIPv6(tenantId uint16) netip.Prefix {
 	b := netip.MustParsePrefix(wireGuardV6PrefixAddress).Addr().As16()
 	b[6] = byte(tenantId >> 8)
 	b[7] = byte(tenantId)
@@ -89,11 +90,16 @@ func DefaultConfig() Config {
 		LogLevel:                      "info",
 		PrometheusAddr:                "127.0.0.1:3000",
 		WireGuardNetworkAddress:       "10.255.240.0/21",
-		WireGuardIP:                   "10.255.240.1",
+		WireGuardIPv4:                 "10.255.240.1",
+		WireGuardIPv6:                 getWireGuardIPv6(0),
 		WireGuardConfigPath:           "/run/wg0.conf",
 		WireGuardPrivateKeyPath:       "/etc/apiserver/private.key",
 		GatewayConfigurer:             "bucket",
 	}
+}
+
+func (cfg *Config) Parse() {
+	cfg.WireGuardIPv6 = getWireGuardIPv6(cfg.TenantID)
 }
 
 func (cfg *Config) APIServerPeer() *pb.Gateway {
@@ -101,7 +107,8 @@ func (cfg *Config) APIServerPeer() *pb.Gateway {
 		Name:      "apiserver",
 		PublicKey: string(cfg.WireGuardPrivateKey.Public()),
 		Endpoint:  cfg.Endpoint,
-		Ip:        cfg.WireGuardIP,
+		Ipv4:      cfg.WireGuardIPv4,
+		Ipv6:      cfg.WireGuardIPv6.Addr().StringExpanded(),
 	}
 }
 
@@ -110,7 +117,7 @@ func (cfg *Config) StaticPeers() []*pb.Gateway {
 		{
 			Name:      wireguard.PrometheusPeerName,
 			PublicKey: cfg.PrometheusPublicKey,
-			Ip:        cfg.PrometheusTunnelIP,
+			Ipv4:      cfg.PrometheusTunnelIP,
 		},
 	}
 }

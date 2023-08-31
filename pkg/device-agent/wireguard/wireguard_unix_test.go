@@ -21,14 +21,15 @@ func TestMarshalConfiguration(t *testing.T) {
 				Name:      "gateway-1",
 				PublicKey: "PQKmraPOPye5CJq1x7njpl8rRu5RSrIKyHvZXtLvS0E=",
 				Endpoint:  "13.37.13.37:51820",
-				Ip:        "10.255.240.2/32",
+				Ipv4:      "10.255.240.2",
+				Ipv6:      "fd00::2",
 				Routes:    []string{"13.37.69.0/24", "13.37.59.69/32"},
 			},
 			{
 				Name:      "gateway-2",
 				PublicKey: "foobar",
 				Endpoint:  "14.37.13.37:51820",
-				Ip:        "11.255.240.2/32",
+				Ipv4:      "11.255.240.2",
 				Routes:    []string{"14.37.69.0/24", "14.37.59.69/32"},
 			},
 		},
@@ -44,7 +45,7 @@ PrivateKey = abc
 
 [Peer] # gateway-1
 PublicKey = PQKmraPOPye5CJq1x7njpl8rRu5RSrIKyHvZXtLvS0E=
-AllowedIPs = 13.37.69.0/24,13.37.59.69/32,10.255.240.2/32
+AllowedIPs = 13.37.69.0/24,13.37.59.69/32,10.255.240.2/32,fd00::2/128
 Endpoint = 13.37.13.37:51820
 
 [Peer] # gateway-2

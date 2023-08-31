@@ -29,10 +29,11 @@ func ListSessions(c *cli.Context) error {
 	}
 
 	for _, s := range resp.GetSessions() {
-		fmt.Printf("user: %s, healthy: %t, ip: %s, pubkey: %q, expired: %t\n",
+		fmt.Printf("user: %s, healthy: %t, ipv4: %s, ipv6: %s, pubkey: %q, expired: %t\n",
 			s.Device.GetUsername(),
 			s.Device.GetHealthy(),
-			s.Device.GetIp(),
+			s.Device.GetIpv4(),
+			s.Device.GetIpv6(),
 			s.Device.GetPublicKey(),
 			s.Expired(),
 		)
