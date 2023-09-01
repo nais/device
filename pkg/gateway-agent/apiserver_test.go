@@ -49,7 +49,7 @@ func TestSyncFromStream(t *testing.T) {
 		).Return(stream, nil)
 
 		staticPeers := cfg.StaticPeers()
-		peers := wireguard.MakePeers(resp.Devices, nil)
+		peers := wireguard.CastPeerList(resp.Devices)
 		peers = append(peers, staticPeers...)
 		netConf := &wireguard.MockNetworkConfigurer{}
 		netConf.On("ConnectedDeviceCount").Return(1, nil)

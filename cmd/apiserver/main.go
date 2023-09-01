@@ -417,16 +417,9 @@ func SyncLoop(ctx context.Context, db database.APIServer, netConf wg.NetworkConf
 			return fmt.Errorf("reading gateways from database: %v", err)
 		}
 
-		peers := []wg.Peer{}
-		for _, peer := range staticPeers {
-			peers = append(peers, peer)
-		}
-		for _, device := range devices {
-			peers = append(peers, device)
-		}
-		for _, gateway := range gateways {
-			peers = append(peers, gateway)
-		}
+		peers := wg.CastPeerList(staticPeers)
+		peers = append(peers, wg.CastPeerList(devices)...)
+		peers = append(peers, wg.CastPeerList(gateways)...)
 
 		err = netConf.ApplyWireGuardConfig(peers)
 		if err != nil {

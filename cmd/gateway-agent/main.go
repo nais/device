@@ -121,7 +121,7 @@ func run() error {
 		cfg.APIServerURL = enrollResp.APIServerGRPCAddress
 		cfg.DeviceIP = enrollResp.WireGuardIPv4
 
-		staticPeers = wireguard.MakePeers(nil, enrollResp.Peers)
+		staticPeers = wireguard.CastPeerList(enrollResp.Peers)
 	}
 
 	g.InitializeMetrics(cfg.Name, version.Version)
