@@ -10,6 +10,10 @@ import (
 	"github.com/nais/device/pkg/wireguard"
 )
 
+var (
+	MaxTenantId uint16 = (1 << 16) - 1
+)
+
 const wireGuardV6PrefixAddress = "fd75:568f:0d24::/48"
 
 type Config struct {
@@ -56,6 +60,7 @@ func getWireGuardIPv6(tenantId uint16) netip.Prefix {
 	b := netip.MustParsePrefix(wireGuardV6PrefixAddress).Addr().As16()
 	b[6] = byte(tenantId >> 8)
 	b[7] = byte(tenantId)
+
 	return netip.PrefixFrom(netip.AddrFrom16(b), 64)
 }
 
@@ -91,15 +96,15 @@ func DefaultConfig() Config {
 		PrometheusAddr:                "127.0.0.1:3000",
 		WireGuardNetworkAddress:       "10.255.240.0/21",
 		WireGuardIPv4:                 "10.255.240.1",
-		WireGuardIPv6:                 getWireGuardIPv6(0),
 		WireGuardConfigPath:           "/run/wg0.conf",
 		WireGuardPrivateKeyPath:       "/etc/apiserver/private.key",
 		GatewayConfigurer:             "bucket",
 	}
 }
 
-func (cfg *Config) Parse() {
+func (cfg *Config) Parse() error {
 	cfg.WireGuardIPv6 = getWireGuardIPv6(cfg.TenantID)
+	return nil
 }
 
 func (cfg *Config) APIServerPeer() *pb.Gateway {
