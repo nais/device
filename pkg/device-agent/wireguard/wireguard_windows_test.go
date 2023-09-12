@@ -32,7 +32,7 @@ func TestMarshalConfiguration(t *testing.T) {
 	}
 
 	buf := new(bytes.Buffer)
-	_, err := wireguard.Marshal(buf, cfg)
+	err := wireguard.Marshal(buf, cfg)
 
 	assert.NoError(t, err)
 
