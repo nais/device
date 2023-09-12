@@ -107,6 +107,10 @@ func (dhs *DeviceHelperServer) writeConfigFile(cfg *pb.Configuration) error {
 		return fmt.Errorf("write to disk: %s", err)
 	}
 
+	if err := fd.Sync(); err != nil {
+		return fmt.Errorf("sync file: %s", err)
+	}
+
 	return nil
 }
 
