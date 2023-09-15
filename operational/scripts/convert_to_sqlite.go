@@ -66,8 +66,7 @@ sqlite> PRAGMA table_info(devices);
 */
 func convertDevice(device map[string]string) {
 	if device["last_updated"] == "" {
-		// device never checked in, ingore it
-		return
+		device["last_updated"] = "2006-01-02 15:04:05.999999+00"
 	}
 
 	fmt.Printf("INSERT INTO devices(id, username, serial, platform, healthy, last_updated, public_key, ip) VALUES(%s, '%s', '%s', '%s', %s, '%s', '%s', '%s');\n",
@@ -140,6 +139,7 @@ func convertGateway(gateway map[string]string) {
 }
 
 /*
+"cat - > backupfile.tar"
 # source csv
 key,device_id,groups,object_id,expiry
 
