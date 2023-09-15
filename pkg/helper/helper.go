@@ -12,6 +12,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"time"
 
 	"github.com/nais/device/pkg/helper/config"
 	"github.com/nais/device/pkg/helper/serial"
@@ -75,9 +76,18 @@ func (dhs *DeviceHelperServer) Configure(ctx context.Context, cfg *pb.Configurat
 		return nil, status.Errorf(codes.FailedPrecondition, "setup interface and routes: %s", err)
 	}
 
-	err = dhs.OSConfigurator.SyncConf(ctx, cfg)
-	if err != nil {
-		return nil, status.Errorf(codes.FailedPrecondition, "synchronize WireGuard configuration: %s", err)
+	var loopErr error
+	for attempt := 0; attempt < 5; attempt++ {
+		loopErr = dhs.OSConfigurator.SyncConf(ctx, cfg)
+		if loopErr != nil {
+			backoff := time.Duration(attempt) * time.Second
+			log.Errorf("synchronize WireGuard configuration: %s", loopErr)
+			log.Infof("attempt %d at configuring failed, sleeping %v before retrying", attempt+1, backoff)
+			time.Sleep(backoff)
+		}
+	}
+	if loopErr != nil {
+		return nil, status.Errorf(codes.FailedPrecondition, "synchronize WireGuard configuration: %s", loopErr)
 	}
 
 	err = dhs.OSConfigurator.SetupRoutes(ctx, cfg.GetGateways())
