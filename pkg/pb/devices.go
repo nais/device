@@ -7,9 +7,13 @@ func (x *Device) GetName() string {
 }
 
 // Satisfy WireGuard interface.
-// This field contains the private IP address of a device.
+// This field contains the private IP addresses of a device.
 func (x *Device) GetAllowedIPs() []string {
-	return []string{x.GetIp()}
+	ips := []string{x.GetIpv4() + "/32"}
+	if x.GetIpv6() != "" {
+		ips = append(ips, x.GetIpv6()+"/128")
+	}
+	return ips
 }
 
 // Satisfy WireGuard interface.

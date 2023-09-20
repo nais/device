@@ -14,18 +14,17 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	log "github.com/sirupsen/logrus"
-	flag "github.com/spf13/pflag"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 
 	"github.com/nais/device/pkg/logger"
 	prometheusagent "github.com/nais/device/pkg/prometheus-agent"
+	"github.com/nais/device/pkg/prometheus-agent/config"
 	"github.com/nais/device/pkg/version"
 	"github.com/nais/device/pkg/wireguard"
 )
 
 var (
-	cfg                        = prometheusagent.DefaultConfig()
 	lastSuccessfulConfigUpdate = prometheus.NewGauge(prometheus.GaugeOpts{
 		Name:      "last_successful_config_update",
 		Help:      "time since last successful prometheus config update",
@@ -41,28 +40,15 @@ const (
 	wireguardListenPort = 51820
 )
 
-func init() {
-	flag.StringVar(&cfg.LogLevel, "log-level", cfg.LogLevel, "logging verbosity")
-	flag.StringVar(&cfg.TunnelIP, "tunnel-ip", cfg.TunnelIP, "prometheus tunnel ip")
-	flag.StringVar(&cfg.PrometheusAddress, "prometheus-address", cfg.PrometheusAddress, "prometheus listen address")
-	flag.StringVar(&cfg.APIServerURL, "api-server-url", cfg.APIServerURL, "api server URL")
-	flag.StringVar(&cfg.APIServerPublicKey, "api-server-public-key", cfg.APIServerPublicKey, "api server public key")
-	flag.StringVar(&cfg.APIServerEndpoint, "api-server-endpoint", cfg.APIServerEndpoint, "api server WireGuard endpoint")
-	flag.StringVar(&cfg.APIServerUsername, "api-server-username", cfg.APIServerUsername, "apiserver username")
-	flag.StringVar(&cfg.APIServerPassword, "api-server-password", cfg.APIServerPassword, "apiserver password")
-	flag.BoolVar(&cfg.WireGuardEnabled, "wireguard-enabled", cfg.WireGuardEnabled, "enable WireGuard integration")
-
-	flag.Parse()
-}
-
 func main() {
-	err := run()
+	cfg := config.DefaultConfig()
+	err := run(cfg)
 	if err != nil {
 		log.Fatalf("Running prometheus-agent: %s", err)
 	}
 }
 
-func run() error {
+func run(cfg config.Config) error {
 	var err error
 
 	ctx, cancel := context.WithCancel(context.Background())
@@ -71,6 +57,11 @@ func run() error {
 	err = envconfig.Process("PROMETHEUS_AGENT", &cfg)
 	if err != nil {
 		return fmt.Errorf("read environment configuration: %w", err)
+	}
+
+	err = cfg.Parse()
+	if err != nil {
+		return fmt.Errorf("parse configuration: %w", err)
 	}
 
 	logger.Setup(cfg.LogLevel)
@@ -91,7 +82,7 @@ func run() error {
 			return fmt.Errorf("cannot enable WireGuard: %w", err)
 		}
 
-		netConf = wireguard.NewConfigurer(cfg.WireGuardConfigPath, cfg.TunnelIP, cfg.PrivateKey, wireguardInterface, wireguardListenPort, nil)
+		netConf = wireguard.NewConfigurer(cfg.WireGuardConfigPath, cfg.WireGuardIPv4, cfg.WireGuardIPv6, cfg.PrivateKey, wireguardInterface, wireguardListenPort, nil)
 	} else {
 		netConf = wireguard.NewNoOpConfigurer()
 	}
@@ -105,7 +96,7 @@ func run() error {
 		Name:      "apiserver",
 		PublicKey: cfg.APIServerPublicKey,
 		Endpoint:  cfg.APIServerEndpoint,
-		Ip:        cfg.APIServerTunnelIP,
+		Ipv4:      cfg.APIServerTunnelIP,
 	}
 
 	// apply initial base config
@@ -128,7 +119,7 @@ func run() error {
 		ctx, cancel := context.WithTimeout(ctx, updateTimeout)
 		defer cancel()
 
-		gateways, err := listGateways(ctx, apiClient)
+		gateways, err := listGateways(ctx, cfg, apiClient)
 		if err != nil {
 			return err
 		}
@@ -157,7 +148,7 @@ func run() error {
 	return nil
 }
 
-func listGateways(ctx context.Context, client pb.APIServerClient) ([]*pb.Gateway, error) {
+func listGateways(ctx context.Context, cfg config.Config, client pb.APIServerClient) ([]*pb.Gateway, error) {
 	const listCap = 128
 
 	stream, err := client.ListGateways(ctx, &pb.ListGatewayRequest{
@@ -189,7 +180,7 @@ func applyGateways(netConf wireguard.NetworkConfigurer, gateways []*pb.Gateway, 
 
 	for i := range gateways {
 		peers[i] = gateways[i]
-		ips[i] = gateways[i].GetIp()
+		ips[i] = gateways[i].GetIpv4()
 	}
 
 	peers = append(peers, staticPeers...)

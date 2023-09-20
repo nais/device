@@ -18,7 +18,8 @@ type GatewayRequest struct {
 
 type Response struct {
 	APIServerGRPCAddress string        `json:"api_server_grpc_address"`
-	WireGuardIP          string        `json:"wireguard_ip"`
+	WireGuardIPv4        string        `json:"wireguard_ip"` // TODO rename to wireguard_ipv4
+	WireGuardIPv6        string        `json:"wireguard_ipv6"`
 	Peers                []*pb.Gateway `json:"peers"`
 }
 

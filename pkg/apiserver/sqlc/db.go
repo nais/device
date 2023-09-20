@@ -72,6 +72,9 @@ func Prepare(ctx context.Context, db DBTX) (*Queries, error) {
 	if q.getGatewaysStmt, err = db.PrepareContext(ctx, getGateways); err != nil {
 		return nil, fmt.Errorf("error preparing query GetGateways: %w", err)
 	}
+	if q.getLastUsedIPV6Stmt, err = db.PrepareContext(ctx, getLastUsedIPV6); err != nil {
+		return nil, fmt.Errorf("error preparing query GetLastUsedIPV6: %w", err)
+	}
 	if q.getMostRecentDeviceSessionStmt, err = db.PrepareContext(ctx, getMostRecentDeviceSession); err != nil {
 		return nil, fmt.Errorf("error preparing query GetMostRecentDeviceSession: %w", err)
 	}
@@ -178,6 +181,11 @@ func (q *Queries) Close() error {
 			err = fmt.Errorf("error closing getGatewaysStmt: %w", cerr)
 		}
 	}
+	if q.getLastUsedIPV6Stmt != nil {
+		if cerr := q.getLastUsedIPV6Stmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing getLastUsedIPV6Stmt: %w", cerr)
+		}
+	}
 	if q.getMostRecentDeviceSessionStmt != nil {
 		if cerr := q.getMostRecentDeviceSessionStmt.Close(); cerr != nil {
 			err = fmt.Errorf("error closing getMostRecentDeviceSessionStmt: %w", cerr)
@@ -268,6 +276,7 @@ type Queries struct {
 	getGatewayByNameStmt             *sql.Stmt
 	getGatewayRoutesStmt             *sql.Stmt
 	getGatewaysStmt                  *sql.Stmt
+	getLastUsedIPV6Stmt              *sql.Stmt
 	getMostRecentDeviceSessionStmt   *sql.Stmt
 	getSessionByKeyStmt              *sql.Stmt
 	getSessionGroupIDsStmt           *sql.Stmt
@@ -297,6 +306,7 @@ func (q *Queries) WithTx(tx *sql.Tx) *Queries {
 		getGatewayByNameStmt:             q.getGatewayByNameStmt,
 		getGatewayRoutesStmt:             q.getGatewayRoutesStmt,
 		getGatewaysStmt:                  q.getGatewaysStmt,
+		getLastUsedIPV6Stmt:              q.getLastUsedIPV6Stmt,
 		getMostRecentDeviceSessionStmt:   q.getMostRecentDeviceSessionStmt,
 		getSessionByKeyStmt:              q.getSessionByKeyStmt,
 		getSessionGroupIDsStmt:           q.getSessionGroupIDsStmt,

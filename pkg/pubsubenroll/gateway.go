@@ -69,7 +69,7 @@ func (c *GatewayClient) Bootstrap(ctx context.Context) (*Response, error) {
 	var resp *Response
 	var unmarshalErr error
 	ctx, cancel := context.WithCancel(ctx)
-	err = sub.Receive(ctx, func(ctx context.Context, msg *pubsub.Message) {
+	err = sub.Receive(ctx, func(_ context.Context, msg *pubsub.Message) {
 		if v, ok := msg.Attributes["type"]; !ok || v != TypeEnrollResponse {
 			msg.Nack()
 			return

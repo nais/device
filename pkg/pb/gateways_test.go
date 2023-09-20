@@ -23,22 +23,23 @@ func TestMergeGatewayHealth(t *testing.T) {
 		{
 			Name:    "gw-1",
 			Healthy: true,
-			Ip:      "foo",
+			Ipv4:    "foo",
 		},
 		{
 			Name:    "gw-2",
 			Healthy: false,
-			Ip:      "foo",
+			Ipv4:    "foo",
 		},
 		{
 			Name:    "gw-3",
 			Healthy: true,
-			Ip:      "foo",
+			Ipv4:    "foo",
 		},
 		{
 			Name:    "gw-4",
 			Healthy: false,
-			Ip:      "foo",
+			Ipv4:    "foo",
+			Ipv6:    "ffff::1",
 		},
 	}
 
@@ -46,7 +47,7 @@ func TestMergeGatewayHealth(t *testing.T) {
 
 	// assert all ips (and other fields) preserved
 	for _, gw := range dst {
-		assert.Equal(t, "foo", gw.Ip)
+		assert.Equal(t, "foo", gw.Ipv4)
 	}
 
 	assert.Equal(t, "gw-1", dst[0].Name)

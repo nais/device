@@ -211,11 +211,12 @@ message Gateway {
   bool healthy = 2;
   string publicKey = 3;
   string endpoint = 4;
-  string ip = 5;
+  string ipv4 = 5;
   repeated string routes = 6;
   bool requiresPrivilegedAccess = 7 [json_name = "requires_privileged_access"];
   repeated string accessGroupIDs = 8;
   string passwordHash = 9;
+  string ipv6 = 10;
 }
 
 message Error {
@@ -296,9 +297,10 @@ message Device {
   reserved 5;
   bool healthy = 6;
   string publicKey = 7;
-  string ip = 8;
+  string ipv4 = 8;
   string username = 9;
   string platform = 10;
+  string ipv6 = 11;
 }
 
 message Session {

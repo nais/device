@@ -1,27 +1,23 @@
-package database
+package ip
 
 import (
 	"fmt"
 	"net/netip"
 )
 
-type IPAllocator interface {
-	NextIP([]string) (string, error)
-}
-
-type ipAllocator struct {
+type v4Allocator struct {
 	cidr     netip.Prefix
 	reserved []string
 }
 
-func NewIPAllocator(cidr netip.Prefix, reserved []string) IPAllocator {
-	return &ipAllocator{
+func NewV4Allocator(cidr netip.Prefix, reserved []string) Allocator {
+	return &v4Allocator{
 		cidr:     cidr,
 		reserved: reserved,
 	}
 }
 
-func (i *ipAllocator) NextIP(takenIPs []string) (string, error) {
+func (i *v4Allocator) NextIP(takenIPs []string) (string, error) {
 	takenIPs = append(takenIPs, i.reserved...)
 	return findAvailableIP(i.cidr, takenIPs)
 }

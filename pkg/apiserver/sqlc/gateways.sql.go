@@ -10,8 +10,8 @@ import (
 )
 
 const addGateway = `-- name: AddGateway :exec
-INSERT INTO gateways (name, endpoint, public_key, ip, password_hash, requires_privileged_access)
-VALUES (?1, ?2, ?3, ?4, ?5, ?6)
+INSERT INTO gateways (name, endpoint, public_key, ipv4, ipv6, password_hash, requires_privileged_access)
+VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)
 ON CONFLICT (name) DO
     UPDATE SET endpoint = excluded.endpoint, public_key = excluded.public_key, password_hash = excluded.password_hash
 `
@@ -20,7 +20,8 @@ type AddGatewayParams struct {
 	Name                     string
 	Endpoint                 string
 	PublicKey                string
-	Ip                       string
+	Ipv4                     string
+	Ipv6                     string
 	PasswordHash             string
 	RequiresPrivilegedAccess bool
 }
@@ -30,7 +31,8 @@ func (q *Queries) AddGateway(ctx context.Context, arg AddGatewayParams) error {
 		arg.Name,
 		arg.Endpoint,
 		arg.PublicKey,
-		arg.Ip,
+		arg.Ipv4,
+		arg.Ipv6,
 		arg.PasswordHash,
 		arg.RequiresPrivilegedAccess,
 	)
@@ -115,7 +117,7 @@ func (q *Queries) GetGatewayAccessGroupIDs(ctx context.Context, gatewayName stri
 }
 
 const getGatewayByName = `-- name: GetGatewayByName :one
-SELECT name, endpoint, public_key, ip, requires_privileged_access, password_hash FROM gateways WHERE name = ?1
+SELECT name, endpoint, public_key, ipv4, requires_privileged_access, password_hash, ipv6 FROM gateways WHERE name = ?1
 `
 
 func (q *Queries) GetGatewayByName(ctx context.Context, name string) (*Gateway, error) {
@@ -125,9 +127,10 @@ func (q *Queries) GetGatewayByName(ctx context.Context, name string) (*Gateway, 
 		&i.Name,
 		&i.Endpoint,
 		&i.PublicKey,
-		&i.Ip,
+		&i.Ipv4,
 		&i.RequiresPrivilegedAccess,
 		&i.PasswordHash,
+		&i.Ipv6,
 	)
 	return &i, err
 }
@@ -160,7 +163,7 @@ func (q *Queries) GetGatewayRoutes(ctx context.Context, gatewayName string) ([]s
 }
 
 const getGateways = `-- name: GetGateways :many
-SELECT name, endpoint, public_key, ip, requires_privileged_access, password_hash FROM gateways ORDER BY name
+SELECT name, endpoint, public_key, ipv4, requires_privileged_access, password_hash, ipv6 FROM gateways ORDER BY name
 `
 
 func (q *Queries) GetGateways(ctx context.Context) ([]*Gateway, error) {
@@ -176,9 +179,10 @@ func (q *Queries) GetGateways(ctx context.Context) ([]*Gateway, error) {
 			&i.Name,
 			&i.Endpoint,
 			&i.PublicKey,
-			&i.Ip,
+			&i.Ipv4,
 			&i.RequiresPrivilegedAccess,
 			&i.PasswordHash,
+			&i.Ipv6,
 		); err != nil {
 			return nil, err
 		}
@@ -195,14 +199,15 @@ func (q *Queries) GetGateways(ctx context.Context) ([]*Gateway, error) {
 
 const updateGateway = `-- name: UpdateGateway :exec
 UPDATE gateways
-SET public_key = ?1, endpoint = ?2, ip = ?3, requires_privileged_access = ?4, password_hash = ?5
-WHERE name = ?6
+SET public_key = ?1, endpoint = ?2, ipv4 = ?3, ipv6 = ?4, requires_privileged_access = ?5, password_hash = ?6
+WHERE name = ?7
 `
 
 type UpdateGatewayParams struct {
 	PublicKey                string
 	Endpoint                 string
-	Ip                       string
+	Ipv4                     string
+	Ipv6                     string
 	RequiresPrivilegedAccess bool
 	PasswordHash             string
 	Name                     string
@@ -212,7 +217,8 @@ func (q *Queries) UpdateGateway(ctx context.Context, arg UpdateGatewayParams) er
 	_, err := q.exec(ctx, q.updateGatewayStmt, updateGateway,
 		arg.PublicKey,
 		arg.Endpoint,
-		arg.Ip,
+		arg.Ipv4,
+		arg.Ipv6,
 		arg.RequiresPrivilegedAccess,
 		arg.PasswordHash,
 		arg.Name,

@@ -6,16 +6,26 @@ import (
 	"strings"
 
 	"github.com/nais/device/pkg/ioconvenience"
-	"github.com/nais/device/pkg/pb"
 )
 
-const PrometheusPeerName = "prometheus"
+const (
+	PrometheusPeerName = "prometheus"
+	APIServerPeerName  = "apiserver"
+)
 
 type Peer interface {
 	GetName() string
 	GetPublicKey() string
 	GetAllowedIPs() []string
 	GetEndpoint() string
+}
+
+func CastPeerList[T Peer](peers []T) []Peer {
+	result := []Peer{}
+	for _, peer := range peers {
+		result = append(result, peer)
+	}
+	return result
 }
 
 type Config struct {
@@ -65,15 +75,4 @@ func fprintNonEmpty(w io.Writer, format string, value string) (int, error) {
 		return 0, nil
 	}
 	return fmt.Fprintf(w, format, value)
-}
-
-func MakePeers(devices []*pb.Device, gateways []*pb.Gateway) []Peer {
-	peers := make([]Peer, 0, len(devices)+len(gateways))
-	for i := range gateways {
-		peers = append(peers, gateways[i])
-	}
-	for i := range devices {
-		peers = append(peers, devices[i])
-	}
-	return peers
 }

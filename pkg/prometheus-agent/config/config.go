@@ -1,8 +1,9 @@
-package prometheusagent
+package config
 
 import (
 	"fmt"
 	"io"
+	"net/netip"
 
 	"github.com/nais/device/pkg/ioconvenience"
 )
@@ -17,9 +18,12 @@ type Config struct {
 	LogLevel            string
 	PrivateKey          string
 	PrometheusAddress   string
-	TunnelIP            string
-	WireGuardConfigPath string
+	DeviceIPv4          string `envconfig:"TUNNELIP"`
+	DeviceIPv6          string `envconfig:"TUNNELIPV6"`
 	WireGuardEnabled    bool
+	WireGuardConfigPath string
+	WireGuardIPv4       *netip.Prefix `ignored:"true"`
+	WireGuardIPv6       *netip.Prefix `ignored:"true"`
 }
 
 func DefaultConfig() Config {
@@ -29,6 +33,24 @@ func DefaultConfig() Config {
 		LogLevel:            "info",
 		WireGuardConfigPath: "/run/wg0.conf",
 	}
+}
+
+func (c *Config) Parse() error {
+	v4prefix, err := netip.ParsePrefix(c.DeviceIPv4)
+	if err != nil {
+		return fmt.Errorf("parsing ipv4 prefix: %w", err)
+	}
+	c.WireGuardIPv4 = &v4prefix
+
+	if len(c.DeviceIPv6) == 0 {
+		v6prefix, err := netip.ParsePrefix(c.DeviceIPv6)
+		if err != nil {
+			return fmt.Errorf("parsing ipv6 prefix: %w", err)
+		}
+		c.WireGuardIPv6 = &v6prefix
+	}
+
+	return nil
 }
 
 func (c Config) ValidateWireGuard() error {
@@ -48,7 +70,6 @@ func (c Config) ValidateWireGuard() error {
 	err = check("apiserver-password", c.APIServerPassword)
 	err = check("apiserver-public-key", c.APIServerPublicKey)
 	err = check("apiserver-tunnel-ip", c.APIServerTunnelIP)
-	err = check("tunnel-ip", c.TunnelIP)
 	err = check("private-key", c.PrivateKey)
 
 	return err
@@ -82,8 +103,4 @@ func (cfg Config) GetUsername() string {
 
 func (cfg Config) GetWireGuardConfigPath() string {
 	return cfg.WireGuardConfigPath
-}
-
-func (cfg Config) GetTunnelIP() string {
-	return cfg.TunnelIP
 }

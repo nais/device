@@ -3,26 +3,30 @@ package database
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
+	"strings"
 	"sync"
 	"time"
 
 	log "github.com/sirupsen/logrus"
 	"google.golang.org/protobuf/types/known/timestamppb"
 
+	"github.com/nais/device/pkg/apiserver/ip"
 	"github.com/nais/device/pkg/apiserver/sqlc"
 	"github.com/nais/device/pkg/pb"
 )
 
 type ApiServerDB struct {
 	queries             Querier
-	IPAllocator         IPAllocator
+	ipv4Allocator       ip.Allocator
+	ipv6Allocator       ip.Allocator
 	defaultDeviceHealth bool
 }
 
 var mux sync.Mutex
 
-func New(ctx context.Context, dbPath string, ipAllocator IPAllocator, defaultDeviceHealth bool) (APIServer, error) {
+func New(_ context.Context, dbPath string, v4Allocator ip.Allocator, v6Allocator ip.Allocator, defaultDeviceHealth bool) (APIServer, error) {
 	db, err := sql.Open("sqlite3", dbPath)
 	if err != nil {
 		return nil, fmt.Errorf("open database: %w", err)
@@ -30,7 +34,8 @@ func New(ctx context.Context, dbPath string, ipAllocator IPAllocator, defaultDev
 
 	apiServerDB := ApiServerDB{
 		queries:             NewQuerier(db),
-		IPAllocator:         ipAllocator,
+		ipv4Allocator:       v4Allocator,
+		ipv6Allocator:       v6Allocator,
 		defaultDeviceHealth: defaultDeviceHealth,
 	}
 
@@ -86,7 +91,8 @@ func (db *ApiServerDB) UpdateGateway(ctx context.Context, gw *pb.Gateway) error 
 		err := qtx.UpdateGateway(ctx, sqlc.UpdateGatewayParams{
 			PublicKey:                gw.PublicKey,
 			Endpoint:                 gw.Endpoint,
-			Ip:                       gw.Ip,
+			Ipv4:                     gw.Ipv4,
+			Ipv6:                     gw.Ipv6,
 			RequiresPrivilegedAccess: gw.RequiresPrivilegedAccess,
 			PasswordHash:             gw.PasswordHash,
 			Name:                     gw.Name,
@@ -187,9 +193,13 @@ func (db *ApiServerDB) AddGateway(ctx context.Context, gw *pb.Gateway) error {
 	mux.Lock()
 	defer mux.Unlock()
 
-	availableIp, err := db.getNextAvailableIp(ctx)
+	availableIPv4, err := db.getNextAvailableIPv4(ctx)
 	if err != nil {
-		return fmt.Errorf("finding available ip: %w", err)
+		return fmt.Errorf("finding available ipv4: %w", err)
+	}
+	availableIPv6, err := db.getNextAvailableIPv6(ctx)
+	if err != nil {
+		return fmt.Errorf("finding available ipv6: %w", err)
 	}
 
 	err = db.queries.Transaction(ctx, func(ctx context.Context, qtx *sqlc.Queries) error {
@@ -197,7 +207,8 @@ func (db *ApiServerDB) AddGateway(ctx context.Context, gw *pb.Gateway) error {
 			Name:                     gw.Name,
 			Endpoint:                 gw.Endpoint,
 			PublicKey:                gw.PublicKey,
-			Ip:                       availableIp,
+			Ipv4:                     availableIPv4,
+			Ipv6:                     availableIPv6,
 			PasswordHash:             gw.PasswordHash,
 			RequiresPrivilegedAccess: gw.RequiresPrivilegedAccess,
 		})
@@ -238,7 +249,12 @@ func (db *ApiServerDB) AddDevice(ctx context.Context, device *pb.Device) error {
 	mux.Lock()
 	defer mux.Unlock()
 
-	availableIp, err := db.getNextAvailableIp(ctx)
+	availableIpV4, err := db.getNextAvailableIPv4(ctx)
+	if err != nil {
+		return fmt.Errorf("finding available ip: %w", err)
+	}
+
+	availableIpV6, err := db.getNextAvailableIPv6(ctx)
 	if err != nil {
 		return fmt.Errorf("finding available ip: %w", err)
 	}
@@ -247,7 +263,8 @@ func (db *ApiServerDB) AddDevice(ctx context.Context, device *pb.Device) error {
 		Serial:    device.Serial,
 		Username:  device.Username,
 		PublicKey: device.PublicKey,
-		Ip:        availableIp,
+		Ipv4:      availableIpV4,
+		Ipv6:      availableIpV6,
 		Healthy:   db.defaultDeviceHealth,
 		Platform:  device.Platform,
 	})
@@ -328,7 +345,7 @@ func (db *ApiServerDB) readExistingIPs(ctx context.Context) ([]string, error) {
 	}
 
 	for _, device := range devices {
-		ips = append(ips, device.Ip)
+		ips = append(ips, device.Ipv4)
 	}
 
 	gateways, err := db.ReadGateways(ctx)
@@ -337,7 +354,7 @@ func (db *ApiServerDB) readExistingIPs(ctx context.Context) ([]string, error) {
 	}
 
 	for _, gateway := range gateways {
-		ips = append(ips, gateway.Ip)
+		ips = append(ips, gateway.Ipv4)
 	}
 
 	return ips, nil
@@ -432,18 +449,30 @@ func (db *ApiServerDB) ReadMostRecentSessionInfo(ctx context.Context, deviceID i
 	return sqlcSessionAndDeviceToPbSession(row.Session, row.Device, groupIDs), nil
 }
 
-func (db *ApiServerDB) getNextAvailableIp(ctx context.Context) (string, error) {
+func (db *ApiServerDB) getNextAvailableIPv4(ctx context.Context) (string, error) {
 	existingIps, err := db.readExistingIPs(ctx)
 	if err != nil {
 		return "", fmt.Errorf("reading existing ips: %w", err)
 	}
 
-	availableIp, err := db.IPAllocator.NextIP(existingIps)
+	availableIp, err := db.ipv4Allocator.NextIP(existingIps)
 	if err != nil {
 		return "", fmt.Errorf("finding available ip: %w", err)
 	}
 
 	return availableIp, nil
+}
+
+func (db *ApiServerDB) getNextAvailableIPv6(ctx context.Context) (string, error) {
+	lastUsedIP, err := db.queries.GetLastUsedIPV6(ctx)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) || strings.Contains(err.Error(), "converting NULL to string is unsupported") {
+			return db.ipv6Allocator.NextIP(nil)
+		}
+		return "", fmt.Errorf("getting last used ipv6: %w", err)
+	}
+
+	return db.ipv6Allocator.NextIP([]string{lastUsedIP})
 }
 
 func sqlcDeviceToPbDevice(sqlcDevice sqlc.Device) *pb.Device {
@@ -452,7 +481,8 @@ func sqlcDeviceToPbDevice(sqlcDevice sqlc.Device) *pb.Device {
 		Serial:    sqlcDevice.Serial,
 		Healthy:   sqlcDevice.Healthy,
 		PublicKey: sqlcDevice.PublicKey,
-		Ip:        sqlcDevice.Ip,
+		Ipv4:      sqlcDevice.Ipv4,
+		Ipv6:      sqlcDevice.Ipv6,
 		Username:  sqlcDevice.Username,
 		Platform:  string(sqlcDevice.Platform),
 	}
@@ -482,7 +512,8 @@ func sqlcGatewayToPbGateway(g sqlc.Gateway, groupIDs, routes []string) *pb.Gatew
 		Name:                     g.Name,
 		PublicKey:                g.PublicKey,
 		Endpoint:                 g.Endpoint,
-		Ip:                       g.Ip,
+		Ipv4:                     g.Ipv4,
+		Ipv6:                     g.Ipv6,
 		RequiresPrivilegedAccess: g.RequiresPrivilegedAccess,
 		PasswordHash:             g.PasswordHash,
 		AccessGroupIDs:           groupIDs,

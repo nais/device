@@ -1,12 +1,10 @@
 # vi:syntax=systemd
 [Unit]
-Description=apiserver
+Description=naisdevice apiserver
 
 [Service]
 Restart=always
 EnvironmentFile=/etc/default/apiserver
-StandardOutput=append:/var/log/naisdevice/apiserver.json
-StandardError=append:/var/log/naisdevice/apiserver.json
 ExecStart=/usr/bin/apiserver
 
 [Install]

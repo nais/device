@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/nais/device/pkg/apiserver/database"
+	"github.com/nais/device/pkg/apiserver/ip"
 )
 
 const (
@@ -26,13 +27,15 @@ func Setup(t *testing.T) database.APIServer {
 	}
 	t.Logf("Created tmp database in: %v", tempFile.Name())
 	t.Cleanup(func() {
-		if err := os.Remove(tempFile.Name()); err != nil {
+		if cleanErr := os.Remove(tempFile.Name()); cleanErr != nil {
 			t.Logf("unable to clean up test database: %v", err)
 		}
 	})
 
-	ipAllocator := database.NewIPAllocator(netip.MustParsePrefix(wireguardNetworkAddress), []string{apiserverWireGuardIP})
-	db, err := database.New(ctx, tempFile.Name(), ipAllocator, false)
+	ipAllocator := ip.NewV4Allocator(netip.MustParsePrefix(wireguardNetworkAddress), []string{apiserverWireGuardIP})
+	prefix := netip.MustParsePrefix("fd00::/64")
+	ip6Allocator := ip.NewV6Allocator(&prefix)
+	db, err := database.New(ctx, tempFile.Name(), ipAllocator, ip6Allocator, false)
 	if err != nil {
 		t.Fatalf("Instantiating database: %v", err)
 	}

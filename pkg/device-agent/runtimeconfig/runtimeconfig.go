@@ -146,10 +146,10 @@ func (r *RuntimeConfig) enrollGoogle(ctx context.Context, serial string) error {
 	apiserverPeer := findPeer(resp.Peers, "apiserver")
 
 	r.EnrollConfig = &bootstrap.Config{
-		DeviceIP:       resp.WireGuardIP,
+		DeviceIP:       resp.WireGuardIPv4,
 		PublicKey:      apiserverPeer.PublicKey,
 		TunnelEndpoint: apiserverPeer.Endpoint,
-		APIServerIP:    apiserverPeer.Ip,
+		APIServerIP:    apiserverPeer.Ipv4,
 	}
 	return nil
 }

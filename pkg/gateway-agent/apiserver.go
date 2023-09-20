@@ -41,7 +41,7 @@ func applyGatewayConfig(configurer wireguard.NetworkConfigurer, gatewayConfig *p
 	RegisteredDevices.Set(float64(len(gatewayConfig.Devices)))
 	LastSuccessfulConfigFetch.SetToCurrentTime()
 
-	peers := wireguard.MakePeers(gatewayConfig.Devices, nil)
+	peers := wireguard.CastPeerList(gatewayConfig.Devices)
 	err := configurer.ApplyWireGuardConfig(append(staticPeers, peers...))
 	if err != nil {
 		return fmt.Errorf("actuating WireGuard config: %w", err)

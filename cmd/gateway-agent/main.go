@@ -8,7 +8,8 @@ import (
 	"syscall"
 	"time"
 
-	g "github.com/nais/device/pkg/gateway-agent"
+	"github.com/nais/device/pkg/gateway-agent"
+	"github.com/nais/device/pkg/gateway-agent/config"
 	"github.com/nais/device/pkg/passwordhash"
 	"github.com/nais/device/pkg/pb"
 	"github.com/nais/device/pkg/pubsubenroll"
@@ -24,10 +25,7 @@ import (
 	"github.com/kelseyhightower/envconfig"
 	"github.com/nais/device/pkg/version"
 	log "github.com/sirupsen/logrus"
-	flag "github.com/spf13/pflag"
 )
-
-var cfg = g.DefaultConfig()
 
 const (
 	grpcConnectBackoff   = 5 * time.Second
@@ -37,34 +35,15 @@ const (
 	maxReconnectAttempts = 24 // ~ 2 minutes
 )
 
-func init() {
-	flag.BoolVar(&cfg.EnableRouting, "enable-routing", cfg.EnableRouting, "enable-routing enables setting up interface and configuring of WireGuard")
-	flag.StringVar(&cfg.APIServerEndpoint, "apiserver-endpoint", cfg.APIServerEndpoint, "WireGuard public endpoint at API server, host:port")
-	flag.StringVar(&cfg.APIServerPassword, "apiserver-password", cfg.APIServerPassword, "password to access apiserver")
-	flag.StringVar(&cfg.APIServerPublicKey, "apiserver-public-key", cfg.APIServerPublicKey, "API server's WireGuard public key")
-	flag.StringVar(&cfg.APIServerPrivateIP, "apiserver-private-ip", cfg.APIServerPrivateIP, "API server's WireGuard IP address")
-	flag.StringVar(&cfg.APIServerURL, "api-server-url", cfg.APIServerURL, "prometheus tunnel ip")
-	flag.StringVar(&cfg.ConfigDir, "config-dir", cfg.ConfigDir, "gateway-agent config directory")
-	flag.StringVar(&cfg.DeviceIP, "device-ip", cfg.DeviceIP, "IP address to use in WireGuard VPN")
-	flag.StringVar(&cfg.LogLevel, "log-level", cfg.LogLevel, "log level")
-	flag.StringVar(&cfg.Name, "name", cfg.Name, "gateway name")
-	flag.StringVar(&cfg.PrivateKey, "private-key", cfg.PrivateKey, "wireguard private key")
-	flag.StringVar(&cfg.PrometheusAddr, "prometheus-address", cfg.PrometheusAddr, "prometheus listen address")
-	flag.StringVar(&cfg.PrometheusPublicKey, "prometheus-public-key", cfg.PrometheusPublicKey, "prometheus public key")
-	flag.StringVar(&cfg.PrometheusTunnelIP, "prometheus-tunnel-ip", cfg.PrometheusTunnelIP, "prometheus tunnel ip")
-	flag.BoolVar(&cfg.AutoEnroll, "auto-enroll", cfg.AutoEnroll, "Auto enroll using pub/sub. Uses Google ADC.")
-}
-
 func main() {
-	flag.Parse()
-
-	err := run()
+	cfg := config.DefaultConfig()
+	err := run(cfg)
 	if err != nil {
 		log.Fatalf("Running gateway-agent: %s", err)
 	}
 }
 
-func run() error {
+func run(cfg config.Config) error {
 	var err error
 
 	ctx, cancel := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
@@ -73,6 +52,11 @@ func run() error {
 	err = envconfig.Process("GATEWAY_AGENT", &cfg)
 	if err != nil {
 		return fmt.Errorf("read environment configuration: %w", err)
+	}
+
+	err = cfg.Parse()
+	if err != nil {
+		return fmt.Errorf("parse configuration: %w", err)
 	}
 
 	logger.Setup(cfg.LogLevel)
@@ -119,13 +103,13 @@ func run() error {
 		cfg.Name = ecfg.Name
 		cfg.PrivateKey = string(privateKey.Private())
 		cfg.APIServerURL = enrollResp.APIServerGRPCAddress
-		cfg.DeviceIP = enrollResp.WireGuardIP
+		cfg.DeviceIPv4 = enrollResp.WireGuardIPv4
 
-		staticPeers = wireguard.MakePeers(nil, enrollResp.Peers)
+		staticPeers = wireguard.CastPeerList(enrollResp.Peers)
 	}
 
-	g.InitializeMetrics(cfg.Name, version.Version)
-	go g.Serve(cfg.PrometheusAddr)
+	gateway_agent.InitializeMetrics(cfg.Name, version.Version)
+	go gateway_agent.Serve(cfg.PrometheusAddr)
 
 	var netConf wireguard.NetworkConfigurer
 	if cfg.EnableRouting {
@@ -137,7 +121,7 @@ func run() error {
 		if err != nil {
 			return fmt.Errorf("setup iptables: %w", err)
 		}
-		netConf = wireguard.NewConfigurer(cfg.WireGuardConfigPath, cfg.DeviceIP, cfg.PrivateKey, wireguardInterface, wireguardListenPort, ipTables)
+		netConf = wireguard.NewConfigurer(cfg.WireGuardConfigPath, cfg.WireGuardIPv4, cfg.WireGuardIPv6, cfg.PrivateKey, wireguardInterface, wireguardListenPort, ipTables)
 	} else {
 		netConf = wireguard.NewNoOpConfigurer()
 	}
@@ -172,7 +156,7 @@ func run() error {
 	apiserverClient := pb.NewAPIServerClient(apiserver)
 
 	for attempt := 0; attempt < maxReconnectAttempts; attempt++ {
-		err := g.SyncFromStream(ctx, cfg.Name, cfg.APIServerPassword, staticPeers, apiserverClient, netConf)
+		err := gateway_agent.SyncFromStream(ctx, cfg.Name, cfg.APIServerPassword, staticPeers, apiserverClient, netConf)
 		if err != nil {
 			code := status.Code(err)
 			if code == codes.Unauthenticated {

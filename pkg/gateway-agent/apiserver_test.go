@@ -6,7 +6,8 @@ import (
 	"testing"
 	"time"
 
-	gateway_agent "github.com/nais/device/pkg/gateway-agent"
+	"github.com/nais/device/pkg/gateway-agent"
+	"github.com/nais/device/pkg/gateway-agent/config"
 	"github.com/nais/device/pkg/pb"
 	"github.com/nais/device/pkg/wireguard"
 	"github.com/stretchr/testify/assert"
@@ -33,7 +34,7 @@ func TestSyncFromStream(t *testing.T) {
 			Devices: []*pb.Device{},
 			Routes:  []string{},
 		}
-		cfg := gateway_agent.Config{
+		cfg := config.Config{
 			Name:              name,
 			APIServerPassword: password,
 		}
@@ -49,7 +50,7 @@ func TestSyncFromStream(t *testing.T) {
 		).Return(stream, nil)
 
 		staticPeers := cfg.StaticPeers()
-		peers := wireguard.MakePeers(resp.Devices, nil)
+		peers := wireguard.CastPeerList(resp.Devices)
 		peers = append(peers, staticPeers...)
 		netConf := &wireguard.MockNetworkConfigurer{}
 		netConf.On("ConnectedDeviceCount").Return(1, nil)

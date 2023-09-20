@@ -16,16 +16,18 @@ type Device struct {
 	Healthy     bool
 	LastUpdated sql.NullString
 	PublicKey   string
-	Ip          string
+	Ipv4        string
+	Ipv6        string
 }
 
 type Gateway struct {
 	Name                     string
 	Endpoint                 string
 	PublicKey                string
-	Ip                       string
+	Ipv4                     string
 	RequiresPrivilegedAccess bool
 	PasswordHash             string
+	Ipv6                     string
 }
 
 type GatewayAccessGroupID struct {

@@ -1,1 +1,4 @@
 # Place your environment flags for gateway-agent here
+GATEWAY_AGENT_ENABLEROUTING="true"
+GATEWAY_AGENT_AUTOENROLL="true"
+GATEWAY_AGENT_PROMETHEUSADDR=":3000"

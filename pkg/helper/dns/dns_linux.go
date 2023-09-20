@@ -16,12 +16,12 @@ const (
 )
 
 func apply(zones []string) error {
-	err := os.Mkdir(filepath.Dir(configFilePath), 0755)
+	err := os.Mkdir(filepath.Dir(configFilePath), 0o755)
 	if err != nil && !errors.Is(err, fs.ErrExist) {
 		return err
 	}
 
-	f, err := os.OpenFile(configFilePath, os.O_CREATE|os.O_WRONLY, 0644)
+	f, err := os.OpenFile(configFilePath, os.O_CREATE|os.O_WRONLY, 0o644)
 	if err != nil {
 		return err
 	}

@@ -178,7 +178,7 @@ func EnrollGateway(c *cli.Context) error {
 	fmt.Printf("GATEWAY_AGENT_NAME=\"%s\"\n", response.GetGateway().GetName())
 	fmt.Printf("GATEWAY_AGENT_APISERVERPASSWORD=\"%s\"\n", password)
 	fmt.Printf("GATEWAY_AGENT_PRIVATEKEY=\"%s\"\n", base64.StdEncoding.EncodeToString(privateKey))
-	fmt.Printf("GATEWAY_AGENT_DEVICEIP=\"%s\"\n", response.GetGateway().GetIp())
+	fmt.Printf("GATEWAY_AGENT_DEVICEIP=\"%s\"\n", response.GetGateway().GetIpv4())
 
 	return err
 }

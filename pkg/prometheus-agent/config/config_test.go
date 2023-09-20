@@ -1,17 +1,17 @@
-package prometheusagent_test
+package config_test
 
 import (
 	"bytes"
 	"testing"
 
-	prometheusagent "github.com/nais/device/pkg/prometheus-agent"
+	"github.com/nais/device/pkg/prometheus-agent/config"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestWriteWireGuardBase(t *testing.T) {
-	cfg := prometheusagent.Config{
+	cfg := config.Config{
 		PrivateKey:         "abc",
-		TunnelIP:           "127.0.0.1",
+		DeviceIPv4:         "127.0.0.1",
 		APIServerEndpoint:  "endpoint",
 		APIServerTunnelIP:  "10.255.240.1",
 		APIServerPublicKey: "pubkey",

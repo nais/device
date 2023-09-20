@@ -97,7 +97,7 @@ func Marshal(w io.Writer, x *pb.Configuration) error {
 	sortGateways(gateways)
 
 	cf := &wireguard.Config{
-		Peers:      wireguard.MakePeers(nil, gateways),
+		Peers:      wireguard.CastPeerList(gateways),
 		PrivateKey: x.GetPrivateKey(),
 	}
 
