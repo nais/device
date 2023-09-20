@@ -1,8 +1,9 @@
-package gateway_agent
+package config
 
 import "C"
 import (
 	"fmt"
+	"net/netip"
 
 	"github.com/nais/device/pkg/pb"
 	"github.com/nais/device/pkg/wireguard"
@@ -15,7 +16,8 @@ type Config struct {
 	APIServerPublicKey  string
 	APIServerURL        string
 	ConfigDir           string
-	DeviceIP            string
+	DeviceIPv4          string `envconfig:"DEVICEIP"` // Not changing to v4 yet as it's configured in config files on disk all around
+	DeviceIPv6          string
 	EnableRouting       bool
 	LogLevel            string
 	Name                string
@@ -24,6 +26,8 @@ type Config struct {
 	PrometheusPublicKey string
 	PrometheusTunnelIP  string
 	WireGuardConfigPath string
+	WireGuardIPv4       *netip.Prefix `ignored:"true"`
+	WireGuardIPv6       *netip.Prefix `ignored:"true"`
 	AutoEnroll          bool
 }
 
@@ -36,6 +40,24 @@ func DefaultConfig() Config {
 		PrometheusAddr:      "127.0.0.1:3000",
 		WireGuardConfigPath: "/run/wg0.conf",
 	}
+}
+
+func (c *Config) Parse() error {
+	v4prefix, err := netip.ParsePrefix(c.DeviceIPv4)
+	if err != nil {
+		return fmt.Errorf("parsing ipv4 prefix: %w", err)
+	}
+	c.WireGuardIPv4 = &v4prefix
+
+	if len(c.DeviceIPv6) > 0 {
+		v6prefix, err := netip.ParsePrefix(c.DeviceIPv6)
+		if err != nil {
+			return fmt.Errorf("parsing ipv6 prefix: %w", err)
+		}
+		c.WireGuardIPv6 = &v6prefix
+	}
+
+	return nil
 }
 
 func (c Config) ValidateWireGuard() error {
@@ -60,7 +82,7 @@ func (c Config) ValidateWireGuard() error {
 	err = check("apiserver-password", c.APIServerPassword)
 	err = check("apiserver-public-key", c.APIServerPublicKey)
 	err = check("apiserver-private-ip", c.APIServerPrivateIP)
-	err = check("device-ip", c.DeviceIP)
+	err = check("device-ip", c.DeviceIPv4)
 	err = check("private-key", c.PrivateKey)
 
 	return err
@@ -69,7 +91,7 @@ func (c Config) ValidateWireGuard() error {
 func (c Config) StaticPeers() []wireguard.Peer {
 	return []wireguard.Peer{
 		&pb.Gateway{
-			Name:      "apiserver",
+			Name:      wireguard.APIServerPeerName,
 			PublicKey: c.APIServerPublicKey,
 			Endpoint:  c.APIServerEndpoint,
 			Ipv4:      c.APIServerPrivateIP,

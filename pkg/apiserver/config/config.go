@@ -46,22 +46,24 @@ type Config struct {
 	PrometheusTunnelIP                string
 	GatewayConfigurer                 string
 	WireGuardEnabled                  bool
-	WireGuardIPv4                     string
-	WireGuardIPv6                     netip.Prefix
+	WireGuardIP                       string // for passing in raw string
 	WireGuardConfigPath               string
 	WireGuardPrivateKey               wireguard.PrivateKey
 	WireGuardPrivateKeyPath           string
 	WireGuardNetworkAddress           string
+	WireGuardIPv4                     *netip.Prefix `ignored:"true"`
+	WireGuardIPv6                     *netip.Prefix `ignored:"true"`
 	TenantID                          uint16
 }
 
 // Generate a unique IPv6 /64 address for a tenant, placing the tenant id as the 7th and 8th bytes of the IPv6 prefix.
-func getWireGuardIPv6(tenantId uint16) netip.Prefix {
+func getWireGuardIPv6(tenantId uint16) *netip.Prefix {
 	b := netip.MustParsePrefix(wireGuardV6PrefixAddress).Addr().As16()
 	b[6] = byte(tenantId >> 8)
 	b[7] = byte(tenantId)
 
-	return netip.PrefixFrom(netip.AddrFrom16(b), 64)
+	p := netip.PrefixFrom(netip.AddrFrom16(b), 64)
+	return &p
 }
 
 func Credentials(entries []string) (map[string]string, error) {
@@ -95,7 +97,7 @@ func DefaultConfig() Config {
 		LogLevel:                      "info",
 		PrometheusAddr:                "127.0.0.1:3000",
 		WireGuardNetworkAddress:       "10.255.240.0/21",
-		WireGuardIPv4:                 "10.255.240.1",
+		WireGuardIP:                   "10.255.240.1",
 		WireGuardConfigPath:           "/run/wg0.conf",
 		WireGuardPrivateKeyPath:       "/etc/apiserver/private.key",
 		GatewayConfigurer:             "bucket",
@@ -103,17 +105,32 @@ func DefaultConfig() Config {
 }
 
 func (cfg *Config) Parse() error {
-	cfg.WireGuardIPv6 = getWireGuardIPv6(cfg.TenantID)
+	addr, err := netip.ParseAddr(cfg.WireGuardIP)
+	if err != nil {
+		return err
+	}
+	p := netip.PrefixFrom(addr, 21)
+	cfg.WireGuardIPv4 = &p
+
+	if cfg.TenantID > 0 { // 0 reserved as "not set"
+		cfg.WireGuardIPv6 = getWireGuardIPv6(cfg.TenantID)
+	}
+
 	return nil
 }
 
 func (cfg *Config) APIServerPeer() *pb.Gateway {
+	ipv6 := ""
+	if cfg.WireGuardIPv6 != nil {
+		ipv6 = cfg.WireGuardIPv6.Addr().String()
+	}
+
 	return &pb.Gateway{
 		Name:      "apiserver",
 		PublicKey: string(cfg.WireGuardPrivateKey.Public()),
 		Endpoint:  cfg.Endpoint,
-		Ipv4:      cfg.WireGuardIPv4,
-		Ipv6:      cfg.WireGuardIPv6.Addr().StringExpanded(),
+		Ipv4:      cfg.WireGuardIPv4.Addr().String(),
+		Ipv6:      ipv6,
 	}
 }
 

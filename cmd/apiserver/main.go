@@ -32,7 +32,6 @@ import (
 	wg "github.com/nais/device/pkg/wireguard"
 	kolidepb "github.com/nais/kolide-event-handler/pkg/pb"
 	log "github.com/sirupsen/logrus"
-	flag "github.com/spf13/pflag"
 	"google.golang.org/grpc"
 )
 
@@ -41,58 +40,17 @@ const (
 	WireGuardSyncInterval     = 20 * time.Second
 )
 
-var cfg = config.DefaultConfig()
-
-func init() {
-	flag.StringVar(&cfg.DBPath, "db-path", cfg.DBPath, "database file path")
-	flag.StringVar(&cfg.JitaUsername, "jita-username", cfg.JitaUsername, "jita username")
-	flag.StringVar(&cfg.JitaPassword, "jita-password", cfg.JitaPassword, "jita password")
-	flag.StringVar(&cfg.JitaUrl, "jita-url", cfg.JitaUrl, "jita URL")
-	flag.BoolVar(&cfg.JitaEnabled, "jita-enabled", cfg.JitaEnabled, "enable jita-synchronization")
-	flag.StringVar(&cfg.BootstrapAPIURL, "bootstrap-api-url", cfg.BootstrapAPIURL, "bootstrap API URL")
-	flag.StringVar(&cfg.BootstrapApiCredentials, "bootstrap-api-credentials", cfg.BootstrapApiCredentials, "bootstrap API credentials")
-	flag.StringVar(&cfg.PrometheusAddr, "prometheus-address", cfg.PrometheusAddr, "prometheus listen address")
-	flag.StringVar(&cfg.PrometheusPublicKey, "prometheus-public-key", cfg.PrometheusPublicKey, "prometheus public key")
-	flag.StringVar(&cfg.PrometheusTunnelIP, "prometheus-tunnel-ip", cfg.PrometheusTunnelIP, "prometheus tunnel ip")
-	flag.StringVar(&cfg.LogLevel, "log-level", cfg.LogLevel, "which log level to output")
-	flag.StringVar(&cfg.BindAddress, "bind-address", cfg.BindAddress, "Bind address")
-	flag.StringVar(&cfg.GRPCBindAddress, "grpc-bind-address", cfg.GRPCBindAddress, "Bind address for gRPC server")
-	flag.StringVar(&cfg.Endpoint, "endpoint", cfg.Endpoint, "public endpoint (ip:port)")
-	flag.StringVar(&cfg.Azure.ClientID, "azure-client-id", cfg.Azure.ClientID, "Azure app client id")
-	flag.StringVar(&cfg.Azure.Tenant, "azure-tenant", cfg.Azure.Tenant, "Azure tenant")
-	flag.StringVar(&cfg.Azure.ClientSecret, "azure-client-secret", cfg.Azure.ClientSecret, "Azure app client secret")
-	flag.StringVar(&cfg.Google.ClientID, "google-client-id", cfg.Google.ClientID, "Google credential client id")
-	flag.StringSliceVar(&cfg.Google.AllowedDomains, "google-allowed-domains", cfg.Google.AllowedDomains, "Google allowed domains: comma separated list")
-	flag.StringSliceVar(&cfg.AdminCredentialEntries, "admin-credential-entries", cfg.AdminCredentialEntries, "Comma-separated credentials on format: '<user>:<key>'")
-	flag.StringSliceVar(&cfg.PrometheusCredentialEntries, "prometheus-credential-entries", cfg.PrometheusCredentialEntries, "Comma-separated credentials on format: '<user>:<key>'")
-	flag.StringVar(&cfg.GatewayConfigBucketName, "gateway-config-bucket-name", cfg.GatewayConfigBucketName, "Name of bucket containing gateway config object")
-	flag.StringVar(&cfg.GatewayConfigBucketObjectName, "gateway-config-bucket-object-name", cfg.GatewayConfigBucketObjectName, "Name of bucket object containing gateway config JSON")
-	flag.StringVar(&cfg.KolideEventHandlerAddress, "kolide-event-handler-address", cfg.KolideEventHandlerAddress, "address for kolide-event-handler grpc connection")
-	flag.BoolVar(&cfg.KolideEventHandlerEnabled, "kolide-event-handler-enabled", cfg.KolideEventHandlerEnabled, "enable kolide event handler (incoming webhooks from kolide on device failures)")
-	flag.BoolVar(&cfg.KolideEventHandlerSecure, "kolide-event-handler-secure", cfg.KolideEventHandlerSecure, "require TLS and authentication when talking to Kolide event handler")
-	flag.StringVar(&cfg.KolideEventHandlerToken, "kolide-event-handler-token", cfg.KolideEventHandlerToken, "token for kolide-event-handler grpc connection")
-	flag.StringVar(&cfg.DeviceAuthenticationProvider, "device-authentication-provider", cfg.DeviceAuthenticationProvider, "set device authentication provider")
-	flag.BoolVar(&cfg.ControlPlaneAuthenticationEnabled, "control-plane-authentication-enabled", cfg.ControlPlaneAuthenticationEnabled, "enable authentication for control plane (api keys)")
-	flag.BoolVar(&cfg.WireGuardEnabled, "wireguard-enabled", cfg.WireGuardEnabled, "enable WireGuard")
-	flag.StringVar(&cfg.WireGuardIPv4, "wireguard-ip", cfg.WireGuardIPv4, "WireGuard ip")
-	flag.StringVar(&cfg.WireGuardNetworkAddress, "wireguard-network-address", cfg.WireGuardNetworkAddress, "WireGuard network-address")
-	flag.StringVar(&cfg.WireGuardPrivateKeyPath, "wireguard-private-key-path", cfg.WireGuardPrivateKeyPath, "WireGuard private key path")
-	flag.StringVar(&cfg.GatewayConfigurer, "gateway-configurer", cfg.GatewayConfigurer, "which method to use for fetching gateway config (metadata or bucket)")
-	flag.BoolVar(&cfg.AutoEnrollEnabled, "auto-enroll-enabled", cfg.AutoEnrollEnabled, "enable auto enroll support using pub/sub")
-
-	flag.Parse()
-}
-
 var errRequiredArgNotSet = errors.New("arg is required, but not set")
 
 func main() {
+	cfg := config.DefaultConfig()
+
 	// sets up default logger
 	logger.Setup(cfg.LogLevel)
 
-	err := run()
+	err := run(cfg)
 	if err != nil {
 		if errors.Is(err, errRequiredArgNotSet) {
-			flag.Usage()
 			log.Error(err)
 		} else {
 			log.Errorf("fatal error: %s", err)
@@ -104,7 +62,7 @@ func main() {
 	}
 }
 
-func run() error {
+func run(cfg config.Config) error {
 	var authenticator auth.Authenticator
 	var adminAuthenticator auth.UsernamePasswordAuthenticator
 	var gatewayAuthenticator auth.UsernamePasswordAuthenticator
@@ -114,7 +72,11 @@ func run() error {
 	if err != nil {
 		return fmt.Errorf("parse environment variables: %w", err)
 	}
-	cfg.Parse() // sets dynamic defaults for some config values
+
+	err = cfg.Parse() // sets dynamic defaults for some config values
+	if err != nil {
+		return fmt.Errorf("parse configuration: %w", err)
+	}
 
 	// sets up logger based on envconfig
 	logger.Setup(cfg.LogLevel)
@@ -129,7 +91,7 @@ func run() error {
 		return fmt.Errorf("parse wireguard network address: %w", err)
 	}
 
-	v4Allocator := ip.NewV4Allocator(wireguardPrefix, []string{cfg.WireGuardIPv4})
+	v4Allocator := ip.NewV4Allocator(wireguardPrefix, []string{cfg.WireGuardIPv4.Addr().String()})
 	v6Allocator := ip.NewV6Allocator(cfg.WireGuardIPv6)
 	db, err := database.New(ctx, cfg.DBPath, v4Allocator, v6Allocator, !cfg.KolideEventHandlerEnabled)
 	if err != nil {
@@ -178,7 +140,7 @@ func run() error {
 		}
 		cfg.WireGuardPrivateKey = key
 
-		netConf := wg.NewConfigurer(cfg.WireGuardConfigPath, cfg.WireGuardIPv4, string(cfg.WireGuardPrivateKey.Private()), "wg0", 51820, nil)
+		netConf := wg.NewConfigurer(cfg.WireGuardConfigPath, cfg.WireGuardIPv4, cfg.WireGuardIPv6, string(cfg.WireGuardPrivateKey.Private()), "wg0", 51820, nil)
 
 		err = netConf.SetupInterface()
 		if err != nil {
@@ -220,7 +182,7 @@ func run() error {
 			BootstrapAPIURL:    cfg.BootstrapAPIURL,
 			APIServerPublicKey: string(cfg.WireGuardPrivateKey.Public()),
 			APIServerEndpoint:  cfg.Endpoint,
-			APIServerIP:        cfg.WireGuardIPv4,
+			APIServerIP:        cfg.WireGuardIPv4.Addr().String(),
 		}
 
 		go en.WatchDeviceEnrollments(ctx)

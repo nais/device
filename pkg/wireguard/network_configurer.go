@@ -2,6 +2,7 @@ package wireguard
 
 import (
 	"fmt"
+	"net/netip"
 	"os"
 	"os/exec"
 	"regexp"
@@ -30,10 +31,11 @@ type networkConfigurer struct {
 	defaultInterface   string
 	interfaceIP        string
 	configPath         string
-	tunnelIP           string
+	ipv4               *netip.Prefix
+	ipv6               *netip.Prefix
 }
 
-func NewConfigurer(configPath, tunnelIP, privateKey, wireguardInterface string, listenPort int, ipTables IPTables) NetworkConfigurer {
+func NewConfigurer(configPath string, ipv4 *netip.Prefix, ipv6 *netip.Prefix, privateKey, wireguardInterface string, listenPort int, ipTables IPTables) NetworkConfigurer {
 	return &networkConfigurer{
 		config: &Config{
 			PrivateKey: privateKey,
@@ -42,14 +44,21 @@ func NewConfigurer(configPath, tunnelIP, privateKey, wireguardInterface string, 
 		configPath:         configPath,
 		wireguardInterface: wireguardInterface,
 		ipTables:           ipTables,
-		tunnelIP:           tunnelIP,
+		ipv4:               ipv4,
+		ipv6:               ipv6,
 	}
 }
 
 func (nc *networkConfigurer) SetupInterface() error {
+	if nc.ipv4 == nil && nc.ipv6 == nil {
+		return fmt.Errorf("no IP addresses (v4/v6) configured for interface")
+	}
+
 	if err := exec.Command("ip", "link", "del", nc.wireguardInterface).Run(); err != nil {
 		log.Infof("pre-deleting WireGuard interface (ok if this fails): %v", err)
 	}
+
+	// sysctl net.ipv4.ip_forward
 
 	run := func(commands [][]string) error {
 		for _, s := range commands {
@@ -67,9 +76,14 @@ func (nc *networkConfigurer) SetupInterface() error {
 	commands := [][]string{
 		{"ip", "link", "add", "dev", nc.wireguardInterface, "type", "wireguard"},
 		{"ip", "link", "set", nc.wireguardInterface, "mtu", "1360"},
-		{"ip", "address", "add", "dev", nc.wireguardInterface, nc.tunnelIP + "/21"},
-		{"ip", "link", "set", nc.wireguardInterface, "up"},
 	}
+	if nc.ipv4 != nil {
+		commands = append(commands, []string{"ip", "address", "add", "dev", nc.wireguardInterface, nc.ipv4.String()})
+	}
+	if nc.ipv6 != nil {
+		commands = append(commands, []string{"ip", "address", "add", "dev", nc.wireguardInterface, nc.ipv6.String()})
+	}
+	commands = append(commands, []string{"ip", "link", "set", nc.wireguardInterface, "up"})
 
 	return run(commands)
 }

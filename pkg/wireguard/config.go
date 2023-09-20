@@ -8,7 +8,10 @@ import (
 	"github.com/nais/device/pkg/ioconvenience"
 )
 
-const PrometheusPeerName = "prometheus"
+const (
+	PrometheusPeerName = "prometheus"
+	APIServerPeerName  = "apiserver"
+)
 
 type Peer interface {
 	GetName() string

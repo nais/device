@@ -34,4 +34,11 @@ func TestFindAvailableIP(t *testing.T) {
 		_, err := ipAllocator.NextIP([]string{"10.0.0.1", "10.0.0.2"})
 		assert.Error(t, err)
 	})
+
+	t.Run("netip.prefix testing", func(t *testing.T) {
+		prefix, err := netip.ParsePrefix("10.255.240.1/21")
+		assert.NoError(t, err)
+		assert.Equal(t, "10.255.240.1/21", prefix.String())
+		assert.Equal(t, "10.255.240.1", prefix.Addr().String())
+	})
 }

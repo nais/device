@@ -1,12 +1,10 @@
 # vi:syntax=systemd
 [Unit]
-Description=Prometheus agent
+Description=naisdevice prometheus agent
 
 [Service]
 Restart=always
 EnvironmentFile=/etc/default/prometheus-agent
-StandardOutput=append:/var/log/naisdevice/prometheus-agent.json
-StandardError=append:/var/log/naisdevice/prometheus-agent.json
 ExecStart=/usr/bin/prometheus-agent
 
 [Install]
