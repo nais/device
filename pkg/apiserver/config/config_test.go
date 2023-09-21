@@ -23,4 +23,8 @@ func TestGetPrefixAddress(t *testing.T) {
 			assert.Equal(t, tt.expected, actual.Addr().String())
 		}
 	})
+	t.Run("test handing out first ip", func(t *testing.T) {
+		prefix := getWireGuardIPv6(1)
+		assert.Equal(t, "fd75:568f:d24:1::1", prefix.Addr().Next().String())
+	})
 }

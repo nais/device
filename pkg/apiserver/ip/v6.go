@@ -3,6 +3,8 @@ package ip
 import (
 	"fmt"
 	"net/netip"
+
+	"golang.org/x/exp/slices"
 )
 
 type v6Allocator struct {
@@ -21,9 +23,10 @@ func (a v6Allocator) NextIP(taken []string) (string, error) {
 	}
 
 	if len(taken) < 1 {
-		return a.prefix.Addr().StringExpanded(), nil
+		return a.prefix.Addr().Next().StringExpanded(), nil
 	}
 
+	slices.Sort(taken)
 	last := taken[len(taken)-1]
 
 	addr, err := netip.ParseAddr(last)
