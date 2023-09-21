@@ -85,6 +85,8 @@ func run(cfg config.Config) error {
 	defer cancel()
 
 	log.Infof("naisdevice API server %s starting up", version.Version)
+	log.Infof("WireGuard IPv4 address: %v", cfg.WireGuardIPv4)
+	log.Infof("WireGuard IPv6 address: %v", cfg.WireGuardIPv6)
 
 	wireguardPrefix, err := netip.ParsePrefix(cfg.WireGuardNetworkAddress)
 	if err != nil {
