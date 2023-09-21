@@ -13,7 +13,7 @@ Vagrant.configure("2") do |config|
   # Every Vagrant development environment requires a box. You can search for
   # boxes at https://vagrantcloud.com/search.
   config.vm.box = "peru/windows-10-enterprise-x64-eval"
-  config.vm.box_version = "20221002.01"
+  config.vm.box_version = "20230801.01"
 
   # Disable automatic box update checking. If you disable this, then
   # boxes will only be checked for updates when the user runs
@@ -45,19 +45,13 @@ Vagrant.configure("2") do |config|
   # the path on the guest to mount the folder. And the optional third
   # argument is a set of non-required options.
   # config.vm.synced_folder "../data", "/vagrant_data"
-  config.vm.synced_folder ".", "/vagrant", automount: true, type: "virtualbox"
 
   # Provider-specific configuration so you can fine-tune various
   # backing providers for Vagrant. These expose provider-specific options.
-  # Example for VirtualBox:
-  #
-config.vm.provider "virtualbox" do |vb|
-  # Display the VirtualBox GUI when booting the machine
-  vb.gui = true
 
-  #   # Customize the amount of memory on the VM:
-  #   vb.memory = "1024"
-  vb.memory = "2048"
+config.vm.provider :libvirt do |libvirt|
+    libvirt.cpus = 4
+    libvirt.memory = 4096
 end
 
   # View the documentation for the provider you are using for more
@@ -72,4 +66,17 @@ end
   # SHELL
 
   config.vm.guest = :windows
+
+  config.winrm.basic_auth_only = true
+  config.winrm.transport = :plaintext
+
+  # TODO: More configuration of system to allow installing naisdevice
+  config.vm.provision "shell", inline: <<-SHELL
+    ;# Create nais user with nais password
+    $Password = ConvertTo-SecureString 'nais' -AsPlainText -Force
+    New-LocalUser -Name 'nais' -Description 'A nais user.' -Password $Password -AccountNeverExpires
+
+    ;# Add nais user to Remote Desktop Users group
+    Add-LocalGroupMember -Group 'Remote Desktop Users' -Member 'nais'
+SHELL
 end
