@@ -479,6 +479,10 @@ func (db *ApiServerDB) getNextAvailableIPv6(ctx context.Context) (string, error)
 	return db.ipv6Allocator.NextIP([]string{lastUsedIP})
 }
 
+func (db *ApiServerDB) RemoveExpiredSessions(ctx context.Context) error {
+	return db.queries.RemoveExpiredSessions(ctx)
+}
+
 func sqlcDeviceToPbDevice(sqlcDevice sqlc.Device) *pb.Device {
 	pbDevice := &pb.Device{
 		Id:        int64(sqlcDevice.ID),

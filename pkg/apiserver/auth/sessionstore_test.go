@@ -74,6 +74,7 @@ func TestSessionStore_Errors(t *testing.T) {
 	db.On("ReadSessionInfo", mock.Anything, "abc").Return(nil, dbError).Once()
 	db.On("AddSessionInfo", mock.Anything, session).Return(dbError).Once()
 	db.On("ReadSessionInfos", mock.Anything).Return(nil, dbError).Once()
+	db.On("RemoveExpiredSessions", mock.Anything).Return(nil).Once()
 
 	// Retrieve uncached session from database
 	retrieved, err := store.Get(ctx, "abc")
@@ -105,6 +106,7 @@ func TestSessionStore_Warmup(t *testing.T) {
 
 	// Return from database layer
 	db.On("ReadSessionInfos", mock.Anything).Return(sessions, nil).Once()
+	db.On("RemoveExpiredSessions", mock.Anything).Return(nil).Once()
 
 	// Warmup cache
 	err := store.Warmup(ctx)
@@ -136,6 +138,7 @@ func TestSessionStore_UpdateDevice(t *testing.T) {
 
 	// Return from database layer
 	db.On("ReadSessionInfos", mock.Anything).Return(sessions, nil).Once()
+	db.On("RemoveExpiredSessions", mock.Anything).Return(nil).Once()
 
 	// Warmup cache
 	err := store.Warmup(ctx)

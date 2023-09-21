@@ -24,3 +24,6 @@ VALUES (@session_key, @group_id);
 
 -- name: GetSessionGroupIDs :many
 SELECT group_id FROM session_access_group_ids WHERE session_key = @session_key ORDER BY group_id;
+
+-- name: RemoveExpiredSessions :exec
+DELETE FROM sessions WHERE DATETIME(expiry) < DATETIME('now');

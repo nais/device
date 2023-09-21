@@ -21,5 +21,6 @@ type APIServer interface {
 	AddSessionInfo(ctx context.Context, si *pb.Session) error
 	ReadSessionInfo(ctx context.Context, key string) (*pb.Session, error)
 	ReadSessionInfos(ctx context.Context) ([]*pb.Session, error)
+	RemoveExpiredSessions(ctx context.Context) error
 	ReadMostRecentSessionInfo(ctx context.Context, deviceID int64) (*pb.Session, error)
 }

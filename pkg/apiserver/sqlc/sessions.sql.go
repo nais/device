@@ -185,3 +185,12 @@ func (q *Queries) GetSessions(ctx context.Context) ([]*GetSessionsRow, error) {
 	}
 	return items, nil
 }
+
+const removeExpiredSessions = `-- name: RemoveExpiredSessions :exec
+DELETE FROM sessions WHERE DATETIME(expiry) < DATETIME('now')
+`
+
+func (q *Queries) RemoveExpiredSessions(ctx context.Context) error {
+	_, err := q.exec(ctx, q.removeExpiredSessionsStmt, removeExpiredSessions)
+	return err
+}

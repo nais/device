@@ -30,6 +30,7 @@ type Querier interface {
 	GetSessionByKey(ctx context.Context, sessionKey string) (*GetSessionByKeyRow, error)
 	GetSessionGroupIDs(ctx context.Context, sessionKey string) ([]string, error)
 	GetSessions(ctx context.Context) ([]*GetSessionsRow, error)
+	RemoveExpiredSessions(ctx context.Context) error
 	UpdateDevice(ctx context.Context, arg UpdateDeviceParams) error
 	UpdateGateway(ctx context.Context, arg UpdateGatewayParams) error
 	UpdateGatewayDynamicFields(ctx context.Context, arg UpdateGatewayDynamicFieldsParams) error

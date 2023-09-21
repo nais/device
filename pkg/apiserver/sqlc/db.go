@@ -87,6 +87,9 @@ func Prepare(ctx context.Context, db DBTX) (*Queries, error) {
 	if q.getSessionsStmt, err = db.PrepareContext(ctx, getSessions); err != nil {
 		return nil, fmt.Errorf("error preparing query GetSessions: %w", err)
 	}
+	if q.removeExpiredSessionsStmt, err = db.PrepareContext(ctx, removeExpiredSessions); err != nil {
+		return nil, fmt.Errorf("error preparing query RemoveExpiredSessions: %w", err)
+	}
 	if q.updateDeviceStmt, err = db.PrepareContext(ctx, updateDevice); err != nil {
 		return nil, fmt.Errorf("error preparing query UpdateDevice: %w", err)
 	}
@@ -206,6 +209,11 @@ func (q *Queries) Close() error {
 			err = fmt.Errorf("error closing getSessionsStmt: %w", cerr)
 		}
 	}
+	if q.removeExpiredSessionsStmt != nil {
+		if cerr := q.removeExpiredSessionsStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing removeExpiredSessionsStmt: %w", cerr)
+		}
+	}
 	if q.updateDeviceStmt != nil {
 		if cerr := q.updateDeviceStmt.Close(); cerr != nil {
 			err = fmt.Errorf("error closing updateDeviceStmt: %w", cerr)
@@ -281,6 +289,7 @@ type Queries struct {
 	getSessionByKeyStmt              *sql.Stmt
 	getSessionGroupIDsStmt           *sql.Stmt
 	getSessionsStmt                  *sql.Stmt
+	removeExpiredSessionsStmt        *sql.Stmt
 	updateDeviceStmt                 *sql.Stmt
 	updateGatewayStmt                *sql.Stmt
 	updateGatewayDynamicFieldsStmt   *sql.Stmt
@@ -311,6 +320,7 @@ func (q *Queries) WithTx(tx *sql.Tx) *Queries {
 		getSessionByKeyStmt:              q.getSessionByKeyStmt,
 		getSessionGroupIDsStmt:           q.getSessionGroupIDsStmt,
 		getSessionsStmt:                  q.getSessionsStmt,
+		removeExpiredSessionsStmt:        q.removeExpiredSessionsStmt,
 		updateDeviceStmt:                 q.updateDeviceStmt,
 		updateGatewayStmt:                q.updateGatewayStmt,
 		updateGatewayDynamicFieldsStmt:   q.updateGatewayDynamicFieldsStmt,

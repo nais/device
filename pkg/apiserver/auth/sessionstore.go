@@ -65,6 +65,11 @@ func (store *sessionStore) Set(ctx context.Context, session *pb.Session) error {
 }
 
 func (store *sessionStore) Warmup(ctx context.Context) error {
+	err := store.db.RemoveExpiredSessions(ctx)
+	if err != nil {
+		return err
+	}
+
 	sessions, err := store.db.ReadSessionInfos(ctx)
 	if err != nil {
 		return fmt.Errorf("warm cache from database: %w", err)
