@@ -114,7 +114,7 @@ func (nc *networkConfigurer) ApplyWireGuardConfig(peers []Peer) error {
 
 	time.Sleep(1 * time.Second) // TODO: switch to configFile.Sync() commented out above
 	cmd := exec.Command("wg", "syncconf", nc.wireguardInterface, nc.configPath)
-	log.Info(cmd.String())
+	log.Debugln(cmd.String())
 
 	out, err := cmd.CombinedOutput()
 	if err != nil {
