@@ -197,6 +197,7 @@ func (db *ApiServerDB) AddGateway(ctx context.Context, gw *pb.Gateway) error {
 	if err != nil {
 		return fmt.Errorf("finding available ipv4: %w", err)
 	}
+
 	availableIPv6, err := db.getNextAvailableIPv6(ctx)
 	if err != nil {
 		return fmt.Errorf("finding available ipv6: %w", err)
@@ -470,6 +471,9 @@ func (db *ApiServerDB) getNextAvailableIPv6(ctx context.Context) (string, error)
 			return db.ipv6Allocator.NextIP(nil)
 		}
 		return "", fmt.Errorf("getting last used ipv6: %w", err)
+	}
+	if lastUsedIP == "" {
+		return db.ipv6Allocator.NextIP(nil)
 	}
 
 	return db.ipv6Allocator.NextIP([]string{lastUsedIP})
