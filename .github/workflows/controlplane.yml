@@ -55,7 +55,6 @@ jobs:
       - name: "Upload controlplane deb files to repository"
         run: |
           for component in \
-            "bootstrap-api" \
             "apiserver" \
             "gateway-agent" \
             "prometheus-agent"; do

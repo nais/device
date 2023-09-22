@@ -29,7 +29,6 @@ linux-init:
 controlplane:
 	mkdir -p ./bin/controlplane
 	GOOS=linux GOARCH=amd64 go build -o bin/controlplane/apiserver --tags "$(GOTAGS)" -ldflags "-s $(LDFLAGS)" ./cmd/apiserver
-	GOOS=linux GOARCH=amd64 go build -o bin/controlplane/bootstrap-api --tags "$(GOTAGS)" -ldflags "-s $(LDFLAGS)" ./cmd/bootstrap-api
 	GOOS=linux GOARCH=amd64 go build -o bin/controlplane/gateway-agent --tags "$(GOTAGS)" -ldflags "-s $(LDFLAGS)" ./cmd/gateway-agent
 	GOOS=linux GOARCH=amd64 go build -o bin/controlplane/prometheus-agent --tags "$(GOTAGS)" -ldflags "-s $(LDFLAGS)" ./cmd/prometheus-agent
 
@@ -65,7 +64,6 @@ local:
 	go build -o bin/local/apiserver --tags "$(GOTAGS)" -ldflags "-s $(LDFLAGS)" ./cmd/apiserver
 	go build -o bin/local/gateway-agent --tags "$(GOTAGS)" -ldflags "-s $(LDFLAGS)" ./cmd/gateway-agent
 	go build -o bin/local/prometheus-agent --tags "$(GOTAGS)" -ldflags "-s $(LDFLAGS)" ./cmd/prometheus-agent
-	go build -o bin/local/bootstrap-api --tags "$(GOTAGS)" -ldflags "-s $(LDFLAGS)" ./cmd/bootstrap-api
 	go build -o bin/local/controlplane-cli --tags "$(GOTAGS)" -ldflags "-s $(LDFLAGS)" ./cmd/controlplane-cli
 	go build -o bin/local/naisdevice-agent --tags "$(GOTAGS)" -ldflags "-s $(LDFLAGS)" ./cmd/device-agent
 	go build -o bin/local/naisdevice-systray --tags "$(GOTAGS)" -ldflags "-s $(LDFLAGS)" ./cmd/systray
