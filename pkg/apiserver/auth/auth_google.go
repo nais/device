@@ -3,36 +3,32 @@ package auth
 import (
 	"context"
 	"fmt"
-	"net/http"
 	"strings"
 	"time"
-
-	"google.golang.org/protobuf/types/known/timestamppb"
 
 	"github.com/nais/device/pkg/apiserver/database"
 	"github.com/nais/device/pkg/auth"
 	"github.com/nais/device/pkg/pb"
-
-	log "github.com/sirupsen/logrus"
-
 	"github.com/nais/device/pkg/random"
+	log "github.com/sirupsen/logrus"
+	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
-type googleAuthenticator struct {
+type googleAuth struct {
 	db     database.APIServer
 	store  SessionStore
 	google *auth.Google
 }
 
-func NewGoogleAuthenticator(google *auth.Google, db database.APIServer, store SessionStore) Authenticator {
-	return &googleAuthenticator{
+func NewGoogleAuthenticator(googleConfig *auth.Google, db database.APIServer, store SessionStore) Authenticator {
+	return &googleAuth{
 		db:     db,
 		store:  store,
-		google: google,
+		google: googleConfig,
 	}
 }
 
-func (g *googleAuthenticator) Login(ctx context.Context, token, serial, platform string) (*pb.Session, error) {
+func (g *googleAuth) Login(ctx context.Context, token, serial, platform string) (*pb.Session, error) {
 	user, err := g.google.ParseAndValidateToken(token)
 	if err != nil {
 		return nil, fmt.Errorf("parse and validate token: %w", err)
@@ -66,13 +62,3 @@ func (g *googleAuthenticator) Login(ctx context.Context, token, serial, platform
 
 	return session, nil
 }
-
-func (g *googleAuthenticator) Validator() func(next http.Handler) http.Handler {
-	return func(next http.Handler) http.Handler {
-		return nil
-	}
-}
-
-func (g *googleAuthenticator) LoginHTTP(w http.ResponseWriter, r *http.Request) {}
-
-func (g *googleAuthenticator) AuthURL(w http.ResponseWriter, r *http.Request) {}

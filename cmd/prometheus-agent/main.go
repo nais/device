@@ -24,14 +24,12 @@ import (
 	"github.com/nais/device/pkg/wireguard"
 )
 
-var (
-	lastSuccessfulConfigUpdate = prometheus.NewGauge(prometheus.GaugeOpts{
-		Name:      "last_successful_config_update",
-		Help:      "time since last successful prometheus config update",
-		Namespace: "naisdevice",
-		Subsystem: "prometheus_agent",
-	})
-)
+var lastSuccessfulConfigUpdate = prometheus.NewGauge(prometheus.GaugeOpts{
+	Name:      "last_successful_config_update",
+	Help:      "time since last successful prometheus config update",
+	Namespace: "naisdevice",
+	Subsystem: "prometheus_agent",
+})
 
 const (
 	updateInterval      = 5 * time.Minute

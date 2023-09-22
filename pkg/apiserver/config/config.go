@@ -10,9 +10,7 @@ import (
 	"github.com/nais/device/pkg/wireguard"
 )
 
-var (
-	MaxTenantId uint16 = (1 << 16) - 1
-)
+var MaxTenantId uint16 = (1 << 16) - 1
 
 const wireGuardV6PrefixAddress = "fd75:568f:0d24::/48"
 
