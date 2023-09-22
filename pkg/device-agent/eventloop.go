@@ -41,7 +41,7 @@ const (
 func (das *DeviceAgentServer) ConfigureHelper(ctx context.Context, rc *runtimeconfig.RuntimeConfig, gateways []*pb.Gateway) error {
 	_, err := das.DeviceHelper.Configure(ctx, &pb.Configuration{
 		PrivateKey: base64.StdEncoding.EncodeToString(rc.PrivateKey),
-		DeviceIP:   rc.EnrollConfig.DeviceIP,
+		DeviceIP:   rc.EnrollConfig.DeviceIPv4,
 		Gateways:   gateways,
 	})
 	return err
@@ -239,7 +239,7 @@ func (das *DeviceAgentServer) EventLoop(ctx context.Context) {
 			ctx, cancel := context.WithTimeout(syncctx, helperTimeout)
 			err = das.ConfigureHelper(ctx, das.rc, append(
 				[]*pb.Gateway{
-					das.rc.EnrollConfig.Gateway(),
+					das.rc.EnrollConfig.APIServerPeer(),
 				},
 				status.GetGateways()...,
 			))
@@ -295,7 +295,7 @@ func (das *DeviceAgentServer) EventLoop(ctx context.Context) {
 
 				ctx, cancel := context.WithTimeout(context.Background(), helperTimeout)
 				err = das.ConfigureHelper(ctx, das.rc, []*pb.Gateway{
-					das.rc.EnrollConfig.Gateway(),
+					das.rc.EnrollConfig.APIServerPeer(),
 				})
 				cancel()
 

@@ -33,7 +33,7 @@ func TestBootstrapDevice(t *testing.T) {
 			w.WriteHeader(http.StatusCreated)
 		case strings.HasPrefix(r.RequestURI, "/api/v2/device/config/") && r.Method == http.MethodGet:
 			bc := bootstrap.Config{
-				DeviceIP:       tunnelIP,
+				DeviceIPv4:     tunnelIP,
 				PublicKey:      publicKey,
 				TunnelEndpoint: endpoint,
 				APIServerIP:    apiserverIP,
@@ -57,7 +57,7 @@ func TestBootstrapDevice(t *testing.T) {
 	bootstrapConfig, err := bootstrapper.BootstrapDevice(ctx, di, server.URL, server.Client())
 
 	assert.NoError(t, err)
-	assert.Equal(t, tunnelIP, bootstrapConfig.DeviceIP)
+	assert.Equal(t, tunnelIP, bootstrapConfig.DeviceIPv4)
 	assert.Equal(t, publicKey, bootstrapConfig.PublicKey)
 	assert.Equal(t, endpoint, bootstrapConfig.TunnelEndpoint)
 	assert.Equal(t, apiserverIP, bootstrapConfig.APIServerIP)

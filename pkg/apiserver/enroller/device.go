@@ -51,7 +51,7 @@ func (e *Enroller) EnrollDevice(ctx context.Context) error {
 		}
 
 		bootstrapConfig := bootstrap.Config{
-			DeviceIP:       device.Ipv4,
+			DeviceIPv4:     device.Ipv4,
 			PublicKey:      e.APIServerPublicKey,
 			TunnelEndpoint: e.APIServerEndpoint,
 			APIServerIP:    e.APIServerIP,

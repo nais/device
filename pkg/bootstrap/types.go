@@ -6,7 +6,8 @@ import (
 
 // Config is the information the device needs to bootstrap its connection to the APIServer
 type Config struct {
-	DeviceIP       string `json:"deviceIP"`
+	DeviceIPv4     string `json:"deviceIP"`
+	DeviceIPv6     string `json:"deviceIPv6"`
 	PublicKey      string `json:"publicKey"`
 	TunnelEndpoint string `json:"tunnelEndpoint"`
 	APIServerIP    string `json:"apiServerIP"`
@@ -27,7 +28,7 @@ type GatewayInfo struct {
 	PublicKey string `json:"publicKey"`
 }
 
-func (cfg *Config) Gateway() *pb.Gateway {
+func (cfg *Config) APIServerPeer() *pb.Gateway {
 	return &pb.Gateway{
 		PublicKey: cfg.PublicKey,
 		Endpoint:  cfg.TunnelEndpoint,
