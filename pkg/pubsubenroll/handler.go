@@ -10,10 +10,10 @@ import (
 
 type Handler struct {
 	log    *logrus.Entry
-	worker *Worker
+	worker Worker
 }
 
-func NewHandler(worker *Worker, log *logrus.Entry) *Handler {
+func NewHandler(worker Worker, log *logrus.Entry) *Handler {
 	return &Handler{
 		log:    log,
 		worker: worker,

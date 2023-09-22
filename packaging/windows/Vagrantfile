@@ -78,5 +78,6 @@ end
 
     ;# Add nais user to Remote Desktop Users group
     Add-LocalGroupMember -Group 'Remote Desktop Users' -Member 'nais'
+    Add-LocalGroupMember -Group 'Users' -Member 'nais'
 SHELL
 end

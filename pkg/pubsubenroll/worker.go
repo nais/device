@@ -12,7 +12,12 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-type Worker struct {
+type Worker interface {
+	Run(ctx context.Context) error
+	Send(ctx context.Context, req *DeviceRequest) (*Response, error)
+}
+
+type worker struct {
 	log          *logrus.Entry
 	topic        *pubsub.Topic
 	subscription *pubsub.Subscription
@@ -21,7 +26,7 @@ type Worker struct {
 	queue map[string]chan *Response
 }
 
-func NewWorker(ctx context.Context, log *logrus.Entry) (*Worker, error) {
+func NewWorker(ctx context.Context, log *logrus.Entry) (Worker, error) {
 	projectID := os.Getenv("GCP_PROJECT")
 	topicName := os.Getenv("PUBSUB_TOPIC")
 	subscriptionName := os.Getenv("PUBSUB_SUBSCRIPTION")
@@ -30,7 +35,7 @@ func NewWorker(ctx context.Context, log *logrus.Entry) (*Worker, error) {
 		return nil, err
 	}
 
-	return &Worker{
+	return &worker{
 		log:          log,
 		topic:        client.Topic(topicName),
 		subscription: client.Subscription(subscriptionName),
@@ -38,11 +43,11 @@ func NewWorker(ctx context.Context, log *logrus.Entry) (*Worker, error) {
 	}, nil
 }
 
-func (w *Worker) Run(ctx context.Context) error {
+func (w *worker) Run(ctx context.Context) error {
 	return w.subscription.Receive(ctx, w.receive)
 }
 
-func (w *Worker) receive(ctx context.Context, msg *pubsub.Message) {
+func (w *worker) receive(ctx context.Context, msg *pubsub.Message) {
 	defer msg.Ack()
 
 	subject := msg.Attributes["subject"]
@@ -71,7 +76,7 @@ func (w *Worker) receive(ctx context.Context, msg *pubsub.Message) {
 	}
 }
 
-func (w *Worker) Send(ctx context.Context, req *DeviceRequest) (*Response, error) {
+func (w *worker) Send(ctx context.Context, req *DeviceRequest) (*Response, error) {
 	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
 	defer cancel()
 

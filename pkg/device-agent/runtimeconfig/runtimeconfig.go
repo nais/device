@@ -12,14 +12,12 @@ import (
 
 	"cloud.google.com/go/storage"
 	"github.com/lestrrat-go/jwx/jwt"
-	"github.com/nais/device/pkg/bearertransport"
 	"github.com/nais/device/pkg/pubsubenroll"
 	"google.golang.org/api/iterator"
 	"google.golang.org/api/option"
 
 	"github.com/nais/device/pkg/bootstrap"
 	"github.com/nais/device/pkg/device-agent/auth"
-	"github.com/nais/device/pkg/device-agent/bootstrapper"
 	"github.com/nais/device/pkg/device-agent/config"
 	"github.com/nais/device/pkg/device-agent/wireguard"
 	"github.com/nais/device/pkg/pb"
@@ -68,9 +66,9 @@ func (r *RuntimeConfig) EnsureEnrolled(ctx context.Context, serial string) error
 
 	var err error
 	if r.GetActiveTenant().AuthProvider == pb.AuthProvider_Google {
-		err = r.enrollGoogle(ctx, serial)
+		err = r.enroll(ctx, serial, r.Tokens.IDToken)
 	} else {
-		err = r.enrollAzure(ctx, serial)
+		err = r.enroll(ctx, serial, r.Tokens.Token.AccessToken)
 	}
 
 	if err != nil {
@@ -80,28 +78,7 @@ func (r *RuntimeConfig) EnsureEnrolled(ctx context.Context, serial string) error
 	return r.SaveEnrollConfig()
 }
 
-func (r *RuntimeConfig) enrollAzure(ctx context.Context, serial string) error {
-	client := bearertransport.Transport{AccessToken: r.Tokens.Token.AccessToken}.Client()
-
-	cfg, err := bootstrapper.BootstrapDevice(
-		ctx,
-		&bootstrap.DeviceInfo{
-			PublicKey: string(wireguard.PublicKey(r.PrivateKey)),
-			Serial:    serial,
-			Platform:  r.Config.Platform,
-		},
-		r.Config.BootstrapAPI,
-		client,
-	)
-	if err != nil {
-		return err
-	}
-	r.EnrollConfig = cfg
-
-	return nil
-}
-
-func (r *RuntimeConfig) enrollGoogle(ctx context.Context, serial string) error {
+func (r *RuntimeConfig) enroll(ctx context.Context, serial, token string) error {
 	req := &pubsubenroll.DeviceRequest{
 		Platform:           r.Config.Platform,
 		Serial:             serial,
@@ -122,7 +99,7 @@ func (r *RuntimeConfig) enrollGoogle(ctx context.Context, serial string) error {
 	}
 
 	hreq.Header.Set("Content-Type", "application/json")
-	hreq.Header.Set("Authorization", "Bearer "+r.Tokens.IDToken)
+	hreq.Header.Set("Authorization", "Bearer "+token)
 
 	hresp, err := http.DefaultClient.Do(hreq)
 	if err != nil {
@@ -147,6 +124,7 @@ func (r *RuntimeConfig) enrollGoogle(ctx context.Context, serial string) error {
 
 	r.EnrollConfig = &bootstrap.Config{
 		DeviceIPv4:     resp.WireGuardIPv4,
+		DeviceIPv6:     resp.WireGuardIPv6,
 		PublicKey:      apiserverPeer.PublicKey,
 		TunnelEndpoint: apiserverPeer.Endpoint,
 		APIServerIP:    apiserverPeer.Ipv4,
@@ -176,6 +154,10 @@ func (r *RuntimeConfig) LoadEnrollConfig() error {
 		return err
 	}
 
+	if ec.DeviceIPv6 == "" {
+		return fmt.Errorf("bootstrap config does not contain IPv6 address, should re-enroll")
+	}
+
 	r.EnrollConfig = ec
 	return nil
 }
@@ -193,7 +175,8 @@ func findPeer(gateway []*pb.Gateway, s string) *pb.Gateway {
 func (r *RuntimeConfig) getEnrollURL(ctx context.Context) (string, error) {
 	domain, err := r.getPartnerDomain()
 	if err != nil {
-		return "", err
+		log.WithError(err).Error("could not determine partner domain, falling back to default")
+		domain = "default"
 	}
 
 	url := fmt.Sprintf("https://storage.googleapis.com/%s/%s", tenantDiscoveryBucket, domain)
