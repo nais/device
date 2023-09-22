@@ -31,6 +31,6 @@ func (cfg *Config) Gateway() *pb.Gateway {
 	return &pb.Gateway{
 		PublicKey: cfg.PublicKey,
 		Endpoint:  cfg.TunnelEndpoint,
-		Ipv4:      cfg.APIServerIP + "/32",
+		Ipv4:      cfg.APIServerIP,
 	}
 }
