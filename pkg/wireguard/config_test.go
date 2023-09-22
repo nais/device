@@ -20,12 +20,14 @@ func TestConfig_MarshalINI(t *testing.T) {
 				PublicKey: "gw-pubkey",
 				Endpoint:  "gw-ep",
 				Ipv4:      "gw-ip",
+				Ipv6:      "gw-ipv6",
 				Routes:    []string{"route1/32", "route2/24"},
 			},
 			&pb.Device{
 				Serial:    "device-serial",
 				PublicKey: "device-pubkey",
 				Ipv4:      "device-private-ip",
+				Ipv6:      "device-private-ipv6",
 			},
 		},
 		PrivateKey: "privkey",
@@ -44,12 +46,12 @@ Address = address
 
 [Peer] # gw-name
 PublicKey = gw-pubkey
-AllowedIPs = route1/32,route2/24,gw-ip/32
+AllowedIPs = route1/32,route2/24,gw-ip/32,gw-ipv6/128
 Endpoint = gw-ep
 
 [Peer] # device-serial
 PublicKey = device-pubkey
-AllowedIPs = device-private-ip/32
+AllowedIPs = device-private-ip/32,device-private-ipv6/128
 
 `
 
