@@ -27,3 +27,37 @@ source .env
 go run ./cmd/controlplane-cli/ --apiserver 10.255.240.1:8099 gateway enroll --name <name> --endpoint '<public ip>:51820'
 Follow cli instructions
 ```
+
+## xpanes
+
+### NAV gcp gateways
+må kjøres fra `naisdevice-terraform` repoet, med `terraform init` kjørt for å ha tilgang på state.
+```
+terraform state pull | jq -r '.resources[] | select(.type=="google_compute_instance" and .name=="gateway") | .instances[] | "gcloud compute ssh --tunnel-through-iap --project " + .attributes.project  + " " +.attributes.name' | xpanes -c '{}'
+```
+
+### NAV onprem gateways
+Krever ssh config, at du har bruker på VMen ([legges til her](../ansible/site.yml#L30)), og JITA til naisvakt aktivert.
+```
+Host naisvakt
+  User username
+  ForwardAgent yes
+  Hostname 10.255.241.187
+  IdentityFile ~/.ssh/id_ed25519
+
+Host a30drvl*.oera.no
+  User username
+  IdentityFile ~/.ssh/id_ed25519
+  ProxyJump naisvakt
+```
+Deretter kan man koble til med:
+```
+xpanes --ssh a30drvl0{19..43}.oera.no
+```
+
+### Tenant management apiservere
+```
+for p in $(gcloud projects list | grep nais-management | cut -d ' ' -f 1); do
+  echo gcloud compute ssh --tunnel-through-iap --project="$p" naisdevice-apiserver
+done | xpanes -c '{}'
+```
