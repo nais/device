@@ -100,6 +100,13 @@ func run(cfg config.Config) error {
 		return fmt.Errorf("initialize database: %w", err)
 	}
 
+	err = readd(ctx, db)
+	if err != nil {
+		log.Errorf("upsert IPv6: %v", err)
+	} else {
+		log.Info("re-added all gateways and devices")
+	}
+
 	log.Infof("Loading user sessions from database...")
 
 	sessions := auth.NewSessionStore(db)
@@ -364,6 +371,36 @@ func run(cfg config.Config) error {
 	<-ctx.Done()
 
 	log.Warnf("Program context canceled; shutting down.")
+	return nil
+}
+
+func readd(ctx context.Context, db database.APIServer) error {
+	gateways, err := db.ReadGateways(ctx)
+	if err != nil {
+		return err
+	}
+	for _, gateway := range gateways {
+		if gateway.Ipv6 != "" {
+			continue
+		}
+		if err := db.AddGateway(ctx, gateway); err != nil {
+			return err
+		}
+	}
+
+	devices, err := db.ReadDevices(ctx)
+	if err != nil {
+		return err
+	}
+	for _, device := range devices {
+		if device.Ipv6 != "" {
+			continue
+		}
+		if err := db.AddDevice(ctx, device); err != nil {
+			return err
+		}
+	}
+
 	return nil
 }
 

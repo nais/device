@@ -19,4 +19,4 @@ WHERE serial = @serial AND platform = @platform;
 INSERT INTO devices (serial, username, public_key, ipv4, ipv6, healthy, platform)
 VALUES (@serial, @username, @public_key, @ipv4, @ipv6, @healthy, @platform)
 ON CONFLICT(serial, platform) DO
-    UPDATE SET username = excluded.username, public_key = excluded.public_key;
+    UPDATE SET username = excluded.username, public_key = excluded.public_key, ipv6 = excluded.ipv6;
