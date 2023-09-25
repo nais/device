@@ -5,15 +5,15 @@ import (
 	"net/http"
 
 	"github.com/nais/device/pkg/auth"
-	"github.com/sirupsen/logrus"
+	log "github.com/sirupsen/logrus"
 )
 
 type Handler struct {
-	log    *logrus.Entry
+	log    *log.Entry
 	worker Worker
 }
 
-func NewHandler(worker Worker, log *logrus.Entry) *Handler {
+func NewHandler(worker Worker, log *log.Entry) *Handler {
 	return &Handler{
 		log:    log,
 		worker: worker,
@@ -28,6 +28,7 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	var req DeviceRequest
 
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		log.Errorf("error decoding device request: %v", err)
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
@@ -35,11 +36,13 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	resp, err := h.worker.Send(r.Context(), &req)
 	if err != nil {
+		log.Errorf("error sending device request: %v", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
 	if err := json.NewEncoder(w).Encode(resp); err != nil {
+		log.Errorf("error decoding device response: %v", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
