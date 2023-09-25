@@ -1,6 +1,6 @@
 # Komme seg inn på servere
 
-## SSH til GCP noder (gateways, apiserver, prometheus, bootstrap-api...)
+## SSH til GCP noder (gateways, apiserver, prometheus...)
 
 `gcloud --project <project_id> compute ssh --tunnel-through-iap <hostname>`
 
