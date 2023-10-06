@@ -11,17 +11,17 @@ import (
 
 func TestConfig_MarshalINI(t *testing.T) {
 	cfg := &wireguard.Config{
-		Address:    "address",
+		AddressV4:  "address",
 		ListenPort: 12345,
 		MTU:        123,
 		Peers: []wireguard.Peer{
 			&pb.Gateway{
-				Name:      "gw-name",
-				PublicKey: "gw-pubkey",
-				Endpoint:  "gw-ep",
-				Ipv4:      "gw-ip",
-				Ipv6:      "gw-ipv6",
-				Routes:    []string{"route1/32", "route2/24"},
+				Name:       "gw-name",
+				PublicKey:  "gw-pubkey",
+				Endpoint:   "gw-ep",
+				Ipv4:       "gw-ip",
+				Ipv6:       "gw-ipv6",
+				RoutesIPv4: []string{"route1/32", "route2/24"},
 			},
 			&pb.Device{
 				Serial:    "device-serial",
@@ -63,11 +63,11 @@ func TestConfig_MarshalINI_Minimal(t *testing.T) {
 		PrivateKey: "privkey",
 		Peers: []wireguard.Peer{
 			&pb.Gateway{
-				Name:      "gw-name",
-				PublicKey: "gw-pubkey",
-				Endpoint:  "gw-ep",
-				Ipv4:      "gw-ip",
-				Routes:    []string{},
+				Name:       "gw-name",
+				PublicKey:  "gw-pubkey",
+				Endpoint:   "gw-ep",
+				Ipv4:       "gw-ip",
+				RoutesIPv4: []string{},
 			},
 		},
 	}

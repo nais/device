@@ -46,13 +46,13 @@ func (c *LinuxConfigurator) SyncConf(ctx context.Context, cfg *pb.Configuration)
 
 func (c *LinuxConfigurator) SetupRoutes(ctx context.Context, gateways []*pb.Gateway) error {
 	for _, gw := range gateways {
-		for _, cidr := range gw.GetRoutes() {
+		for _, cidr := range gw.GetRoutesIPv4() {
 			if strings.HasPrefix(cidr, TunnelNetworkPrefix) {
 				// Don't add routes for the tunnel network, as the whole /21 net is already routed to utun
 				continue
 			}
 
-			cmd := exec.CommandContext(ctx, "ip", "-4", "route", "add", cidr, "dev", c.helperConfig.Interface)
+			cmd := exec.CommandContext(ctx, "ip", "route", "add", cidr, "dev", c.helperConfig.Interface)
 			output, err := cmd.CombinedOutput()
 			if exitErr, ok := err.(*exec.ExitError); ok {
 				log.Debugf("Command: %v, exit code: %v, output: %v", cmd, exitErr.ExitCode(), string(output))
@@ -77,7 +77,8 @@ func (c *LinuxConfigurator) SetupInterface(ctx context.Context, cfg *pb.Configur
 	commands := [][]string{
 		{"ip", "link", "add", "dev", c.helperConfig.Interface, "type", "wireguard"},
 		{"ip", "link", "set", "mtu", "1360", "up", "dev", c.helperConfig.Interface},
-		{"ip", "address", "add", "dev", c.helperConfig.Interface, cfg.DeviceIP + "/21"},
+		{"ip", "address", "add", "dev", c.helperConfig.Interface, cfg.DeviceIPv4 + "/21"},
+		{"ip", "address", "add", "dev", c.helperConfig.Interface, cfg.DeviceIPv6 + "/64"},
 	}
 
 	return runCommands(ctx, commands)

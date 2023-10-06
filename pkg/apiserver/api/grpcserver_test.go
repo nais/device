@@ -101,7 +101,7 @@ func TestGatewayPasswordAuthentication(t *testing.T) {
 		PublicKey:    "publicKey",
 		Name:         "gateway",
 		PasswordHash: "$1$5QY7q+KaDZ8EZ+zNaOm2Ag==$BCamA+wMQCcv+QkgJY6H/5Zml5CNq61HkON8tnhUwpj9bq2MkpfPcKLworcMaoVzOfkpEOhf57Btm807pxRAhw==",
-		Routes: []string{
+		RoutesIPv4: []string{
 			"mockroute",
 		},
 	}
@@ -148,7 +148,7 @@ func TestGatewayPasswordAuthentication(t *testing.T) {
 
 	gw, err := stream.Recv()
 	assert.NoError(t, err)
-	assert.Equal(t, gwResponse.Routes, gw.Routes)
+	assert.Equal(t, gwResponse.GetRoutesIPv4(), gw.GetRoutesIPv4())
 }
 
 func TestGatewayPasswordAuthenticationFail(t *testing.T) {
@@ -163,7 +163,7 @@ func TestGatewayPasswordAuthenticationFail(t *testing.T) {
 		PublicKey:    "publicKey",
 		Name:         "gateway",
 		PasswordHash: "$1$5QY7q+KaDZ8EZ+zNaOm2Ag==$BCamA+wMQCcv+QkgJY6H/5Zml5CNq61HkON8tnhUwpj9bq2MkpfPcKLworcMaoVzOfkpEOhf57Btm807pxRAhw==",
-		Routes: []string{
+		RoutesIPv4: []string{
 			"mockroute",
 		},
 	}

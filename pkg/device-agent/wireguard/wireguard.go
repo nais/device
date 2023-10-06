@@ -106,7 +106,8 @@ func Marshal(w io.Writer, x *pb.Configuration) error {
 	// Address configuration only supported on Windows
 	if windows {
 		cf.MTU = mtu
-		cf.Address = x.GetDeviceIP()
+		cf.AddressV4 = x.GetDeviceIPv4()
+		cf.AddressV6 = x.GetDeviceIPv6()
 	}
 
 	return cf.MarshalINI(w)

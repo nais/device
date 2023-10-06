@@ -44,7 +44,7 @@ func TestGatewayConfigurer_SyncConfig(t *testing.T) {
 			mock.Anything,
 			&pb.Gateway{
 				Name:                     gatewayName,
-				Routes:                   []string{route},
+				RoutesIPv4:               []string{route},
 				AccessGroupIDs:           []string{accessGroupId},
 				RequiresPrivilegedAccess: requiresPrivilegedAccess,
 			},

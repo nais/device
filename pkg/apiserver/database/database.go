@@ -121,7 +121,7 @@ func (db *ApiServerDB) UpdateGateway(ctx context.Context, gw *pb.Gateway) error 
 			}
 		}
 
-		for _, route := range gw.Routes {
+		for _, route := range gw.GetRoutesIPv4() {
 			err = qtx.AddGatewayRoute(ctx, sqlc.AddGatewayRouteParams{
 				GatewayName: gw.Name,
 				Route:       route,
@@ -170,7 +170,7 @@ func (db *ApiServerDB) UpdateGatewayDynamicFields(ctx context.Context, gw *pb.Ga
 			}
 		}
 
-		for _, route := range gw.Routes {
+		for _, route := range gw.GetRoutesIPv4() {
 			err = qtx.AddGatewayRoute(ctx, sqlc.AddGatewayRouteParams{
 				GatewayName: gw.Name,
 				Route:       route,
@@ -227,7 +227,7 @@ func (db *ApiServerDB) AddGateway(ctx context.Context, gw *pb.Gateway) error {
 			}
 		}
 
-		for _, route := range gw.Routes {
+		for _, route := range gw.GetRoutesIPv4() {
 			err = qtx.AddGatewayRoute(ctx, sqlc.AddGatewayRouteParams{
 				GatewayName: gw.Name,
 				Route:       route,
@@ -525,7 +525,7 @@ func sqlcGatewayToPbGateway(g sqlc.Gateway, groupIDs, routes []string) *pb.Gatew
 		RequiresPrivilegedAccess: g.RequiresPrivilegedAccess,
 		PasswordHash:             g.PasswordHash,
 		AccessGroupIDs:           groupIDs,
-		Routes:                   routes,
+		RoutesIPv4:               routes,
 	}
 }
 

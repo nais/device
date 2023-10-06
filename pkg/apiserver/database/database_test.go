@@ -60,10 +60,10 @@ func TestAddGateway(t *testing.T) {
 		existingGateway, err := db.ReadGateway(ctx, g.Name)
 		assert.NoError(t, err)
 
-		assert.Nil(t, existingGateway.Routes)
+		assert.Nil(t, existingGateway.GetRoutesIPv4())
 		assert.Nil(t, existingGateway.AccessGroupIDs)
 
-		existingGateway.Routes = []string{"e", "o", "r", "s", "t", "u"}
+		existingGateway.RoutesIPv4 = []string{"e", "o", "r", "s", "t", "u"}
 		existingGateway.AccessGroupIDs = []string{"a1", "b2", "c3"}
 		existingGateway.RequiresPrivilegedAccess = true
 		existingGateway.PublicKey = "new public key"
@@ -75,7 +75,7 @@ func TestAddGateway(t *testing.T) {
 		updatedGateway, err := db.ReadGateway(ctx, g.Name)
 		assert.NoError(t, err)
 
-		assert.Equal(t, existingGateway.Routes, updatedGateway.Routes)
+		assert.Equal(t, existingGateway.GetRoutesIPv4(), updatedGateway.GetRoutesIPv4())
 		assert.Equal(t, existingGateway.AccessGroupIDs, updatedGateway.AccessGroupIDs)
 		assert.True(t, updatedGateway.RequiresPrivilegedAccess)
 		assert.Equal(t, existingGateway.PublicKey, updatedGateway.PublicKey)

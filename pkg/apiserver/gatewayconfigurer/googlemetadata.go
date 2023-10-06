@@ -59,7 +59,7 @@ func (g *GoogleMetadata) syncConfig(ctx context.Context) error {
 			continue
 		}
 
-		gateway.Routes = gatewayMetadata.Routes
+		gateway.RoutesIPv4 = gatewayMetadata.Routes
 		gateway.AccessGroupIDs = gatewayMetadata.AccessGroupIDs
 		gateway.RequiresPrivilegedAccess = gatewayMetadata.RequiresPrivilegedAccess
 

@@ -41,7 +41,8 @@ const (
 func (das *DeviceAgentServer) ConfigureHelper(ctx context.Context, rc *runtimeconfig.RuntimeConfig, gateways []*pb.Gateway) error {
 	_, err := das.DeviceHelper.Configure(ctx, &pb.Configuration{
 		PrivateKey: base64.StdEncoding.EncodeToString(rc.PrivateKey),
-		DeviceIP:   rc.EnrollConfig.DeviceIPv4,
+		DeviceIPv4: rc.EnrollConfig.DeviceIPv4,
+		DeviceIPv6: rc.EnrollConfig.DeviceIPv6,
 		Gateways:   gateways,
 	})
 	return err

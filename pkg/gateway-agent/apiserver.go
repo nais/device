@@ -47,7 +47,7 @@ func applyGatewayConfig(configurer wireguard.NetworkConfigurer, gatewayConfig *p
 		return fmt.Errorf("actuating WireGuard config: %w", err)
 	}
 
-	err = configurer.ForwardRoutes(gatewayConfig.Routes)
+	err = configurer.ForwardRoutes(gatewayConfig.GetRoutesIPv4())
 	if err != nil {
 		return fmt.Errorf("forwarding routes: %w", err)
 	}
