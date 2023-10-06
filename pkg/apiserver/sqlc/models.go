@@ -38,6 +38,7 @@ type GatewayAccessGroupID struct {
 type GatewayRoute struct {
 	GatewayName string
 	Route       string
+	Family      string
 }
 
 type Session struct {

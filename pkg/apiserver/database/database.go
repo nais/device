@@ -121,10 +121,21 @@ func (db *ApiServerDB) UpdateGateway(ctx context.Context, gw *pb.Gateway) error 
 			}
 		}
 
+		for _, route := range gw.GetRoutesIPv6() {
+			err = qtx.AddGatewayRoute(ctx, sqlc.AddGatewayRouteParams{
+				GatewayName: gw.Name,
+				Route:       route,
+				Family:      "IPv6",
+			})
+			if err != nil {
+				return err
+			}
+		}
 		for _, route := range gw.GetRoutesIPv4() {
 			err = qtx.AddGatewayRoute(ctx, sqlc.AddGatewayRouteParams{
 				GatewayName: gw.Name,
 				Route:       route,
+				Family:      "IPv4",
 			})
 			if err != nil {
 				return err
@@ -515,7 +526,18 @@ func stringToTime(s string) time.Time {
 	return t
 }
 
-func sqlcGatewayToPbGateway(g sqlc.Gateway, groupIDs, routes []string) *pb.Gateway {
+func sqlcGatewayToPbGateway(g sqlc.Gateway, groupIDs []string, routes []*sqlc.GetGatewayRoutesRow) *pb.Gateway {
+	routesv4 := make([]string, 0)
+	routesv6 := make([]string, 0)
+
+	for _, route := range routes {
+		switch route.Family {
+		case "IPv4":
+			routesv4 = append(routesv4, route.Route)
+		case "IPv6":
+			routesv6 = append(routesv6, route.Route)
+		}
+	}
 	return &pb.Gateway{
 		Name:                     g.Name,
 		PublicKey:                g.PublicKey,
@@ -525,7 +547,8 @@ func sqlcGatewayToPbGateway(g sqlc.Gateway, groupIDs, routes []string) *pb.Gatew
 		RequiresPrivilegedAccess: g.RequiresPrivilegedAccess,
 		PasswordHash:             g.PasswordHash,
 		AccessGroupIDs:           groupIDs,
-		RoutesIPv4:               routes,
+		RoutesIPv4:               routesv4,
+		RoutesIPv6:               routesv6,
 	}
 }
 

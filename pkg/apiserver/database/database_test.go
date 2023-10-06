@@ -60,8 +60,8 @@ func TestAddGateway(t *testing.T) {
 		existingGateway, err := db.ReadGateway(ctx, g.Name)
 		assert.NoError(t, err)
 
-		assert.Nil(t, existingGateway.GetRoutesIPv4())
-		assert.Nil(t, existingGateway.AccessGroupIDs)
+		assert.Empty(t, existingGateway.GetRoutesIPv4())
+		assert.Empty(t, existingGateway.AccessGroupIDs)
 
 		existingGateway.RoutesIPv4 = []string{"e", "o", "r", "s", "t", "u"}
 		existingGateway.AccessGroupIDs = []string{"a1", "b2", "c3"}

@@ -26,6 +26,7 @@ type Route struct {
 
 type GatewayConfig struct {
 	Routes                   []Route  `json:"routes"`
+	RoutesIPv6               []Route  `json:"routes_ipv6"`
 	AccessGroupIds           []string `json:"access_group_ids"`
 	RequiresPrivilegedAccess bool     `json:"requires_privileged_access"`
 }
