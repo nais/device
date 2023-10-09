@@ -18,8 +18,6 @@ type Config struct {
 	AutoEnrollEnabled                 bool
 	Azure                             *auth.Azure
 	BindAddress                       string
-	BootstrapAPIURL                   string
-	BootstrapApiCredentials           string
 	ControlPlaneAuthenticationEnabled bool
 	AdminCredentialEntries            []string
 	PrometheusCredentialEntries       []string

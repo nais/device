@@ -9,7 +9,6 @@ import (
 	"net/netip"
 	"os"
 	"os/signal"
-	"strings"
 	"syscall"
 	"time"
 
@@ -25,7 +24,6 @@ import (
 	"github.com/nais/device/pkg/apiserver/jita"
 	"github.com/nais/device/pkg/apiserver/kolide"
 	apiserver_metrics "github.com/nais/device/pkg/apiserver/metrics"
-	"github.com/nais/device/pkg/basicauth"
 	"github.com/nais/device/pkg/logger"
 	"github.com/nais/device/pkg/pb"
 	"github.com/nais/device/pkg/version"
@@ -179,22 +177,6 @@ func run(cfg config.Config) error {
 			}
 			cancel()
 		}()
-	}
-
-	if len(cfg.BootstrapAPIURL) > 0 {
-		parts := strings.Split(cfg.BootstrapApiCredentials, ":")
-		username, password := parts[0], parts[1]
-
-		en := enroller.Enroller{
-			Client:             basicauth.Transport{Username: username, Password: password}.Client(),
-			DB:                 db,
-			BootstrapAPIURL:    cfg.BootstrapAPIURL,
-			APIServerPublicKey: string(cfg.WireGuardPrivateKey.Public()),
-			APIServerEndpoint:  cfg.Endpoint,
-			APIServerIP:        cfg.WireGuardIPv4.Addr().String(),
-		}
-
-		go en.WatchDeviceEnrollments(ctx)
 	}
 
 	if cfg.AutoEnrollEnabled {

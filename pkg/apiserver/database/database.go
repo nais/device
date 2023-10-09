@@ -242,6 +242,18 @@ func (db *ApiServerDB) AddGateway(ctx context.Context, gw *pb.Gateway) error {
 			err = qtx.AddGatewayRoute(ctx, sqlc.AddGatewayRouteParams{
 				GatewayName: gw.Name,
 				Route:       route,
+				Family:      "IPv4",
+			})
+			if err != nil {
+				return err
+			}
+		}
+
+		for _, route := range gw.GetRoutesIPv6() {
+			err = qtx.AddGatewayRoute(ctx, sqlc.AddGatewayRouteParams{
+				GatewayName: gw.Name,
+				Route:       route,
+				Family:      "IPv6",
 			})
 			if err != nil {
 				return err

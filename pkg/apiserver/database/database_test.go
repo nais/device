@@ -23,6 +23,8 @@ func TestAddGateway(t *testing.T) {
 		PublicKey:    "publicKey",
 		Name:         "gateway",
 		PasswordHash: "hunter2",
+		RoutesIPv4:   []string{"1.2.3.4/32"},
+		RoutesIPv6:   []string{"fb32::1/128"},
 	}
 
 	t.Run("adding new gateway works", func(t *testing.T) {
@@ -36,6 +38,8 @@ func TestAddGateway(t *testing.T) {
 		assert.Equal(t, g.Endpoint, gateway.Endpoint)
 		assert.Equal(t, g.PublicKey, gateway.PublicKey)
 		assert.Equal(t, g.PasswordHash, gateway.PasswordHash)
+		assert.Equal(t, g.GetRoutesIPv4(), gateway.GetRoutesIPv4())
+		assert.Equal(t, g.GetRoutesIPv6(), gateway.GetRoutesIPv6())
 		assert.False(t, gateway.RequiresPrivilegedAccess)
 	})
 
@@ -60,7 +64,8 @@ func TestAddGateway(t *testing.T) {
 		existingGateway, err := db.ReadGateway(ctx, g.Name)
 		assert.NoError(t, err)
 
-		assert.Empty(t, existingGateway.GetRoutesIPv4())
+		assert.Equal(t, g.GetRoutesIPv4(), existingGateway.GetRoutesIPv4())
+		assert.Equal(t, g.GetRoutesIPv6(), existingGateway.GetRoutesIPv6())
 		assert.Empty(t, existingGateway.AccessGroupIDs)
 
 		existingGateway.RoutesIPv4 = []string{"e", "o", "r", "s", "t", "u"}
