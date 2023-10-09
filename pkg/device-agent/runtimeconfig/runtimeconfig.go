@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"net"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -43,6 +44,10 @@ func (rc *RuntimeConfig) GetActiveTenant() *pb.Tenant {
 		}
 	}
 	return nil
+}
+
+func (rc *RuntimeConfig) APIServerGRPCAddress() string {
+	return net.JoinHostPort(rc.EnrollConfig.APIServerIP, "8099")
 }
 
 func New(cfg *config.Config) (*RuntimeConfig, error) {

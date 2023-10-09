@@ -20,7 +20,6 @@ import (
 const File = "agent-config.json"
 
 type Config struct {
-	APIServerGRPCAddress     string
 	AgentConfiguration       *pb.AgentConfiguration
 	ConfigDir                string
 	DeviceAgentHelperAddress string

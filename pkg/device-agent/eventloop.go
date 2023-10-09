@@ -52,10 +52,10 @@ func (das *DeviceAgentServer) syncConfigLoop(ctx context.Context, gateways chan<
 	dialContext, cancel := context.WithTimeout(ctx, syncConfigDialTimeout)
 	defer cancel()
 
-	log.Infof("Attempting gRPC connection to API server on %s...", das.Config.APIServerGRPCAddress)
+	log.Infof("Attempting gRPC connection to API server on %s...", das.rc.APIServerGRPCAddress())
 	apiserver, err := grpc.DialContext(
 		dialContext,
-		das.Config.APIServerGRPCAddress,
+		das.rc.APIServerGRPCAddress(),
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 		grpc.WithBlock(),
 		grpc.WithReturnConnectionError(),
@@ -291,8 +291,6 @@ func (das *DeviceAgentServer) EventLoop(ctx context.Context) {
 						continue
 					}
 				}
-
-				das.rc.Config.APIServerGRPCAddress = net.JoinHostPort(das.rc.EnrollConfig.APIServerIP, "8099")
 
 				ctx, cancel := context.WithTimeout(context.Background(), helperTimeout)
 				err = das.ConfigureHelper(ctx, das.rc, []*pb.Gateway{
