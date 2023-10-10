@@ -351,8 +351,7 @@ func (_m *MockAPIServer) UpdateGatewayDynamicFields(ctx context.Context, gateway
 func NewMockAPIServer(t interface {
 	mock.TestingT
 	Cleanup(func())
-},
-) *MockAPIServer {
+}) *MockAPIServer {
 	mock := &MockAPIServer{}
 	mock.Mock.Test(t)
 

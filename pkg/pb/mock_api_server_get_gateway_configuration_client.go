@@ -145,8 +145,7 @@ func (_m *MockAPIServer_GetGatewayConfigurationClient) Trailer() metadata.MD {
 func NewMockAPIServer_GetGatewayConfigurationClient(t interface {
 	mock.TestingT
 	Cleanup(func())
-},
-) *MockAPIServer_GetGatewayConfigurationClient {
+}) *MockAPIServer_GetGatewayConfigurationClient {
 	mock := &MockAPIServer_GetGatewayConfigurationClient{}
 	mock.Mock.Test(t)
 

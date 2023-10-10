@@ -58,7 +58,6 @@ func (cfg *Config) MarshalINI(w io.Writer) error {
 			addresses = fmt.Sprintf("%s, %s", cfg.AddressV4, cfg.AddressV6)
 		} else {
 			addresses = cfg.AddressV4
-
 		}
 	}
 	fprintNonEmpty(ew, "Address = %s\n", addresses)

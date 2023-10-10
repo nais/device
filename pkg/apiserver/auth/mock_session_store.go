@@ -75,8 +75,7 @@ func (_m *MockSessionStore) Set(_a0 context.Context, _a1 *pb.Session) error {
 func NewMockSessionStore(t interface {
 	mock.TestingT
 	Cleanup(func())
-},
-) *MockSessionStore {
+}) *MockSessionStore {
 	mock := &MockSessionStore{}
 	mock.Mock.Test(t)
 

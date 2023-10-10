@@ -284,8 +284,7 @@ func (_m *MockAPIServerClient) UpdateGateway(ctx context.Context, in *ModifyGate
 func NewMockAPIServerClient(t interface {
 	mock.TestingT
 	Cleanup(func())
-},
-) *MockAPIServerClient {
+}) *MockAPIServerClient {
 	mock := &MockAPIServerClient{}
 	mock.Mock.Test(t)
 

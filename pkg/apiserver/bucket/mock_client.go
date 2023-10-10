@@ -44,8 +44,7 @@ func (_m *MockClient) Open(ctx context.Context) (Object, error) {
 func NewMockClient(t interface {
 	mock.TestingT
 	Cleanup(func())
-},
-) *MockClient {
+}) *MockClient {
 	mock := &MockClient{}
 	mock.Mock.Test(t)
 

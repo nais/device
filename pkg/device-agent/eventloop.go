@@ -2,7 +2,6 @@ package device_agent
 
 import (
 	"context"
-	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"net"
@@ -38,13 +37,8 @@ const (
 	apiServerRetryInterval = time.Second * 5
 )
 
-func (das *DeviceAgentServer) ConfigureHelper(ctx context.Context, rc *runtimeconfig.RuntimeConfig, gateways []*pb.Gateway) error {
-	_, err := das.DeviceHelper.Configure(ctx, &pb.Configuration{
-		PrivateKey: base64.StdEncoding.EncodeToString(rc.PrivateKey),
-		DeviceIPv4: rc.EnrollConfig.DeviceIPv4,
-		DeviceIPv6: rc.EnrollConfig.DeviceIPv6,
-		Gateways:   gateways,
-	})
+func (das *DeviceAgentServer) ConfigureHelper(ctx context.Context, rc runtimeconfig.RuntimeConfig, gateways []*pb.Gateway) error {
+	_, err := das.DeviceHelper.Configure(ctx, das.rc.BuildHelperConfiguration(gateways))
 	return err
 }
 
@@ -164,19 +158,14 @@ func (das *DeviceAgentServer) EventLoop(ctx context.Context) {
 
 	das.stateChange <- status.ConnectionState
 
-	status.Tenants = das.rc.Tenants
+	status.Tenants = das.rc.Tenants()
 
 	for {
 		das.UpdateAgentStatus(status)
 
-		if das.rc.Tenants == nil {
+		if das.rc.Tenants() == nil {
 			notify.Errorf("No tenants configured. Please configure tenants in the configuration file.")
 			return
-		}
-
-		// default to first tenant in list
-		if das.rc.GetActiveTenant() == nil {
-			das.rc.Tenants[0].Active = true
 		}
 
 		select {
@@ -240,7 +229,7 @@ func (das *DeviceAgentServer) EventLoop(ctx context.Context) {
 			ctx, cancel := context.WithTimeout(syncctx, helperTimeout)
 			err = das.ConfigureHelper(ctx, das.rc, append(
 				[]*pb.Gateway{
-					das.rc.EnrollConfig.APIServerPeer(),
+					das.rc.APIServerPeer(),
 				},
 				status.GetGateways()...,
 			))
@@ -266,12 +255,10 @@ func (das *DeviceAgentServer) EventLoop(ctx context.Context) {
 					break
 				}
 
-				if das.rc.EnrollConfig != nil {
-					log.Infof("Already bootstrapped")
-				} else if err := das.rc.LoadEnrollConfig(); err == nil {
-					log.Infof("Loaded enroll config from disk")
+				if err := das.rc.LoadEnrollConfig(); err == nil {
+					log.Infof("Loaded enroll")
 				} else {
-					log.Infof("Unable to load enroll config from disk: %s", err)
+					log.Infof("Unable to load enroll config: %s", err)
 					log.Infof("Enrolling device")
 					ctx, cancel := context.WithTimeout(context.Background(), 1*time.Minute)
 					serial, err := das.getSerial(ctx)
@@ -294,7 +281,7 @@ func (das *DeviceAgentServer) EventLoop(ctx context.Context) {
 
 				ctx, cancel := context.WithTimeout(context.Background(), helperTimeout)
 				err = das.ConfigureHelper(ctx, das.rc, []*pb.Gateway{
-					das.rc.EnrollConfig.APIServerPeer(),
+					das.rc.APIServerPeer(),
 				})
 				cancel()
 
@@ -322,7 +309,7 @@ func (das *DeviceAgentServer) EventLoop(ctx context.Context) {
 							time.Sleep(apiServerRetryInterval)
 						case codes.Unauthenticated:
 							log.Errorf("Logging in: %s", err)
-							das.rc.Tokens = nil
+							das.rc.SetToken(nil)
 							log.Error("Cleaned up old tokens")
 							fallthrough
 						default:
@@ -356,14 +343,16 @@ func (das *DeviceAgentServer) EventLoop(ctx context.Context) {
 				}
 
 				ctx, cancel := context.WithTimeout(ctx, authFlowTimeout)
-				oauth2Config := das.rc.Config.OAuth2Config(das.rc.GetActiveTenant().AuthProvider)
-				das.rc.Tokens, err = auth.GetDeviceAgentToken(ctx, oauth2Config, das.Config.GoogleAuthServerAddress)
+				oauth2Config := das.Config.OAuth2Config(das.rc.GetActiveTenant().AuthProvider)
+				token, err := auth.GetDeviceAgentToken(ctx, oauth2Config, das.Config.GoogleAuthServerAddress)
 				cancel()
 				if err != nil {
 					notify.Errorf("Get token: %v", err)
 					das.stateChange <- pb.AgentState_Disconnected
 					break
 				}
+
+				das.rc.SetToken(token)
 
 				das.stateChange <- pb.AgentState_Bootstrapping
 
@@ -376,8 +365,9 @@ func (das *DeviceAgentServer) EventLoop(ctx context.Context) {
 					autoConnectTriggered = true
 					das.stateChange <- pb.AgentState_Authenticating
 				}
-				das.rc.Tokens = nil
-				das.rc.EnrollConfig = nil
+
+				das.rc.SetToken(nil)
+				das.rc.ResetEnrollConfig()
 
 			case pb.AgentState_Quitting:
 				return

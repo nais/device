@@ -88,8 +88,6 @@ func startDeviceAgent(ctx context.Context, cfg *config.Config) error {
 		return fmt.Errorf("unable to start naisdevice-agent, check logs for details")
 	}
 
-	rc.Tenants = defaultTenant
-
 	if cfg.AgentConfiguration.ILoveNinetiesBoybands {
 		err := rc.PopulateTenants(ctx)
 		if err != nil {

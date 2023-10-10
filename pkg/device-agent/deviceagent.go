@@ -3,7 +3,6 @@ package device_agent
 import (
 	"context"
 	"fmt"
-	"strings"
 	"sync"
 	"time"
 
@@ -28,7 +27,7 @@ type DeviceAgentServer struct {
 	stateChange  chan pb.AgentState
 	streams      map[uuid.UUID]pb.DeviceAgent_StatusServer
 	Config       *config.Config
-	rc           *runtimeconfig.RuntimeConfig
+	rc           runtimeconfig.RuntimeConfig
 }
 
 const maxLoginAttempts = 20
@@ -127,25 +126,17 @@ func (das *DeviceAgentServer) GetAgentConfiguration(ctx context.Context, req *pb
 }
 
 func (das *DeviceAgentServer) SetActiveTenant(ctx context.Context, req *pb.SetActiveTenantRequest) (*pb.SetActiveTenantResponse, error) {
-	// Mark all tenants inactive
-	for i := range das.rc.Tenants {
-		das.rc.Tenants[i].Active = false
+	if err := das.rc.SetActiveTenant(req.Name); err != nil {
+		notify.Errorf("while activating tenant: %s", err)
+		das.stateChange <- pb.AgentState_Disconnecting
+		return &pb.SetActiveTenantResponse{}, nil
 	}
 
-	for i, tenant := range das.rc.Tenants {
-		if strings.EqualFold(tenant.Name, req.Name) {
-			das.rc.Tenants[i].Active = true
-			das.stateChange <- pb.AgentState_Disconnecting
-			log.Infof("activated tenant: %s", tenant.Name)
-			return &pb.SetActiveTenantResponse{}, nil
-		}
-	}
-
-	notify.Errorf("tenant %s not found", req.Name)
+	log.Infof("activated tenant: %s", req.Name)
 	return &pb.SetActiveTenantResponse{}, nil
 }
 
-func NewServer(helper pb.DeviceHelperClient, cfg *config.Config, rc *runtimeconfig.RuntimeConfig) *DeviceAgentServer {
+func NewServer(helper pb.DeviceHelperClient, cfg *config.Config, rc runtimeconfig.RuntimeConfig) *DeviceAgentServer {
 	return &DeviceAgentServer{
 		DeviceHelper: helper,
 		stateChange:  make(chan pb.AgentState, 32),

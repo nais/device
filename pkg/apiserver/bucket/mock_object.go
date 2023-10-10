@@ -63,8 +63,7 @@ func (_m *MockObject) Reader() io.Reader {
 func NewMockObject(t interface {
 	mock.TestingT
 	Cleanup(func())
-},
-) *MockObject {
+}) *MockObject {
 	mock := &MockObject{}
 	mock.Mock.Test(t)
 

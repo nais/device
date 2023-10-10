@@ -70,8 +70,7 @@ func (_m *MockNetworkConfigurer) SetupInterface() error {
 func NewMockNetworkConfigurer(t interface {
 	mock.TestingT
 	Cleanup(func())
-},
-) *MockNetworkConfigurer {
+}) *MockNetworkConfigurer {
 	mock := &MockNetworkConfigurer{}
 	mock.Mock.Test(t)
 
