@@ -21,7 +21,9 @@ import (
 	"github.com/nais/device/pkg/version"
 )
 
-var cfg = helper.Config{}
+var cfg = helper.Config{
+	WireGuardConfigPath: filepath.Join(config.ConfigDir, "utun69.conf"),
+}
 
 func init() {
 	flag.StringVar(&cfg.LogLevel, "log-level", "info", "which log level to output")

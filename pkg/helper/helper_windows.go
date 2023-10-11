@@ -48,7 +48,7 @@ func (configurator *WindowsConfigurator) SetupInterface(ctx context.Context, cfg
 		return nil
 	}
 
-	installService := exec.CommandContext(ctx, wireGuardBinary, "/installtunnelservice", WireGuardConfigPath)
+	installService := exec.CommandContext(ctx, wireGuardBinary, "/installtunnelservice", configurator.helperConfig.WireGuardConfigPath)
 	if b, err := installService.CombinedOutput(); err != nil {
 		return fmt.Errorf("installing tunnel service: %v: %v", err, string(b))
 	} else {
@@ -67,7 +67,7 @@ func (configurator *WindowsConfigurator) SetupRoutes(ctx context.Context, gatewa
 }
 
 func (configurator *WindowsConfigurator) SyncConf(ctx context.Context, cfg *pb.Configuration) error {
-	newWireGuardConfig, err := os.ReadFile(WireGuardConfigPath)
+	newWireGuardConfig, err := os.ReadFile(configurator.helperConfig.WireGuardConfigPath)
 	if err != nil {
 		return fmt.Errorf("reading WireGuard config file: %w", err)
 	}

@@ -13,7 +13,7 @@ import (
 )
 
 func NewAPIServer(t *testing.T, ctx context.Context, db database.APIServer) *grpc.Server {
-	sessions := auth.NewMockSessionStore(t)
+	sessions := auth.NewSessionStore(db)
 	deviceAuth := auth.NewMockAuthenticator(sessions)
 	gatewayAuth := auth.NewMockAPIKeyAuthenticator()
 

@@ -38,7 +38,7 @@ func (c *DarwinConfigurator) Prerequisites() error {
 }
 
 func (c *DarwinConfigurator) SyncConf(ctx context.Context, cfg *pb.Configuration) error {
-	cmd := exec.CommandContext(ctx, wireGuardBinary, "syncconf", c.helperConfig.Interface, WireGuardConfigPath)
+	cmd := exec.CommandContext(ctx, wireGuardBinary, "syncconf", c.helperConfig.Interface, c.helperConfig.WireGuardConfigPath)
 	if b, err := cmd.CombinedOutput(); err != nil {
 		return fmt.Errorf("running syncconf: %w: %v", err, string(b))
 	}

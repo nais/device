@@ -36,7 +36,7 @@ func (c *LinuxConfigurator) Prerequisites() error {
 }
 
 func (c *LinuxConfigurator) SyncConf(ctx context.Context, cfg *pb.Configuration) error {
-	cmd := exec.CommandContext(ctx, wireguardBinary, "syncconf", c.helperConfig.Interface, WireGuardConfigPath)
+	cmd := exec.CommandContext(ctx, wireguardBinary, "syncconf", c.helperConfig.Interface, c.helperConfig.WireGuardConfigPath)
 	if b, err := cmd.CombinedOutput(); err != nil {
 		return fmt.Errorf("running syncconf: %w: %v", err, string(b))
 	}
