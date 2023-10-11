@@ -88,7 +88,7 @@ func (c *DarwinConfigurator) SetupInterface(ctx context.Context, cfg *pb.Configu
 		{"ifconfig", c.helperConfig.Interface, "inet6", cfg.GetDeviceIPv6() + "/64", "alias"},
 		{"ifconfig", c.helperConfig.Interface, "mtu", "1360"},
 		{"ifconfig", c.helperConfig.Interface, "up"},
-		{"route", "-q", "-n", "add", "-inet", cfg.GetDeviceIP() + "/21", "-interface", c.helperConfig.Interface},
+		{"route", "-q", "-n", "add", "-inet", cfg.GetDeviceIPv4() + "/21", "-interface", c.helperConfig.Interface},
 	}
 
 	return runCommands(ctx, commands)
