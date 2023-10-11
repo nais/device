@@ -23,5 +23,5 @@ const (
 )
 
 func MarshalHeader(w io.Writer, x *pb.Configuration) (int, error) {
-	return fmt.Fprintf(w, wireGuardTemplateHeader, x.GetPrivateKey(), mtu, x.GetDeviceIP())
+	return fmt.Fprintf(w, wireGuardTemplateHeader, x.GetPrivateKey(), mtu, x.GetDeviceIPv4())
 }
