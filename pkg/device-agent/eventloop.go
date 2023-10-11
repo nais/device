@@ -9,9 +9,7 @@ import (
 	"sync"
 	"time"
 
-	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/credentials/insecure"
 	grpcstatus "google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/timestamppb"
 
@@ -46,23 +44,16 @@ func (das *DeviceAgentServer) syncConfigLoop(ctx context.Context, gateways chan<
 	dialContext, cancel := context.WithTimeout(ctx, syncConfigDialTimeout)
 	defer cancel()
 
-	log.Infof("Attempting gRPC connection to API server on %s...", das.rc.APIServerGRPCAddress())
-	apiserver, err := grpc.DialContext(
-		dialContext,
-		das.rc.APIServerGRPCAddress(),
-		grpc.WithTransportCredentials(insecure.NewCredentials()),
-		grpc.WithBlock(),
-		grpc.WithReturnConnectionError(),
-	)
+	conn, err := das.rc.DialAPIServer(dialContext)
+
 	if err != nil {
 		return grpcstatus.Errorf(codes.Unavailable, err.Error())
 	}
-
 	log.Infof("Connected to API server")
 
-	defer apiserver.Close()
+	defer conn.Close()
 
-	apiserverClient := pb.NewAPIServerClient(apiserver)
+	apiserverClient := pb.NewAPIServerClient(conn)
 
 	session, err := das.rc.GetTenantSession()
 	if err != nil {

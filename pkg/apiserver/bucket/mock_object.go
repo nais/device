@@ -14,6 +14,14 @@ type MockObject struct {
 	mock.Mock
 }
 
+type MockObject_Expecter struct {
+	mock *mock.Mock
+}
+
+func (_m *MockObject) EXPECT() *MockObject_Expecter {
+	return &MockObject_Expecter{mock: &_m.Mock}
+}
+
 // Close provides a mock function with given fields:
 func (_m *MockObject) Close() error {
 	ret := _m.Called()
@@ -28,6 +36,33 @@ func (_m *MockObject) Close() error {
 	return r0
 }
 
+// MockObject_Close_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'Close'
+type MockObject_Close_Call struct {
+	*mock.Call
+}
+
+// Close is a helper method to define mock.On call
+func (_e *MockObject_Expecter) Close() *MockObject_Close_Call {
+	return &MockObject_Close_Call{Call: _e.mock.On("Close")}
+}
+
+func (_c *MockObject_Close_Call) Run(run func()) *MockObject_Close_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run()
+	})
+	return _c
+}
+
+func (_c *MockObject_Close_Call) Return(_a0 error) *MockObject_Close_Call {
+	_c.Call.Return(_a0)
+	return _c
+}
+
+func (_c *MockObject_Close_Call) RunAndReturn(run func() error) *MockObject_Close_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // LastUpdated provides a mock function with given fields:
 func (_m *MockObject) LastUpdated() time.Time {
 	ret := _m.Called()
@@ -40,6 +75,33 @@ func (_m *MockObject) LastUpdated() time.Time {
 	}
 
 	return r0
+}
+
+// MockObject_LastUpdated_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'LastUpdated'
+type MockObject_LastUpdated_Call struct {
+	*mock.Call
+}
+
+// LastUpdated is a helper method to define mock.On call
+func (_e *MockObject_Expecter) LastUpdated() *MockObject_LastUpdated_Call {
+	return &MockObject_LastUpdated_Call{Call: _e.mock.On("LastUpdated")}
+}
+
+func (_c *MockObject_LastUpdated_Call) Run(run func()) *MockObject_LastUpdated_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run()
+	})
+	return _c
+}
+
+func (_c *MockObject_LastUpdated_Call) Return(_a0 time.Time) *MockObject_LastUpdated_Call {
+	_c.Call.Return(_a0)
+	return _c
+}
+
+func (_c *MockObject_LastUpdated_Call) RunAndReturn(run func() time.Time) *MockObject_LastUpdated_Call {
+	_c.Call.Return(run)
+	return _c
 }
 
 // Reader provides a mock function with given fields:
@@ -58,12 +120,40 @@ func (_m *MockObject) Reader() io.Reader {
 	return r0
 }
 
+// MockObject_Reader_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'Reader'
+type MockObject_Reader_Call struct {
+	*mock.Call
+}
+
+// Reader is a helper method to define mock.On call
+func (_e *MockObject_Expecter) Reader() *MockObject_Reader_Call {
+	return &MockObject_Reader_Call{Call: _e.mock.On("Reader")}
+}
+
+func (_c *MockObject_Reader_Call) Run(run func()) *MockObject_Reader_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run()
+	})
+	return _c
+}
+
+func (_c *MockObject_Reader_Call) Return(_a0 io.Reader) *MockObject_Reader_Call {
+	_c.Call.Return(_a0)
+	return _c
+}
+
+func (_c *MockObject_Reader_Call) RunAndReturn(run func() io.Reader) *MockObject_Reader_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // NewMockObject creates a new instance of MockObject. It also registers a testing interface on the mock and a cleanup function to assert the mocks expectations.
 // The first argument is typically a *testing.T value.
 func NewMockObject(t interface {
 	mock.TestingT
 	Cleanup(func())
-}) *MockObject {
+},
+) *MockObject {
 	mock := &MockObject{}
 	mock.Mock.Test(t)
 

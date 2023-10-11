@@ -18,6 +18,8 @@ import (
 	"github.com/nais/device/pkg/pubsubenroll"
 	"google.golang.org/api/iterator"
 	"google.golang.org/api/option"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 
 	"github.com/nais/device/pkg/bootstrap"
 	"github.com/nais/device/pkg/device-agent/auth"
@@ -32,7 +34,7 @@ const (
 )
 
 type RuntimeConfig interface {
-	APIServerGRPCAddress() string
+	DialAPIServer(context.Context) (*grpc.ClientConn, error)
 	APIServerPeer() *pb.Gateway
 
 	EnsureEnrolled(context.Context, string) error
@@ -62,6 +64,17 @@ type runtimeConfig struct {
 	privateKey   []byte
 	tokens       *auth.Tokens
 	tenants      []*pb.Tenant
+}
+
+func (rc *runtimeConfig) DialAPIServer(ctx context.Context) (*grpc.ClientConn, error) {
+	log.Infof("Attempting gRPC connection to API server on %s...", rc.apiServerGRPCAddress())
+	return grpc.DialContext(
+		ctx,
+		rc.apiServerGRPCAddress(),
+		grpc.WithTransportCredentials(insecure.NewCredentials()),
+		grpc.WithBlock(),
+		grpc.WithReturnConnectionError(),
+	)
 }
 
 func (rc *runtimeConfig) APIServerPeer() *pb.Gateway {
@@ -106,7 +119,7 @@ func (rc *runtimeConfig) GetActiveTenant() *pb.Tenant {
 	return nil
 }
 
-func (rc *runtimeConfig) APIServerGRPCAddress() string {
+func (rc *runtimeConfig) apiServerGRPCAddress() string {
 	return net.JoinHostPort(rc.enrollConfig.APIServerIP, "8099")
 }
 

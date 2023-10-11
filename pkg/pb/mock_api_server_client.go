@@ -15,6 +15,14 @@ type MockAPIServerClient struct {
 	mock.Mock
 }
 
+type MockAPIServerClient_Expecter struct {
+	mock *mock.Mock
+}
+
+func (_m *MockAPIServerClient) EXPECT() *MockAPIServerClient_Expecter {
+	return &MockAPIServerClient_Expecter{mock: &_m.Mock}
+}
+
 // EnrollGateway provides a mock function with given fields: ctx, in, opts
 func (_m *MockAPIServerClient) EnrollGateway(ctx context.Context, in *ModifyGatewayRequest, opts ...grpc.CallOption) (*ModifyGatewayResponse, error) {
 	_va := make([]interface{}, len(opts))
@@ -46,6 +54,43 @@ func (_m *MockAPIServerClient) EnrollGateway(ctx context.Context, in *ModifyGate
 	}
 
 	return r0, r1
+}
+
+// MockAPIServerClient_EnrollGateway_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'EnrollGateway'
+type MockAPIServerClient_EnrollGateway_Call struct {
+	*mock.Call
+}
+
+// EnrollGateway is a helper method to define mock.On call
+//   - ctx context.Context
+//   - in *ModifyGatewayRequest
+//   - opts ...grpc.CallOption
+func (_e *MockAPIServerClient_Expecter) EnrollGateway(ctx interface{}, in interface{}, opts ...interface{}) *MockAPIServerClient_EnrollGateway_Call {
+	return &MockAPIServerClient_EnrollGateway_Call{Call: _e.mock.On("EnrollGateway",
+		append([]interface{}{ctx, in}, opts...)...)}
+}
+
+func (_c *MockAPIServerClient_EnrollGateway_Call) Run(run func(ctx context.Context, in *ModifyGatewayRequest, opts ...grpc.CallOption)) *MockAPIServerClient_EnrollGateway_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		variadicArgs := make([]grpc.CallOption, len(args)-2)
+		for i, a := range args[2:] {
+			if a != nil {
+				variadicArgs[i] = a.(grpc.CallOption)
+			}
+		}
+		run(args[0].(context.Context), args[1].(*ModifyGatewayRequest), variadicArgs...)
+	})
+	return _c
+}
+
+func (_c *MockAPIServerClient_EnrollGateway_Call) Return(_a0 *ModifyGatewayResponse, _a1 error) *MockAPIServerClient_EnrollGateway_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *MockAPIServerClient_EnrollGateway_Call) RunAndReturn(run func(context.Context, *ModifyGatewayRequest, ...grpc.CallOption) (*ModifyGatewayResponse, error)) *MockAPIServerClient_EnrollGateway_Call {
+	_c.Call.Return(run)
+	return _c
 }
 
 // GetDeviceConfiguration provides a mock function with given fields: ctx, in, opts
@@ -81,6 +126,43 @@ func (_m *MockAPIServerClient) GetDeviceConfiguration(ctx context.Context, in *G
 	return r0, r1
 }
 
+// MockAPIServerClient_GetDeviceConfiguration_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetDeviceConfiguration'
+type MockAPIServerClient_GetDeviceConfiguration_Call struct {
+	*mock.Call
+}
+
+// GetDeviceConfiguration is a helper method to define mock.On call
+//   - ctx context.Context
+//   - in *GetDeviceConfigurationRequest
+//   - opts ...grpc.CallOption
+func (_e *MockAPIServerClient_Expecter) GetDeviceConfiguration(ctx interface{}, in interface{}, opts ...interface{}) *MockAPIServerClient_GetDeviceConfiguration_Call {
+	return &MockAPIServerClient_GetDeviceConfiguration_Call{Call: _e.mock.On("GetDeviceConfiguration",
+		append([]interface{}{ctx, in}, opts...)...)}
+}
+
+func (_c *MockAPIServerClient_GetDeviceConfiguration_Call) Run(run func(ctx context.Context, in *GetDeviceConfigurationRequest, opts ...grpc.CallOption)) *MockAPIServerClient_GetDeviceConfiguration_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		variadicArgs := make([]grpc.CallOption, len(args)-2)
+		for i, a := range args[2:] {
+			if a != nil {
+				variadicArgs[i] = a.(grpc.CallOption)
+			}
+		}
+		run(args[0].(context.Context), args[1].(*GetDeviceConfigurationRequest), variadicArgs...)
+	})
+	return _c
+}
+
+func (_c *MockAPIServerClient_GetDeviceConfiguration_Call) Return(_a0 APIServer_GetDeviceConfigurationClient, _a1 error) *MockAPIServerClient_GetDeviceConfiguration_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *MockAPIServerClient_GetDeviceConfiguration_Call) RunAndReturn(run func(context.Context, *GetDeviceConfigurationRequest, ...grpc.CallOption) (APIServer_GetDeviceConfigurationClient, error)) *MockAPIServerClient_GetDeviceConfiguration_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // GetGateway provides a mock function with given fields: ctx, in, opts
 func (_m *MockAPIServerClient) GetGateway(ctx context.Context, in *ModifyGatewayRequest, opts ...grpc.CallOption) (*Gateway, error) {
 	_va := make([]interface{}, len(opts))
@@ -112,6 +194,43 @@ func (_m *MockAPIServerClient) GetGateway(ctx context.Context, in *ModifyGateway
 	}
 
 	return r0, r1
+}
+
+// MockAPIServerClient_GetGateway_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetGateway'
+type MockAPIServerClient_GetGateway_Call struct {
+	*mock.Call
+}
+
+// GetGateway is a helper method to define mock.On call
+//   - ctx context.Context
+//   - in *ModifyGatewayRequest
+//   - opts ...grpc.CallOption
+func (_e *MockAPIServerClient_Expecter) GetGateway(ctx interface{}, in interface{}, opts ...interface{}) *MockAPIServerClient_GetGateway_Call {
+	return &MockAPIServerClient_GetGateway_Call{Call: _e.mock.On("GetGateway",
+		append([]interface{}{ctx, in}, opts...)...)}
+}
+
+func (_c *MockAPIServerClient_GetGateway_Call) Run(run func(ctx context.Context, in *ModifyGatewayRequest, opts ...grpc.CallOption)) *MockAPIServerClient_GetGateway_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		variadicArgs := make([]grpc.CallOption, len(args)-2)
+		for i, a := range args[2:] {
+			if a != nil {
+				variadicArgs[i] = a.(grpc.CallOption)
+			}
+		}
+		run(args[0].(context.Context), args[1].(*ModifyGatewayRequest), variadicArgs...)
+	})
+	return _c
+}
+
+func (_c *MockAPIServerClient_GetGateway_Call) Return(_a0 *Gateway, _a1 error) *MockAPIServerClient_GetGateway_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *MockAPIServerClient_GetGateway_Call) RunAndReturn(run func(context.Context, *ModifyGatewayRequest, ...grpc.CallOption) (*Gateway, error)) *MockAPIServerClient_GetGateway_Call {
+	_c.Call.Return(run)
+	return _c
 }
 
 // GetGatewayConfiguration provides a mock function with given fields: ctx, in, opts
@@ -147,6 +266,43 @@ func (_m *MockAPIServerClient) GetGatewayConfiguration(ctx context.Context, in *
 	return r0, r1
 }
 
+// MockAPIServerClient_GetGatewayConfiguration_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetGatewayConfiguration'
+type MockAPIServerClient_GetGatewayConfiguration_Call struct {
+	*mock.Call
+}
+
+// GetGatewayConfiguration is a helper method to define mock.On call
+//   - ctx context.Context
+//   - in *GetGatewayConfigurationRequest
+//   - opts ...grpc.CallOption
+func (_e *MockAPIServerClient_Expecter) GetGatewayConfiguration(ctx interface{}, in interface{}, opts ...interface{}) *MockAPIServerClient_GetGatewayConfiguration_Call {
+	return &MockAPIServerClient_GetGatewayConfiguration_Call{Call: _e.mock.On("GetGatewayConfiguration",
+		append([]interface{}{ctx, in}, opts...)...)}
+}
+
+func (_c *MockAPIServerClient_GetGatewayConfiguration_Call) Run(run func(ctx context.Context, in *GetGatewayConfigurationRequest, opts ...grpc.CallOption)) *MockAPIServerClient_GetGatewayConfiguration_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		variadicArgs := make([]grpc.CallOption, len(args)-2)
+		for i, a := range args[2:] {
+			if a != nil {
+				variadicArgs[i] = a.(grpc.CallOption)
+			}
+		}
+		run(args[0].(context.Context), args[1].(*GetGatewayConfigurationRequest), variadicArgs...)
+	})
+	return _c
+}
+
+func (_c *MockAPIServerClient_GetGatewayConfiguration_Call) Return(_a0 APIServer_GetGatewayConfigurationClient, _a1 error) *MockAPIServerClient_GetGatewayConfiguration_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *MockAPIServerClient_GetGatewayConfiguration_Call) RunAndReturn(run func(context.Context, *GetGatewayConfigurationRequest, ...grpc.CallOption) (APIServer_GetGatewayConfigurationClient, error)) *MockAPIServerClient_GetGatewayConfiguration_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // GetSessions provides a mock function with given fields: ctx, in, opts
 func (_m *MockAPIServerClient) GetSessions(ctx context.Context, in *GetSessionsRequest, opts ...grpc.CallOption) (*GetSessionsResponse, error) {
 	_va := make([]interface{}, len(opts))
@@ -178,6 +334,43 @@ func (_m *MockAPIServerClient) GetSessions(ctx context.Context, in *GetSessionsR
 	}
 
 	return r0, r1
+}
+
+// MockAPIServerClient_GetSessions_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetSessions'
+type MockAPIServerClient_GetSessions_Call struct {
+	*mock.Call
+}
+
+// GetSessions is a helper method to define mock.On call
+//   - ctx context.Context
+//   - in *GetSessionsRequest
+//   - opts ...grpc.CallOption
+func (_e *MockAPIServerClient_Expecter) GetSessions(ctx interface{}, in interface{}, opts ...interface{}) *MockAPIServerClient_GetSessions_Call {
+	return &MockAPIServerClient_GetSessions_Call{Call: _e.mock.On("GetSessions",
+		append([]interface{}{ctx, in}, opts...)...)}
+}
+
+func (_c *MockAPIServerClient_GetSessions_Call) Run(run func(ctx context.Context, in *GetSessionsRequest, opts ...grpc.CallOption)) *MockAPIServerClient_GetSessions_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		variadicArgs := make([]grpc.CallOption, len(args)-2)
+		for i, a := range args[2:] {
+			if a != nil {
+				variadicArgs[i] = a.(grpc.CallOption)
+			}
+		}
+		run(args[0].(context.Context), args[1].(*GetSessionsRequest), variadicArgs...)
+	})
+	return _c
+}
+
+func (_c *MockAPIServerClient_GetSessions_Call) Return(_a0 *GetSessionsResponse, _a1 error) *MockAPIServerClient_GetSessions_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *MockAPIServerClient_GetSessions_Call) RunAndReturn(run func(context.Context, *GetSessionsRequest, ...grpc.CallOption) (*GetSessionsResponse, error)) *MockAPIServerClient_GetSessions_Call {
+	_c.Call.Return(run)
+	return _c
 }
 
 // ListGateways provides a mock function with given fields: ctx, in, opts
@@ -213,6 +406,43 @@ func (_m *MockAPIServerClient) ListGateways(ctx context.Context, in *ListGateway
 	return r0, r1
 }
 
+// MockAPIServerClient_ListGateways_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'ListGateways'
+type MockAPIServerClient_ListGateways_Call struct {
+	*mock.Call
+}
+
+// ListGateways is a helper method to define mock.On call
+//   - ctx context.Context
+//   - in *ListGatewayRequest
+//   - opts ...grpc.CallOption
+func (_e *MockAPIServerClient_Expecter) ListGateways(ctx interface{}, in interface{}, opts ...interface{}) *MockAPIServerClient_ListGateways_Call {
+	return &MockAPIServerClient_ListGateways_Call{Call: _e.mock.On("ListGateways",
+		append([]interface{}{ctx, in}, opts...)...)}
+}
+
+func (_c *MockAPIServerClient_ListGateways_Call) Run(run func(ctx context.Context, in *ListGatewayRequest, opts ...grpc.CallOption)) *MockAPIServerClient_ListGateways_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		variadicArgs := make([]grpc.CallOption, len(args)-2)
+		for i, a := range args[2:] {
+			if a != nil {
+				variadicArgs[i] = a.(grpc.CallOption)
+			}
+		}
+		run(args[0].(context.Context), args[1].(*ListGatewayRequest), variadicArgs...)
+	})
+	return _c
+}
+
+func (_c *MockAPIServerClient_ListGateways_Call) Return(_a0 APIServer_ListGatewaysClient, _a1 error) *MockAPIServerClient_ListGateways_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *MockAPIServerClient_ListGateways_Call) RunAndReturn(run func(context.Context, *ListGatewayRequest, ...grpc.CallOption) (APIServer_ListGatewaysClient, error)) *MockAPIServerClient_ListGateways_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // Login provides a mock function with given fields: ctx, in, opts
 func (_m *MockAPIServerClient) Login(ctx context.Context, in *APIServerLoginRequest, opts ...grpc.CallOption) (*APIServerLoginResponse, error) {
 	_va := make([]interface{}, len(opts))
@@ -244,6 +474,43 @@ func (_m *MockAPIServerClient) Login(ctx context.Context, in *APIServerLoginRequ
 	}
 
 	return r0, r1
+}
+
+// MockAPIServerClient_Login_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'Login'
+type MockAPIServerClient_Login_Call struct {
+	*mock.Call
+}
+
+// Login is a helper method to define mock.On call
+//   - ctx context.Context
+//   - in *APIServerLoginRequest
+//   - opts ...grpc.CallOption
+func (_e *MockAPIServerClient_Expecter) Login(ctx interface{}, in interface{}, opts ...interface{}) *MockAPIServerClient_Login_Call {
+	return &MockAPIServerClient_Login_Call{Call: _e.mock.On("Login",
+		append([]interface{}{ctx, in}, opts...)...)}
+}
+
+func (_c *MockAPIServerClient_Login_Call) Run(run func(ctx context.Context, in *APIServerLoginRequest, opts ...grpc.CallOption)) *MockAPIServerClient_Login_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		variadicArgs := make([]grpc.CallOption, len(args)-2)
+		for i, a := range args[2:] {
+			if a != nil {
+				variadicArgs[i] = a.(grpc.CallOption)
+			}
+		}
+		run(args[0].(context.Context), args[1].(*APIServerLoginRequest), variadicArgs...)
+	})
+	return _c
+}
+
+func (_c *MockAPIServerClient_Login_Call) Return(_a0 *APIServerLoginResponse, _a1 error) *MockAPIServerClient_Login_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *MockAPIServerClient_Login_Call) RunAndReturn(run func(context.Context, *APIServerLoginRequest, ...grpc.CallOption) (*APIServerLoginResponse, error)) *MockAPIServerClient_Login_Call {
+	_c.Call.Return(run)
+	return _c
 }
 
 // UpdateGateway provides a mock function with given fields: ctx, in, opts
@@ -279,12 +546,50 @@ func (_m *MockAPIServerClient) UpdateGateway(ctx context.Context, in *ModifyGate
 	return r0, r1
 }
 
+// MockAPIServerClient_UpdateGateway_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'UpdateGateway'
+type MockAPIServerClient_UpdateGateway_Call struct {
+	*mock.Call
+}
+
+// UpdateGateway is a helper method to define mock.On call
+//   - ctx context.Context
+//   - in *ModifyGatewayRequest
+//   - opts ...grpc.CallOption
+func (_e *MockAPIServerClient_Expecter) UpdateGateway(ctx interface{}, in interface{}, opts ...interface{}) *MockAPIServerClient_UpdateGateway_Call {
+	return &MockAPIServerClient_UpdateGateway_Call{Call: _e.mock.On("UpdateGateway",
+		append([]interface{}{ctx, in}, opts...)...)}
+}
+
+func (_c *MockAPIServerClient_UpdateGateway_Call) Run(run func(ctx context.Context, in *ModifyGatewayRequest, opts ...grpc.CallOption)) *MockAPIServerClient_UpdateGateway_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		variadicArgs := make([]grpc.CallOption, len(args)-2)
+		for i, a := range args[2:] {
+			if a != nil {
+				variadicArgs[i] = a.(grpc.CallOption)
+			}
+		}
+		run(args[0].(context.Context), args[1].(*ModifyGatewayRequest), variadicArgs...)
+	})
+	return _c
+}
+
+func (_c *MockAPIServerClient_UpdateGateway_Call) Return(_a0 *ModifyGatewayResponse, _a1 error) *MockAPIServerClient_UpdateGateway_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *MockAPIServerClient_UpdateGateway_Call) RunAndReturn(run func(context.Context, *ModifyGatewayRequest, ...grpc.CallOption) (*ModifyGatewayResponse, error)) *MockAPIServerClient_UpdateGateway_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // NewMockAPIServerClient creates a new instance of MockAPIServerClient. It also registers a testing interface on the mock and a cleanup function to assert the mocks expectations.
 // The first argument is typically a *testing.T value.
 func NewMockAPIServerClient(t interface {
 	mock.TestingT
 	Cleanup(func())
-}) *MockAPIServerClient {
+},
+) *MockAPIServerClient {
 	mock := &MockAPIServerClient{}
 	mock.Mock.Test(t)
 

@@ -13,6 +13,14 @@ type MockClient struct {
 	mock.Mock
 }
 
+type MockClient_Expecter struct {
+	mock *mock.Mock
+}
+
+func (_m *MockClient) EXPECT() *MockClient_Expecter {
+	return &MockClient_Expecter{mock: &_m.Mock}
+}
+
 // Open provides a mock function with given fields: ctx
 func (_m *MockClient) Open(ctx context.Context) (Object, error) {
 	ret := _m.Called(ctx)
@@ -39,12 +47,41 @@ func (_m *MockClient) Open(ctx context.Context) (Object, error) {
 	return r0, r1
 }
 
+// MockClient_Open_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'Open'
+type MockClient_Open_Call struct {
+	*mock.Call
+}
+
+// Open is a helper method to define mock.On call
+//   - ctx context.Context
+func (_e *MockClient_Expecter) Open(ctx interface{}) *MockClient_Open_Call {
+	return &MockClient_Open_Call{Call: _e.mock.On("Open", ctx)}
+}
+
+func (_c *MockClient_Open_Call) Run(run func(ctx context.Context)) *MockClient_Open_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context))
+	})
+	return _c
+}
+
+func (_c *MockClient_Open_Call) Return(_a0 Object, _a1 error) *MockClient_Open_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *MockClient_Open_Call) RunAndReturn(run func(context.Context) (Object, error)) *MockClient_Open_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // NewMockClient creates a new instance of MockClient. It also registers a testing interface on the mock and a cleanup function to assert the mocks expectations.
 // The first argument is typically a *testing.T value.
 func NewMockClient(t interface {
 	mock.TestingT
 	Cleanup(func())
-}) *MockClient {
+},
+) *MockClient {
 	mock := &MockClient{}
 	mock.Mock.Test(t)
 
