@@ -40,7 +40,7 @@ func (das *DeviceAgentServer) ConfigureHelper(ctx context.Context, rc runtimecon
 	return err
 }
 
-func (das *DeviceAgentServer) syncConfigLoop(ctx context.Context, gateways chan<- []*pb.Gateway) error {
+func (das *DeviceAgentServer) syncConfigLoop(ctx context.Context, gateways chan<- []*pb.Gateway, notifyConnected chan struct{}) error {
 	dialContext, cancel := context.WithTimeout(ctx, syncConfigDialTimeout)
 	defer cancel()
 
@@ -97,6 +97,12 @@ func (das *DeviceAgentServer) syncConfigLoop(ctx context.Context, gateways chan<
 	}
 
 	log.Infof("Gateway configuration stream established")
+
+	// notify calling function that we are connected
+	select {
+	case notifyConnected <- struct{}{}:
+	default:
+	}
 
 	for {
 		cfg, err := stream.Recv()
@@ -283,13 +289,14 @@ func (das *DeviceAgentServer) EventLoop(programContext context.Context) {
 
 				status.ConnectedSince = timestamppb.Now()
 
+				notifyConnected := make(chan struct{})
 				syncctx, synccancel = context.WithCancel(programContext)
 				go func() {
 					attempt := 0
 					for syncctx.Err() == nil {
 						attempt++
 						log.Infof("[attempt %d] Setting up gateway configuration stream...", attempt)
-						err := das.syncConfigLoop(syncctx, gateways)
+						err := das.syncConfigLoop(syncctx, gateways, notifyConnected)
 
 						switch grpcstatus.Code(err) {
 						case codes.OK:
@@ -316,6 +323,7 @@ func (das *DeviceAgentServer) EventLoop(programContext context.Context) {
 					synccancel()
 				}()
 
+				<-notifyConnected
 				das.stateChange <- pb.AgentState_Connected
 				continue
 
