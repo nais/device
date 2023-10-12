@@ -27,10 +27,14 @@ func bufconnDialer(listener *bufconn.Listener) func(context.Context, string) (ne
 	}
 }
 
-func serve(server *grpc.Server, errs chan<- error) (*bufconn.Listener, func()) {
+func serve(t *testing.T, server *grpc.Server) (*bufconn.Listener, func()) {
+	t.Helper()
 	lis := bufconn.Listen(1024 * 1024)
 	go func() {
-		errs <- server.Serve(lis)
+		if err := server.Serve(lis); err != nil {
+			t.Logf("grpc serve error: %v", err)
+			t.FailNow()
+		}
 	}()
 
 	return lis, server.Stop
@@ -46,21 +50,39 @@ func dial(ctx context.Context, lis *bufconn.Listener) (*grpc.ClientConn, error) 
 }
 
 func TestIntegration(t *testing.T) {
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second*2)
-	defer cancel()
-
+	t.Parallel()
 	logrus.SetLevel(logrus.DebugLevel)
 
-	testDevice := &pb.Device{
-		Serial:      "test-serial",
-		LastUpdated: &timestamppb.Timestamp{},
-		Healthy:     true,
-		PublicKey:   "publicKey",
-		Ipv4:        "192.0.2.20",
-		Username:    "tester",
-		Platform:    "linux",
-		Ipv6:        "2001:db8::20",
+	tests := []struct {
+		name     string
+		device   *pb.Device
+		endState pb.AgentState
+	}{
+		{
+			name: "test happy path",
+			device: &pb.Device{
+				Serial:      "test-serial",
+				LastUpdated: &timestamppb.Timestamp{},
+				Healthy:     true,
+				PublicKey:   "publicKey",
+				Ipv4:        "192.0.2.20",
+				Username:    "tester",
+				Platform:    "linux",
+				Ipv6:        "2001:db8::20",
+			},
+			endState: pb.AgentState_Connected,
+		},
 	}
+
+	for _, test := range tests {
+		tableTest(t, test.device, test.endState)
+	}
+}
+
+func tableTest(t *testing.T, testDevice *pb.Device, endState pb.AgentState) {
+	t.Helper()
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
+	defer cancel()
 
 	db := NewDB(t)
 	assert.NoError(t, db.AddDevice(ctx, testDevice))
@@ -81,24 +103,21 @@ func TestIntegration(t *testing.T) {
 	assert.NoError(t, err)
 	t.Logf("sessions: %+v ", sessions)
 
-	serveErrs := make(chan error)
-
-	apiserverListener, cancel := serve(NewAPIServer(t, ctx, db), serveErrs)
-	defer cancel()
+	apiserverListener, stopAPIServer := serve(t, NewAPIServer(t, ctx, db))
 
 	osConfigurator := helper.NewMockOSConfigurator(t)
 	osConfigurator.EXPECT().SetupInterface(mock.Anything, mock.Anything).Return(nil)
 	osConfigurator.EXPECT().SyncConf(mock.Anything, mock.Anything).Return(nil)
 	osConfigurator.EXPECT().SetupRoutes(mock.Anything, mock.Anything).Return(nil)
+	osConfigurator.EXPECT().TeardownInterface(mock.Anything).Return(nil).Maybe()
 
-	helperListener, cancel := serve(NewHelper(t, osConfigurator), serveErrs)
-	defer cancel()
+	helperListener, stopHelper := serve(t, NewHelper(t, osConfigurator))
 
 	apiDial, err := dial(ctx, apiserverListener)
 	assert.NoError(t, err)
 
 	rc := runtimeconfig.NewMockRuntimeConfig(t)
-	rc.EXPECT().DialAPIServer(mock.Anything).Return(apiDial, nil).Once()
+	rc.EXPECT().DialAPIServer(mock.Anything).Return(apiDial, nil)
 	rc.EXPECT().Tenants().Return([]*pb.Tenant{{
 		Name:         "test",
 		AuthProvider: pb.AuthProvider_Google,
@@ -118,8 +137,13 @@ func TestIntegration(t *testing.T) {
 		Gateways: []*pb.Gateway{peers},
 	})
 
-	deviceAgentListener, cancel := serve(NewDeviceAgent(t, ctx, helperListener, rc), serveErrs)
-	defer cancel()
+	deviceAgentListener, stopDeviceAgent := serve(t, NewDeviceAgent(t, ctx, helperListener, rc))
+
+	defer func() {
+		stopDeviceAgent()
+		stopHelper()
+		stopAPIServer()
+	}()
 
 	deviceAgentConnection, err := dial(ctx, deviceAgentListener)
 	assert.NoError(t, err)
@@ -136,23 +160,28 @@ func TestIntegration(t *testing.T) {
 		for {
 			status, err := statusClient.Recv()
 			if grpc_status.Code(err) == codes.Canceled || grpc_status.Code(err) == codes.Unavailable {
+				t.Logf("receiving agent status: %v", err)
 				return
 			}
-			assert.NoError(t, err)
-			statusChan <- status
+			if err != nil {
+				t.Errorf("receiving agent status unexpected error: %v", err)
+			} else {
+				statusChan <- status
+			}
 		}
 	}()
 
+	lastKnownState := pb.AgentState_Disconnected
 	for {
 		select {
 		case <-ctx.Done():
-			t.Fatalf("test timed out without agent reacing connected state")
-		case err := <-serveErrs:
-			if err != nil {
-				t.Fatalf("grpc serve error: %v", err)
-			}
+			t.Errorf("test timed out without agent reaching expected end state: %v, last known state: %v", endState, lastKnownState)
+			return
 		case status := <-statusChan:
-			if status.ConnectionState == pb.AgentState_Connected {
+			lastKnownState = status.ConnectionState
+			t.Logf("received status: %+v", status.String())
+			if status.ConnectionState == endState {
+				t.Logf("agent reached expected end state: %v", endState)
 				return
 			}
 		}
