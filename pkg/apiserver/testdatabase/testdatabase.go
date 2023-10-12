@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/netip"
 	"os"
+	"strings"
 	"testing"
 	"time"
 
@@ -22,7 +23,7 @@ func Setup(t *testing.T) database.APIServer {
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 
-	tempFile, err := os.CreateTemp(os.TempDir(), fmt.Sprintf("%s*.db", t.Name()))
+	tempFile, err := os.CreateTemp(os.TempDir(), fmt.Sprintf("%s*.db", strings.ReplaceAll(t.Name(), "/", "_")))
 	if err != nil {
 		t.Fatalf("unable to setup test database: %v", err)
 	}

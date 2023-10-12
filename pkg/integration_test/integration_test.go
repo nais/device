@@ -21,6 +21,8 @@ import (
 	"google.golang.org/grpc/test/bufconn"
 )
 
+const testGroup = "test-group"
+
 func bufconnDialer(listener *bufconn.Listener) func(context.Context, string) (net.Conn, error) {
 	return func(context.Context, string) (net.Conn, error) {
 		return listener.Dial()
@@ -54,47 +56,69 @@ func TestIntegration(t *testing.T) {
 	logrus.SetLevel(logrus.DebugLevel)
 
 	tests := []struct {
-		name     string
-		device   *pb.Device
-		endState pb.AgentState
+		name             string
+		device           *pb.Device
+		endState         pb.AgentState
+		expectedGateways []*pb.Gateway
 	}{
 		{
-			name: "test happy path",
+			name: "test happy unhealthy path",
 			device: &pb.Device{
-				Serial:      "test-serial",
-				LastUpdated: &timestamppb.Timestamp{},
-				Healthy:     true,
-				PublicKey:   "publicKey",
-				Ipv4:        "192.0.2.20",
-				Username:    "tester",
-				Platform:    "linux",
-				Ipv6:        "2001:db8::20",
+				Serial:    "test-serial",
+				Healthy:   false,
+				PublicKey: "publicKey",
+				Username:  "tester",
+				Platform:  "linux",
+			},
+			endState:         pb.AgentState_Unhealthy,
+			expectedGateways: nil,
+		},
+		{
+			name: "test happy healthy path",
+			device: &pb.Device{
+				Serial:    "test-serial",
+				Healthy:   true,
+				PublicKey: "publicKey",
+				Username:  "tester",
+				Platform:  "linux",
 			},
 			endState: pb.AgentState_Connected,
+			expectedGateways: []*pb.Gateway{{
+				Name:           "expected-gateway",
+				PublicKey:      "gwPublicKey",
+				AccessGroupIDs: []string{testGroup},
+			}},
 		},
 	}
 
 	for _, test := range tests {
-		tableTest(t, test.device, test.endState)
+		t.Run(test.name, func(t *testing.T) {
+			tableTest(t, test.device, test.endState, test.expectedGateways)
+		})
 	}
 }
 
-func tableTest(t *testing.T, testDevice *pb.Device, endState pb.AgentState) {
+func tableTest(t *testing.T, testDevice *pb.Device, endState pb.AgentState, expectedGateways []*pb.Gateway) {
 	t.Helper()
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
 	defer cancel()
 
 	db := NewDB(t)
 	assert.NoError(t, db.AddDevice(ctx, testDevice))
+	assert.NoError(t, db.UpdateDevices(ctx, []*pb.Device{testDevice}))
 	// populate device with data from db, specifically to get the ID
 	testDevice, err := db.ReadDevice(ctx, testDevice.PublicKey)
 	assert.NoError(t, err)
+
+	for _, gateway := range expectedGateways {
+		assert.NoError(t, db.AddGateway(ctx, gateway))
+	}
 
 	session := &pb.Session{
 		Key:      "session-key",
 		Expiry:   timestamppb.New(time.Now().Add(24 * time.Hour)),
 		Device:   testDevice,
-		Groups:   []string{"test-group"},
+		Groups:   []string{testGroup},
 		ObjectID: "test-object-id",
 	}
 	assert.NoError(t, db.AddSessionInfo(ctx, session))
@@ -127,15 +151,27 @@ func tableTest(t *testing.T, testDevice *pb.Device, endState pb.AgentState) {
 	rc.EXPECT().ResetEnrollConfig().Return()
 	rc.EXPECT().GetTenantSession().Return(session, nil)
 	rc.EXPECT().LoadEnrollConfig().Return(nil)
-	peers := &pb.Gateway{
-		PublicKey: "test_public_key",
-		Endpoint:  "test_endpoint",
-		Ipv4:      "192.0.2.10",
+	peers := []*pb.Gateway{
+		{
+			PublicKey: "test_public_key",
+			Endpoint:  "test_endpoint",
+			Ipv4:      "192.0.2.10",
+		},
 	}
-	rc.EXPECT().APIServerPeer().Return(peers)
-	rc.EXPECT().BuildHelperConfiguration([]*pb.Gateway{peers}).Return(&pb.Configuration{
-		Gateways: []*pb.Gateway{peers},
+	rc.EXPECT().APIServerPeer().Return(peers[0])
+	rc.EXPECT().BuildHelperConfiguration(mock.MatchedBy(func(gws []*pb.Gateway) bool {
+		return len(gws) == 1
+	})).Return(&pb.Configuration{
+		Gateways: peers,
 	})
+	if expectedGateways != nil {
+		gateways := append(peers, expectedGateways...)
+		rc.EXPECT().BuildHelperConfiguration(mock.MatchedBy(func(gws []*pb.Gateway) bool {
+			return len(gws) == 2
+		})).Return(&pb.Configuration{
+			Gateways: gateways,
+		})
+	}
 
 	deviceAgentListener, stopDeviceAgent := serve(t, NewDeviceAgent(t, ctx, helperListener, rc))
 
@@ -182,6 +218,13 @@ func tableTest(t *testing.T, testDevice *pb.Device, endState pb.AgentState) {
 			t.Logf("received status: %+v", status.String())
 			if status.ConnectionState == endState {
 				t.Logf("agent reached expected end state: %v", endState)
+				if expectedGateways != nil {
+					if len(status.Gateways) == 1 {
+						assert.Equal(t, expectedGateways[0].Name, status.Gateways[0].Name)
+						return
+					}
+					continue
+				}
 				return
 			}
 		}
