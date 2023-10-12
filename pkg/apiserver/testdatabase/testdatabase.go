@@ -2,6 +2,7 @@ package testdatabase
 
 import (
 	"context"
+	"fmt"
 	"net/netip"
 	"os"
 	"testing"
@@ -21,7 +22,7 @@ func Setup(t *testing.T) database.APIServer {
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 
-	tempFile, err := os.CreateTemp(os.TempDir(), "*.db")
+	tempFile, err := os.CreateTemp(os.TempDir(), fmt.Sprintf("%s*.db", t.Name()))
 	if err != nil {
 		t.Fatalf("unable to setup test database: %v", err)
 	}
