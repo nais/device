@@ -13,7 +13,7 @@ const addGateway = `-- name: AddGateway :exec
 INSERT INTO gateways (name, endpoint, public_key, ipv4, ipv6, password_hash, requires_privileged_access)
 VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)
 ON CONFLICT (name) DO
-    UPDATE SET endpoint = excluded.endpoint, public_key = excluded.public_key, password_hash = excluded.password_hash
+    UPDATE SET endpoint = excluded.endpoint, public_key = excluded.public_key, password_hash = excluded.password_hash, ipv6 = excluded.ipv6
 `
 
 type AddGatewayParams struct {

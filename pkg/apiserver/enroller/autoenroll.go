@@ -5,11 +5,12 @@ import (
 	"encoding/json"
 
 	"cloud.google.com/go/pubsub"
+	"github.com/sirupsen/logrus"
+	"golang.org/x/sync/errgroup"
+
 	"github.com/nais/device/pkg/apiserver/database"
 	"github.com/nais/device/pkg/pb"
 	"github.com/nais/device/pkg/pubsubenroll"
-	"github.com/sirupsen/logrus"
-	"golang.org/x/sync/errgroup"
 )
 
 type autoEnrollConfig struct {
@@ -126,8 +127,8 @@ func (a *AutoEnroll) receiveGateway(ctx context.Context, msg *pubsub.Message) {
 
 	resp := pubsubenroll.Response{
 		APIServerGRPCAddress: a.apiServerGRPCAddress,
-		WireGuardIPv4:        gw.Ipv4,
-		WireGuardIPv6:        gw.Ipv6,
+		WireGuardIPv4:        gw.Ipv4 + "/21",
+		WireGuardIPv6:        gw.Ipv6 + "/64",
 		Peers:                a.peers,
 	}
 

@@ -22,8 +22,6 @@ const File = "agent-config.json"
 type Config struct {
 	APIServerGRPCAddress     string
 	AgentConfiguration       *pb.AgentConfiguration
-	BootstrapAPI             string
-	BootstrapToken           string
 	ConfigDir                string
 	DeviceAgentHelperAddress string
 	GoogleAuthServerAddress  string
@@ -56,7 +54,6 @@ func DefaultConfig() Config {
 	}
 
 	return Config{
-		BootstrapAPI:             "https://bootstrap.device.nais.io",
 		ConfigDir:                userConfigDir,
 		LogLevel:                 "info",
 		GrpcAddress:              filepath.Join(userConfigDir, "agent.sock"),

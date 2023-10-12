@@ -1,9 +1,4 @@
 ---
-- name: Set up bootstrap-api vm
-  hosts: bootstrap_api
-  roles:
-    - vm_bootstrap_api
-
 - name: Set up prometheus vm
   hosts: prometheus
   roles:

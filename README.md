@@ -25,7 +25,7 @@ todo: simple visual describing:
 - apiserver coordinates configuration
 - device + gateway fetches config on a timer
 - [naisdevice-health-checker](https://github.com/nais/naisdevice-health-checker) informs apiserver of device health from Kolide
-- additionally: bootstrap-api used first time user connects/enrolls into the system
+- additionally: enroller used first time user connects/enrolls into the system
 
 ### components
 
@@ -40,13 +40,8 @@ It calculates the appropriate configuration for the peers primarily based on two
 
 If both is true, the device-agent and gateway-agent is informed with the necessary information in order for them to communicate.
 
-The apiserver also:
-- exposes an endpoint for other trusted processes to inform about the health status of the devices. Currently this is the [naisdevice-health-checker](https://github.com/nais/naisdevice-health-checker) components
-- continuously checks the [bootstrap-api](#bootstrap-api) for any pending enrollments requests and adds new devices.
-
 ### device-agent
 ### gateway-agent
-### bootstrap-api
 
 ## [Kolide](https://www.kolide.com/)
 
