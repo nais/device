@@ -24,7 +24,7 @@ WHERE name = @name;
 INSERT INTO gateways (name, endpoint, public_key, ipv4, ipv6, password_hash, requires_privileged_access)
 VALUES (@name, @endpoint, @public_key, @ipv4, @ipv6, @password_hash, @requires_privileged_access)
 ON CONFLICT (name) DO
-    UPDATE SET endpoint = excluded.endpoint, public_key = excluded.public_key, password_hash = excluded.password_hash;
+    UPDATE SET endpoint = excluded.endpoint, public_key = excluded.public_key, password_hash = excluded.password_hash, ipv6 = excluded.ipv6;
 
 -- name: DeleteGatewayAccessGroupIDs :exec
 DELETE FROM gateway_access_group_ids WHERE gateway_name = @gateway_name;

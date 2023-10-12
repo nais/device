@@ -8,23 +8,25 @@ import (
 	"syscall"
 	"time"
 
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/credentials/insecure"
+	"google.golang.org/grpc/status"
+
 	"github.com/nais/device/pkg/gateway-agent"
 	"github.com/nais/device/pkg/gateway-agent/config"
 	"github.com/nais/device/pkg/passwordhash"
 	"github.com/nais/device/pkg/pb"
 	"github.com/nais/device/pkg/pubsubenroll"
 	"github.com/nais/device/pkg/wireguard"
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/credentials/insecure"
-	"google.golang.org/grpc/status"
 
 	"github.com/nais/device/pkg/logger"
 
 	"github.com/coreos/go-iptables/iptables"
 	"github.com/kelseyhightower/envconfig"
-	"github.com/nais/device/pkg/version"
 	log "github.com/sirupsen/logrus"
+
+	"github.com/nais/device/pkg/version"
 )
 
 const (
@@ -52,11 +54,6 @@ func run(cfg config.Config) error {
 	err = envconfig.Process("GATEWAY_AGENT", &cfg)
 	if err != nil {
 		return fmt.Errorf("read environment configuration: %w", err)
-	}
-
-	err = cfg.Parse()
-	if err != nil {
-		return fmt.Errorf("parse configuration: %w", err)
 	}
 
 	logger.Setup(cfg.LogLevel)
@@ -106,6 +103,11 @@ func run(cfg config.Config) error {
 		cfg.DeviceIPv4 = enrollResp.WireGuardIPv4
 
 		staticPeers = wireguard.CastPeerList(enrollResp.Peers)
+	}
+
+	err = cfg.Parse()
+	if err != nil {
+		return fmt.Errorf("parse configuration: %w", err)
 	}
 
 	gateway_agent.InitializeMetrics(cfg.Name, version.Version)

@@ -3,7 +3,7 @@ name: Test and Build
 on: [pull_request]
 
 env:
-  go_version: '1.21.1'
+  go_version: '1.21.3'
 
 jobs:
   test:
