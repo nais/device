@@ -45,7 +45,6 @@ func (das *DeviceAgentServer) syncConfigLoop(ctx context.Context, gateways chan<
 	defer cancel()
 
 	conn, err := das.rc.DialAPIServer(dialContext)
-
 	if err != nil {
 		return grpcstatus.Errorf(codes.Unavailable, err.Error())
 	}
@@ -134,7 +133,7 @@ func (das *DeviceAgentServer) getSerial(ctx context.Context) (string, error) {
 	return serial.GetSerial(), err
 }
 
-func (das *DeviceAgentServer) EventLoop(ctx context.Context) {
+func (das *DeviceAgentServer) EventLoop(programContext context.Context) {
 	var err error
 	var syncctx context.Context
 	var synccancel context.CancelFunc
@@ -160,12 +159,12 @@ func (das *DeviceAgentServer) EventLoop(ctx context.Context) {
 		}
 
 		select {
-		case <-ctx.Done():
+		case <-programContext.Done():
 			log.Infof("EventLoop: context done")
 			return
 
 		case <-versionCheckTicker.C:
-			ctx, cancel := context.WithTimeout(context.Background(), versionCheckTimeout)
+			ctx, cancel := context.WithTimeout(programContext, versionCheckTimeout)
 			status.NewVersionAvailable, err = newVersionAvailable(ctx)
 			cancel()
 
@@ -251,7 +250,7 @@ func (das *DeviceAgentServer) EventLoop(ctx context.Context) {
 				} else {
 					log.Infof("Unable to load enroll config: %s", err)
 					log.Infof("Enrolling device")
-					ctx, cancel := context.WithTimeout(context.Background(), 1*time.Minute)
+					ctx, cancel := context.WithTimeout(programContext, 1*time.Minute)
 					serial, err := das.getSerial(ctx)
 					if err != nil {
 						notify.Errorf("Unable to get serial number: %v", err)
@@ -270,7 +269,7 @@ func (das *DeviceAgentServer) EventLoop(ctx context.Context) {
 					}
 				}
 
-				ctx, cancel := context.WithTimeout(context.Background(), helperTimeout)
+				ctx, cancel := context.WithTimeout(programContext, helperTimeout)
 				err = das.ConfigureHelper(ctx, das.rc, []*pb.Gateway{
 					das.rc.APIServerPeer(),
 				})
@@ -284,7 +283,7 @@ func (das *DeviceAgentServer) EventLoop(ctx context.Context) {
 
 				status.ConnectedSince = timestamppb.Now()
 
-				syncctx, synccancel = context.WithCancel(context.Background())
+				syncctx, synccancel = context.WithCancel(programContext)
 				go func() {
 					attempt := 0
 					for syncctx.Err() == nil {
@@ -333,7 +332,7 @@ func (das *DeviceAgentServer) EventLoop(ctx context.Context) {
 					break
 				}
 
-				ctx, cancel := context.WithTimeout(ctx, authFlowTimeout)
+				ctx, cancel := context.WithTimeout(programContext, authFlowTimeout)
 				oauth2Config := das.Config.OAuth2Config(das.rc.GetActiveTenant().AuthProvider)
 				token, err := auth.GetDeviceAgentToken(ctx, oauth2Config, das.Config.GoogleAuthServerAddress)
 				cancel()
@@ -368,7 +367,7 @@ func (das *DeviceAgentServer) EventLoop(ctx context.Context) {
 					synccancel() // cancel streaming gateway updates
 				}
 				log.Info("Tearing down network connections through device-helper...")
-				ctx, cancel := context.WithTimeout(context.Background(), helperTimeout)
+				ctx, cancel := context.WithTimeout(programContext, helperTimeout)
 				_, err = das.DeviceHelper.Teardown(ctx, &pb.TeardownRequest{})
 				cancel()
 
