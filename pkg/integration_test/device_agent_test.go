@@ -2,6 +2,8 @@ package integrationtest_test
 
 import (
 	"context"
+	"testing"
+
 	device_agent "github.com/nais/device/pkg/device-agent"
 	"github.com/nais/device/pkg/device-agent/config"
 	"github.com/nais/device/pkg/device-agent/runtimeconfig"
@@ -9,18 +11,11 @@ import (
 	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/grpc"
-	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/test/bufconn"
-	"testing"
 )
 
 func NewDeviceAgent(t *testing.T, ctx context.Context, helperconn *bufconn.Listener, rc *runtimeconfig.MockRuntimeConfig) *grpc.Server {
-	helperDial, err := grpc.DialContext(
-		ctx,
-		"bufnet",
-		grpc.WithContextDialer(ContextBufDialer(helperconn)),
-		grpc.WithTransportCredentials(insecure.NewCredentials()),
-	)
+	helperDial, err := dial(ctx, helperconn)
 	assert.NoError(t, err)
 
 	helperClient := pb.NewDeviceHelperClient(helperDial)

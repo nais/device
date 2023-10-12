@@ -1,14 +1,15 @@
 package integrationtest_test
 
 import (
+	"os"
+	"path/filepath"
+	"testing"
+
 	"github.com/nais/device/pkg/helper"
 	"github.com/nais/device/pkg/pb"
 	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/grpc"
-	"os"
-	"path/filepath"
-	"testing"
 )
 
 func NewHelper(t *testing.T, osConfigurator helper.OSConfigurator) *grpc.Server {
@@ -26,5 +27,6 @@ func NewHelper(t *testing.T, osConfigurator helper.OSConfigurator) *grpc.Server 
 		OSConfigurator: osConfigurator,
 	}
 	pb.RegisterDeviceHelperServer(server, &deviceHelperServer)
+
 	return server
 }
