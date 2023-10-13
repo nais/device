@@ -16,8 +16,7 @@ type Notifier interface {
 
 var _ Notifier = &notifier{}
 
-type notifier struct {
-}
+type notifier struct{}
 
 func New() Notifier {
 	return &notifier{}

@@ -84,7 +84,7 @@ func main() {
 	log.Infof("naisdevice-systray %s starting up", version.Version)
 	log.Infof("configuration: %+v", cfg)
 
-	systray.Spawn(programContext, *cfg)
+	systray.Spawn(programContext, *cfg, notifier)
 	cancel()
 	log.Info("naisdevice-systray shutting down")
 }
