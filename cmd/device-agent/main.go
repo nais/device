@@ -67,9 +67,10 @@ func main() {
 	log.Infof("naisdevice-agent %s starting up", version.Version)
 	log.Infof("configuration: %+v", cfg)
 
-	err := startDeviceAgent(programContext, &cfg)
+	notifier := notify.New()
+	err := run(programContext, &cfg, notifier)
 	if err != nil {
-		notify.Errorf(err.Error())
+		notifier.Errorf(err.Error())
 		log.Errorf("naisdevice-agent terminated with error.")
 		os.Exit(1)
 	}
@@ -77,7 +78,7 @@ func main() {
 	log.Infof("naisdevice-agent shutting down.")
 }
 
-func startDeviceAgent(ctx context.Context, cfg *config.Config) error {
+func run(ctx context.Context, cfg *config.Config, notifier notify.Notifier) error {
 	if err := filesystem.EnsurePrerequisites(cfg); err != nil {
 		return fmt.Errorf("missing prerequisites: %s", err)
 	}
@@ -114,7 +115,7 @@ func startDeviceAgent(ctx context.Context, cfg *config.Config) error {
 	log.Infof("accepting network connections on unix socket %s", cfg.GrpcAddress)
 
 	grpcServer := grpc.NewServer()
-	das := deviceagent.NewServer(client, cfg, rc)
+	das := deviceagent.NewServer(client, cfg, rc, notifier)
 	pb.RegisterDeviceAgentServer(grpcServer, das)
 
 	go func() {

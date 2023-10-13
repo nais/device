@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/nais/device/pkg/notify"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -17,6 +18,7 @@ type Config struct {
 	LogFilePath string
 
 	BlackAndWhiteIcons bool
+	Notifier           notify.Notifier
 }
 
 func (cfg *Config) Persist() {

@@ -21,6 +21,9 @@ packages:
   github.com/nais/device/pkg/wireguard:
     interfaces:
       NetworkConfigurer:
+  github.com/nais/device/pkg/notify:
+    interfaces:
+      Notifier:
   github.com/nais/device/pkg/device-agent/runtimeconfig:
     interfaces:
       RuntimeConfig:

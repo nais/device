@@ -42,9 +42,10 @@ func main() {
 	handleSignals(cancel)
 	defer cancel()
 
+	notifier := notify.New()
 	configDir, err := config.UserConfigDir()
 	if err != nil {
-		notify.Errorf("start naisdevice-systray: unable to find configuration directory: %v", err)
+		notifier.Errorf("start naisdevice-systray: unable to find configuration directory: %v", err)
 		os.Exit(1)
 	}
 

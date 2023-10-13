@@ -9,18 +9,29 @@ import (
 
 type logFunc func(string, ...any)
 
-func logfn(logLevel log.Level) logFunc {
-	switch logLevel {
-	case log.InfoLevel:
-		return log.Infof
-	case log.ErrorLevel:
-		return log.Errorf
-	default:
-		return log.Printf
-	}
+type Notifier interface {
+	Infof(format string, args ...any)
+	Errorf(format string, args ...any)
 }
 
-func Printf(logLevel log.Level, format string, args ...any) {
+var _ Notifier = &notifier{}
+
+type notifier struct {
+}
+
+func New() Notifier {
+	return &notifier{}
+}
+
+func (*notifier) Infof(format string, args ...any) {
+	printf(log.InfoLevel, format, args...)
+}
+
+func (*notifier) Errorf(format string, args ...any) {
+	printf(log.ErrorLevel, format, args...)
+}
+
+func printf(logLevel log.Level, format string, args ...any) {
 	message := fmt.Sprintf(format, args...)
 	logger := logfn(logLevel)
 	logger(message)
@@ -30,10 +41,13 @@ func Printf(logLevel log.Level, format string, args ...any) {
 	}
 }
 
-func Infof(format string, args ...any) {
-	Printf(log.InfoLevel, format, args...)
-}
-
-func Errorf(format string, args ...any) {
-	Printf(log.ErrorLevel, format, args...)
+func logfn(logLevel log.Level) logFunc {
+	switch logLevel {
+	case log.InfoLevel:
+		return log.Infof
+	case log.ErrorLevel:
+		return log.Errorf
+	default:
+		return log.Printf
+	}
 }

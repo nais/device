@@ -7,6 +7,7 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 
+	"github.com/nais/device/pkg/notify"
 	"github.com/nais/device/pkg/pb"
 	log "github.com/sirupsen/logrus"
 )
@@ -15,7 +16,7 @@ var connection *grpc.ClientConn
 
 const ConfigFile = "systray-config.json"
 
-func onReady(ctx context.Context, cfg Config) {
+func onReady(ctx context.Context, cfg Config, notifier notify.Notifier) {
 	log.Debugf("naisdevice-agent on unix socket %s", cfg.GrpcAddress)
 	connection, err := grpc.Dial(
 		"unix:"+cfg.GrpcAddress,
@@ -27,7 +28,7 @@ func onReady(ctx context.Context, cfg Config) {
 
 	client := pb.NewDeviceAgentClient(connection)
 
-	gui := NewGUI(ctx, client, cfg)
+	gui := NewGUI(ctx, client, cfg, notifier)
 
 	go gui.handleStatusStream(ctx)
 	go gui.handleButtonClicks(ctx)
@@ -44,6 +45,6 @@ func onExit() {
 	}
 }
 
-func Spawn(ctx context.Context, systrayConfig Config) {
-	systray.Run(func() { onReady(ctx, systrayConfig) }, onExit)
+func Spawn(ctx context.Context, systrayConfig Config, notifier notify.Notifier) {
+	systray.Run(func() { onReady(ctx, systrayConfig, notifier) }, onExit)
 }

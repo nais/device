@@ -7,9 +7,11 @@ import (
 	device_agent "github.com/nais/device/pkg/device-agent"
 	"github.com/nais/device/pkg/device-agent/config"
 	"github.com/nais/device/pkg/device-agent/runtimeconfig"
+	"github.com/nais/device/pkg/notify"
 	"github.com/nais/device/pkg/pb"
 	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/test/bufconn"
 )
@@ -24,7 +26,10 @@ func NewDeviceAgent(t *testing.T, ctx context.Context, helperconn *bufconn.Liste
 	cfg.AgentConfiguration = &pb.AgentConfiguration{}
 	cfg.LogLevel = logrus.DebugLevel.String()
 
-	impl := device_agent.NewServer(helperClient, &cfg, rc)
+	notifier := notify.NewMockNotifier(t)
+	notifier.EXPECT().Errorf(mock.Anything, mock.Anything).Maybe()
+
+	impl := device_agent.NewServer(helperClient, &cfg, rc, notifier)
 	go impl.EventLoop(ctx)
 
 	server := grpc.NewServer()

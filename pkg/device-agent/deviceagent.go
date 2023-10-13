@@ -27,6 +27,7 @@ type DeviceAgentServer struct {
 	statusChannels map[uuid.UUID]chan *pb.AgentStatus
 	Config         *config.Config
 	rc             runtimeconfig.RuntimeConfig
+	notifier       notify.Notifier
 }
 
 const maxLoginAttempts = 20
@@ -118,7 +119,7 @@ func (das *DeviceAgentServer) GetAgentConfiguration(ctx context.Context, req *pb
 
 func (das *DeviceAgentServer) SetActiveTenant(ctx context.Context, req *pb.SetActiveTenantRequest) (*pb.SetActiveTenantResponse, error) {
 	if err := das.rc.SetActiveTenant(req.Name); err != nil {
-		notify.Errorf("while activating tenant: %s", err)
+		das.Notifier().Errorf("while activating tenant: %s", err)
 		das.stateChange <- pb.AgentState_Disconnecting
 		return &pb.SetActiveTenantResponse{}, nil
 	}
@@ -127,7 +128,11 @@ func (das *DeviceAgentServer) SetActiveTenant(ctx context.Context, req *pb.SetAc
 	return &pb.SetActiveTenantResponse{}, nil
 }
 
-func NewServer(helper pb.DeviceHelperClient, cfg *config.Config, rc runtimeconfig.RuntimeConfig) *DeviceAgentServer {
+func (das *DeviceAgentServer) Notifier() notify.Notifier {
+	return das.notifier
+}
+
+func NewServer(helper pb.DeviceHelperClient, cfg *config.Config, rc runtimeconfig.RuntimeConfig, notifier notify.Notifier) *DeviceAgentServer {
 	return &DeviceAgentServer{
 		DeviceHelper:   helper,
 		AgentStatus:    &pb.AgentStatus{ConnectionState: pb.AgentState_Disconnected},
@@ -135,5 +140,6 @@ func NewServer(helper pb.DeviceHelperClient, cfg *config.Config, rc runtimeconfi
 		statusChannels: make(map[uuid.UUID]chan *pb.AgentStatus),
 		Config:         cfg,
 		rc:             rc,
+		notifier:       notifier,
 	}
 }

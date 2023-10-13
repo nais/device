@@ -66,7 +66,8 @@ type Gui struct {
 		GatewayItems  []*GatewayItem
 		AcceptableUse *systray.MenuItem
 	}
-	Config Config
+	Config   Config
+	notifier notify.Notifier
 }
 
 const (
@@ -89,11 +90,12 @@ const (
 	requestBackoff      = 5 * time.Second
 )
 
-func NewGUI(ctx context.Context, client pb.DeviceAgentClient, cfg Config) *Gui {
+func NewGUI(ctx context.Context, client pb.DeviceAgentClient, cfg Config, notifier notify.Notifier) *Gui {
 	gui := &Gui{
 		DeviceAgentClient: client,
 		Config:            cfg,
 		ProgramContext:    ctx,
+		notifier:          notifier,
 	}
 	gui.applyDisconnectedIcon()
 
@@ -232,7 +234,7 @@ func (gui *Gui) handleAgentConnect() {
 
 	response, err := gui.DeviceAgentClient.GetAgentConfiguration(gui.ProgramContext, &pb.GetAgentConfigurationRequest{})
 	if err != nil {
-		notify.Errorf("Failed to get initial agent config: %v", err)
+		gui.notifier.Errorf("Failed to get initial agent config: %v", err)
 	}
 	gui.updateGuiAgentConfig(response.Config)
 	gui.MenuItems.Connect.Enable()
@@ -518,7 +520,7 @@ func (gui *Gui) activateTenant(ctx context.Context, name string) {
 	}
 	_, err := gui.DeviceAgentClient.SetActiveTenant(ctx, req)
 	if err != nil {
-		notify.Errorf("Failed to activate tenant, err: %v", err)
+		gui.notifier.Errorf("Failed to activate tenant, err: %v", err)
 		return
 	}
 
