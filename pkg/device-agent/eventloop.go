@@ -293,6 +293,7 @@ func (das *DeviceAgentServer) EventLoop(programContext context.Context) {
 				notifyConnected := make(chan struct{})
 				syncctx, synccancel = context.WithCancel(programContext)
 				wg.Add(1)
+				// Should move this out so it's started by main. Replace this logc with a channel or something else that can "start" the loop.
 				go func() {
 					attempt := 0
 					for syncctx.Err() == nil {
