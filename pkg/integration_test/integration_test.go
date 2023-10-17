@@ -30,12 +30,10 @@ func bufconnDialer(listener *bufconn.Listener) func(context.Context, string) (ne
 }
 
 func serve(t *testing.T, server *grpc.Server) (*bufconn.Listener, func()) {
-	t.Helper()
 	lis := bufconn.Listen(1024 * 1024)
 	go func() {
 		if err := server.Serve(lis); err != nil {
 			t.Logf("grpc serve error: %v", err)
-			t.FailNow()
 		}
 	}()
 
