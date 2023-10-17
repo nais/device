@@ -17,6 +17,9 @@ func NewHelper(t *testing.T, osConfigurator helper.OSConfigurator) *grpc.Server 
 	tempDir, err := os.MkdirTemp("", "naisdevice_helper_test_*")
 	assert.NoError(t, err)
 	tempfile := filepath.Join(tempDir, "test_interface.conf")
+	t.Cleanup(func() {
+		os.RemoveAll(tempDir)
+	})
 
 	deviceHelperServer := helper.DeviceHelperServer{
 		Config: helper.Config{

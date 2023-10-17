@@ -2,6 +2,7 @@ package integrationtest_test
 
 import (
 	"context"
+	"sync"
 	"testing"
 
 	device_agent "github.com/nais/device/pkg/device-agent"
@@ -16,7 +17,7 @@ import (
 	"google.golang.org/grpc/test/bufconn"
 )
 
-func NewDeviceAgent(t *testing.T, ctx context.Context, helperconn *bufconn.Listener, rc *runtimeconfig.MockRuntimeConfig) *grpc.Server {
+func NewDeviceAgent(t *testing.T, wg *sync.WaitGroup, ctx context.Context, helperconn *bufconn.Listener, rc *runtimeconfig.MockRuntimeConfig) *grpc.Server {
 	helperDial, err := dial(ctx, helperconn)
 	assert.NoError(t, err)
 
@@ -30,7 +31,11 @@ func NewDeviceAgent(t *testing.T, ctx context.Context, helperconn *bufconn.Liste
 	notifier.EXPECT().Errorf(mock.Anything, mock.Anything).Maybe()
 
 	impl := device_agent.NewServer(helperClient, &cfg, rc, notifier)
-	go impl.EventLoop(ctx)
+	go func() {
+		wg.Add(1)
+		impl.EventLoop(ctx)
+		wg.Done()
+	}()
 
 	server := grpc.NewServer()
 	pb.RegisterDeviceAgentServer(server, impl)

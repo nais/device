@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"math"
 	"net"
 	"net/http"
 	"sync"
@@ -31,7 +32,7 @@ const (
 	versionCheckTimeout    = 3 * time.Second  // timeout for new version check
 	getSerialTimeout       = 2 * time.Second  // timeout for getting device serial from helper
 	authFlowTimeout        = 1 * time.Minute  // total timeout for authenticating user (AAD login in browser, redirect to localhost, exchange code for token)
-	apiServerRetryInterval = time.Second * 5
+	apiServerRetryInterval = time.Millisecond * 10
 )
 
 func (das *DeviceAgentServer) ConfigureHelper(ctx context.Context, rc runtimeconfig.RuntimeConfig, gateways []*pb.Gateway) error {
@@ -154,7 +155,7 @@ func (das *DeviceAgentServer) EventLoop(programContext context.Context) {
 	das.stateChange <- status.ConnectionState
 
 	status.Tenants = das.rc.Tenants()
-
+	wg := &sync.WaitGroup{}
 	for {
 		das.UpdateAgentStatus(status)
 
@@ -166,6 +167,7 @@ func (das *DeviceAgentServer) EventLoop(programContext context.Context) {
 		select {
 		case <-programContext.Done():
 			log.Infof("EventLoop: context done")
+			wg.Wait()
 			return
 
 		case <-versionCheckTicker.C:
@@ -290,6 +292,7 @@ func (das *DeviceAgentServer) EventLoop(programContext context.Context) {
 
 				notifyConnected := make(chan struct{})
 				syncctx, synccancel = context.WithCancel(programContext)
+				wg.Add(1)
 				go func() {
 					attempt := 0
 					for syncctx.Err() == nil {
@@ -302,7 +305,7 @@ func (das *DeviceAgentServer) EventLoop(programContext context.Context) {
 							attempt = 0
 						case codes.Unavailable:
 							log.Warnf("Synchronize config: not connected to API server: %v", err)
-							time.Sleep(apiServerRetryInterval)
+							time.Sleep(apiServerRetryInterval * time.Duration(math.Pow(float64(attempt), 3)))
 						case codes.Unauthenticated:
 							log.Errorf("Logging in: %s", err)
 							das.rc.SetToken(nil)
@@ -320,6 +323,7 @@ func (das *DeviceAgentServer) EventLoop(programContext context.Context) {
 					log.Infof("Gateway config synchronization loop: %s", syncctx.Err())
 					syncctx = nil
 					synccancel()
+					wg.Done()
 				}()
 
 				<-notifyConnected

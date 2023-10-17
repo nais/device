@@ -3,6 +3,7 @@ package integrationtest_test
 import (
 	"context"
 	"net"
+	"sync"
 	"testing"
 	"time"
 
@@ -16,9 +17,8 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials/insecure"
 	grpc_status "google.golang.org/grpc/status"
-	"google.golang.org/protobuf/types/known/timestamppb"
-
 	"google.golang.org/grpc/test/bufconn"
+	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 const testGroup = "test-group"
@@ -29,12 +29,14 @@ func bufconnDialer(listener *bufconn.Listener) func(context.Context, string) (ne
 	}
 }
 
-func serve(t *testing.T, server *grpc.Server) (*bufconn.Listener, func()) {
+func serve(t *testing.T, server *grpc.Server, wg *sync.WaitGroup) (*bufconn.Listener, func()) {
 	lis := bufconn.Listen(1024 * 1024)
+	wg.Add(1)
 	go func() {
 		if err := server.Serve(lis); err != nil {
 			t.Logf("grpc serve error: %v", err)
 		}
+		wg.Done()
 	}()
 
 	return lis, server.Stop
@@ -49,8 +51,18 @@ func dial(ctx context.Context, lis *bufconn.Listener) (*grpc.ClientConn, error) 
 	)
 }
 
+type testLogWriter struct {
+	t *testing.T
+}
+
+func (t *testLogWriter) Write(p []byte) (n int, err error) {
+	t.t.Logf("%s", p)
+	return len(p), nil
+}
+
 func TestIntegration(t *testing.T) {
 	t.Parallel()
+
 	logrus.SetLevel(logrus.DebugLevel)
 
 	tests := []struct {
@@ -95,12 +107,15 @@ func TestIntegration(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			tableTest(t, test.device, test.endState, test.expectedGateways)
+			logrus.SetOutput(&testLogWriter{t: t})
+			wg := &sync.WaitGroup{}
+			tableTest(t, wg, test.device, test.endState, test.expectedGateways)
+			wg.Wait()
 		})
 	}
 }
 
-func tableTest(t *testing.T, testDevice *pb.Device, endState pb.AgentState, expectedGateways map[string]*pb.Gateway) {
+func tableTest(t *testing.T, wg *sync.WaitGroup, testDevice *pb.Device, endState pb.AgentState, expectedGateways map[string]*pb.Gateway) {
 	t.Helper()
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
 	defer cancel()
@@ -142,7 +157,7 @@ func tableTest(t *testing.T, testDevice *pb.Device, endState pb.AgentState, expe
 	// The apiserver is treated as a normal gateway by the device-agent
 	expectedGateways[apiserverPeer.Name] = apiserverPeer
 
-	apiserverListener, stopAPIServer := serve(t, NewAPIServer(t, ctx, db))
+	apiserverListener, stopAPIServer := serve(t, NewAPIServer(t, ctx, db), wg)
 
 	osConfigurator := helper.NewMockOSConfigurator(t)
 	osConfigurator.EXPECT().SetupInterface(mock.Anything, mock.Anything).Return(nil)
@@ -163,7 +178,7 @@ func tableTest(t *testing.T, testDevice *pb.Device, endState pb.AgentState, expe
 
 	osConfigurator.EXPECT().TeardownInterface(mock.Anything).Return(nil).Maybe()
 
-	helperListener, stopHelper := serve(t, NewHelper(t, osConfigurator))
+	helperListener, stopHelper := serve(t, NewHelper(t, osConfigurator), wg)
 
 	apiDial, err := dial(ctx, apiserverListener)
 	assert.NoError(t, err)
@@ -186,7 +201,7 @@ func tableTest(t *testing.T, testDevice *pb.Device, endState pb.AgentState, expe
 		Gateways: mapValues(expectedGateways),
 	})
 
-	deviceAgentListener, stopDeviceAgent := serve(t, NewDeviceAgent(t, ctx, helperListener, rc))
+	deviceAgentListener, stopDeviceAgent := serve(t, NewDeviceAgent(t, wg, ctx, helperListener, rc), wg)
 
 	defer func() {
 		stopDeviceAgent()
