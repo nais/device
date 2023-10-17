@@ -57,7 +57,7 @@ func TestIntegration(t *testing.T) {
 		name             string
 		device           *pb.Device
 		endState         pb.AgentState
-		expectedGateways []*pb.Gateway
+		expectedGateways map[string]*pb.Gateway
 	}{
 		{
 			name: "test happy unhealthy path",
@@ -81,11 +81,15 @@ func TestIntegration(t *testing.T) {
 				Platform:  "linux",
 			},
 			endState: pb.AgentState_Connected,
-			expectedGateways: []*pb.Gateway{{
-				Name:           "expected-gateway",
-				PublicKey:      "gwPublicKey",
-				AccessGroupIDs: []string{testGroup},
-			}},
+			expectedGateways: map[string]*pb.Gateway{
+				"expected-gateway": {
+					Name:           "expected-gateway",
+					PublicKey:      "gwPublicKey",
+					AccessGroupIDs: []string{testGroup},
+					RoutesIPv4:     []string{"1.1.1.1/24", "2.2.2.2/32"},
+					RoutesIPv6:     []string{"2001:db8::1/32", "2001:db8::2/32"},
+				},
+			},
 		},
 	}
 
@@ -96,9 +100,9 @@ func TestIntegration(t *testing.T) {
 	}
 }
 
-func tableTest(t *testing.T, testDevice *pb.Device, endState pb.AgentState, expectedGateways []*pb.Gateway) {
+func tableTest(t *testing.T, testDevice *pb.Device, endState pb.AgentState, expectedGateways map[string]*pb.Gateway) {
 	t.Helper()
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
 	defer cancel()
 
 	db := NewDB(t)
@@ -125,12 +129,38 @@ func tableTest(t *testing.T, testDevice *pb.Device, endState pb.AgentState, expe
 	assert.NoError(t, err)
 	t.Logf("sessions: %+v ", sessions)
 
+	apiserverPeer := &pb.Gateway{
+		Name:      "apiserver",
+		PublicKey: "apiserver_public_key",
+		Endpoint:  "apiserver_endpoint",
+		Ipv4:      "192.0.2.10",
+	}
+
+	if expectedGateways == nil {
+		expectedGateways = make(map[string]*pb.Gateway)
+	}
+	// The apiserver is treated as a normal gateway by the device-agent
+	expectedGateways[apiserverPeer.Name] = apiserverPeer
+
 	apiserverListener, stopAPIServer := serve(t, NewAPIServer(t, ctx, db))
 
 	osConfigurator := helper.NewMockOSConfigurator(t)
 	osConfigurator.EXPECT().SetupInterface(mock.Anything, mock.Anything).Return(nil)
 	osConfigurator.EXPECT().SyncConf(mock.Anything, mock.Anything).Return(nil)
-	osConfigurator.EXPECT().SetupRoutes(mock.Anything, mock.Anything).Return(nil)
+
+	setupRoutesMock := osConfigurator.EXPECT().SetupRoutes(mock.Anything, mock.AnythingOfType("[]*pb.Gateway")).Return(nil)
+	if len(expectedGateways) > 1 {
+		setupRoutesMock.Run(func(_ context.Context, gateways []*pb.Gateway) {
+			for _, gateway := range gateways {
+				assert.Equal(t, expectedGateways[gateway.Name].RoutesIPv4, gateway.RoutesIPv4)
+				assert.Equal(t, expectedGateways[gateway.Name].RoutesIPv6, gateway.RoutesIPv6)
+				assert.Equal(t, expectedGateways[gateway.Name].Endpoint, gateway.Endpoint)
+				assert.Equal(t, expectedGateways[gateway.Name].PublicKey, gateway.PublicKey)
+				assert.Equal(t, expectedGateways[gateway.Name].AccessGroupIDs, gateway.AccessGroupIDs)
+			}
+		})
+	}
+
 	osConfigurator.EXPECT().TeardownInterface(mock.Anything).Return(nil).Maybe()
 
 	helperListener, stopHelper := serve(t, NewHelper(t, osConfigurator))
@@ -149,27 +179,12 @@ func tableTest(t *testing.T, testDevice *pb.Device, endState pb.AgentState, expe
 	rc.EXPECT().ResetEnrollConfig().Return()
 	rc.EXPECT().GetTenantSession().Return(session, nil)
 	rc.EXPECT().LoadEnrollConfig().Return(nil)
-	peers := []*pb.Gateway{
-		{
-			PublicKey: "test_public_key",
-			Endpoint:  "test_endpoint",
-			Ipv4:      "192.0.2.10",
-		},
-	}
-	rc.EXPECT().APIServerPeer().Return(peers[0])
+	rc.EXPECT().APIServerPeer().Return(apiserverPeer)
 	rc.EXPECT().BuildHelperConfiguration(mock.MatchedBy(func(gws []*pb.Gateway) bool {
 		return len(gws) == 1
 	})).Return(&pb.Configuration{
-		Gateways: peers,
+		Gateways: mapValues(expectedGateways),
 	})
-	if expectedGateways != nil {
-		gateways := append(peers, expectedGateways...)
-		rc.EXPECT().BuildHelperConfiguration(mock.MatchedBy(func(gws []*pb.Gateway) bool {
-			return len(gws) == 2
-		})).Return(&pb.Configuration{
-			Gateways: gateways,
-		})
-	}
 
 	deviceAgentListener, stopDeviceAgent := serve(t, NewDeviceAgent(t, ctx, helperListener, rc))
 
@@ -190,6 +205,7 @@ func tableTest(t *testing.T, testDevice *pb.Device, endState pb.AgentState, expe
 	assert.NoError(t, err)
 
 	statusChan := make(chan *pb.AgentStatus)
+	errChan := make(chan error)
 	go func() {
 		for {
 			status, err := statusClient.Recv()
@@ -198,7 +214,7 @@ func tableTest(t *testing.T, testDevice *pb.Device, endState pb.AgentState, expe
 				return
 			}
 			if err != nil {
-				t.Errorf("receiving agent status unexpected error: %v", err)
+				errChan <- err
 			} else {
 				statusChan <- status
 			}
@@ -211,20 +227,35 @@ func tableTest(t *testing.T, testDevice *pb.Device, endState pb.AgentState, expe
 		case <-ctx.Done():
 			t.Errorf("test timed out without agent reaching expected end state: %v, last known state: %v", endState, lastKnownState)
 			return
+		case err := <-errChan:
+			t.Errorf("receiving agent status unexpected error: %v", err)
 		case status := <-statusChan:
 			lastKnownState = status.ConnectionState
 			t.Logf("received status: %+v", status.String())
 			if status.ConnectionState == endState {
 				t.Logf("agent reached expected end state: %v", endState)
-				if expectedGateways != nil {
-					if len(status.Gateways) == 1 {
-						assert.Equal(t, expectedGateways[0].Name, status.Gateways[0].Name)
-						return
-					}
-					continue
+				for _, gateway := range status.Gateways {
+					expectedGateway, exists := expectedGateways[gateway.Name]
+					assert.Truef(t, exists, "gateway %s not found in status response", gateway.Name)
+					assert.Equal(t, expectedGateway.RoutesIPv4, gateway.RoutesIPv4)
+					assert.Equal(t, expectedGateway.RoutesIPv6, gateway.RoutesIPv6)
+					assert.Equal(t, expectedGateway.Endpoint, gateway.Endpoint)
+					assert.Equal(t, expectedGateway.PublicKey, gateway.PublicKey)
+					assert.Equal(t, expectedGateway.AccessGroupIDs, gateway.AccessGroupIDs)
 				}
+
+				// test done
 				return
 			}
 		}
 	}
+}
+
+func mapValues[K comparable, V any](m map[K]V) []V {
+	l := make([]V, 0, len(m))
+	for _, v := range m {
+		l = append(l, v)
+	}
+
+	return l
 }
