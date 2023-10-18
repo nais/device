@@ -23,45 +23,7 @@ import (
 
 const testGroup = "test-group"
 
-func bufconnDialer(listener *bufconn.Listener) func(context.Context, string) (net.Conn, error) {
-	return func(context.Context, string) (net.Conn, error) {
-		return listener.Dial()
-	}
-}
-
-func serve(t *testing.T, server *grpc.Server, wg *sync.WaitGroup) (*bufconn.Listener, func()) {
-	lis := bufconn.Listen(1024 * 1024)
-	wg.Add(1)
-	go func() {
-		if err := server.Serve(lis); err != nil {
-			t.Logf("grpc serve error: %v", err)
-		}
-		wg.Done()
-	}()
-
-	return lis, server.Stop
-}
-
-func dial(ctx context.Context, lis *bufconn.Listener) (*grpc.ClientConn, error) {
-	return grpc.DialContext(
-		ctx,
-		"bufnet",
-		grpc.WithContextDialer(bufconnDialer(lis)),
-		grpc.WithTransportCredentials(insecure.NewCredentials()),
-	)
-}
-
-type testLogWriter struct {
-	t *testing.T
-}
-
-func (t *testLogWriter) Write(p []byte) (n int, err error) {
-	t.t.Logf("%s", p)
-	return len(p), nil
-}
-
 func TestIntegration(t *testing.T) {
-	t.Parallel()
 
 	logrus.SetLevel(logrus.DebugLevel)
 
@@ -283,4 +245,41 @@ func mapValues[K comparable, V any](m map[K]V) []V {
 	}
 
 	return l
+}
+
+func bufconnDialer(listener *bufconn.Listener) func(context.Context, string) (net.Conn, error) {
+	return func(context.Context, string) (net.Conn, error) {
+		return listener.Dial()
+	}
+}
+
+func serve(t *testing.T, server *grpc.Server, wg *sync.WaitGroup) (*bufconn.Listener, func()) {
+	lis := bufconn.Listen(1024 * 1024)
+	wg.Add(1)
+	go func() {
+		if err := server.Serve(lis); err != nil {
+			t.Logf("grpc serve error: %v", err)
+		}
+		wg.Done()
+	}()
+
+	return lis, server.Stop
+}
+
+func dial(ctx context.Context, lis *bufconn.Listener) (*grpc.ClientConn, error) {
+	return grpc.DialContext(
+		ctx,
+		"bufnet",
+		grpc.WithContextDialer(bufconnDialer(lis)),
+		grpc.WithTransportCredentials(insecure.NewCredentials()),
+	)
+}
+
+type testLogWriter struct {
+	t *testing.T
+}
+
+func (t *testLogWriter) Write(p []byte) (n int, err error) {
+	t.t.Logf("%s", p)
+	return len(p), nil
 }
