@@ -120,6 +120,8 @@ func tableTest(t *testing.T, wg *sync.WaitGroup, testDevice *pb.Device, endState
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
 	defer cancel()
 
+	devicePrivateKey := "devicePrivateKey"
+
 	db := NewDB(t)
 	assert.NoError(t, db.AddDevice(ctx, testDevice))
 	assert.NoError(t, db.UpdateDevices(ctx, []*pb.Device{testDevice}))
@@ -158,12 +160,20 @@ func tableTest(t *testing.T, wg *sync.WaitGroup, testDevice *pb.Device, endState
 	expectedGateways[apiserverPeer.Name] = apiserverPeer
 
 	apiserverListener, stopAPIServer := serve(t, NewAPIServer(t, ctx, db), wg)
+	defer stopAPIServer()
 
 	osConfigurator := helper.NewMockOSConfigurator(t)
-	osConfigurator.EXPECT().SetupInterface(mock.Anything, mock.Anything).Return(nil)
-	osConfigurator.EXPECT().SyncConf(mock.Anything, mock.Anything).Return(nil)
+	osConfigurator.EXPECT().SetupInterface(mock.AnythingOfType("*context.valueCtx"), mock.MatchedBy(func(cfg *pb.Configuration) bool {
+		return cfg.DeviceIPv4 == testDevice.Ipv4 &&
+			cfg.DeviceIPv6 == testDevice.Ipv6 &&
+			cfg.PrivateKey == devicePrivateKey &&
+			len(cfg.Gateways) == len(expectedGateways)
+	})).Return(nil)
+	osConfigurator.EXPECT().SyncConf(mock.AnythingOfType("*context.valueCtx"), mock.MatchedBy(func(cfg *pb.Configuration) bool {
+		return true
+	})).Return(nil)
 
-	setupRoutesMock := osConfigurator.EXPECT().SetupRoutes(mock.Anything, mock.AnythingOfType("[]*pb.Gateway")).Return(nil)
+	setupRoutesMock := osConfigurator.EXPECT().SetupRoutes(mock.AnythingOfType("*context.valueCtx"), mock.AnythingOfType("[]*pb.Gateway")).Return(nil)
 	if len(expectedGateways) > 1 {
 		setupRoutesMock.Run(func(_ context.Context, gateways []*pb.Gateway) {
 			for _, gateway := range gateways {
@@ -176,38 +186,38 @@ func tableTest(t *testing.T, wg *sync.WaitGroup, testDevice *pb.Device, endState
 		})
 	}
 
-	osConfigurator.EXPECT().TeardownInterface(mock.Anything).Return(nil).Maybe()
+	osConfigurator.EXPECT().TeardownInterface(mock.AnythingOfType("*context.valueCtx")).Return(nil).Maybe()
 
 	helperListener, stopHelper := serve(t, NewHelper(t, osConfigurator), wg)
+	defer stopHelper()
 
 	apiDial, err := dial(ctx, apiserverListener)
 	assert.NoError(t, err)
 
 	rc := runtimeconfig.NewMockRuntimeConfig(t)
-	rc.EXPECT().DialAPIServer(mock.Anything).Return(apiDial, nil)
+	rc.EXPECT().DialAPIServer(mock.AnythingOfType("*context.timerCtx")).Return(apiDial, nil)
 	rc.EXPECT().Tenants().Return([]*pb.Tenant{{
 		Name:         "test",
 		AuthProvider: pb.AuthProvider_Google,
 		Domain:       "test.nais.io",
 	}})
-	rc.EXPECT().SetToken(mock.Anything).Return()
+	rc.EXPECT().SetToken(mock.AnythingOfType("*auth.Tokens")).Return()
 	rc.EXPECT().ResetEnrollConfig().Return()
 	rc.EXPECT().GetTenantSession().Return(session, nil)
 	rc.EXPECT().LoadEnrollConfig().Return(nil)
 	rc.EXPECT().APIServerPeer().Return(apiserverPeer)
 	rc.EXPECT().BuildHelperConfiguration(mock.MatchedBy(func(gws []*pb.Gateway) bool {
-		return len(gws) == 1
+		return len(gws) == 1 &&
+			gws[0].Name == "apiserver"
 	})).Return(&pb.Configuration{
-		Gateways: mapValues(expectedGateways),
+		Gateways:   mapValues(expectedGateways),
+		DeviceIPv4: testDevice.Ipv4,
+		DeviceIPv6: testDevice.Ipv6,
+		PrivateKey: devicePrivateKey,
 	})
 
 	deviceAgentListener, stopDeviceAgent := serve(t, NewDeviceAgent(t, wg, ctx, helperListener, rc), wg)
-
-	defer func() {
-		stopDeviceAgent()
-		stopHelper()
-		stopAPIServer()
-	}()
+	defer stopDeviceAgent()
 
 	deviceAgentConnection, err := dial(ctx, deviceAgentListener)
 	assert.NoError(t, err)
