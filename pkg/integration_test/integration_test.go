@@ -25,14 +25,13 @@ const testGroup = "test-group"
 
 func TestIntegration(t *testing.T) {
 
-	logrus.SetLevel(logrus.DebugLevel)
-
-	tests := []struct {
+	type testCase struct {
 		name             string
 		device           *pb.Device
 		endState         pb.AgentState
 		expectedGateways map[string]*pb.Gateway
-	}{
+	}
+	tests := []testCase{
 		{
 			name: "test happy unhealthy path",
 			device: &pb.Device{
@@ -67,17 +66,20 @@ func TestIntegration(t *testing.T) {
 		},
 	}
 
+	logrus.SetLevel(logrus.DebugLevel)
 	for _, test := range tests {
-		t.Run(test.name, func(t *testing.T) {
-			logrus.SetOutput(&testLogWriter{t: t})
-			wg := &sync.WaitGroup{}
-			tableTest(t, wg, test.device, test.endState, test.expectedGateways)
-			wg.Wait()
-		})
+		wrap := func(t *testing.T, test testCase) func(*testing.T) {
+			return func(t *testing.T) {
+				logrus.SetOutput(&testLogWriter{t: t})
+				tableTest(t, test.device, test.endState, test.expectedGateways)
+			}
+		}
+		t.Run(test.name, wrap(t, test))
 	}
 }
 
-func tableTest(t *testing.T, wg *sync.WaitGroup, testDevice *pb.Device, endState pb.AgentState, expectedGateways map[string]*pb.Gateway) {
+func tableTest(t *testing.T, testDevice *pb.Device, endState pb.AgentState, expectedGateways map[string]*pb.Gateway) {
+	wg := &sync.WaitGroup{}
 	t.Helper()
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
 	defer cancel()
@@ -114,10 +116,12 @@ func tableTest(t *testing.T, wg *sync.WaitGroup, testDevice *pb.Device, endState
 		Endpoint:  "apiserver_endpoint",
 		Ipv4:      "192.0.2.10",
 	}
+	initialPeers := map[string]*pb.Gateway{"apiserver": apiserverPeer}
 
 	if expectedGateways == nil {
 		expectedGateways = make(map[string]*pb.Gateway)
 	}
+
 	// The apiserver is treated as a normal gateway by the device-agent
 	expectedGateways[apiserverPeer.Name] = apiserverPeer
 
@@ -125,25 +129,42 @@ func tableTest(t *testing.T, wg *sync.WaitGroup, testDevice *pb.Device, endState
 	defer stopAPIServer()
 
 	osConfigurator := helper.NewMockOSConfigurator(t)
+
+	configDeviceMatch := func(cfg *pb.Configuration, device *pb.Device) bool {
+		return cfg.DeviceIPv4 == device.Ipv4 &&
+			cfg.DeviceIPv6 == device.Ipv6 &&
+			cfg.PrivateKey == devicePrivateKey
+	}
+
+	// expect only the apiserver (once)
 	osConfigurator.EXPECT().SetupInterface(mock.AnythingOfType("*context.valueCtx"), mock.MatchedBy(func(cfg *pb.Configuration) bool {
-		return cfg.DeviceIPv4 == testDevice.Ipv4 &&
-			cfg.DeviceIPv6 == testDevice.Ipv6 &&
-			cfg.PrivateKey == devicePrivateKey &&
-			len(cfg.Gateways) == len(expectedGateways)
-	})).Return(nil)
+		return configDeviceMatch(cfg, testDevice) &&
+			matchExactGateways(initialPeers)(cfg.Gateways)
+	})).Return(nil).Once()
 	osConfigurator.EXPECT().SyncConf(mock.AnythingOfType("*context.valueCtx"), mock.MatchedBy(func(cfg *pb.Configuration) bool {
-		return true
+		return configDeviceMatch(cfg, testDevice) &&
+			matchExactGateways(initialPeers)(cfg.Gateways)
+
 	})).Return(nil)
+
+	if len(expectedGateways) > 1 {
+		// expect all gateways
+		osConfigurator.EXPECT().SetupInterface(mock.AnythingOfType("*context.valueCtx"), mock.MatchedBy(func(cfg *pb.Configuration) bool {
+			return configDeviceMatch(cfg, testDevice) &&
+				matchExactGateways(expectedGateways)(cfg.Gateways)
+		})).Return(nil)
+
+		osConfigurator.EXPECT().SyncConf(mock.AnythingOfType("*context.valueCtx"), mock.MatchedBy(func(cfg *pb.Configuration) bool {
+			return configDeviceMatch(cfg, testDevice) &&
+				matchExactGateways(expectedGateways)(cfg.Gateways)
+		})).Return(nil)
+	}
 
 	setupRoutesMock := osConfigurator.EXPECT().SetupRoutes(mock.AnythingOfType("*context.valueCtx"), mock.AnythingOfType("[]*pb.Gateway")).Return(nil)
 	if len(expectedGateways) > 1 {
 		setupRoutesMock.Run(func(_ context.Context, gateways []*pb.Gateway) {
 			for _, gateway := range gateways {
-				assert.Equal(t, expectedGateways[gateway.Name].RoutesIPv4, gateway.RoutesIPv4)
-				assert.Equal(t, expectedGateways[gateway.Name].RoutesIPv6, gateway.RoutesIPv6)
-				assert.Equal(t, expectedGateways[gateway.Name].Endpoint, gateway.Endpoint)
-				assert.Equal(t, expectedGateways[gateway.Name].PublicKey, gateway.PublicKey)
-				assert.Equal(t, expectedGateways[gateway.Name].AccessGroupIDs, gateway.AccessGroupIDs)
+				assertEqualGateway(t, expectedGateways[gateway.Name], gateway)
 			}
 		})
 	}
@@ -168,15 +189,24 @@ func tableTest(t *testing.T, wg *sync.WaitGroup, testDevice *pb.Device, endState
 	rc.EXPECT().GetTenantSession().Return(session, nil)
 	rc.EXPECT().LoadEnrollConfig().Return(nil)
 	rc.EXPECT().APIServerPeer().Return(apiserverPeer)
-	rc.EXPECT().BuildHelperConfiguration(mock.MatchedBy(func(gws []*pb.Gateway) bool {
-		return len(gws) == 1 &&
-			gws[0].Name == "apiserver"
-	})).Return(&pb.Configuration{
-		Gateways:   mapValues(expectedGateways),
+
+	initialHelperConfig := &pb.Configuration{
+		Gateways:   mapValues(initialPeers),
 		DeviceIPv4: testDevice.Ipv4,
 		DeviceIPv6: testDevice.Ipv6,
 		PrivateKey: devicePrivateKey,
-	})
+	}
+	rc.EXPECT().BuildHelperConfiguration(mock.MatchedBy(matchExactGateways(initialPeers))).Return(initialHelperConfig)
+
+	if len(expectedGateways) > 1 {
+		fullHelperConfig := &pb.Configuration{
+			Gateways:   mapValues(expectedGateways),
+			DeviceIPv4: testDevice.Ipv4,
+			DeviceIPv6: testDevice.Ipv6,
+			PrivateKey: devicePrivateKey,
+		}
+		rc.EXPECT().BuildHelperConfiguration(mock.MatchedBy(matchExactGateways(expectedGateways))).Return(fullHelperConfig)
+	}
 
 	deviceAgentListener, stopDeviceAgent := serve(t, NewDeviceAgent(t, wg, ctx, helperListener, rc), wg)
 	defer stopDeviceAgent()
@@ -193,6 +223,7 @@ func tableTest(t *testing.T, wg *sync.WaitGroup, testDevice *pb.Device, endState
 
 	statusChan := make(chan *pb.AgentStatus)
 	errChan := make(chan error)
+
 	go func() {
 		for {
 			status, err := statusClient.Recv()
@@ -218,26 +249,80 @@ func tableTest(t *testing.T, wg *sync.WaitGroup, testDevice *pb.Device, endState
 			t.Errorf("receiving agent status unexpected error: %v", err)
 		case status := <-statusChan:
 			lastKnownState = status.ConnectionState
-			t.Logf("received status: %+v", status.String())
-			if status.ConnectionState == endState {
+			if status.ConnectionState == endState &&
+				matchExactGateways(expectedGateways)(append(status.Gateways, apiserverPeer)) {
 				t.Logf("agent reached expected end state: %v", endState)
+
+				// Verify all gateways have the exact expected parameters
 				for _, gateway := range status.Gateways {
 					expectedGateway, exists := expectedGateways[gateway.Name]
 					assert.Truef(t, exists, "gateway %s not found in status response", gateway.Name)
-					if exists {
-						assert.Equal(t, expectedGateway.RoutesIPv4, gateway.RoutesIPv4)
-						assert.Equal(t, expectedGateway.RoutesIPv6, gateway.RoutesIPv6)
-						assert.Equal(t, expectedGateway.Endpoint, gateway.Endpoint)
-						assert.Equal(t, expectedGateway.PublicKey, gateway.PublicKey)
-						assert.Equal(t, expectedGateway.AccessGroupIDs, gateway.AccessGroupIDs)
+					if !exists {
+						continue
 					}
+
+					assertEqualGateway(t, expectedGateway, gateway)
 				}
 
 				// test done
 				return
+			} else {
+				t.Logf("received non final status: %+v, with gateways: %+v", status.String(), status.Gateways)
 			}
 		}
 	}
+}
+
+func assertEqualGateway(t *testing.T, expected, actual *pb.Gateway) {
+	t.Helper()
+	if expected == nil {
+		t.Errorf("expected gateway is nil, actual: %+v", actual)
+		return
+	}
+	if actual == nil {
+		t.Errorf("actual gateway is nil, expected: %+v", expected)
+		return
+	}
+	assert.Equal(t, expected.Name, actual.Name)
+	assert.Equal(t, expected.RoutesIPv4, actual.RoutesIPv4)
+	assert.Equal(t, expected.RoutesIPv6, actual.RoutesIPv6)
+	assert.Equal(t, expected.Endpoint, actual.Endpoint)
+	assert.Equal(t, expected.PublicKey, actual.PublicKey)
+	assert.Equal(t, expected.AccessGroupIDs, actual.AccessGroupIDs)
+}
+
+func matchExactGateways(expectedGateways map[string]*pb.Gateway) func([]*pb.Gateway) bool {
+	return func(actualGateways []*pb.Gateway) bool {
+		if len(actualGateways) != len(expectedGateways) {
+			return false
+		}
+
+		for _, gateway := range actualGateways {
+			if _, exists := expectedGateways[gateway.Name]; exists {
+				continue
+			} else {
+				return false
+			}
+		}
+
+		for _, expected := range expectedGateways {
+			if !gatewayListContains(expected, actualGateways) {
+				return false
+			}
+		}
+
+		return true
+	}
+}
+
+func gatewayListContains(gatewayToLookFor *pb.Gateway, gateways []*pb.Gateway) bool {
+	for _, gateway := range gateways {
+		if gatewayToLookFor.Name == gateway.Name {
+			return true
+		}
+	}
+
+	return false
 }
 
 func mapValues[K comparable, V any](m map[K]V) []V {
