@@ -31,8 +31,8 @@ func NewDeviceAgent(t *testing.T, wg *sync.WaitGroup, ctx context.Context, helpe
 	notifier.EXPECT().Errorf(mock.Anything, mock.Anything).Maybe()
 
 	impl := device_agent.NewServer(helperClient, &cfg, rc, notifier)
+	wg.Add(1)
 	go func() {
-		wg.Add(1)
 		impl.EventLoop(ctx)
 		wg.Done()
 	}()
