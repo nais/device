@@ -224,11 +224,13 @@ func tableTest(t *testing.T, wg *sync.WaitGroup, testDevice *pb.Device, endState
 				for _, gateway := range status.Gateways {
 					expectedGateway, exists := expectedGateways[gateway.Name]
 					assert.Truef(t, exists, "gateway %s not found in status response", gateway.Name)
-					assert.Equal(t, expectedGateway.RoutesIPv4, gateway.RoutesIPv4)
-					assert.Equal(t, expectedGateway.RoutesIPv6, gateway.RoutesIPv6)
-					assert.Equal(t, expectedGateway.Endpoint, gateway.Endpoint)
-					assert.Equal(t, expectedGateway.PublicKey, gateway.PublicKey)
-					assert.Equal(t, expectedGateway.AccessGroupIDs, gateway.AccessGroupIDs)
+					if exists {
+						assert.Equal(t, expectedGateway.RoutesIPv4, gateway.RoutesIPv4)
+						assert.Equal(t, expectedGateway.RoutesIPv6, gateway.RoutesIPv6)
+						assert.Equal(t, expectedGateway.Endpoint, gateway.Endpoint)
+						assert.Equal(t, expectedGateway.PublicKey, gateway.PublicKey)
+						assert.Equal(t, expectedGateway.AccessGroupIDs, gateway.AccessGroupIDs)
+					}
 				}
 
 				// test done
