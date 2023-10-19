@@ -52,15 +52,14 @@ func (cfg *Config) MarshalINI(w io.Writer) error {
 		fmt.Fprintf(ew, "MTU = %d\n", cfg.MTU)
 	}
 
-	addresses := ""
 	if cfg.AddressV4 != "" {
+		addr := cfg.AddressV4
 		if cfg.AddressV6 != "" {
-			addresses = fmt.Sprintf("%s, %s", cfg.AddressV4, cfg.AddressV6)
-		} else {
-			addresses = cfg.AddressV4
+			addr += ", " + cfg.AddressV6
 		}
+
+		fprintNonEmpty(ew, "Address = %s\n", cfg.AddressV4)
 	}
-	fprintNonEmpty(ew, "Address = %s\n", addresses)
 
 	fmt.Fprintf(ew, "\n")
 
