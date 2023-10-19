@@ -8,6 +8,7 @@ package pb
 
 import (
 	context "context"
+
 	grpc "google.golang.org/grpc"
 	codes "google.golang.org/grpc/codes"
 	status "google.golang.org/grpc/status"
@@ -230,6 +231,7 @@ const (
 	DeviceAgent_ConfigureJITA_FullMethodName         = "/naisdevice.DeviceAgent/ConfigureJITA"
 	DeviceAgent_Login_FullMethodName                 = "/naisdevice.DeviceAgent/Login"
 	DeviceAgent_Logout_FullMethodName                = "/naisdevice.DeviceAgent/Logout"
+	DeviceAgent_GetActiveTenant_FullMethodName       = "/naisdevice.DeviceAgent/GetActiveTenant"
 	DeviceAgent_SetActiveTenant_FullMethodName       = "/naisdevice.DeviceAgent/SetActiveTenant"
 	DeviceAgent_SetAgentConfiguration_FullMethodName = "/naisdevice.DeviceAgent/SetAgentConfiguration"
 	DeviceAgent_GetAgentConfiguration_FullMethodName = "/naisdevice.DeviceAgent/GetAgentConfiguration"
@@ -248,6 +250,8 @@ type DeviceAgentClient interface {
 	Login(ctx context.Context, in *LoginRequest, opts ...grpc.CallOption) (*LoginResponse, error)
 	// Log out of API server, shutting down all VPN connections.
 	Logout(ctx context.Context, in *LogoutRequest, opts ...grpc.CallOption) (*LogoutResponse, error)
+	// Get active tenant
+	GetActiveTenant(ctx context.Context, in *GetActiveTenantRequest, opts ...grpc.CallOption) (*GetActiveTenantResponse, error)
 	// Set active tenant
 	SetActiveTenant(ctx context.Context, in *SetActiveTenantRequest, opts ...grpc.CallOption) (*SetActiveTenantResponse, error)
 	// Set device agent configuration
@@ -323,6 +327,15 @@ func (c *deviceAgentClient) Logout(ctx context.Context, in *LogoutRequest, opts 
 	return out, nil
 }
 
+func (c *deviceAgentClient) GetActiveTenant(ctx context.Context, in *GetActiveTenantRequest, opts ...grpc.CallOption) (*GetActiveTenantResponse, error) {
+	out := new(GetActiveTenantResponse)
+	err := c.cc.Invoke(ctx, DeviceAgent_GetActiveTenant_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *deviceAgentClient) SetActiveTenant(ctx context.Context, in *SetActiveTenantRequest, opts ...grpc.CallOption) (*SetActiveTenantResponse, error) {
 	out := new(SetActiveTenantResponse)
 	err := c.cc.Invoke(ctx, DeviceAgent_SetActiveTenant_FullMethodName, in, out, opts...)
@@ -363,6 +376,8 @@ type DeviceAgentServer interface {
 	Login(context.Context, *LoginRequest) (*LoginResponse, error)
 	// Log out of API server, shutting down all VPN connections.
 	Logout(context.Context, *LogoutRequest) (*LogoutResponse, error)
+	// Get active tenant
+	GetActiveTenant(context.Context, *GetActiveTenantRequest) (*GetActiveTenantResponse, error)
 	// Set active tenant
 	SetActiveTenant(context.Context, *SetActiveTenantRequest) (*SetActiveTenantResponse, error)
 	// Set device agent configuration
@@ -387,6 +402,9 @@ func (UnimplementedDeviceAgentServer) Login(context.Context, *LoginRequest) (*Lo
 }
 func (UnimplementedDeviceAgentServer) Logout(context.Context, *LogoutRequest) (*LogoutResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Logout not implemented")
+}
+func (UnimplementedDeviceAgentServer) GetActiveTenant(context.Context, *GetActiveTenantRequest) (*GetActiveTenantResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetActiveTenant not implemented")
 }
 func (UnimplementedDeviceAgentServer) SetActiveTenant(context.Context, *SetActiveTenantRequest) (*SetActiveTenantResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method SetActiveTenant not implemented")
@@ -485,6 +503,24 @@ func _DeviceAgent_Logout_Handler(srv interface{}, ctx context.Context, dec func(
 	return interceptor(ctx, in, info, handler)
 }
 
+func _DeviceAgent_GetActiveTenant_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetActiveTenantRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(DeviceAgentServer).GetActiveTenant(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: DeviceAgent_GetActiveTenant_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(DeviceAgentServer).GetActiveTenant(ctx, req.(*GetActiveTenantRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _DeviceAgent_SetActiveTenant_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(SetActiveTenantRequest)
 	if err := dec(in); err != nil {
@@ -557,6 +593,10 @@ var DeviceAgent_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "Logout",
 			Handler:    _DeviceAgent_Logout_Handler,
+		},
+		{
+			MethodName: "GetActiveTenant",
+			Handler:    _DeviceAgent_GetActiveTenant_Handler,
 		},
 		{
 			MethodName: "SetActiveTenant",

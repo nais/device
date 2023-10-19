@@ -41,6 +41,10 @@ service DeviceAgent {
   rpc Logout (LogoutRequest) returns (LogoutResponse) {
   }
 
+  // Get active tenant
+  rpc GetActiveTenant(GetActiveTenantRequest) returns (GetActiveTenantResponse) {
+  }
+
   // Set active tenant
   rpc SetActiveTenant(SetActiveTenantRequest) returns (SetActiveTenantResponse) {
   }
@@ -221,6 +225,13 @@ message Gateway {
 
 message Error {
   string message = 1;
+}
+
+message GetActiveTenantRequest {
+}
+
+message GetActiveTenantResponse {
+  string name = 1;
 }
 
 message SetActiveTenantRequest {

@@ -113,6 +113,18 @@ func (das *DeviceAgentServer) UpdateAgentStatus(status *pb.AgentStatus) {
 	}
 }
 
+func (das *DeviceAgentServer) GetActiveTenant(ctx context.Context, req *pb.GetActiveTenantRequest) (*pb.GetActiveTenantResponse, error) {
+	for _, tenant := range das.rc.Tenants {
+		if tenant.Active {
+			return &pb.GetActiveTenantResponse{
+				Name: tenant.Name,
+			}, nil
+		}
+	}
+
+	return &pb.GetActiveTenantResponse{}, nil
+}
+
 func (das *DeviceAgentServer) SetAgentConfiguration(ctx context.Context, req *pb.SetAgentConfigurationRequest) (*pb.SetAgentConfigurationResponse, error) {
 	das.Config.AgentConfiguration = req.Config
 	das.Config.PersistAgentConfiguration()
