@@ -10,6 +10,7 @@ import (
 	"github.com/nais/device/pkg/device-agent/runtimeconfig"
 	"github.com/nais/device/pkg/helper"
 	"github.com/nais/device/pkg/pb"
+	"github.com/nais/device/pkg/wireguard"
 	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
@@ -24,7 +25,6 @@ import (
 const testGroup = "test-group"
 
 func TestIntegration(t *testing.T) {
-
 	type testCase struct {
 		name             string
 		device           *pb.Device
@@ -144,7 +144,6 @@ func tableTest(t *testing.T, testDevice *pb.Device, endState pb.AgentState, expe
 	osConfigurator.EXPECT().SyncConf(mock.AnythingOfType("*context.valueCtx"), mock.MatchedBy(func(cfg *pb.Configuration) bool {
 		return configDeviceMatch(cfg, testDevice) &&
 			matchExactGateways(initialPeers)(cfg.Gateways)
-
 	})).Return(nil)
 
 	if len(expectedGateways) > 1 {
@@ -208,6 +207,37 @@ func tableTest(t *testing.T, testDevice *pb.Device, endState pb.AgentState, expe
 		rc.EXPECT().BuildHelperConfiguration(mock.MatchedBy(matchExactGateways(expectedGateways))).Return(fullHelperConfig)
 	}
 
+	for _, gw := range expectedGateways {
+		if gw.Name == "apiserver" {
+			continue
+		}
+
+		var expectedPeers []wireguard.Peer
+		expectedPeers = append(expectedPeers, apiserverPeer)
+
+		gatewayNC := wireguard.NewMockNetworkConfigurer(t)
+		gatewayNC.EXPECT().ApplyWireGuardConfig(mock.MatchedBy(matchExactPeers(t, expectedPeers))).Return(nil)
+		if len(expectedGateways) > 1 {
+			expectedPeers = append(expectedPeers, testDevice)
+			//
+			// gatewayNC.EXPECT().ApplyWireGuardConfig(mock.MatchedBy(matchExactPeers(t, expectedPeers))).Run(func(_ []wireguard.Peer) { gatewayGotDevice <- struct{}{} }).Return(nil)
+		}
+
+		gatewayNC.EXPECT().ForwardRoutesV4(gw.GetRoutesIPv4()).Return(nil)
+		gatewayNC.EXPECT().ForwardRoutesV6(gw.GetRoutesIPv6()).Return(nil)
+
+		wg.Add(1)
+		go func(t *testing.T, gw *pb.Gateway) {
+			t.Logf("starting gateway agent %q", gw.GetName())
+			err = StartGatewayAgent(t, ctx, gw.GetName(), apiserverListener, apiserverPeer, gatewayNC)
+
+			if grpc_status.Code(err) != codes.Canceled && grpc_status.Code(err) != codes.Unavailable {
+				t.Errorf("FAIL: got unexpected error from gateway agent: %v", err)
+			}
+			wg.Done()
+		}(t, gw)
+	}
+
 	deviceAgentListener, stopDeviceAgent := serve(t, NewDeviceAgent(t, wg, ctx, helperListener, rc), wg)
 	defer stopDeviceAgent()
 
@@ -243,10 +273,10 @@ func tableTest(t *testing.T, testDevice *pb.Device, endState pb.AgentState, expe
 	for {
 		select {
 		case <-ctx.Done():
-			t.Errorf("test timed out without agent reaching expected end state: %v, last known state: %v", endState, lastKnownState)
+			t.Errorf("FAIL: test timed out without agent reaching expected end state: %v, last known state: %v", endState, lastKnownState)
 			return
 		case err := <-errChan:
-			t.Errorf("receiving agent status unexpected error: %v", err)
+			t.Errorf("FAIL: receiving agent status unexpected error: %v", err)
 		case status := <-statusChan:
 			lastKnownState = status.ConnectionState
 			if status.ConnectionState == endState &&
@@ -276,11 +306,11 @@ func tableTest(t *testing.T, testDevice *pb.Device, endState pb.AgentState, expe
 func assertEqualGateway(t *testing.T, expected, actual *pb.Gateway) {
 	t.Helper()
 	if expected == nil {
-		t.Errorf("expected gateway is nil, actual: %+v", actual)
+		t.Errorf("FAIL: expected gateway is nil, actual: %+v", actual)
 		return
 	}
 	if actual == nil {
-		t.Errorf("actual gateway is nil, expected: %+v", expected)
+		t.Errorf("FAIL: actual gateway is nil, expected: %+v", expected)
 		return
 	}
 	assert.Equal(t, expected.Name, actual.Name)
@@ -313,6 +343,26 @@ func matchExactGateways(expectedGateways map[string]*pb.Gateway) func([]*pb.Gate
 
 		return true
 	}
+}
+
+func matchExactPeers(t *testing.T, expectedPeers []wireguard.Peer) func([]wireguard.Peer) bool {
+	return func(peers []wireguard.Peer) bool {
+		for _, expectedPeer := range expectedPeers {
+			found := false
+			for _, peer := range peers {
+				if peer.GetName() == expectedPeer.GetName() {
+					found = true
+				}
+			}
+
+			if !found {
+				t.Logf("trying to match func: expected peer %s not found in actual peers %+v", expectedPeer.GetName(), peers)
+				return false
+			}
+		}
+		return true
+	}
+
 }
 
 func gatewayListContains(gatewayToLookFor *pb.Gateway, gateways []*pb.Gateway) bool {

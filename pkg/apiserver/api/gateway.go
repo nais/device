@@ -85,9 +85,11 @@ func (s *grpcServer) MakeGatewayConfiguration(ctx context.Context, gatewayName s
 	healthyDevices := healthy(authorizedDevices)
 	uniqueDevices := unique(healthyDevices)
 
+	log.Infof("Gateway %s has devices: %+v", gateway.Name, uniqueDevices)
 	gatewayConfig := &pb.GetGatewayConfigurationResponse{
 		Devices:    uniqueDevices,
 		RoutesIPv4: gateway.GetRoutesIPv4(),
+		RoutesIPv6: gateway.GetRoutesIPv6(),
 	}
 
 	apiserver_metrics.GatewayConfigsReturned.WithLabelValues(gateway.Name).Inc()

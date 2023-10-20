@@ -119,11 +119,15 @@ func run(cfg config.Config) error {
 		if err != nil {
 			return fmt.Errorf("cannot enable routing: %w", err)
 		}
-		ipTables, err := iptables.New()
+		iptablesV4, err := iptables.NewWithProtocol(iptables.ProtocolIPv4)
 		if err != nil {
 			return fmt.Errorf("setup iptables: %w", err)
 		}
-		netConf = wireguard.NewConfigurer(cfg.WireGuardConfigPath, cfg.WireGuardIPv4, cfg.WireGuardIPv6, cfg.PrivateKey, wireguardInterface, wireguardListenPort, ipTables)
+		iptablesV6, err := iptables.NewWithProtocol(iptables.ProtocolIPv6)
+		if err != nil {
+			return fmt.Errorf("setup iptables: %w", err)
+		}
+		netConf = wireguard.NewConfigurer(cfg.WireGuardConfigPath, cfg.WireGuardIPv4, cfg.WireGuardIPv6, cfg.PrivateKey, wireguardInterface, wireguardListenPort, iptablesV4, iptablesV6)
 	} else {
 		netConf = wireguard.NewNoOpConfigurer()
 	}

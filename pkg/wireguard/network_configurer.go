@@ -13,7 +13,8 @@ import (
 
 type NetworkConfigurer interface {
 	ApplyWireGuardConfig(peers []Peer) error
-	ForwardRoutes(routes []string) error
+	ForwardRoutesV4(routes []string) error
+	ForwardRoutesV6(routes []string) error
 	SetupInterface() error
 	SetupIPTables() error
 }
@@ -26,16 +27,19 @@ type IPTables interface {
 
 type networkConfigurer struct {
 	config             *Config
-	ipTables           IPTables
+	iptablesV4         IPTables
+	iptablesV6         IPTables
 	wireguardInterface string
-	defaultInterface   string
-	interfaceIP        string
+	defaultInterfaceV4 string
+	interfaceIPV4      string
+	defaultInterfaceV6 string
+	interfaceIPV6      string
 	configPath         string
 	ipv4               *netip.Prefix
 	ipv6               *netip.Prefix
 }
 
-func NewConfigurer(configPath string, ipv4 *netip.Prefix, ipv6 *netip.Prefix, privateKey, wireguardInterface string, listenPort int, ipTables IPTables) NetworkConfigurer {
+func NewConfigurer(configPath string, ipv4 *netip.Prefix, ipv6 *netip.Prefix, privateKey, wireguardInterface string, listenPort int, iptablesV4, iptablesV6 IPTables) NetworkConfigurer {
 	return &networkConfigurer{
 		config: &Config{
 			PrivateKey: privateKey,
@@ -43,7 +47,8 @@ func NewConfigurer(configPath string, ipv4 *netip.Prefix, ipv6 *netip.Prefix, pr
 		},
 		configPath:         configPath,
 		wireguardInterface: wireguardInterface,
-		ipTables:           ipTables,
+		iptablesV4:         iptablesV4,
+		iptablesV6:         iptablesV6,
 		ipv4:               ipv4,
 		ipv6:               ipv6,
 	}
@@ -59,7 +64,6 @@ func (nc *networkConfigurer) SetupInterface() error {
 	}
 
 	// sysctl net.ipv4.ip_forward
-
 	run := func(commands [][]string) error {
 		for _, s := range commands {
 			cmd := exec.Command(s[0], s[1:]...)

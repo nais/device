@@ -48,23 +48,7 @@ func (c *DarwinConfigurator) SyncConf(ctx context.Context, cfg *pb.Configuration
 
 func (c *DarwinConfigurator) SetupRoutes(ctx context.Context, gateways []*pb.Gateway) error {
 	for _, gw := range gateways {
-		for _, cidr := range gw.GetRoutesIPv4() {
-			if strings.HasPrefix(cidr, TunnelNetworkPrefix) {
-				// Don't add routes for the tunnel network, as the whole /21 net is already routed to utun
-				continue
-			}
-
-			parsed, err := netip.ParsePrefix(prefix)
-			if err != nil {
-				log.Errorf("parsing prefix: %v", err)
-				continue
-			}
-
-			family := "-inet"
-			if parsed.Addr().Is6() {
-				family = "-inet6"
-			}
-
+		applyRoute := func(cidr, family string) error {
 			cmd := exec.CommandContext(ctx, "route", "-q", "-n", "add", family, cidr, "-interface", c.helperConfig.Interface)
 			output, err := cmd.CombinedOutput()
 			if err != nil {
@@ -73,7 +57,26 @@ func (c *DarwinConfigurator) SetupRoutes(ctx context.Context, gateways []*pb.Gat
 			}
 			log.Debugf("%v: %v", cmd, string(output))
 		}
+
+		for _, cidr := range gw.GetRoutesIPv4() {
+			if strings.HasPrefix(cidr, TunnelNetworkPrefix) {
+				// Don't add routes for the tunnel network, as the whole /21 net is already routed to utun
+				continue
+			}
+			err := applyRoute(cidr, "-inet")
+			if err != nil {
+				return err
+			}
+		}
+
+		for _, cidr := range gw.GetRoutesIPv6() {
+			err := applyRoute(cidr, "-inet6")
+			if err != nil {
+				return err
+			}
+		}
 	}
+
 	return nil
 }
 

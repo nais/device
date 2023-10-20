@@ -46,7 +46,8 @@ func (c *LinuxConfigurator) SyncConf(ctx context.Context, cfg *pb.Configuration)
 
 func (c *LinuxConfigurator) SetupRoutes(ctx context.Context, gateways []*pb.Gateway) error {
 	for _, gw := range gateways {
-		for _, cidr := range gw.GetRoutesIPv4() {
+		// For Linux we can handle ipv4/6 addreses the same - the `ip` utility handles this for us
+		for _, cidr := range append(gw.GetRoutesIPv4(), gw.GetRoutesIPv6()...) {
 			if strings.HasPrefix(cidr, TunnelNetworkPrefix) {
 				// Don't add routes for the tunnel network, as the whole /21 net is already routed to utun
 				continue

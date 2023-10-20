@@ -59,8 +59,8 @@ func (_c *MockNetworkConfigurer_ApplyWireGuardConfig_Call) RunAndReturn(run func
 	return _c
 }
 
-// ForwardRoutes provides a mock function with given fields: routes
-func (_m *MockNetworkConfigurer) ForwardRoutes(routes []string) error {
+// ForwardRoutesV4 provides a mock function with given fields: routes
+func (_m *MockNetworkConfigurer) ForwardRoutesV4(routes []string) error {
 	ret := _m.Called(routes)
 
 	var r0 error
@@ -73,30 +73,72 @@ func (_m *MockNetworkConfigurer) ForwardRoutes(routes []string) error {
 	return r0
 }
 
-// MockNetworkConfigurer_ForwardRoutes_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'ForwardRoutes'
-type MockNetworkConfigurer_ForwardRoutes_Call struct {
+// MockNetworkConfigurer_ForwardRoutesV4_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'ForwardRoutesV4'
+type MockNetworkConfigurer_ForwardRoutesV4_Call struct {
 	*mock.Call
 }
 
-// ForwardRoutes is a helper method to define mock.On call
+// ForwardRoutesV4 is a helper method to define mock.On call
 //   - routes []string
-func (_e *MockNetworkConfigurer_Expecter) ForwardRoutes(routes interface{}) *MockNetworkConfigurer_ForwardRoutes_Call {
-	return &MockNetworkConfigurer_ForwardRoutes_Call{Call: _e.mock.On("ForwardRoutes", routes)}
+func (_e *MockNetworkConfigurer_Expecter) ForwardRoutesV4(routes interface{}) *MockNetworkConfigurer_ForwardRoutesV4_Call {
+	return &MockNetworkConfigurer_ForwardRoutesV4_Call{Call: _e.mock.On("ForwardRoutesV4", routes)}
 }
 
-func (_c *MockNetworkConfigurer_ForwardRoutes_Call) Run(run func(routes []string)) *MockNetworkConfigurer_ForwardRoutes_Call {
+func (_c *MockNetworkConfigurer_ForwardRoutesV4_Call) Run(run func(routes []string)) *MockNetworkConfigurer_ForwardRoutesV4_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		run(args[0].([]string))
 	})
 	return _c
 }
 
-func (_c *MockNetworkConfigurer_ForwardRoutes_Call) Return(_a0 error) *MockNetworkConfigurer_ForwardRoutes_Call {
+func (_c *MockNetworkConfigurer_ForwardRoutesV4_Call) Return(_a0 error) *MockNetworkConfigurer_ForwardRoutesV4_Call {
 	_c.Call.Return(_a0)
 	return _c
 }
 
-func (_c *MockNetworkConfigurer_ForwardRoutes_Call) RunAndReturn(run func([]string) error) *MockNetworkConfigurer_ForwardRoutes_Call {
+func (_c *MockNetworkConfigurer_ForwardRoutesV4_Call) RunAndReturn(run func([]string) error) *MockNetworkConfigurer_ForwardRoutesV4_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// ForwardRoutesV6 provides a mock function with given fields: routes
+func (_m *MockNetworkConfigurer) ForwardRoutesV6(routes []string) error {
+	ret := _m.Called(routes)
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func([]string) error); ok {
+		r0 = rf(routes)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
+// MockNetworkConfigurer_ForwardRoutesV6_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'ForwardRoutesV6'
+type MockNetworkConfigurer_ForwardRoutesV6_Call struct {
+	*mock.Call
+}
+
+// ForwardRoutesV6 is a helper method to define mock.On call
+//   - routes []string
+func (_e *MockNetworkConfigurer_Expecter) ForwardRoutesV6(routes interface{}) *MockNetworkConfigurer_ForwardRoutesV6_Call {
+	return &MockNetworkConfigurer_ForwardRoutesV6_Call{Call: _e.mock.On("ForwardRoutesV6", routes)}
+}
+
+func (_c *MockNetworkConfigurer_ForwardRoutesV6_Call) Run(run func(routes []string)) *MockNetworkConfigurer_ForwardRoutesV6_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].([]string))
+	})
+	return _c
+}
+
+func (_c *MockNetworkConfigurer_ForwardRoutesV6_Call) Return(_a0 error) *MockNetworkConfigurer_ForwardRoutesV6_Call {
+	_c.Call.Return(_a0)
+	return _c
+}
+
+func (_c *MockNetworkConfigurer_ForwardRoutesV6_Call) RunAndReturn(run func([]string) error) *MockNetworkConfigurer_ForwardRoutesV6_Call {
 	_c.Call.Return(run)
 	return _c
 }

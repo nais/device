@@ -18,7 +18,15 @@ func (n *noopConfigurer) ApplyWireGuardConfig(peers []Peer) error {
 	return nil
 }
 
-func (n *noopConfigurer) ForwardRoutes(routes []string) error {
+func (n *noopConfigurer) ForwardRoutesV4(routes []string) error {
+	log.Debugf("Applying %d forwarding routes:", len(routes))
+	for i, route := range routes {
+		log.Debugf("(%02d) %s", i+1, route)
+	}
+	return nil
+}
+
+func (n *noopConfigurer) ForwardRoutesV6(routes []string) error {
 	log.Debugf("Applying %d forwarding routes:", len(routes))
 	for i, route := range routes {
 		log.Debugf("(%02d) %s", i+1, route)

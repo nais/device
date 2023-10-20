@@ -38,8 +38,9 @@ func SyncFromStream(ctx context.Context, name, password string, staticPeers []wi
 }
 
 func applyGatewayConfig(configurer wireguard.NetworkConfigurer, gatewayConfig *pb.GetGatewayConfigurationResponse, staticPeers ...wireguard.Peer) error {
-	RegisteredDevices.Set(float64(len(gatewayConfig.Devices)))
-	LastSuccessfulConfigFetch.SetToCurrentTime()
+	// TODO make struct for gateway runner, and mock this out properly for testing
+	// RegisteredDevices.Set(float64(len(gatewayConfig.Devices)))
+	// LastSuccessfulConfigFetch.SetToCurrentTime()
 
 	peers := wireguard.CastPeerList(gatewayConfig.Devices)
 	err := configurer.ApplyWireGuardConfig(append(staticPeers, peers...))
@@ -47,7 +48,12 @@ func applyGatewayConfig(configurer wireguard.NetworkConfigurer, gatewayConfig *p
 		return fmt.Errorf("actuating WireGuard config: %w", err)
 	}
 
-	err = configurer.ForwardRoutes(gatewayConfig.GetRoutesIPv4())
+	err = configurer.ForwardRoutesV4(gatewayConfig.GetRoutesIPv4())
+	if err != nil {
+		return fmt.Errorf("forwarding routes: %w", err)
+	}
+
+	err = configurer.ForwardRoutesV6(gatewayConfig.GetRoutesIPv6())
 	if err != nil {
 		return fmt.Errorf("forwarding routes: %w", err)
 	}

@@ -55,7 +55,8 @@ func TestSyncFromStream(t *testing.T) {
 		netConf := &wireguard.MockNetworkConfigurer{}
 		netConf.On("ConnectedDeviceCount").Return(1, nil)
 		netConf.On("ApplyWireGuardConfig", peers).Return(nil)
-		netConf.On("ForwardRoutes", resp.GetRoutesIPv4()).Return(nil)
+		netConf.On("ForwardRoutesV4", resp.GetRoutesIPv4()).Return(nil)
+		netConf.On("ForwardRoutesV6", resp.GetRoutesIPv6()).Return(nil)
 
 		err := gateway_agent.SyncFromStream(ctx, cfg.Name, cfg.APIServerPassword, staticPeers, client, netConf)
 

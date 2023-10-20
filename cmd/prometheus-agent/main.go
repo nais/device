@@ -80,7 +80,7 @@ func run(cfg config.Config) error {
 			return fmt.Errorf("cannot enable WireGuard: %w", err)
 		}
 
-		netConf = wireguard.NewConfigurer(cfg.WireGuardConfigPath, cfg.WireGuardIPv4, cfg.WireGuardIPv6, cfg.PrivateKey, wireguardInterface, wireguardListenPort, nil)
+		netConf = wireguard.NewConfigurer(cfg.WireGuardConfigPath, cfg.WireGuardIPv4, cfg.WireGuardIPv6, cfg.PrivateKey, wireguardInterface, wireguardListenPort, nil, nil)
 	} else {
 		netConf = wireguard.NewNoOpConfigurer()
 	}
