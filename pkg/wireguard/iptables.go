@@ -20,6 +20,9 @@ func (nc *networkConfigurer) determineDefaultInterfaces() error {
 	}
 
 	nc.defaultInterfaceV4, nc.interfaceIPV4, err = ParseDefaultInterfaceOutputV4(outV4)
+	if err != nil {
+		return err
+	}
 
 	cmdV6 := exec.Command("ip", "route", "get", "2606:4700::1111")
 	outV6, err := cmdV6.CombinedOutput()
@@ -27,8 +30,11 @@ func (nc *networkConfigurer) determineDefaultInterfaces() error {
 		return err
 	}
 	nc.defaultInterfaceV6, nc.interfaceIPV6, err = ParseDefaultInterfaceOutputV6(outV6)
+	if err != nil {
+		return err
+	}
 
-	return err
+	return nil
 }
 
 func ParseDefaultInterfaceOutputV4(output []byte) (string, string, error) {
