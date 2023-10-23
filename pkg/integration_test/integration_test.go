@@ -217,11 +217,11 @@ func tableTest(t *testing.T, testDevice *pb.Device, endState pb.AgentState, expe
 
 		gatewayNC := wireguard.NewMockNetworkConfigurer(t)
 		gatewayNC.EXPECT().ApplyWireGuardConfig(mock.MatchedBy(matchExactPeers(t, expectedPeers))).Return(nil)
-		if len(expectedGateways) > 1 {
-			expectedPeers = append(expectedPeers, testDevice)
-			//
-			// gatewayNC.EXPECT().ApplyWireGuardConfig(mock.MatchedBy(matchExactPeers(t, expectedPeers))).Run(func(_ []wireguard.Peer) { gatewayGotDevice <- struct{}{} }).Return(nil)
-		}
+		// if len(expectedGateways) > 1 {
+		// 	expectedPeers = append(expectedPeers, testDevice)
+		//
+		// 	 gatewayNC.EXPECT().ApplyWireGuardConfig(mock.MatchedBy(matchExactPeers(t, expectedPeers))).Run(func(_ []wireguard.Peer) { gatewayGotDevice <- struct{}{} }).Return(nil)
+		// }
 
 		gatewayNC.EXPECT().ForwardRoutesV4(gw.GetRoutesIPv4()).Return(nil)
 		gatewayNC.EXPECT().ForwardRoutesV6(gw.GetRoutesIPv6()).Return(nil)
