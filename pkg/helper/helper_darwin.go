@@ -3,7 +3,6 @@ package helper
 import (
 	"context"
 	"fmt"
-	"net/netip"
 	"os/exec"
 	"strings"
 
@@ -55,7 +54,9 @@ func (c *DarwinConfigurator) SetupRoutes(ctx context.Context, gateways []*pb.Gat
 				log.Errorf("%v: %v", cmd, string(output))
 				return fmt.Errorf("executing %v: %w", cmd, err)
 			}
+
 			log.Debugf("%v: %v", cmd, string(output))
+			return nil
 		}
 
 		for _, cidr := range gw.GetRoutesIPv4() {
