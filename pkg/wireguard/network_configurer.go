@@ -2,11 +2,13 @@ package wireguard
 
 import (
 	"fmt"
+	"net"
 	"net/netip"
 	"os"
 	"os/exec"
 	"time"
 
+	"github.com/google/gopacket/routing"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -24,21 +26,66 @@ type IPTables interface {
 	ChangePolicy(table, chain, target string) error
 }
 
-type networkConfigurer struct {
-	config             *Config
-	iptablesV4         IPTables
-	iptablesV6         IPTables
-	wireguardInterface string
-	defaultInterfaceV4 string
-	interfaceIPV4      string
-	defaultInterfaceV6 string
-	interfaceIPV6      string
-	configPath         string
-	ipv4               *netip.Prefix
-	ipv6               *netip.Prefix
+type subNetworkConfigurer struct {
+	ip       *netip.Prefix
+	iface    *net.Interface
+	src      net.IP
+	iptables IPTables
 }
 
-func NewConfigurer(configPath string, ipv4 *netip.Prefix, ipv6 *netip.Prefix, privateKey, wireguardInterface string, listenPort int, iptablesV4, iptablesV6 IPTables) NetworkConfigurer {
+type networkConfigurer struct {
+	config *Config
+
+	wireguardInterface string
+	configPath         string
+	router             routing.Router
+
+	v4 *subNetworkConfigurer
+	v6 *subNetworkConfigurer
+}
+
+func (s *subNetworkConfigurer) detectDefaultRoute(router routing.Router) error {
+	var testIP net.IP
+	if s.ip.Addr().Is4() {
+		testIP = net.ParseIP("1.1.1.1")
+	} else {
+		testIP = net.ParseIP("2606:4700::1111")
+	}
+
+	iface, _, src, err := router.Route(testIP)
+	if err != nil {
+		return err
+	}
+	if s.iface == nil {
+		return fmt.Errorf("no default interface found")
+	}
+	if s.src == nil {
+		return fmt.Errorf("no default source IP found")
+	}
+
+	s.iface = iface
+	s.src = src
+
+	return nil
+}
+
+func NewConfigurer(configPath string, ipv4 *netip.Prefix, ipv6 *netip.Prefix, privateKey, wireguardInterface string, listenPort int, iptablesV4, iptablesV6 IPTables, router routing.Router) (NetworkConfigurer, error) {
+	v4Sub := &subNetworkConfigurer{
+		ip:       ipv4,
+		iptables: iptablesV4,
+	}
+	if err := v4Sub.detectDefaultRoute(router); err != nil {
+		return nil, err
+	}
+
+	v6Sub := &subNetworkConfigurer{
+		ip:       ipv6,
+		iptables: iptablesV6,
+	}
+	if err := v6Sub.detectDefaultRoute(router); err != nil {
+		log.Warn("no IPv6 default route found, IPv6 will not be configured.")
+	}
+
 	return &networkConfigurer{
 		config: &Config{
 			PrivateKey: privateKey,
@@ -46,15 +93,13 @@ func NewConfigurer(configPath string, ipv4 *netip.Prefix, ipv6 *netip.Prefix, pr
 		},
 		configPath:         configPath,
 		wireguardInterface: wireguardInterface,
-		iptablesV4:         iptablesV4,
-		iptablesV6:         iptablesV6,
-		ipv4:               ipv4,
-		ipv6:               ipv6,
-	}
+		v4:                 v4Sub,
+		v6:                 v6Sub,
+	}, nil
 }
 
 func (nc *networkConfigurer) SetupInterface() error {
-	if nc.ipv4 == nil && nc.ipv6 == nil {
+	if nc.v4 == nil && nc.v6 == nil {
 		return fmt.Errorf("no IP addresses (v4/v6) configured for interface")
 	}
 
@@ -80,11 +125,11 @@ func (nc *networkConfigurer) SetupInterface() error {
 		{"ip", "link", "add", "dev", nc.wireguardInterface, "type", "wireguard"},
 		{"ip", "link", "set", nc.wireguardInterface, "mtu", "1360"},
 	}
-	if nc.ipv4 != nil {
-		commands = append(commands, []string{"ip", "address", "add", "dev", nc.wireguardInterface, nc.ipv4.String()})
+	if nc.v4.ip != nil {
+		commands = append(commands, []string{"ip", "address", "add", "dev", nc.wireguardInterface, nc.v4.ip.String()})
 	}
-	if nc.ipv6 != nil {
-		commands = append(commands, []string{"ip", "address", "add", "dev", nc.wireguardInterface, nc.ipv6.String()})
+	if nc.v6 != nil {
+		commands = append(commands, []string{"ip", "address", "add", "dev", nc.wireguardInterface, nc.v6.ip.String()})
 	}
 	commands = append(commands, []string{"ip", "link", "set", nc.wireguardInterface, "up"})
 

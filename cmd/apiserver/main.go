@@ -147,7 +147,10 @@ func run(cfg config.Config) error {
 		}
 		cfg.WireGuardPrivateKey = key
 
-		netConf := wg.NewConfigurer(cfg.WireGuardConfigPath, cfg.WireGuardIPv4, cfg.WireGuardIPv6, string(cfg.WireGuardPrivateKey.Private()), "wg0", 51820, nil, nil)
+		netConf, err := wg.NewConfigurer(cfg.WireGuardConfigPath, cfg.WireGuardIPv4, cfg.WireGuardIPv6, string(cfg.WireGuardPrivateKey.Private()), "wg0", 51820, nil, nil, nil)
+		if err != nil {
+			return fmt.Errorf("create WireGuard configurer: %w", err)
+		}
 
 		err = netConf.SetupInterface()
 		if err != nil {

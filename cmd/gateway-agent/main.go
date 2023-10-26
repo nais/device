@@ -13,6 +13,7 @@ import (
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/status"
 
+	"github.com/google/gopacket/routing"
 	"github.com/nais/device/pkg/gateway-agent"
 	"github.com/nais/device/pkg/gateway-agent/config"
 	"github.com/nais/device/pkg/passwordhash"
@@ -127,7 +128,14 @@ func run(cfg config.Config) error {
 		if err != nil {
 			return fmt.Errorf("setup iptables: %w", err)
 		}
-		netConf = wireguard.NewConfigurer(cfg.WireGuardConfigPath, cfg.WireGuardIPv4, cfg.WireGuardIPv6, cfg.PrivateKey, wireguardInterface, wireguardListenPort, iptablesV4, iptablesV6)
+		router, err := routing.New()
+		if err != nil {
+			return fmt.Errorf("setup routing: %w", err)
+		}
+		netConf, err = wireguard.NewConfigurer(cfg.WireGuardConfigPath, cfg.WireGuardIPv4, cfg.WireGuardIPv6, cfg.PrivateKey, wireguardInterface, wireguardListenPort, iptablesV4, iptablesV6, router)
+		if err != nil {
+			return fmt.Errorf("setup wireguard configurer: %w", err)
+		}
 	} else {
 		netConf = wireguard.NewNoOpConfigurer()
 	}
