@@ -93,6 +93,7 @@ require (
 require (
 	github.com/akavel/rsrc v0.10.2
 	github.com/golang-migrate/migrate/v4 v4.16.2
+	github.com/google/gopacket v1.1.19
 	github.com/sqlc-dev/sqlc v1.20.0
 	github.com/vektra/mockery/v2 v2.33.0
 	golang.org/x/exp v0.0.0-20230315142452-642cacee5cc0
@@ -116,7 +117,6 @@ require (
 	github.com/go-logr/stdr v1.2.2 // indirect
 	github.com/go-sql-driver/mysql v1.7.1 // indirect
 	github.com/google/cel-go v0.17.1 // indirect
-	github.com/google/gopacket v1.1.19 // indirect
 	github.com/google/s2a-go v0.1.5 // indirect
 	github.com/googleapis/enterprise-certificate-proxy v0.2.5 // indirect
 	github.com/hashicorp/hcl v1.0.0 // indirect
