@@ -50,12 +50,12 @@ func applyGatewayConfig(configurer wireguard.NetworkConfigurer, gatewayConfig *p
 
 	err = configurer.ForwardRoutesV4(gatewayConfig.GetRoutesIPv4())
 	if err != nil {
-		return fmt.Errorf("forwarding routes: %w", err)
+		return fmt.Errorf("forwarding IPv4 routes: %w", err)
 	}
 
 	err = configurer.ForwardRoutesV6(gatewayConfig.GetRoutesIPv6())
 	if err != nil {
-		return fmt.Errorf("forwarding routes: %w", err)
+		return fmt.Errorf("forwarding IPv6 routes: %w", err)
 	}
 
 	return nil

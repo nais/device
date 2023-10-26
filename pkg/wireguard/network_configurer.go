@@ -5,7 +5,6 @@ import (
 	"net/netip"
 	"os"
 	"os/exec"
-	"regexp"
 	"time"
 
 	log "github.com/sirupsen/logrus"
@@ -128,16 +127,4 @@ func (nc *networkConfigurer) ApplyWireGuardConfig(peers []Peer) error {
 	log.Debugf("Actuated WireGuard config at %v", nc.configPath)
 
 	return nil
-}
-
-func (nc *networkConfigurer) ConnectedDeviceCount() (int, error) {
-	output, err := exec.Command("wg", "show", nc.wireguardInterface, "endpoints").Output()
-	if err != nil {
-		return 0, err
-	}
-
-	re := regexp.MustCompile(`\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}:\d{1,5}`)
-	matches := re.FindAll(output, -1)
-
-	return len(matches), nil
 }
