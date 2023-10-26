@@ -8,49 +8,6 @@ on:
   workflow_dispatch:
 
 jobs:
-  update-ppa-repo:
-    runs-on: ubuntu-20.04
-    steps:
-      - uses: actions/checkout@v3
-      - name: Get Latest version
-        id: latest_version
-        uses: abatilo/release-info-action@5774bec4e3eabad433b4ae8f625e83afa0e7bb22
-        with:
-          owner: nais
-          repo: device
-      - name: Add new deb to ppa
-        id: update_ppa
-        env:
-          LATEST: ${{ steps.latest_version.outputs.latest_tag }}
-          LATEST_DATE: ${{ steps.latest_version.outputs.latest_tag_published_at }}
-          PPA_REPO_KEY: ${{ secrets.PPA_REPO_KEY }}
-          EMAIL: aura@nav.no
-        run: |
-          echo "Version ${LATEST} was released at ${LATEST_DATE}"
-
-          if [[ "${LATEST}" == "null" ]]; then
-            echo "Invalid version!"
-            exit 1
-          fi
-
-          eval "$(ssh-agent -s)"
-          ssh-add - <<< "${PPA_REPO_KEY}"
-          git clone git@github.com:nais/nais-ppa.git pparepo
-          cd pparepo
-
-          # Fetch latest deb
-          wget https://github.com/nais/device/releases/download/${LATEST}/naisdevice.deb -O naisdevice-${LATEST}.deb
-          wget https://github.com/nais/device/releases/download/${LATEST}/naisdevice-tenant.deb -O naisdevice-tenant-${LATEST}.deb
-
-          # Commit and push changes
-          git config user.email "${EMAIL}"
-          git config user.name "naisdevice pipeline"
-          git add naisdevice-${LATEST}.deb
-          git add naisdevice-tenant-${LATEST}.deb
-          git --no-pager diff --cached
-          git commit --all --message "Add version ${LATEST} of naisdevice.deb"
-          git push
-
   upload-gar:
     runs-on: ubuntu-latest
     permissions:
