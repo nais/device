@@ -126,7 +126,6 @@ func tableTest(t *testing.T, testDevice *pb.Device, endState pb.AgentState, expe
 	expectedGateways[apiserverPeer.Name] = apiserverPeer
 
 	apiserverListener, stopAPIServer := serve(t, NewAPIServer(t, ctx, db), wg)
-	defer stopAPIServer()
 
 	osConfigurator := helper.NewMockOSConfigurator(t)
 
@@ -171,7 +170,6 @@ func tableTest(t *testing.T, testDevice *pb.Device, endState pb.AgentState, expe
 	osConfigurator.EXPECT().TeardownInterface(mock.AnythingOfType("*context.valueCtx")).Return(nil).Maybe()
 
 	helperListener, stopHelper := serve(t, NewHelper(t, osConfigurator), wg)
-	defer stopHelper()
 
 	apiDial, err := dial(ctx, apiserverListener)
 	assert.NoError(t, err)
@@ -239,7 +237,6 @@ func tableTest(t *testing.T, testDevice *pb.Device, endState pb.AgentState, expe
 	}
 
 	deviceAgentListener, stopDeviceAgent := serve(t, NewDeviceAgent(t, wg, ctx, helperListener, rc), wg)
-	defer stopDeviceAgent()
 
 	deviceAgentConnection, err := dial(ctx, deviceAgentListener)
 	assert.NoError(t, err)
@@ -251,14 +248,16 @@ func tableTest(t *testing.T, testDevice *pb.Device, endState pb.AgentState, expe
 	_, err = deviceAgentClient.Login(ctx, &pb.LoginRequest{})
 	assert.NoError(t, err)
 
-	statusChan := make(chan *pb.AgentStatus)
-	errChan := make(chan error)
+	statusChan := make(chan *pb.AgentStatus, 256)
+	errChan := make(chan error, 256)
 
+	wg.Add(1)
 	go func() {
 		for {
 			status, err := statusClient.Recv()
 			if grpc_status.Code(err) == codes.Canceled || grpc_status.Code(err) == codes.Unavailable {
 				t.Logf("receiving agent status: %v", err)
+				wg.Done()
 				return
 			}
 			if err != nil {
@@ -269,11 +268,21 @@ func tableTest(t *testing.T, testDevice *pb.Device, endState pb.AgentState, expe
 		}
 	}()
 
+	stopStuff := func() {
+		t.Log("stopping stuff")
+		statusClient.CloseSend()
+		cancel()
+		stopDeviceAgent()
+		stopHelper()
+		stopAPIServer()
+	}
+
 	lastKnownState := pb.AgentState_Disconnected
 	for {
 		select {
 		case <-ctx.Done():
 			t.Errorf("FAIL: test timed out without agent reaching expected end state: %v, last known state: %v", endState, lastKnownState)
+			stopStuff()
 			return
 		case err := <-errChan:
 			t.Errorf("FAIL: receiving agent status unexpected error: %v", err)
@@ -295,6 +304,8 @@ func tableTest(t *testing.T, testDevice *pb.Device, endState pb.AgentState, expe
 				}
 
 				// test done
+				stopStuff()
+				wg.Wait() // TODO make sure cleanup works as expected
 				return
 			} else {
 				t.Logf("received non final status: %+v, with gateways: %+v", status.String(), status.Gateways)
@@ -313,6 +324,7 @@ func assertEqualGateway(t *testing.T, expected, actual *pb.Gateway) {
 		t.Errorf("FAIL: actual gateway is nil, expected: %+v", expected)
 		return
 	}
+
 	assert.Equal(t, expected.Name, actual.Name)
 	assert.Equal(t, expected.RoutesIPv4, actual.RoutesIPv4)
 	assert.Equal(t, expected.RoutesIPv6, actual.RoutesIPv6)
