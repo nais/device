@@ -14,7 +14,7 @@ func (s *subNetworkConfigurer) configured() bool {
 }
 
 func (nc *networkConfigurer) setupIPTables(subconfigurer *subNetworkConfigurer) error {
-	if subconfigurer.configured() {
+	if !subconfigurer.configured() {
 		return nil
 	}
 
