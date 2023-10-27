@@ -78,30 +78,31 @@ func NewConfigurer(configPath string, ipv4 *netip.Prefix, ipv6 *netip.Prefix, pr
 		},
 		configPath:         configPath,
 		wireguardInterface: wireguardInterface,
+		v4: &subNetworkConfigurer{
+			ip:       ipv4,
+			iptables: iptablesV4,
+		},
+		v6: &subNetworkConfigurer{
+			ip: ipv6,
+		},
 	}
 
 	if iptablesV4 != nil && router != nil {
 		if iface, src, err := detectDefaultRoute(router, ipv4); err != nil {
 			return nil, fmt.Errorf("no IPv4 default route found, this is required. err: %w", err)
 		} else {
-			nc.v4 = &subNetworkConfigurer{
-				iface:    iface,
-				ip:       ipv4,
-				iptables: iptablesV4,
-				src:      src,
-			}
+			nc.v4.iface = iface
+			nc.v4.src = src
+			nc.v4.iptables = iptablesV4
 		}
 	}
 	if iptablesV6 != nil && router != nil {
 		if iface, src, err := detectDefaultRoute(router, ipv6); err != nil {
 			log.Warnf("no IPv6 default route found, IPv6 will not be configured. err: %v", err)
 		} else {
-			nc.v6 = &subNetworkConfigurer{
-				iface:    iface,
-				ip:       ipv6,
-				iptables: iptablesV6,
-				src:      src,
-			}
+			nc.v6.iface = iface
+			nc.v6.src = src
+			nc.v6.iptables = iptablesV6
 		}
 	}
 

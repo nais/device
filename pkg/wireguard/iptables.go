@@ -9,8 +9,12 @@ import (
 
 var ErrNetworkUnreachable error = errors.New("network is unreachable")
 
+func (s *subNetworkConfigurer) configured() bool {
+	return s.iface != nil && s.src != nil && s.iptables != nil
+}
+
 func (nc *networkConfigurer) setupIPTables(subconfigurer *subNetworkConfigurer) error {
-	if subconfigurer == nil {
+	if subconfigurer.configured() {
 		return nil
 	}
 
@@ -49,7 +53,7 @@ func (nc *networkConfigurer) setupIPTables(subconfigurer *subNetworkConfigurer) 
 }
 
 func (nc *networkConfigurer) forwardRoutes(subconfigurer *subNetworkConfigurer, routes []string) error {
-	if subconfigurer == nil {
+	if subconfigurer.configured() {
 		return nil
 	}
 

@@ -374,7 +374,6 @@ func matchExactPeers(t *testing.T, expectedPeers []wireguard.Peer) func([]wiregu
 		}
 		return true
 	}
-
 }
 
 func gatewayListContains(gatewayToLookFor *pb.Gateway, gateways []*pb.Gateway) bool {
