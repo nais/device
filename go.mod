@@ -93,7 +93,7 @@ require (
 require (
 	github.com/akavel/rsrc v0.10.2
 	github.com/golang-migrate/migrate/v4 v4.16.2
-	github.com/google/gopacket v1.1.19
+	github.com/google/gopacket v1.1.20-0.20220810144506-32ee38206866
 	github.com/sqlc-dev/sqlc v1.20.0
 	github.com/vektra/mockery/v2 v2.33.0
 	golang.org/x/exp v0.0.0-20230315142452-642cacee5cc0
