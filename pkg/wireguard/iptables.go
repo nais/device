@@ -53,7 +53,7 @@ func (nc *networkConfigurer) setupIPTables(subconfigurer *subNetworkConfigurer) 
 }
 
 func (nc *networkConfigurer) forwardRoutes(subconfigurer *subNetworkConfigurer, routes []string) error {
-	if subconfigurer.configured() {
+	if !subconfigurer.configured() {
 		return nil
 	}
 

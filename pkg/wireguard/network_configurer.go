@@ -53,7 +53,7 @@ func detectDefaultRoute(router routing.Router, ip *netip.Prefix) (*net.Interface
 	if ip.Addr().Is4() {
 		testIP = net.ParseIP("1.1.1.1")
 	} else {
-		testIP = net.ParseIP("2606:4700::1111")
+		testIP = net.ParseIP("2606:4700:4700::1111")
 	}
 
 	iface, _, src, err := router.Route(testIP)
