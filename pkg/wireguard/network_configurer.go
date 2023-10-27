@@ -27,11 +27,10 @@ type IPTables interface {
 }
 
 type subNetworkConfigurer struct {
-	ip         *netip.Prefix
-	iface      *net.Interface
-	src        net.IP
-	iptables   IPTables
-	configured bool
+	ip       *netip.Prefix
+	iface    *net.Interface
+	src      net.IP
+	iptables IPTables
 }
 
 type networkConfigurer struct {
@@ -45,9 +44,13 @@ type networkConfigurer struct {
 	v6 *subNetworkConfigurer
 }
 
-func (s *subNetworkConfigurer) detectDefaultRoute(router routing.Router) error {
+func detectDefaultRoute(router routing.Router, ip *netip.Prefix) (*net.Interface, net.IP, error) {
+	if ip == nil {
+		return nil, nil, fmt.Errorf("no IP address configured")
+	}
+
 	var testIP net.IP
-	if s.ip.Addr().Is4() {
+	if ip.Addr().Is4() {
 		testIP = net.ParseIP("1.1.1.1")
 	} else {
 		testIP = net.ParseIP("2606:4700::1111")
@@ -55,49 +58,54 @@ func (s *subNetworkConfigurer) detectDefaultRoute(router routing.Router) error {
 
 	iface, _, src, err := router.Route(testIP)
 	if err != nil {
-		return err
+		return nil, nil, err
 	}
-	if s.iface == nil {
-		return fmt.Errorf("no default interface found")
+	if iface == nil {
+		return nil, nil, fmt.Errorf("no default interface found")
 	}
-	if s.src == nil {
-		return fmt.Errorf("no default source IP found")
+	if src == nil {
+		return nil, nil, fmt.Errorf("no default source IP found")
 	}
 
-	s.iface = iface
-	s.src = src
-	s.configured = true
-
-	return nil
+	return iface, src, nil
 }
 
 func NewConfigurer(configPath string, ipv4 *netip.Prefix, ipv6 *netip.Prefix, privateKey, wireguardInterface string, listenPort int, iptablesV4, iptablesV6 IPTables, router routing.Router) (NetworkConfigurer, error) {
-	v4Sub := &subNetworkConfigurer{
-		ip:       ipv4,
-		iptables: iptablesV4,
-	}
-	if err := v4Sub.detectDefaultRoute(router); err != nil {
-		return nil, err
-	}
-
-	v6Sub := &subNetworkConfigurer{
-		ip:       ipv6,
-		iptables: iptablesV6,
-	}
-	if err := v6Sub.detectDefaultRoute(router); err != nil {
-		log.Warn("no IPv6 default route found, IPv6 will not be configured.")
-	}
-
-	return &networkConfigurer{
+	nc := &networkConfigurer{
 		config: &Config{
 			PrivateKey: privateKey,
 			ListenPort: listenPort,
 		},
 		configPath:         configPath,
 		wireguardInterface: wireguardInterface,
-		v4:                 v4Sub,
-		v6:                 v6Sub,
-	}, nil
+	}
+
+	if iptablesV4 != nil && router != nil {
+		if iface, src, err := detectDefaultRoute(router, ipv4); err != nil {
+			return nil, fmt.Errorf("no IPv4 default route found, this is required. err: %w", err)
+		} else {
+			nc.v4 = &subNetworkConfigurer{
+				iface:    iface,
+				ip:       ipv4,
+				iptables: iptablesV4,
+				src:      src,
+			}
+		}
+	}
+	if iptablesV6 != nil && router != nil {
+		if iface, src, err := detectDefaultRoute(router, ipv6); err != nil {
+			log.Warnf("no IPv6 default route found, IPv6 will not be configured. err: %v", err)
+		} else {
+			nc.v6 = &subNetworkConfigurer{
+				iface:    iface,
+				ip:       ipv6,
+				iptables: iptablesV6,
+				src:      src,
+			}
+		}
+	}
+
+	return nc, nil
 }
 
 func (nc *networkConfigurer) SetupInterface() error {
