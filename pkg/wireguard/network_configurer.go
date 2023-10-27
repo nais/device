@@ -79,8 +79,7 @@ func NewConfigurer(configPath string, ipv4 *netip.Prefix, ipv6 *netip.Prefix, pr
 		configPath:         configPath,
 		wireguardInterface: wireguardInterface,
 		v4: &subNetworkConfigurer{
-			ip:       ipv4,
-			iptables: iptablesV4,
+			ip: ipv4,
 		},
 		v6: &subNetworkConfigurer{
 			ip: ipv6,
@@ -139,7 +138,7 @@ func (nc *networkConfigurer) SetupInterface() error {
 	if nc.v4.ip != nil {
 		commands = append(commands, []string{"ip", "address", "add", "dev", nc.wireguardInterface, nc.v4.ip.String()})
 	}
-	if nc.v6 != nil {
+	if nc.v6.ip != nil {
 		commands = append(commands, []string{"ip", "address", "add", "dev", nc.wireguardInterface, nc.v6.ip.String()})
 	}
 	commands = append(commands, []string{"ip", "link", "set", nc.wireguardInterface, "up"})
