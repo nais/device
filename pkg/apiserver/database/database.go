@@ -185,6 +185,18 @@ func (db *ApiServerDB) UpdateGatewayDynamicFields(ctx context.Context, gw *pb.Ga
 			err = qtx.AddGatewayRoute(ctx, sqlc.AddGatewayRouteParams{
 				GatewayName: gw.Name,
 				Route:       route,
+				Family:      "IPv4",
+			})
+			if err != nil {
+				return err
+			}
+		}
+
+		for _, route := range gw.GetRoutesIPv6() {
+			err = qtx.AddGatewayRoute(ctx, sqlc.AddGatewayRouteParams{
+				GatewayName: gw.Name,
+				Route:       route,
+				Family:      "IPv6",
 			})
 			if err != nil {
 				return err
