@@ -71,6 +71,7 @@ func (g *GatewayConfigurer) SyncConfig(ctx context.Context) error {
 			AccessGroupIDs:           gatewayConfig.AccessGroupIds,
 			RequiresPrivilegedAccess: gatewayConfig.RequiresPrivilegedAccess,
 			RoutesIPv4:               ToCIDRStringSlice(gatewayConfig.Routes),
+			RoutesIPv6:               ToCIDRStringSlice(gatewayConfig.RoutesIPv6),
 		}
 
 		err = g.DB.UpdateGatewayDynamicFields(ctx, gw)

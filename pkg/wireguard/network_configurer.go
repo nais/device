@@ -27,10 +27,11 @@ type IPTables interface {
 }
 
 type subNetworkConfigurer struct {
-	ip       *netip.Prefix
-	iface    *net.Interface
-	src      net.IP
-	iptables IPTables
+	ip         *netip.Prefix
+	iface      *net.Interface
+	src        net.IP
+	iptables   IPTables
+	configured bool
 }
 
 type networkConfigurer struct {
@@ -65,6 +66,7 @@ func (s *subNetworkConfigurer) detectDefaultRoute(router routing.Router) error {
 
 	s.iface = iface
 	s.src = src
+	s.configured = true
 
 	return nil
 }

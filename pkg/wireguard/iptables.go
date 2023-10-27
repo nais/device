@@ -10,6 +10,10 @@ import (
 var ErrNetworkUnreachable error = errors.New("network is unreachable")
 
 func (nc *networkConfigurer) setupIPTables(subconfigurer *subNetworkConfigurer) error {
+	if !subconfigurer.configured {
+		return nil
+	}
+
 	err := subconfigurer.iptables.ChangePolicy("filter", "FORWARD", "DROP")
 	if err != nil {
 		return fmt.Errorf("setting FORWARD policy to DROP: %w", err)
@@ -45,6 +49,10 @@ func (nc *networkConfigurer) setupIPTables(subconfigurer *subNetworkConfigurer) 
 }
 
 func (nc *networkConfigurer) forwardRoutes(subconfigurer *subNetworkConfigurer, routes []string) error {
+	if !subconfigurer.configured {
+		return nil
+	}
+
 	for _, ip := range routes {
 		err := subconfigurer.iptables.AppendUnique("nat", "POSTROUTING", "-o", subconfigurer.iface.Name, "-p", "tcp", "-d", ip, "-j", "SNAT", "--to-source", subconfigurer.src.String())
 		if err != nil {
