@@ -124,6 +124,7 @@ func (das *DeviceAgentServer) SetActiveTenant(ctx context.Context, req *pb.SetAc
 		return &pb.SetActiveTenantResponse{}, nil
 	}
 
+	das.stateChange <- pb.AgentState_Disconnecting
 	log.Infof("activated tenant: %s", req.Name)
 	return &pb.SetActiveTenantResponse{}, nil
 }
