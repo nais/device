@@ -38,7 +38,6 @@ type networkConfigurer struct {
 
 	wireguardInterface string
 	configPath         string
-	router             routing.Router
 
 	v4 *subNetworkConfigurer
 	v6 *subNetworkConfigurer

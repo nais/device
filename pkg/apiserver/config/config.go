@@ -12,8 +12,6 @@ import (
 
 var MaxTenantId uint16 = (1 << 16) - 1
 
-const wireGuardV6PrefixAddress = "fd75:568f:0d24::/48"
-
 type Config struct {
 	AutoEnrollEnabled                 bool
 	Azure                             *auth.Azure
