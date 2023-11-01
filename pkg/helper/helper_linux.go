@@ -53,6 +53,8 @@ func (c *LinuxConfigurator) SetupRoutes(ctx context.Context, gateways []*pb.Gate
 				continue
 			}
 
+			cidr = strings.TrimSpace(cidr)
+
 			cmd := exec.CommandContext(ctx, "ip", "route", "add", cidr, "dev", c.helperConfig.Interface)
 			output, err := cmd.CombinedOutput()
 			if exitErr, ok := err.(*exec.ExitError); ok {
