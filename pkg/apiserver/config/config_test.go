@@ -6,25 +6,22 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestGetPrefixAddress(t *testing.T) {
-	t.Run("test different for tenants", func(t *testing.T) {
-		tests := []struct {
-			expected string
-			tenantId uint16
-		}{
-			{"fd75:568f:d24::", 0},
-			{"fd75:568f:d24:1::", 1},
-			{"fd75:568f:d24:5::", 5},
-			{"fd75:568f:d24:ffff::", MaxTenantId},
-		}
+func TestParseIPOrPrefix(t *testing.T) {
+	tests := []struct {
+		input    string
+		expected string
+	}{
+		{"10.255.240.1", "10.255.240.1/21"},
+		{"10.255.240.1/21", "10.255.240.1/21"},
+		{"10.255.240.1/22", "10.255.240.1/22"},
+		{"2000::1", "2000::1/64"},
+		{"2000::1/64", "2000::1/64"},
+		{"2000::1/65", "2000::1/65"},
+	}
 
-		for _, tt := range tests {
-			actual := getWireGuardIPv6(tt.tenantId)
-			assert.Equal(t, tt.expected, actual.Addr().String())
-		}
-	})
-	t.Run("test handing out first ip", func(t *testing.T) {
-		prefix := getWireGuardIPv6(1)
-		assert.Equal(t, "fd75:568f:d24:1::1", prefix.Addr().Next().String())
-	})
+	for _, tt := range tests {
+		out, err := parsePrefixOrIP(tt.input)
+		assert.NoError(t, err)
+		assert.Equal(t, tt.expected, out.String())
+	}
 }

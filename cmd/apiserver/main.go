@@ -83,16 +83,16 @@ func run(cfg config.Config) error {
 	defer cancel()
 
 	log.Infof("naisdevice API server %s starting up", version.Version)
-	log.Infof("WireGuard IPv4 address: %v", cfg.WireGuardIPv4)
-	log.Infof("WireGuard IPv6 address: %v", cfg.WireGuardIPv6)
+	log.Infof("WireGuard IPv4 address: %v", cfg.WireGuardIPv4Prefix)
+	log.Infof("WireGuard IPv6 address: %v", cfg.WireGuardIPv6Prefix)
 
 	wireguardPrefix, err := netip.ParsePrefix(cfg.WireGuardNetworkAddress)
 	if err != nil {
 		return fmt.Errorf("parse wireguard network address: %w", err)
 	}
 
-	v4Allocator := ip.NewV4Allocator(wireguardPrefix, []string{cfg.WireGuardIPv4.Addr().String()})
-	v6Allocator := ip.NewV6Allocator(cfg.WireGuardIPv6)
+	v4Allocator := ip.NewV4Allocator(wireguardPrefix, []string{cfg.WireGuardIPv4Prefix.Addr().String()})
+	v6Allocator := ip.NewV6Allocator(cfg.WireGuardIPv6Prefix)
 	db, err := database.New(ctx, cfg.DBPath, v4Allocator, v6Allocator, !cfg.KolideEventHandlerEnabled)
 	if err != nil {
 		return fmt.Errorf("initialize database: %w", err)
@@ -147,7 +147,7 @@ func run(cfg config.Config) error {
 		}
 		cfg.WireGuardPrivateKey = key
 
-		netConf, err := wg.NewConfigurer(cfg.WireGuardConfigPath, cfg.WireGuardIPv4, cfg.WireGuardIPv6, string(cfg.WireGuardPrivateKey.Private()), "wg0", 51820, nil, nil, nil)
+		netConf, err := wg.NewConfigurer(cfg.WireGuardConfigPath, cfg.WireGuardIPv4Prefix, cfg.WireGuardIPv6Prefix, string(cfg.WireGuardPrivateKey.Private()), "wg0", 51820, nil, nil, nil)
 		if err != nil {
 			return fmt.Errorf("create WireGuard configurer: %w", err)
 		}
