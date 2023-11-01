@@ -205,6 +205,7 @@ func tableTest(t *testing.T, testDevice *pb.Device, endState pb.AgentState, expe
 		rc.EXPECT().BuildHelperConfiguration(mock.MatchedBy(matchExactGateways(expectedGateways))).Return(fullHelperConfig)
 	}
 
+	onlineGateways := sync.WaitGroup{}
 	for _, gw := range expectedGateways {
 		if gw.Name == "apiserver" {
 			continue
@@ -224,7 +225,7 @@ func tableTest(t *testing.T, testDevice *pb.Device, endState pb.AgentState, expe
 		gatewayNC.EXPECT().ForwardRoutesV4(gw.GetRoutesIPv4()).Return(nil)
 		gatewayNC.EXPECT().ForwardRoutesV6(gw.GetRoutesIPv6()).Return(nil)
 
-		wg.Add(1)
+		onlineGateways.Add(1)
 		go func(t *testing.T, gw *pb.Gateway) {
 			t.Logf("starting gateway agent %q", gw.GetName())
 			err = StartGatewayAgent(t, ctx, gw.GetName(), apiserverListener, apiserverPeer, gatewayNC)
@@ -232,7 +233,7 @@ func tableTest(t *testing.T, testDevice *pb.Device, endState pb.AgentState, expe
 			if grpc_status.Code(err) != codes.Canceled && grpc_status.Code(err) != codes.Unavailable {
 				t.Errorf("FAIL: got unexpected error from gateway agent: %v", err)
 			}
-			wg.Done()
+			onlineGateways.Done()
 		}(t, gw)
 	}
 
@@ -270,11 +271,12 @@ func tableTest(t *testing.T, testDevice *pb.Device, endState pb.AgentState, expe
 
 	stopStuff := func() {
 		t.Log("stopping stuff")
-		statusClient.CloseSend()
 		cancel()
-		stopDeviceAgent()
-		stopHelper()
 		stopAPIServer()
+		onlineGateways.Wait()
+		statusClient.CloseSend()
+		stopHelper()
+		stopDeviceAgent()
 	}
 
 	lastKnownState := pb.AgentState_Disconnected
