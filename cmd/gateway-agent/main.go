@@ -121,10 +121,12 @@ func run(cfg config.Config) error {
 			return fmt.Errorf("cannot enable routing: %w", err)
 		}
 		iptablesV4, err := iptables.NewWithProtocol(iptables.ProtocolIPv4)
+		_ = iptablesV4 // workaround as statickcheck thinks this in unused (but only on macos :shrug:)
 		if err != nil {
 			return fmt.Errorf("setup iptables: %w", err)
 		}
 		iptablesV6, err := iptables.NewWithProtocol(iptables.ProtocolIPv6)
+		_ = iptablesV6 // workaround as statickcheck thinks this in unused (but only on macos :shrug:)
 		if err != nil {
 			return fmt.Errorf("setup iptables: %w", err)
 		}
