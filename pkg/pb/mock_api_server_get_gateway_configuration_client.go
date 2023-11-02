@@ -14,6 +14,14 @@ type MockAPIServer_GetGatewayConfigurationClient struct {
 	mock.Mock
 }
 
+type MockAPIServer_GetGatewayConfigurationClient_Expecter struct {
+	mock *mock.Mock
+}
+
+func (_m *MockAPIServer_GetGatewayConfigurationClient) EXPECT() *MockAPIServer_GetGatewayConfigurationClient_Expecter {
+	return &MockAPIServer_GetGatewayConfigurationClient_Expecter{mock: &_m.Mock}
+}
+
 // CloseSend provides a mock function with given fields:
 func (_m *MockAPIServer_GetGatewayConfigurationClient) CloseSend() error {
 	ret := _m.Called()
@@ -26,6 +34,33 @@ func (_m *MockAPIServer_GetGatewayConfigurationClient) CloseSend() error {
 	}
 
 	return r0
+}
+
+// MockAPIServer_GetGatewayConfigurationClient_CloseSend_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'CloseSend'
+type MockAPIServer_GetGatewayConfigurationClient_CloseSend_Call struct {
+	*mock.Call
+}
+
+// CloseSend is a helper method to define mock.On call
+func (_e *MockAPIServer_GetGatewayConfigurationClient_Expecter) CloseSend() *MockAPIServer_GetGatewayConfigurationClient_CloseSend_Call {
+	return &MockAPIServer_GetGatewayConfigurationClient_CloseSend_Call{Call: _e.mock.On("CloseSend")}
+}
+
+func (_c *MockAPIServer_GetGatewayConfigurationClient_CloseSend_Call) Run(run func()) *MockAPIServer_GetGatewayConfigurationClient_CloseSend_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run()
+	})
+	return _c
+}
+
+func (_c *MockAPIServer_GetGatewayConfigurationClient_CloseSend_Call) Return(_a0 error) *MockAPIServer_GetGatewayConfigurationClient_CloseSend_Call {
+	_c.Call.Return(_a0)
+	return _c
+}
+
+func (_c *MockAPIServer_GetGatewayConfigurationClient_CloseSend_Call) RunAndReturn(run func() error) *MockAPIServer_GetGatewayConfigurationClient_CloseSend_Call {
+	_c.Call.Return(run)
+	return _c
 }
 
 // Context provides a mock function with given fields:
@@ -42,6 +77,33 @@ func (_m *MockAPIServer_GetGatewayConfigurationClient) Context() context.Context
 	}
 
 	return r0
+}
+
+// MockAPIServer_GetGatewayConfigurationClient_Context_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'Context'
+type MockAPIServer_GetGatewayConfigurationClient_Context_Call struct {
+	*mock.Call
+}
+
+// Context is a helper method to define mock.On call
+func (_e *MockAPIServer_GetGatewayConfigurationClient_Expecter) Context() *MockAPIServer_GetGatewayConfigurationClient_Context_Call {
+	return &MockAPIServer_GetGatewayConfigurationClient_Context_Call{Call: _e.mock.On("Context")}
+}
+
+func (_c *MockAPIServer_GetGatewayConfigurationClient_Context_Call) Run(run func()) *MockAPIServer_GetGatewayConfigurationClient_Context_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run()
+	})
+	return _c
+}
+
+func (_c *MockAPIServer_GetGatewayConfigurationClient_Context_Call) Return(_a0 context.Context) *MockAPIServer_GetGatewayConfigurationClient_Context_Call {
+	_c.Call.Return(_a0)
+	return _c
+}
+
+func (_c *MockAPIServer_GetGatewayConfigurationClient_Context_Call) RunAndReturn(run func() context.Context) *MockAPIServer_GetGatewayConfigurationClient_Context_Call {
+	_c.Call.Return(run)
+	return _c
 }
 
 // Header provides a mock function with given fields:
@@ -70,6 +132,33 @@ func (_m *MockAPIServer_GetGatewayConfigurationClient) Header() (metadata.MD, er
 	return r0, r1
 }
 
+// MockAPIServer_GetGatewayConfigurationClient_Header_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'Header'
+type MockAPIServer_GetGatewayConfigurationClient_Header_Call struct {
+	*mock.Call
+}
+
+// Header is a helper method to define mock.On call
+func (_e *MockAPIServer_GetGatewayConfigurationClient_Expecter) Header() *MockAPIServer_GetGatewayConfigurationClient_Header_Call {
+	return &MockAPIServer_GetGatewayConfigurationClient_Header_Call{Call: _e.mock.On("Header")}
+}
+
+func (_c *MockAPIServer_GetGatewayConfigurationClient_Header_Call) Run(run func()) *MockAPIServer_GetGatewayConfigurationClient_Header_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run()
+	})
+	return _c
+}
+
+func (_c *MockAPIServer_GetGatewayConfigurationClient_Header_Call) Return(_a0 metadata.MD, _a1 error) *MockAPIServer_GetGatewayConfigurationClient_Header_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *MockAPIServer_GetGatewayConfigurationClient_Header_Call) RunAndReturn(run func() (metadata.MD, error)) *MockAPIServer_GetGatewayConfigurationClient_Header_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // Recv provides a mock function with given fields:
 func (_m *MockAPIServer_GetGatewayConfigurationClient) Recv() (*GetGatewayConfigurationResponse, error) {
 	ret := _m.Called()
@@ -96,6 +185,33 @@ func (_m *MockAPIServer_GetGatewayConfigurationClient) Recv() (*GetGatewayConfig
 	return r0, r1
 }
 
+// MockAPIServer_GetGatewayConfigurationClient_Recv_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'Recv'
+type MockAPIServer_GetGatewayConfigurationClient_Recv_Call struct {
+	*mock.Call
+}
+
+// Recv is a helper method to define mock.On call
+func (_e *MockAPIServer_GetGatewayConfigurationClient_Expecter) Recv() *MockAPIServer_GetGatewayConfigurationClient_Recv_Call {
+	return &MockAPIServer_GetGatewayConfigurationClient_Recv_Call{Call: _e.mock.On("Recv")}
+}
+
+func (_c *MockAPIServer_GetGatewayConfigurationClient_Recv_Call) Run(run func()) *MockAPIServer_GetGatewayConfigurationClient_Recv_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run()
+	})
+	return _c
+}
+
+func (_c *MockAPIServer_GetGatewayConfigurationClient_Recv_Call) Return(_a0 *GetGatewayConfigurationResponse, _a1 error) *MockAPIServer_GetGatewayConfigurationClient_Recv_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *MockAPIServer_GetGatewayConfigurationClient_Recv_Call) RunAndReturn(run func() (*GetGatewayConfigurationResponse, error)) *MockAPIServer_GetGatewayConfigurationClient_Recv_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // RecvMsg provides a mock function with given fields: m
 func (_m *MockAPIServer_GetGatewayConfigurationClient) RecvMsg(m interface{}) error {
 	ret := _m.Called(m)
@@ -108,6 +224,34 @@ func (_m *MockAPIServer_GetGatewayConfigurationClient) RecvMsg(m interface{}) er
 	}
 
 	return r0
+}
+
+// MockAPIServer_GetGatewayConfigurationClient_RecvMsg_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'RecvMsg'
+type MockAPIServer_GetGatewayConfigurationClient_RecvMsg_Call struct {
+	*mock.Call
+}
+
+// RecvMsg is a helper method to define mock.On call
+//   - m interface{}
+func (_e *MockAPIServer_GetGatewayConfigurationClient_Expecter) RecvMsg(m interface{}) *MockAPIServer_GetGatewayConfigurationClient_RecvMsg_Call {
+	return &MockAPIServer_GetGatewayConfigurationClient_RecvMsg_Call{Call: _e.mock.On("RecvMsg", m)}
+}
+
+func (_c *MockAPIServer_GetGatewayConfigurationClient_RecvMsg_Call) Run(run func(m interface{})) *MockAPIServer_GetGatewayConfigurationClient_RecvMsg_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(interface{}))
+	})
+	return _c
+}
+
+func (_c *MockAPIServer_GetGatewayConfigurationClient_RecvMsg_Call) Return(_a0 error) *MockAPIServer_GetGatewayConfigurationClient_RecvMsg_Call {
+	_c.Call.Return(_a0)
+	return _c
+}
+
+func (_c *MockAPIServer_GetGatewayConfigurationClient_RecvMsg_Call) RunAndReturn(run func(interface{}) error) *MockAPIServer_GetGatewayConfigurationClient_RecvMsg_Call {
+	_c.Call.Return(run)
+	return _c
 }
 
 // SendMsg provides a mock function with given fields: m
@@ -124,6 +268,34 @@ func (_m *MockAPIServer_GetGatewayConfigurationClient) SendMsg(m interface{}) er
 	return r0
 }
 
+// MockAPIServer_GetGatewayConfigurationClient_SendMsg_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'SendMsg'
+type MockAPIServer_GetGatewayConfigurationClient_SendMsg_Call struct {
+	*mock.Call
+}
+
+// SendMsg is a helper method to define mock.On call
+//   - m interface{}
+func (_e *MockAPIServer_GetGatewayConfigurationClient_Expecter) SendMsg(m interface{}) *MockAPIServer_GetGatewayConfigurationClient_SendMsg_Call {
+	return &MockAPIServer_GetGatewayConfigurationClient_SendMsg_Call{Call: _e.mock.On("SendMsg", m)}
+}
+
+func (_c *MockAPIServer_GetGatewayConfigurationClient_SendMsg_Call) Run(run func(m interface{})) *MockAPIServer_GetGatewayConfigurationClient_SendMsg_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(interface{}))
+	})
+	return _c
+}
+
+func (_c *MockAPIServer_GetGatewayConfigurationClient_SendMsg_Call) Return(_a0 error) *MockAPIServer_GetGatewayConfigurationClient_SendMsg_Call {
+	_c.Call.Return(_a0)
+	return _c
+}
+
+func (_c *MockAPIServer_GetGatewayConfigurationClient_SendMsg_Call) RunAndReturn(run func(interface{}) error) *MockAPIServer_GetGatewayConfigurationClient_SendMsg_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // Trailer provides a mock function with given fields:
 func (_m *MockAPIServer_GetGatewayConfigurationClient) Trailer() metadata.MD {
 	ret := _m.Called()
@@ -138,6 +310,33 @@ func (_m *MockAPIServer_GetGatewayConfigurationClient) Trailer() metadata.MD {
 	}
 
 	return r0
+}
+
+// MockAPIServer_GetGatewayConfigurationClient_Trailer_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'Trailer'
+type MockAPIServer_GetGatewayConfigurationClient_Trailer_Call struct {
+	*mock.Call
+}
+
+// Trailer is a helper method to define mock.On call
+func (_e *MockAPIServer_GetGatewayConfigurationClient_Expecter) Trailer() *MockAPIServer_GetGatewayConfigurationClient_Trailer_Call {
+	return &MockAPIServer_GetGatewayConfigurationClient_Trailer_Call{Call: _e.mock.On("Trailer")}
+}
+
+func (_c *MockAPIServer_GetGatewayConfigurationClient_Trailer_Call) Run(run func()) *MockAPIServer_GetGatewayConfigurationClient_Trailer_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run()
+	})
+	return _c
+}
+
+func (_c *MockAPIServer_GetGatewayConfigurationClient_Trailer_Call) Return(_a0 metadata.MD) *MockAPIServer_GetGatewayConfigurationClient_Trailer_Call {
+	_c.Call.Return(_a0)
+	return _c
+}
+
+func (_c *MockAPIServer_GetGatewayConfigurationClient_Trailer_Call) RunAndReturn(run func() metadata.MD) *MockAPIServer_GetGatewayConfigurationClient_Trailer_Call {
+	_c.Call.Return(run)
+	return _c
 }
 
 // NewMockAPIServer_GetGatewayConfigurationClient creates a new instance of MockAPIServer_GetGatewayConfigurationClient. It also registers a testing interface on the mock and a cleanup function to assert the mocks expectations.

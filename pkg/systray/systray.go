@@ -7,43 +7,53 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 
+	"github.com/nais/device/pkg/notify"
 	"github.com/nais/device/pkg/pb"
-	log "github.com/sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 )
-
-var connection *grpc.ClientConn
 
 const ConfigFile = "systray-config.json"
 
-func onReady(ctx context.Context, cfg Config) {
-	log.Debugf("naisdevice-agent on unix socket %s", cfg.GrpcAddress)
-	connection, err := grpc.Dial(
-		"unix:"+cfg.GrpcAddress,
+type trayState struct {
+	ctx        context.Context
+	log        *logrus.Entry
+	cfg        Config
+	notifier   notify.Notifier
+	connection *grpc.ClientConn
+}
+
+func (s *trayState) onReady() {
+	var err error
+
+	s.connection, err = grpc.Dial(
+		"unix:"+s.cfg.GrpcAddress,
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 	)
 	if err != nil {
-		log.Fatalf("unable to connect to naisdevice-agent grpc server: %v", err)
+		s.log.Fatalf("unable to connect to naisdevice-agent grpc server: %v", err)
 	}
 
-	client := pb.NewDeviceAgentClient(connection)
+	client := pb.NewDeviceAgentClient(s.connection)
 
-	gui := NewGUI(ctx, client, cfg)
+	gui := NewGUI(s.ctx, s.log, client, s.cfg, s.notifier)
 
-	go gui.handleStatusStream(ctx)
-	go gui.handleButtonClicks(ctx)
-	go gui.EventLoop(ctx)
-	// TODO: go checkVersion(versionCheckInterval, gui)
+	go gui.handleStatusStream(s.ctx)
+	go gui.handleButtonClicks(s.ctx)
+	go gui.EventLoop(s.ctx)
 }
 
-// This is where we clean up
-func onExit() {
-	log.Infof("Shutting down.")
-
-	if connection != nil {
-		connection.Close()
+func (s *trayState) onExit() {
+	if s.connection != nil {
+		s.connection.Close()
 	}
 }
 
-func Spawn(ctx context.Context, systrayConfig Config) {
-	systray.Run(func() { onReady(ctx, systrayConfig) }, onExit)
+func Spawn(ctx context.Context, log *logrus.Entry, cfg Config, notifier notify.Notifier) {
+	state := trayState{
+		ctx:      ctx,
+		log:      log,
+		cfg:      cfg,
+		notifier: notifier,
+	}
+	systray.Run(state.onReady, state.onExit)
 }

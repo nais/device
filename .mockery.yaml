@@ -1,4 +1,4 @@
-with-expecter: false
+with-expecter: true
 disable-version-string: true
 inpackage: true
 dir: "{{.InterfaceDir}}"
@@ -21,3 +21,12 @@ packages:
   github.com/nais/device/pkg/wireguard:
     interfaces:
       NetworkConfigurer:
+  github.com/nais/device/pkg/notify:
+    interfaces:
+      Notifier:
+  github.com/nais/device/pkg/device-agent/runtimeconfig:
+    interfaces:
+      RuntimeConfig:
+  github.com/nais/device/pkg/helper:
+    interfaces:
+      OSConfigurator:

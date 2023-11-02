@@ -13,7 +13,7 @@ require (
 	github.com/go-chi/chi/v5 v5.0.4
 	github.com/google/uuid v1.3.0
 	github.com/gopherjs/gopherjs v0.0.0-20210918183006-daae65060a40 // indirect
-	github.com/hashicorp/go-multierror v1.1.1
+	github.com/hashicorp/go-multierror v1.1.1 // indirect
 	github.com/kelseyhightower/envconfig v1.4.0
 	github.com/lestrrat-go/jwx v1.2.26
 	github.com/nais/kolide-event-handler v0.0.0-20220214150046-ca39d969eea0
@@ -38,7 +38,7 @@ require (
 
 require (
 	github.com/golang/protobuf v1.5.3 // indirect
-	golang.org/x/sync v0.3.0
+	golang.org/x/sync v0.4.0
 )
 
 require (
@@ -93,12 +93,13 @@ require (
 require (
 	github.com/akavel/rsrc v0.10.2
 	github.com/golang-migrate/migrate/v4 v4.16.2
+	github.com/google/gopacket v1.1.20-0.20220810144506-32ee38206866
 	github.com/sqlc-dev/sqlc v1.20.0
 	github.com/vektra/mockery/v2 v2.33.0
 	golang.org/x/exp v0.0.0-20230315142452-642cacee5cc0
-	golang.org/x/vuln v1.0.0
+	golang.org/x/vuln v1.0.1
 	google.golang.org/grpc/cmd/protoc-gen-go-grpc v1.3.0
-	honnef.co/go/tools v0.4.3
+	honnef.co/go/tools v0.4.6
 	mvdan.cc/gofumpt v0.5.0
 )
 
@@ -151,9 +152,9 @@ require (
 	go.opentelemetry.io/otel v1.6.3 // indirect
 	go.opentelemetry.io/otel/trace v1.6.3 // indirect
 	golang.org/x/exp/typeparams v0.0.0-20221208152030-732eee02a75a // indirect
-	golang.org/x/mod v0.12.0 // indirect
+	golang.org/x/mod v0.13.0 // indirect
 	golang.org/x/term v0.13.0 // indirect
-	golang.org/x/tools v0.12.0 // indirect
+	golang.org/x/tools v0.14.0 // indirect
 	google.golang.org/genproto/googleapis/api v0.0.0-20230803162519-f966b187b2e5 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20230807174057-1744710a1577 // indirect
 	gopkg.in/ini.v1 v1.67.0 // indirect

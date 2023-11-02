@@ -10,6 +10,7 @@ import (
 	"github.com/nais/device/pkg/gateway-agent/config"
 	"github.com/nais/device/pkg/pb"
 	"github.com/nais/device/pkg/wireguard"
+	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 )
@@ -31,8 +32,8 @@ func TestSyncFromStream(t *testing.T) {
 			Password: password,
 		}
 		resp := &pb.GetGatewayConfigurationResponse{
-			Devices: []*pb.Device{},
-			Routes:  []string{},
+			Devices:    []*pb.Device{},
+			RoutesIPv4: []string{},
 		}
 		cfg := config.Config{
 			Name:              name,
@@ -55,9 +56,11 @@ func TestSyncFromStream(t *testing.T) {
 		netConf := &wireguard.MockNetworkConfigurer{}
 		netConf.On("ConnectedDeviceCount").Return(1, nil)
 		netConf.On("ApplyWireGuardConfig", peers).Return(nil)
-		netConf.On("ForwardRoutes", resp.Routes).Return(nil)
+		netConf.On("ForwardRoutesV4", resp.GetRoutesIPv4()).Return(nil)
+		netConf.On("ForwardRoutesV6", resp.GetRoutesIPv6()).Return(nil)
 
-		err := gateway_agent.SyncFromStream(ctx, cfg.Name, cfg.APIServerPassword, staticPeers, client, netConf)
+		gwLogger := logrus.StandardLogger().WithField("component", "gateway-agent")
+		err := gateway_agent.SyncFromStream(ctx, gwLogger, cfg.Name, cfg.APIServerPassword, staticPeers, client, netConf)
 
 		assert.ErrorIs(t, err, knownError)
 	})

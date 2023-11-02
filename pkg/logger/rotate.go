@@ -6,8 +6,6 @@ import (
 	"path/filepath"
 	"regexp"
 	"time"
-
-	log "github.com/sirupsen/logrus"
 )
 
 func deleteOldLogFiles(logDirPath string, treshold time.Time) error {
@@ -38,14 +36,14 @@ func filterOldFilesByDate(files []os.DirEntry, treshold time.Time) ([]os.DirEntr
 	for _, logFile := range files {
 		matches := filenameFormat.FindAllStringSubmatch(logFile.Name(), -1)
 		if len(matches) != 1 || len(matches[0]) != 3 {
-			log.Debug("ignoring file: ", logFile)
+			// log.Debug("ignoring file: ", logFile)
 			continue
 		}
 
 		date := matches[0][2]
 		logDate, err := time.Parse(time.DateOnly, date)
 		if err != nil {
-			log.Errorf("filter old log files: unable to parse date: %q, err: %v", date, err)
+			// log.Errorf("filter old log files: unable to parse date: %q, err: %v", date, err)
 			continue
 		}
 
@@ -66,10 +64,8 @@ func LatestFilepath(logDirPath, prefix string) string {
 }
 
 func LatestFilename(logDirPath, prefix string) string {
-	logFiles, err := os.ReadDir(logDirPath)
-	if err != nil {
-		log.Errorf("open log dir: %v", err)
-	}
+	// err is fine, will be created if missing
+	logFiles, _ := os.ReadDir(logDirPath)
 
 	newestFilename := createLogFileName(prefix, time.Now())
 	newestDate := time.Time{}
@@ -79,14 +75,12 @@ func LatestFilename(logDirPath, prefix string) string {
 	for _, logFile := range logFiles {
 		matches := filenameFormat.FindAllStringSubmatch(logFile.Name(), -1)
 		if len(matches) != 1 || len(matches[0]) != 3 {
-			log.Debug("ignoring file: ", logFile)
 			continue
 		}
 
 		date := matches[0][2]
 		logDate, err := time.Parse(time.DateOnly, date)
 		if err != nil {
-			log.Errorf("inferring latest log file: unable to parse date: %q, err: %v", date, err)
 			continue
 		}
 

@@ -8,6 +8,7 @@ import (
 	"github.com/nais/device/pkg/apiserver/database"
 	"github.com/nais/device/pkg/apiserver/jita"
 	"github.com/nais/device/pkg/pb"
+	"github.com/sirupsen/logrus"
 )
 
 type grpcServer struct {
@@ -29,11 +30,13 @@ type grpcServer struct {
 	sessionStore auth.SessionStore
 
 	programContext context.Context
+
+	log *logrus.Entry
 }
 
 var _ pb.APIServerServer = &grpcServer{}
 
-func NewGRPCServer(ctx context.Context, db database.APIServer, authenticator auth.Authenticator, adminAuth, gatewayAuth, prometheusAuth auth.UsernamePasswordAuthenticator, jita jita.Client, sessionStore auth.SessionStore) *grpcServer {
+func NewGRPCServer(ctx context.Context, log *logrus.Entry, db database.APIServer, authenticator auth.Authenticator, adminAuth, gatewayAuth, prometheusAuth auth.UsernamePasswordAuthenticator, jita jita.Client, sessionStore auth.SessionStore) *grpcServer {
 	return &grpcServer{
 		deviceConfigTrigger:  make(map[int64]chan struct{}),
 		gatewayConfigTrigger: make(map[string]chan struct{}),
@@ -45,6 +48,7 @@ func NewGRPCServer(ctx context.Context, db database.APIServer, authenticator aut
 		jita:                 jita,
 		sessionStore:         sessionStore,
 		programContext:       ctx,
+		log:                  log,
 	}
 }
 

@@ -11,7 +11,7 @@ import (
 	"github.com/nais/device/pkg/pb"
 
 	kolidepb "github.com/nais/kolide-event-handler/pkg/pb"
-	log "github.com/sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/credentials/insecure"
@@ -36,7 +36,7 @@ const (
 	eventStreamBackoff = 10 * time.Second
 )
 
-func DeviceEventStreamer(ctx context.Context, grpcAddress, grpcToken string, grpcSecure bool, stream chan<- *kolidepb.DeviceEvent) error {
+func DeviceEventStreamer(ctx context.Context, log *logrus.Entry, grpcAddress, grpcToken string, grpcSecure bool, stream chan<- *kolidepb.DeviceEvent) error {
 	interceptor := &ClientInterceptor{
 		RequireTLS: grpcSecure,
 		Token:      grpcToken,

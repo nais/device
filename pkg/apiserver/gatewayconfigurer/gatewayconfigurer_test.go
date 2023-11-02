@@ -11,6 +11,7 @@ import (
 	"github.com/nais/device/pkg/apiserver/bucket"
 	"github.com/nais/device/pkg/apiserver/database"
 	"github.com/nais/device/pkg/pb"
+	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 
@@ -27,6 +28,7 @@ var errExpected = errors.New("expected error")
 func TestGatewayConfigurer_SyncConfig(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
+	log := logrus.StandardLogger().WithField("component", "test")
 
 	t.Run("updates gateway config in database according to bucket definition", func(t *testing.T) {
 		db := &database.MockAPIServer{}
@@ -35,16 +37,13 @@ func TestGatewayConfigurer_SyncConfig(t *testing.T) {
 		lastUpdated := time.Now()
 		reader := strings.NewReader(gatewayConfig(gatewayName, route, accessGroupId, requiresPrivilegedAccess))
 
-		gc := gatewayconfigurer.GatewayConfigurer{
-			DB:     db,
-			Bucket: mockClient,
-		}
+		gc := gatewayconfigurer.NewGatewayConfigurer(log, db, mockClient, 0)
 
 		db.On("UpdateGatewayDynamicFields",
 			mock.Anything,
 			&pb.Gateway{
 				Name:                     gatewayName,
-				Routes:                   []string{route},
+				RoutesIPv4:               []string{route},
 				AccessGroupIDs:           []string{accessGroupId},
 				RequiresPrivilegedAccess: requiresPrivilegedAccess,
 			},
@@ -70,10 +69,7 @@ func TestGatewayConfigurer_SyncConfig(t *testing.T) {
 		mockClient := &bucket.MockClient{}
 		mockObject := &bucket.MockObject{}
 
-		gc := gatewayconfigurer.GatewayConfigurer{
-			DB:     db,
-			Bucket: mockClient,
-		}
+		gc := gatewayconfigurer.NewGatewayConfigurer(log, db, mockClient, 0)
 
 		mockClient.On("Open", mock.Anything).Return(nil, errExpected).Once()
 
@@ -90,10 +86,7 @@ func TestGatewayConfigurer_SyncConfig(t *testing.T) {
 		lastUpdated := time.Now()
 		reader := strings.NewReader(`this is not valid json`)
 
-		gc := gatewayconfigurer.GatewayConfigurer{
-			DB:     db,
-			Bucket: mockClient,
-		}
+		gc := gatewayconfigurer.NewGatewayConfigurer(log, db, mockClient, 0)
 
 		mockClient.On("Open", mock.Anything).Return(mockObject, nil).Once()
 		mockObject.On("LastUpdated").Return(lastUpdated).Once()
@@ -114,10 +107,7 @@ func TestGatewayConfigurer_SyncConfig(t *testing.T) {
 		lastUpdated := time.Now()
 		reader := strings.NewReader(gatewayConfig(gatewayName, route, accessGroupId, requiresPrivilegedAccess))
 
-		gc := gatewayconfigurer.GatewayConfigurer{
-			DB:     db,
-			Bucket: mockClient,
-		}
+		gc := gatewayconfigurer.NewGatewayConfigurer(log, db, mockClient, 0)
 
 		db.On("UpdateGatewayDynamicFields",
 			mock.Anything,

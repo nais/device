@@ -192,8 +192,9 @@ message AgentStatus {
 
 message Configuration {
   string privateKey = 1;
-  string deviceIP = 2;
+  string deviceIPv4 = 2;
   repeated Gateway Gateways = 3;
+  string deviceIPv6 = 4;
 }
 
 message ModifyGatewayRequest {
@@ -212,7 +213,8 @@ message Gateway {
   string publicKey = 3;
   string endpoint = 4;
   string ipv4 = 5;
-  repeated string routes = 6;
+  repeated string routesIPv4 = 6;
+  repeated string routesIPv6 = 11;
   bool requiresPrivilegedAccess = 7 [json_name = "requires_privileged_access"];
   repeated string accessGroupIDs = 8;
   string passwordHash = 9;
@@ -259,7 +261,8 @@ message GetGatewayConfigurationRequest {
 
 message GetGatewayConfigurationResponse {
   repeated Device devices = 1;
-  repeated string routes = 2;
+  repeated string routesIPv4 = 2;
+  repeated string routesIPv6 = 3;
 }
 
 message GetDeviceConfigurationRequest {

@@ -56,18 +56,19 @@ func (q *Queries) AddGatewayAccessGroupID(ctx context.Context, arg AddGatewayAcc
 }
 
 const addGatewayRoute = `-- name: AddGatewayRoute :exec
-INSERT INTO gateway_routes (gateway_name, route)
-VALUES (?1, ?2)
+INSERT INTO gateway_routes (gateway_name, route, family)
+VALUES (?1, ?2, ?3)
 ON CONFLICT DO NOTHING
 `
 
 type AddGatewayRouteParams struct {
 	GatewayName string
 	Route       string
+	Family      string
 }
 
 func (q *Queries) AddGatewayRoute(ctx context.Context, arg AddGatewayRouteParams) error {
-	_, err := q.exec(ctx, q.addGatewayRouteStmt, addGatewayRoute, arg.GatewayName, arg.Route)
+	_, err := q.exec(ctx, q.addGatewayRouteStmt, addGatewayRoute, arg.GatewayName, arg.Route, arg.Family)
 	return err
 }
 
@@ -136,22 +137,27 @@ func (q *Queries) GetGatewayByName(ctx context.Context, name string) (*Gateway, 
 }
 
 const getGatewayRoutes = `-- name: GetGatewayRoutes :many
-SELECT route FROM gateway_routes WHERE gateway_name = ?1 ORDER BY route
+SELECT route, family FROM gateway_routes WHERE gateway_name = ?1 ORDER BY route
 `
 
-func (q *Queries) GetGatewayRoutes(ctx context.Context, gatewayName string) ([]string, error) {
+type GetGatewayRoutesRow struct {
+	Route  string
+	Family string
+}
+
+func (q *Queries) GetGatewayRoutes(ctx context.Context, gatewayName string) ([]*GetGatewayRoutesRow, error) {
 	rows, err := q.query(ctx, q.getGatewayRoutesStmt, getGatewayRoutes, gatewayName)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []string
+	var items []*GetGatewayRoutesRow
 	for rows.Next() {
-		var route string
-		if err := rows.Scan(&route); err != nil {
+		var i GetGatewayRoutesRow
+		if err := rows.Scan(&i.Route, &i.Family); err != nil {
 			return nil, err
 		}
-		items = append(items, route)
+		items = append(items, &i)
 	}
 	if err := rows.Close(); err != nil {
 		return nil, err

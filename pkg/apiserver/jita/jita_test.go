@@ -6,13 +6,15 @@ import (
 	"testing"
 
 	"github.com/nais/device/pkg/apiserver/jita"
+	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestJita(t *testing.T) {
+	log := logrus.StandardLogger().WithField("component", "test")
 	t.Run("response with data", func(t *testing.T) {
 		mux := http.NewServeMux()
-		mux.HandleFunc("/api/v1/gatewaysAccess", func(rw http.ResponseWriter, r *http.Request) {
+		mux.HandleFunc("/api/v1/gatewaysAccess", func(rw http.ResponseWriter, _ *http.Request) {
 			response := `{
 			"onprem-k8s-prod": [
 			{
@@ -42,7 +44,7 @@ func TestJita(t *testing.T) {
 		s := httptest.NewServer(mux)
 		defer s.Close()
 
-		j := jita.New("", "", s.URL)
+		j := jita.New(log, "", "", s.URL)
 		err := j.UpdatePrivilegedUsers()
 		assert.NoError(t, err)
 
@@ -68,7 +70,7 @@ func TestJita(t *testing.T) {
 
 	t.Run("empty response", func(t *testing.T) {
 		mux := http.NewServeMux()
-		mux.HandleFunc("/api/v1/gatewaysAccess", func(rw http.ResponseWriter, r *http.Request) {
+		mux.HandleFunc("/api/v1/gatewaysAccess", func(rw http.ResponseWriter, _ *http.Request) {
 			response := `{}`
 
 			_, err := rw.Write([]byte(response))
@@ -78,7 +80,7 @@ func TestJita(t *testing.T) {
 		s := httptest.NewServer(mux)
 		defer s.Close()
 
-		j := jita.New("", "", s.URL)
+		j := jita.New(log, "", "", s.URL)
 		err := j.UpdatePrivilegedUsers()
 		assert.NoError(t, err)
 

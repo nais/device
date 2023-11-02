@@ -12,7 +12,7 @@ import (
 	"github.com/nais/device/pkg/device-agent/open"
 	"github.com/nais/device/pkg/random"
 	codeverifier "github.com/nirasan/go-oauth-pkce-code-verifier"
-	log "github.com/sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 	"golang.org/x/oauth2"
 )
 
@@ -26,7 +26,7 @@ type Tokens struct {
 	IDToken string
 }
 
-func GetDeviceAgentToken(ctx context.Context, conf oauth2.Config, authServer string) (*Tokens, error) {
+func GetDeviceAgentToken(ctx context.Context, log *logrus.Entry, conf oauth2.Config, authServer string) (*Tokens, error) {
 	// Ignoring impossible error
 	codeVerifier, _ := codeverifier.CreateCodeVerifier()
 

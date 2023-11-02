@@ -10,6 +10,7 @@ import (
 	"github.com/nais/device/pkg/apiserver/auth"
 	"github.com/nais/device/pkg/apiserver/database"
 	"github.com/nais/device/pkg/pb"
+	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"google.golang.org/grpc"
@@ -57,7 +58,8 @@ func TestGetDeviceConfiguration(t *testing.T) {
 
 	gatewayAuthenticator := auth.NewGatewayAuthenticator(db)
 
-	server := api.NewGRPCServer(ctx, db, nil, nil, gatewayAuthenticator, nil, nil, auth.NewSessionStore(db))
+	log := logrus.StandardLogger().WithField("component", "test")
+	server := api.NewGRPCServer(ctx, log, db, nil, nil, gatewayAuthenticator, nil, nil, auth.NewSessionStore(db))
 
 	s := grpc.NewServer()
 	pb.RegisterAPIServerServer(s, server)
@@ -101,7 +103,7 @@ func TestGatewayPasswordAuthentication(t *testing.T) {
 		PublicKey:    "publicKey",
 		Name:         "gateway",
 		PasswordHash: "$1$5QY7q+KaDZ8EZ+zNaOm2Ag==$BCamA+wMQCcv+QkgJY6H/5Zml5CNq61HkON8tnhUwpj9bq2MkpfPcKLworcMaoVzOfkpEOhf57Btm807pxRAhw==",
-		Routes: []string{
+		RoutesIPv4: []string{
 			"mockroute",
 		},
 	}
@@ -118,7 +120,8 @@ func TestGatewayPasswordAuthentication(t *testing.T) {
 
 	gatewayAuthenticator := auth.NewGatewayAuthenticator(db)
 
-	server := api.NewGRPCServer(ctx, db, nil, nil, gatewayAuthenticator, nil, nil, sessionStore)
+	log := logrus.StandardLogger().WithField("component", "test")
+	server := api.NewGRPCServer(ctx, log, db, nil, nil, gatewayAuthenticator, nil, nil, sessionStore)
 
 	s := grpc.NewServer()
 	pb.RegisterAPIServerServer(s, server)
@@ -148,7 +151,7 @@ func TestGatewayPasswordAuthentication(t *testing.T) {
 
 	gw, err := stream.Recv()
 	assert.NoError(t, err)
-	assert.Equal(t, gwResponse.Routes, gw.Routes)
+	assert.Equal(t, gwResponse.GetRoutesIPv4(), gw.GetRoutesIPv4())
 }
 
 func TestGatewayPasswordAuthenticationFail(t *testing.T) {
@@ -163,7 +166,7 @@ func TestGatewayPasswordAuthenticationFail(t *testing.T) {
 		PublicKey:    "publicKey",
 		Name:         "gateway",
 		PasswordHash: "$1$5QY7q+KaDZ8EZ+zNaOm2Ag==$BCamA+wMQCcv+QkgJY6H/5Zml5CNq61HkON8tnhUwpj9bq2MkpfPcKLworcMaoVzOfkpEOhf57Btm807pxRAhw==",
-		Routes: []string{
+		RoutesIPv4: []string{
 			"mockroute",
 		},
 	}
@@ -173,7 +176,8 @@ func TestGatewayPasswordAuthenticationFail(t *testing.T) {
 
 	gatewayAuthenticator := auth.NewGatewayAuthenticator(db)
 
-	server := api.NewGRPCServer(ctx, db, nil, nil, gatewayAuthenticator, nil, nil, nil)
+	log := logrus.StandardLogger().WithField("component", "test")
+	server := api.NewGRPCServer(ctx, log, db, nil, nil, gatewayAuthenticator, nil, nil, nil)
 
 	s := grpc.NewServer()
 	pb.RegisterAPIServerServer(s, server)

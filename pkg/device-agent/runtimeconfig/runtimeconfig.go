@@ -3,41 +3,116 @@ package runtimeconfig
 import (
 	"bytes"
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"io"
+	"net"
 	"net/http"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"cloud.google.com/go/storage"
 	"github.com/lestrrat-go/jwx/jwt"
 	"github.com/nais/device/pkg/pubsubenroll"
 	"google.golang.org/api/iterator"
 	"google.golang.org/api/option"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 
 	"github.com/nais/device/pkg/bootstrap"
 	"github.com/nais/device/pkg/device-agent/auth"
 	"github.com/nais/device/pkg/device-agent/config"
 	"github.com/nais/device/pkg/device-agent/wireguard"
 	"github.com/nais/device/pkg/pb"
-	log "github.com/sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 )
 
 const (
 	tenantDiscoveryBucket = "naisdevice-enroll-discovery"
 )
 
-type RuntimeConfig struct {
-	EnrollConfig *bootstrap.Config // TODO: convert to enroll.Config
-	Config       *config.Config
-	PrivateKey   []byte
-	Tokens       *auth.Tokens
-	Tenants      []*pb.Tenant
+type RuntimeConfig interface {
+	DialAPIServer(context.Context) (*grpc.ClientConn, error)
+	APIServerPeer() *pb.Gateway
+
+	EnsureEnrolled(context.Context, string) error
+	ResetEnrollConfig()
+	LoadEnrollConfig() error
+	SaveEnrollConfig() error
+
+	Tenants() []*pb.Tenant
+	GetActiveTenant() *pb.Tenant
+	SetActiveTenant(string) error
+	PopulateTenants(context.Context) error
+
+	GetTenantSession() (*pb.Session, error)
+
+	GetToken(context.Context) (string, error)
+	SetToken(*auth.Tokens)
+	SetTenantSession(*pb.Session) error
+
+	BuildHelperConfiguration(peers []*pb.Gateway) *pb.Configuration
 }
 
-func (rc *RuntimeConfig) GetActiveTenant() *pb.Tenant {
-	for _, tenant := range rc.Tenants {
+var _ RuntimeConfig = &runtimeConfig{}
+
+type runtimeConfig struct {
+	enrollConfig *bootstrap.Config // TODO: convert to enroll.Config
+	config       *config.Config
+	privateKey   []byte
+	tokens       *auth.Tokens
+	tenants      []*pb.Tenant
+	log          *logrus.Entry
+}
+
+func (rc *runtimeConfig) DialAPIServer(ctx context.Context) (*grpc.ClientConn, error) {
+	rc.log.Infof("Attempting gRPC connection to API server on %s...", rc.apiServerGRPCAddress())
+	return grpc.DialContext(
+		ctx,
+		rc.apiServerGRPCAddress(),
+		grpc.WithTransportCredentials(insecure.NewCredentials()),
+		grpc.WithBlock(),
+		grpc.WithReturnConnectionError(),
+	)
+}
+
+func (rc *runtimeConfig) APIServerPeer() *pb.Gateway {
+	return rc.enrollConfig.APIServerPeer()
+}
+
+func (rc *runtimeConfig) BuildHelperConfiguration(peers []*pb.Gateway) *pb.Configuration {
+	return &pb.Configuration{
+		PrivateKey: base64.StdEncoding.EncodeToString(rc.privateKey),
+		DeviceIPv4: rc.enrollConfig.DeviceIPv4,
+		DeviceIPv6: rc.enrollConfig.DeviceIPv6,
+		Gateways:   peers,
+	}
+}
+
+func (rc *runtimeConfig) Tenants() []*pb.Tenant {
+	return rc.tenants
+}
+
+func (rc *runtimeConfig) SetActiveTenant(name string) error {
+	// Mark all tenants inactive
+	for i := range rc.tenants {
+		rc.tenants[i].Active = false
+	}
+
+	for i, tenant := range rc.tenants {
+		if strings.EqualFold(tenant.Name, name) {
+			rc.tenants[i].Active = true
+			return nil
+		}
+	}
+
+	return fmt.Errorf("tenant not found")
+}
+
+func (rc *runtimeConfig) GetActiveTenant() *pb.Tenant {
+	for _, tenant := range rc.tenants {
 		if tenant.Active {
 			return tenant
 		}
@@ -45,30 +120,36 @@ func (rc *RuntimeConfig) GetActiveTenant() *pb.Tenant {
 	return nil
 }
 
-func New(cfg *config.Config) (*RuntimeConfig, error) {
-	rc := &RuntimeConfig{
-		Config: cfg,
+func (rc *runtimeConfig) apiServerGRPCAddress() string {
+	return net.JoinHostPort(rc.enrollConfig.APIServerIP, "8099")
+}
+
+func New(log *logrus.Entry, cfg *config.Config) (*runtimeConfig, error) {
+	rc := &runtimeConfig{
+		config:  cfg,
+		tenants: defaultTenants,
+		log:     log,
 	}
 
 	var err error
 
-	if rc.PrivateKey, err = wireguard.EnsurePrivateKey(rc.Config.PrivateKeyPath); err != nil {
+	if rc.privateKey, err = wireguard.EnsurePrivateKey(rc.config.PrivateKeyPath); err != nil {
 		return nil, fmt.Errorf("ensuring private key: %w", err)
 	}
 
-	log.Infof("Runtime config initialized with public key: %s", wireguard.PublicKey(rc.PrivateKey))
+	rc.log.Infof("Runtime config initialized with public key: %s", wireguard.PublicKey(rc.privateKey))
 
 	return rc, nil
 }
 
-func (r *RuntimeConfig) EnsureEnrolled(ctx context.Context, serial string) error {
-	log.Infoln("Enrolling device")
+func (r *runtimeConfig) EnsureEnrolled(ctx context.Context, serial string) error {
+	r.log.Infoln("Enrolling device")
 
 	var err error
 	if r.GetActiveTenant().AuthProvider == pb.AuthProvider_Google {
-		err = r.enroll(ctx, serial, r.Tokens.IDToken)
+		err = r.enroll(ctx, serial, r.tokens.IDToken)
 	} else {
-		err = r.enroll(ctx, serial, r.Tokens.Token.AccessToken)
+		err = r.enroll(ctx, serial, r.tokens.Token.AccessToken)
 	}
 
 	if err != nil {
@@ -78,11 +159,11 @@ func (r *RuntimeConfig) EnsureEnrolled(ctx context.Context, serial string) error
 	return r.SaveEnrollConfig()
 }
 
-func (r *RuntimeConfig) enroll(ctx context.Context, serial, token string) error {
+func (r *runtimeConfig) enroll(ctx context.Context, serial, token string) error {
 	req := &pubsubenroll.DeviceRequest{
-		Platform:           r.Config.Platform,
+		Platform:           r.config.Platform,
 		Serial:             serial,
-		WireGuardPublicKey: wireguard.PublicKey(r.PrivateKey),
+		WireGuardPublicKey: wireguard.PublicKey(r.privateKey),
 	}
 
 	buf := &bytes.Buffer{}
@@ -122,7 +203,7 @@ func (r *RuntimeConfig) enroll(ctx context.Context, serial, token string) error 
 
 	apiserverPeer := findPeer(resp.Peers, "apiserver")
 
-	r.EnrollConfig = &bootstrap.Config{
+	r.enrollConfig = &bootstrap.Config{
 		DeviceIPv4:     resp.WireGuardIPv4,
 		DeviceIPv6:     resp.WireGuardIPv6,
 		PublicKey:      apiserverPeer.PublicKey,
@@ -132,17 +213,21 @@ func (r *RuntimeConfig) enroll(ctx context.Context, serial, token string) error 
 	return nil
 }
 
-func (r *RuntimeConfig) SaveEnrollConfig() error {
+func (r *runtimeConfig) SaveEnrollConfig() error {
 	f, err := os.OpenFile(r.path(), os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0o600)
 	if err != nil {
 		return err
 	}
 	defer f.Close()
 
-	return json.NewEncoder(f).Encode(r.EnrollConfig)
+	return json.NewEncoder(f).Encode(r.enrollConfig)
 }
 
-func (r *RuntimeConfig) LoadEnrollConfig() error {
+func (r *runtimeConfig) LoadEnrollConfig() error {
+	if r.enrollConfig != nil {
+		return nil
+	}
+
 	path := r.path()
 	b, err := os.ReadFile(path)
 	if err != nil {
@@ -158,8 +243,12 @@ func (r *RuntimeConfig) LoadEnrollConfig() error {
 		return fmt.Errorf("bootstrap config does not contain IPv6 address, should re-enroll")
 	}
 
-	r.EnrollConfig = ec
+	r.enrollConfig = ec
 	return nil
+}
+
+func (rc *runtimeConfig) ResetEnrollConfig() {
+	rc.enrollConfig = nil
 }
 
 func findPeer(gateway []*pb.Gateway, s string) *pb.Gateway {
@@ -172,10 +261,10 @@ func findPeer(gateway []*pb.Gateway, s string) *pb.Gateway {
 	return nil
 }
 
-func (r *RuntimeConfig) getEnrollURL(ctx context.Context) (string, error) {
+func (r *runtimeConfig) getEnrollURL(ctx context.Context) (string, error) {
 	domain, err := r.getPartnerDomain()
 	if err != nil {
-		log.WithError(err).Error("could not determine partner domain, falling back to default")
+		r.log.WithError(err).Error("could not determine partner domain, falling back to default")
 		domain = "default"
 	}
 
@@ -198,13 +287,13 @@ func (r *RuntimeConfig) getEnrollURL(ctx context.Context) (string, error) {
 	return string(b) + "/enroll", nil
 }
 
-func (r *RuntimeConfig) getPartnerDomain() (string, error) {
+func (r *runtimeConfig) getPartnerDomain() (string, error) {
 	if r.GetActiveTenant().Domain != "" {
 		return r.GetActiveTenant().Domain, nil
 	}
 
-	if r.Tokens != nil {
-		t, err := jwt.ParseString(r.Tokens.IDToken)
+	if r.tokens != nil {
+		t, err := jwt.ParseString(r.tokens.IDToken)
 		if err != nil {
 			return "", fmt.Errorf("parse token: %w", err)
 		}
@@ -217,18 +306,18 @@ func (r *RuntimeConfig) getPartnerDomain() (string, error) {
 	}
 }
 
-func (r *RuntimeConfig) path() string {
+func (r *runtimeConfig) path() string {
 	domain, err := r.getPartnerDomain()
 	if err != nil {
-		log.WithError(err).Error("could not determine partner domain")
+		r.log.WithError(err).Error("could not determine partner domain")
 		domain = "unknown"
 	}
 
 	filename := fmt.Sprintf("enroll-%s.json", domain)
-	return filepath.Join(r.Config.ConfigDir, filename)
+	return filepath.Join(r.config.ConfigDir, filename)
 }
 
-func (r *RuntimeConfig) PopulateTenants(ctx context.Context) error {
+func (r *runtimeConfig) PopulateTenants(ctx context.Context) error {
 	client, err := storage.NewClient(ctx, option.WithoutAuthentication())
 	if err != nil {
 		return err
@@ -251,41 +340,50 @@ func (r *RuntimeConfig) PopulateTenants(ctx context.Context) error {
 			break
 		}
 
-		r.Tenants = append(r.Tenants, &pb.Tenant{
+		r.tenants = append(r.tenants, &pb.Tenant{
 			Name:         obj.Name,
 			AuthProvider: pb.AuthProvider_Google,
 			Domain:       obj.Name,
+			Active:       false,
 		})
 
 	}
 
+	// set first tenant as active by default
+	r.tenants[0].Active = true
+
 	return nil
 }
 
-func (rc *RuntimeConfig) SetTenantSession(session *pb.Session) error {
+func (rc *runtimeConfig) SetTenantSession(session *pb.Session) error {
 	if tenant := rc.GetActiveTenant(); tenant != nil {
 		tenant.Session = session
 		return nil
 	}
 
-	return fmt.Errorf("no active tenant. tenants: %+v", rc.Tenants)
+	return fmt.Errorf("no active tenant. tenants: %+v", rc.tenants)
 }
 
-func (rc *RuntimeConfig) GetTenantSession() (*pb.Session, error) {
+func (rc *runtimeConfig) GetTenantSession() (*pb.Session, error) {
 	if tenant := rc.GetActiveTenant(); tenant != nil {
 		return tenant.Session, nil
 	}
 
-	return nil, fmt.Errorf("no active tenant. tenants: %+v", rc.Tenants)
+	return nil, fmt.Errorf("no active tenant. tenants: %+v", rc.tenants)
 }
 
-func (rc *RuntimeConfig) GetToken(ctx context.Context) (string, error) {
-	if rc.Tokens == nil {
+func (rc *runtimeConfig) SetToken(token *auth.Tokens) {
+	rc.tokens = token
+}
+
+func (rc *runtimeConfig) GetToken(ctx context.Context) (string, error) {
+	if rc.tokens == nil {
 		return "", fmt.Errorf("no tokens in runtimeconfig")
 	}
 
 	if rc.GetActiveTenant().AuthProvider == pb.AuthProvider_Google {
-		return rc.Tokens.IDToken, nil
+		return rc.tokens.IDToken, nil
 	}
-	return rc.Tokens.Token.AccessToken, nil
+
+	return rc.tokens.Token.AccessToken, nil
 }

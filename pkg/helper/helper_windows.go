@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"github.com/nais/device/pkg/pb"
-	log "github.com/sirupsen/logrus"
 )
 
 const wireGuardBinary = `c:\Program Files\WireGuard\wireguard.exe`
@@ -48,13 +47,12 @@ func (configurator *WindowsConfigurator) SetupInterface(ctx context.Context, cfg
 		return nil
 	}
 
-	installService := exec.CommandContext(ctx, wireGuardBinary, "/installtunnelservice", WireGuardConfigPath)
+	installService := exec.CommandContext(ctx, wireGuardBinary, "/installtunnelservice", configurator.helperConfig.WireGuardConfigPath)
 	if b, err := installService.CombinedOutput(); err != nil {
 		return fmt.Errorf("installing tunnel service: %v: %v", err, string(b))
 	} else {
-		log.Infof("installed tunnel service, sleeping 6 sec to let it finish")
+		// log.Infof("installed tunnel service, sleeping 6 sec to let it finish")
 		time.Sleep(6 * time.Second)
-		log.Infof("resuming")
 	}
 
 	configurator.wgNeedsRestart = false
@@ -67,7 +65,7 @@ func (configurator *WindowsConfigurator) SetupRoutes(ctx context.Context, gatewa
 }
 
 func (configurator *WindowsConfigurator) SyncConf(ctx context.Context, cfg *pb.Configuration) error {
-	newWireGuardConfig, err := os.ReadFile(WireGuardConfigPath)
+	newWireGuardConfig, err := os.ReadFile(configurator.helperConfig.WireGuardConfigPath)
 	if err != nil {
 		return fmt.Errorf("reading WireGuard config file: %w", err)
 	}
@@ -82,8 +80,8 @@ func (configurator *WindowsConfigurator) SyncConf(ctx context.Context, cfg *pb.C
 	}
 
 	if fileActuallyChanged(configurator.oldWireGuardConfig, newWireGuardConfig) {
-		log.Debugf("old: %s", string(configurator.oldWireGuardConfig))
-		log.Debugf("new: %s", string(newWireGuardConfig))
+		// log.Debugf("old: %s", string(configurator.oldWireGuardConfig))
+		// log.Debugf("new: %s", string(newWireGuardConfig))
 
 		commands := [][]string{
 			{"net", "stop", tunnelName(configurator.helperConfig.Interface)},
@@ -98,7 +96,7 @@ func (configurator *WindowsConfigurator) SyncConf(ctx context.Context, cfg *pb.C
 
 func (configurator *WindowsConfigurator) TeardownInterface(ctx context.Context) error {
 	if !interfaceExists(ctx, configurator.helperConfig.Interface) {
-		log.Info("no interface")
+		// log.Info("no interface")
 		return nil
 	}
 
@@ -108,9 +106,8 @@ func (configurator *WindowsConfigurator) TeardownInterface(ctx context.Context) 
 	if err != nil {
 		return fmt.Errorf("uninstalling tunnel service: %v: %v", err, string(b))
 	} else {
-		log.Infof("uninstalled tunnel service (sleeping 3 sec to let it finish)")
+		// log.Infof("uninstalled tunnel service (sleeping 3 sec to let it finish)")
 		time.Sleep(3 * time.Second)
-		log.Infof("resuming")
 	}
 
 	return nil

@@ -1,81 +1,49 @@
 package wireguard
 
 import (
+	"errors"
 	"fmt"
-	"os/exec"
 	"strings"
-
-	log "github.com/sirupsen/logrus"
 )
 
-func (nc *networkConfigurer) determineDefaultInterface() error {
-	if len(nc.interfaceIP) > 0 && len(nc.wireguardInterface) > 0 {
+var ErrNetworkUnreachable error = errors.New("network is unreachable")
+
+func (s *subNetworkConfigurer) configured() bool {
+	return s.iface != nil && s.src != nil && s.iptables != nil
+}
+
+func (nc *networkConfigurer) setupIPTables(subconfigurer *subNetworkConfigurer) error {
+	if !subconfigurer.configured() {
 		return nil
 	}
-	cmd := exec.Command("ip", "route", "get", "1.1.1.1")
-	out, err := cmd.CombinedOutput()
-	if err != nil {
-		return err
-	}
 
-	nc.defaultInterface, nc.interfaceIP, err = ParseDefaultInterfaceOutput(out)
-	return err
-}
-
-func ParseDefaultInterfaceOutput(output []byte) (string, string, error) {
-	lines := strings.Split(string(output), "\n")
-	parts := strings.Split(lines[0], " ")
-	if len(parts) != 9 {
-		log.Errorf("wrong number of parts in output: '%v', output: '%v'", len(parts), string(output))
-	}
-
-	interfaceName := parts[4]
-	if len(interfaceName) < 4 {
-		return "", "", fmt.Errorf("weird interface name: '%v'", interfaceName)
-	}
-
-	interfaceIP := parts[6]
-
-	if len(strings.Split(interfaceIP, ".")) != 4 {
-		return "", "", fmt.Errorf("weird interface ip: '%v'", interfaceIP)
-	}
-
-	return interfaceName, interfaceIP, nil
-}
-
-func (nc *networkConfigurer) SetupIPTables() error {
-	err := nc.determineDefaultInterface()
-	if err != nil {
-		return fmt.Errorf("determining default gateway: %w", err)
-	}
-
-	err = nc.ipTables.ChangePolicy("filter", "FORWARD", "DROP")
+	err := subconfigurer.iptables.ChangePolicy("filter", "FORWARD", "DROP")
 	if err != nil {
 		return fmt.Errorf("setting FORWARD policy to DROP: %w", err)
 	}
 
 	// Allow ESTABLISHED,RELATED from WireGuard to default interface
-	err = nc.ipTables.AppendUnique("filter", "FORWARD", "-i", nc.wireguardInterface, "-o", nc.defaultInterface, "-m", "conntrack", "--ctstate", "ESTABLISHED,RELATED", "-j", "ACCEPT")
+	err = subconfigurer.iptables.AppendUnique("filter", "FORWARD", "-i", nc.wireguardInterface, "-o", subconfigurer.iface.Name, "-m", "conntrack", "--ctstate", "ESTABLISHED,RELATED", "-j", "ACCEPT")
 	if err != nil {
 		return fmt.Errorf("adding default FORWARD outbound-rule: %w", err)
 	}
 
 	// Allow ESTABLISHED,RELATED from default interface to WireGuard
-	err = nc.ipTables.AppendUnique("filter", "FORWARD", "-i", nc.defaultInterface, "-o", nc.wireguardInterface, "-m", "conntrack", "--ctstate", "ESTABLISHED,RELATED", "-j", "ACCEPT")
+	err = subconfigurer.iptables.AppendUnique("filter", "FORWARD", "-i", subconfigurer.iface.Name, "-o", nc.wireguardInterface, "-m", "conntrack", "--ctstate", "ESTABLISHED,RELATED", "-j", "ACCEPT")
 	if err != nil {
 		return fmt.Errorf("adding default FORWARD inbound-rule: %w", err)
 	}
 
 	// Create and set up LOG_ACCEPT CHAIN
-	err = nc.ipTables.NewChain("filter", "LOG_ACCEPT")
-	if err != nil {
-		log.Infof("Creating LOG_ACCEPT chain (probably already exist), error: %v", err)
+	err = subconfigurer.iptables.NewChain("filter", "LOG_ACCEPT")
+	if err != nil && !strings.Contains(err.Error(), "Chain already exists") {
+		return fmt.Errorf("creating LOG_ACCEPT chain: %w", err)
 	}
-	err = nc.ipTables.AppendUnique("filter", "LOG_ACCEPT", "-j", "LOG", "--log-prefix", "naisdevice-fwd: ", "--log-level", "6")
+	err = subconfigurer.iptables.AppendUnique("filter", "LOG_ACCEPT", "-j", "LOG", "--log-prefix", "naisdevice-fwd: ", "--log-level", "6")
 	if err != nil {
 		return fmt.Errorf("adding default LOG_ACCEPT log-rule: %w", err)
 	}
-	err = nc.ipTables.AppendUnique("filter", "LOG_ACCEPT", "-j", "ACCEPT")
+	err = subconfigurer.iptables.AppendUnique("filter", "LOG_ACCEPT", "-j", "ACCEPT")
 	if err != nil {
 		return fmt.Errorf("adding default LOG_ACCEPT accept-rule: %w", err)
 	}
@@ -83,20 +51,22 @@ func (nc *networkConfigurer) SetupIPTables() error {
 	return nil
 }
 
-func (nc *networkConfigurer) ForwardRoutes(routes []string) error {
-	var err error
+func (nc *networkConfigurer) forwardRoutes(subconfigurer *subNetworkConfigurer, routes []string) error {
+	if !subconfigurer.configured() {
+		return nil
+	}
 
 	for _, ip := range routes {
-		err = nc.ipTables.AppendUnique("nat", "POSTROUTING", "-o", nc.defaultInterface, "-p", "tcp", "-d", ip, "-j", "SNAT", "--to-source", nc.interfaceIP)
+		err := subconfigurer.iptables.AppendUnique("nat", "POSTROUTING", "-o", subconfigurer.iface.Name, "-p", "tcp", "-d", ip, "-j", "SNAT", "--to-source", subconfigurer.src.String())
 		if err != nil {
 			return fmt.Errorf("setting up snat: %w", err)
 		}
 
-		err = nc.ipTables.AppendUnique(
+		err = subconfigurer.iptables.AppendUnique(
 			"filter",
 			"FORWARD",
 			"--in-interface", nc.wireguardInterface,
-			"--out-interface", nc.defaultInterface,
+			"--out-interface", subconfigurer.iface.Name,
 			"--protocol", "tcp",
 			"--syn",
 			"--destination", ip,
@@ -109,5 +79,23 @@ func (nc *networkConfigurer) ForwardRoutes(routes []string) error {
 		}
 	}
 
+	return nil
+}
+
+func (nc *networkConfigurer) ForwardRoutesV6(routes []string) error {
+	return nc.forwardRoutes(nc.v6, routes)
+}
+
+func (nc *networkConfigurer) ForwardRoutesV4(routes []string) error {
+	return nc.forwardRoutes(nc.v4, routes)
+}
+
+func (nc *networkConfigurer) SetupIPTables() error {
+	if err := nc.setupIPTables(nc.v4); err != nil {
+		return err
+	}
+	if err := nc.setupIPTables(nc.v6); err != nil {
+		return err
+	}
 	return nil
 }

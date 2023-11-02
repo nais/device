@@ -1,11 +1,11 @@
 //go:build !tenant
 // +build !tenant
 
-package main
+package runtimeconfig
 
 import "github.com/nais/device/pkg/pb"
 
-var defaultTenant = []*pb.Tenant{
+var defaultTenants = []*pb.Tenant{
 	{
 		Name:         "NAV",
 		AuthProvider: pb.AuthProvider_Azure,

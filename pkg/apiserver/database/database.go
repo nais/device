@@ -9,7 +9,6 @@ import (
 	"sync"
 	"time"
 
-	log "github.com/sirupsen/logrus"
 	"google.golang.org/protobuf/types/known/timestamppb"
 
 	"github.com/nais/device/pkg/apiserver/ip"
@@ -121,10 +120,21 @@ func (db *ApiServerDB) UpdateGateway(ctx context.Context, gw *pb.Gateway) error 
 			}
 		}
 
-		for _, route := range gw.Routes {
+		for _, route := range gw.GetRoutesIPv6() {
 			err = qtx.AddGatewayRoute(ctx, sqlc.AddGatewayRouteParams{
 				GatewayName: gw.Name,
 				Route:       route,
+				Family:      "IPv6",
+			})
+			if err != nil {
+				return err
+			}
+		}
+		for _, route := range gw.GetRoutesIPv4() {
+			err = qtx.AddGatewayRoute(ctx, sqlc.AddGatewayRouteParams{
+				GatewayName: gw.Name,
+				Route:       route,
+				Family:      "IPv4",
 			})
 			if err != nil {
 				return err
@@ -170,10 +180,22 @@ func (db *ApiServerDB) UpdateGatewayDynamicFields(ctx context.Context, gw *pb.Ga
 			}
 		}
 
-		for _, route := range gw.Routes {
+		for _, route := range gw.GetRoutesIPv4() {
 			err = qtx.AddGatewayRoute(ctx, sqlc.AddGatewayRouteParams{
 				GatewayName: gw.Name,
 				Route:       route,
+				Family:      "IPv4",
+			})
+			if err != nil {
+				return err
+			}
+		}
+
+		for _, route := range gw.GetRoutesIPv6() {
+			err = qtx.AddGatewayRoute(ctx, sqlc.AddGatewayRouteParams{
+				GatewayName: gw.Name,
+				Route:       route,
+				Family:      "IPv6",
 			})
 			if err != nil {
 				return err
@@ -227,10 +249,22 @@ func (db *ApiServerDB) AddGateway(ctx context.Context, gw *pb.Gateway) error {
 			}
 		}
 
-		for _, route := range gw.Routes {
+		for _, route := range gw.GetRoutesIPv4() {
 			err = qtx.AddGatewayRoute(ctx, sqlc.AddGatewayRouteParams{
 				GatewayName: gw.Name,
 				Route:       route,
+				Family:      "IPv4",
+			})
+			if err != nil {
+				return err
+			}
+		}
+
+		for _, route := range gw.GetRoutesIPv6() {
+			err = qtx.AddGatewayRoute(ctx, sqlc.AddGatewayRouteParams{
+				GatewayName: gw.Name,
+				Route:       route,
+				Family:      "IPv6",
 			})
 			if err != nil {
 				return err
@@ -509,13 +543,23 @@ func timeToString(t time.Time) string {
 func stringToTime(s string) time.Time {
 	t, err := time.Parse(time.RFC3339Nano, s)
 	if err != nil {
-		log.WithError(err).Warnf("format device LastUpdated time: %s", s)
 		return time.Time{}
 	}
 	return t
 }
 
-func sqlcGatewayToPbGateway(g sqlc.Gateway, groupIDs, routes []string) *pb.Gateway {
+func sqlcGatewayToPbGateway(g sqlc.Gateway, groupIDs []string, routes []*sqlc.GetGatewayRoutesRow) *pb.Gateway {
+	routesv4 := make([]string, 0)
+	routesv6 := make([]string, 0)
+
+	for _, route := range routes {
+		switch route.Family {
+		case "IPv4":
+			routesv4 = append(routesv4, route.Route)
+		case "IPv6":
+			routesv6 = append(routesv6, route.Route)
+		}
+	}
 	return &pb.Gateway{
 		Name:                     g.Name,
 		PublicKey:                g.PublicKey,
@@ -525,7 +569,8 @@ func sqlcGatewayToPbGateway(g sqlc.Gateway, groupIDs, routes []string) *pb.Gatew
 		RequiresPrivilegedAccess: g.RequiresPrivilegedAccess,
 		PasswordHash:             g.PasswordHash,
 		AccessGroupIDs:           groupIDs,
-		Routes:                   routes,
+		RoutesIPv4:               routesv4,
+		RoutesIPv6:               routesv6,
 	}
 }
 

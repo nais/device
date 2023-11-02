@@ -7,7 +7,8 @@ import (
 	"strings"
 
 	"github.com/kelseyhightower/envconfig"
-	log "github.com/sirupsen/logrus"
+	"github.com/nais/device/pkg/logger"
+	"github.com/sirupsen/logrus"
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/endpoints"
 )
@@ -30,6 +31,7 @@ type ExchangeResponse struct {
 
 func main() {
 	cfg := &Config{}
+	log := logger.Setup(logrus.InfoLevel.String()).WithField("component", "main")
 	err := envconfig.Process("AUTH_SERVER", cfg)
 	if err != nil {
 		log.Fatalf("process envconfig: %s", err)
@@ -52,7 +54,7 @@ func main() {
 	}
 
 	mux := http.NewServeMux()
-	mux.HandleFunc("/exchange", exchange(baseOAuth2Config))
+	mux.HandleFunc("/exchange", exchange(log, baseOAuth2Config))
 	log.WithField("bind", bind).Info("listening")
 	err = http.ListenAndServe(bind, mux)
 	if err != http.ErrServerClosed {
@@ -62,7 +64,7 @@ func main() {
 	log.Info("finished")
 }
 
-func exchange(oauth2config *oauth2.Config) http.HandlerFunc {
+func exchange(log *logrus.Entry, oauth2config *oauth2.Config) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var exchangeData ExchangeRequest
 		err := json.NewDecoder(r.Body).Decode(&exchangeData)

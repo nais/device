@@ -5,7 +5,7 @@ import (
 
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
-	log "github.com/sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 )
 
 var (
@@ -15,7 +15,7 @@ var (
 	CurrentVersion            prometheus.Counter
 )
 
-func Serve(address string) {
+func Serve(log *logrus.Entry, address string) {
 	log.Infof("Prometheus serving metrics at %v", address)
 	_ = http.ListenAndServe(address, promhttp.Handler())
 }

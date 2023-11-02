@@ -8,7 +8,6 @@ import (
 
 	"github.com/lestrrat-go/jwx/jwk"
 	"github.com/lestrrat-go/jwx/jwt"
-	log "github.com/sirupsen/logrus"
 )
 
 const NaisDeviceApprovalGroup = "ffd89425-c75c-4618-b5ab-67149ddbbc2d"
@@ -81,7 +80,6 @@ func (a *Azure) TokenValidatorMiddleware() TokenValidator {
 			if !UserInNaisdeviceApprovalGroup(claims) {
 				w.WriteHeader(http.StatusSeeOther)
 				http.Redirect(w, r, "https://naisdevice-approval.external.prod-gcp.nav.cloud.nais.io/", http.StatusSeeOther)
-				log.Infof("Redirected user(%s) to do's and don'ts", username)
 				return
 			}
 

@@ -8,12 +8,12 @@ import (
 	"time"
 
 	"github.com/nais/device/pkg/apiserver/database"
-	log "github.com/sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 )
 
 type GoogleMetadata struct {
 	db  database.APIServer
-	log *log.Entry
+	log *logrus.Entry
 }
 
 type GatewayMetadata struct {
@@ -22,7 +22,7 @@ type GatewayMetadata struct {
 	RequiresPrivilegedAccess bool     `json:"requires_privileged_access"`
 }
 
-func NewGoogleMetadata(db database.APIServer, log *log.Entry) *GoogleMetadata {
+func NewGoogleMetadata(db database.APIServer, log *logrus.Entry) *GoogleMetadata {
 	return &GoogleMetadata{
 		db:  db,
 		log: log,
@@ -30,7 +30,7 @@ func NewGoogleMetadata(db database.APIServer, log *log.Entry) *GoogleMetadata {
 }
 
 func (g *GoogleMetadata) SyncContinuously(ctx context.Context, syncInterval time.Duration) {
-	log.Infof("Syncing gatway-config from google vm metadata every %q", syncInterval)
+	g.log.Infof("Syncing gatway-config from google vm metadata every %q", syncInterval)
 
 	ticker := time.NewTicker(syncInterval)
 	defer ticker.Stop()
@@ -59,7 +59,7 @@ func (g *GoogleMetadata) syncConfig(ctx context.Context) error {
 			continue
 		}
 
-		gateway.Routes = gatewayMetadata.Routes
+		gateway.RoutesIPv4 = gatewayMetadata.Routes
 		gateway.AccessGroupIDs = gatewayMetadata.AccessGroupIDs
 		gateway.RequiresPrivilegedAccess = gatewayMetadata.RequiresPrivilegedAccess
 

@@ -6,7 +6,6 @@ import (
 
 	apiserver_metrics "github.com/nais/device/pkg/apiserver/metrics"
 	"github.com/nais/device/pkg/pb"
-	log "github.com/sirupsen/logrus"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
@@ -30,7 +29,7 @@ func (s *grpcServer) GetGatewayConfiguration(request *pb.GetGatewayConfiguration
 
 	s.gatewayConfigTriggerLock.Lock()
 	s.gatewayConfigTrigger[request.Gateway] = c
-	log.Infof("Gateway %s connected (%d active gateways)", request.Gateway, len(s.gatewayConfigTrigger))
+	s.log.Infof("Gateway %s connected (%d active gateways)", request.Gateway, len(s.gatewayConfigTrigger))
 	s.gatewayConfigTriggerLock.Unlock()
 
 	s.reportOnlineGateways()
@@ -40,18 +39,18 @@ func (s *grpcServer) GetGatewayConfiguration(request *pb.GetGatewayConfiguration
 		case <-c:
 			cfg, err := s.MakeGatewayConfiguration(stream.Context(), request.Gateway)
 			if err != nil {
-				log.Errorf("make gateway config: %v", err)
+				s.log.Errorf("make gateway config: %v", err)
 			}
 
 			err = stream.Send(cfg)
 			if err != nil {
-				log.Errorf("send gateway config: %v", err)
+				s.log.Errorf("send gateway config: %v", err)
 			}
 
 		case <-stream.Context().Done():
 			s.gatewayConfigTriggerLock.Lock()
 			delete(s.gatewayConfigTrigger, request.Gateway)
-			log.Infof("Gateway %s disconnected (%d active gateways)", request.Gateway, len(s.gatewayConfigTrigger))
+			s.log.Infof("Gateway %s disconnected (%d active gateways)", request.Gateway, len(s.gatewayConfigTrigger))
 			s.gatewayConfigTriggerLock.Unlock()
 
 			s.reportOnlineGateways()
@@ -86,8 +85,9 @@ func (s *grpcServer) MakeGatewayConfiguration(ctx context.Context, gatewayName s
 	uniqueDevices := unique(healthyDevices)
 
 	gatewayConfig := &pb.GetGatewayConfigurationResponse{
-		Devices: uniqueDevices,
-		Routes:  gateway.Routes,
+		Devices:    uniqueDevices,
+		RoutesIPv4: gateway.GetRoutesIPv4(),
+		RoutesIPv6: gateway.GetRoutesIPv6(),
 	}
 
 	apiserver_metrics.GatewayConfigsReturned.WithLabelValues(gateway.Name).Inc()
@@ -105,7 +105,7 @@ func (s *grpcServer) reportOnlineGateways() {
 
 	allGatewayNames, err := s.getAllGatewayNames()
 	if err != nil {
-		log.Errorf("unable to report online gateways: %v", err)
+		s.log.Errorf("unable to report online gateways: %v", err)
 		return
 	}
 

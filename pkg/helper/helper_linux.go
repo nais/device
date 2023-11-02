@@ -7,8 +7,6 @@ import (
 	"strings"
 
 	"github.com/nais/device/pkg/pb"
-
-	log "github.com/sirupsen/logrus"
 )
 
 const (
@@ -36,7 +34,7 @@ func (c *LinuxConfigurator) Prerequisites() error {
 }
 
 func (c *LinuxConfigurator) SyncConf(ctx context.Context, cfg *pb.Configuration) error {
-	cmd := exec.CommandContext(ctx, wireguardBinary, "syncconf", c.helperConfig.Interface, WireGuardConfigPath)
+	cmd := exec.CommandContext(ctx, wireguardBinary, "syncconf", c.helperConfig.Interface, c.helperConfig.WireGuardConfigPath)
 	if b, err := cmd.CombinedOutput(); err != nil {
 		return fmt.Errorf("running syncconf: %w: %v", err, string(b))
 	}
@@ -46,23 +44,23 @@ func (c *LinuxConfigurator) SyncConf(ctx context.Context, cfg *pb.Configuration)
 
 func (c *LinuxConfigurator) SetupRoutes(ctx context.Context, gateways []*pb.Gateway) error {
 	for _, gw := range gateways {
-		for _, cidr := range gw.GetRoutes() {
+		// For Linux we can handle ipv4/6 addreses the same - the `ip` utility handles this for us
+		for _, cidr := range append(gw.GetRoutesIPv4(), gw.GetRoutesIPv6()...) {
 			if strings.HasPrefix(cidr, TunnelNetworkPrefix) {
 				// Don't add routes for the tunnel network, as the whole /21 net is already routed to utun
 				continue
 			}
 
-			cmd := exec.CommandContext(ctx, "ip", "-4", "route", "add", cidr, "dev", c.helperConfig.Interface)
+			cidr = strings.TrimSpace(cidr)
+
+			cmd := exec.CommandContext(ctx, "ip", "route", "add", cidr, "dev", c.helperConfig.Interface)
 			output, err := cmd.CombinedOutput()
 			if exitErr, ok := err.(*exec.ExitError); ok {
-				log.Debugf("Command: %v, exit code: %v, output: %v", cmd, exitErr.ExitCode(), string(output))
 				if exitErr.ExitCode() == 2 && strings.Contains(string(output), "File exists") {
-					log.Debug("Assuming route already exists")
 					continue
 				}
-				return fmt.Errorf("executing %v: %w", cmd, err)
+				return fmt.Errorf("executing %v: %w, stderr: %s", cmd, exitErr, string(output))
 			}
-			log.Debugf("%v: %v", cmd, string(output))
 		}
 	}
 
@@ -77,7 +75,8 @@ func (c *LinuxConfigurator) SetupInterface(ctx context.Context, cfg *pb.Configur
 	commands := [][]string{
 		{"ip", "link", "add", "dev", c.helperConfig.Interface, "type", "wireguard"},
 		{"ip", "link", "set", "mtu", "1360", "up", "dev", c.helperConfig.Interface},
-		{"ip", "address", "add", "dev", c.helperConfig.Interface, cfg.DeviceIP + "/21"},
+		{"ip", "address", "add", "dev", c.helperConfig.Interface, cfg.DeviceIPv4 + "/21"},
+		{"ip", "address", "add", "dev", c.helperConfig.Interface, cfg.DeviceIPv6 + "/64"},
 	}
 
 	return runCommands(ctx, commands)
@@ -91,8 +90,7 @@ func (c *LinuxConfigurator) TeardownInterface(ctx context.Context) error {
 	cmd := exec.CommandContext(ctx, "ip", "link", "del", c.helperConfig.Interface)
 	out, err := cmd.CombinedOutput()
 	if err != nil {
-		log.Errorf("teardown output: %v", string(out))
-		return err
+		return fmt.Errorf("teardown failed: %w, stderr: %s", err, string(out))
 	}
 
 	return nil

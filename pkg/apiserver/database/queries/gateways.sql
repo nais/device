@@ -5,7 +5,7 @@ SELECT * FROM gateways ORDER BY name;
 SELECT group_id FROM gateway_access_group_ids WHERE gateway_name = @gateway_name ORDER BY group_id;
 
 -- name: GetGatewayRoutes :many
-SELECT route FROM gateway_routes WHERE gateway_name = @gateway_name ORDER BY route;
+SELECT route, family FROM gateway_routes WHERE gateway_name = @gateway_name ORDER BY route;
 
 -- name: GetGatewayByName :one
 SELECT * FROM gateways WHERE name = @name;
@@ -38,6 +38,6 @@ ON CONFLICT DO NOTHING;
 DELETE FROM gateway_routes WHERE gateway_name = @gateway_name;
 
 -- name: AddGatewayRoute :exec
-INSERT INTO gateway_routes (gateway_name, route)
-VALUES (@gateway_name, @route)
+INSERT INTO gateway_routes (gateway_name, route, family)
+VALUES (@gateway_name, @route, @family)
 ON CONFLICT DO NOTHING;

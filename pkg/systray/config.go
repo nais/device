@@ -2,10 +2,11 @@ package systray
 
 import (
 	"encoding/json"
+	"fmt"
 	"os"
 	"path/filepath"
 
-	log "github.com/sirupsen/logrus"
+	"github.com/nais/device/pkg/notify"
 )
 
 type Config struct {
@@ -17,33 +18,35 @@ type Config struct {
 	LogFilePath string
 
 	BlackAndWhiteIcons bool
+	Notifier           notify.Notifier
 }
 
-func (cfg *Config) Persist() {
+func (cfg *Config) Persist() error {
 	configFile, err := os.Create(filepath.Join(cfg.ConfigDir, ConfigFile))
 	if err != nil {
-		log.Infof("opening file: %v", err)
+		return fmt.Errorf("opening file: %v", err)
 	}
 
 	err = json.NewEncoder(configFile).Encode(cfg)
 	if err != nil {
-		log.Warnf("encoding json to file: %v", err)
+		return fmt.Errorf("encoding json to file: %v", err)
 	}
+	return nil
 }
 
-func (cfg *Config) Populate() {
+func (cfg *Config) Populate() error {
 	var tempCfg Config
 
 	configFile, err := os.Open(filepath.Join(cfg.ConfigDir, ConfigFile))
 	if err != nil {
-		log.Infof("opening file: %v", err)
+		return fmt.Errorf("opening file: %v", err)
 	}
 
 	err = json.NewDecoder(configFile).Decode(&tempCfg)
 	if err != nil {
-		log.Warnf("decoding json from file: %v", err)
-		return
+		return fmt.Errorf("decoding json from file: %v", err)
 	}
 
 	*cfg = tempCfg
+	return nil
 }

@@ -29,7 +29,8 @@ func CastPeerList[T Peer](peers []T) []Peer {
 }
 
 type Config struct {
-	Address    string
+	AddressV4  string
+	AddressV6  string
 	ListenPort int
 	MTU        int
 	Peers      []Peer
@@ -50,7 +51,15 @@ func (cfg *Config) MarshalINI(w io.Writer) error {
 	if cfg.MTU > 0 {
 		fmt.Fprintf(ew, "MTU = %d\n", cfg.MTU)
 	}
-	fprintNonEmpty(ew, "Address = %s\n", cfg.Address)
+
+	if cfg.AddressV4 != "" {
+		addr := cfg.AddressV4
+		if cfg.AddressV6 != "" {
+			addr += ", " + cfg.AddressV6
+		}
+
+		fprintNonEmpty(ew, "Address = %s\n", cfg.AddressV4)
+	}
 
 	fmt.Fprintf(ew, "\n")
 

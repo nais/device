@@ -4,7 +4,7 @@ import (
 	"context"
 	"time"
 
-	log "github.com/sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 	"golang.org/x/sys/windows/svc"
 )
 
@@ -13,9 +13,10 @@ const serviceName = "naisdevice-agent-helper"
 type MyService struct {
 	programContext context.Context
 	cancel         context.CancelFunc
+	log            *logrus.Entry
 }
 
-func StartService(programContext context.Context, cancel context.CancelFunc) error {
+func StartService(log *logrus.Entry, programContext context.Context, cancel context.CancelFunc) error {
 	isWindowsService, err := svc.IsWindowsService()
 	if err != nil {
 		return err
@@ -29,6 +30,7 @@ func StartService(programContext context.Context, cancel context.CancelFunc) err
 		s := &MyService{
 			programContext: programContext,
 			cancel:         cancel,
+			log:            log,
 		}
 
 		err = svc.Run(serviceName, s)
@@ -44,7 +46,7 @@ func StartService(programContext context.Context, cancel context.CancelFunc) err
 func (service *MyService) Execute(args []string, r <-chan svc.ChangeRequest, changes chan<- svc.Status) (ssec bool, errno uint32) {
 	const cmdsAccepted = svc.AcceptStop | svc.AcceptShutdown
 	changes <- svc.Status{State: svc.StartPending}
-	log.Infof("service started with args: %v", args)
+	service.log.Infof("service started with args: %v", args)
 	changes <- svc.Status{State: svc.Running, Accepts: cmdsAccepted}
 loop:
 	for {
@@ -58,11 +60,11 @@ loop:
 				time.Sleep(100 * time.Millisecond)
 				changes <- c.CurrentStatus
 			case svc.Stop, svc.Shutdown:
-				log.Infof("Stop service: %v", c)
+				service.log.Infof("Stop service: %v", c)
 				service.cancel()
 				break loop
 			default:
-				log.Errorf("unexpected control request #%d", c)
+				service.log.Errorf("unexpected control request #%d", c)
 			}
 		}
 	}
