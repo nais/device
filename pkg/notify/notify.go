@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	"github.com/gen2brain/beeep"
-	log "github.com/sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 )
 
 type logFunc func(string, ...any)
@@ -16,37 +16,39 @@ type Notifier interface {
 
 var _ Notifier = &notifier{}
 
-type notifier struct{}
-
-func New() Notifier {
-	return &notifier{}
+type notifier struct {
+	log *logrus.Entry
 }
 
-func (*notifier) Infof(format string, args ...any) {
-	printf(log.InfoLevel, format, args...)
+func New(log *logrus.Entry) Notifier {
+	return &notifier{log: log}
 }
 
-func (*notifier) Errorf(format string, args ...any) {
-	printf(log.ErrorLevel, format, args...)
+func (n *notifier) Infof(format string, args ...any) {
+	n.printf(logrus.InfoLevel, format, args...)
 }
 
-func printf(logLevel log.Level, format string, args ...any) {
+func (n *notifier) Errorf(format string, args ...any) {
+	n.printf(logrus.ErrorLevel, format, args...)
+}
+
+func (n *notifier) printf(logLevel logrus.Level, format string, args ...any) {
 	message := fmt.Sprintf(format, args...)
-	logger := logfn(logLevel)
+	logger := n.logFn(logLevel)
 	logger(message)
 	err := beeep.Notify("naisdevice", message, "../Resources/nais-logo-red.png")
 	if err != nil {
-		log.Errorf("sending notification: %s", err)
+		n.log.Errorf("sending notification: %s", err)
 	}
 }
 
-func logfn(logLevel log.Level) logFunc {
+func (n *notifier) logFn(logLevel logrus.Level) logFunc {
 	switch logLevel {
-	case log.InfoLevel:
-		return log.Infof
-	case log.ErrorLevel:
-		return log.Errorf
+	case logrus.InfoLevel:
+		return n.log.Infof
+	case logrus.ErrorLevel:
+		return n.log.Errorf
 	default:
-		return log.Printf
+		return n.log.Printf
 	}
 }

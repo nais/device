@@ -7,13 +7,12 @@ import (
 
 	apiserver_metrics "github.com/nais/device/pkg/apiserver/metrics"
 	"github.com/nais/device/pkg/pb"
-	log "github.com/sirupsen/logrus"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
 
 func (s *grpcServer) GetDeviceConfiguration(request *pb.GetDeviceConfigurationRequest, stream pb.APIServer_GetDeviceConfigurationServer) error {
-	log.WithField("session", request.SessionKey).Debugf("get device configuration: started")
+	s.log.WithField("session", request.SessionKey).Debugf("get device configuration: started")
 	trigger := make(chan struct{}, 1)
 	trigger <- struct{}{} // immediately send one config back on the stream
 
@@ -29,7 +28,7 @@ func (s *grpcServer) GetDeviceConfiguration(request *pb.GetDeviceConfigurationRe
 	s.deviceConfigTriggerLock.Unlock()
 
 	if len(session.GetGroups()) == 0 {
-		log.WithField("deviceId", session.GetDevice().GetId()).Warnf("session with no groups detected")
+		s.log.WithField("deviceId", session.GetDevice().GetId()).Warnf("session with no groups detected")
 	}
 
 	defer func() {
@@ -44,10 +43,10 @@ func (s *grpcServer) GetDeviceConfiguration(request *pb.GetDeviceConfigurationRe
 	for {
 		select {
 		case <-timeout:
-			log.Debugf("session for device %d timed out, tearing down", deviceId)
+			s.log.Debugf("session for device %d timed out, tearing down", deviceId)
 			return nil
 		case <-stream.Context().Done(): // Disconnect
-			log.Debugf("stream context for device %d done, tearing down", deviceId)
+			s.log.Debugf("stream context for device %d done, tearing down", deviceId)
 			return nil
 		case <-trigger: // Send config triggered
 			session, err := s.sessionStore.Get(stream.Context(), request.SessionKey)
@@ -57,11 +56,11 @@ func (s *grpcServer) GetDeviceConfiguration(request *pb.GetDeviceConfigurationRe
 
 			cfg, err := s.makeDeviceConfiguration(stream.Context(), session)
 			if err != nil {
-				log.Errorf("make device config: %v", err)
+				s.log.Errorf("make device config: %v", err)
 			} else {
 				err := stream.Send(cfg)
 				if err != nil {
-					log.Debugf("stream end for device %d failed, err: %v", deviceId, err)
+					s.log.Debugf("stream end for device %d failed, err: %v", deviceId, err)
 				}
 			}
 		}

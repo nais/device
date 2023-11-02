@@ -12,7 +12,7 @@ import (
 	"google.golang.org/grpc"
 )
 
-func NewHelper(t *testing.T, osConfigurator helper.OSConfigurator) *grpc.Server {
+func NewHelper(t *testing.T, log *logrus.Entry, osConfigurator helper.OSConfigurator) *grpc.Server {
 	server := grpc.NewServer()
 	tempDir, err := os.MkdirTemp("", "naisdevice_helper_test_*")
 	assert.NoError(t, err)
@@ -21,15 +21,14 @@ func NewHelper(t *testing.T, osConfigurator helper.OSConfigurator) *grpc.Server 
 		os.RemoveAll(tempDir)
 	})
 
-	deviceHelperServer := helper.DeviceHelperServer{
-		Config: helper.Config{
-			Interface:           `test_interface`,
-			LogLevel:            logrus.DebugLevel.String(),
-			WireGuardConfigPath: tempfile,
-		},
-		OSConfigurator: osConfigurator,
+	helperConfig := helper.Config{
+		Interface:           `test_interface`,
+		LogLevel:            logrus.DebugLevel.String(),
+		WireGuardConfigPath: tempfile,
 	}
-	pb.RegisterDeviceHelperServer(server, &deviceHelperServer)
+
+	deviceHelperServer := helper.NewDeviceHelperServer(log, helperConfig, osConfigurator)
+	pb.RegisterDeviceHelperServer(server, deviceHelperServer)
 
 	return server
 }

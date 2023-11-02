@@ -10,7 +10,6 @@ import (
 	"strings"
 
 	"github.com/nais/device/pkg/wireguard"
-	log "github.com/sirupsen/logrus"
 	"golang.org/x/crypto/curve25519"
 
 	"github.com/nais/device/pkg/device-agent/filesystem"
@@ -93,7 +92,6 @@ func sortGateways(gateways []*pb.Gateway) {
 }
 
 func Marshal(w io.Writer, x *pb.Configuration) error {
-	log.Debugf("gateways: %v", x.GetGateways())
 	// Sort gateways here to let windows helper detect changes in, and prevent unnecessary restarts
 	gateways := x.GetGateways()
 	sortGateways(gateways)

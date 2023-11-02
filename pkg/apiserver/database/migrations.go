@@ -7,7 +7,6 @@ import (
 	_ "github.com/golang-migrate/migrate/v4/database/sqlite3"
 	"github.com/golang-migrate/migrate/v4/source/iofs"
 	"github.com/nais/device/pkg/apiserver/database/schema"
-	log "github.com/sirupsen/logrus"
 )
 
 func runMigrations(dbPath string) error {
@@ -15,11 +14,7 @@ func runMigrations(dbPath string) error {
 	if err != nil {
 		return err
 	}
-	defer func() {
-		if err := sourceDriver.Close(); err != nil {
-			log.WithError(err).Errorf("close database connection")
-		}
-	}()
+	defer sourceDriver.Close()
 
 	m, err := migrate.NewWithSourceInstance("iofs", sourceDriver, "sqlite3://"+dbPath)
 	if err != nil {

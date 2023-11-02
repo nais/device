@@ -34,7 +34,7 @@ func (j *client) UpdatePrivilegedUsers() error {
 		return fmt.Errorf("getting all privileged users: %w", err)
 	}
 
-	defer ioconvenience.CloseWithLog(resp.Body)
+	defer ioconvenience.CloseWithLog(j.log, resp.Body)
 
 	if resp.StatusCode != http.StatusOK {
 		return fmt.Errorf("not ok when calling jita: %v", resp.StatusCode)

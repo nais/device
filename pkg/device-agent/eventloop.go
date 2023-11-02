@@ -10,19 +10,15 @@ import (
 	"sync"
 	"time"
 
-	"google.golang.org/grpc/codes"
-	grpcstatus "google.golang.org/grpc/status"
-	"google.golang.org/protobuf/types/known/timestamppb"
-
-	"github.com/nais/device/pkg/device-agent/config"
-	"github.com/nais/device/pkg/ioconvenience"
-
-	log "github.com/sirupsen/logrus"
-
 	"github.com/nais/device/pkg/device-agent/auth"
+	"github.com/nais/device/pkg/device-agent/config"
 	"github.com/nais/device/pkg/device-agent/runtimeconfig"
 	"github.com/nais/device/pkg/pb"
 	"github.com/nais/device/pkg/version"
+	"github.com/sirupsen/logrus"
+	"google.golang.org/grpc/codes"
+	grpcstatus "google.golang.org/grpc/status"
+	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 const (
@@ -48,7 +44,7 @@ func (das *DeviceAgentServer) syncConfigLoop(ctx context.Context, gateways chan<
 	if err != nil {
 		return grpcstatus.Errorf(codes.Unavailable, err.Error())
 	}
-	log.Infof("Connected to API server")
+	das.log.Infof("Connected to API server")
 
 	defer conn.Close()
 
@@ -96,7 +92,7 @@ func (das *DeviceAgentServer) syncConfigLoop(ctx context.Context, gateways chan<
 		return err
 	}
 
-	log.Infof("Gateway configuration stream established")
+	das.log.Infof("Gateway configuration stream established")
 
 	// notify calling function that we are connected
 	select {
@@ -110,21 +106,21 @@ func (das *DeviceAgentServer) syncConfigLoop(ctx context.Context, gateways chan<
 			return err
 		}
 
-		log.Infof("Received gateway configuration from API server")
+		das.log.Infof("Received gateway configuration from API server")
 
 		switch cfg.Status {
 		case pb.DeviceConfigurationStatus_InvalidSession:
-			log.Errorf("Unauthorized access from apiserver: %v", err)
-			log.Errorf("Assuming invalid session; disconnecting.")
+			das.log.Errorf("Unauthorized access from apiserver: %v", err)
+			das.log.Errorf("Assuming invalid session; disconnecting.")
 			return fmt.Errorf("config status: %v", cfg.Status)
 		case pb.DeviceConfigurationStatus_DeviceUnhealthy:
-			log.Errorf("Device is not healthy: %v", err)
+			das.log.Errorf("Device is not healthy: %v", err)
 			// TODO consider moving all notify calls to systray code
 			das.Notifier().Errorf("No access as your device is unhealthy. Run '/msg @Kolide status' on Slack and fix the errors")
 			das.stateChange <- pb.AgentState_Unhealthy
 			continue
 		case pb.DeviceConfigurationStatus_DeviceHealthy:
-			log.Infof("Device is healthy; server pushed %d gateways", len(cfg.Gateways))
+			das.log.Infof("Device is healthy; server pushed %d gateways", len(cfg.Gateways))
 		default:
 		}
 
@@ -166,7 +162,7 @@ func (das *DeviceAgentServer) EventLoop(programContext context.Context) {
 
 		select {
 		case <-programContext.Done():
-			log.Infof("EventLoop: context done")
+			das.log.Infof("EventLoop: context done")
 			wg.Wait()
 			return
 
@@ -176,7 +172,7 @@ func (das *DeviceAgentServer) EventLoop(programContext context.Context) {
 			cancel()
 
 			if err != nil {
-				log.Errorf("check for new version: %s", err)
+				das.log.Errorf("check for new version: %s", err)
 				break
 			}
 
@@ -196,18 +192,18 @@ func (das *DeviceAgentServer) EventLoop(programContext context.Context) {
 			wg := &sync.WaitGroup{}
 
 			total := len(status.GetGateways())
-			log.Debugf("Pinging %d gateways...", total)
+			das.log.Debugf("Pinging %d gateways...", total)
 			for i, gw := range status.GetGateways() {
 				wg.Add(1)
 				go func(i int, gw *pb.Gateway) {
-					err := ping(gw.Ipv4)
+					err := ping(das.log, gw.Ipv4)
 					pos := fmt.Sprintf("[%02d/%02d]", i+1, total)
 					if err == nil {
 						gw.Healthy = true
-						log.Debugf("%s %s: successfully pinged %v", pos, gw.Name, gw.Ipv4)
+						das.log.Debugf("%s %s: successfully pinged %v", pos, gw.Name, gw.Ipv4)
 					} else {
 						gw.Healthy = false
-						log.Debugf("%s %s: unable to ping %s: %v", pos, gw.Name, gw.Ipv4, err)
+						das.log.Debugf("%s %s: unable to ping %s: %v", pos, gw.Name, gw.Ipv4, err)
 					}
 					wg.Done()
 				}(i, gw)
@@ -216,7 +212,7 @@ func (das *DeviceAgentServer) EventLoop(programContext context.Context) {
 
 		case gws := <-gateways:
 			if syncctx == nil {
-				log.Errorf("BUG: synchronization context is nil while updating gateways")
+				das.log.Errorf("BUG: synchronization context is nil while updating gateways")
 				break
 			}
 
@@ -242,21 +238,21 @@ func (das *DeviceAgentServer) EventLoop(programContext context.Context) {
 		case newState := <-das.stateChange:
 			previousState := status.ConnectionState
 			status.ConnectionState = newState
-			log.Infof("state changed from %s to %s", previousState, status.ConnectionState)
+			das.log.Infof("state changed from %s to %s", previousState, status.ConnectionState)
 
 			switch status.ConnectionState {
 			case pb.AgentState_Bootstrapping:
 				if previousState != pb.AgentState_Authenticating {
-					log.Errorf("probably concurrency issue: came here from invalid state %q, aborting", previousState)
+					das.log.Errorf("probably concurrency issue: came here from invalid state %q, aborting", previousState)
 					das.stateChange <- pb.AgentState_Disconnecting
 					break
 				}
 
 				if err := das.rc.LoadEnrollConfig(); err == nil {
-					log.Infof("Loaded enroll")
+					das.log.Infof("Loaded enroll")
 				} else {
-					log.Infof("Unable to load enroll config: %s", err)
-					log.Infof("Enrolling device")
+					das.log.Infof("Unable to load enroll config: %s", err)
+					das.log.Infof("Enrolling device")
 					ctx, cancel := context.WithTimeout(programContext, 1*time.Minute)
 					serial, err := das.getSerial(ctx)
 					if err != nil {
@@ -298,19 +294,19 @@ func (das *DeviceAgentServer) EventLoop(programContext context.Context) {
 					attempt := 0
 					for syncctx.Err() == nil {
 						attempt++
-						log.Infof("[attempt %d] Setting up gateway configuration stream...", attempt)
+						das.log.Infof("[attempt %d] Setting up gateway configuration stream...", attempt)
 						err := das.syncConfigLoop(syncctx, gateways, notifyConnected)
 
 						switch grpcstatus.Code(err) {
 						case codes.OK:
 							attempt = 0
 						case codes.Unavailable:
-							log.Warnf("Synchronize config: not connected to API server: %v", err)
+							das.log.Warnf("Synchronize config: not connected to API server: %v", err)
 							time.Sleep(apiServerRetryInterval * time.Duration(math.Pow(float64(attempt), 3)))
 						case codes.Unauthenticated:
-							log.Errorf("Logging in: %s", err)
+							das.log.Errorf("Logging in: %s", err)
 							das.rc.SetToken(nil)
-							log.Error("Cleaned up old tokens")
+							das.log.Error("Cleaned up old tokens")
 							fallthrough
 						default:
 							das.Notifier().Errorf(err.Error())
@@ -321,7 +317,7 @@ func (das *DeviceAgentServer) EventLoop(programContext context.Context) {
 						}
 					}
 
-					log.Infof("Gateway config synchronization loop: %s", syncctx.Err())
+					das.log.Infof("Gateway config synchronization loop: %s", syncctx.Err())
 					syncctx = nil
 					synccancel()
 					wg.Done()
@@ -333,7 +329,7 @@ func (das *DeviceAgentServer) EventLoop(programContext context.Context) {
 
 			case pb.AgentState_Authenticating:
 				if previousState != pb.AgentState_Disconnected {
-					log.Errorf("probably concurrency issue: came here from invalid state %q, aborting", previousState)
+					das.log.Errorf("probably concurrency issue: came here from invalid state %q, aborting", previousState)
 					das.stateChange <- pb.AgentState_Disconnecting
 					break
 				}
@@ -346,7 +342,7 @@ func (das *DeviceAgentServer) EventLoop(programContext context.Context) {
 
 				ctx, cancel := context.WithTimeout(programContext, authFlowTimeout)
 				oauth2Config := das.Config.OAuth2Config(das.rc.GetActiveTenant().AuthProvider)
-				token, err := auth.GetDeviceAgentToken(ctx, oauth2Config, das.Config.GoogleAuthServerAddress)
+				token, err := auth.GetDeviceAgentToken(ctx, das.log, oauth2Config, das.Config.GoogleAuthServerAddress)
 				cancel()
 				if err != nil {
 					das.Notifier().Errorf("Get token: %v", err)
@@ -378,7 +374,7 @@ func (das *DeviceAgentServer) EventLoop(programContext context.Context) {
 				if synccancel != nil {
 					synccancel() // cancel streaming gateway updates
 				}
-				log.Info("Tearing down network connections through device-helper...")
+				das.log.Info("Tearing down network connections through device-helper...")
 				ctx, cancel := context.WithTimeout(programContext, helperTimeout)
 				_, err = das.DeviceHelper.Teardown(ctx, &pb.TeardownRequest{})
 				cancel()
@@ -403,8 +399,6 @@ func newVersionAvailable(ctx context.Context) (bool, error) {
 		Tag string `json:"tag_name"`
 	}
 
-	log.Info("Checking release version on github")
-
 	req, err := http.NewRequestWithContext(ctx, "GET", "https://api.github.com/repos/nais/device/releases/latest", nil)
 	if err != nil {
 		return false, err
@@ -414,7 +408,7 @@ func newVersionAvailable(ctx context.Context) (bool, error) {
 		return false, fmt.Errorf("retrieve current release version: %s", err)
 	}
 
-	defer ioconvenience.CloseWithLog(resp.Body)
+	defer resp.Body.Close()
 
 	res := &response{}
 	decoder := json.NewDecoder(resp.Body)
@@ -430,7 +424,7 @@ func newVersionAvailable(ctx context.Context) (bool, error) {
 	return false, nil
 }
 
-func ping(addr string) error {
+func ping(log *logrus.Entry, addr string) error {
 	c, err := net.DialTimeout("tcp", fmt.Sprintf("%s:%s", addr, "3000"), 2*time.Second)
 	if err != nil {
 		return err

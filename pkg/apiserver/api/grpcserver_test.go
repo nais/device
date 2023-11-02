@@ -10,6 +10,7 @@ import (
 	"github.com/nais/device/pkg/apiserver/auth"
 	"github.com/nais/device/pkg/apiserver/database"
 	"github.com/nais/device/pkg/pb"
+	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"google.golang.org/grpc"
@@ -57,7 +58,8 @@ func TestGetDeviceConfiguration(t *testing.T) {
 
 	gatewayAuthenticator := auth.NewGatewayAuthenticator(db)
 
-	server := api.NewGRPCServer(ctx, db, nil, nil, gatewayAuthenticator, nil, nil, auth.NewSessionStore(db))
+	log := logrus.StandardLogger().WithField("component", "test")
+	server := api.NewGRPCServer(ctx, log, db, nil, nil, gatewayAuthenticator, nil, nil, auth.NewSessionStore(db))
 
 	s := grpc.NewServer()
 	pb.RegisterAPIServerServer(s, server)
@@ -118,7 +120,8 @@ func TestGatewayPasswordAuthentication(t *testing.T) {
 
 	gatewayAuthenticator := auth.NewGatewayAuthenticator(db)
 
-	server := api.NewGRPCServer(ctx, db, nil, nil, gatewayAuthenticator, nil, nil, sessionStore)
+	log := logrus.StandardLogger().WithField("component", "test")
+	server := api.NewGRPCServer(ctx, log, db, nil, nil, gatewayAuthenticator, nil, nil, sessionStore)
 
 	s := grpc.NewServer()
 	pb.RegisterAPIServerServer(s, server)
@@ -173,7 +176,8 @@ func TestGatewayPasswordAuthenticationFail(t *testing.T) {
 
 	gatewayAuthenticator := auth.NewGatewayAuthenticator(db)
 
-	server := api.NewGRPCServer(ctx, db, nil, nil, gatewayAuthenticator, nil, nil, nil)
+	log := logrus.StandardLogger().WithField("component", "test")
+	server := api.NewGRPCServer(ctx, log, db, nil, nil, gatewayAuthenticator, nil, nil, nil)
 
 	s := grpc.NewServer()
 	pb.RegisterAPIServerServer(s, server)

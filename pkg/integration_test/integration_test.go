@@ -66,19 +66,25 @@ func TestIntegration(t *testing.T) {
 		},
 	}
 
-	logrus.SetLevel(logrus.DebugLevel)
 	for _, test := range tests {
 		wrap := func(t *testing.T, test testCase) func(*testing.T) {
 			return func(t *testing.T) {
-				logrus.SetOutput(&testLogWriter{t: t})
-				tableTest(t, test.device, test.endState, test.expectedGateways)
+				logger := &logrus.Logger{
+					Out:   &testLogWriter{t: t},
+					Level: logrus.DebugLevel,
+					Formatter: &logrus.TextFormatter{
+						TimestampFormat: "15:04:05.000",
+					},
+				}
+				log := logger.WithField("component", "test")
+				tableTest(t, log, test.device, test.endState, test.expectedGateways)
 			}
 		}
 		t.Run(test.name, wrap(t, test))
 	}
 }
 
-func tableTest(t *testing.T, testDevice *pb.Device, endState pb.AgentState, expectedGateways map[string]*pb.Gateway) {
+func tableTest(t *testing.T, log *logrus.Entry, testDevice *pb.Device, endState pb.AgentState, expectedGateways map[string]*pb.Gateway) {
 	wg := &sync.WaitGroup{}
 	t.Helper()
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
@@ -125,7 +131,7 @@ func tableTest(t *testing.T, testDevice *pb.Device, endState pb.AgentState, expe
 	// The apiserver is treated as a normal gateway by the device-agent
 	expectedGateways[apiserverPeer.Name] = apiserverPeer
 
-	apiserverListener, stopAPIServer := serve(t, NewAPIServer(t, ctx, db), wg)
+	apiserverListener, stopAPIServer := serve(t, NewAPIServer(t, ctx, log.WithField("component", "apiserver"), db), wg)
 
 	osConfigurator := helper.NewMockOSConfigurator(t)
 
@@ -169,7 +175,7 @@ func tableTest(t *testing.T, testDevice *pb.Device, endState pb.AgentState, expe
 
 	osConfigurator.EXPECT().TeardownInterface(mock.AnythingOfType("*context.valueCtx")).Return(nil).Maybe()
 
-	helperListener, stopHelper := serve(t, NewHelper(t, osConfigurator), wg)
+	helperListener, stopHelper := serve(t, NewHelper(t, log.WithField("component", "helper"), osConfigurator), wg)
 
 	apiDial, err := dial(ctx, apiserverListener)
 	assert.NoError(t, err)
@@ -205,8 +211,11 @@ func tableTest(t *testing.T, testDevice *pb.Device, endState pb.AgentState, expe
 		rc.EXPECT().BuildHelperConfiguration(mock.MatchedBy(matchExactGateways(expectedGateways))).Return(fullHelperConfig)
 	}
 
-	onlineGateways := sync.WaitGroup{}
+	gatewaysWaitGroup := make(map[string]*sync.WaitGroup)
 	for _, gw := range expectedGateways {
+		gatewaysWaitGroup[gw.GetName()] = &sync.WaitGroup{}
+		gatewaysWaitGroup[gw.GetName()].Add(2)
+
 		if gw.Name == "apiserver" {
 			continue
 		}
@@ -222,22 +231,22 @@ func tableTest(t *testing.T, testDevice *pb.Device, endState pb.AgentState, expe
 		// 	 gatewayNC.EXPECT().ApplyWireGuardConfig(mock.MatchedBy(matchExactPeers(t, expectedPeers))).Run(func(_ []wireguard.Peer) { gatewayGotDevice <- struct{}{} }).Return(nil)
 		// }
 
-		gatewayNC.EXPECT().ForwardRoutesV4(gw.GetRoutesIPv4()).Return(nil)
-		gatewayNC.EXPECT().ForwardRoutesV6(gw.GetRoutesIPv6()).Return(nil)
+		gatewayNC.EXPECT().ForwardRoutesV4(gw.GetRoutesIPv4()).Return(nil).Run(func(_ []string) { gatewaysWaitGroup[gw.GetName()].Done() })
+		gatewayNC.EXPECT().ForwardRoutesV6(gw.GetRoutesIPv6()).Return(nil).Run(func(_ []string) { gatewaysWaitGroup[gw.GetName()].Done() })
 
-		onlineGateways.Add(1)
+		wg.Add(1)
 		go func(t *testing.T, gw *pb.Gateway) {
 			t.Logf("starting gateway agent %q", gw.GetName())
-			err = StartGatewayAgent(t, ctx, gw.GetName(), apiserverListener, apiserverPeer, gatewayNC)
+			err = StartGatewayAgent(t, ctx, log.WithField("component", "gateway-agent"), gw.GetName(), apiserverListener, apiserverPeer, gatewayNC)
 
 			if grpc_status.Code(err) != codes.Canceled && grpc_status.Code(err) != codes.Unavailable {
 				t.Errorf("FAIL: got unexpected error from gateway agent: %v", err)
 			}
-			onlineGateways.Done()
+			wg.Done()
 		}(t, gw)
 	}
 
-	deviceAgentListener, stopDeviceAgent := serve(t, NewDeviceAgent(t, wg, ctx, helperListener, rc), wg)
+	deviceAgentListener, stopDeviceAgent := serve(t, NewDeviceAgent(t, wg, ctx, log.WithField("component", "device-agent"), helperListener, rc), wg)
 
 	deviceAgentConnection, err := dial(ctx, deviceAgentListener)
 	assert.NoError(t, err)
@@ -271,10 +280,11 @@ func tableTest(t *testing.T, testDevice *pb.Device, endState pb.AgentState, expe
 
 	stopStuff := func() {
 		t.Log("stopping stuff")
-		cancel()
+		for _, gwWg := range gatewaysWaitGroup {
+			gwWg.Wait()
+		}
 		stopAPIServer()
-		onlineGateways.Wait()
-		statusClient.CloseSend()
+		cancel()
 		stopHelper()
 		stopDeviceAgent()
 	}

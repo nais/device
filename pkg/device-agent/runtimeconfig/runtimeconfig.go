@@ -26,7 +26,7 @@ import (
 	"github.com/nais/device/pkg/device-agent/config"
 	"github.com/nais/device/pkg/device-agent/wireguard"
 	"github.com/nais/device/pkg/pb"
-	log "github.com/sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 )
 
 const (
@@ -64,10 +64,11 @@ type runtimeConfig struct {
 	privateKey   []byte
 	tokens       *auth.Tokens
 	tenants      []*pb.Tenant
+	log          *logrus.Entry
 }
 
 func (rc *runtimeConfig) DialAPIServer(ctx context.Context) (*grpc.ClientConn, error) {
-	log.Infof("Attempting gRPC connection to API server on %s...", rc.apiServerGRPCAddress())
+	rc.log.Infof("Attempting gRPC connection to API server on %s...", rc.apiServerGRPCAddress())
 	return grpc.DialContext(
 		ctx,
 		rc.apiServerGRPCAddress(),
@@ -123,10 +124,11 @@ func (rc *runtimeConfig) apiServerGRPCAddress() string {
 	return net.JoinHostPort(rc.enrollConfig.APIServerIP, "8099")
 }
 
-func New(cfg *config.Config) (*runtimeConfig, error) {
+func New(log *logrus.Entry, cfg *config.Config) (*runtimeConfig, error) {
 	rc := &runtimeConfig{
 		config:  cfg,
 		tenants: defaultTenants,
+		log:     log,
 	}
 
 	var err error
@@ -135,13 +137,13 @@ func New(cfg *config.Config) (*runtimeConfig, error) {
 		return nil, fmt.Errorf("ensuring private key: %w", err)
 	}
 
-	log.Infof("Runtime config initialized with public key: %s", wireguard.PublicKey(rc.privateKey))
+	rc.log.Infof("Runtime config initialized with public key: %s", wireguard.PublicKey(rc.privateKey))
 
 	return rc, nil
 }
 
 func (r *runtimeConfig) EnsureEnrolled(ctx context.Context, serial string) error {
-	log.Infoln("Enrolling device")
+	r.log.Infoln("Enrolling device")
 
 	var err error
 	if r.GetActiveTenant().AuthProvider == pb.AuthProvider_Google {
@@ -262,7 +264,7 @@ func findPeer(gateway []*pb.Gateway, s string) *pb.Gateway {
 func (r *runtimeConfig) getEnrollURL(ctx context.Context) (string, error) {
 	domain, err := r.getPartnerDomain()
 	if err != nil {
-		log.WithError(err).Error("could not determine partner domain, falling back to default")
+		r.log.WithError(err).Error("could not determine partner domain, falling back to default")
 		domain = "default"
 	}
 
@@ -307,7 +309,7 @@ func (r *runtimeConfig) getPartnerDomain() (string, error) {
 func (r *runtimeConfig) path() string {
 	domain, err := r.getPartnerDomain()
 	if err != nil {
-		log.WithError(err).Error("could not determine partner domain")
+		r.log.WithError(err).Error("could not determine partner domain")
 		domain = "unknown"
 	}
 

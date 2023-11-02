@@ -10,6 +10,7 @@ import (
 	"github.com/nais/device/pkg/gateway-agent/config"
 	"github.com/nais/device/pkg/pb"
 	"github.com/nais/device/pkg/wireguard"
+	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 )
@@ -58,7 +59,8 @@ func TestSyncFromStream(t *testing.T) {
 		netConf.On("ForwardRoutesV4", resp.GetRoutesIPv4()).Return(nil)
 		netConf.On("ForwardRoutesV6", resp.GetRoutesIPv6()).Return(nil)
 
-		err := gateway_agent.SyncFromStream(ctx, cfg.Name, cfg.APIServerPassword, staticPeers, client, netConf)
+		gwLogger := logrus.StandardLogger().WithField("component", "gateway-agent")
+		err := gateway_agent.SyncFromStream(ctx, gwLogger, cfg.Name, cfg.APIServerPassword, staticPeers, client, netConf)
 
 		assert.ErrorIs(t, err, knownError)
 	})

@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	log "github.com/sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
@@ -28,6 +28,7 @@ type DeviceAgentServer struct {
 	Config         *config.Config
 	rc             runtimeconfig.RuntimeConfig
 	notifier       notify.Notifier
+	log            *logrus.Entry
 }
 
 const maxLoginAttempts = 20
@@ -41,7 +42,7 @@ func (das *DeviceAgentServer) Login(ctx context.Context, request *pb.LoginReques
 			return &pb.LoginResponse{}, nil
 		}
 
-		log.Debugf("[attempt %d/%d] device agent server login: agent not in correct state (state=%+v). wait 200ms and retry", attempt, maxLoginAttempts, lastStatus)
+		das.log.Debugf("[attempt %d/%d] device agent server login: agent not in correct state (state=%+v). wait 200ms and retry", attempt, maxLoginAttempts, lastStatus)
 		time.Sleep(200 * time.Millisecond)
 	}
 
@@ -56,7 +57,7 @@ func (das *DeviceAgentServer) Logout(ctx context.Context, request *pb.LogoutRequ
 func (das *DeviceAgentServer) Status(request *pb.AgentStatusRequest, statusServer pb.DeviceAgent_StatusServer) error {
 	id := uuid.New()
 
-	log.Debug("grpc: client connection established to device helper")
+	das.log.Debug("grpc: client connection established to device helper")
 
 	agentStatusChan := make(chan *pb.AgentStatus, 1)
 	agentStatusChan <- das.AgentStatus
@@ -66,9 +67,9 @@ func (das *DeviceAgentServer) Status(request *pb.AgentStatusRequest, statusServe
 	das.lock.Unlock()
 
 	defer func() {
-		log.Debugf("grpc: client connection with device helper closed")
+		das.log.Debugf("grpc: client connection with device helper closed")
 		if !request.GetKeepConnectionOnComplete() {
-			log.Debugf("grpc: keepalive not requested, tearing down connections...")
+			das.log.Debugf("grpc: keepalive not requested, tearing down connections...")
 			das.stateChange <- pb.AgentState_Disconnecting
 		}
 		das.lock.Lock()
@@ -84,7 +85,7 @@ func (das *DeviceAgentServer) Status(request *pb.AgentStatusRequest, statusServe
 		case status := <-agentStatusChan:
 			err := statusServer.Send(status)
 			if err != nil {
-				log.Errorf("while sending agent status: %s", err)
+				das.log.Errorf("while sending agent status: %s", err)
 			}
 		}
 	}
@@ -106,7 +107,7 @@ func (das *DeviceAgentServer) UpdateAgentStatus(status *pb.AgentStatus) {
 
 func (das *DeviceAgentServer) SetAgentConfiguration(ctx context.Context, req *pb.SetAgentConfigurationRequest) (*pb.SetAgentConfigurationResponse, error) {
 	das.Config.AgentConfiguration = req.Config
-	das.Config.PersistAgentConfiguration()
+	das.Config.PersistAgentConfiguration(das.log)
 	das.stateChange <- pb.AgentState_AgentConfigurationChanged
 	return &pb.SetAgentConfigurationResponse{}, nil
 }
@@ -125,7 +126,7 @@ func (das *DeviceAgentServer) SetActiveTenant(ctx context.Context, req *pb.SetAc
 	}
 
 	das.stateChange <- pb.AgentState_Disconnecting
-	log.Infof("activated tenant: %s", req.Name)
+	das.log.Infof("activated tenant: %s", req.Name)
 	return &pb.SetActiveTenantResponse{}, nil
 }
 
@@ -133,7 +134,7 @@ func (das *DeviceAgentServer) Notifier() notify.Notifier {
 	return das.notifier
 }
 
-func NewServer(helper pb.DeviceHelperClient, cfg *config.Config, rc runtimeconfig.RuntimeConfig, notifier notify.Notifier) *DeviceAgentServer {
+func NewServer(log *logrus.Entry, helper pb.DeviceHelperClient, cfg *config.Config, rc runtimeconfig.RuntimeConfig, notifier notify.Notifier) *DeviceAgentServer {
 	return &DeviceAgentServer{
 		DeviceHelper:   helper,
 		AgentStatus:    &pb.AgentStatus{ConnectionState: pb.AgentState_Disconnected},
@@ -142,5 +143,6 @@ func NewServer(helper pb.DeviceHelperClient, cfg *config.Config, rc runtimeconfi
 		Config:         cfg,
 		rc:             rc,
 		notifier:       notifier,
+		log:            log,
 	}
 }

@@ -2,6 +2,7 @@ package config
 
 import (
 	"errors"
+	"fmt"
 	"os"
 	"path/filepath"
 
@@ -10,7 +11,7 @@ import (
 	config2 "github.com/nais/device/pkg/helper/config"
 	"github.com/nais/device/pkg/pb"
 
-	log "github.com/sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/endpoints"
 
@@ -46,13 +47,13 @@ func (c *Config) SetDefaults() {
 	c.WireGuardConfigPath = filepath.Join(c.ConfigDir, c.Interface+".conf")
 }
 
-func DefaultConfig() Config {
+func DefaultConfig() (*Config, error) {
 	userConfigDir, err := config.UserConfigDir()
 	if err != nil {
-		log.Fatal("Getting user config dir: %w", err)
+		return nil, fmt.Errorf("getting user config dir: %w", err)
 	}
 
-	return Config{
+	return &Config{
 		ConfigDir:                userConfigDir,
 		LogLevel:                 "info",
 		GrpcAddress:              filepath.Join(userConfigDir, "agent.sock"),
@@ -70,7 +71,7 @@ func DefaultConfig() Config {
 			Endpoint:    endpoints.Google,
 			RedirectURL: "http://localhost:PORT/google",
 		},
-	}
+	}, nil
 }
 
 func (c *Config) OAuth2Config(provider pb.AuthProvider) oauth2.Config {
@@ -80,7 +81,7 @@ func (c *Config) OAuth2Config(provider pb.AuthProvider) oauth2.Config {
 	return c.AzureOAuth2Config
 }
 
-func (c *Config) PersistAgentConfiguration() {
+func (c *Config) PersistAgentConfiguration(log *logrus.Entry) {
 	agentConfigPath := filepath.Join(c.ConfigDir, File)
 
 	out, err := protojson.MarshalOptions{Indent: "  "}.Marshal(c.AgentConfiguration)
@@ -95,7 +96,7 @@ func (c *Config) PersistAgentConfiguration() {
 	}
 }
 
-func (c *Config) PopulateAgentConfiguration() {
+func (c *Config) PopulateAgentConfiguration(log *logrus.Entry) {
 	agentConfigPath := filepath.Join(c.ConfigDir, File)
 	in, err := os.ReadFile(agentConfigPath)
 	if err != nil {
@@ -113,7 +114,7 @@ func (c *Config) PopulateAgentConfiguration() {
 	}
 
 	c.AgentConfiguration = tempCfg
-	c.PersistAgentConfiguration()
+	c.PersistAgentConfiguration(log)
 
 	log.Debugf("read agent-config: %v", c.AgentConfiguration)
 }

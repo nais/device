@@ -29,7 +29,7 @@ import (
 	"github.com/nais/device/pkg/version"
 	wg "github.com/nais/device/pkg/wireguard"
 	kolidepb "github.com/nais/kolide-event-handler/pkg/pb"
-	log "github.com/sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
 )
 
@@ -44,9 +44,9 @@ func main() {
 	cfg := config.DefaultConfig()
 
 	// sets up default logger
-	logger.Setup(cfg.LogLevel)
+	log := logger.Setup(cfg.LogLevel)
 
-	err := run(cfg)
+	err := run(log.WithField("component", "main"), cfg)
 	if err != nil {
 		if errors.Is(err, errRequiredArgNotSet) {
 			log.Error(err)
@@ -60,7 +60,7 @@ func main() {
 	}
 }
 
-func run(cfg config.Config) error {
+func run(log *logrus.Entry, cfg config.Config) error {
 	var authenticator auth.Authenticator
 	var adminAuthenticator auth.UsernamePasswordAuthenticator
 	var gatewayAuthenticator auth.UsernamePasswordAuthenticator
@@ -147,7 +147,7 @@ func run(cfg config.Config) error {
 		}
 		cfg.WireGuardPrivateKey = key
 
-		netConf, err := wg.NewConfigurer(cfg.WireGuardConfigPath, cfg.WireGuardIPv4Prefix, cfg.WireGuardIPv6Prefix, string(cfg.WireGuardPrivateKey.Private()), "wg0", 51820, nil, nil, nil)
+		netConf, err := wg.NewConfigurer(log.WithField("component", "network-configurer"), cfg.WireGuardConfigPath, cfg.WireGuardIPv4Prefix, cfg.WireGuardIPv6Prefix, string(cfg.WireGuardPrivateKey.Private()), "wg0", 51820, nil, nil, nil)
 		if err != nil {
 			return fmt.Errorf("create WireGuard configurer: %w", err)
 		}
@@ -157,7 +157,7 @@ func run(cfg config.Config) error {
 			return fmt.Errorf("setup interface: %w", err)
 		}
 
-		go SyncLoop(ctx, db, netConf, cfg.StaticPeers())
+		go SyncLoop(ctx, log, db, netConf, cfg.StaticPeers())
 
 		log.Infof("WireGuard successfully configured.")
 
@@ -174,7 +174,13 @@ func run(cfg config.Config) error {
 
 		go func() {
 			log.Infof("Kolide event handler stream starting on %s", cfg.KolideEventHandlerAddress)
-			err := kolide.DeviceEventStreamer(ctx, cfg.KolideEventHandlerAddress, cfg.KolideEventHandlerToken, cfg.KolideEventHandlerSecure, deviceUpdates)
+			err := kolide.DeviceEventStreamer(ctx,
+				log.WithField("component", "kolide-event-handler"),
+				cfg.KolideEventHandlerAddress,
+				cfg.KolideEventHandlerToken,
+				cfg.KolideEventHandlerSecure,
+				deviceUpdates,
+			)
 			if err != nil {
 				log.Errorf("Kolide event streamer finished: %s", err)
 			}
@@ -197,21 +203,15 @@ func run(cfg config.Config) error {
 		}()
 	}
 
-	jitaClient := jita.New(cfg.JitaUsername, cfg.JitaPassword, cfg.JitaUrl)
+	jitaClient := jita.New(log.WithField("component", "jita"), cfg.JitaUsername, cfg.JitaPassword, cfg.JitaUrl)
 	if cfg.JitaEnabled {
-		go SyncJitaContinuosly(ctx, jitaClient)
+		go SyncJitaContinuosly(ctx, log, jitaClient)
 	}
 
 	switch cfg.GatewayConfigurer {
 	case "bucket":
 		buck := bucket.NewClient(cfg.GatewayConfigBucketName, cfg.GatewayConfigBucketObjectName)
-
-		updater := gatewayconfigurer.GatewayConfigurer{
-			DB:           db,
-			Bucket:       buck,
-			SyncInterval: gatewayConfigSyncInterval,
-		}
-
+		updater := gatewayconfigurer.NewGatewayConfigurer(log.WithField("component", "gatewayconfigurer"), db, buck, gatewayConfigSyncInterval)
 		go updater.SyncContinuously(ctx)
 	case "metadata":
 		updater := gatewayconfigurer.NewGoogleMetadata(db, log.WithField("component", "gatewayconfigurer"))
@@ -255,6 +255,7 @@ func run(cfg config.Config) error {
 
 	grpcHandler := api.NewGRPCServer(
 		ctx,
+		log,
 		db,
 		authenticator,
 		adminAuthenticator,
@@ -389,7 +390,7 @@ func readd(ctx context.Context, db database.APIServer) error {
 	return nil
 }
 
-func SyncLoop(ctx context.Context, db database.APIServer, netConf wg.NetworkConfigurer, staticPeers []*pb.Gateway) {
+func SyncLoop(ctx context.Context, log *logrus.Entry, db database.APIServer, netConf wg.NetworkConfigurer, staticPeers []*pb.Gateway) {
 	log.Debugf("Starting config sync")
 
 	sync := func(ctx context.Context) error {
@@ -426,7 +427,7 @@ func SyncLoop(ctx context.Context, db database.APIServer, netConf wg.NetworkConf
 	}
 }
 
-func SyncJitaContinuosly(ctx context.Context, j jita.Client) {
+func SyncJitaContinuosly(ctx context.Context, log *logrus.Entry, j jita.Client) {
 	ticker := time.NewTicker(10 * time.Second)
 	for {
 		select {

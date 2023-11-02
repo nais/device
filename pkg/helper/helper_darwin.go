@@ -7,8 +7,6 @@ import (
 	"strings"
 
 	"github.com/nais/device/pkg/pb"
-
-	log "github.com/sirupsen/logrus"
 )
 
 const (
@@ -51,11 +49,9 @@ func (c *DarwinConfigurator) SetupRoutes(ctx context.Context, gateways []*pb.Gat
 			cmd := exec.CommandContext(ctx, "route", "-q", "-n", "add", family, cidr, "-interface", c.helperConfig.Interface)
 			output, err := cmd.CombinedOutput()
 			if err != nil {
-				log.Errorf("%v: %v", cmd, string(output))
-				return fmt.Errorf("executing %v: %w", cmd, err)
+				return fmt.Errorf("executing %v, err: %w, stderr: %s", cmd, err, string(output))
 			}
 
-			log.Debugf("%v: %v", cmd, string(output))
 			return nil
 		}
 
@@ -106,8 +102,7 @@ func (c *DarwinConfigurator) TeardownInterface(ctx context.Context) error {
 	cmd := exec.CommandContext(ctx, "pkill", "-f", fmt.Sprintf("%s %s", wireGuardGoBinary, c.helperConfig.Interface))
 	out, err := cmd.CombinedOutput()
 	if err != nil {
-		log.Errorf("teardown output: %v", string(out))
-		return err
+		return fmt.Errorf("teardown failed: %w, stderr: %s", err, string(out))
 	}
 
 	return nil

@@ -15,7 +15,7 @@ import (
 
 	"github.com/nais/device/pkg/helper/serial"
 	wireguard2 "github.com/nais/device/pkg/wireguard"
-	log "github.com/sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
@@ -33,39 +33,48 @@ type OSConfigurator interface {
 
 type DeviceHelperServer struct {
 	pb.UnimplementedDeviceHelperServer
-	Config         Config
-	OSConfigurator OSConfigurator
-	Wireguard      *wireguard2.Config
+	Config               Config
+	OSConfigurator       OSConfigurator
+	wireguardConfigCache *wireguard2.Config
+	log                  *logrus.Entry
+}
+
+func NewDeviceHelperServer(log *logrus.Entry, config Config, osConfigurator OSConfigurator) *DeviceHelperServer {
+	return &DeviceHelperServer{
+		log:            log,
+		Config:         config,
+		OSConfigurator: osConfigurator,
+	}
 }
 
 func (dhs *DeviceHelperServer) Teardown(ctx context.Context, req *pb.TeardownRequest) (*pb.TeardownResponse, error) {
-	log.Infof("Removing network interface '%s' and all routes", dhs.Config.Interface)
+	dhs.log.Infof("Removing network interface '%s' and all routes", dhs.Config.Interface)
 	err := dhs.OSConfigurator.TeardownInterface(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("tearing down interface: %v", err)
 	}
 
-	log.Infof("Flushing WireGuard configuration from disk")
+	dhs.log.Infof("Flushing WireGuard configuration from disk")
 	err = os.Remove(dhs.Config.WireGuardConfigPath)
 	if err != nil {
 		if !os.IsNotExist(err) {
 			return nil, fmt.Errorf("flush WireGuard configuration from disk: %v", err)
 		}
-		log.Infof("WireGuard configuration file does not exist on disk")
+		dhs.log.Infof("WireGuard configuration file does not exist on disk")
 	}
 
 	return &pb.TeardownResponse{}, nil
 }
 
 func (dhs *DeviceHelperServer) Configure(ctx context.Context, cfg *pb.Configuration) (*pb.ConfigureResponse, error) {
-	log.Infof("New configuration received from device-agent")
+	dhs.log.Infof("New configuration received from device-agent")
 
 	err := dhs.writeConfigFile(cfg)
 	if err != nil {
 		return nil, status.Errorf(codes.ResourceExhausted, "write WireGuard configuration: %s", err)
 	}
 
-	log.Infof("Wrote WireGuard config to disk")
+	dhs.log.Infof("Wrote WireGuard config to disk")
 
 	err = dhs.OSConfigurator.SetupInterface(ctx, cfg)
 	if err != nil {
@@ -77,8 +86,8 @@ func (dhs *DeviceHelperServer) Configure(ctx context.Context, cfg *pb.Configurat
 		loopErr = dhs.OSConfigurator.SyncConf(ctx, cfg)
 		if loopErr != nil {
 			backoff := time.Duration(attempt) * time.Second
-			log.Errorf("synchronize WireGuard configuration: %s", loopErr)
-			log.Infof("attempt %d at configuring failed, sleeping %v before retrying", attempt+1, backoff)
+			dhs.log.Errorf("synchronize WireGuard configuration: %s", loopErr)
+			dhs.log.Infof("attempt %d at configuring failed, sleeping %v before retrying", attempt+1, backoff)
 			time.Sleep(backoff)
 		}
 	}

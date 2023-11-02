@@ -6,12 +6,12 @@ import (
 
 	"github.com/nais/device/pkg/pb"
 	"github.com/nais/device/pkg/wireguard"
-	log "github.com/sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 )
 
 type ErrGRPCConnection error
 
-func SyncFromStream(ctx context.Context, name, password string, staticPeers []wireguard.Peer, apiserverClient pb.APIServerClient, netConf wireguard.NetworkConfigurer) error {
+func SyncFromStream(ctx context.Context, log *logrus.Entry, name, password string, staticPeers []wireguard.Peer, apiserverClient pb.APIServerClient, netConf wireguard.NetworkConfigurer) error {
 	stream, err := apiserverClient.GetGatewayConfiguration(ctx, &pb.GetGatewayConfigurationRequest{
 		Gateway:  name,
 		Password: password,

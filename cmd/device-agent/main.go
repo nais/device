@@ -9,7 +9,7 @@ import (
 	"syscall"
 	"time"
 
-	log "github.com/sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 	flag "github.com/spf13/pflag"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
@@ -25,18 +25,7 @@ import (
 	"github.com/nais/device/pkg/version"
 )
 
-var cfg = config.DefaultConfig()
-
-func init() {
-	flag.StringVar(&cfg.ConfigDir, "config-dir", cfg.ConfigDir, "path to agent config directory")
-	flag.StringVar(&cfg.Interface, "interface", cfg.Interface, "name of tunnel interface")
-	flag.StringVar(&cfg.LogLevel, "log-level", cfg.LogLevel, "which log level to output")
-	flag.StringVar(&cfg.GrpcAddress, "grpc-address", cfg.GrpcAddress, "unix socket for gRPC server")
-	flag.StringVar(&cfg.DeviceAgentHelperAddress, "device-agent-helper-address", cfg.DeviceAgentHelperAddress, "device-agent-helper unix socket")
-	flag.StringVar(&cfg.GoogleAuthServerAddress, "google-auth-server-address", cfg.GoogleAuthServerAddress, "Google auth-server address")
-}
-
-func handleSignals(cancel context.CancelFunc) {
+func handleSignals(log *logrus.Entry, cancel context.CancelFunc) {
 	signals := make(chan os.Signal, 1)
 	signal.Notify(signals, syscall.SIGINT, syscall.SIGTERM)
 
@@ -53,22 +42,35 @@ func handleSignals(cancel context.CancelFunc) {
 }
 
 func main() {
+	cfg, err := config.DefaultConfig()
+	if err != nil {
+		logrus.StandardLogger().Errorf("unable to read default configuration: %v", err)
+		os.Exit(1)
+	}
+
+	flag.StringVar(&cfg.ConfigDir, "config-dir", cfg.ConfigDir, "path to agent config directory")
+	flag.StringVar(&cfg.Interface, "interface", cfg.Interface, "name of tunnel interface")
+	flag.StringVar(&cfg.LogLevel, "log-level", cfg.LogLevel, "which log level to output")
+	flag.StringVar(&cfg.GrpcAddress, "grpc-address", cfg.GrpcAddress, "unix socket for gRPC server")
+	flag.StringVar(&cfg.DeviceAgentHelperAddress, "device-agent-helper-address", cfg.DeviceAgentHelperAddress, "device-agent-helper unix socket")
+	flag.StringVar(&cfg.GoogleAuthServerAddress, "google-auth-server-address", cfg.GoogleAuthServerAddress, "Google auth-server address")
 	flag.Parse()
+
 	cfg.SetDefaults()
 
-	programContext, programCancel := context.WithCancel(context.Background())
-	handleSignals(programCancel)
-
 	logDir := filepath.Join(cfg.ConfigDir, logger.LogDir)
-	logger.SetupLogger(cfg.LogLevel, logDir, logger.Agent)
+	log := logger.SetupLogger(cfg.LogLevel, logDir, logger.Agent).WithField("component", "main")
 
-	cfg.PopulateAgentConfiguration()
+	programContext, programCancel := context.WithCancel(context.Background())
+	handleSignals(log, programCancel)
+
+	cfg.PopulateAgentConfiguration(log)
 
 	log.Infof("naisdevice-agent %s starting up", version.Version)
 	log.Infof("configuration: %+v", cfg)
 
-	notifier := notify.New()
-	err := run(programContext, &cfg, notifier)
+	notifier := notify.New(log)
+	err = run(programContext, log, cfg, notifier)
 	if err != nil {
 		notifier.Errorf(err.Error())
 		log.Errorf("naisdevice-agent terminated with error.")
@@ -78,12 +80,12 @@ func main() {
 	log.Infof("naisdevice-agent shutting down.")
 }
 
-func run(ctx context.Context, cfg *config.Config, notifier notify.Notifier) error {
+func run(ctx context.Context, log *logrus.Entry, cfg *config.Config, notifier notify.Notifier) error {
 	if err := filesystem.EnsurePrerequisites(cfg); err != nil {
 		return fmt.Errorf("missing prerequisites: %s", err)
 	}
 
-	rc, err := runtimeconfig.New(cfg)
+	rc, err := runtimeconfig.New(log, cfg)
 	if err != nil {
 		log.Errorf("instantiate runtime config: %v", err)
 		return fmt.Errorf("unable to start naisdevice-agent, check logs for details")
@@ -115,7 +117,7 @@ func run(ctx context.Context, cfg *config.Config, notifier notify.Notifier) erro
 	log.Infof("accepting network connections on unix socket %s", cfg.GrpcAddress)
 
 	grpcServer := grpc.NewServer()
-	das := deviceagent.NewServer(client, cfg, rc, notifier)
+	das := deviceagent.NewServer(log, client, cfg, rc, notifier)
 	pb.RegisterDeviceAgentServer(grpcServer, das)
 
 	go func() {

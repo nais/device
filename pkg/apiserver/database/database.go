@@ -9,7 +9,6 @@ import (
 	"sync"
 	"time"
 
-	log "github.com/sirupsen/logrus"
 	"google.golang.org/protobuf/types/known/timestamppb"
 
 	"github.com/nais/device/pkg/apiserver/ip"
@@ -544,7 +543,6 @@ func timeToString(t time.Time) string {
 func stringToTime(s string) time.Time {
 	t, err := time.Parse(time.RFC3339Nano, s)
 	if err != nil {
-		log.WithError(err).Warnf("format device LastUpdated time: %s", s)
 		return time.Time{}
 	}
 	return t

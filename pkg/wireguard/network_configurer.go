@@ -9,7 +9,7 @@ import (
 	"time"
 
 	"github.com/google/gopacket/routing"
-	log "github.com/sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 )
 
 type NetworkConfigurer interface {
@@ -41,6 +41,8 @@ type networkConfigurer struct {
 
 	v4 *subNetworkConfigurer
 	v6 *subNetworkConfigurer
+
+	log *logrus.Entry
 }
 
 func detectDefaultRoute(router routing.Router, ip *netip.Prefix) (*net.Interface, net.IP, error) {
@@ -69,7 +71,7 @@ func detectDefaultRoute(router routing.Router, ip *netip.Prefix) (*net.Interface
 	return iface, src, nil
 }
 
-func NewConfigurer(configPath string, ipv4 *netip.Prefix, ipv6 *netip.Prefix, privateKey, wireguardInterface string, listenPort int, iptablesV4, iptablesV6 IPTables, router routing.Router) (NetworkConfigurer, error) {
+func NewConfigurer(log *logrus.Entry, configPath string, ipv4 *netip.Prefix, ipv6 *netip.Prefix, privateKey, wireguardInterface string, listenPort int, iptablesV4, iptablesV6 IPTables, router routing.Router) (NetworkConfigurer, error) {
 	nc := &networkConfigurer{
 		config: &Config{
 			PrivateKey: privateKey,
@@ -113,7 +115,7 @@ func (nc *networkConfigurer) SetupInterface() error {
 	}
 
 	if err := exec.Command("ip", "link", "del", nc.wireguardInterface).Run(); err != nil {
-		log.Infof("pre-deleting WireGuard interface (ok if this fails): %v", err)
+		nc.log.Infof("pre-deleting WireGuard interface (ok if this fails): %v", err)
 	}
 
 	// sysctl net.ipv4.ip_forward
@@ -124,7 +126,7 @@ func (nc *networkConfigurer) SetupInterface() error {
 			if out, err := cmd.CombinedOutput(); err != nil {
 				return fmt.Errorf("running %v: %w: %v", cmd, err, string(out))
 			} else {
-				log.Debugf("%v: %v\n", cmd, string(out))
+				nc.log.Debugf("%v: %v\n", cmd, string(out))
 			}
 		}
 		return nil
@@ -171,14 +173,14 @@ func (nc *networkConfigurer) ApplyWireGuardConfig(peers []Peer) error {
 
 	time.Sleep(1 * time.Second) // TODO: switch to configFile.Sync() commented out above
 	cmd := exec.Command("wg", "syncconf", nc.wireguardInterface, nc.configPath)
-	log.Debugln(cmd.String())
+	nc.log.Debugln(cmd.String())
 
 	out, err := cmd.CombinedOutput()
 	if err != nil {
 		return fmt.Errorf("sync WireGuard config: %w: out: %v", err, string(out))
 	}
 
-	log.Debugf("Actuated WireGuard config at %v", nc.configPath)
+	nc.log.Debugf("Actuated WireGuard config at %v", nc.configPath)
 
 	return nil
 }

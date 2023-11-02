@@ -1,46 +1,48 @@
 package wireguard
 
 import (
-	log "github.com/sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 )
 
-type noopConfigurer struct{}
+type noopConfigurer struct {
+	log *logrus.Entry
+}
 
-func NewNoOpConfigurer() NetworkConfigurer {
-	return &noopConfigurer{}
+func NewNoOpConfigurer(log *logrus.Entry) NetworkConfigurer {
+	return &noopConfigurer{log: log}
 }
 
 func (n *noopConfigurer) ApplyWireGuardConfig(peers []Peer) error {
-	log.Debugf("Applying WireGuard configuration with %d peers", len(peers))
+	n.log.Debugf("Applying WireGuard configuration with %d peers", len(peers))
 	for _, peer := range peers {
-		log.Debugf("%#v", peer)
+		n.log.Debugf("%#v", peer)
 	}
 	return nil
 }
 
 func (n *noopConfigurer) ForwardRoutesV4(routes []string) error {
-	log.Debugf("Applying %d forwarding routes:", len(routes))
+	n.log.Debugf("Applying %d forwarding routes:", len(routes))
 	for i, route := range routes {
-		log.Debugf("(%02d) %s", i+1, route)
+		n.log.Debugf("(%02d) %s", i+1, route)
 	}
 	return nil
 }
 
 func (n *noopConfigurer) ForwardRoutesV6(routes []string) error {
-	log.Debugf("Applying %d forwarding routes:", len(routes))
+	n.log.Debugf("Applying %d forwarding routes:", len(routes))
 	for i, route := range routes {
-		log.Debugf("(%02d) %s", i+1, route)
+		n.log.Debugf("(%02d) %s", i+1, route)
 	}
 	return nil
 }
 
 func (n *noopConfigurer) SetupInterface() error {
-	log.Debugf("SetupInterface()")
+	n.log.Debugf("SetupInterface()")
 	return nil
 }
 
 func (n *noopConfigurer) SetupIPTables() error {
-	log.Debugf("SetupIPTables()")
+	n.log.Debugf("SetupIPTables()")
 	return nil
 }
 

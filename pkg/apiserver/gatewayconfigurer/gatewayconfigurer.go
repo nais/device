@@ -10,14 +10,24 @@ import (
 	"github.com/nais/device/pkg/apiserver/database"
 	"github.com/nais/device/pkg/ioconvenience"
 	"github.com/nais/device/pkg/pb"
-	log "github.com/sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 )
 
 type GatewayConfigurer struct {
-	DB           database.APIServer
-	Bucket       bucket.Client
-	SyncInterval time.Duration
+	db           database.APIServer
+	bucket       bucket.Client
+	syncInterval time.Duration
 	lastUpdated  time.Time
+	log          *logrus.Entry
+}
+
+func NewGatewayConfigurer(log *logrus.Entry, db database.APIServer, bucket bucket.Client, syncInterval time.Duration) *GatewayConfigurer {
+	return &GatewayConfigurer{
+		db:           db,
+		bucket:       bucket,
+		syncInterval: syncInterval,
+		log:          log,
+	}
 }
 
 type Route struct {
@@ -32,13 +42,13 @@ type GatewayConfig struct {
 }
 
 func (g *GatewayConfigurer) SyncContinuously(ctx context.Context) {
-	log.Infof("Syncing gateway-config from bucket %q every %q", g.Bucket, g.SyncInterval)
+	g.log.Infof("Syncing gateway-config from bucket %q every %q", g.bucket, g.syncInterval)
 
 	for {
 		select {
-		case <-time.After(g.SyncInterval):
+		case <-time.After(g.syncInterval):
 			if err := g.SyncConfig(ctx); err != nil {
-				log.Errorf("Synchronizing gateway configuration: %v", err)
+				g.log.Errorf("Synchronizing gateway configuration: %v", err)
 			}
 		case <-ctx.Done():
 			return
@@ -47,11 +57,11 @@ func (g *GatewayConfigurer) SyncContinuously(ctx context.Context) {
 }
 
 func (g *GatewayConfigurer) SyncConfig(ctx context.Context) error {
-	object, err := g.Bucket.Open(ctx)
+	object, err := g.bucket.Open(ctx)
 	if err != nil {
 		return fmt.Errorf("open bucket: %w", err)
 	}
-	defer ioconvenience.CloseWithLog(object)
+	defer ioconvenience.CloseWithLog(g.log, object)
 
 	// only update configuration if changed server-side
 	lastUpdated := object.LastUpdated()
@@ -59,7 +69,7 @@ func (g *GatewayConfigurer) SyncConfig(ctx context.Context) error {
 		return nil
 	}
 
-	log.Info("Syncing gateway configuration from bucket")
+	g.log.Info("Syncing gateway configuration from bucket")
 	var gatewayConfigs map[string]GatewayConfig
 	if err := json.NewDecoder(object.Reader()).Decode(&gatewayConfigs); err != nil {
 		return fmt.Errorf("unmarshaling gateway config json: %v", err)
@@ -74,7 +84,7 @@ func (g *GatewayConfigurer) SyncConfig(ctx context.Context) error {
 			RoutesIPv6:               ToCIDRStringSlice(gatewayConfig.RoutesIPv6),
 		}
 
-		err = g.DB.UpdateGatewayDynamicFields(ctx, gw)
+		err = g.db.UpdateGatewayDynamicFields(ctx, gw)
 		if err != nil {
 			return fmt.Errorf("updating gateway: %s with routes: %s and accessGroupIds: %s: %w", gatewayName, gatewayConfig.Routes, gatewayConfig.AccessGroupIds, err)
 		}

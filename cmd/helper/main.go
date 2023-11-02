@@ -8,7 +8,6 @@ import (
 	"syscall"
 	"time"
 
-	log "github.com/sirupsen/logrus"
 	flag "github.com/spf13/pflag"
 	"google.golang.org/grpc"
 
@@ -33,6 +32,8 @@ func init() {
 }
 
 func main() {
+	log := logger.SetupLogger(cfg.LogLevel, config.LogDir, logger.Helper).WithField("component", "main")
+
 	programContext, cancel := context.WithCancel(context.Background())
 	// for windows service control, noop on unix
 	err := helper.StartService(programContext, cancel)
@@ -41,8 +42,6 @@ func main() {
 	}
 
 	osConfigurator := helper.New(cfg)
-
-	logger.SetupLogger(cfg.LogLevel, config.LogDir, logger.Helper)
 
 	log.Infof("naisdevice-helper %s starting up", version.Version)
 	log.Infof("configuration: %+v", cfg)

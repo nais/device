@@ -25,7 +25,7 @@ import (
 
 	"github.com/coreos/go-iptables/iptables"
 	"github.com/kelseyhightower/envconfig"
-	log "github.com/sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 
 	"github.com/nais/device/pkg/version"
 )
@@ -40,13 +40,14 @@ const (
 
 func main() {
 	cfg := config.DefaultConfig()
-	err := run(cfg)
+	log := logger.Setup(cfg.LogLevel).WithField("component", "main")
+	err := run(log, cfg)
 	if err != nil {
 		log.Fatalf("Running gateway-agent: %s", err)
 	}
 }
 
-func run(cfg config.Config) error {
+func run(log *logrus.Entry, cfg config.Config) error {
 	var err error
 
 	ctx, cancel := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
@@ -112,7 +113,7 @@ func run(cfg config.Config) error {
 	}
 
 	gateway_agent.InitializeMetrics(cfg.Name, version.Version)
-	go gateway_agent.Serve(cfg.PrometheusAddr)
+	go gateway_agent.Serve(log.WithField("component", "prometheus"), cfg.PrometheusAddr)
 
 	var netConf wireguard.NetworkConfigurer
 	if cfg.EnableRouting {
@@ -134,12 +135,14 @@ func run(cfg config.Config) error {
 		if err != nil {
 			return fmt.Errorf("setup routing: %w", err)
 		}
-		netConf, err = wireguard.NewConfigurer(cfg.WireGuardConfigPath, cfg.WireGuardIPv4, cfg.WireGuardIPv6, cfg.PrivateKey, wireguardInterface, wireguardListenPort, iptablesV4, iptablesV6, router)
+		netConf, err = wireguard.NewConfigurer(
+			log.WithField("component", "network-configurer"),
+			cfg.WireGuardConfigPath, cfg.WireGuardIPv4, cfg.WireGuardIPv6, cfg.PrivateKey, wireguardInterface, wireguardListenPort, iptablesV4, iptablesV6, router)
 		if err != nil {
 			return fmt.Errorf("setup wireguard configurer: %w", err)
 		}
 	} else {
-		netConf = wireguard.NewNoOpConfigurer()
+		netConf = wireguard.NewNoOpConfigurer(log.WithField("component", "network-configurer"))
 	}
 
 	err = netConf.SetupInterface()
@@ -172,7 +175,7 @@ func run(cfg config.Config) error {
 	apiserverClient := pb.NewAPIServerClient(apiserver)
 
 	for attempt := 0; attempt < maxReconnectAttempts; attempt++ {
-		err := gateway_agent.SyncFromStream(ctx, cfg.Name, cfg.APIServerPassword, staticPeers, apiserverClient, netConf)
+		err := gateway_agent.SyncFromStream(ctx, log, cfg.Name, cfg.APIServerPassword, staticPeers, apiserverClient, netConf)
 		if err != nil {
 			code := status.Code(err)
 			if code == codes.Unauthenticated {

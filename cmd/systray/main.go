@@ -10,7 +10,7 @@ import (
 	"syscall"
 	"time"
 
-	log "github.com/sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 	flag "github.com/spf13/pflag"
 
 	"github.com/nais/device/pkg/config"
@@ -20,7 +20,7 @@ import (
 	"github.com/nais/device/pkg/version"
 )
 
-func handleSignals(cancel context.CancelFunc) {
+func handleSignals(log *logrus.Entry, cancel context.CancelFunc) {
 	signals := make(chan os.Signal, 1)
 	signal.Notify(signals, syscall.SIGINT, syscall.SIGTERM)
 
@@ -38,14 +38,15 @@ func handleSignals(cancel context.CancelFunc) {
 }
 
 func main() {
+	tempLogger := logrus.StandardLogger().WithField("component", "main")
 	programContext, cancel := context.WithCancel(context.Background())
-	handleSignals(cancel)
+	handleSignals(tempLogger, cancel)
 	defer cancel()
 
-	notifier := notify.New()
+	tempNotifier := notify.New(tempLogger)
 	configDir, err := config.UserConfigDir()
 	if err != nil {
-		notifier.Errorf("start naisdevice-systray: unable to find configuration directory: %v", err)
+		tempNotifier.Errorf("start naisdevice-systray: unable to find configuration directory: %v", err)
 		os.Exit(1)
 	}
 
@@ -53,7 +54,7 @@ func main() {
 	cfg := &systray.Config{
 		GrpcAddress:        filepath.Join(configDir, "agent.sock"),
 		ConfigDir:          configDir,
-		LogLevel:           log.InfoLevel.String(),
+		LogLevel:           logrus.InfoLevel.String(),
 		BlackAndWhiteIcons: false,
 	}
 	cfg.Populate()
@@ -64,7 +65,7 @@ func main() {
 	flag.Parse()
 
 	logDir := filepath.Join(cfg.ConfigDir, logger.LogDir)
-	logger.SetupLogger(cfg.LogLevel, logDir, logger.Systray)
+	log := logger.SetupLogger(cfg.LogLevel, logDir, logger.Systray).WithField("component", "main")
 
 	conn, err := net.Dial("unix", cfg.GrpcAddress)
 	if err != nil {
@@ -84,7 +85,7 @@ func main() {
 	log.Infof("naisdevice-systray %s starting up", version.Version)
 	log.Infof("configuration: %+v", cfg)
 
-	systray.Spawn(programContext, *cfg, notifier)
+	systray.Spawn(programContext, log.WithField("component", "systray"), *cfg, notify.New(log))
 	cancel()
 	log.Info("naisdevice-systray shutting down")
 }

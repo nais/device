@@ -7,8 +7,6 @@ import (
 	"strings"
 
 	"github.com/nais/device/pkg/pb"
-
-	log "github.com/sirupsen/logrus"
 )
 
 const (
@@ -58,14 +56,11 @@ func (c *LinuxConfigurator) SetupRoutes(ctx context.Context, gateways []*pb.Gate
 			cmd := exec.CommandContext(ctx, "ip", "route", "add", cidr, "dev", c.helperConfig.Interface)
 			output, err := cmd.CombinedOutput()
 			if exitErr, ok := err.(*exec.ExitError); ok {
-				log.Debugf("Command: %v, exit code: %v, output: %v", cmd, exitErr.ExitCode(), string(output))
 				if exitErr.ExitCode() == 2 && strings.Contains(string(output), "File exists") {
-					log.Debug("Assuming route already exists")
 					continue
 				}
-				return fmt.Errorf("executing %v: %w", cmd, err)
+				return fmt.Errorf("executing %v: %w, stderr: %s", cmd, exitErr, string(output))
 			}
-			log.Debugf("%v: %v", cmd, string(output))
 		}
 	}
 
@@ -95,8 +90,7 @@ func (c *LinuxConfigurator) TeardownInterface(ctx context.Context) error {
 	cmd := exec.CommandContext(ctx, "ip", "link", "del", c.helperConfig.Interface)
 	out, err := cmd.CombinedOutput()
 	if err != nil {
-		log.Errorf("teardown output: %v", string(out))
-		return err
+		return fmt.Errorf("teardown failed: %w, stderr: %s", err, string(out))
 	}
 
 	return nil

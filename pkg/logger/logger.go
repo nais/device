@@ -6,7 +6,7 @@ import (
 	"path/filepath"
 	"time"
 
-	log "github.com/sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 	easy "github.com/t-tomalak/logrus-easy-formatter"
 )
 
@@ -20,7 +20,9 @@ const (
 	logfileMaxAge = time.Hour * 24 * 7
 )
 
-func SetupLogger(level, logDir, prefix string) {
+func SetupLogger(level, logDir, prefix string) *logrus.Logger {
+	log := logrus.New()
+
 	err := os.MkdirAll(logDir, 0o755)
 	if err != nil {
 		log.Fatalf("Creating log dir: %v", err)
@@ -46,25 +48,29 @@ func SetupLogger(level, logDir, prefix string) {
 	mw := io.MultiWriter(logFile, os.Stdout)
 	log.SetOutput(mw)
 
-	loglevel, err := log.ParseLevel(level)
+	loglevel, err := logrus.ParseLevel(level)
 	if err != nil {
 		log.Errorf("unable to parse log level %s, error: %v", level, err)
-		return
+		return nil
 	}
 	log.SetLevel(loglevel)
 	log.SetFormatter(&easy.Formatter{TimestampFormat: "2006-01-02 15:04:05.00000", LogFormat: "%time% - [%lvl%] - %msg%\n"})
 	log.Infof("Successfully set up logging. Level %s", loglevel)
+	return log
 }
 
-func Setup(level string) {
-	log.SetFormatter(&log.JSONFormatter{FieldMap: log.FieldMap{
-		log.FieldKeyMsg: "message",
-	}})
+func Setup(level string) *logrus.Logger {
+	log := &logrus.Logger{
+		Formatter: &logrus.JSONFormatter{FieldMap: logrus.FieldMap{
+			logrus.FieldKeyMsg: "message",
+		}},
+	}
 
-	l, err := log.ParseLevel(level)
+	l, err := logrus.ParseLevel(level)
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	log.SetLevel(l)
+	return log
 }

@@ -3,8 +3,7 @@ package wireguard
 import (
 	"errors"
 	"fmt"
-
-	log "github.com/sirupsen/logrus"
+	"strings"
 )
 
 var ErrNetworkUnreachable error = errors.New("network is unreachable")
@@ -37,8 +36,8 @@ func (nc *networkConfigurer) setupIPTables(subconfigurer *subNetworkConfigurer) 
 
 	// Create and set up LOG_ACCEPT CHAIN
 	err = subconfigurer.iptables.NewChain("filter", "LOG_ACCEPT")
-	if err != nil {
-		log.Infof("Creating LOG_ACCEPT chain (probably already exist), error: %v", err)
+	if err != nil && !strings.Contains(err.Error(), "Chain already exists") {
+		return fmt.Errorf("creating LOG_ACCEPT chain: %w", err)
 	}
 	err = subconfigurer.iptables.AppendUnique("filter", "LOG_ACCEPT", "-j", "LOG", "--log-prefix", "naisdevice-fwd: ", "--log-level", "6")
 	if err != nil {

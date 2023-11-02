@@ -13,7 +13,7 @@ import (
 	"github.com/nais/device/pkg/pb"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
-	log "github.com/sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 
@@ -40,13 +40,14 @@ const (
 
 func main() {
 	cfg := config.DefaultConfig()
-	err := run(cfg)
+	log := logger.Setup(cfg.LogLevel).WithField("component", "main")
+	err := run(log, cfg)
 	if err != nil {
 		log.Fatalf("Running prometheus-agent: %s", err)
 	}
 }
 
-func run(cfg config.Config) error {
+func run(log *logrus.Entry, cfg config.Config) error {
 	var err error
 
 	ctx, cancel := context.WithCancel(context.Background())
@@ -80,12 +81,13 @@ func run(cfg config.Config) error {
 			return fmt.Errorf("cannot enable WireGuard: %w", err)
 		}
 
-		netConf, err = wireguard.NewConfigurer(cfg.WireGuardConfigPath, cfg.WireGuardIPv4, cfg.WireGuardIPv6, cfg.PrivateKey, wireguardInterface, wireguardListenPort, nil, nil, nil)
+		netConf, err = wireguard.NewConfigurer(log.WithField("component", "network-configurer"),
+			cfg.WireGuardConfigPath, cfg.WireGuardIPv4, cfg.WireGuardIPv6, cfg.PrivateKey, wireguardInterface, wireguardListenPort, nil, nil, nil)
 		if err != nil {
 			return fmt.Errorf("setup wireguard configurer: %w", err)
 		}
 	} else {
-		netConf = wireguard.NewNoOpConfigurer()
+		netConf = wireguard.NewNoOpConfigurer(log.WithField("component", "network-configurer"))
 	}
 
 	err = netConf.SetupInterface()

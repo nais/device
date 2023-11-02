@@ -10,8 +10,6 @@ import (
 	"os/exec"
 	"path/filepath"
 	"time"
-
-	log "github.com/sirupsen/logrus"
 )
 
 const (
@@ -46,8 +44,6 @@ func runCommands(ctx context.Context, commands [][]string) error {
 
 		if out, err := cmd.CombinedOutput(); err != nil {
 			return fmt.Errorf("running %v: %w: %v", cmd, err, string(out))
-		} else {
-			log.Debugf("cmd: %v: %v\n", cmd, string(out))
 		}
 
 		time.Sleep(100 * time.Millisecond) // avoid serializable race conditions with kernel
@@ -68,13 +64,11 @@ func ZipLogFiles(files []string) (string, error) {
 	for _, filename := range files {
 		_, err = os.Stat(filename)
 		if os.IsNotExist(err) {
-			log.Printf("%s does not exist so I can't zip it\n", filename)
 			continue
 		}
 		logFile, err := os.Open(filename)
 		if err != nil {
-			log.Errorf("%s %v", filename, err)
-			return "nil", err
+			return "nil", fmt.Errorf("%s %v", filename, err)
 		}
 		zipEntryWiter, err := zipWriter.Create(filepath.Base(filename))
 		if err != nil {

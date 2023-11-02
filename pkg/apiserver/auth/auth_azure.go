@@ -11,7 +11,6 @@ import (
 	"github.com/nais/device/pkg/auth"
 	"github.com/nais/device/pkg/pb"
 	"github.com/nais/device/pkg/random"
-	log "github.com/sirupsen/logrus"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
@@ -57,8 +56,7 @@ func (s *azureAuth) Login(ctx context.Context, token, serial, platform string) (
 	}
 
 	if !strings.EqualFold(username, device.Username) {
-		log.Errorf("GREP: username (%s) does not match device username (%s) id (%d)", username, device.Username, device.Id)
-		// return nil, fmt.Errorf("username (%s) does not match device username (%s)", username, device.Username)
+		return nil, fmt.Errorf("username (%s) does not match device username (%s)", username, device.Username)
 	}
 
 	session := &pb.Session{
@@ -71,9 +69,6 @@ func (s *azureAuth) Login(ctx context.Context, token, serial, platform string) (
 
 	err = s.store.Set(ctx, session)
 	if err != nil {
-		log.Errorf("Persisting session info %v: %v", session, err)
-		// don't abort auth here as this might be OK
-		// fixme: we must abort auth here as the database didn't accept the session, and further usage will probably fail
 		return nil, fmt.Errorf("persist session: %s", err)
 	}
 

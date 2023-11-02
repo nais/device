@@ -4,7 +4,6 @@ import (
 	"github.com/nais/device/pkg/apiserver/jita"
 	apiserver_metrics "github.com/nais/device/pkg/apiserver/metrics"
 	"github.com/nais/device/pkg/pb"
-	log "github.com/sirupsen/logrus"
 )
 
 // Return a list of user sessions that are authorized to access a gateway through JITA.
@@ -14,18 +13,13 @@ func privileged(jita jita.Client, gateway *pb.Gateway, sessions []*pb.Session) [
 	}
 	privilegedUsers := jita.GetPrivilegedUsersForGateway(gateway.Name)
 
-	m, err := apiserver_metrics.PrivilegedUsersPerGateway.GetMetricWithLabelValues(gateway.Name)
-	if err != nil {
-		log.Errorf("getting metric metric: %v", err)
-	}
+	m, _ := apiserver_metrics.PrivilegedUsersPerGateway.GetMetricWithLabelValues(gateway.Name)
 	m.Set(float64(len(privilegedUsers)))
 
 	var sessionsToReturn []*pb.Session
 	for _, session := range sessions {
 		if userIsPrivileged(privilegedUsers, session.ObjectID) {
 			sessionsToReturn = append(sessionsToReturn, session)
-		} else {
-			log.Tracef("Skipping unauthorized session: %s", session.Device.Serial)
 		}
 	}
 
@@ -55,8 +49,6 @@ func authorized(gatewayGroups []string, sessions []*pb.Session) []*pb.Device {
 	for _, session := range sessions {
 		if StringSliceHasIntersect(session.Groups, gatewayGroups) {
 			authorizedDevices = append(authorizedDevices, session.Device)
-		} else {
-			log.Tracef("Skipping unauthorized session: %s", session.Device.Serial)
 		}
 	}
 

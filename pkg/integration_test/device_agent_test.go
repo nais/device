@@ -17,20 +17,22 @@ import (
 	"google.golang.org/grpc/test/bufconn"
 )
 
-func NewDeviceAgent(t *testing.T, wg *sync.WaitGroup, ctx context.Context, helperconn *bufconn.Listener, rc *runtimeconfig.MockRuntimeConfig) *grpc.Server {
+func NewDeviceAgent(t *testing.T, wg *sync.WaitGroup, ctx context.Context, log *logrus.Entry, helperconn *bufconn.Listener, rc *runtimeconfig.MockRuntimeConfig) *grpc.Server {
 	helperDial, err := dial(ctx, helperconn)
 	assert.NoError(t, err)
 
 	helperClient := pb.NewDeviceHelperClient(helperDial)
 
-	cfg := config.DefaultConfig()
+	cfg, err := config.DefaultConfig()
+	assert.NoError(t, err)
+
 	cfg.AgentConfiguration = &pb.AgentConfiguration{}
 	cfg.LogLevel = logrus.DebugLevel.String()
 
 	notifier := notify.NewMockNotifier(t)
 	notifier.EXPECT().Errorf(mock.Anything, mock.Anything).Maybe()
 
-	impl := device_agent.NewServer(helperClient, &cfg, rc, notifier)
+	impl := device_agent.NewServer(log, helperClient, cfg, rc, notifier)
 	wg.Add(1)
 	go func() {
 		impl.EventLoop(ctx)
