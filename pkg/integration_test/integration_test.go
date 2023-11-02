@@ -149,26 +149,29 @@ func tableTest(t *testing.T, log *logrus.Entry, testDevice *pb.Device, endState 
 	osConfigurator.EXPECT().SyncConf(mock.AnythingOfType("*context.valueCtx"), mock.MatchedBy(func(cfg *pb.Configuration) bool {
 		return configDeviceMatch(cfg, testDevice) &&
 			matchExactGateways(initialPeers)(cfg.Gateways)
-	})).Return(nil)
+	})).Return(nil).Once()
 
-	osConfiguratorWg := &sync.WaitGroup{}
+	syncConfWg := &sync.WaitGroup{}
 
 	if len(expectedGateways) > 1 {
 		// expect all gateways
+		syncConfWg.Add(1)
+		first := false
+
 		osConfigurator.EXPECT().SetupInterface(mock.AnythingOfType("*context.valueCtx"), mock.MatchedBy(func(cfg *pb.Configuration) bool {
-			predicate := configDeviceMatch(cfg, testDevice) &&
+			return configDeviceMatch(cfg, testDevice) &&
 				matchExactGateways(expectedGateways)(cfg.Gateways)
-			if predicate {
-				osConfiguratorWg.Done()
-			}
-			return predicate
 		})).Return(nil)
 
 		osConfigurator.EXPECT().SyncConf(mock.AnythingOfType("*context.valueCtx"), mock.MatchedBy(func(cfg *pb.Configuration) bool {
 			predicate := configDeviceMatch(cfg, testDevice) &&
 				matchExactGateways(expectedGateways)(cfg.Gateways)
 			if predicate {
-				osConfiguratorWg.Done()
+				syncConfWg.Done()
+				if !first {
+					syncConfWg.Done()
+					first = true
+				}
 			}
 			return predicate
 		})).Return(nil)
@@ -221,7 +224,7 @@ func tableTest(t *testing.T, log *logrus.Entry, testDevice *pb.Device, endState 
 		rc.EXPECT().BuildHelperConfiguration(mock.MatchedBy(func(gw []*pb.Gateway) bool {
 			predicate := matchExactGateways(expectedGateways)(gw)
 			if predicate {
-				osConfiguratorWg.Add(2)
+				syncConfWg.Add(1)
 			}
 			return predicate
 		})).Return(fullHelperConfig)
@@ -301,7 +304,7 @@ func tableTest(t *testing.T, log *logrus.Entry, testDevice *pb.Device, endState 
 			gwWg.Wait()
 		}
 		t.Log("waiting for device helper")
-		osConfiguratorWg.Wait()
+		syncConfWg.Wait()
 		t.Log("stopping apiserver")
 		stopAPIServer()
 		t.Log("stopping helper")
