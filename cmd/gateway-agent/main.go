@@ -13,7 +13,6 @@ import (
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/status"
 
-	"github.com/google/gopacket/routing"
 	"github.com/nais/device/pkg/gateway-agent"
 	"github.com/nais/device/pkg/gateway-agent/config"
 	"github.com/nais/device/pkg/passwordhash"
@@ -131,7 +130,7 @@ func run(log *logrus.Entry, cfg config.Config) error {
 		if err != nil {
 			return fmt.Errorf("setup iptables: %w", err)
 		}
-		router, err := routing.New()
+		router, err := NewRouter()
 		if err != nil {
 			return fmt.Errorf("setup routing: %w", err)
 		}
