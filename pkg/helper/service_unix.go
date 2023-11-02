@@ -2,8 +2,12 @@
 
 package helper
 
-import "context"
+import (
+	"context"
 
-func StartService(programContext context.Context, cancel context.CancelFunc) error {
+	"github.com/sirupsen/logrus"
+)
+
+func StartService(_ *logrus.Entry, programContext context.Context, cancel context.CancelFunc) error {
 	return nil
 }
