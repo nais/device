@@ -66,10 +66,7 @@ func main() {
 	notifier := pb.NewConnectionNotifier()
 	grpcServer := grpc.NewServer(grpc.StatsHandler(notifier))
 
-	dhs := &helper.DeviceHelperServer{
-		Config:         cfg,
-		OSConfigurator: osConfigurator,
-	}
+	dhs := helper.NewDeviceHelperServer(log, cfg, osConfigurator)
 	pb.RegisterDeviceHelperServer(grpcServer, dhs)
 
 	teardown := func() {
