@@ -85,6 +85,7 @@ func NewConfigurer(log *logrus.Entry, configPath string, ipv4 *netip.Prefix, ipv
 		v6: &subNetworkConfigurer{
 			ip: ipv6,
 		},
+		log: log,
 	}
 
 	if iptablesV4 != nil && router != nil {
