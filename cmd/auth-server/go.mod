@@ -4,7 +4,7 @@ go 1.21
 
 require (
 	github.com/kelseyhightower/envconfig v1.4.0
-	github.com/nais/device v0.0.0-20231030073017-240e8a0234d9
+	github.com/nais/device v0.0.0-20231102132925-6c18419d1258
 	github.com/sirupsen/logrus v1.9.3
 	golang.org/x/oauth2 v0.13.0
 )

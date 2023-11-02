@@ -12,8 +12,8 @@ github.com/google/go-cmp v0.6.0/go.mod h1:17dUlkBOakJ0+DkrSSNjCkIjxS6bF9zb3elmeN
 github.com/kelseyhightower/envconfig v1.4.0 h1:Im6hONhd3pLkfDFsbRgu68RDNkGF1r3dvMUtDTo2cv8=
 github.com/kelseyhightower/envconfig v1.4.0/go.mod h1:cccZRl6mQpaq41TPp5QxidR+Sa3axMbJDNb//FQX6Gg=
 github.com/konsorten/go-windows-terminal-sequences v1.0.1/go.mod h1:T0+1ngSBFLxvqU3pZ+m/2kptfBszLMUkC4ZK/EgS/cQ=
-github.com/nais/device v0.0.0-20231030073017-240e8a0234d9 h1:nN6eRYMWUJIbvlDA4fIZNkGTgqnBT5ORxIHOonNAiPY=
-github.com/nais/device v0.0.0-20231030073017-240e8a0234d9/go.mod h1:nFrhQt0ZrCc72BGcfcETiI5zdwWT35AVnN7ATSaEV2Y=
+github.com/nais/device v0.0.0-20231102132925-6c18419d1258 h1:1rWJapVyBq+CYNOv6WsLTdlf34ATVFs1tpvQwLDPqTw=
+github.com/nais/device v0.0.0-20231102132925-6c18419d1258/go.mod h1:QB+T3PlV5GXds7TOp7juZGmaM0Mif/ivm0pFr/R3wsA=
 github.com/pmezard/go-difflib v1.0.0/go.mod h1:iKH77koFhYxTK1pcRnkKkqfTogsbg7gZNVY4sRDYZ/4=
 github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 h1:Jamvg5psRIccs7FGNTlIRMkT8wgtp5eCXdBlqhYGL6U=
 github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2/go.mod h1:iKH77koFhYxTK1pcRnkKkqfTogsbg7gZNVY4sRDYZ/4=
