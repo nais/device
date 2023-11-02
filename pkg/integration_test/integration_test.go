@@ -213,12 +213,12 @@ func tableTest(t *testing.T, log *logrus.Entry, testDevice *pb.Device, endState 
 
 	gatewaysWaitGroup := make(map[string]*sync.WaitGroup)
 	for _, gw := range expectedGateways {
-		gatewaysWaitGroup[gw.GetName()] = &sync.WaitGroup{}
-		gatewaysWaitGroup[gw.GetName()].Add(2)
-
 		if gw.Name == "apiserver" {
 			continue
 		}
+
+		gwwg := &sync.WaitGroup{}
+		gatewaysWaitGroup[gw.GetName()] = gwwg
 
 		var expectedPeers []wireguard.Peer
 		expectedPeers = append(expectedPeers, apiserverPeer)
@@ -231,11 +231,12 @@ func tableTest(t *testing.T, log *logrus.Entry, testDevice *pb.Device, endState 
 		// 	 gatewayNC.EXPECT().ApplyWireGuardConfig(mock.MatchedBy(matchExactPeers(t, expectedPeers))).Run(func(_ []wireguard.Peer) { gatewayGotDevice <- struct{}{} }).Return(nil)
 		// }
 
-		gatewayNC.EXPECT().ForwardRoutesV4(gw.GetRoutesIPv4()).Return(nil).Run(func(_ []string) { gatewaysWaitGroup[gw.GetName()].Done() })
-		gatewayNC.EXPECT().ForwardRoutesV6(gw.GetRoutesIPv6()).Return(nil).Run(func(_ []string) { gatewaysWaitGroup[gw.GetName()].Done() })
+		gwwg.Add(2)
+		gatewayNC.EXPECT().ForwardRoutesV4(gw.GetRoutesIPv4()).Return(nil).Run(func(_ []string) { gwwg.Done() })
+		gatewayNC.EXPECT().ForwardRoutesV6(gw.GetRoutesIPv6()).Return(nil).Run(func(_ []string) { gwwg.Done() })
 
 		wg.Add(1)
-		go func(t *testing.T, gw *pb.Gateway) {
+		go func(t *testing.T, gw *pb.Gateway, wg *sync.WaitGroup) {
 			t.Logf("starting gateway agent %q", gw.GetName())
 			err = StartGatewayAgent(t, ctx, log.WithField("component", "gateway-agent"), gw.GetName(), apiserverListener, apiserverPeer, gatewayNC)
 
@@ -243,7 +244,7 @@ func tableTest(t *testing.T, log *logrus.Entry, testDevice *pb.Device, endState 
 				t.Errorf("FAIL: got unexpected error from gateway agent: %v", err)
 			}
 			wg.Done()
-		}(t, gw)
+		}(t, gw, wg)
 	}
 
 	deviceAgentListener, stopDeviceAgent := serve(t, NewDeviceAgent(t, wg, ctx, log.WithField("component", "device-agent"), helperListener, rc), wg)
@@ -279,14 +280,18 @@ func tableTest(t *testing.T, log *logrus.Entry, testDevice *pb.Device, endState 
 	}()
 
 	stopStuff := func() {
-		t.Log("stopping stuff")
+		t.Log("test finished, stopping components")
 		for _, gwWg := range gatewaysWaitGroup {
 			gwWg.Wait()
 		}
+		t.Log("stopping apiserver")
 		stopAPIServer()
-		cancel()
+		t.Log("stopping helper")
 		stopHelper()
+		t.Log("stopping device agent")
 		stopDeviceAgent()
+		t.Log("cancelling context")
+		cancel()
 	}
 
 	lastKnownState := pb.AgentState_Disconnected
