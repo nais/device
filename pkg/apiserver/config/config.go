@@ -8,6 +8,7 @@ import (
 	"github.com/nais/device/pkg/auth"
 	"github.com/nais/device/pkg/pb"
 	"github.com/nais/device/pkg/wireguard"
+	"github.com/sirupsen/logrus"
 )
 
 var MaxTenantId uint16 = (1 << 16) - 1
@@ -123,6 +124,14 @@ func (cfg *Config) Parse() error {
 		if err != nil {
 			return err
 		}
+	}
+
+	if len(cfg.LogLevel) != 0 {
+		level, err := logrus.ParseLevel(cfg.LogLevel)
+		if err != nil {
+			return err
+		}
+		cfg.LogLevel = level.String()
 	}
 
 	return nil

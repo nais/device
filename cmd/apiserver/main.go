@@ -38,22 +38,27 @@ const (
 	WireGuardSyncInterval     = 20 * time.Second
 )
 
-var errRequiredArgNotSet = errors.New("arg is required, but not set")
-
 func main() {
 	cfg := config.DefaultConfig()
 
-	// sets up default logger
-	log := logger.Setup(cfg.LogLevel)
-
-	err := run(log.WithField("component", "main"), cfg)
+	err := envconfig.Process("APISERVER", &cfg)
 	if err != nil {
-		if errors.Is(err, errRequiredArgNotSet) {
-			log.Error(err)
-		} else {
-			log.Errorf("fatal error: %s", err)
-		}
+		fmt.Println("unable to process environment variables: %w", err)
+		os.Exit(1)
+	}
 
+	// sets up default logger
+	log := logger.Setup(cfg.LogLevel).WithField("component", "main")
+
+	err = cfg.Parse() // sets dynamic defaults for some config values
+	if err != nil {
+		log.Errorf("parse configuration: %v", err)
+		os.Exit(1)
+	}
+
+	err = run(log, cfg)
+	if err != nil {
+		log.Errorf("unhandled error: %s", err)
 		os.Exit(1)
 	} else {
 		log.Info("naisdevice API server has shut down cleanly.")
@@ -65,19 +70,6 @@ func run(log *logrus.Entry, cfg config.Config) error {
 	var adminAuthenticator auth.UsernamePasswordAuthenticator
 	var gatewayAuthenticator auth.UsernamePasswordAuthenticator
 	var prometheusAuthenticator auth.UsernamePasswordAuthenticator
-
-	err := envconfig.Process("APISERVER", &cfg)
-	if err != nil {
-		return fmt.Errorf("parse environment variables: %w", err)
-	}
-
-	err = cfg.Parse() // sets dynamic defaults for some config values
-	if err != nil {
-		return fmt.Errorf("parse configuration: %w", err)
-	}
-
-	// sets up logger based on envconfig
-	logger.Setup(cfg.LogLevel)
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -169,7 +161,7 @@ func run(log *logrus.Entry, cfg config.Config) error {
 
 	if cfg.KolideEventHandlerEnabled {
 		if len(cfg.KolideEventHandlerAddress) == 0 {
-			return fmt.Errorf("--kolide-event-handler-address %w", errRequiredArgNotSet)
+			return fmt.Errorf("kolide-event-handler-address not configured")
 		}
 
 		go func() {

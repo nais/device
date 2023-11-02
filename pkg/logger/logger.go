@@ -60,17 +60,18 @@ func SetupLogger(level, logDir, prefix string) *logrus.Logger {
 }
 
 func Setup(level string) *logrus.Logger {
-	log := &logrus.Logger{
-		Formatter: &logrus.JSONFormatter{FieldMap: logrus.FieldMap{
-			logrus.FieldKeyMsg: "message",
-		}},
-	}
+	log := logrus.New()
+	log.SetFormatter(&logrus.JSONFormatter{FieldMap: logrus.FieldMap{
+		logrus.FieldKeyMsg: "message",
+	}})
 
+	log.SetLevel(logrus.InfoLevel)
 	l, err := logrus.ParseLevel(level)
 	if err != nil {
-		log.Fatal(err)
+		log.Warnf("parse log level %s failed, using default level info", level)
+	} else {
+		log.SetLevel(l)
 	}
 
-	log.SetLevel(l)
 	return log
 }
