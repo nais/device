@@ -9,5 +9,6 @@ var defaultTenants = []*pb.Tenant{
 	{
 		Name:         "NAV",
 		AuthProvider: pb.AuthProvider_Azure,
+		Active:       true,
 	},
 }
