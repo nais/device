@@ -4,7 +4,7 @@ import (
 	"os/exec"
 )
 
-func Open(url string) error {
+func Open(url string) {
 	go func() {
 		exec.Command("open", url).Run()
 	}()
