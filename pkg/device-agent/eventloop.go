@@ -189,6 +189,18 @@ func (das *DeviceAgentServer) EventLoop(programContext context.Context) {
 				break
 			}
 
+			helperHealthCheckCtx, cancel := context.WithTimeout(programContext, 1*time.Second)
+			if _, err := das.DeviceHelper.GetSerial(helperHealthCheckCtx, &pb.GetSerialRequest{}); err != nil {
+				cancel()
+
+				das.log.WithError(err).Errorf("Unable to communicate with helper.Shutting down")
+				das.notifier.Errorf("Unable to communicate with helper. Shutting down.")
+
+				das.stateChange <- pb.AgentState_Disconnecting
+				break
+			}
+			cancel()
+
 			wg := &sync.WaitGroup{}
 
 			total := len(status.GetGateways())
