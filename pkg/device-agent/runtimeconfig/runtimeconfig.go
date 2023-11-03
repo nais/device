@@ -239,8 +239,8 @@ func (r *runtimeConfig) LoadEnrollConfig() error {
 		return err
 	}
 
-	if ec.DeviceIPv6 == "" {
-		return fmt.Errorf("bootstrap config does not contain IPv6 address, should re-enroll")
+	if ec.DeviceIPv6 == "" || strings.HasPrefix(ec.DeviceIPv6, "fd") {
+		return fmt.Errorf("bootstrap config does not contain a valid IPv6 address, should re-enroll")
 	}
 
 	r.enrollConfig = ec
