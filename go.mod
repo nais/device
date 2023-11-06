@@ -95,7 +95,7 @@ require (
 	github.com/golang-migrate/migrate/v4 v4.16.2
 	github.com/google/gopacket v1.1.20-0.20220810144506-32ee38206866
 	github.com/sqlc-dev/sqlc v1.23.0
-	github.com/vektra/mockery/v2 v2.36.0
+	github.com/vektra/mockery/v2 v2.36.1
 	golang.org/x/exp v0.0.0-20231006140011-7918f672742d
 	golang.org/x/vuln v1.0.1
 	google.golang.org/grpc/cmd/protoc-gen-go-grpc v1.3.0
