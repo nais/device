@@ -1,0 +1,2 @@
+id,name,access_group_ids,endpoint,public_key,ip,routes,requires_privileged_access,password_hash
+31,nais-io,allUsers,34.88.225.124:51820,88BsNah5wSC5tLMipTflSc14NItnHA0kCf/fEECehF0=,10.253.240.3,"172.16.0.2,34.111.218.136,34.120.120.6",f,$1$xogYsqu4bvyyjoB+z6g9WA==$YmbxW3lFnW7z54eQroPHhY8K5J8N1pyKqS8CO2q/2vfYPzHwtIE7Co9bE6q7rTKPI4VRb4Y6og/FSUCwK8b6XQ==
