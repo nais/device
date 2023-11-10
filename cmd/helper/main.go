@@ -11,13 +11,13 @@ import (
 	flag "github.com/spf13/pflag"
 	"google.golang.org/grpc"
 
-	"github.com/nais/device/pkg/helper"
-	"github.com/nais/device/pkg/helper/config"
-	"github.com/nais/device/pkg/helper/dns"
-	"github.com/nais/device/pkg/logger"
-	"github.com/nais/device/pkg/pb"
-	"github.com/nais/device/pkg/unixsocket"
-	"github.com/nais/device/pkg/version"
+	"github.com/nais/device/internal/helper"
+	"github.com/nais/device/internal/helper/config"
+	"github.com/nais/device/internal/helper/dns"
+	"github.com/nais/device/internal/logger"
+	"github.com/nais/device/internal/pb"
+	"github.com/nais/device/internal/unixsocket"
+	"github.com/nais/device/internal/version"
 )
 
 var cfg = helper.Config{

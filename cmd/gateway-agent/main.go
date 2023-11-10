@@ -13,20 +13,20 @@ import (
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/status"
 
-	"github.com/nais/device/pkg/gateway-agent"
-	"github.com/nais/device/pkg/gateway-agent/config"
-	"github.com/nais/device/pkg/passwordhash"
-	"github.com/nais/device/pkg/pb"
-	"github.com/nais/device/pkg/pubsubenroll"
-	"github.com/nais/device/pkg/wireguard"
+	"github.com/nais/device/internal/gateway-agent"
+	"github.com/nais/device/internal/gateway-agent/config"
+	"github.com/nais/device/internal/passwordhash"
+	"github.com/nais/device/internal/pb"
+	"github.com/nais/device/internal/pubsubenroll"
+	"github.com/nais/device/internal/wireguard"
 
-	"github.com/nais/device/pkg/logger"
+	"github.com/nais/device/internal/logger"
 
 	"github.com/coreos/go-iptables/iptables"
 	"github.com/kelseyhightower/envconfig"
 	"github.com/sirupsen/logrus"
 
-	"github.com/nais/device/pkg/version"
+	"github.com/nais/device/internal/version"
 )
 
 const (

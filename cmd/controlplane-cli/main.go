@@ -4,7 +4,7 @@ import (
 	"log"
 	"os"
 
-	controlplanecli "github.com/nais/device/pkg/controlplane-cli"
+	controlplanecli "github.com/nais/device/internal/controlplane-cli"
 	"github.com/urfave/cli/v2"
 )
 

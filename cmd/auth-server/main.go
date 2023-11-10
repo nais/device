@@ -7,7 +7,7 @@ import (
 	"strings"
 
 	"github.com/kelseyhightower/envconfig"
-	"github.com/nais/device/pkg/logger"
+	"github.com/nais/device/internal/logger"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/endpoints"

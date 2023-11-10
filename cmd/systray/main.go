@@ -13,11 +13,11 @@ import (
 	"github.com/sirupsen/logrus"
 	flag "github.com/spf13/pflag"
 
-	"github.com/nais/device/pkg/config"
-	"github.com/nais/device/pkg/logger"
-	"github.com/nais/device/pkg/notify"
-	"github.com/nais/device/pkg/systray"
-	"github.com/nais/device/pkg/version"
+	"github.com/nais/device/internal/config"
+	"github.com/nais/device/internal/logger"
+	"github.com/nais/device/internal/notify"
+	"github.com/nais/device/internal/systray"
+	"github.com/nais/device/internal/version"
 )
 
 func handleSignals(log *logrus.Entry, cancel context.CancelFunc) {

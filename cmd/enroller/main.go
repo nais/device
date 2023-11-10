@@ -9,8 +9,8 @@ import (
 	"time"
 
 	"github.com/kelseyhightower/envconfig"
-	"github.com/nais/device/pkg/auth"
-	"github.com/nais/device/pkg/pubsubenroll"
+	"github.com/nais/device/internal/auth"
+	"github.com/nais/device/internal/pubsubenroll"
 	"github.com/sirupsen/logrus"
 )
 

@@ -14,15 +14,15 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 
-	deviceagent "github.com/nais/device/pkg/device-agent"
-	"github.com/nais/device/pkg/device-agent/config"
-	"github.com/nais/device/pkg/device-agent/filesystem"
-	"github.com/nais/device/pkg/device-agent/runtimeconfig"
-	"github.com/nais/device/pkg/logger"
-	"github.com/nais/device/pkg/notify"
-	"github.com/nais/device/pkg/pb"
-	"github.com/nais/device/pkg/unixsocket"
-	"github.com/nais/device/pkg/version"
+	deviceagent "github.com/nais/device/internal/device-agent"
+	"github.com/nais/device/internal/device-agent/config"
+	"github.com/nais/device/internal/device-agent/filesystem"
+	"github.com/nais/device/internal/device-agent/runtimeconfig"
+	"github.com/nais/device/internal/logger"
+	"github.com/nais/device/internal/notify"
+	"github.com/nais/device/internal/pb"
+	"github.com/nais/device/internal/unixsocket"
+	"github.com/nais/device/internal/version"
 )
 
 func handleSignals(log *logrus.Entry, cancel context.CancelFunc) {

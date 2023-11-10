@@ -10,18 +10,18 @@ import (
 	"time"
 
 	"github.com/kelseyhightower/envconfig"
-	"github.com/nais/device/pkg/pb"
+	"github.com/nais/device/internal/pb"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 
-	"github.com/nais/device/pkg/logger"
-	prometheusagent "github.com/nais/device/pkg/prometheus-agent"
-	"github.com/nais/device/pkg/prometheus-agent/config"
-	"github.com/nais/device/pkg/version"
-	"github.com/nais/device/pkg/wireguard"
+	"github.com/nais/device/internal/logger"
+	prometheusagent "github.com/nais/device/internal/prometheus-agent"
+	"github.com/nais/device/internal/prometheus-agent/config"
+	"github.com/nais/device/internal/version"
+	"github.com/nais/device/internal/wireguard"
 )
 
 var lastSuccessfulConfigUpdate = prometheus.NewGauge(prometheus.GaugeOpts{
