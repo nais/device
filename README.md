@@ -51,7 +51,3 @@ If both is true, the device-agent and gateway-agent is informed with the necessa
 ### What is a healthy device?
 ### How to install
 See https://doc.nais.io/device
-
-## Next gen naisdevice
-
-![Components](components.jpg)
