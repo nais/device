@@ -262,11 +262,7 @@ func findPeer(gateway []*pb.Gateway, s string) *pb.Gateway {
 }
 
 func (r *runtimeConfig) getEnrollURL(ctx context.Context) (string, error) {
-	domain, err := r.getPartnerDomain()
-	if err != nil {
-		r.log.WithError(err).Error("could not determine partner domain, falling back to default")
-		domain = "default"
-	}
+	domain := r.getPartnerDomain()
 
 	url := fmt.Sprintf("https://storage.googleapis.com/%s/%s", tenantDiscoveryBucket, domain)
 	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
@@ -287,32 +283,26 @@ func (r *runtimeConfig) getEnrollURL(ctx context.Context) (string, error) {
 	return string(b) + "/enroll", nil
 }
 
-func (r *runtimeConfig) getPartnerDomain() (string, error) {
+func (r *runtimeConfig) getPartnerDomain() string {
 	if r.GetActiveTenant().Domain != "" {
-		return r.GetActiveTenant().Domain, nil
+		return r.GetActiveTenant().Domain
 	}
 
 	if r.tokens != nil {
 		t, err := jwt.ParseString(r.tokens.IDToken)
-		if err != nil {
-			return "", fmt.Errorf("parse token: %w", err)
+		if err == nil {
+			hd, _ := t.Get("hd")
+			return hd.(string)
+		} else {
+			r.log.WithError(err).Warn("parse id token")
 		}
-
-		hd, _ := t.Get("hd")
-
-		return hd.(string), nil
-	} else {
-		return "", fmt.Errorf("unable to identify tenant domain")
 	}
+
+	return "default"
 }
 
 func (r *runtimeConfig) path() string {
-	domain, err := r.getPartnerDomain()
-	if err != nil {
-		r.log.WithError(err).Error("could not determine partner domain")
-		domain = "unknown"
-	}
-
+	domain := r.getPartnerDomain()
 	filename := fmt.Sprintf("enroll-%s.json", domain)
 	return filepath.Join(r.config.ConfigDir, filename)
 }
