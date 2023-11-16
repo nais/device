@@ -87,7 +87,7 @@ func run(log *logrus.Entry, cfg config.Config) error {
 	v6Allocator := ip.NewV6Allocator(cfg.WireGuardIPv6Prefix)
 	db, err := database.New(ctx, cfg.DBPath, v4Allocator, v6Allocator, !cfg.KolideEventHandlerEnabled)
 	if err != nil {
-		return fmt.Errorf("initialize database: %w", err)
+		return fmt.Errorf("initialize database: %w, %s", err, cfg.DBPath)
 	}
 
 	err = readd(ctx, db)
@@ -125,6 +125,7 @@ func run(log *logrus.Entry, cfg config.Config) error {
 		authenticator = auth.NewGoogleAuthenticator(cfg.Google, db, sessions)
 		log.Infof("Google OIDC authenticator configured to authenticate device sessions.")
 	default:
+		// Use this Carl
 		authenticator = auth.NewMockAuthenticator(sessions)
 		log.Warnf("Device authentication DISABLED! Do not run this configuration in production!")
 		log.Warnf("To enable device authentication, specify auth provider with --device-authentication-provider=azure|google")
