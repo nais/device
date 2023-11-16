@@ -11,7 +11,7 @@ on:
       - ".github/workflows/controlplane.yml"
       - "packaging/controlplane/**"
 env:
-  go_version: '1.21.3'
+  go_version: '1.21.4'
   REGISTRY: europe-north1-docker.pkg.dev/nais-io/nais/images
 
 jobs:
