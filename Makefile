@@ -2,7 +2,7 @@
 
 LAST_COMMIT = $(shell git --no-pager log -1 --pretty=%h)
 VERSION := $(shell date "+%Y-%m-%d-%H%M%S")
-LDFLAGS := -X github.com/nais/device/pkg/version.Revision=$(shell git rev-parse --short HEAD) -X github.com/nais/device/pkg/version.Version=$(VERSION)
+LDFLAGS := -X github.com/nais/device/internal/version.Revision=$(shell git rev-parse --short HEAD) -X github.com/nais/device/internal/version.Version=$(VERSION)
 PKGID = io.nais.device
 GOPATH ?= ~/go
 GOTAGS ?=
@@ -13,7 +13,7 @@ all: test
 clients: linux-client macos-client windows-client
 
 proto: install-protobuf-go
-	${PROTOC} --go-grpc_opt=paths=source_relative --go_opt=paths=source_relative --go_out=. --go-grpc_out=. pkg/pb/protobuf-api.proto
+	${PROTOC} --go-grpc_opt=paths=source_relative --go_opt=paths=source_relative --go_out=. --go-grpc_out=. internal/pb/protobuf-api.proto
 
 install-protobuf-go:
 	go install google.golang.org/protobuf/cmd/protoc-gen-go
@@ -172,7 +172,7 @@ clean:
 
 mocks:
 	go run github.com/vektra/mockery/v2
-	find pkg -type f -name "mock_*.go" -exec go run mvdan.cc/gofumpt -w {} \;
+	find internal -type f -name "mock_*.go" -exec go run mvdan.cc/gofumpt -w {} \;
 
 # controlplane is autoreleased for every push
 release-frontend:
@@ -189,7 +189,7 @@ buildreleaseauthserver:
 
 generate-sqlc:
 	go run github.com/sqlc-dev/sqlc/cmd/sqlc generate
-	go run mvdan.cc/gofumpt -w ./pkg/apiserver/sqlc/
+	go run mvdan.cc/gofumpt -w ./internal/apiserver/sqlc/
 
 fmt:
 	go run mvdan.cc/gofumpt -w ./

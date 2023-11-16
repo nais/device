@@ -2,7 +2,7 @@
 // versions:
 // - protoc-gen-go-grpc v1.3.0
 // - protoc             v4.23.4
-// source: pkg/pb/protobuf-api.proto
+// source: internal/pb/protobuf-api.proto
 
 package pb
 
@@ -222,7 +222,7 @@ var DeviceHelper_ServiceDesc = grpc.ServiceDesc{
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
-	Metadata: "pkg/pb/protobuf-api.proto",
+	Metadata: "internal/pb/protobuf-api.proto",
 }
 
 const (
@@ -578,7 +578,7 @@ var DeviceAgent_ServiceDesc = grpc.ServiceDesc{
 			ServerStreams: true,
 		},
 	},
-	Metadata: "pkg/pb/protobuf-api.proto",
+	Metadata: "internal/pb/protobuf-api.proto",
 }
 
 const (
@@ -1025,5 +1025,5 @@ var APIServer_ServiceDesc = grpc.ServiceDesc{
 			ServerStreams: true,
 		},
 	},
-	Metadata: "pkg/pb/protobuf-api.proto",
+	Metadata: "internal/pb/protobuf-api.proto",
 }

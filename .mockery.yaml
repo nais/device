@@ -4,29 +4,29 @@ inpackage: true
 dir: "{{.InterfaceDir}}"
 filename: "mock_{{.InterfaceNameSnake}}.go"
 packages:
-  github.com/nais/device/pkg/apiserver/auth:
+  github.com/nais/device/internal/apiserver/auth:
     interfaces:
       SessionStore:
-  github.com/nais/device/pkg/apiserver/bucket:
+  github.com/nais/device/internal/apiserver/bucket:
     interfaces:
       Client:
       Object:
-  github.com/nais/device/pkg/apiserver/database:
+  github.com/nais/device/internal/apiserver/database:
     interfaces:
       APIServer:
-  github.com/nais/device/pkg/pb:
+  github.com/nais/device/internal/pb:
     interfaces:
       APIServerClient:
       APIServer_GetGatewayConfigurationClient:
-  github.com/nais/device/pkg/wireguard:
+  github.com/nais/device/internal/wireguard:
     interfaces:
       NetworkConfigurer:
-  github.com/nais/device/pkg/notify:
+  github.com/nais/device/internal/notify:
     interfaces:
       Notifier:
-  github.com/nais/device/pkg/device-agent/runtimeconfig:
+  github.com/nais/device/internal/device-agent/runtimeconfig:
     interfaces:
       RuntimeConfig:
-  github.com/nais/device/pkg/helper:
+  github.com/nais/device/internal/helper:
     interfaces:
       OSConfigurator:

@@ -1,12 +1,12 @@
 version: 2
 sql:
   - engine: sqlite
-    schema: pkg/apiserver/database/schema
-    queries: pkg/apiserver/database/queries
+    schema: internal/apiserver/database/schema
+    queries: internal/apiserver/database/queries
     gen:
       go:
         package: sqlc
-        out: pkg/apiserver/sqlc
+        out: internal/apiserver/sqlc
         emit_interface: true
         emit_result_struct_pointers: true
         emit_prepared_queries: true
