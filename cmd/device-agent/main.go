@@ -102,6 +102,7 @@ func run(ctx context.Context, log *logrus.Entry, cfg *config.Config, notifier no
 	connection, err := grpc.Dial(
 		"unix:"+cfg.DeviceAgentHelperAddress,
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
+		grpc.WithIdleTimeout(10*time.Hour),
 	)
 	if err != nil {
 		return fmt.Errorf("connect to naisdevice-helper: %v", err)

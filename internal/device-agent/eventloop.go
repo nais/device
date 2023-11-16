@@ -193,7 +193,7 @@ func (das *DeviceAgentServer) EventLoop(programContext context.Context) {
 			if _, err := das.DeviceHelper.GetSerial(helperHealthCheckCtx, &pb.GetSerialRequest{}); err != nil {
 				cancel()
 
-				das.log.WithError(err).Errorf("Unable to communicate with helper.Shutting down")
+				das.log.WithError(err).Errorf("Unable to communicate with helper. Shutting down")
 				das.notifier.Errorf("Unable to communicate with helper. Shutting down.")
 
 				das.stateChange <- pb.AgentState_Disconnecting

@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/sirupsen/logrus"
-	easy "github.com/t-tomalak/logrus-easy-formatter"
 )
 
 const (
@@ -54,7 +53,7 @@ func SetupLogger(level, logDir, prefix string) *logrus.Logger {
 		return nil
 	}
 	log.SetLevel(loglevel)
-	log.SetFormatter(&easy.Formatter{TimestampFormat: "2006-01-02 15:04:05.00000", LogFormat: "%time% - [%lvl%] - %msg%\n"})
+	log.SetFormatter(&logrus.TextFormatter{})
 	log.Infof("Successfully set up logging. Level %s", loglevel)
 	return log
 }
