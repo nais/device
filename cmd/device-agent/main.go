@@ -85,7 +85,7 @@ func run(ctx context.Context, log *logrus.Entry, cfg *config.Config, notifier no
 		return fmt.Errorf("missing prerequisites: %s", err)
 	}
 
-	rc, err := runtimeconfig.New(log, cfg)
+	rc, err := runtimeconfig.New(log.WithField("component", "runtimeconfig"), cfg)
 	if err != nil {
 		log.Errorf("instantiate runtime config: %v", err)
 		return fmt.Errorf("unable to start naisdevice-agent, check logs for details")
@@ -118,7 +118,7 @@ func run(ctx context.Context, log *logrus.Entry, cfg *config.Config, notifier no
 	log.Infof("accepting network connections on unix socket %s", cfg.GrpcAddress)
 
 	grpcServer := grpc.NewServer()
-	das := deviceagent.NewServer(log, client, cfg, rc, notifier)
+	das := deviceagent.NewServer(log.WithField("component", "device-agent-server"), client, cfg, rc, notifier)
 	pb.RegisterDeviceAgentServer(grpcServer, das)
 
 	go func() {

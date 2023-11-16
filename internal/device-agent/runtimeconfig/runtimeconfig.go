@@ -143,8 +143,6 @@ func New(log *logrus.Entry, cfg *config.Config) (*runtimeConfig, error) {
 }
 
 func (r *runtimeConfig) EnsureEnrolled(ctx context.Context, serial string) error {
-	r.log.Infoln("Enrolling device")
-
 	var err error
 	if r.GetActiveTenant().AuthProvider == pb.AuthProvider_Google {
 		err = r.enroll(ctx, serial, r.tokens.IDToken)
@@ -171,12 +169,12 @@ func (r *runtimeConfig) enroll(ctx context.Context, serial, token string) error 
 
 	url, err := r.getEnrollURL(ctx)
 	if err != nil {
-		return fmt.Errorf("determine enroll url from token: %w", err)
+		return fmt.Errorf("determine enroll url: %w", err)
 	}
 
 	hreq, err := http.NewRequestWithContext(ctx, http.MethodPost, url, buf)
 	if err != nil {
-		return fmt.Errorf("creating request: %w", err)
+		return fmt.Errorf("creating enroll request: %w", err)
 	}
 
 	hreq.Header.Set("Content-Type", "application/json")
@@ -288,7 +286,7 @@ func (r *runtimeConfig) getPartnerDomain() string {
 		return r.GetActiveTenant().Domain
 	}
 
-	if r.tokens != nil {
+	if r.tokens != nil && r.tokens.IDToken != "" {
 		t, err := jwt.ParseString(r.tokens.IDToken)
 		if err == nil {
 			hd, _ := t.Get("hd")
