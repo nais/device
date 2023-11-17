@@ -34,7 +34,14 @@
       in {
         defaultPackage = naisdevice;
         devShell = pkgs.mkShell {
-          packages = with pkgs; [ go_1_21 golangci-lint gopls gotools ];
+          packages = with pkgs; [
+            go_1_21
+            golangci-lint
+            gopls
+            gotools
+            protobuf3_20
+            sqlite
+          ];
         };
       });
 }
