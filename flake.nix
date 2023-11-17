@@ -43,5 +43,24 @@
             sqlite
           ];
         };
-      });
+      }) // {
+        checks.x86_64-linux = let
+          system = "x86_64-linux";
+          pkgsOverlay = final: prev: {
+            grafana9 = inputs.oldnixpkgs.legacyPackages.x86_64-linux.grafana;
+          };
+          pkgs = (import nixpkgs {
+            inherit system;
+            overlays = [ pkgsOverlay ];
+          }).pkgs;
+
+        in {
+          inherit (import ./nix/device-test.nix {
+            makeTest = import (nixpkgs + "/nixos/tests/make-test-python.nix");
+            inherit pkgs;
+            inherit (self.packages.${system}) device;
+          })
+            deviceTest;
+        };
+      };
 }
