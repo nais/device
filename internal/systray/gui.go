@@ -20,7 +20,7 @@ import (
 	"github.com/nais/device/internal/pb"
 	"github.com/nais/device/internal/version"
 
-	"github.com/getlantern/systray"
+	"fyne.io/systray"
 	"github.com/sirupsen/logrus"
 )
 
