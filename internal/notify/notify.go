@@ -36,7 +36,7 @@ func (n *notifier) printf(logLevel logrus.Level, format string, args ...any) {
 	message := fmt.Sprintf(format, args...)
 	logger := n.logFn(logLevel)
 	logger(message)
-	err := beeep.Notify("naisdevice", message, "../Resources/nais-logo-red.png")
+	err := beeep.Notify("naisdevice", message, appIconPath)
 	if err != nil {
 		n.log.Errorf("sending notification: %s", err)
 	}
