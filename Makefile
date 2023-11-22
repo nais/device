@@ -22,7 +22,7 @@ install-protobuf-go:
 # Before building linux-client and debian package, these are needed
 linux-init:
 	sudo apt update
-	sudo apt install build-essential libgtk-3-dev ruby ruby-dev rubygems imagemagick libayatana-appindicator3-dev
+	sudo apt install build-essential ruby ruby-dev rubygems imagemagick
 	sudo gem install --no-document fpm
 
 # Run by GitHub actions
