@@ -82,23 +82,11 @@ packaging/windows/assets/naisdevice.ico: assets/svg/blue.svg
 	convert -background transparent -resize 256x256 -gravity center -extent 256x256 assets/svg/blue.svg -define icon:auto-resize=48,64,96,128,256 packaging/windows/assets/naisdevice.ico
 
 
-macos-icon: assets/naisdevice.icns
-assets/naisdevice.icns:
-	rm -rf MyIcon.iconset
-	mkdir -p MyIcon.iconset
-	sips -z 16 16     assets/nais-logo-blue.png --out MyIcon.iconset/icon_16x16.png
-	sips -z 32 32     assets/nais-logo-blue.png --out MyIcon.iconset/icon_16x16@2x.png
-	sips -z 32 32     assets/nais-logo-blue.png --out MyIcon.iconset/icon_32x32.png
-	sips -z 64 64     assets/nais-logo-blue.png --out MyIcon.iconset/icon_32x32@2x.png
-	sips -z 128 128   assets/nais-logo-blue.png --out MyIcon.iconset/icon_128x128.png
-	sips -z 256 256   assets/nais-logo-blue.png --out MyIcon.iconset/icon_128x128@2x.png
-	sips -z 256 256   assets/nais-logo-blue.png --out MyIcon.iconset/icon_256x256.png
-	sips -z 512 512   assets/nais-logo-blue.png --out MyIcon.iconset/icon_256x256@2x.png
-	sips -z 512 512   assets/nais-logo-blue.png --out MyIcon.iconset/icon_512x512.png
-	cp assets/nais-logo-blue.png MyIcon.iconset/icon_512x512@2x.png
-	iconutil -c icns MyIcon.iconset
-	mv MyIcon.icns assets/naisdevice.icns
-	rm -R MyIcon.iconset
+macos-icon: packaging/macos/icons/naisdevice.icns
+packaging/macos/icons/naisdevice.icns:
+	mkdir -p packaging/macos/icons/
+	convert -background transparent -resize 1024x1024 -gravity center -extent 1024x1024 assets/svg/blue.svg packaging/macos/icons/naisdevice.png
+	go run github.com/jackmordaunt/icns/v2/cmd/icnsify -i packaging/macos/icons/naisdevice.png -o packaging/macos/icons/naisdevice.icns
 
 wg: bin/macos-client/wg
 bin/macos-client/wg:
@@ -120,7 +108,7 @@ app: wg wireguard-go macos-icon macos-client
 	mkdir -p naisdevice.app/Contents/{MacOS,Resources}
 	cp bin/macos-client/* naisdevice.app/Contents/MacOS
 	cp packaging/macos/jq-osx-amd64 naisdevice.app/Contents/MacOS/jq
-	cp assets/naisdevice.icns naisdevice.app/Contents/Resources
+	cp packaging/macos/icons/naisdevice.icns naisdevice.app/Contents/Resources
 	sed 's/VERSIONSTRING/${VERSION}/' packaging/macos/Info.plist.tpl > naisdevice.app/Contents/Info.plist
 	codesign -s "Developer ID Application: Torbjorn Hallenberg (T7D7Y5484F)" -f -v --timestamp --deep --options runtime naisdevice.app/Contents/MacOS/*
 
@@ -167,8 +155,8 @@ clean:
 	rm -f naisdevice-*.deb
 	rm -f ./packaging/windows/naisdevice*.exe
 	rm -rf ./bin
-	rm -rf ./packaging/linux/icons
-	rm -rf ./packaging/windows/assets
+	rm -rf ./packaging/*/icons
+	rm -rf ./packaging/*/assets
 
 mocks:
 	go run github.com/vektra/mockery/v2

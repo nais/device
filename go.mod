@@ -84,6 +84,7 @@ require (
 	github.com/akavel/rsrc v0.10.2
 	github.com/golang-migrate/migrate/v4 v4.16.2
 	github.com/google/gopacket v1.1.20-0.20220810144506-32ee38206866
+	github.com/jackmordaunt/icns/v2 v2.2.6
 	github.com/sqlc-dev/sqlc v1.23.0
 	github.com/vektra/mockery/v2 v2.37.1
 	golang.org/x/exp v0.0.0-20231006140011-7918f672742d
@@ -123,6 +124,7 @@ require (
 	github.com/mattn/go-sqlite3 v1.14.17 // indirect
 	github.com/mitchellh/go-homedir v1.1.0 // indirect
 	github.com/mitchellh/mapstructure v1.5.0 // indirect
+	github.com/nfnt/resize v0.0.0-20180221191011-83c6a9932646 // indirect
 	github.com/pelletier/go-toml/v2 v2.1.0 // indirect
 	github.com/pganalyze/pg_query_go/v4 v4.2.3 // indirect
 	github.com/pingcap/errors v0.11.5-0.20210425183316-da1aaba5fb63 // indirect
