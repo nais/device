@@ -189,7 +189,7 @@ func (das *DeviceAgentServer) EventLoop(programContext context.Context) {
 				break
 			}
 
-			helperHealthCheckCtx, cancel := context.WithTimeout(programContext, 1*time.Second)
+			helperHealthCheckCtx, cancel := context.WithTimeout(programContext, 5*time.Second)
 			if _, err := das.DeviceHelper.GetSerial(helperHealthCheckCtx, &pb.GetSerialRequest{}); err != nil {
 				cancel()
 
