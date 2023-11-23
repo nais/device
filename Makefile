@@ -70,16 +70,16 @@ local:
 	go build -o bin/local/naisdevice-helper --tags "$(GOTAGS)" -ldflags "-s $(LDFLAGS)" ./cmd/helper
 
 linux-icon: packaging/linux/icons/*/apps/naisdevice.png
-packaging/linux/icons/*/apps/naisdevice.png: assets/nais-logo-blue.png
+packaging/linux/icons/*/apps/naisdevice.png: assets/svg/blue.svg
 	for size in 16x16 32x32 64x64 128x128 256x256 512x512 ; do \
 		mkdir -p packaging/linux/icons/$$size/apps/ ; \
-		convert assets/nais-logo-blue.png -scale $$size^ -background none -gravity center -extent $$size packaging/linux/icons/$$size/apps/naisdevice.png ; \
+		convert -background transparent -resize $$size -gravity center -extent $$size assets/svg/blue.svg packaging/linux/icons/$$size/apps/naisdevice.png ; \
   	done
 
-windows-icon: packaging/windows/naisdevice.ico
-packaging/windows/naisdevice.ico: assets/nais-logo-blue.png
+windows-icon: packaging/windows/assets/naisdevice.ico
+packaging/windows/assets/naisdevice.ico: assets/svg/blue.svg
 	mkdir -p packaging/windows/assets/
-	convert assets/nais-logo-blue.png -background transparent -define icon:auto-resize=48,64,96,128,256 -gravity center packaging/windows/assets/naisdevice.ico
+	convert -background transparent -resize 256x256 -gravity center -extent 256x256 assets/svg/blue.svg -define icon:auto-resize=48,64,96,128,256 packaging/windows/assets/naisdevice.ico
 
 
 macos-icon: assets/naisdevice.icns
