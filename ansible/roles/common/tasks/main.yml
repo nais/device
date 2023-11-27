@@ -16,6 +16,6 @@
 - name: make sure unattented-upgrades is enabled
   ansible.builtin.debconf:
     name: unattended-upgrades
-    question: unattended-upgrades/enable_auto_updates: true
+    question: unattended-upgrades/enable_auto_updates
     value: 'true'
     vtype: select
