@@ -28,7 +28,7 @@
       - name: h129009
         authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIHsIXwF/eT74JubXMiAmk1Qwxs4VgZESy/JT/0gKTRG1 johnny@horvi.no-2019-05-15"
       - name: r137915
-        authorized_key: "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDutPpwpMPlrcNYbZi/Yp3tuidx0fbH5lINAt03AUbGrjcplIas89bNVFPqEZZkjW7pToviaAVZPbWvNOc4buve/dm8PuvjiIiD/TcWlBWYVG2awYTXxIlETA6S4zklFicv2GjgdVOCV3N2ttyLYF1Q2fGHaZU1KJQg1vEcL4JtOtecmMvEG8mwXXNEHAP+gGJPwghFV7zfZRkrnT3Jcw59NjAidnRCv9d7XPNH3+/zgwl+eem20jKxBjOd8r1qFaJ3raUxvcm05BMC65O5jeUXSakz1cnD4NqO9pTwGbDLos4FCh36FmqbYZqYGLoQScw2ohOtudlJxm9c+higHuT1 stenrokke@Stens-MacBook-Pro.local"
+        authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIG7XEyXBREJ9cXrHD+SbpXs+SkCNSnUYEoYLjCcVsfvd sten.ivar.rokke@nav.no"
       - name: n151873
         authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIKM1uoX5nHMM1ruk1Rfjh1c/t0s1LNQh0MXtf27hC4jg cardno:000615209054"
       - name: j152316
