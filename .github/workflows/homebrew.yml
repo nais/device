@@ -51,6 +51,7 @@ jobs:
           done
 
           git add Casks/naisdevice*.rb
-          git --no-pager diff --cached
-          git commit -a -m "Bump naisdevice.pkg version to ${LATEST}"
-          git push
+          if ! git --no-pager diff --cached --exit-code; then
+            git commit -a -m "Bump naisdevice.pkg version to ${LATEST}"
+            git push
+          fi
