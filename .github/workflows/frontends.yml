@@ -160,6 +160,8 @@ jobs:
 
   new_release:
     if: startsWith(github.ref, 'refs/tags/')
+    permissions:
+      contents: write
     needs:
       - set-version
       - test
@@ -174,12 +176,13 @@ jobs:
     steps:
       - name: create release
         id: create_release
-        uses: actions/create-release@v1
+        uses: softprops/action-gh-release@v0.1.15
         with:
           tag_name: ${{ needs.set-version.outputs.version }}
           release_name: Release ${{ needs.set-version.outputs.version }}
           draft: false
           prerelease: false
+          generate_release_notes: true
 
   release:
     if: startsWith(github.ref, 'refs/tags/')
