@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/nais/device/internal/device-agent/statemachine"
 	"math"
 	"net"
 	"net/http"
@@ -149,6 +150,25 @@ func (das *DeviceAgentServer) EventLoop(programContext context.Context) {
 	autoConnectTriggered := false
 
 	das.stateChange <- status.ConnectionState
+
+	// TODO: Place this somewhere sensible
+	stateMachine, err := statemachine.NewStateMachine(pb.AgentState_Disconnected, []statemachine.Transitions{
+		{"login", []pb.AgentState{pb.AgentState_Disconnected}, pb.AgentState_Authenticating},
+		{"authenticated", []pb.AgentState{pb.AgentState_Authenticating}, pb.AgentState_Bootstrapping},
+		{"bootstrapped", []pb.AgentState{pb.AgentState_Bootstrapping}, pb.AgentState_Connected},
+		{"disconnect", []pb.AgentState{pb.AgentState_Connected, pb.AgentState_Authenticating, pb.AgentState_Bootstrapping}, pb.AgentState_Disconnected},
+	}, []statemachine.State{
+		&statemachine.Disconnected{},
+		&statemachine.Authenticating{},
+		&statemachine.Bootstrapping{},
+		&statemachine.Connected{},
+	})
+	if err != nil {
+		panic(err)
+	}
+
+	// TODO: Get events from some channel
+	stateMachine.Transition("login")
 
 	status.Tenants = das.rc.Tenants()
 	wg := &sync.WaitGroup{}
