@@ -152,7 +152,7 @@ func (das *DeviceAgentServer) EventLoop(programContext context.Context) {
 	das.stateChange <- status.ConnectionState
 
 	// TODO: Place this somewhere sensible
-	stateMachine, err := statemachine.NewStateMachine(pb.AgentState_Disconnected, []statemachine.Transitions{
+	stateMachine, err := statemachine.NewStateMachine(programContext, pb.AgentState_Disconnected, []statemachine.Transitions{
 		{statemachine.EventLogin, []pb.AgentState{pb.AgentState_Disconnected}, pb.AgentState_Authenticating},
 		{statemachine.EventAuthenticated, []pb.AgentState{pb.AgentState_Authenticating}, pb.AgentState_Bootstrapping},
 		{statemachine.EventBootstrapped, []pb.AgentState{pb.AgentState_Bootstrapping}, pb.AgentState_Connected},

@@ -1,6 +1,7 @@
 package statemachine
 
 import (
+	"context"
 	"fmt"
 	"github.com/nais/device/internal/pb"
 )
@@ -15,12 +16,14 @@ const (
 )
 
 type State interface {
-	Enter()
-	Exit()
+	Enter(ctx context.Context)
+	Exit(ctx context.Context)
 	GetAgentState() pb.AgentState
 }
 
 type StateMachine struct {
+	ctx          context.Context
+	cancelFunc   context.CancelFunc
 	currentState State
 	states       map[pb.AgentState]State
 	transitions  map[transitionKey]pb.AgentState
@@ -37,8 +40,11 @@ type transitionKey struct {
 	source pb.AgentState
 }
 
-func NewStateMachine(initialState pb.AgentState, transitions []Transitions, states []State) (*StateMachine, error) {
+func NewStateMachine(ctx context.Context, initialState pb.AgentState, transitions []Transitions, states []State) (*StateMachine, error) {
+	ctx, cancelFunc := context.WithCancel(ctx)
 	stateMachine := StateMachine{
+		ctx:         ctx,
+		cancelFunc:  cancelFunc,
 		states:      make(map[pb.AgentState]State),
 		transitions: make(map[transitionKey]pb.AgentState),
 	}
@@ -57,7 +63,7 @@ func NewStateMachine(initialState pb.AgentState, transitions []Transitions, stat
 		}
 	}
 	stateMachine.currentState = stateMachine.states[initialState]
-	stateMachine.currentState.Enter()
+	stateMachine.currentState.Enter(ctx)
 	return &stateMachine, nil
 }
 
@@ -67,9 +73,9 @@ func (sm *StateMachine) setState(agentState pb.AgentState) {
 	if !ok {
 		panic("state not found")
 	}
-	sm.currentState.Exit()
+	sm.currentState.Exit(sm.ctx)
 	sm.currentState = state
-	sm.currentState.Enter()
+	sm.currentState.Enter(sm.ctx)
 }
 
 func (sm *StateMachine) Transition(event Event) {
@@ -77,4 +83,9 @@ func (sm *StateMachine) Transition(event Event) {
 	if agentState, ok := sm.transitions[key]; ok {
 		sm.setState(agentState)
 	}
+}
+
+func (sm *StateMachine) Close() {
+	sm.currentState.Exit(sm.ctx)
+	sm.cancelFunc()
 }
