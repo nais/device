@@ -5,6 +5,15 @@ import (
 	"github.com/nais/device/internal/pb"
 )
 
+type Event int8
+
+const (
+	EventLogin Event = iota
+	EventAuthenticated
+	EventBootstrapped
+	EventDisconnect
+)
+
 type State interface {
 	Enter()
 	Exit()
@@ -18,14 +27,14 @@ type StateMachine struct {
 }
 
 type Transitions struct {
-	EventName   string
+	Event       Event
 	Sources     []pb.AgentState
 	Destination pb.AgentState
 }
 
 type transitionKey struct {
-	eventName string
-	source    pb.AgentState
+	event  Event
+	source pb.AgentState
 }
 
 func NewStateMachine(initialState pb.AgentState, transitions []Transitions, states []State) (*StateMachine, error) {
@@ -44,7 +53,7 @@ func NewStateMachine(initialState pb.AgentState, transitions []Transitions, stat
 			if stateMachine.states[source] == nil {
 				return nil, fmt.Errorf("source state %s not found", source)
 			}
-			stateMachine.transitions[transitionKey{transition.EventName, source}] = transition.Destination
+			stateMachine.transitions[transitionKey{transition.Event, source}] = transition.Destination
 		}
 	}
 	stateMachine.currentState = stateMachine.states[initialState]
@@ -63,8 +72,8 @@ func (sm *StateMachine) setState(agentState pb.AgentState) {
 	sm.currentState.Enter()
 }
 
-func (sm *StateMachine) Transition(eventName string) {
-	key := transitionKey{eventName, sm.currentState.GetAgentState()}
+func (sm *StateMachine) Transition(event Event) {
+	key := transitionKey{event, sm.currentState.GetAgentState()}
 	if agentState, ok := sm.transitions[key]; ok {
 		sm.setState(agentState)
 	}

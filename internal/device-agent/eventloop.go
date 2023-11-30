@@ -153,10 +153,12 @@ func (das *DeviceAgentServer) EventLoop(programContext context.Context) {
 
 	// TODO: Place this somewhere sensible
 	stateMachine, err := statemachine.NewStateMachine(pb.AgentState_Disconnected, []statemachine.Transitions{
-		{"login", []pb.AgentState{pb.AgentState_Disconnected}, pb.AgentState_Authenticating},
-		{"authenticated", []pb.AgentState{pb.AgentState_Authenticating}, pb.AgentState_Bootstrapping},
-		{"bootstrapped", []pb.AgentState{pb.AgentState_Bootstrapping}, pb.AgentState_Connected},
-		{"disconnect", []pb.AgentState{pb.AgentState_Connected, pb.AgentState_Authenticating, pb.AgentState_Bootstrapping}, pb.AgentState_Disconnected},
+		{statemachine.EventLogin, []pb.AgentState{pb.AgentState_Disconnected}, pb.AgentState_Authenticating},
+		{statemachine.EventAuthenticated, []pb.AgentState{pb.AgentState_Authenticating}, pb.AgentState_Bootstrapping},
+		{statemachine.EventBootstrapped, []pb.AgentState{pb.AgentState_Bootstrapping}, pb.AgentState_Connected},
+		{statemachine.EventDisconnect, []pb.AgentState{
+			pb.AgentState_Connected, pb.AgentState_Authenticating, pb.AgentState_Bootstrapping,
+		}, pb.AgentState_Disconnected},
 	}, []statemachine.State{
 		&statemachine.Disconnected{},
 		&statemachine.Authenticating{},
@@ -168,7 +170,7 @@ func (das *DeviceAgentServer) EventLoop(programContext context.Context) {
 	}
 
 	// TODO: Get events from some channel
-	stateMachine.Transition("login")
+	stateMachine.Transition(statemachine.EventLogin)
 
 	status.Tenants = das.rc.Tenants()
 	wg := &sync.WaitGroup{}
