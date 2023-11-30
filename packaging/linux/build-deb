@@ -21,7 +21,7 @@ fpm \
     --depends wireguard \
     --depends libnss3-tools \
     --depends openssl \
-    --pre-install packaging/linux/preinstall \
+    --after-remove packaging/linux/postrm \
     --after-install packaging/linux/postinstall \
     --after-upgrade packaging/linux/postinstall \
     --deb-systemd packaging/linux/naisdevice-helper.service \

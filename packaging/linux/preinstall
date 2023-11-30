@@ -1,5 +1,0 @@
-#!/bin/sh
-
-pkill -f naisdevice
-
-exit 0
