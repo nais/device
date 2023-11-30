@@ -9,5 +9,6 @@ var defaultTenants = []*pb.Tenant{
 	{
 		Name:         "tenant",
 		AuthProvider: pb.AuthProvider_Google,
+		Active:       true,
 	},
 }
