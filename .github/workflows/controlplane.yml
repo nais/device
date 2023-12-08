@@ -11,7 +11,6 @@ on:
       - ".github/workflows/controlplane.yml"
       - "packaging/controlplane/**"
 env:
-  go_version: '1.21.4'
   REGISTRY: europe-north1-docker.pkg.dev/nais-io/nais/images
 
 jobs:
@@ -20,9 +19,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
+      - id: tool_versions
+        run: echo "go=$(grep golang .tool-versions | awk '{print $2}')" >> $GITHUB_OUTPUT
       - uses: actions/setup-go@v4
         with:
-          go-version: ${{ env.go_version }}
+          go-version: ${{ steps.tool_versions.outputs.go }}
       - name: run tests
         run: |
           sudo apt update
@@ -39,9 +40,11 @@ jobs:
       image: ghcr.io/nais/naisdevice-ci:v5
     steps:
       - uses: actions/checkout@v3
+      - id: tool_versions
+        run: echo "go=$(grep golang .tool-versions | awk '{print $2}')" >> $GITHUB_OUTPUT
       - uses: actions/setup-go@v4
         with:
-          go-version: ${{ env.go_version }}
+          go-version: ${{ steps.tool_versions.outputs.go }}
 
       - name: "Build controlplane"
         run: make controlplane-debs
