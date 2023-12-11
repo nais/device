@@ -12,4 +12,5 @@ import (
 	_ "google.golang.org/grpc/cmd/protoc-gen-go-grpc"
 	_ "honnef.co/go/tools/cmd/staticcheck"
 	_ "mvdan.cc/gofumpt"
+	_ "github.com/golangci/golangci-lint/cmd/golangci-lint"
 )

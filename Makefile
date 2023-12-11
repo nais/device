@@ -182,6 +182,13 @@ generate-sqlc:
 fmt:
 	go run mvdan.cc/gofumpt -w ./
 
-check:
+lint:
+	go run github.com/golangci/golangci-lint/cmd/golangci-lint run
+
+staticcheck:
 	go run honnef.co/go/tools/cmd/staticcheck ./...
+
+govulncheck:
 	go run golang.org/x/vuln/cmd/govulncheck ./...
+
+check: staticcheck govulncheck
