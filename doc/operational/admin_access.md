@@ -6,8 +6,8 @@
 
 ## SSH til onprem gateways
 
-1. Legg til ssh key under `admin_users` i [denne filen](/ansible/site.yml), push, vent ~5 minutter
-2. SSH til aura boksen (`ssh a01apvl099.adeo.no`), deretter `ssh <hostname eller public ip>`
+1. Legg til ssh key under `admin_users` i [denne filen](/ansible/site.yml), push, vent til ansible har kjørt (cron hvert 5. minutt)
+1. SSH til aura boksen (`ssh a01apvl099.adeo.no`), deretter `ssh <hostname eller public ip>`
 
 ## SSH til onprem gateways via naisdevice
 
