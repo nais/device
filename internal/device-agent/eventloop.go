@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/nais/device/internal/device-agent/statemachine"
 	"math"
 	"net"
 	"net/http"
@@ -152,13 +151,10 @@ func (das *DeviceAgentServer) EventLoop(programContext context.Context) {
 	das.stateChange <- status.ConnectionState
 
 	// TODO: Place this somewhere sensible
-	stateMachine, err := statemachine.NewStateMachine(programContext)
-	if err != nil {
-		panic(err)
-	}
-
-	// TODO: Get events from some channel
-	stateMachine.Transition(statemachine.EventLogin)
+	// stateMachine := statemachine.NewStateMachine(programContext)
+	// if err != nil {
+	// 	panic(err)
+	// }
 
 	status.Tenants = das.rc.Tenants()
 	wg := &sync.WaitGroup{}
