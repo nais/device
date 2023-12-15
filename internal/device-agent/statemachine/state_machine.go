@@ -3,6 +3,7 @@ package statemachine
 import (
 	"context"
 	"fmt"
+
 	"github.com/nais/device/internal/pb"
 )
 
@@ -16,20 +17,19 @@ const (
 )
 
 type State interface {
-	Enter(ctx context.Context)
-	Exit(ctx context.Context)
-	GetAgentState() pb.AgentState
+	Enter(context.Context, func(Event))
 }
 
 type StateMachine struct {
 	ctx          context.Context
-	cancelFunc   context.CancelFunc
-	currentState State
+	current      *stateHandle
+	events       chan Event
+	initialState pb.AgentState
 	states       map[pb.AgentState]State
 	transitions  map[transitionKey]pb.AgentState
 }
 
-type Transitions struct {
+type transitions struct {
 	Event       Event
 	Sources     []pb.AgentState
 	Destination pb.AgentState
@@ -37,34 +37,100 @@ type Transitions struct {
 
 type transitionKey struct {
 	event  Event
-	source pb.AgentState
+	source State
 }
 
-func NewStateMachine(ctx context.Context, initialState pb.AgentState, transitions []Transitions, states []State) (*StateMachine, error) {
-	ctx, cancelFunc := context.WithCancel(ctx)
+func NewStateMachine(ctx context.Context) *StateMachine {
+	transitions := []transitions{
+		{
+			Event: EventLogin,
+			Sources: []pb.AgentState{
+				pb.AgentState_Disconnected,
+			},
+			Destination: pb.AgentState_Authenticating,
+		},
+		{
+			Event: EventAuthenticated,
+			Sources: []pb.AgentState{
+				pb.AgentState_Authenticating,
+			},
+			Destination: pb.AgentState_Bootstrapping,
+		},
+		{
+			Event: EventBootstrapped,
+			Sources: []pb.AgentState{
+				pb.AgentState_Bootstrapping,
+			},
+			Destination: pb.AgentState_Connected,
+		},
+		{
+			Event: EventDisconnect,
+			Sources: []pb.AgentState{
+				pb.AgentState_Connected,
+				pb.AgentState_Authenticating,
+				pb.AgentState_Bootstrapping,
+			},
+			Destination: pb.AgentState_Disconnected,
+		},
+	}
+
 	stateMachine := StateMachine{
-		ctx:         ctx,
-		cancelFunc:  cancelFunc,
-		states:      make(map[pb.AgentState]State),
-		transitions: make(map[transitionKey]pb.AgentState),
+		ctx:    ctx,
+		events: make(chan Event, 255),
+		states: map[pb.AgentState]State{
+			pb.AgentState_Disconnected:   &Disconnected{},
+			pb.AgentState_Authenticating: &Authenticating{},
+			pb.AgentState_Bootstrapping:  &Bootstrapping{},
+			pb.AgentState_Connected:      &Connected{},
+		},
+		transitions:  make(map[transitionKey]pb.AgentState),
+		initialState: pb.AgentState_Disconnected,
 	}
-	for _, state := range states {
-		stateMachine.states[state.GetAgentState()] = state
-	}
+
 	for _, transition := range transitions {
 		if stateMachine.states[transition.Destination] == nil {
-			return nil, fmt.Errorf("destination state %s not found", transition.Destination)
+			panic(fmt.Sprintf("destination state %s not found", transition.Destination))
 		}
 		for _, source := range transition.Sources {
 			if stateMachine.states[source] == nil {
-				return nil, fmt.Errorf("source state %s not found", source)
+				panic(fmt.Sprintf("source state %s not found", source))
 			}
-			stateMachine.transitions[transitionKey{transition.Event, source}] = transition.Destination
+			stateMachine.transitions[transitionKey{transition.Event, stateMachine.states[source]}] = transition.Destination
 		}
 	}
-	stateMachine.currentState = stateMachine.states[initialState]
-	stateMachine.currentState.Enter(ctx)
-	return &stateMachine, nil
+
+	return &stateMachine
+}
+
+func (sm *StateMachine) SendEvent(e Event) {
+	sm.events <- e
+}
+
+func (sm *StateMachine) Run(ctx context.Context) {
+	sm.setState(sm.initialState)
+	for {
+		select {
+		case event := <-sm.events:
+			sm.transition(event)
+
+		case <-ctx.Done():
+			return
+		}
+	}
+}
+
+func (sm *StateMachine) GetAgentState() pb.AgentState {
+	if sm.current == nil {
+		return sm.initialState
+	}
+
+	for agentState, state := range sm.states {
+		if state == sm.current.state {
+			return agentState
+		}
+	}
+
+	panic("current state does not exist")
 }
 
 func (sm *StateMachine) setState(agentState pb.AgentState) {
@@ -73,19 +139,31 @@ func (sm *StateMachine) setState(agentState pb.AgentState) {
 	if !ok {
 		panic("state not found")
 	}
-	sm.currentState.Exit(sm.ctx)
-	sm.currentState = state
-	sm.currentState.Enter(sm.ctx)
+
+	if sm.current != nil {
+		if sm.current.cancelFunc != nil {
+			sm.current.cancelFunc()
+		} else {
+			// TODO: BUG, log it
+		}
+	}
+
+	stateCtx, stateCancel := context.WithCancel(sm.ctx)
+	sm.current = &stateHandle{
+		state:      state,
+		cancelFunc: stateCancel,
+	}
+	go sm.current.state.Enter(stateCtx, sm.SendEvent)
 }
 
-func (sm *StateMachine) Transition(event Event) {
-	key := transitionKey{event, sm.currentState.GetAgentState()}
+func (sm *StateMachine) transition(event Event) {
+	key := transitionKey{event, sm.current.state}
 	if agentState, ok := sm.transitions[key]; ok {
 		sm.setState(agentState)
 	}
 }
 
-func (sm *StateMachine) Close() {
-	sm.currentState.Exit(sm.ctx)
-	sm.cancelFunc()
+type stateHandle struct {
+	state      State
+	cancelFunc context.CancelFunc
 }
