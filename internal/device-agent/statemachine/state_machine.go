@@ -16,17 +16,18 @@ const (
 )
 
 type State interface {
-	Enter(ctx context.Context)
-	Exit(ctx context.Context)
+	Enter(ctx context.Context, sendEvent func(Event))
+	Exit()
 	GetAgentState() pb.AgentState
 }
 
 type StateMachine struct {
+	stateChanges chan State
 	ctx          context.Context
 	cancelFunc   context.CancelFunc
-	currentState State
 	states       map[pb.AgentState]State
 	transitions  map[transitionKey]pb.AgentState
+	currentState *stateHandle
 }
 
 type Transitions struct {
@@ -40,8 +41,24 @@ type transitionKey struct {
 	source pb.AgentState
 }
 
-func NewStateMachine(ctx context.Context, initialState pb.AgentState, transitions []Transitions, states []State) (*StateMachine, error) {
+func NewStateMachine(ctx context.Context) (*StateMachine, error) {
 	ctx, cancelFunc := context.WithCancel(ctx)
+
+	initialState := pb.AgentState_Disconnected
+
+	transitions := []Transitions{
+		{EventLogin, []pb.AgentState{pb.AgentState_Disconnected}, pb.AgentState_Authenticating},
+		{EventAuthenticated, []pb.AgentState{pb.AgentState_Authenticating}, pb.AgentState_Bootstrapping},
+		{EventBootstrapped, []pb.AgentState{pb.AgentState_Bootstrapping}, pb.AgentState_Connected},
+		{EventDisconnect, []pb.AgentState{pb.AgentState_Connected, pb.AgentState_Authenticating, pb.AgentState_Bootstrapping}, pb.AgentState_Disconnected},
+	}
+
+	states := []State{
+		&Disconnected{},
+		&Authenticating{},
+		&Bootstrapping{},
+		&Connected{},
+	}
 	stateMachine := StateMachine{
 		ctx:         ctx,
 		cancelFunc:  cancelFunc,
@@ -67,25 +84,46 @@ func NewStateMachine(ctx context.Context, initialState pb.AgentState, transition
 	return &stateMachine, nil
 }
 
+func (sm *StateMachine) run(ctx context.Context) {
+	select {
+	case state := <-sm.stateChanges:
+		sm.setState(state.GetAgentState())
+	case <-ctx.Done():
+		return
+	}
+}
+
 func (sm *StateMachine) setState(agentState pb.AgentState) {
 	var state State
 	state, ok := sm.states[agentState]
 	if !ok {
 		panic("state not found")
 	}
-	sm.currentState.Exit(sm.ctx)
-	sm.currentState = state
-	sm.currentState.Enter(sm.ctx)
+	sm.cancelFunc()
+	sm.currentState.enter(sm.ctx, sm.Transition)
+	sm.currentState = &stateHandle{state: state}
+	sm.currentState.exit()
 }
 
 func (sm *StateMachine) Transition(event Event) {
-	key := transitionKey{event, sm.currentState.GetAgentState()}
+	key := transitionKey{event, sm.currentState.state.GetAgentState()}
 	if agentState, ok := sm.transitions[key]; ok {
 		sm.setState(agentState)
 	}
 }
 
-func (sm *StateMachine) Close() {
-	sm.currentState.Exit(sm.ctx)
-	sm.cancelFunc()
+type stateHandle struct {
+	state      State
+	ctx        context.Context
+	cancelFunc context.CancelFunc
+}
+
+func (sh *stateHandle) enter(ctx context.Context, sendEvent func(Event)) {
+	sh.ctx, sh.cancelFunc = context.WithCancel(ctx)
+	go sh.state.Enter(ctx, sendEvent)
+}
+
+func (sh *stateHandle) exit() {
+	sh.cancelFunc()
+	sh.state.Exit()
 }
