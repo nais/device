@@ -87,7 +87,7 @@ require (
 	github.com/google/gopacket v1.1.20-0.20220810144506-32ee38206866
 	github.com/jackmordaunt/icns/v2 v2.2.6
 	github.com/sqlc-dev/sqlc v1.23.0
-	github.com/vektra/mockery/v2 v2.37.1
+	github.com/vektra/mockery/v2 v2.38.0
 	golang.org/x/exp v0.0.0-20231006140011-7918f672742d
 	golang.org/x/vuln v1.0.1
 	google.golang.org/grpc/cmd/protoc-gen-go-grpc v1.3.0
