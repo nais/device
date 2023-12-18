@@ -3,17 +3,21 @@ package statemachine
 import (
 	"context"
 	"fmt"
+	"github.com/nais/device/internal/device-agent/config"
+	"github.com/nais/device/internal/device-agent/runtimeconfig"
+	"github.com/nais/device/internal/notify"
+	"github.com/sirupsen/logrus"
 
 	"github.com/nais/device/internal/pb"
 )
 
-type Event int8
+type Event string
 
 const (
-	EventLogin Event = iota
-	EventAuthenticated
-	EventBootstrapped
-	EventDisconnect
+	EventLogin         Event = "Login"
+	EventAuthenticated       = "Authenticated"
+	EventBootstrapped        = "Bootstrapped"
+	EventDisconnect          = "Disconnect"
 )
 
 type State interface {
@@ -27,6 +31,7 @@ type StateMachine struct {
 	initialState pb.AgentState
 	states       map[pb.AgentState]State
 	transitions  map[transitionKey]pb.AgentState
+	logger       logrus.FieldLogger
 }
 
 type transitions struct {
@@ -40,7 +45,7 @@ type transitionKey struct {
 	source State
 }
 
-func NewStateMachine(ctx context.Context) *StateMachine {
+func NewStateMachine(ctx context.Context, rc runtimeconfig.RuntimeConfig, cfg config.Config, notifier notify.Notifier, logger logrus.FieldLogger) *StateMachine {
 	transitions := []transitions{
 		{
 			Event: EventLogin,
@@ -78,13 +83,19 @@ func NewStateMachine(ctx context.Context) *StateMachine {
 		ctx:    ctx,
 		events: make(chan Event, 255),
 		states: map[pb.AgentState]State{
-			pb.AgentState_Disconnected:   &Disconnected{},
-			pb.AgentState_Authenticating: &Authenticating{},
-			pb.AgentState_Bootstrapping:  &Bootstrapping{},
-			pb.AgentState_Connected:      &Connected{},
+			pb.AgentState_Disconnected: &Disconnected{},
+			pb.AgentState_Authenticating: &Authenticating{
+				rc:       rc,
+				cfg:      cfg,
+				notifier: notifier,
+				logger:   logger,
+			},
+			pb.AgentState_Bootstrapping: &Bootstrapping{},
+			pb.AgentState_Connected:     &Connected{},
 		},
 		transitions:  make(map[transitionKey]pb.AgentState),
 		initialState: pb.AgentState_Disconnected,
+		logger:       logger,
 	}
 
 	for _, transition := range transitions {
@@ -144,7 +155,7 @@ func (sm *StateMachine) setState(agentState pb.AgentState) {
 		if sm.current.cancelFunc != nil {
 			sm.current.cancelFunc()
 		} else {
-			// TODO: BUG, log it
+			panic("Current state has no cancel function, this is a programmer error")
 		}
 	}
 
@@ -160,6 +171,8 @@ func (sm *StateMachine) transition(event Event) {
 	key := transitionKey{event, sm.current.state}
 	if agentState, ok := sm.transitions[key]; ok {
 		sm.setState(agentState)
+	} else {
+		sm.logger.Warnf("No defined transition for event %s in state %s", event, sm.GetAgentState())
 	}
 }
 

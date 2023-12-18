@@ -26,7 +26,7 @@ type Tokens struct {
 	IDToken string
 }
 
-func GetDeviceAgentToken(ctx context.Context, log *logrus.Entry, conf oauth2.Config, authServer string) (*Tokens, error) {
+func GetDeviceAgentToken(ctx context.Context, log logrus.FieldLogger, conf oauth2.Config, authServer string) (*Tokens, error) {
 	// Ignoring impossible error
 	codeVerifier, _ := codeverifier.CreateCodeVerifier()
 
