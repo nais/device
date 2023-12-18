@@ -45,7 +45,7 @@ type transitionKey struct {
 	source State
 }
 
-func NewStateMachine(ctx context.Context, rc runtimeconfig.RuntimeConfig, cfg config.Config, notifier notify.Notifier, logger logrus.FieldLogger) *StateMachine {
+func NewStateMachine(ctx context.Context, rc runtimeconfig.RuntimeConfig, cfg config.Config, notifier notify.Notifier, deviceHelper pb.DeviceHelperClient, logger logrus.FieldLogger) *StateMachine {
 	transitions := []transitions{
 		{
 			Event: EventLogin,
@@ -90,8 +90,14 @@ func NewStateMachine(ctx context.Context, rc runtimeconfig.RuntimeConfig, cfg co
 				notifier: notifier,
 				logger:   logger,
 			},
-			pb.AgentState_Bootstrapping: &Bootstrapping{},
-			pb.AgentState_Connected:     &Connected{},
+			pb.AgentState_Bootstrapping: &Bootstrapping{
+				rc:           rc,
+				cfg:          cfg,
+				notifier:     notifier,
+				deviceHelper: deviceHelper,
+				logger:       logger,
+			},
+			pb.AgentState_Connected: &Connected{},
 		},
 		transitions:  make(map[transitionKey]pb.AgentState),
 		initialState: pb.AgentState_Disconnected,
