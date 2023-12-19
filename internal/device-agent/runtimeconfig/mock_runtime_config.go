@@ -114,6 +114,69 @@ func (_c *MockRuntimeConfig_BuildHelperConfiguration_Call) RunAndReturn(run func
 	return _c
 }
 
+// ConnectToAPIServer provides a mock function with given fields: _a0
+func (_m *MockRuntimeConfig) ConnectToAPIServer(_a0 context.Context) (pb.APIServerClient, func(), error) {
+	ret := _m.Called(_a0)
+
+	var r0 pb.APIServerClient
+	var r1 func()
+	var r2 error
+	if rf, ok := ret.Get(0).(func(context.Context) (pb.APIServerClient, func(), error)); ok {
+		return rf(_a0)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context) pb.APIServerClient); ok {
+		r0 = rf(_a0)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(pb.APIServerClient)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context) func()); ok {
+		r1 = rf(_a0)
+	} else {
+		if ret.Get(1) != nil {
+			r1 = ret.Get(1).(func())
+		}
+	}
+
+	if rf, ok := ret.Get(2).(func(context.Context) error); ok {
+		r2 = rf(_a0)
+	} else {
+		r2 = ret.Error(2)
+	}
+
+	return r0, r1, r2
+}
+
+// MockRuntimeConfig_ConnectToAPIServer_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'ConnectToAPIServer'
+type MockRuntimeConfig_ConnectToAPIServer_Call struct {
+	*mock.Call
+}
+
+// ConnectToAPIServer is a helper method to define mock.On call
+//   - _a0 context.Context
+func (_e *MockRuntimeConfig_Expecter) ConnectToAPIServer(_a0 interface{}) *MockRuntimeConfig_ConnectToAPIServer_Call {
+	return &MockRuntimeConfig_ConnectToAPIServer_Call{Call: _e.mock.On("ConnectToAPIServer", _a0)}
+}
+
+func (_c *MockRuntimeConfig_ConnectToAPIServer_Call) Run(run func(_a0 context.Context)) *MockRuntimeConfig_ConnectToAPIServer_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context))
+	})
+	return _c
+}
+
+func (_c *MockRuntimeConfig_ConnectToAPIServer_Call) Return(_a0 pb.APIServerClient, _a1 func(), _a2 error) *MockRuntimeConfig_ConnectToAPIServer_Call {
+	_c.Call.Return(_a0, _a1, _a2)
+	return _c
+}
+
+func (_c *MockRuntimeConfig_ConnectToAPIServer_Call) RunAndReturn(run func(context.Context) (pb.APIServerClient, func(), error)) *MockRuntimeConfig_ConnectToAPIServer_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // DialAPIServer provides a mock function with given fields: _a0
 func (_m *MockRuntimeConfig) DialAPIServer(_a0 context.Context) (*grpc.ClientConn, error) {
 	ret := _m.Called(_a0)

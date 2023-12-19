@@ -15,13 +15,15 @@ type Event string
 
 const (
 	EventLogin         Event = "Login"
-	EventAuthenticated       = "Authenticated"
-	EventBootstrapped        = "Bootstrapped"
-	EventDisconnect          = "Disconnect"
+	EventAuthenticated Event = "Authenticated"
+	EventBootstrapped  Event = "Bootstrapped"
+	EventDisconnect    Event = "Disconnect"
 )
 
 type State interface {
 	Enter(context.Context, func(Event))
+	AgentState() pb.AgentState
+	String() string
 }
 
 type StateMachine struct {
@@ -78,30 +80,41 @@ func NewStateMachine(ctx context.Context, rc runtimeconfig.RuntimeConfig, cfg co
 			Destination: pb.AgentState_Disconnected,
 		},
 	}
+	states := []State{
+		&Disconnected{},
+		&Authenticating{
+			rc:       rc,
+			cfg:      cfg,
+			notifier: notifier,
+			logger:   logger,
+		},
+		&Bootstrapping{
+			rc:           rc,
+			cfg:          cfg,
+			notifier:     notifier,
+			deviceHelper: deviceHelper,
+			logger:       logger,
+		},
+		&Connected{
+			rc:           rc,
+			cfg:          cfg,
+			notifier:     notifier,
+			deviceHelper: deviceHelper,
+			logger:       logger,
+		},
+	}
 
 	stateMachine := StateMachine{
-		ctx:    ctx,
-		events: make(chan Event, 255),
-		states: map[pb.AgentState]State{
-			pb.AgentState_Disconnected: &Disconnected{},
-			pb.AgentState_Authenticating: &Authenticating{
-				rc:       rc,
-				cfg:      cfg,
-				notifier: notifier,
-				logger:   logger,
-			},
-			pb.AgentState_Bootstrapping: &Bootstrapping{
-				rc:           rc,
-				cfg:          cfg,
-				notifier:     notifier,
-				deviceHelper: deviceHelper,
-				logger:       logger,
-			},
-			pb.AgentState_Connected: &Connected{},
-		},
+		ctx:          ctx,
+		events:       make(chan Event, 255),
+		states:       make(map[pb.AgentState]State),
 		transitions:  make(map[transitionKey]pb.AgentState),
 		initialState: pb.AgentState_Disconnected,
 		logger:       logger,
+	}
+
+	for _, state := range states {
+		stateMachine.states[state.AgentState()] = state
 	}
 
 	for _, transition := range transitions {
@@ -128,6 +141,7 @@ func (sm *StateMachine) Run(ctx context.Context) {
 	for {
 		select {
 		case event := <-sm.events:
+			sm.logger.Infof("Event received: %s", event)
 			sm.transition(event)
 
 		case <-ctx.Done():
@@ -170,6 +184,7 @@ func (sm *StateMachine) setState(agentState pb.AgentState) {
 		state:      state,
 		cancelFunc: stateCancel,
 	}
+	sm.logger.Infof("Entering state: %v", state)
 	go sm.current.state.Enter(stateCtx, sm.SendEvent)
 }
 

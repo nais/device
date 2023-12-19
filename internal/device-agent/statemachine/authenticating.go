@@ -2,12 +2,14 @@ package statemachine
 
 import (
 	"context"
+	"time"
+
 	"github.com/nais/device/internal/device-agent/auth"
 	"github.com/nais/device/internal/device-agent/config"
 	"github.com/nais/device/internal/device-agent/runtimeconfig"
 	"github.com/nais/device/internal/notify"
+	"github.com/nais/device/internal/pb"
 	"github.com/sirupsen/logrus"
-	"time"
 )
 
 const (
@@ -40,4 +42,12 @@ func (a *Authenticating) Enter(ctx context.Context, sendEvent func(Event)) {
 
 	a.rc.SetToken(token)
 	sendEvent(EventAuthenticated)
+}
+
+func (Authenticating) AgentState() pb.AgentState {
+	return pb.AgentState_Authenticating
+}
+
+func (a Authenticating) String() string {
+	return a.AgentState().String()
 }
