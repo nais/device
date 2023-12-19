@@ -23,7 +23,7 @@ func (d *Disconnected) Enter(ctx context.Context) Event {
 		return EventLogin
 	}
 	<-ctx.Done()
-	return EventNoOp
+	return EventWaitForExternalEvent
 }
 
 func (Disconnected) AgentState() pb.AgentState {

@@ -15,11 +15,11 @@ import (
 type Event string
 
 const (
-	EventNoOp          Event = "NoOp"
-	EventLogin         Event = "Login"
-	EventAuthenticated Event = "Authenticated"
-	EventBootstrapped  Event = "Bootstrapped"
-	EventDisconnect    Event = "Disconnect"
+	EventWaitForExternalEvent Event = "WaitForExternalEvent"
+	EventLogin                Event = "Login"
+	EventAuthenticated        Event = "Authenticated"
+	EventBootstrapped         Event = "Bootstrapped"
+	EventDisconnect           Event = "Disconnect"
 )
 
 type State interface {
@@ -197,7 +197,7 @@ func (sm *StateMachine) setState(agentState pb.AgentState) {
 	sm.current.mutex.Lock()
 	go func() {
 		maybeEvent := sm.current.state.Enter(stateCtx)
-		if maybeEvent != EventNoOp {
+		if maybeEvent != EventWaitForExternalEvent {
 			sm.events <- maybeEvent
 		}
 		sm.current.mutex.Unlock()

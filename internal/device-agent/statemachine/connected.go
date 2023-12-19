@@ -56,7 +56,7 @@ func (c *Connected) Enter(ctx context.Context) Event {
 	}
 
 	c.logger.Infof("Gateway config synchronization loop: %s", ctx.Err())
-	return EventNoOp
+	return EventWaitForExternalEvent
 }
 
 func (c *Connected) syncConfigLoop(ctx context.Context) error {
