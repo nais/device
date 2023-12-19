@@ -31,7 +31,7 @@ func TestStateMachine(t *testing.T) {
 		rc.EXPECT().APIServerPeer().Return(&pb.Gateway{})
 		rc.EXPECT().BuildHelperConfiguration(mock.Anything).Return(&pb.Configuration{})
 		mockGetDeviceConfigclient := pb.NewMockAPIServer_GetDeviceConfigurationClient(t)
-		mockGetDeviceConfigclient.EXPECT().Recv().Return(&pb.GetDeviceConfigurationResponse{
+		mockGetDeviceConfigclient.EXPECT().Recv().WaitUntil(time.After(20*time.Millisecond)).Return(&pb.GetDeviceConfigurationResponse{
 			Status:   pb.DeviceConfigurationStatus_DeviceHealthy,
 			Gateways: []*pb.Gateway{},
 		}, nil)
