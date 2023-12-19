@@ -4,11 +4,7 @@ import (
 	"context"
 	"time"
 
-	"github.com/nais/device/internal/device-agent/config"
-	"github.com/nais/device/internal/device-agent/runtimeconfig"
-	"github.com/nais/device/internal/notify"
 	"github.com/nais/device/internal/pb"
-	"github.com/sirupsen/logrus"
 )
 
 const (
@@ -16,11 +12,8 @@ const (
 )
 
 type Bootstrapping struct {
-	rc           runtimeconfig.RuntimeConfig
-	cfg          config.Config
-	notifier     notify.Notifier
+	BaseState
 	deviceHelper pb.DeviceHelperClient
-	logger       logrus.FieldLogger
 }
 
 func (b *Bootstrapping) Enter(ctx context.Context) Event {
@@ -67,4 +60,11 @@ func (Bootstrapping) AgentState() pb.AgentState {
 
 func (b Bootstrapping) String() string {
 	return b.AgentState().String()
+}
+
+func (b Bootstrapping) Status() *pb.AgentStatus {
+	return &pb.AgentStatus{
+		Tenants:         b.baseStatus.GetTenants(),
+		ConnectionState: b.AgentState(),
+	}
 }

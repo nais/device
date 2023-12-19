@@ -5,11 +5,7 @@ import (
 	"time"
 
 	"github.com/nais/device/internal/device-agent/auth"
-	"github.com/nais/device/internal/device-agent/config"
-	"github.com/nais/device/internal/device-agent/runtimeconfig"
-	"github.com/nais/device/internal/notify"
 	"github.com/nais/device/internal/pb"
-	"github.com/sirupsen/logrus"
 )
 
 const (
@@ -17,10 +13,7 @@ const (
 )
 
 type Authenticating struct {
-	rc       runtimeconfig.RuntimeConfig
-	cfg      config.Config
-	notifier notify.Notifier
-	logger   logrus.FieldLogger
+	BaseState
 }
 
 func (a *Authenticating) Enter(ctx context.Context) Event {
@@ -48,4 +41,11 @@ func (Authenticating) AgentState() pb.AgentState {
 
 func (a Authenticating) String() string {
 	return a.AgentState().String()
+}
+
+func (a Authenticating) Status() *pb.AgentStatus {
+	return &pb.AgentStatus{
+		Tenants:         a.baseStatus.GetTenants(),
+		ConnectionState: a.AgentState(),
+	}
 }

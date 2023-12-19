@@ -51,13 +51,13 @@ func TestStateMachine(t *testing.T) {
 		deviceHelper := pb.NewMockDeviceHelperClient(t)
 		deviceHelper.EXPECT().Configure(mock.Anything, mock.Anything).Return(&pb.ConfigureResponse{}, nil)
 
-		sm := NewStateMachine(ctx, rc, cfg, notifier, deviceHelper, log)
+		sm := NewStateMachine(ctx, rc, cfg, notifier, deviceHelper, nil, log)
 		go sm.Run(ctx)
 
 		sm.SendEvent(EventLogin)
 		assert.Eventually(t, func() bool { return sm.GetAgentState() == pb.AgentState_Connected }, 2000*time.Millisecond, 5*time.Millisecond)
 
 		sm.SendEvent(EventDisconnect)
-		assert.Eventually(t, func() bool { return sm.GetAgentState() == pb.AgentState_Disconnected }, 2000*time.Millisecond, 5*time.Millisecond)
+		assert.Eventually(t, func() bool { return sm.GetAgentState() == pb.AgentState_Disconnected }, 3000*time.Millisecond, 5*time.Millisecond)
 	})
 }

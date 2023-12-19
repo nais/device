@@ -3,11 +3,12 @@ package statemachine
 import (
 	"context"
 	"fmt"
+	"sync"
+
 	"github.com/nais/device/internal/device-agent/config"
 	"github.com/nais/device/internal/device-agent/runtimeconfig"
 	"github.com/nais/device/internal/notify"
 	"github.com/sirupsen/logrus"
-	"sync"
 
 	"github.com/nais/device/internal/pb"
 )
@@ -22,20 +23,31 @@ const (
 	EventDisconnect           Event = "Disconnect"
 )
 
+type BaseState struct {
+	rc         runtimeconfig.RuntimeConfig
+	cfg        config.Config
+	logger     logrus.FieldLogger
+	baseStatus *pb.AgentStatus
+	notifier   notify.Notifier
+}
+
 type State interface {
 	Enter(context.Context) Event
 	AgentState() pb.AgentState
 	String() string
+	Status() *pb.AgentStatus
 }
 
 type StateMachine struct {
-	ctx          context.Context
-	current      *stateHandle
-	events       chan Event
-	initialState pb.AgentState
-	states       map[pb.AgentState]State
-	transitions  map[transitionKey]pb.AgentState
-	logger       logrus.FieldLogger
+	ctx           context.Context
+	current       *stateHandle
+	events        chan Event
+	initialState  pb.AgentState
+	states        map[pb.AgentState]State
+	transitions   map[transitionKey]pb.AgentState
+	logger        logrus.FieldLogger
+	status        *pb.AgentStatus
+	statusUpdates chan<- *pb.AgentStatus
 }
 
 type transitions struct {
@@ -49,7 +61,7 @@ type transitionKey struct {
 	source State
 }
 
-func NewStateMachine(ctx context.Context, rc runtimeconfig.RuntimeConfig, cfg config.Config, notifier notify.Notifier, deviceHelper pb.DeviceHelperClient, logger logrus.FieldLogger) *StateMachine {
+func NewStateMachine(ctx context.Context, rc runtimeconfig.RuntimeConfig, cfg config.Config, notifier notify.Notifier, deviceHelper pb.DeviceHelperClient, statusUpdates chan<- *pb.AgentStatus, logger logrus.FieldLogger) *StateMachine {
 	transitions := []transitions{
 		{
 			Event: EventLogin,
@@ -82,40 +94,40 @@ func NewStateMachine(ctx context.Context, rc runtimeconfig.RuntimeConfig, cfg co
 			Destination: pb.AgentState_Disconnected,
 		},
 	}
-	states := []State{
-		&Disconnected{
-			rc:  rc,
-			cfg: cfg,
-		},
-		&Authenticating{
-			rc:       rc,
-			cfg:      cfg,
-			notifier: notifier,
-			logger:   logger,
-		},
-		&Bootstrapping{
-			rc:           rc,
-			cfg:          cfg,
-			notifier:     notifier,
-			deviceHelper: deviceHelper,
-			logger:       logger,
-		},
-		&Connected{
-			rc:           rc,
-			cfg:          cfg,
-			notifier:     notifier,
-			deviceHelper: deviceHelper,
-			logger:       logger,
-		},
-	}
 
 	stateMachine := StateMachine{
-		ctx:          ctx,
-		events:       make(chan Event, 255),
-		states:       make(map[pb.AgentState]State),
-		transitions:  make(map[transitionKey]pb.AgentState),
-		initialState: pb.AgentState_Disconnected,
-		logger:       logger,
+		ctx:           ctx,
+		events:        make(chan Event, 255),
+		states:        make(map[pb.AgentState]State),
+		transitions:   make(map[transitionKey]pb.AgentState),
+		initialState:  pb.AgentState_Disconnected,
+		logger:        logger,
+		statusUpdates: statusUpdates,
+	}
+
+	baseState := BaseState{
+		rc:       rc,
+		cfg:      cfg,
+		notifier: notifier,
+		logger:   logger,
+	}
+
+	states := []State{
+		&Disconnected{
+			BaseState: baseState,
+		},
+		&Authenticating{
+			BaseState: baseState,
+		},
+		&Bootstrapping{
+			BaseState:    baseState,
+			deviceHelper: deviceHelper,
+		},
+		&Connected{
+			BaseState:           baseState,
+			deviceHelper:        deviceHelper,
+			triggerStatusUpdate: stateMachine.TriggerStatusUpdate,
+		},
 	}
 
 	for _, state := range states {
@@ -135,6 +147,13 @@ func NewStateMachine(ctx context.Context, rc runtimeconfig.RuntimeConfig, cfg co
 	}
 
 	return &stateMachine
+}
+
+func (sm *StateMachine) TriggerStatusUpdate() {
+	select {
+	case sm.statusUpdates <- sm.current.state.Status():
+	default:
+	}
 }
 
 func (sm *StateMachine) SendEvent(e Event) {
@@ -180,6 +199,7 @@ func (sm *StateMachine) setState(agentState pb.AgentState) {
 
 	if sm.current != nil {
 		if sm.current.cancelFunc != nil {
+			sm.logger.Infof("Exiting state: %v", sm.current.state)
 			sm.current.cancelFunc()
 			sm.current.mutex.Lock()
 		} else {
@@ -193,8 +213,8 @@ func (sm *StateMachine) setState(agentState pb.AgentState) {
 		cancelFunc: stateCancel,
 		mutex:      &sync.Mutex{},
 	}
-	sm.logger.Infof("Entering state: %v", state)
 	sm.current.mutex.Lock()
+	sm.logger.Infof("Entering state: %v", state)
 	go func() {
 		maybeEvent := sm.current.state.Enter(stateCtx)
 		if maybeEvent != EventWaitForExternalEvent {

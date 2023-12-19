@@ -7,13 +7,11 @@ import (
 	"time"
 
 	"github.com/nais/device/internal/device-agent/config"
-	"github.com/nais/device/internal/device-agent/runtimeconfig"
-	"github.com/nais/device/internal/notify"
 	"github.com/nais/device/internal/pb"
 	"github.com/nais/device/internal/version"
-	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc/codes"
 	grpcstatus "google.golang.org/grpc/status"
+	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 const (
@@ -21,11 +19,11 @@ const (
 )
 
 type Connected struct {
-	rc           runtimeconfig.RuntimeConfig
-	cfg          config.Config
-	notifier     notify.Notifier
-	deviceHelper pb.DeviceHelperClient
-	logger       logrus.FieldLogger
+	BaseState
+	deviceHelper        pb.DeviceHelperClient
+	triggerStatusUpdate func()
+	gateways            []*pb.Gateway
+	connectedSince      *timestamppb.Timestamp
 }
 
 func (c *Connected) Enter(ctx context.Context) Event {
@@ -108,6 +106,7 @@ func (c *Connected) syncConfigLoop(ctx context.Context) error {
 		return err
 	}
 
+	c.connectedSince = timestamppb.Now()
 	c.logger.Infof("Gateway configuration stream established")
 
 	for ctx.Err() == nil {
@@ -140,6 +139,8 @@ func (c *Connected) syncConfigLoop(ctx context.Context) error {
 			cfg.Gateways...,
 		)))
 		helperCancel()
+		pb.MergeGatewayHealth(c.gateways, cfg.Gateways)
+		c.triggerStatusUpdate()
 	}
 
 	return nil
@@ -151,4 +152,13 @@ func (Connected) AgentState() pb.AgentState {
 
 func (c Connected) String() string {
 	return c.AgentState().String()
+}
+
+func (c Connected) Status() *pb.AgentStatus {
+	return &pb.AgentStatus{
+		ConnectedSince:  c.connectedSince,
+		Tenants:         c.baseStatus.GetTenants(),
+		Gateways:        c.gateways,
+		ConnectionState: c.AgentState(),
+	}
 }

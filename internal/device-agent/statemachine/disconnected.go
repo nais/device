@@ -2,15 +2,12 @@ package statemachine
 
 import (
 	"context"
-	"github.com/nais/device/internal/device-agent/config"
-	"github.com/nais/device/internal/device-agent/runtimeconfig"
 
 	"github.com/nais/device/internal/pb"
 )
 
 type Disconnected struct {
-	rc                   runtimeconfig.RuntimeConfig
-	cfg                  config.Config
+	BaseState
 	autoConnectTriggered bool
 }
 
@@ -32,4 +29,11 @@ func (Disconnected) AgentState() pb.AgentState {
 
 func (d Disconnected) String() string {
 	return d.AgentState().String()
+}
+
+func (d Disconnected) Status() *pb.AgentStatus {
+	return &pb.AgentStatus{
+		Tenants:         d.baseStatus.GetTenants(),
+		ConnectionState: d.AgentState(),
+	}
 }
