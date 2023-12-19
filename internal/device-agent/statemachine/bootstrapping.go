@@ -23,19 +23,18 @@ type Bootstrapping struct {
 	logger       logrus.FieldLogger
 }
 
-func (b *Bootstrapping) Enter(ctx context.Context, sendEvent func(Event)) {
+func (b *Bootstrapping) Enter(ctx context.Context) Event {
 	if err := b.rc.LoadEnrollConfig(); err == nil {
 		b.logger.Infof("Loaded enroll")
 	} else {
 		b.logger.Infof("Unable to load enroll config: %s", err)
 		b.logger.Infof("Enrolling device")
 		enrollCtx, cancel := context.WithTimeout(ctx, 1*time.Minute)
+		defer cancel()
 		serial, err := b.deviceHelper.GetSerial(enrollCtx, &pb.GetSerialRequest{})
 		if err != nil {
 			b.notifier.Errorf("Unable to get serial number: %v", err)
-			sendEvent(EventDisconnect)
-			cancel()
-			return
+			return EventDisconnect
 		}
 
 		err = b.rc.EnsureEnrolled(enrollCtx, serial.GetSerial())
@@ -43,8 +42,7 @@ func (b *Bootstrapping) Enter(ctx context.Context, sendEvent func(Event)) {
 		cancel()
 		if err != nil {
 			b.notifier.Errorf("Bootstrap: %v", err)
-			sendEvent(EventDisconnect)
-			return
+			return EventDisconnect
 		}
 	}
 
@@ -56,12 +54,11 @@ func (b *Bootstrapping) Enter(ctx context.Context, sendEvent func(Event)) {
 
 	if err != nil {
 		b.notifier.Errorf(err.Error())
-		sendEvent(EventDisconnect)
-		return
+		return EventDisconnect
 	}
 
-	sendEvent(EventBootstrapped)
 	// TODO: status.ConnectedSince = timestamppb.Now()
+	return EventBootstrapped
 }
 
 func (Bootstrapping) AgentState() pb.AgentState {

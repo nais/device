@@ -7,6 +7,7 @@ import (
 	"github.com/nais/device/internal/device-agent/runtimeconfig"
 	"github.com/nais/device/internal/notify"
 	"github.com/sirupsen/logrus"
+	"sync"
 
 	"github.com/nais/device/internal/pb"
 )
@@ -14,6 +15,7 @@ import (
 type Event string
 
 const (
+	EventNoOp          Event = "NoOp"
 	EventLogin         Event = "Login"
 	EventAuthenticated Event = "Authenticated"
 	EventBootstrapped  Event = "Bootstrapped"
@@ -21,7 +23,7 @@ const (
 )
 
 type State interface {
-	Enter(context.Context, func(Event))
+	Enter(context.Context) Event
 	AgentState() pb.AgentState
 	String() string
 }
@@ -81,7 +83,10 @@ func NewStateMachine(ctx context.Context, rc runtimeconfig.RuntimeConfig, cfg co
 		},
 	}
 	states := []State{
-		&Disconnected{},
+		&Disconnected{
+			rc:  rc,
+			cfg: cfg,
+		},
 		&Authenticating{
 			rc:       rc,
 			cfg:      cfg,
@@ -138,14 +143,16 @@ func (sm *StateMachine) SendEvent(e Event) {
 
 func (sm *StateMachine) Run(ctx context.Context) {
 	sm.setState(sm.initialState)
-	for {
+	for ctx.Err() == nil {
 		select {
-		case event := <-sm.events:
-			sm.logger.Infof("Event received: %s", event)
-			sm.transition(event)
-
 		case <-ctx.Done():
 			return
+
+		case event := <-sm.events:
+			if ctx.Err() == nil {
+				sm.logger.Infof("Event received: %s", event)
+				sm.transition(event)
+			}
 		}
 	}
 }
@@ -174,6 +181,7 @@ func (sm *StateMachine) setState(agentState pb.AgentState) {
 	if sm.current != nil {
 		if sm.current.cancelFunc != nil {
 			sm.current.cancelFunc()
+			sm.current.mutex.Lock()
 		} else {
 			panic("Current state has no cancel function, this is a programmer error")
 		}
@@ -183,9 +191,17 @@ func (sm *StateMachine) setState(agentState pb.AgentState) {
 	sm.current = &stateHandle{
 		state:      state,
 		cancelFunc: stateCancel,
+		mutex:      &sync.Mutex{},
 	}
 	sm.logger.Infof("Entering state: %v", state)
-	go sm.current.state.Enter(stateCtx, sm.SendEvent)
+	sm.current.mutex.Lock()
+	go func() {
+		maybeEvent := sm.current.state.Enter(stateCtx)
+		if maybeEvent != EventNoOp {
+			sm.events <- maybeEvent
+		}
+		sm.current.mutex.Unlock()
+	}()
 }
 
 func (sm *StateMachine) transition(event Event) {
@@ -200,4 +216,5 @@ func (sm *StateMachine) transition(event Event) {
 type stateHandle struct {
 	state      State
 	cancelFunc context.CancelFunc
+	mutex      *sync.Mutex
 }

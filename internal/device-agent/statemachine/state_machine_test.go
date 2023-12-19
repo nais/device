@@ -38,8 +38,12 @@ func TestStateMachine(t *testing.T) {
 		mockApiServerClient := pb.NewMockAPIServerClient(t)
 		mockApiServerClient.EXPECT().GetDeviceConfiguration(mock.Anything, mock.Anything).Return(mockGetDeviceConfigclient, nil)
 		rc.EXPECT().ConnectToAPIServer(mock.Anything).Return(mockApiServerClient, func() {}, nil)
+		rc.EXPECT().SetToken(mock.Anything)
+		rc.EXPECT().ResetEnrollConfig()
 
-		cfg := config.Config{}
+		cfg := config.Config{
+			AgentConfiguration: &pb.AgentConfiguration{},
+		}
 
 		notifier := notify.NewMockNotifier(t)
 		notifier.EXPECT().Errorf(mock.Anything, mock.Anything).Return().Maybe()

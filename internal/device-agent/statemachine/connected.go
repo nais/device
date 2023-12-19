@@ -28,13 +28,12 @@ type Connected struct {
 	logger       logrus.FieldLogger
 }
 
-func (c *Connected) Enter(ctx context.Context, sendEvent func(Event)) {
-	gateways := make(chan []*pb.Gateway, 16) // TODO: Do something with this
+func (c *Connected) Enter(ctx context.Context) Event {
 	attempt := 0
 	for ctx.Err() == nil {
 		attempt++
 		c.logger.Infof("[attempt %d] Setting up gateway configuration stream...", attempt)
-		err := c.syncConfigLoop(ctx, gateways, sendEvent)
+		err := c.syncConfigLoop(ctx)
 
 		switch grpcstatus.Code(err) {
 		case codes.OK:
@@ -46,23 +45,21 @@ func (c *Connected) Enter(ctx context.Context, sendEvent func(Event)) {
 			c.logger.Errorf("Logging in: %s", err)
 			c.rc.SetToken(nil)
 			c.logger.Error("Cleaned up old tokens")
-			sendEvent(EventDisconnect)
-			return
+			return EventDisconnect
 		default:
+			// TODO: More granular error handling
 			c.notifier.Errorf(err.Error())
 			c.logger.Errorf("error in syncConfigLoop: %v", err)
 			c.logger.Errorf("Assuming invalid session; disconnecting.")
-			sendEvent(EventDisconnect)
-			return
+			return EventDisconnect
 		}
 	}
 
 	c.logger.Infof("Gateway config synchronization loop: %s", ctx.Err())
-	<-ctx.Done()
-	sendEvent(EventDisconnect)
+	return EventNoOp
 }
 
-func (c *Connected) syncConfigLoop(ctx context.Context, gateways chan<- []*pb.Gateway, sendEvent func(Event)) error {
+func (c *Connected) syncConfigLoop(ctx context.Context) error {
 	apiserverClient, cleanup, err := c.rc.ConnectToAPIServer(ctx)
 	if err != nil {
 		return err
@@ -135,7 +132,14 @@ func (c *Connected) syncConfigLoop(ctx context.Context, gateways chan<- []*pb.Ga
 		default:
 		}
 
-		gateways <- cfg.Gateways
+		helperCtx, helperCancel := context.WithTimeout(ctx, helperTimeout)
+		_, err = c.deviceHelper.Configure(helperCtx, c.rc.BuildHelperConfiguration(append(
+			[]*pb.Gateway{
+				c.rc.APIServerPeer(),
+			},
+			cfg.Gateways...,
+		)))
+		helperCancel()
 	}
 
 	return nil

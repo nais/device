@@ -23,11 +23,10 @@ type Authenticating struct {
 	logger   logrus.FieldLogger
 }
 
-func (a *Authenticating) Enter(ctx context.Context, sendEvent func(Event)) {
+func (a *Authenticating) Enter(ctx context.Context) Event {
 	session, _ := a.rc.GetTenantSession()
 	if !session.Expired() {
-		sendEvent(EventAuthenticated)
-		return
+		return EventAuthenticated
 	}
 
 	ctx, cancel := context.WithTimeout(ctx, authFlowTimeout)
@@ -36,12 +35,11 @@ func (a *Authenticating) Enter(ctx context.Context, sendEvent func(Event)) {
 	cancel()
 	if err != nil {
 		a.notifier.Errorf("Get token: %v", err)
-		sendEvent(EventDisconnect)
-		return
+		return EventDisconnect
 	}
 
 	a.rc.SetToken(token)
-	sendEvent(EventAuthenticated)
+	return EventAuthenticated
 }
 
 func (Authenticating) AgentState() pb.AgentState {
