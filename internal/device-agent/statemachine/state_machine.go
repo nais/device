@@ -38,14 +38,14 @@ type State interface {
 }
 
 type StateMachine struct {
-	ctx           context.Context
-	current       *stateHandle
-	events        chan Event
-	initialState  pb.AgentState
-	states        map[pb.AgentState]State
-	transitions   map[transitionKey]pb.AgentState
-	logger        logrus.FieldLogger
-	statusUpdates chan<- *pb.AgentStatus
+	ctx               context.Context
+	current           *stateHandle
+	events            chan Event
+	initialAgentState pb.AgentState
+	states            map[pb.AgentState]State
+	transitions       map[transitionKey]pb.AgentState
+	logger            logrus.FieldLogger
+	statusUpdates     chan<- *pb.AgentStatus
 }
 
 type transitions struct {
@@ -94,13 +94,13 @@ func NewStateMachine(ctx context.Context, rc runtimeconfig.RuntimeConfig, cfg co
 	}
 
 	stateMachine := StateMachine{
-		ctx:           ctx,
-		events:        make(chan Event, 255),
-		states:        make(map[pb.AgentState]State),
-		transitions:   make(map[transitionKey]pb.AgentState),
-		initialState:  pb.AgentState_Disconnected,
-		logger:        logger,
-		statusUpdates: statusUpdates,
+		ctx:               ctx,
+		events:            make(chan Event, 255),
+		states:            make(map[pb.AgentState]State),
+		transitions:       make(map[transitionKey]pb.AgentState),
+		initialAgentState: pb.AgentState_Disconnected,
+		logger:            logger,
+		statusUpdates:     statusUpdates,
 	}
 
 	baseState := BaseState{
@@ -159,7 +159,7 @@ func (sm *StateMachine) SendEvent(e Event) {
 }
 
 func (sm *StateMachine) Run(ctx context.Context) {
-	sm.setState(sm.initialState)
+	sm.setState(sm.initialAgentState)
 	for ctx.Err() == nil {
 		select {
 		case <-ctx.Done():
@@ -182,16 +182,10 @@ func (sm *StateMachine) Run(ctx context.Context) {
 
 func (sm *StateMachine) GetAgentState() pb.AgentState {
 	if sm.current == nil {
-		return sm.initialState
+		return sm.initialAgentState
 	}
 
-	for agentState, state := range sm.states {
-		if state == sm.current.state {
-			return agentState
-		}
-	}
-
-	panic("current state does not exist")
+	return sm.current.state.AgentState()
 }
 
 func (sm *StateMachine) setState(agentState pb.AgentState) {
