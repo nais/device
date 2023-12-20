@@ -139,6 +139,10 @@ func (c *Connected) syncConfigLoop(ctx context.Context) error {
 			cfg.Gateways...,
 		)))
 		helperCancel()
+		if err != nil {
+			return fmt.Errorf("configure helper: %w", err)
+		}
+
 		pb.MergeGatewayHealth(c.gateways, cfg.Gateways)
 		c.triggerStatusUpdate()
 	}
