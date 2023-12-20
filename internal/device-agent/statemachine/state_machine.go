@@ -38,7 +38,7 @@ type State interface {
 
 type StateMachine struct {
 	ctx           context.Context
-	current       *stateHandle
+	current       *stateLifeCycle
 	events        chan Event
 	initialState  State
 	transitions   map[Event]transitions
@@ -168,7 +168,7 @@ func (sm *StateMachine) setState(state State) {
 	sm.logger.Infof("Exiting state: %v", sm.current)
 	sm.current.exit()
 
-	sm.current = newStateHandle(sm.ctx, state)
+	sm.current = newStateLifecycle(sm.ctx, state)
 
 	sm.logger.Infof("Entering state: %v", sm.current)
 	sm.current.enter(sm.events)

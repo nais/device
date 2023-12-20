@@ -5,16 +5,16 @@ import (
 	"sync"
 )
 
-type stateHandle struct {
+type stateLifeCycle struct {
 	state      State
 	ctx        context.Context
 	cancelFunc context.CancelFunc
 	mutex      *sync.Mutex
 }
 
-func newStateHandle(ctx context.Context, state State) *stateHandle {
+func newStateLifecycle(ctx context.Context, state State) *stateLifeCycle {
 	ctx, cancel := context.WithCancel(ctx)
-	return &stateHandle{
+	return &stateLifeCycle{
 		state:      state,
 		cancelFunc: cancel,
 		ctx:        ctx,
@@ -22,7 +22,7 @@ func newStateHandle(ctx context.Context, state State) *stateHandle {
 	}
 }
 
-func (sh *stateHandle) enter(out chan<- Event) {
+func (sh *stateLifeCycle) enter(out chan<- Event) {
 	sh.mutex.Lock()
 	go func() {
 		out <- sh.state.Enter(sh.ctx)
@@ -30,7 +30,7 @@ func (sh *stateHandle) enter(out chan<- Event) {
 	}()
 }
 
-func (sh *stateHandle) exit() {
+func (sh *stateLifeCycle) exit() {
 	if sh == nil {
 		return
 	}
@@ -44,6 +44,6 @@ func (sh *stateHandle) exit() {
 	sh.mutex.Lock()
 }
 
-func (sh *stateHandle) String() string {
+func (sh *stateLifeCycle) String() string {
 	return sh.state.String()
 }
