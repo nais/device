@@ -2,6 +2,7 @@ package statemachine
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/nais/device/internal/device-agent/config"
 	"github.com/nais/device/internal/device-agent/runtimeconfig"
@@ -38,7 +39,7 @@ type State interface {
 
 type StateMachine struct {
 	ctx           context.Context
-	current       *stateLifeCycle
+	current       *stateLifecycle
 	events        chan Event
 	initialState  State
 	transitions   map[Event]transitions

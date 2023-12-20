@@ -5,16 +5,16 @@ import (
 	"sync"
 )
 
-type stateLifeCycle struct {
+type stateLifecycle struct {
 	state      State
 	ctx        context.Context
 	cancelFunc context.CancelFunc
 	mutex      *sync.Mutex
 }
 
-func newStateLifecycle(ctx context.Context, state State) *stateLifeCycle {
+func newStateLifecycle(ctx context.Context, state State) *stateLifecycle {
 	ctx, cancel := context.WithCancel(ctx)
-	return &stateLifeCycle{
+	return &stateLifecycle{
 		state:      state,
 		cancelFunc: cancel,
 		ctx:        ctx,
@@ -22,28 +22,28 @@ func newStateLifecycle(ctx context.Context, state State) *stateLifeCycle {
 	}
 }
 
-func (sh *stateLifeCycle) enter(out chan<- Event) {
-	sh.mutex.Lock()
+func (s *stateLifecycle) enter(out chan<- Event) {
+	s.mutex.Lock()
 	go func() {
-		out <- sh.state.Enter(sh.ctx)
-		sh.mutex.Unlock()
+		out <- s.state.Enter(s.ctx)
+		s.mutex.Unlock()
 	}()
 }
 
-func (sh *stateLifeCycle) exit() {
-	if sh == nil {
+func (s *stateLifecycle) exit() {
+	if s == nil {
 		return
 	}
 
-	if sh.cancelFunc == nil {
+	if s.cancelFunc == nil {
 		panic("Current state has no cancel function, this is a programmer error")
 	}
 
-	sh.cancelFunc()
+	s.cancelFunc()
 	// Wait for unlock (Enter returns) before we continue in this routine.
-	sh.mutex.Lock()
+	s.mutex.Lock()
 }
 
-func (sh *stateLifeCycle) String() string {
-	return sh.state.String()
+func (s *stateLifecycle) String() string {
+	return s.state.String()
 }
