@@ -48,7 +48,7 @@ type StateMachine struct {
 
 type transitions struct {
 	state   State
-	sources []pb.AgentState
+	sources []State
 }
 
 func NewStateMachine(
@@ -74,42 +74,50 @@ func NewStateMachine(
 		statusUpdates: statusUpdates,
 	}
 
+	stateDisconnected := &Disconnected{
+		baseState: baseState,
+	}
+
+	stateAuthenticating := &Authenticating{
+		baseState: baseState,
+	}
+
+	stateBootstrapping := &Bootstrapping{
+		baseState:    baseState,
+		deviceHelper: deviceHelper,
+	}
+
+	stateConnected := &Connected{
+		baseState:           baseState,
+		deviceHelper:        deviceHelper,
+		triggerStatusUpdate: stateMachine.TriggerStatusUpdate,
+	}
+
 	stateMachine.transitions = map[Event]transitions{
 		EventLogin: {
-			state: &Authenticating{
-				baseState: baseState,
-			},
-			sources: []pb.AgentState{
-				pb.AgentState_Disconnected,
+			state: stateAuthenticating,
+			sources: []State{
+				stateDisconnected,
 			},
 		},
 		EventAuthenticated: {
-			state: &Bootstrapping{
-				baseState:    baseState,
-				deviceHelper: deviceHelper,
-			},
-			sources: []pb.AgentState{
-				pb.AgentState_Authenticating,
+			state: stateBootstrapping,
+			sources: []State{
+				stateAuthenticating,
 			},
 		},
 		EventBootstrapped: {
-			state: &Connected{
-				baseState:           baseState,
-				deviceHelper:        deviceHelper,
-				triggerStatusUpdate: stateMachine.TriggerStatusUpdate,
-			},
-			sources: []pb.AgentState{
-				pb.AgentState_Bootstrapping,
+			state: stateConnected,
+			sources: []State{
+				stateBootstrapping,
 			},
 		},
 		EventDisconnect: {
-			state: &Disconnected{
-				baseState: baseState,
-			},
-			sources: []pb.AgentState{
-				pb.AgentState_Connected,
-				pb.AgentState_Authenticating,
-				pb.AgentState_Bootstrapping,
+			state: stateDisconnected,
+			sources: []State{
+				stateConnected,
+				stateAuthenticating,
+				stateBootstrapping,
 			},
 		},
 	}
