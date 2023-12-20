@@ -47,9 +47,8 @@ type StateMachine struct {
 }
 
 type transitions struct {
-	state       State
-	sources     []pb.AgentState
-	destination pb.AgentState
+	state   State
+	sources []pb.AgentState
 }
 
 func NewStateMachine(
@@ -83,7 +82,6 @@ func NewStateMachine(
 			sources: []pb.AgentState{
 				pb.AgentState_Disconnected,
 			},
-			destination: pb.AgentState_Authenticating,
 		},
 		EventAuthenticated: {
 			state: &Bootstrapping{
@@ -93,7 +91,6 @@ func NewStateMachine(
 			sources: []pb.AgentState{
 				pb.AgentState_Authenticating,
 			},
-			destination: pb.AgentState_Bootstrapping,
 		},
 		EventBootstrapped: {
 			state: &Connected{
@@ -104,7 +101,6 @@ func NewStateMachine(
 			sources: []pb.AgentState{
 				pb.AgentState_Bootstrapping,
 			},
-			destination: pb.AgentState_Connected,
 		},
 		EventDisconnect: {
 			state: &Disconnected{
@@ -115,12 +111,13 @@ func NewStateMachine(
 				pb.AgentState_Authenticating,
 				pb.AgentState_Bootstrapping,
 			},
-			destination: pb.AgentState_Disconnected,
 		},
 	}
 
 	// hacky, but works i guess
 	stateMachine.initialState = stateMachine.transitions[EventDisconnect].state
+
+	// TODO maybe add a validate method here to make sure transitions map does not contain unexpected nil values?
 
 	return &stateMachine
 }
