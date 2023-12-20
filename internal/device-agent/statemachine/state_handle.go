@@ -25,10 +25,7 @@ func newStateHandle(ctx context.Context, state State) *stateHandle {
 func (sh *stateHandle) enter(out chan<- Event) {
 	sh.mutex.Lock()
 	go func() {
-		maybeE := sh.state.Enter(sh.ctx)
-		if maybeE != EventWaitForExternalEvent {
-			out <- maybeE
-		}
+		out <- sh.state.Enter(sh.ctx)
 		sh.mutex.Unlock()
 	}()
 }

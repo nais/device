@@ -166,10 +166,16 @@ func (sm *StateMachine) Run(ctx context.Context) {
 			return
 
 		case event := <-sm.events:
-			if ctx.Err() == nil {
-				sm.logger.Infof("Event received: %s", event)
-				sm.transition(event)
+			if ctx.Err() != nil {
+				break
 			}
+
+			sm.logger.Infof("Event received: %s", event)
+			if event == EventWaitForExternalEvent {
+				continue
+			}
+
+			sm.transition(event)
 		}
 	}
 }
