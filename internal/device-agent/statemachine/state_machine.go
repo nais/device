@@ -45,7 +45,6 @@ type StateMachine struct {
 	states        map[pb.AgentState]State
 	transitions   map[transitionKey]pb.AgentState
 	logger        logrus.FieldLogger
-	status        *pb.AgentStatus
 	statusUpdates chan<- *pb.AgentStatus
 }
 
