@@ -12,7 +12,7 @@ const (
 )
 
 type Bootstrapping struct {
-	BaseState
+	baseState
 	deviceHelper pb.DeviceHelperClient
 }
 

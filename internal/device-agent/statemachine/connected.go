@@ -19,7 +19,7 @@ const (
 )
 
 type Connected struct {
-	BaseState
+	baseState
 	deviceHelper        pb.DeviceHelperClient
 	triggerStatusUpdate func()
 	gateways            []*pb.Gateway

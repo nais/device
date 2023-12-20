@@ -2,7 +2,6 @@ package statemachine
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/nais/device/internal/device-agent/config"
 	"github.com/nais/device/internal/device-agent/runtimeconfig"
@@ -22,7 +21,7 @@ const (
 	EventDisconnect           Event = "Disconnect"
 )
 
-type BaseState struct {
+type baseState struct {
 	rc         runtimeconfig.RuntimeConfig
 	cfg        config.Config
 	logger     logrus.FieldLogger
@@ -38,113 +37,91 @@ type State interface {
 }
 
 type StateMachine struct {
-	ctx               context.Context
-	current           *stateHandle
-	events            chan Event
-	initialAgentState pb.AgentState
-	states            map[pb.AgentState]State
-	transitions       map[transitionKey]pb.AgentState
-	logger            logrus.FieldLogger
-	statusUpdates     chan<- *pb.AgentStatus
+	ctx           context.Context
+	current       *stateHandle
+	events        chan Event
+	initialState  State
+	transitions   map[Event]transitions
+	logger        logrus.FieldLogger
+	statusUpdates chan<- *pb.AgentStatus
 }
 
 type transitions struct {
-	Event       Event
-	Sources     []pb.AgentState
-	Destination pb.AgentState
+	event       Event
+	state       State
+	sources     []pb.AgentState
+	destination pb.AgentState
 }
 
-type transitionKey struct {
-	event  Event
-	source State
-}
-
-func NewStateMachine(ctx context.Context, rc runtimeconfig.RuntimeConfig, cfg config.Config, notifier notify.Notifier, deviceHelper pb.DeviceHelperClient, statusUpdates chan<- *pb.AgentStatus, logger logrus.FieldLogger) *StateMachine {
-	transitions := []transitions{
-		{
-			Event: EventLogin,
-			Sources: []pb.AgentState{
-				pb.AgentState_Disconnected,
-			},
-			Destination: pb.AgentState_Authenticating,
-		},
-		{
-			Event: EventAuthenticated,
-			Sources: []pb.AgentState{
-				pb.AgentState_Authenticating,
-			},
-			Destination: pb.AgentState_Bootstrapping,
-		},
-		{
-			Event: EventBootstrapped,
-			Sources: []pb.AgentState{
-				pb.AgentState_Bootstrapping,
-			},
-			Destination: pb.AgentState_Connected,
-		},
-		{
-			Event: EventDisconnect,
-			Sources: []pb.AgentState{
-				pb.AgentState_Connected,
-				pb.AgentState_Authenticating,
-				pb.AgentState_Bootstrapping,
-			},
-			Destination: pb.AgentState_Disconnected,
-		},
-	}
-
-	stateMachine := StateMachine{
-		ctx:               ctx,
-		events:            make(chan Event, 255),
-		states:            make(map[pb.AgentState]State),
-		transitions:       make(map[transitionKey]pb.AgentState),
-		initialAgentState: pb.AgentState_Disconnected,
-		logger:            logger,
-		statusUpdates:     statusUpdates,
-	}
-
-	baseState := BaseState{
+func NewStateMachine(
+	ctx context.Context,
+	rc runtimeconfig.RuntimeConfig,
+	cfg config.Config,
+	notifier notify.Notifier,
+	deviceHelper pb.DeviceHelperClient,
+	statusUpdates chan<- *pb.AgentStatus,
+	logger logrus.FieldLogger,
+) *StateMachine {
+	baseState := baseState{
 		rc:       rc,
 		cfg:      cfg,
 		notifier: notifier,
 		logger:   logger,
 	}
 
-	states := []State{
-		&Disconnected{
-			BaseState: baseState,
+	stateMachine := StateMachine{
+		ctx:           ctx,
+		events:        make(chan Event, 255),
+		logger:        logger,
+		statusUpdates: statusUpdates,
+	}
+
+	stateMachine.transitions = map[Event]transitions{
+		EventLogin: {
+			state: &Authenticating{
+				baseState: baseState,
+			},
+			sources: []pb.AgentState{
+				pb.AgentState_Disconnected,
+			},
+			destination: pb.AgentState_Authenticating,
 		},
-		&Authenticating{
-			BaseState: baseState,
+		EventAuthenticated: {
+			state: &Bootstrapping{
+				baseState:    baseState,
+				deviceHelper: deviceHelper,
+			},
+			sources: []pb.AgentState{
+				pb.AgentState_Authenticating,
+			},
+			destination: pb.AgentState_Bootstrapping,
 		},
-		&Bootstrapping{
-			BaseState:    baseState,
-			deviceHelper: deviceHelper,
+		EventBootstrapped: {
+			state: &Connected{
+				baseState:           baseState,
+				deviceHelper:        deviceHelper,
+				triggerStatusUpdate: stateMachine.TriggerStatusUpdate,
+			},
+			sources: []pb.AgentState{
+				pb.AgentState_Bootstrapping,
+			},
+			destination: pb.AgentState_Connected,
 		},
-		&Connected{
-			BaseState:           baseState,
-			deviceHelper:        deviceHelper,
-			triggerStatusUpdate: stateMachine.TriggerStatusUpdate,
+		EventDisconnect: {
+			state: &Disconnected{
+				baseState: baseState,
+			},
+			sources: []pb.AgentState{
+				pb.AgentState_Connected,
+				pb.AgentState_Authenticating,
+				pb.AgentState_Bootstrapping,
+			},
+			destination: pb.AgentState_Disconnected,
 		},
 	}
 
-	// Populate AgentState -> State map
-	for _, state := range states {
-		stateMachine.states[state.AgentState()] = state
-	}
-
-	// Populate allowed transitions map
-	for _, transition := range transitions {
-		if stateMachine.states[transition.Destination] == nil {
-			panic(fmt.Sprintf("destination state %s not found", transition.Destination))
-		}
-		for _, source := range transition.Sources {
-			if stateMachine.states[source] == nil {
-				panic(fmt.Sprintf("source state %s not found", source))
-			}
-			stateMachine.transitions[transitionKey{transition.Event, stateMachine.states[source]}] = transition.Destination
-		}
-	}
+	// hacky, but works i guess
+	stateMachine.initialState = stateMachine.transitions[EventDisconnect].state
 
 	return &stateMachine
 }
@@ -161,7 +138,8 @@ func (sm *StateMachine) SendEvent(e Event) {
 }
 
 func (sm *StateMachine) Run(ctx context.Context) {
-	sm.setState(sm.initialAgentState)
+	sm.setState(sm.initialState)
+
 	for ctx.Err() == nil {
 		select {
 		case <-ctx.Done():
@@ -184,18 +162,13 @@ func (sm *StateMachine) Run(ctx context.Context) {
 
 func (sm *StateMachine) GetAgentState() pb.AgentState {
 	if sm.current == nil {
-		return sm.initialAgentState
+		return sm.initialState.AgentState()
 	}
 
 	return sm.current.state.AgentState()
 }
 
-func (sm *StateMachine) setState(agentState pb.AgentState) {
-	state, ok := sm.states[agentState]
-	if !ok {
-		panic("state not found")
-	}
-
+func (sm *StateMachine) setState(state State) {
 	sm.logger.Infof("Exiting state: %v", sm.current)
 	sm.current.exit()
 
@@ -206,10 +179,11 @@ func (sm *StateMachine) setState(agentState pb.AgentState) {
 }
 
 func (sm *StateMachine) transition(event Event) {
-	key := transitionKey{event, sm.current.state}
-	if agentState, ok := sm.transitions[key]; ok {
-		sm.setState(agentState)
-	} else {
-		sm.logger.Warnf("No defined transition for event %s in state %s", event, sm.GetAgentState())
+	for e, t := range sm.transitions {
+		if e == event {
+			sm.setState(t.state)
+		}
 	}
+
+	sm.logger.Warnf("No defined transition for event %s in state %s", event, sm.GetAgentState())
 }

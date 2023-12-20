@@ -7,7 +7,7 @@ import (
 )
 
 type Disconnected struct {
-	BaseState
+	baseState
 	autoConnectTriggered bool
 }
 

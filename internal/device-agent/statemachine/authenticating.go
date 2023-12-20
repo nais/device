@@ -13,7 +13,7 @@ const (
 )
 
 type Authenticating struct {
-	BaseState
+	baseState
 }
 
 func (a *Authenticating) Enter(ctx context.Context) Event {
