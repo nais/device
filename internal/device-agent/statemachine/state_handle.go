@@ -35,13 +35,13 @@ func (sh *stateHandle) exit() {
 		return
 	}
 
-	if sh.cancelFunc != nil {
-		sh.cancelFunc()
-		// Wait for unlock (Enter returns) before we continue in this routine.
-		sh.mutex.Lock()
-	} else {
+	if sh.cancelFunc == nil {
 		panic("Current state has no cancel function, this is a programmer error")
 	}
+
+	sh.cancelFunc()
+	// Wait for unlock (Enter returns) before we continue in this routine.
+	sh.mutex.Lock()
 }
 
 func (sh *stateHandle) String() string {
