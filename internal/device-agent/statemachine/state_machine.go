@@ -183,8 +183,13 @@ func (sm *StateMachine) setState(state State) {
 }
 
 func (sm *StateMachine) transition(event Event) {
-	for e, t := range sm.transitions {
-		if e == event {
+	t, ok := sm.transitions[event]
+	if !ok {
+		sm.logger.Warnf("No defined transitions for event", event)
+	}
+
+	for _, s := range t.sources {
+		if s == sm.current.state {
 			sm.setState(t.state)
 		}
 	}
