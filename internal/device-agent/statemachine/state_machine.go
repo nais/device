@@ -128,10 +128,12 @@ func NewStateMachine(ctx context.Context, rc runtimeconfig.RuntimeConfig, cfg co
 		},
 	}
 
+	// Populate AgentState -> State map
 	for _, state := range states {
 		stateMachine.states[state.AgentState()] = state
 	}
 
+	// Populate allowed transitions map
 	for _, transition := range transitions {
 		if stateMachine.states[transition.Destination] == nil {
 			panic(fmt.Sprintf("destination state %s not found", transition.Destination))
