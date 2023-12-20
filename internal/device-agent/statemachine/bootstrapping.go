@@ -47,7 +47,7 @@ func (Bootstrapping) AgentState() pb.AgentState {
 }
 
 func (b Bootstrapping) String() string {
-	return b.AgentState().String()
+	return "Bootstrapping"
 }
 
 func (b Bootstrapping) Status() *pb.AgentStatus {

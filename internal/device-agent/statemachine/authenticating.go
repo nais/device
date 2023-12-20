@@ -40,7 +40,7 @@ func (Authenticating) AgentState() pb.AgentState {
 }
 
 func (a Authenticating) String() string {
-	return a.AgentState().String()
+	return "Authenticating"
 }
 
 func (a Authenticating) Status() *pb.AgentStatus {

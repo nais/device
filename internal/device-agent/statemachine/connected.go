@@ -174,15 +174,15 @@ func (c *Connected) syncConfigLoop(ctx context.Context) error {
 }
 
 func (c Connected) AgentState() pb.AgentState {
-	if c.healthy {
-		return pb.AgentState_Connected
-	} else {
+	if c.unhealthy {
 		return pb.AgentState_Unhealthy
+	} else {
+		return pb.AgentState_Connected
 	}
 }
 
 func (c Connected) String() string {
-	return c.AgentState().String()
+	return "Connected"
 }
 
 func (c Connected) Status() *pb.AgentStatus {

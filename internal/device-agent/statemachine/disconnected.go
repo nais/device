@@ -28,7 +28,7 @@ func (Disconnected) AgentState() pb.AgentState {
 }
 
 func (d Disconnected) String() string {
-	return d.AgentState().String()
+	return "Disconnected"
 }
 
 func (d Disconnected) Status() *pb.AgentStatus {
