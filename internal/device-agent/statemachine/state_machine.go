@@ -122,8 +122,7 @@ func NewStateMachine(
 		},
 	}
 
-	// hacky, but works i guess
-	stateMachine.initialState = stateMachine.transitions[EventDisconnect].state
+	stateMachine.initialState = stateDisconnected
 
 	// TODO maybe add a validate method here to make sure transitions map does not contain unexpected nil values?
 
