@@ -39,18 +39,6 @@ func (b *Bootstrapping) Enter(ctx context.Context) Event {
 		}
 	}
 
-	helperCtx, cancel := context.WithTimeout(ctx, helperTimeout)
-	_, err := b.deviceHelper.Configure(helperCtx, b.rc.BuildHelperConfiguration([]*pb.Gateway{
-		b.rc.APIServerPeer(),
-	}))
-	cancel()
-
-	if err != nil {
-		b.notifier.Errorf(err.Error())
-		return EventDisconnect
-	}
-
-	// TODO: status.ConnectedSince = timestamppb.Now()
 	return EventBootstrapped
 }
 

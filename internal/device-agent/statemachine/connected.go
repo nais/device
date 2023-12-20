@@ -27,6 +27,24 @@ type Connected struct {
 }
 
 func (c *Connected) Enter(ctx context.Context) Event {
+	// Set up WireGuard interface for communication with APIServer
+	helperCtx, cancel := context.WithTimeout(ctx, helperTimeout)
+	_, err := c.deviceHelper.Configure(helperCtx, c.rc.BuildHelperConfiguration([]*pb.Gateway{
+		c.rc.APIServerPeer(),
+	}))
+	cancel()
+	if err != nil {
+		c.notifier.Errorf(err.Error())
+		return EventDisconnect
+	}
+
+	// Teardown WireGuard interface when this state is finished
+	defer func() {
+		ctx, cancel := context.WithTimeout(ctx, helperTimeout)
+		_, err = c.deviceHelper.Teardown(ctx, &pb.TeardownRequest{})
+		cancel()
+	}()
+
 	attempt := 0
 	for ctx.Err() == nil {
 		attempt++

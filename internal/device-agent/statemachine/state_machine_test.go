@@ -50,6 +50,7 @@ func TestStateMachine(t *testing.T) {
 
 		deviceHelper := pb.NewMockDeviceHelperClient(t)
 		deviceHelper.EXPECT().Configure(mock.Anything, mock.Anything).Return(&pb.ConfigureResponse{}, nil)
+		deviceHelper.EXPECT().Teardown(mock.Anything, mock.Anything).Return(&pb.TeardownResponse{}, nil)
 
 		sm := NewStateMachine(ctx, rc, cfg, notifier, deviceHelper, nil, log)
 		go sm.Run(ctx)
