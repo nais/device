@@ -189,7 +189,6 @@ func (sm *StateMachine) GetAgentState() pb.AgentState {
 }
 
 func (sm *StateMachine) setState(agentState pb.AgentState) {
-	var state State
 	state, ok := sm.states[agentState]
 	if !ok {
 		panic("state not found")
