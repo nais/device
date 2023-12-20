@@ -125,6 +125,11 @@ func NewStateMachine(
 	stateMachine.initialState = stateDisconnected
 
 	// TODO maybe add a validate method here to make sure transitions map does not contain unexpected nil values?
+	for e, t := range stateMachine.transitions {
+		if t.state == nil {
+			panic(fmt.Sprintf("transition with nil state detected for event: %v", e))
+		}
+	}
 
 	return &stateMachine
 }
