@@ -357,9 +357,6 @@ func (r *runtimeConfig) PopulateTenants(ctx context.Context) error {
 
 	}
 
-	// set first tenant as active by default
-	r.tenants[0].Active = true
-
 	return nil
 }
 

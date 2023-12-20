@@ -24,6 +24,7 @@ type Connected struct {
 	triggerStatusUpdate func()
 	gateways            []*pb.Gateway
 	connectedSince      *timestamppb.Timestamp
+	healthy             bool
 }
 
 func (c *Connected) Enter(ctx context.Context) Event {
@@ -135,6 +136,7 @@ func (c *Connected) syncConfigLoop(ctx context.Context) error {
 
 		c.logger.Infof("Received gateway configuration from API server")
 
+		c.healthy = true
 		switch cfg.Status {
 		case pb.DeviceConfigurationStatus_InvalidSession:
 			c.logger.Errorf("Unauthorized access from apiserver: %v", err)
@@ -142,7 +144,10 @@ func (c *Connected) syncConfigLoop(ctx context.Context) error {
 		case pb.DeviceConfigurationStatus_DeviceUnhealthy:
 			c.logger.Errorf("Device is not healthy: %v", err)
 			c.notifier.Errorf("No access as your device is unhealthy. Run '/msg @Kolide status' on Slack and fix the errors")
-			// TODO: Need new event? das.stateChange <- pb.AgentState_Unhealthy
+
+			c.healthy = false
+			c.gateways = nil
+			c.triggerStatusUpdate()
 			continue
 		case pb.DeviceConfigurationStatus_DeviceHealthy:
 			c.logger.Infof("Device is healthy; server pushed %d gateways", len(cfg.Gateways))
@@ -161,15 +166,19 @@ func (c *Connected) syncConfigLoop(ctx context.Context) error {
 			return fmt.Errorf("configure helper: %w", err)
 		}
 
-		pb.MergeGatewayHealth(c.gateways, cfg.Gateways)
+		c.gateways = pb.MergeGatewayHealth(c.gateways, cfg.Gateways)
 		c.triggerStatusUpdate()
 	}
 
 	return nil
 }
 
-func (Connected) AgentState() pb.AgentState {
-	return pb.AgentState_Connected
+func (c Connected) AgentState() pb.AgentState {
+	if c.healthy {
+		return pb.AgentState_Connected
+	} else {
+		return pb.AgentState_Unhealthy
+	}
 }
 
 func (c Connected) String() string {

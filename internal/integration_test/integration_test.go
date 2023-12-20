@@ -192,14 +192,14 @@ func tableTest(t *testing.T, log *logrus.Entry, testDevice *pb.Device, endState 
 
 	apiDial, err := dial(ctx, apiserverListener)
 	assert.NoError(t, err)
+	cleanup := func() {
+		apiDial.Close()
+	}
+
+	apiServerClient := pb.NewAPIServerClient(apiDial)
 
 	rc := runtimeconfig.NewMockRuntimeConfig(t)
-	rc.EXPECT().DialAPIServer(mock.AnythingOfType("*context.timerCtx")).Return(apiDial, nil)
-	rc.EXPECT().Tenants().Return([]*pb.Tenant{{
-		Name:         "test",
-		AuthProvider: pb.AuthProvider_Google,
-		Domain:       "test.nais.io",
-	}})
+	rc.EXPECT().ConnectToAPIServer(mock.AnythingOfType("*context.cancelCtx")).Return(apiServerClient, cleanup, nil)
 	rc.EXPECT().SetToken(mock.AnythingOfType("*auth.Tokens")).Return()
 	rc.EXPECT().ResetEnrollConfig().Return()
 	rc.EXPECT().GetTenantSession().Return(session, nil)
@@ -251,8 +251,8 @@ func tableTest(t *testing.T, log *logrus.Entry, testDevice *pb.Device, endState 
 		// }
 
 		gwwg.Add(2)
-		gatewayNC.EXPECT().ForwardRoutesV4(gw.GetRoutesIPv4()).Return(nil).Run(func(_ []string) { gwwg.Done() })
-		gatewayNC.EXPECT().ForwardRoutesV6(gw.GetRoutesIPv6()).Return(nil).Run(func(_ []string) { gwwg.Done() })
+		gatewayNC.EXPECT().ForwardRoutesV4(gw.GetRoutesIPv4()).Return(nil).Run(func(_ []string) { gwwg.Done() }).Once()
+		gatewayNC.EXPECT().ForwardRoutesV6(gw.GetRoutesIPv6()).Return(nil).Run(func(_ []string) { gwwg.Done() }).Once()
 
 		wg.Add(1)
 		go func(t *testing.T, gw *pb.Gateway, wg *sync.WaitGroup) {
@@ -316,16 +316,18 @@ func tableTest(t *testing.T, log *logrus.Entry, testDevice *pb.Device, endState 
 	}
 
 	lastKnownState := pb.AgentState_Disconnected
+	lastKnownGateways := []*pb.Gateway{}
 	for {
 		select {
 		case <-ctx.Done():
-			t.Errorf("FAIL: test timed out without agent reaching expected end state: %v, last known state: %v", endState, lastKnownState)
+			t.Errorf("FAIL: test timed out without agent reaching expected end state: %v with gateways: %v, last known state: %v and gateways: %v", endState, expectedGateways, lastKnownState, lastKnownGateways)
 			stopStuff()
 			return
 		case err := <-errChan:
 			t.Errorf("FAIL: receiving agent status unexpected error: %v", err)
 		case status := <-statusChan:
 			lastKnownState = status.ConnectionState
+			lastKnownGateways = status.Gateways
 			if status.ConnectionState == endState &&
 				matchExactGateways(expectedGateways)(append(status.Gateways, apiserverPeer)) {
 				t.Logf("agent reached expected end state: %v", endState)

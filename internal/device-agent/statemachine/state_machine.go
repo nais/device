@@ -152,7 +152,7 @@ func (sm *StateMachine) Run(ctx context.Context) {
 	for ctx.Err() == nil {
 		select {
 		case <-ctx.Done():
-			return
+			break
 
 		case event := <-sm.events:
 			if ctx.Err() != nil {
@@ -167,6 +167,8 @@ func (sm *StateMachine) Run(ctx context.Context) {
 			sm.transition(event)
 		}
 	}
+
+	sm.current.exit()
 }
 
 func (sm *StateMachine) GetAgentState() pb.AgentState {
@@ -196,6 +198,7 @@ func (sm *StateMachine) transition(event Event) {
 	for _, s := range t.sources {
 		if s == sm.current.state {
 			sm.setState(t.state)
+			return
 		}
 	}
 

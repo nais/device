@@ -4,22 +4,21 @@ func (x *Gateway) MergeHealth(y *Gateway) {
 	x.Healthy = y.GetHealthy()
 }
 
-// MergeGatewayHealth copies the `Healthy` member from one slice of gateways to the other.
-func MergeGatewayHealth(dst []*Gateway, src []*Gateway) {
-	gatewayByName := func(name string) *Gateway {
-		for _, gw := range src {
-			if gw.GetName() == name {
-				return gw
+// MergeGatewayHealth copies the `Healthy` member from the existingGateways slice (if available), and returns updated new gateways.
+func MergeGatewayHealth(existingGateways []*Gateway, newGateways []*Gateway) []*Gateway {
+	var updatedGateways []*Gateway
+	for _, newGateway := range newGateways {
+		for _, existingGw := range existingGateways {
+			if existingGw.GetName() == newGateway.GetName() {
+				newGateway.Healthy = existingGw.GetHealthy()
+				break
 			}
 		}
-		return nil
+
+		updatedGateways = append(updatedGateways, newGateway)
 	}
-	for _, gw := range dst {
-		healthGateway := gatewayByName(gw.Name)
-		if healthGateway != nil {
-			gw.Healthy = healthGateway.GetHealthy()
-		}
-	}
+
+	return updatedGateways
 }
 
 // Satisfy WireGuard interface.
