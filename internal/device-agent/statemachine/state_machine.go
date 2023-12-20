@@ -60,18 +60,18 @@ func NewStateMachine(
 	statusUpdates chan<- *pb.AgentStatus,
 	logger logrus.FieldLogger,
 ) *StateMachine {
-	baseState := baseState{
-		rc:       rc,
-		cfg:      cfg,
-		notifier: notifier,
-		logger:   logger,
-	}
-
 	stateMachine := StateMachine{
 		ctx:           ctx,
 		events:        make(chan Event, 255),
 		logger:        logger,
 		statusUpdates: statusUpdates,
+	}
+
+	baseState := baseState{
+		rc:       rc,
+		cfg:      cfg,
+		notifier: notifier,
+		logger:   logger,
 	}
 
 	stateDisconnected := &Disconnected{
