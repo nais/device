@@ -24,7 +24,7 @@ type Connected struct {
 	triggerStatusUpdate func()
 	gateways            []*pb.Gateway
 	connectedSince      *timestamppb.Timestamp
-	healthy             bool
+	unhealthy           bool
 }
 
 func (c *Connected) Enter(ctx context.Context) Event {
@@ -136,7 +136,6 @@ func (c *Connected) syncConfigLoop(ctx context.Context) error {
 
 		c.logger.Infof("Received gateway configuration from API server")
 
-		c.healthy = true
 		switch cfg.Status {
 		case pb.DeviceConfigurationStatus_InvalidSession:
 			c.logger.Errorf("Unauthorized access from apiserver: %v", err)
@@ -145,11 +144,12 @@ func (c *Connected) syncConfigLoop(ctx context.Context) error {
 			c.logger.Errorf("Device is not healthy: %v", err)
 			c.notifier.Errorf("No access as your device is unhealthy. Run '/msg @Kolide status' on Slack and fix the errors")
 
-			c.healthy = false
+			c.unhealthy = true
 			c.gateways = nil
 			c.triggerStatusUpdate()
 			continue
 		case pb.DeviceConfigurationStatus_DeviceHealthy:
+			c.unhealthy = false
 			c.logger.Infof("Device is healthy; server pushed %d gateways", len(cfg.Gateways))
 		default:
 		}
