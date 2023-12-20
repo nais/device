@@ -3,7 +3,6 @@ package statemachine
 import (
 	"context"
 	"fmt"
-	"sync"
 
 	"github.com/nais/device/internal/device-agent/config"
 	"github.com/nais/device/internal/device-agent/runtimeconfig"
@@ -197,31 +196,13 @@ func (sm *StateMachine) setState(agentState pb.AgentState) {
 		panic("state not found")
 	}
 
-	if sm.current != nil {
-		if sm.current.cancelFunc != nil {
-			sm.logger.Infof("Exiting state: %v", sm.current.state)
-			sm.current.cancelFunc()
-			sm.current.mutex.Lock()
-		} else {
-			panic("Current state has no cancel function, this is a programmer error")
-		}
-	}
+	sm.logger.Infof("Exiting state: %v", sm.current)
+	sm.current.exit()
 
-	stateCtx, stateCancel := context.WithCancel(sm.ctx)
-	sm.current = &stateHandle{
-		state:      state,
-		cancelFunc: stateCancel,
-		mutex:      &sync.Mutex{},
-	}
-	sm.current.mutex.Lock()
-	sm.logger.Infof("Entering state: %v", state)
-	go func() {
-		maybeEvent := sm.current.state.Enter(stateCtx)
-		if maybeEvent != EventWaitForExternalEvent {
-			sm.events <- maybeEvent
-		}
-		sm.current.mutex.Unlock()
-	}()
+	sm.current = newStateHandle(sm.ctx, state)
+
+	sm.logger.Infof("Entering state: %v", sm.current)
+	sm.current.enter(sm.events)
 }
 
 func (sm *StateMachine) transition(event Event) {
@@ -231,10 +212,4 @@ func (sm *StateMachine) transition(event Event) {
 	} else {
 		sm.logger.Warnf("No defined transition for event %s in state %s", event, sm.GetAgentState())
 	}
-}
-
-type stateHandle struct {
-	state      State
-	cancelFunc context.CancelFunc
-	mutex      *sync.Mutex
 }
