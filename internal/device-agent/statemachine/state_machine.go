@@ -47,7 +47,6 @@ type StateMachine struct {
 }
 
 type transitions struct {
-	event       Event
 	state       State
 	sources     []pb.AgentState
 	destination pb.AgentState
