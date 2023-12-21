@@ -42,7 +42,8 @@ func (c *Connected) Enter(ctx context.Context) Event {
 
 	// Teardown WireGuard interface when this state is finished
 	defer func() {
-		ctx, cancel := context.WithTimeout(ctx, helperTimeout)
+		// need to base this context on background as `ctx` is usually already cancelled when we get to this point.
+		ctx, cancel := context.WithTimeout(context.Background(), helperTimeout)
 		_, err = c.deviceHelper.Teardown(ctx, &pb.TeardownRequest{})
 		cancel()
 	}()
