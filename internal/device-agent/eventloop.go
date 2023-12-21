@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"net"
 	"net/http"
 	"time"
 
@@ -13,7 +12,6 @@ import (
 	"github.com/nais/device/internal/notify"
 	"github.com/nais/device/internal/pb"
 	"github.com/nais/device/internal/version"
-	"github.com/sirupsen/logrus"
 )
 
 const (
@@ -64,27 +62,6 @@ func (das *DeviceAgentServer) EventLoop(programContext context.Context) {
 	// 		break
 	// 	}
 	// 	cancel()
-	//
-	// 	wg := &sync.WaitGroup{}
-	//
-	// 	total := len(status.GetGateways())
-	// 	das.log.Debugf("Pinging %d gateways...", total)
-	// 	for i, gw := range status.GetGateways() {
-	// 		wg.Add(1)
-	// 		go func(i int, gw *pb.Gateway) {
-	// 			err := ping(das.log, gw.Ipv4)
-	// 			pos := fmt.Sprintf("[%02d/%02d]", i+1, total)
-	// 			if err == nil {
-	// 				gw.Healthy = true
-	// 				das.log.Debugf("%s %s: successfully pinged %v", pos, gw.Name, gw.Ipv4)
-	// 			} else {
-	// 				gw.Healthy = false
-	// 				das.log.Debugf("%s %s: unable to ping %s: %v", pos, gw.Name, gw.Ipv4, err)
-	// 			}
-	// 			wg.Done()
-	// 		}(i, gw)
-	// 	}
-	// 	wg.Wait()
 }
 
 func newVersionAvailable(ctx context.Context) (bool, error) {
@@ -115,18 +92,4 @@ func newVersionAvailable(ctx context.Context) (bool, error) {
 	}
 
 	return false, nil
-}
-
-func ping(log *logrus.Entry, addr string) error {
-	c, err := net.DialTimeout("tcp", fmt.Sprintf("%s:%s", addr, "3000"), 2*time.Second)
-	if err != nil {
-		return err
-	}
-
-	err = c.Close()
-	if err != nil {
-		log.Errorf("closing ping connection: %v", err)
-	}
-
-	return nil
 }

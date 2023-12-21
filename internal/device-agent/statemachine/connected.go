@@ -4,7 +4,10 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/sirupsen/logrus"
 	"math"
+	"net"
+	"sync"
 	"time"
 
 	"github.com/nais/device/internal/device-agent/config"
@@ -17,6 +20,7 @@ import (
 
 const (
 	apiServerRetryInterval = time.Millisecond * 10
+	healthCheckInterval    = 20 * time.Second // how often to healthcheck gateways
 )
 
 type Connected struct {
@@ -137,8 +141,11 @@ func (c *Connected) syncConfigLoop(ctx context.Context) error {
 	c.connectedSince = timestamppb.Now()
 	c.logger.Infof("Gateway configuration stream established")
 
+	var healthCheckCancel context.CancelFunc = func() {}
+
 	for ctx.Err() == nil {
 		cfg, err := stream.Recv()
+		healthCheckCancel()
 		if err != nil {
 			return fmt.Errorf("recv: %w", err)
 		}
@@ -176,6 +183,7 @@ func (c *Connected) syncConfigLoop(ctx context.Context) error {
 
 			c.gateways = pb.MergeGatewayHealth(c.gateways, cfg.Gateways)
 			c.triggerStatusUpdate()
+			healthCheckCancel = c.launchHealthCheck(ctx)
 		}
 	}
 
@@ -201,4 +209,59 @@ func (c Connected) Status() *pb.AgentStatus {
 		Gateways:        c.gateways,
 		ConnectionState: c.AgentState(),
 	}
+}
+
+func (c *Connected) launchHealthCheck(ctx context.Context) context.CancelFunc {
+	ctx, cancel := context.WithCancel(ctx)
+
+	gateways := c.gateways
+
+	go func() {
+		timer := time.NewTimer(time.Millisecond)
+		for ctx.Err() == nil {
+			select {
+			case <-ctx.Done():
+				return
+			case <-timer.C:
+				timer.Reset(healthCheckInterval)
+				wg := &sync.WaitGroup{}
+
+				total := len(gateways)
+				c.logger.Debugf("Pinging %d gateways...", total)
+				for i, gw := range gateways {
+					wg.Add(1)
+					go func(i int, gw *pb.Gateway) {
+						err := ping(c.logger, gw.Ipv4)
+						pos := fmt.Sprintf("[%02d/%02d]", i+1, total)
+						if err == nil {
+							gw.Healthy = true
+							c.logger.Debugf("%s %s: successfully pinged %v", pos, gw.Name, gw.Ipv4)
+						} else {
+							gw.Healthy = false
+							c.logger.Debugf("%s %s: unable to ping %s: %v", pos, gw.Name, gw.Ipv4, err)
+						}
+						c.triggerStatusUpdate()
+						wg.Done()
+					}(i, gw)
+				}
+				wg.Wait()
+			}
+		}
+	}()
+
+	return cancel
+}
+
+func ping(log logrus.FieldLogger, addr string) error {
+	c, err := net.DialTimeout("tcp", fmt.Sprintf("%s:%s", addr, "3000"), 2*time.Second)
+	if err != nil {
+		return err
+	}
+
+	err = c.Close()
+	if err != nil {
+		log.Errorf("closing ping connection: %v", err)
+	}
+
+	return nil
 }
