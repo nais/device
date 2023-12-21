@@ -8,6 +8,7 @@ import (
 	device_agent "github.com/nais/device/internal/device-agent"
 	"github.com/nais/device/internal/device-agent/config"
 	"github.com/nais/device/internal/device-agent/runtimeconfig"
+	"github.com/nais/device/internal/device-agent/statemachine"
 	"github.com/nais/device/internal/notify"
 	"github.com/nais/device/internal/pb"
 	"github.com/sirupsen/logrus"
@@ -32,15 +33,31 @@ func NewDeviceAgent(t *testing.T, wg *sync.WaitGroup, ctx context.Context, log *
 	notifier := notify.NewMockNotifier(t)
 	notifier.EXPECT().Errorf(mock.Anything, mock.Anything).Maybe()
 
-	impl := device_agent.NewServer(log, helperClient, cfg, rc, notifier)
+	statusChannel := make(chan *pb.AgentStatus, 32)
+	stateMachine := statemachine.NewStateMachine(ctx, rc, *cfg, notifier, helperClient, statusChannel, log)
+
+	impl := device_agent.NewServer(ctx, log, cfg, rc, notifier, stateMachine.SendEvent)
+	server := grpc.NewServer()
+	pb.RegisterDeviceAgentServer(server, impl)
+
 	wg.Add(1)
 	go func() {
-		impl.EventLoop(ctx)
+		stateMachine.Run(ctx)
 		wg.Done()
 	}()
 
-	server := grpc.NewServer()
-	pb.RegisterDeviceAgentServer(server, impl)
+	wg.Add(1)
+	go func() {
+		// This routine forwards status updates from the state machine to the device agent server
+		for ctx.Err() == nil {
+			select {
+			case s := <-statusChannel:
+				impl.UpdateAgentStatus(s)
+			case <-ctx.Done():
+			}
+		}
+		wg.Done()
+	}()
 
 	return server
 }

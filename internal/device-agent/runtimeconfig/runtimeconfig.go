@@ -12,30 +12,34 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"cloud.google.com/go/storage"
 	"github.com/lestrrat-go/jwx/jwt"
-	"github.com/nais/device/internal/pubsubenroll"
-	"google.golang.org/api/iterator"
-	"google.golang.org/api/option"
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/credentials/insecure"
-
 	"github.com/nais/device/internal/bootstrap"
 	"github.com/nais/device/internal/device-agent/auth"
 	"github.com/nais/device/internal/device-agent/config"
 	"github.com/nais/device/internal/device-agent/wireguard"
 	"github.com/nais/device/internal/pb"
+	"github.com/nais/device/internal/pubsubenroll"
 	"github.com/sirupsen/logrus"
+	"google.golang.org/api/iterator"
+	"google.golang.org/api/option"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/credentials/insecure"
+	grpcstatus "google.golang.org/grpc/status"
 )
 
 const (
 	tenantDiscoveryBucket = "naisdevice-enroll-discovery"
+	apiserverDialTimeout  = 1 * time.Second // sleep time between failed configuration syncs
 )
 
 type RuntimeConfig interface {
 	DialAPIServer(context.Context) (*grpc.ClientConn, error)
 	APIServerPeer() *pb.Gateway
+	ConnectToAPIServer(context.Context) (pb.APIServerClient, func(), error)
 
 	EnsureEnrolled(context.Context, string) error
 	ResetEnrollConfig()
@@ -80,6 +84,22 @@ func (rc *runtimeConfig) DialAPIServer(ctx context.Context) (*grpc.ClientConn, e
 
 func (rc *runtimeConfig) APIServerPeer() *pb.Gateway {
 	return rc.enrollConfig.APIServerPeer()
+}
+
+func (rc *runtimeConfig) ConnectToAPIServer(ctx context.Context) (pb.APIServerClient, func(), error) {
+	dialContext, cancel := context.WithTimeout(ctx, apiserverDialTimeout)
+
+	conn, err := rc.DialAPIServer(dialContext)
+	if err != nil {
+		cancel()
+		return nil, func() {}, grpcstatus.Errorf(codes.Unavailable, err.Error())
+	}
+	rc.log.Infof("Connected to API server")
+
+	return pb.NewAPIServerClient(conn), func() {
+		cancel()
+		conn.Close()
+	}, nil
 }
 
 func (rc *runtimeConfig) BuildHelperConfiguration(peers []*pb.Gateway) *pb.Configuration {
@@ -336,9 +356,6 @@ func (r *runtimeConfig) PopulateTenants(ctx context.Context) error {
 		})
 
 	}
-
-	// set first tenant as active by default
-	r.tenants[0].Active = true
 
 	return nil
 }
