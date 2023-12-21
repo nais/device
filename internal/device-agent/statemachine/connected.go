@@ -50,6 +50,8 @@ func (c *Connected) Enter(ctx context.Context) Event {
 		ctx, cancel := context.WithTimeout(context.Background(), helperTimeout)
 		_, err = c.deviceHelper.Teardown(ctx, &pb.TeardownRequest{})
 		cancel()
+		c.gateways = nil
+		c.unhealthy = false
 	}()
 
 	attempt := 0
