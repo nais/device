@@ -2,6 +2,7 @@ package statemachine
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"math"
 	"time"
@@ -59,20 +60,23 @@ func (c *Connected) Enter(ctx context.Context) Event {
 			c.logger.Warnf("Synchronize config: not connected to API server: %v", err)
 			time.Sleep(apiServerRetryInterval * time.Duration(math.Pow(float64(attempt), 3)))
 		case codes.Unauthenticated:
-			c.logger.Errorf("Logging in: %s", err)
+			c.notifier.Errorf("Unauthenticated: %v", err)
 			c.rc.SetToken(nil)
-			c.logger.Error("Cleaned up old tokens")
-			return EventDisconnect
-		default:
-			// TODO: More granular error handling
-			c.notifier.Errorf(err.Error())
-			c.logger.Errorf("error in syncConfigLoop: %v", err)
-			c.logger.Errorf("Assuming invalid session; disconnecting.")
 			return EventDisconnect
 		}
+
+		if errors.Is(ctx.Err(), context.Canceled) {
+			// we got cancelled (most likely shutdown or disconnect event)
+			break
+		}
+
+		// Unhandled error: disconnect
+		c.logger.Errorf("error in syncConfigLoop: %v", err)
+		c.notifier.Errorf("Unhandled error while updating config. Plase send your logs to the NAIS team.")
+		return EventDisconnect
 	}
 
-	c.logger.Infof("Gateway config synchronization loop: %s", ctx.Err())
+	c.logger.Infof("Config sync loop done: %s", ctx.Err())
 	return EventWaitForExternalEvent
 }
 
@@ -138,36 +142,36 @@ func (c *Connected) syncConfigLoop(ctx context.Context) error {
 
 		switch cfg.Status {
 		case pb.DeviceConfigurationStatus_InvalidSession:
-			c.logger.Errorf("Unauthorized access from apiserver: %v", err)
-			return fmt.Errorf("config status: %v", cfg.Status)
+			return grpcstatus.Errorf(codes.Unauthenticated, "invalid session, config status: %v", cfg.Status)
 		case pb.DeviceConfigurationStatus_DeviceUnhealthy:
 			c.logger.Errorf("Device is not healthy: %v", err)
 			c.notifier.Errorf("No access as your device is unhealthy. Run '/msg @Kolide status' on Slack and fix the errors")
 
 			c.unhealthy = true
 			c.gateways = nil
+
 			c.triggerStatusUpdate()
 			continue
 		case pb.DeviceConfigurationStatus_DeviceHealthy:
-			c.unhealthy = false
 			c.logger.Infof("Device is healthy; server pushed %d gateways", len(cfg.Gateways))
-		default:
-		}
 
-		helperCtx, helperCancel := context.WithTimeout(ctx, helperTimeout)
-		_, err = c.deviceHelper.Configure(helperCtx, c.rc.BuildHelperConfiguration(append(
-			[]*pb.Gateway{
-				c.rc.APIServerPeer(),
-			},
-			cfg.Gateways...,
-		)))
-		helperCancel()
-		if err != nil {
-			return fmt.Errorf("configure helper: %w", err)
-		}
+			c.unhealthy = false
 
-		c.gateways = pb.MergeGatewayHealth(c.gateways, cfg.Gateways)
-		c.triggerStatusUpdate()
+			helperCtx, helperCancel := context.WithTimeout(ctx, helperTimeout)
+			_, err = c.deviceHelper.Configure(helperCtx, c.rc.BuildHelperConfiguration(append(
+				[]*pb.Gateway{
+					c.rc.APIServerPeer(),
+				},
+				cfg.Gateways...,
+			)))
+			helperCancel()
+			if err != nil {
+				return fmt.Errorf("configure helper: %w", err)
+			}
+
+			c.gateways = pb.MergeGatewayHealth(c.gateways, cfg.Gateways)
+			c.triggerStatusUpdate()
+		}
 	}
 
 	return nil
