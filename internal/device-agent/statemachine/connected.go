@@ -240,11 +240,11 @@ func (c *Connected) launchHealthCheck(ctx context.Context) context.CancelFunc {
 							gw.Healthy = false
 							c.logger.Debugf("%s %s: unable to ping %s: %v", pos, gw.Name, gw.Ipv4, err)
 						}
-						c.triggerStatusUpdate()
 						wg.Done()
 					}(i, gw)
 				}
 				wg.Wait()
+				c.triggerStatusUpdate()
 			}
 		}
 	}()
