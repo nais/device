@@ -84,10 +84,7 @@ func NewStateMachine(
 		baseState: baseState,
 	}
 
-	stateAuthenticating := &Authenticating{
-		baseState: baseState,
-	}
-
+	stateAuthenticating := NewAuthenticating(baseState)
 	stateBootstrapping := &Bootstrapping{
 		baseState:    baseState,
 		deviceHelper: deviceHelper,

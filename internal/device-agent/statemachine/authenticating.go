@@ -14,6 +14,14 @@ const (
 
 type Authenticating struct {
 	baseState
+	getToken auth.GetTokenFunc
+}
+
+func NewAuthenticating(base baseState) State {
+	return &Authenticating{
+		baseState: base,
+		getToken:  auth.GetDeviceAgentToken,
+	}
 }
 
 func (a *Authenticating) Enter(ctx context.Context) Event {
@@ -24,7 +32,7 @@ func (a *Authenticating) Enter(ctx context.Context) Event {
 
 	ctx, cancel := context.WithTimeout(ctx, authFlowTimeout)
 	oauth2Config := a.cfg.OAuth2Config(a.rc.GetActiveTenant().AuthProvider)
-	token, err := auth.GetDeviceAgentToken(ctx, a.logger, oauth2Config, a.cfg.GoogleAuthServerAddress)
+	token, err := a.getToken(ctx, a.logger, oauth2Config, a.cfg.GoogleAuthServerAddress)
 	cancel()
 	if err != nil {
 		a.notifier.Errorf("Get token: %v", err)

@@ -16,6 +16,8 @@ import (
 	"golang.org/x/oauth2"
 )
 
+type GetTokenFunc func(context.Context, logrus.FieldLogger, oauth2.Config, string) (*Tokens, error)
+
 type authFlowResponse struct {
 	Tokens *Tokens
 	err    error
