@@ -7,10 +7,6 @@ import (
 	"github.com/nais/device/internal/pb"
 )
 
-const (
-	helperTimeout = 20 * time.Second
-)
-
 type Bootstrapping struct {
 	baseState
 	deviceHelper pb.DeviceHelperClient

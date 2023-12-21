@@ -29,8 +29,6 @@ type DeviceAgentServer struct {
 	sendEvent      func(statemachine.Event)
 }
 
-const maxLoginAttempts = 20
-
 func (das *DeviceAgentServer) Login(ctx context.Context, request *pb.LoginRequest) (*pb.LoginResponse, error) {
 	das.sendEvent(statemachine.EventLogin)
 	return &pb.LoginResponse{}, nil

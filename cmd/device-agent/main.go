@@ -164,7 +164,6 @@ func run(ctx context.Context, log *logrus.Entry, cfg *config.Config, notifier no
 				s.NewVersionAvailable = newVersionAvailable
 				das.UpdateAgentStatus(s)
 			case <-ctx.Done():
-				break
 			}
 		}
 	}()

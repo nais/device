@@ -3,6 +3,7 @@ package statemachine
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/nais/device/internal/device-agent/config"
 	"github.com/nais/device/internal/device-agent/runtimeconfig"
@@ -20,6 +21,10 @@ const (
 	EventAuthenticated        Event = "Authenticated"
 	EventBootstrapped         Event = "Bootstrapped"
 	EventDisconnect           Event = "Disconnect"
+)
+
+const (
+	helperTimeout = 20 * time.Second
 )
 
 type baseState struct {
@@ -152,7 +157,6 @@ func (sm *StateMachine) Run(ctx context.Context) {
 	for ctx.Err() == nil {
 		select {
 		case <-ctx.Done():
-			break
 
 		case event := <-sm.events:
 			if ctx.Err() != nil {

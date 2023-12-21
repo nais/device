@@ -54,7 +54,6 @@ func NewDeviceAgent(t *testing.T, wg *sync.WaitGroup, ctx context.Context, log *
 			case s := <-statusChannel:
 				impl.UpdateAgentStatus(s)
 			case <-ctx.Done():
-				break
 			}
 		}
 		wg.Done()
