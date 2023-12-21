@@ -184,6 +184,7 @@ func (sm *StateMachine) setState(state State) {
 	sm.current.exit()
 
 	sm.current = newStateLifecycle(sm.ctx, state)
+	sm.TriggerStatusUpdate()
 
 	sm.logger.Infof("Entering state: %v", sm.current)
 	sm.current.enter(sm.events)
