@@ -26,6 +26,10 @@ import (
 	"github.com/nais/device/internal/version"
 )
 
+const (
+	healthCheckInterval = 20 * time.Second // how often to healthcheck gateways
+)
+
 func handleSignals(log *logrus.Entry, cancel context.CancelFunc) {
 	signals := make(chan os.Signal, 1)
 	signal.Notify(signals, syscall.SIGINT, syscall.SIGTERM)
@@ -82,6 +86,9 @@ func main() {
 }
 
 func run(ctx context.Context, log *logrus.Entry, cfg *config.Config, notifier notify.Notifier) error {
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+
 	if err := filesystem.EnsurePrerequisites(cfg); err != nil {
 		return fmt.Errorf("missing prerequisites: %s", err)
 	}
@@ -111,6 +118,22 @@ func run(ctx context.Context, log *logrus.Entry, cfg *config.Config, notifier no
 
 	client := pb.NewDeviceHelperClient(connection)
 	defer connection.Close()
+
+	go func() {
+		for ctx.Err() == nil {
+			select {
+			case <-ctx.Done():
+				return
+			case <-time.After(healthCheckInterval):
+				err = helperHealthCheck(ctx, client)
+				if err != nil {
+					log.WithError(err).Errorf("Unable to communicate with helper. Shutting down")
+					notifier.Errorf("Unable to communicate with helper. Shutting down.")
+					cancel()
+				}
+			}
+		}
+	}()
 
 	listener, err := unixsocket.ListenWithFileMode(cfg.GrpcAddress, 0o666)
 	if err != nil {
@@ -150,5 +173,15 @@ func run(ctx context.Context, log *logrus.Entry, cfg *config.Config, notifier no
 
 	log.Infof("gRPC server shut down.")
 
+	return nil
+}
+
+func helperHealthCheck(ctx context.Context, client pb.DeviceHelperClient) error {
+	helperHealthCheckCtx, helperHealthCheckCancel := context.WithTimeout(ctx, 5*time.Second)
+	defer helperHealthCheckCancel()
+
+	if _, err := client.GetSerial(helperHealthCheckCtx, &pb.GetSerialRequest{}); err != nil {
+		return err
+	}
 	return nil
 }

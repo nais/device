@@ -44,24 +44,6 @@ func (das *DeviceAgentServer) EventLoop(programContext context.Context) {
 	// 	} else {
 	// 		versionCheckTicker.Reset(versionCheckInterval)
 	// 	}
-	//
-	// case <-healthCheckTicker.C:
-	// 	healthCheckTicker.Reset(healthCheckInterval)
-	// 	if status.ConnectionState != pb.AgentState_Connected {
-	// 		break
-	// 	}
-	//
-	// 	helperHealthCheckCtx, cancel := context.WithTimeout(programContext, 5*time.Second)
-	// 	if _, err := das.DeviceHelper.GetSerial(helperHealthCheckCtx, &pb.GetSerialRequest{}); err != nil {
-	// 		cancel()
-	//
-	// 		das.log.WithError(err).Errorf("Unable to communicate with helper. Shutting down")
-	// 		das.notifier.Errorf("Unable to communicate with helper. Shutting down.")
-	//
-	// 		das.stateChange <- pb.AgentState_Disconnecting
-	// 		break
-	// 	}
-	// 	cancel()
 }
 
 func newVersionAvailable(ctx context.Context) (bool, error) {
