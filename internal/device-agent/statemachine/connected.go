@@ -57,9 +57,11 @@ func (c *Connected) Enter(ctx context.Context) Event {
 		switch grpcstatus.Code(err) {
 		case codes.OK:
 			attempt = 0
+			continue
 		case codes.Unavailable:
 			c.logger.Warnf("Synchronize config: not connected to API server: %v", err)
 			time.Sleep(apiServerRetryInterval * time.Duration(math.Pow(float64(attempt), 3)))
+			continue
 		case codes.Unauthenticated:
 			c.notifier.Errorf("Unauthenticated: %v", err)
 			c.rc.SetToken(nil)
@@ -71,10 +73,12 @@ func (c *Connected) Enter(ctx context.Context) Event {
 			break
 		}
 
-		// Unhandled error: disconnect
-		c.logger.Errorf("error in syncConfigLoop: %v", err)
-		c.notifier.Errorf("Unhandled error while updating config. Plase send your logs to the NAIS team.")
-		return EventDisconnect
+		if err != nil {
+			// Unhandled error: disconnect
+			c.logger.Errorf("error in syncConfigLoop: %v", err)
+			c.notifier.Errorf("Unhandled error while updating config. Plase send your logs to the NAIS team.")
+			return EventDisconnect
+		}
 	}
 
 	c.logger.Infof("Config sync loop done: %s", ctx.Err())
@@ -175,7 +179,7 @@ func (c *Connected) syncConfigLoop(ctx context.Context) error {
 		}
 	}
 
-	return nil
+	return ctx.Err()
 }
 
 func (c Connected) AgentState() pb.AgentState {
