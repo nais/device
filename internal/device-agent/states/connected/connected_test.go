@@ -2,9 +2,11 @@ package connected
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"testing"
 	"time"
+
 	"github.com/nais/device/internal/device-agent/auth"
 	"github.com/nais/device/internal/device-agent/runtimeconfig"
 	"github.com/nais/device/internal/device-agent/statemachine"
@@ -13,8 +15,8 @@ import (
 	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
-	"testing"
-	"time"
+	"google.golang.org/grpc/codes"
+	grpcstatus "google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
@@ -181,6 +183,226 @@ func TestConnected_Enter(t *testing.T) {
 	})
 }
 
+func TestConnected_defaultSyncConfigLoop(t *testing.T) {
+	logger := logrus.New()
+
+	t.Run("unable to get tenant session", func(t *testing.T) {
+		ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+		defer cancel()
+
+		expectedError := errors.New("expected error")
+
+		rc := runtimeconfig.NewMockRuntimeConfig(t)
+		rc.EXPECT().GetTenantSession().Return(nil, expectedError)
+
+		c := &Connected{
+			rc:     rc,
+			logger: logger,
+		}
+
+		err := c.defaultSyncConfigLoop(ctx)
+		assert.ErrorIs(t, err, expectedError)
+	})
+
+	t.Run("connect to apiserver: unhandled error", func(t *testing.T) {
+		ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+		defer cancel()
+
+		expectedError := errors.New("unhandled error")
+		session := &pb.Session{Expiry: timestamppb.New(time.Now().Add(time.Hour)), Key: "key"}
+
+		rc := runtimeconfig.NewMockRuntimeConfig(t)
+		rc.EXPECT().GetTenantSession().Return(session, nil)
+		rc.EXPECT().ConnectToAPIServer(ctx).Return(nil, func() {}, expectedError)
+
+		c := &Connected{
+			rc:     rc,
+			logger: logger,
+		}
+
+		err := c.defaultSyncConfigLoop(ctx)
+		assert.Equal(t, expectedError, err)
+	})
+
+	t.Run("connect to apiserver: unavailable error", func(t *testing.T) {
+		ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+		defer cancel()
+
+		unavailableGRPCErr := grpcstatus.Errorf(codes.Unavailable, "unavailable")
+		session := &pb.Session{Expiry: timestamppb.New(time.Now().Add(time.Hour)), Key: "key"}
+
+		rc := runtimeconfig.NewMockRuntimeConfig(t)
+		rc.EXPECT().GetTenantSession().Return(session, nil)
+		rc.EXPECT().ConnectToAPIServer(ctx).Return(nil, func() {}, unavailableGRPCErr)
+
+		c := &Connected{
+			rc:     rc,
+			logger: logger,
+		}
+
+		err := c.defaultSyncConfigLoop(ctx)
+		assert.ErrorIs(t, err, ErrUnavailable)
+	})
+
+	t.Run("defaultSyncConfigLop.recv", func(t *testing.T) {
+		setupMocks := func(ctx context.Context) (*runtimeconfig.MockRuntimeConfig, *pb.MockDeviceHelperClient, *pb.MockAPIServer_GetDeviceConfigurationClient) {
+			session := &pb.Session{Expiry: timestamppb.New(time.Now().Add(time.Hour)), Key: "key"}
+
+			getDeviceConfigClient := pb.NewMockAPIServer_GetDeviceConfigurationClient(t)
+
+			apiServerClient := pb.NewMockAPIServerClient(t)
+			apiServerClient.EXPECT().GetDeviceConfiguration(mock.Anything, mock.Anything).Return(getDeviceConfigClient, nil)
+
+			rc := runtimeconfig.NewMockRuntimeConfig(t)
+			rc.EXPECT().GetTenantSession().Return(session, nil)
+			rc.EXPECT().ConnectToAPIServer(ctx).Return(apiServerClient, func() {}, nil)
+
+			deviceHelper := pb.NewMockDeviceHelperClient(t)
+			return rc, deviceHelper, getDeviceConfigClient
+		}
+
+		t.Run("healthy", func(t *testing.T) {
+			ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+			defer cancel()
+
+			rc, deviceHelper, getDeviceConfigClient := setupMocks(ctx)
+
+			c := &Connected{
+				rc:           rc,
+				logger:       logger,
+				deviceHelper: deviceHelper,
+			}
+			apiServerPeer := &pb.Gateway{}
+			rc.EXPECT().APIServerPeer().Return(apiServerPeer)
+			configuration := &pb.Configuration{}
+			rc.EXPECT().BuildHelperConfiguration([]*pb.Gateway{apiServerPeer}).Return(configuration)
+
+			deviceHelper.EXPECT().Configure(mock.Anything, configuration).Return(&pb.ConfigureResponse{}, nil)
+
+			alreadyCalled := false
+			stopTestErr := errors.New("stop test")
+			getDeviceConfigClient.EXPECT().Recv().RunAndReturn(func() (*pb.GetDeviceConfigurationResponse, error) {
+				if alreadyCalled {
+					return nil, stopTestErr
+				}
+				alreadyCalled = true
+				return &pb.GetDeviceConfigurationResponse{
+					Status:   pb.DeviceConfigurationStatus_DeviceHealthy,
+					Gateways: []*pb.Gateway{},
+				}, nil
+			})
+
+			err := c.defaultSyncConfigLoop(ctx)
+			assert.ErrorIs(t, err, stopTestErr)
+		})
+		t.Run("unhealthy", func(t *testing.T) {
+			ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+			defer cancel()
+
+			rc, deviceHelper, getDeviceConfigClient := setupMocks(ctx)
+			notifier := notify.NewMockNotifier(t)
+			notifier.EXPECT().Errorf(mock.Anything, mock.Anything)
+
+			c := &Connected{
+				rc:           rc,
+				logger:       logger,
+				notifier:     notifier,
+				deviceHelper: deviceHelper,
+			}
+
+			alreadyCalled := false
+			stopTestErr := errors.New("stop test")
+			getDeviceConfigClient.EXPECT().Recv().RunAndReturn(func() (*pb.GetDeviceConfigurationResponse, error) {
+				if alreadyCalled {
+					return nil, stopTestErr
+				}
+				alreadyCalled = true
+				return &pb.GetDeviceConfigurationResponse{
+					Status:   pb.DeviceConfigurationStatus_DeviceUnhealthy,
+					Gateways: []*pb.Gateway{},
+				}, nil
+			})
+
+			err := c.defaultSyncConfigLoop(ctx)
+			assert.ErrorIs(t, err, stopTestErr)
+		})
+		t.Run("invalid session", func(t *testing.T) {
+			ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+			defer cancel()
+
+			rc, deviceHelper, getDeviceConfigClient := setupMocks(ctx)
+
+			c := &Connected{
+				rc:           rc,
+				logger:       logger,
+				deviceHelper: deviceHelper,
+			}
+
+			getDeviceConfigClient.EXPECT().Recv().Return(&pb.GetDeviceConfigurationResponse{
+				Status:   pb.DeviceConfigurationStatus_InvalidSession,
+				Gateways: []*pb.Gateway{},
+			}, nil)
+
+			err := c.defaultSyncConfigLoop(ctx)
+			assert.ErrorIs(t, err, ErrUnauthenticated)
+		})
+
+		t.Run("err unavailable", func(t *testing.T) {
+			ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+			defer cancel()
+
+			rc, deviceHelper, getDeviceConfigClient := setupMocks(ctx)
+
+			c := &Connected{
+				rc:           rc,
+				logger:       logger,
+				deviceHelper: deviceHelper,
+			}
+
+			getDeviceConfigClient.EXPECT().Recv().Return(nil, context.DeadlineExceeded)
+
+			err := c.defaultSyncConfigLoop(ctx)
+			assert.ErrorIs(t, err, ErrUnauthenticated)
+		})
+		t.Run("err unauthenticated", func(t *testing.T) {
+			ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+			defer cancel()
+
+			rc, deviceHelper, getDeviceConfigClient := setupMocks(ctx)
+
+			c := &Connected{
+				rc:           rc,
+				logger:       logger,
+				deviceHelper: deviceHelper,
+			}
+
+			getDeviceConfigClient.EXPECT().Recv().Return(nil, grpcstatus.Errorf(codes.Unavailable, "lost connection"))
+
+			err := c.defaultSyncConfigLoop(ctx)
+			assert.ErrorIs(t, err, ErrLostConnection)
+		})
+		t.Run("unhandled error", func(t *testing.T) {
+			ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+			defer cancel()
+
+			rc, deviceHelper, getDeviceConfigClient := setupMocks(ctx)
+
+			c := &Connected{
+				rc:           rc,
+				logger:       logger,
+				deviceHelper: deviceHelper,
+			}
+
+			expectedError := errors.New("unhandled")
+			getDeviceConfigClient.EXPECT().Recv().Return(nil, expectedError)
+
+			err := c.defaultSyncConfigLoop(ctx)
+			assert.ErrorIs(t, err, expectedError)
+		})
+	})
+
+}
+
 func TestConnected_login(t *testing.T) {
 	logger := logrus.New()
 	t.Run("login: session expired", func(t *testing.T) {
@@ -216,4 +438,5 @@ func TestConnected_login(t *testing.T) {
 		assert.NoError(t, err)
 		assert.Equal(t, expectedLoginResponse.Session, session)
 	})
+
 }
