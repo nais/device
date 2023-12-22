@@ -1,4 +1,4 @@
-package statemachine
+package authenticating
 
 import (
 	"context"
@@ -8,6 +8,7 @@ import (
 
 	"github.com/nais/device/internal/device-agent/auth"
 	"github.com/nais/device/internal/device-agent/runtimeconfig"
+	"github.com/nais/device/internal/device-agent/statemachine"
 	"github.com/nais/device/internal/notify"
 	"github.com/nais/device/internal/pb"
 	"github.com/sirupsen/logrus"
@@ -18,7 +19,6 @@ import (
 )
 
 func TestAuthenticating(t *testing.T) {
-
 	t.Run("non-expired session", func(t *testing.T) {
 		ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 		defer cancel()
@@ -30,12 +30,10 @@ func TestAuthenticating(t *testing.T) {
 		}, nil)
 
 		state := &Authenticating{
-			baseState: baseState{
-				rc: rc,
-			},
+			rc: rc,
 		}
 
-		assert.Equal(t, EventAuthenticated, state.Enter(ctx))
+		assert.Equal(t, statemachine.EventAuthenticated, state.Enter(ctx))
 	})
 
 	t.Run("get token succeeds", func(t *testing.T) {
@@ -56,12 +54,10 @@ func TestAuthenticating(t *testing.T) {
 			getToken: func(ctx context.Context, fl logrus.FieldLogger, c oauth2.Config, s string) (*auth.Tokens, error) {
 				return tokens, nil
 			},
-			baseState: baseState{
-				rc: rc,
-			},
+			rc: rc,
 		}
 
-		assert.Equal(t, EventAuthenticated, state.Enter(ctx))
+		assert.Equal(t, statemachine.EventAuthenticated, state.Enter(ctx))
 	})
 
 	t.Run("get token fails", func(t *testing.T) {
@@ -84,12 +80,10 @@ func TestAuthenticating(t *testing.T) {
 			getToken: func(ctx context.Context, fl logrus.FieldLogger, c oauth2.Config, s string) (*auth.Tokens, error) {
 				return nil, expectedError
 			},
-			baseState: baseState{
-				rc:       rc,
-				notifier: notifier,
-			},
+			rc:       rc,
+			notifier: notifier,
 		}
 
-		assert.Equal(t, EventDisconnect, state.Enter(ctx))
+		assert.Equal(t, statemachine.EventDisconnect, state.Enter(ctx))
 	})
 }

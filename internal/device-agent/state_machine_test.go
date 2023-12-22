@@ -1,12 +1,14 @@
-package statemachine
+package device_agent_test
 
 import (
 	"context"
 	"testing"
 	"time"
 
+	device_agent "github.com/nais/device/internal/device-agent"
 	"github.com/nais/device/internal/device-agent/config"
 	"github.com/nais/device/internal/device-agent/runtimeconfig"
+	"github.com/nais/device/internal/device-agent/statemachine"
 	"github.com/nais/device/internal/notify"
 	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/mock"
@@ -52,13 +54,13 @@ func TestStateMachine(t *testing.T) {
 		deviceHelper.EXPECT().Configure(mock.Anything, mock.Anything).Return(&pb.ConfigureResponse{}, nil)
 		deviceHelper.EXPECT().Teardown(mock.Anything, mock.Anything).Return(&pb.TeardownResponse{}, nil)
 
-		sm := NewStateMachine(ctx, rc, cfg, notifier, deviceHelper, nil, log)
+		sm := device_agent.NewStateMachine(ctx, rc, cfg, notifier, deviceHelper, nil, log)
 		go sm.Run(ctx)
 
-		sm.SendEvent(EventLogin)
+		sm.SendEvent(statemachine.EventLogin)
 		assert.Eventually(t, func() bool { return sm.GetAgentState() == pb.AgentState_Connected }, 2000*time.Millisecond, 5*time.Millisecond)
 
-		sm.SendEvent(EventDisconnect)
+		sm.SendEvent(statemachine.EventDisconnect)
 		assert.Eventually(t, func() bool { return sm.GetAgentState() == pb.AgentState_Disconnected }, 3000*time.Millisecond, 5*time.Millisecond)
 	})
 }

@@ -1,11 +1,16 @@
-package statemachine
+package authenticating
 
 import (
 	"context"
 	"time"
 
 	"github.com/nais/device/internal/device-agent/auth"
+	"github.com/nais/device/internal/device-agent/config"
+	"github.com/nais/device/internal/device-agent/runtimeconfig"
+	"github.com/nais/device/internal/device-agent/statemachine"
+	"github.com/nais/device/internal/notify"
 	"github.com/nais/device/internal/pb"
+	"github.com/sirupsen/logrus"
 )
 
 const (
@@ -13,21 +18,28 @@ const (
 )
 
 type Authenticating struct {
-	baseState
+	rc       runtimeconfig.RuntimeConfig
+	cfg      config.Config
+	notifier notify.Notifier
 	getToken auth.GetTokenFunc
+	logger   logrus.FieldLogger
 }
 
-func NewAuthenticating(base baseState) State {
+func New(rc runtimeconfig.RuntimeConfig, cfg config.Config, logger logrus.FieldLogger, notifier notify.Notifier) statemachine.State {
 	return &Authenticating{
-		baseState: base,
-		getToken:  auth.GetDeviceAgentToken,
+		rc:       rc,
+		cfg:      cfg,
+		logger:   logger,
+		notifier: notifier,
+
+		getToken: auth.GetDeviceAgentToken,
 	}
 }
 
-func (a *Authenticating) Enter(ctx context.Context) Event {
+func (a *Authenticating) Enter(ctx context.Context) statemachine.Event {
 	session, _ := a.rc.GetTenantSession()
 	if !session.Expired() {
-		return EventAuthenticated
+		return statemachine.EventAuthenticated
 	}
 
 	ctx, cancel := context.WithTimeout(ctx, authFlowTimeout)
@@ -36,11 +48,11 @@ func (a *Authenticating) Enter(ctx context.Context) Event {
 	cancel()
 	if err != nil {
 		a.notifier.Errorf("Get token: %v", err)
-		return EventDisconnect
+		return statemachine.EventDisconnect
 	}
 
 	a.rc.SetToken(token)
-	return EventAuthenticated
+	return statemachine.EventAuthenticated
 }
 
 func (Authenticating) AgentState() pb.AgentState {
@@ -53,7 +65,6 @@ func (a Authenticating) String() string {
 
 func (a Authenticating) Status() *pb.AgentStatus {
 	return &pb.AgentStatus{
-		Tenants:         a.baseStatus.GetTenants(),
 		ConnectionState: a.AgentState(),
 	}
 }

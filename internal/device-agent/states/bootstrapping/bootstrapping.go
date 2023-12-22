@@ -1,18 +1,33 @@
-package statemachine
+package bootstrapping
 
 import (
 	"context"
 	"time"
 
+	"github.com/nais/device/internal/device-agent/runtimeconfig"
+	"github.com/nais/device/internal/device-agent/statemachine"
+	"github.com/nais/device/internal/notify"
 	"github.com/nais/device/internal/pb"
+	"github.com/sirupsen/logrus"
 )
 
 type Bootstrapping struct {
-	baseState
+	rc           runtimeconfig.RuntimeConfig
+	logger       logrus.FieldLogger
+	notifier     notify.Notifier
 	deviceHelper pb.DeviceHelperClient
 }
 
-func (b *Bootstrapping) Enter(ctx context.Context) Event {
+func New(rc runtimeconfig.RuntimeConfig, logger logrus.FieldLogger, notifier notify.Notifier, deviceHelper pb.DeviceHelperClient) statemachine.State {
+	return &Bootstrapping{
+		rc:           rc,
+		notifier:     notifier,
+		deviceHelper: deviceHelper,
+		logger:       logger,
+	}
+}
+
+func (b *Bootstrapping) Enter(ctx context.Context) statemachine.Event {
 	if err := b.rc.LoadEnrollConfig(); err == nil {
 		b.logger.Infof("Loaded enroll")
 	} else {
@@ -23,7 +38,7 @@ func (b *Bootstrapping) Enter(ctx context.Context) Event {
 		serial, err := b.deviceHelper.GetSerial(enrollCtx, &pb.GetSerialRequest{})
 		if err != nil {
 			b.notifier.Errorf("Unable to get serial number: %v", err)
-			return EventDisconnect
+			return statemachine.EventDisconnect
 		}
 
 		err = b.rc.EnsureEnrolled(enrollCtx, serial.GetSerial())
@@ -31,11 +46,11 @@ func (b *Bootstrapping) Enter(ctx context.Context) Event {
 		cancel()
 		if err != nil {
 			b.notifier.Errorf("Bootstrap: %v", err)
-			return EventDisconnect
+			return statemachine.EventDisconnect
 		}
 	}
 
-	return EventBootstrapped
+	return statemachine.EventBootstrapped
 }
 
 func (Bootstrapping) AgentState() pb.AgentState {
@@ -48,7 +63,6 @@ func (b Bootstrapping) String() string {
 
 func (b Bootstrapping) Status() *pb.AgentStatus {
 	return &pb.AgentStatus{
-		Tenants:         b.baseStatus.GetTenants(),
 		ConnectionState: b.AgentState(),
 	}
 }

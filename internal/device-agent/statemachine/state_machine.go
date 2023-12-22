@@ -3,7 +3,6 @@ package statemachine
 import (
 	"context"
 	"fmt"
-	"time"
 
 	"github.com/nais/device/internal/device-agent/config"
 	"github.com/nais/device/internal/device-agent/runtimeconfig"
@@ -23,23 +22,18 @@ const (
 	EventDisconnect           Event = "Disconnect"
 )
 
-const (
-	helperTimeout = 20 * time.Second
-)
-
 type baseState struct {
-	rc         runtimeconfig.RuntimeConfig
-	cfg        config.Config
-	logger     logrus.FieldLogger
-	baseStatus *pb.AgentStatus
-	notifier   notify.Notifier
+	rc       runtimeconfig.RuntimeConfig
+	cfg      config.Config
+	logger   logrus.FieldLogger
+	notifier notify.Notifier
 }
 
 type State interface {
 	Enter(context.Context) Event
 	AgentState() pb.AgentState
-	String() string
 	Status() *pb.AgentStatus
+	String() string
 }
 
 type StateMachine struct {
@@ -47,22 +41,20 @@ type StateMachine struct {
 	current       *stateLifecycle
 	events        chan Event
 	initialState  State
-	transitions   map[Event]transitions
+	transitions   map[Event]Transitions
 	logger        logrus.FieldLogger
 	statusUpdates chan<- *pb.AgentStatus
 }
 
-type transitions struct {
-	state   State
-	sources []State
+type Transitions struct {
+	State   State
+	Sources []State
 }
 
-func NewStateMachine(
+func New(
 	ctx context.Context,
-	rc runtimeconfig.RuntimeConfig,
-	cfg config.Config,
-	notifier notify.Notifier,
-	deviceHelper pb.DeviceHelperClient,
+	transitions map[Event]Transitions,
+	initialState State,
 	statusUpdates chan<- *pb.AgentStatus,
 	logger logrus.FieldLogger,
 ) *StateMachine {
@@ -71,67 +63,15 @@ func NewStateMachine(
 		events:        make(chan Event, 255),
 		logger:        logger,
 		statusUpdates: statusUpdates,
+		transitions:   transitions,
+		initialState:  initialState,
 	}
-
-	baseState := baseState{
-		rc:       rc,
-		cfg:      cfg,
-		notifier: notifier,
-		logger:   logger,
-	}
-
-	stateDisconnected := &Disconnected{
-		baseState: baseState,
-	}
-
-	stateAuthenticating := NewAuthenticating(baseState)
-	stateBootstrapping := &Bootstrapping{
-		baseState:    baseState,
-		deviceHelper: deviceHelper,
-	}
-
-	stateConnected := &Connected{
-		baseState:           baseState,
-		deviceHelper:        deviceHelper,
-		triggerStatusUpdate: stateMachine.TriggerStatusUpdate,
-	}
-
-	stateMachine.transitions = map[Event]transitions{
-		EventLogin: {
-			state: stateAuthenticating,
-			sources: []State{
-				stateDisconnected,
-			},
-		},
-		EventAuthenticated: {
-			state: stateBootstrapping,
-			sources: []State{
-				stateAuthenticating,
-			},
-		},
-		EventBootstrapped: {
-			state: stateConnected,
-			sources: []State{
-				stateBootstrapping,
-			},
-		},
-		EventDisconnect: {
-			state: stateDisconnected,
-			sources: []State{
-				stateConnected,
-				stateAuthenticating,
-				stateBootstrapping,
-			},
-		},
-	}
-
-	stateMachine.initialState = stateDisconnected
 
 	for e, t := range stateMachine.transitions {
-		if t.state == nil {
+		if t.State == nil {
 			panic(fmt.Sprintf("transition with nil state detected for event: %v", e))
 		}
-		for _, s := range t.sources {
+		for _, s := range t.Sources {
 			if s == nil {
 				panic(fmt.Sprintf("transition with nil source detected for event: %v", e))
 			}
@@ -141,7 +81,7 @@ func NewStateMachine(
 	return &stateMachine
 }
 
-func (sm *StateMachine) TriggerStatusUpdate() {
+func (sm *StateMachine) triggerStatusUpdate() {
 	select {
 	case sm.statusUpdates <- sm.current.state.Status():
 	default:
@@ -189,7 +129,7 @@ func (sm *StateMachine) setState(state State) {
 	sm.current.exit()
 
 	sm.current = newStateLifecycle(sm.ctx, state)
-	sm.TriggerStatusUpdate()
+	sm.triggerStatusUpdate()
 
 	sm.logger.Infof("Entering state: %v", sm.current)
 	sm.current.enter(sm.events)
@@ -201,9 +141,9 @@ func (sm *StateMachine) transition(event Event) {
 		sm.logger.Warnf("No defined transitions for event: %s", event)
 	}
 
-	for _, s := range t.sources {
+	for _, s := range t.Sources {
 		if s == sm.current.state {
-			sm.setState(t.state)
+			sm.setState(t.State)
 			return
 		}
 	}

@@ -20,7 +20,6 @@ import (
 	"github.com/nais/device/internal/device-agent/config"
 	"github.com/nais/device/internal/device-agent/filesystem"
 	"github.com/nais/device/internal/device-agent/runtimeconfig"
-	"github.com/nais/device/internal/device-agent/statemachine"
 	"github.com/nais/device/internal/logger"
 	"github.com/nais/device/internal/notify"
 	"github.com/nais/device/internal/pb"
@@ -145,7 +144,7 @@ func run(ctx context.Context, log *logrus.Entry, cfg *config.Config, notifier no
 	log.Infof("accepting network connections on unix socket %s", cfg.GrpcAddress)
 
 	statusChannel := make(chan *pb.AgentStatus, 32)
-	stateMachine := statemachine.NewStateMachine(ctx, rc, *cfg, notifier, client, statusChannel, log.WithField("component", "statemachine"))
+	stateMachine := deviceagent.NewStateMachine(ctx, rc, *cfg, notifier, client, statusChannel, log.WithField("component", "statemachine"))
 
 	grpcServer := grpc.NewServer()
 	das := deviceagent.NewServer(ctx, log.WithField("component", "device-agent-server"), cfg, rc, notifier, stateMachine.SendEvent)
@@ -162,6 +161,7 @@ func run(ctx context.Context, log *logrus.Entry, cfg *config.Config, notifier no
 			case newVersionAvailable = <-newVersionChannel:
 			case s := <-statusChannel:
 				s.NewVersionAvailable = newVersionAvailable
+				s.Tenants = rc.Tenants()
 				das.UpdateAgentStatus(s)
 			case <-ctx.Done():
 			}

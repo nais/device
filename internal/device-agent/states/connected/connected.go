@@ -1,16 +1,20 @@
-package statemachine
+package connected
 
 import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/sirupsen/logrus"
 	"math"
 	"net"
 	"sync"
 	"time"
 
+	"github.com/sirupsen/logrus"
+
 	"github.com/nais/device/internal/device-agent/config"
+	"github.com/nais/device/internal/device-agent/runtimeconfig"
+	"github.com/nais/device/internal/device-agent/statemachine"
+	"github.com/nais/device/internal/notify"
 	"github.com/nais/device/internal/pb"
 	"github.com/nais/device/internal/version"
 	"google.golang.org/grpc/codes"
@@ -21,18 +25,38 @@ import (
 const (
 	apiServerRetryInterval = time.Millisecond * 10
 	healthCheckInterval    = 20 * time.Second // how often to healthcheck gateways
+	helperTimeout          = 20 * time.Second
 )
 
 type Connected struct {
-	baseState
-	deviceHelper        pb.DeviceHelperClient
-	triggerStatusUpdate func()
-	gateways            []*pb.Gateway
-	connectedSince      *timestamppb.Timestamp
-	unhealthy           bool
+	rc            runtimeconfig.RuntimeConfig
+	logger        logrus.FieldLogger
+	notifier      notify.Notifier
+	deviceHelper  pb.DeviceHelperClient
+	statusUpdates chan<- *pb.AgentStatus
+
+	gateways       []*pb.Gateway
+	connectedSince *timestamppb.Timestamp
+	unhealthy      bool
 }
 
-func (c *Connected) Enter(ctx context.Context) Event {
+func New(
+	rc runtimeconfig.RuntimeConfig,
+	logger logrus.FieldLogger,
+	notifier notify.Notifier,
+	deviceHelper pb.DeviceHelperClient,
+	statusUpdates chan<- *pb.AgentStatus,
+) statemachine.State {
+	return &Connected{
+		rc:            rc,
+		logger:        logger,
+		notifier:      notifier,
+		deviceHelper:  deviceHelper,
+		statusUpdates: statusUpdates,
+	}
+}
+
+func (c *Connected) Enter(ctx context.Context) statemachine.Event {
 	// Set up WireGuard interface for communication with APIServer
 	helperCtx, cancel := context.WithTimeout(ctx, helperTimeout)
 	_, err := c.deviceHelper.Configure(helperCtx, c.rc.BuildHelperConfiguration([]*pb.Gateway{
@@ -41,7 +65,7 @@ func (c *Connected) Enter(ctx context.Context) Event {
 	cancel()
 	if err != nil {
 		c.notifier.Errorf(err.Error())
-		return EventDisconnect
+		return statemachine.EventDisconnect
 	}
 
 	// Teardown WireGuard interface when this state is finished
@@ -71,7 +95,7 @@ func (c *Connected) Enter(ctx context.Context) Event {
 		case codes.Unauthenticated:
 			c.notifier.Errorf("Unauthenticated: %v", err)
 			c.rc.SetToken(nil)
-			return EventDisconnect
+			return statemachine.EventDisconnect
 		}
 
 		if errors.Is(ctx.Err(), context.Canceled) {
@@ -83,12 +107,18 @@ func (c *Connected) Enter(ctx context.Context) Event {
 			// Unhandled error: disconnect
 			c.logger.Errorf("error in syncConfigLoop: %v", err)
 			c.notifier.Errorf("Unhandled error while updating config. Plase send your logs to the NAIS team.")
-			return EventDisconnect
+			return statemachine.EventDisconnect
 		}
 	}
 
 	c.logger.Infof("Config sync loop done: %s", ctx.Err())
-	return EventWaitForExternalEvent
+	return statemachine.EventWaitForExternalEvent
+}
+func (c *Connected) triggerStatusUpdate() {
+	select {
+	case c.statusUpdates <- c.Status():
+	default:
+	}
 }
 
 func (c *Connected) syncConfigLoop(ctx context.Context) error {
@@ -207,7 +237,6 @@ func (c Connected) String() string {
 func (c Connected) Status() *pb.AgentStatus {
 	return &pb.AgentStatus{
 		ConnectedSince:  c.connectedSince,
-		Tenants:         c.baseStatus.GetTenants(),
 		Gateways:        c.gateways,
 		ConnectionState: c.AgentState(),
 	}
@@ -219,7 +248,7 @@ func (c *Connected) launchHealthCheck(ctx context.Context) context.CancelFunc {
 	gateways := c.gateways
 
 	go func() {
-		timer := time.NewTimer(time.Millisecond)
+		timer := time.NewTimer(10 * time.Millisecond)
 		for ctx.Err() == nil {
 			select {
 			case <-ctx.Done():
