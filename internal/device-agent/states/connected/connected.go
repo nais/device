@@ -38,6 +38,8 @@ type Connected struct {
 	gateways       []*pb.Gateway
 	connectedSince *timestamppb.Timestamp
 	unhealthy      bool
+
+	syncConfigLoop func(ctx context.Context) error
 }
 
 func New(
@@ -47,13 +49,15 @@ func New(
 	deviceHelper pb.DeviceHelperClient,
 	statusUpdates chan<- *pb.AgentStatus,
 ) statemachine.State {
-	return &Connected{
+	c := &Connected{
 		rc:            rc,
 		logger:        logger,
 		notifier:      notifier,
 		deviceHelper:  deviceHelper,
 		statusUpdates: statusUpdates,
 	}
+	c.syncConfigLoop = c.defaultSyncConfigLoop
+	return c
 }
 
 var (
@@ -127,7 +131,7 @@ func (c *Connected) triggerStatusUpdate() {
 	}
 }
 
-func (c *Connected) syncConfigLoop(ctx context.Context) error {
+func (c *Connected) defaultSyncConfigLoop(ctx context.Context) error {
 	apiserverClient, cleanup, err := c.rc.ConnectToAPIServer(ctx)
 	if err != nil {
 		if grpcstatus.Code(err) == codes.Unavailable {
