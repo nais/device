@@ -281,6 +281,7 @@ func (c *Connected) launchHealthCheck(ctx context.Context) context.CancelFunc {
 				for i, gw := range gateways {
 					wg.Add(1)
 					go func(i int, gw *pb.Gateway) {
+						defer wg.Done()
 						err := ping(c.logger, gw.Ipv4)
 						pos := fmt.Sprintf("[%02d/%02d]", i+1, total)
 						if err == nil {
@@ -290,7 +291,6 @@ func (c *Connected) launchHealthCheck(ctx context.Context) context.CancelFunc {
 							gw.Healthy = false
 							c.logger.Debugf("%s %s: unable to ping %s: %v", pos, gw.Name, gw.Ipv4, err)
 						}
-						wg.Done()
 					}(i, gw)
 				}
 				wg.Wait()
