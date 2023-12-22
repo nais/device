@@ -131,7 +131,44 @@ func (c *Connected) triggerStatusUpdate() {
 	}
 }
 
+func (c *Connected) login(ctx context.Context, apiserverClient pb.APIServerClient, session *pb.Session) (*pb.Session, error) {
+	if !session.Expired() {
+		return session, nil
+	}
+
+	serial, err := c.deviceHelper.GetSerial(ctx, &pb.GetSerialRequest{})
+	if err != nil {
+		return nil, err
+	}
+
+	token, err := c.rc.GetToken(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	loginResponse, err := apiserverClient.Login(ctx, &pb.APIServerLoginRequest{
+		Token:    token,
+		Platform: config.Platform,
+		Serial:   serial.GetSerial(),
+		Version:  version.Version,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	if err := c.rc.SetTenantSession(loginResponse.Session); err != nil {
+		return nil, err
+	}
+
+	return loginResponse.Session, nil
+}
+
 func (c *Connected) defaultSyncConfigLoop(ctx context.Context) error {
+	session, err := c.rc.GetTenantSession()
+	if err != nil {
+		return err
+	}
+
 	apiserverClient, cleanup, err := c.rc.ConnectToAPIServer(ctx)
 	if err != nil {
 		if grpcstatus.Code(err) == codes.Unavailable {
@@ -141,36 +178,9 @@ func (c *Connected) defaultSyncConfigLoop(ctx context.Context) error {
 	}
 	defer cleanup()
 
-	session, err := c.rc.GetTenantSession()
+	session, err = c.login(ctx, apiserverClient, session)
 	if err != nil {
 		return err
-	}
-
-	if session.Expired() {
-		serial, err := c.deviceHelper.GetSerial(ctx, &pb.GetSerialRequest{})
-		if err != nil {
-			return err
-		}
-
-		token, err := c.rc.GetToken(ctx)
-		if err != nil {
-			return err
-		}
-
-		loginResponse, err := apiserverClient.Login(ctx, &pb.APIServerLoginRequest{
-			Token:    token,
-			Platform: config.Platform,
-			Serial:   serial.GetSerial(),
-			Version:  version.Version,
-		})
-		if err != nil {
-			return err
-		}
-
-		if err := c.rc.SetTenantSession(loginResponse.Session); err != nil {
-			return err
-		}
-		session = loginResponse.Session
 	}
 
 	streamContext, cancel := context.WithDeadline(ctx, session.Expiry.AsTime())

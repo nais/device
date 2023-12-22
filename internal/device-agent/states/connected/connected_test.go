@@ -3,6 +3,8 @@ package connected
 import (
 	"context"
 	"fmt"
+	"testing"
+	"time"
 	"github.com/nais/device/internal/device-agent/auth"
 	"github.com/nais/device/internal/device-agent/runtimeconfig"
 	"github.com/nais/device/internal/device-agent/statemachine"
@@ -13,6 +15,7 @@ import (
 	"github.com/stretchr/testify/mock"
 	"testing"
 	"time"
+	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 func TestConnected_Enter(t *testing.T) {
@@ -178,4 +181,39 @@ func TestConnected_Enter(t *testing.T) {
 	})
 }
 
+func TestConnected_login(t *testing.T) {
+	logger := logrus.New()
+	t.Run("login: session expired", func(t *testing.T) {
+		ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+		defer cancel()
+
+		expiredSession := &pb.Session{Expiry: timestamppb.New(time.Now().Add(-time.Hour)), Key: "key"}
+
+		expectedLoginResponse := &pb.APIServerLoginResponse{
+			Session: &pb.Session{
+				Key:    "newkey",
+				Expiry: timestamppb.New(time.Now().Add(time.Hour)),
+			},
+		}
+
+		apiServerClient := pb.NewMockAPIServerClient(t)
+		apiServerClient.EXPECT().Login(mock.Anything, mock.Anything).Return(expectedLoginResponse, nil)
+
+		rc := runtimeconfig.NewMockRuntimeConfig(t)
+		rc.EXPECT().GetToken(ctx).Return("token", nil)
+		rc.EXPECT().SetTenantSession(expectedLoginResponse.Session).Return(nil)
+
+		deviceHelper := pb.NewMockDeviceHelperClient(t)
+		deviceHelper.EXPECT().GetSerial(ctx, mock.Anything).Return(&pb.GetSerialResponse{Serial: "serial"}, nil)
+
+		c := &Connected{
+			rc:           rc,
+			logger:       logger,
+			deviceHelper: deviceHelper,
+		}
+
+		session, err := c.login(ctx, apiServerClient, expiredSession)
+		assert.NoError(t, err)
+		assert.Equal(t, expectedLoginResponse.Session, session)
+	})
 }
