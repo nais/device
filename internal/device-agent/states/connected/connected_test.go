@@ -47,6 +47,25 @@ func TestConnected_Enter(t *testing.T) {
 	})
 
 	t.Run("syncConfigLoop", func(t *testing.T) {
+		setupMocks := func(t *testing.T) (*runtimeconfig.MockRuntimeConfig, *pb.MockDeviceHelperClient, *notify.MockNotifier) {
+			rc := runtimeconfig.NewMockRuntimeConfig(t)
+			apiServerPeer := &pb.Gateway{}
+			rc.EXPECT().APIServerPeer().Return(apiServerPeer)
+			configuration := &pb.Configuration{}
+			rc.EXPECT().BuildHelperConfiguration([]*pb.Gateway{
+				apiServerPeer,
+			}).Return(configuration)
+
+			deviceHelper := pb.NewMockDeviceHelperClient(t)
+			deviceHelper.EXPECT().Configure(mock.Anything, configuration).Return(nil, nil)
+			deviceHelper.EXPECT().Teardown(mock.Anything, &pb.TeardownRequest{}).Return(nil, nil)
+
+			notifier := notify.NewMockNotifier(t)
+			notifier.EXPECT().Errorf(mock.Anything, mock.Anything).Maybe()
+			notifier.EXPECT().Infof(mock.Anything, mock.Anything).Maybe()
+			return rc, deviceHelper, notifier
+		}
+
 		t.Run("returns ErrUnauthenticated", func(t *testing.T) {
 			ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 			defer cancel()
@@ -159,21 +178,4 @@ func TestConnected_Enter(t *testing.T) {
 	})
 }
 
-func setupMocks(t *testing.T) (*runtimeconfig.MockRuntimeConfig, *pb.MockDeviceHelperClient, *notify.MockNotifier) {
-	rc := runtimeconfig.NewMockRuntimeConfig(t)
-	apiServerPeer := &pb.Gateway{}
-	rc.EXPECT().APIServerPeer().Return(apiServerPeer)
-	configuration := &pb.Configuration{}
-	rc.EXPECT().BuildHelperConfiguration([]*pb.Gateway{
-		apiServerPeer,
-	}).Return(configuration)
-
-	deviceHelper := pb.NewMockDeviceHelperClient(t)
-	deviceHelper.EXPECT().Configure(mock.Anything, configuration).Return(nil, nil)
-	deviceHelper.EXPECT().Teardown(mock.Anything, &pb.TeardownRequest{}).Return(nil, nil)
-
-	notifier := notify.NewMockNotifier(t)
-	notifier.EXPECT().Errorf(mock.Anything, mock.Anything).Maybe()
-	notifier.EXPECT().Infof(mock.Anything, mock.Anything).Maybe()
-	return rc, deviceHelper, notifier
 }
