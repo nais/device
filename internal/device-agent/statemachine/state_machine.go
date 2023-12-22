@@ -4,9 +4,6 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/nais/device/internal/device-agent/config"
-	"github.com/nais/device/internal/device-agent/runtimeconfig"
-	"github.com/nais/device/internal/notify"
 	"github.com/sirupsen/logrus"
 
 	"github.com/nais/device/internal/pb"
@@ -21,13 +18,6 @@ const (
 	EventBootstrapped         Event = "Bootstrapped"
 	EventDisconnect           Event = "Disconnect"
 )
-
-type baseState struct {
-	rc       runtimeconfig.RuntimeConfig
-	cfg      config.Config
-	logger   logrus.FieldLogger
-	notifier notify.Notifier
-}
 
 type State interface {
 	Enter(context.Context) Event
