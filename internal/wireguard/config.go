@@ -58,7 +58,7 @@ func (cfg *Config) MarshalINI(w io.Writer) error {
 			addr += ", " + cfg.AddressV6
 		}
 
-		fprintNonEmpty(ew, "Address = %s\n", cfg.AddressV4)
+		fprintNonEmpty(ew, "Address = %s\n", addr)
 	}
 
 	fmt.Fprintf(ew, "\n")

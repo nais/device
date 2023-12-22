@@ -12,6 +12,7 @@ import (
 func TestConfig_MarshalINI(t *testing.T) {
 	cfg := &wireguard.Config{
 		AddressV4:  "address",
+		AddressV6:  "addressv6",
 		ListenPort: 12345,
 		MTU:        123,
 		Peers: []wireguard.Peer{
@@ -42,7 +43,7 @@ func TestConfig_MarshalINI(t *testing.T) {
 PrivateKey = privkey
 ListenPort = 12345
 MTU = 123
-Address = address
+Address = address, addressv6
 
 [Peer] # gw-name
 PublicKey = gw-pubkey
