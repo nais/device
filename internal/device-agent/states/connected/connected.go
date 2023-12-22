@@ -56,6 +56,12 @@ func New(
 	}
 }
 
+var (
+	ErrUnauthenticated = errors.New("unauthenticated")
+	ErrUnavailable     = errors.New("unavailable")
+	ErrLostConnection  = errors.New("lost connection")
+)
+
 func (c *Connected) Enter(ctx context.Context) statemachine.Event {
 	// Set up WireGuard interface for communication with APIServer
 	helperCtx, cancel := context.WithTimeout(ctx, helperTimeout)
@@ -78,32 +84,33 @@ func (c *Connected) Enter(ctx context.Context) statemachine.Event {
 		c.unhealthy = false
 	}()
 
+	done := func() statemachine.Event {
+		c.logger.Infof("Config sync loop done: %s", ctx.Err())
+		return statemachine.EventWaitForExternalEvent
+	}
+
 	attempt := 0
 	for ctx.Err() == nil {
 		attempt++
 		c.logger.Infof("[attempt %d] Setting up gateway configuration stream...", attempt)
 		err := c.syncConfigLoop(ctx)
 
-		switch grpcstatus.Code(err) {
-		case codes.OK:
-			attempt = 0
-			continue
-		case codes.Unavailable:
+		switch e := err; {
+		case errors.Is(e, ErrUnavailable):
 			c.logger.Warnf("Synchronize config: not connected to API server: %v", err)
 			time.Sleep(apiServerRetryInterval * time.Duration(math.Pow(float64(attempt), 3)))
 			continue
-		case codes.Unauthenticated:
+		case errors.Is(e, ErrUnauthenticated):
 			c.notifier.Errorf("Unauthenticated: %v", err)
 			c.rc.SetToken(nil)
 			return statemachine.EventDisconnect
-		}
-
-		if errors.Is(ctx.Err(), context.Canceled) {
-			// we got cancelled (most likely shutdown or disconnect event)
-			break
-		}
-
-		if err != nil {
+		case errors.Is(e, ErrLostConnection):
+			c.notifier.Infof("Lost connection, reconnecting..")
+			attempt = 0
+		case errors.Is(e, context.Canceled):
+			// we got cancelled (shutdown or disconnect event)
+			return done()
+		case e != nil:
 			// Unhandled error: disconnect
 			c.logger.Errorf("error in syncConfigLoop: %v", err)
 			c.notifier.Errorf("Unhandled error while updating config. Plase send your logs to the NAIS team.")
@@ -111,8 +118,7 @@ func (c *Connected) Enter(ctx context.Context) statemachine.Event {
 		}
 	}
 
-	c.logger.Infof("Config sync loop done: %s", ctx.Err())
-	return statemachine.EventWaitForExternalEvent
+	return done()
 }
 func (c *Connected) triggerStatusUpdate() {
 	select {
@@ -124,6 +130,9 @@ func (c *Connected) triggerStatusUpdate() {
 func (c *Connected) syncConfigLoop(ctx context.Context) error {
 	apiserverClient, cleanup, err := c.rc.ConnectToAPIServer(ctx)
 	if err != nil {
+		if grpcstatus.Code(err) == codes.Unavailable {
+			return fmt.Errorf("connect to apiserver(%w): %w", ErrUnavailable, err)
+		}
 		return err
 	}
 	defer cleanup()
@@ -178,15 +187,21 @@ func (c *Connected) syncConfigLoop(ctx context.Context) error {
 	for ctx.Err() == nil {
 		cfg, err := stream.Recv()
 		healthCheckCancel()
-		if err != nil {
-			return fmt.Errorf("recv: %w", err)
+
+		switch e := err; {
+		case errors.Is(e, context.DeadlineExceeded):
+			return fmt.Errorf("session timed out (%w): %w", ErrUnauthenticated, e)
+		case grpcstatus.Code(e) == codes.Unavailable:
+			return fmt.Errorf("recv (%w): %w", ErrLostConnection, e)
+		case e != nil:
+			return fmt.Errorf("recv: %w", e)
 		}
 
 		c.logger.Infof("Received gateway configuration from API server")
 
 		switch cfg.Status {
 		case pb.DeviceConfigurationStatus_InvalidSession:
-			return grpcstatus.Errorf(codes.Unauthenticated, "invalid session, config status: %v", cfg.Status)
+			return fmt.Errorf("invalid session (%w), config status: %v", ErrUnauthenticated, cfg.Status)
 		case pb.DeviceConfigurationStatus_DeviceUnhealthy:
 			c.logger.Errorf("Device is not healthy: %v", err)
 			c.notifier.Errorf("No access as your device is unhealthy. Run '/msg @Kolide status' on Slack and fix the errors")

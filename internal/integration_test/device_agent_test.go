@@ -31,6 +31,7 @@ func NewDeviceAgent(t *testing.T, wg *sync.WaitGroup, ctx context.Context, log *
 
 	notifier := notify.NewMockNotifier(t)
 	notifier.EXPECT().Errorf(mock.Anything, mock.Anything).Maybe()
+	notifier.EXPECT().Infof(mock.Anything, mock.Anything).Maybe()
 
 	statusChannel := make(chan *pb.AgentStatus, 32)
 	stateMachine := device_agent.NewStateMachine(ctx, rc, *cfg, notifier, helperClient, statusChannel, log)
