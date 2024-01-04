@@ -16,6 +16,8 @@ import (
 	"golang.org/x/oauth2"
 )
 
+type GetTokenFunc func(context.Context, logrus.FieldLogger, oauth2.Config, string) (*Tokens, error)
+
 type authFlowResponse struct {
 	Tokens *Tokens
 	err    error
@@ -26,7 +28,7 @@ type Tokens struct {
 	IDToken string
 }
 
-func GetDeviceAgentToken(ctx context.Context, log *logrus.Entry, conf oauth2.Config, authServer string) (*Tokens, error) {
+func GetDeviceAgentToken(ctx context.Context, log logrus.FieldLogger, conf oauth2.Config, authServer string) (*Tokens, error) {
 	// Ignoring impossible error
 	codeVerifier, _ := codeverifier.CreateCodeVerifier()
 

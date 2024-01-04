@@ -18,6 +18,8 @@ packages:
     interfaces:
       APIServerClient:
       APIServer_GetGatewayConfigurationClient:
+      APIServer_GetDeviceConfigurationClient:
+      DeviceHelperClient:
   github.com/nais/device/internal/wireguard:
     interfaces:
       NetworkConfigurer:

@@ -260,15 +260,18 @@ func (gui *Gui) handleAgentStatus(agentStatus *pb.AgentStatus) {
 	gui.AgentStatus = agentStatus
 
 	switch agentStatus.GetConnectionState() {
+	case pb.AgentState_Authenticating:
+		fallthrough
 	case pb.AgentState_Bootstrapping:
-		gui.MenuItems.Connect.SetTitle("Disconnect")
+		fallthrough
 	case pb.AgentState_Connected:
-		gui.updateIcons()
+		fallthrough
 	case pb.AgentState_Unhealthy:
+		gui.MenuItems.Connect.SetTitle("Disconnect")
 		gui.updateIcons()
 	case pb.AgentState_Disconnected:
-		gui.updateIcons()
 		gui.MenuItems.Connect.SetTitle("Connect")
+		gui.updateIcons()
 	}
 
 	gui.MenuItems.State.SetTitle(agentStatus.ConnectionStateString())
@@ -351,15 +354,19 @@ func (gui *Gui) applyDisconnectedIcon() {
 	}
 }
 
+func (gui *Gui) applyConnectedIcon() {
+	if gui.Config.BlackAndWhiteIcons {
+		systray.SetTemplateIcon(assets.NaisLogoBwConnected, assets.NaisLogoBwConnected)
+	} else {
+		systray.SetIcon(assets.NaisLogoGreen)
+	}
+}
+
 func (gui *Gui) updateIcons() {
 	if gui.AgentStatus.GetConnectionState() == pb.AgentState_Disconnected {
 		gui.applyDisconnectedIcon()
 	} else if gui.AgentStatus.GetConnectionState() == pb.AgentState_Connected {
-		if gui.Config.BlackAndWhiteIcons {
-			systray.SetTemplateIcon(assets.NaisLogoBwConnected, assets.NaisLogoBwConnected)
-		} else {
-			systray.SetIcon(assets.NaisLogoGreen)
-		}
+		gui.applyConnectedIcon()
 	} else if gui.AgentStatus.GetConnectionState() == pb.AgentState_Unhealthy {
 		systray.SetIcon(assets.NaisLogoYellow)
 	}
