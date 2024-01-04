@@ -7,7 +7,7 @@ require (
 	github.com/coreos/go-iptables v0.7.0
 	github.com/gen2brain/beeep v0.0.0-20210529141713-5586760f0cc1
 	github.com/go-chi/chi/v5 v5.0.10
-	github.com/google/uuid v1.4.0
+	github.com/google/uuid v1.5.0
 	github.com/gopherjs/gopherjs v0.0.0-20210918183006-daae65060a40 // indirect
 	github.com/hashicorp/go-multierror v1.1.1 // indirect
 	github.com/kelseyhightower/envconfig v1.4.0
