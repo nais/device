@@ -1,6 +1,7 @@
 package systray
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"os"
@@ -28,12 +29,12 @@ type GuiEvent int
 
 type GatewayItem struct {
 	Gateway  *pb.Gateway
-	MenuItem *systray.MenuItem
+	MenuItem *cachedMenuItem
 }
 
 type TenantItem struct {
 	Tenant   *pb.Tenant
-	MenuItem *systray.MenuItem
+	MenuItem *cachedMenuItem
 }
 
 type Gui struct {
@@ -47,28 +48,31 @@ type Gui struct {
 	TenantItemClicked        chan string
 	ProgramContext           context.Context
 	MenuItems                struct {
-		Connect       *systray.MenuItem
-		Quit          *systray.MenuItem
-		State         *systray.MenuItem
-		StateInfo     *systray.MenuItem
-		Logs          *systray.MenuItem
-		Settings      *systray.MenuItem
-		AutoConnect   *systray.MenuItem
-		BlackAndWhite *systray.MenuItem
-		DeviceLog     *systray.MenuItem
-		HelperLog     *systray.MenuItem
-		SystrayLog    *systray.MenuItem
-		ZipLog        *systray.MenuItem
-		Version       *systray.MenuItem
-		Upgrade       *systray.MenuItem
-		Tenant        *systray.MenuItem
+		Connect       *cachedMenuItem
+		Quit          *cachedMenuItem
+		State         *cachedMenuItem
+		StateInfo     *cachedMenuItem
+		Logs          *cachedMenuItem
+		Settings      *cachedMenuItem
+		AutoConnect   *cachedMenuItem
+		BlackAndWhite *cachedMenuItem
+		DeviceLog     *cachedMenuItem
+		HelperLog     *cachedMenuItem
+		SystrayLog    *cachedMenuItem
+		ZipLog        *cachedMenuItem
+		Version       *cachedMenuItem
+		Upgrade       *cachedMenuItem
+		Tenant        *cachedMenuItem
 		TenantItems   []*TenantItem
 		GatewayItems  []*GatewayItem
-		AcceptableUse *systray.MenuItem
+		AcceptableUse *cachedMenuItem
 	}
 	Config   Config
 	notifier notify.Notifier
 	log      *logrus.Entry
+
+	icon         []byte
+	templateIcon []byte
 }
 
 const (
@@ -101,36 +105,36 @@ func NewGUI(ctx context.Context, log *logrus.Entry, client pb.DeviceAgentClient,
 	}
 	gui.applyDisconnectedIcon()
 
-	gui.MenuItems.Version = systray.AddMenuItem("naisdevice "+version.Version, "")
+	gui.MenuItems.Version = AddMenuItem("naisdevice "+version.Version, "")
 	gui.MenuItems.Version.Disable()
-	gui.MenuItems.Upgrade = systray.AddMenuItem("Update to latest version...", "Click to open browser")
+	gui.MenuItems.Upgrade = AddMenuItem("Update to latest version...", "Click to open browser")
 	gui.MenuItems.Upgrade.Hide()
 	systray.AddSeparator()
-	gui.MenuItems.State = systray.AddMenuItem("", "")
-	gui.MenuItems.StateInfo = systray.AddMenuItem("", "")
+	gui.MenuItems.State = AddMenuItem("", "")
+	gui.MenuItems.StateInfo = AddMenuItem("", "")
 	gui.MenuItems.StateInfo.Hide()
 	gui.MenuItems.State.Disable()
-	gui.MenuItems.AcceptableUse = systray.AddMenuItem("Acceptable use policy", "")
+	gui.MenuItems.AcceptableUse = AddMenuItem("Acceptable use policy", "")
 	gui.MenuItems.AcceptableUse.Hide()
-	gui.MenuItems.Logs = systray.AddMenuItem("Logs", "")
-	gui.MenuItems.Settings = systray.AddMenuItem("Settings", "")
+	gui.MenuItems.Logs = AddMenuItem("Logs", "")
+	gui.MenuItems.Settings = AddMenuItem("Settings", "")
 	gui.MenuItems.AutoConnect = gui.MenuItems.Settings.AddSubMenuItemCheckbox("Connect automatically on startup", "", false)
 	gui.MenuItems.BlackAndWhite = gui.MenuItems.Settings.AddSubMenuItemCheckbox("Black and white icons", "", cfg.BlackAndWhiteIcons)
 	gui.MenuItems.DeviceLog = gui.MenuItems.Logs.AddSubMenuItem("Agent", "")
 	gui.MenuItems.HelperLog = gui.MenuItems.Logs.AddSubMenuItem("Helper", "")
 	gui.MenuItems.SystrayLog = gui.MenuItems.Logs.AddSubMenuItem("Systray", "")
 	gui.MenuItems.ZipLog = gui.MenuItems.Logs.AddSubMenuItem("Zip logfiles", "")
-	gui.MenuItems.Tenant = systray.AddMenuItem("Tenant", "")
+	gui.MenuItems.Tenant = AddMenuItem("Tenant", "")
 	gui.MenuItems.Tenant.Hide()
 	systray.AddSeparator()
-	gui.MenuItems.Connect = systray.AddMenuItem("Connect", "")
+	gui.MenuItems.Connect = AddMenuItem("Connect", "")
 	systray.AddSeparator()
 	gui.MenuItems.GatewayItems = make([]*GatewayItem, maxGateways)
 	gui.MenuItems.TenantItems = make([]*TenantItem, maxTenants)
 
 	for i := range gui.MenuItems.GatewayItems {
 		gui.MenuItems.GatewayItems[i] = &GatewayItem{}
-		gui.MenuItems.GatewayItems[i].MenuItem = systray.AddMenuItemCheckbox("", "", false)
+		gui.MenuItems.GatewayItems[i].MenuItem = AddMenuItemCheckbox("", "", false)
 		gui.MenuItems.GatewayItems[i].MenuItem.Disable()
 		gui.MenuItems.GatewayItems[i].MenuItem.Hide()
 	}
@@ -143,7 +147,7 @@ func NewGUI(ctx context.Context, log *logrus.Entry, client pb.DeviceAgentClient,
 	}
 
 	systray.AddSeparator()
-	gui.MenuItems.Quit = systray.AddMenuItem("Quit", "Exit the application")
+	gui.MenuItems.Quit = AddMenuItem("Quit", "Exit the application")
 
 	gui.Interrupts = make(chan os.Signal, 1)
 	signal.Notify(gui.Interrupts, os.Interrupt, syscall.SIGTERM)
@@ -346,29 +350,43 @@ func (gui *Gui) handleAgentStatus(agentStatus *pb.AgentStatus) {
 	}
 }
 
-func (gui *Gui) applyDisconnectedIcon() {
-	if gui.Config.BlackAndWhiteIcons {
-		systray.SetTemplateIcon(assets.NaisLogoBwDisconnected, assets.NaisLogoBwDisconnected)
-	} else {
-		systray.SetIcon(assets.NaisLogoRed)
+func (gui *Gui) setIcon(icon []byte) {
+	if !bytes.Equal(gui.icon, icon) {
+		gui.icon = icon
+		systray.SetIcon(icon)
 	}
 }
 
-func (gui *Gui) applyConnectedIcon() {
+func (gui *Gui) setTemplateIcon(templateIcon, icon []byte) {
+	if !bytes.Equal(gui.templateIcon, templateIcon) || !bytes.Equal(gui.icon, icon) {
+		gui.templateIcon = templateIcon
+		gui.icon = icon
+		systray.SetTemplateIcon(templateIcon, icon)
+	}
+}
+
+func (gui *Gui) applyDisconnectedIcon() {
 	if gui.Config.BlackAndWhiteIcons {
-		systray.SetTemplateIcon(assets.NaisLogoBwConnected, assets.NaisLogoBwConnected)
+		gui.setTemplateIcon(assets.NaisLogoBwDisconnected, assets.NaisLogoBwDisconnected)
 	} else {
-		systray.SetIcon(assets.NaisLogoGreen)
+		gui.setIcon(assets.NaisLogoRed)
 	}
 }
 
 func (gui *Gui) updateIcons() {
-	if gui.AgentStatus.GetConnectionState() == pb.AgentState_Disconnected {
+	switch gui.AgentStatus.GetConnectionState() {
+	case pb.AgentState_Connected:
+		if gui.Config.BlackAndWhiteIcons {
+			gui.setTemplateIcon(assets.NaisLogoBwConnected, assets.NaisLogoBwConnected)
+		} else {
+			gui.setIcon(assets.NaisLogoGreen)
+		}
+	case pb.AgentState_Disconnected:
 		gui.applyDisconnectedIcon()
-	} else if gui.AgentStatus.GetConnectionState() == pb.AgentState_Connected {
-		gui.applyConnectedIcon()
-	} else if gui.AgentStatus.GetConnectionState() == pb.AgentState_Unhealthy {
-		systray.SetIcon(assets.NaisLogoYellow)
+	case pb.AgentState_Unhealthy:
+		if !bytes.Equal(gui.icon, assets.NaisLogoYellow) {
+			gui.setIcon(assets.NaisLogoYellow)
+		}
 	}
 }
 
