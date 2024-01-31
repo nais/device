@@ -257,8 +257,11 @@ func (r *runtimeConfig) LoadEnrollConfig() error {
 		return err
 	}
 
-	if ec.DeviceIPv6 == "" || strings.HasPrefix(ec.DeviceIPv6, "fd") {
-		return fmt.Errorf("bootstrap config does not contain a valid IPv6 address, should re-enroll")
+	// IPv6 is only enabled in NAV
+	if strings.EqualFold(r.GetActiveTenant().Name, "NAV") {
+		if ec.DeviceIPv6 == "" || strings.HasPrefix(ec.DeviceIPv6, "fd") {
+			return fmt.Errorf("bootstrap config does not contain a valid IPv6 address, should re-enroll")
+		}
 	}
 
 	r.enrollConfig = ec
