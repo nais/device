@@ -207,6 +207,8 @@ func (c *Connected) defaultSyncConfigLoop(ctx context.Context) error {
 			return fmt.Errorf("session timed out (%w): %w", ErrUnauthenticated, e)
 		case grpcstatus.Code(e) == codes.Unavailable:
 			return fmt.Errorf("recv (%w): %w", ErrLostConnection, e)
+		case grpcstatus.Code(e) == codes.Canceled:
+			return fmt.Errorf("recv: %w", context.Canceled)
 		case e != nil:
 			return fmt.Errorf("recv: %w", e)
 		}
