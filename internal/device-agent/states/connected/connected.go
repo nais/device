@@ -109,7 +109,7 @@ func (c *Connected) Enter(ctx context.Context) statemachine.Event {
 			c.rc.SetToken(nil)
 			return statemachine.EventDisconnect
 		case errors.Is(e, ErrLostConnection):
-			c.notifier.Infof("Lost connection, reconnecting..")
+			c.logger.Infof("Lost connection, reconnecting..")
 			attempt = 0
 		case errors.Is(e, context.Canceled):
 			// we got cancelled (shutdown or disconnect event)
