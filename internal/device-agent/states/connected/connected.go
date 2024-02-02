@@ -111,8 +111,8 @@ func (c *Connected) Enter(ctx context.Context) statemachine.Event {
 		case errors.Is(e, ErrLostConnection):
 			c.logger.Infof("Lost connection, reconnecting..")
 			attempt = 0
-		case errors.Is(e, context.Canceled):
-			// we got cancelled (shutdown or disconnect event)
+		case errors.Is(e, context.Canceled) || errors.Is(e, context.DeadlineExceeded):
+			c.logger.Infof("syncConfigLoop: %v", err)
 			return done()
 		case e != nil:
 			// Unhandled error: disconnect
@@ -203,12 +203,12 @@ func (c *Connected) defaultSyncConfigLoop(ctx context.Context) error {
 		healthCheckCancel()
 
 		switch e := err; {
-		case errors.Is(e, context.DeadlineExceeded):
-			return fmt.Errorf("session timed out (%w): %w", ErrUnauthenticated, e)
 		case grpcstatus.Code(e) == codes.Unavailable:
-			return fmt.Errorf("recv (%w): %w", ErrLostConnection, e)
+			return fmt.Errorf("recv(%w): %w", ErrLostConnection, e)
 		case grpcstatus.Code(e) == codes.Canceled:
-			return fmt.Errorf("recv: %w", context.Canceled)
+			return fmt.Errorf("recv(%w): %w", context.Canceled, e)
+		case grpcstatus.Code(e) == codes.DeadlineExceeded:
+			return fmt.Errorf("recv(%w): %w", context.DeadlineExceeded, e)
 		case e != nil:
 			return fmt.Errorf("recv: %w", e)
 		}
