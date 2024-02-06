@@ -85,7 +85,7 @@ require (
 	github.com/google/gopacket v1.1.20-0.20220810144506-32ee38206866
 	github.com/jackmordaunt/icns/v2 v2.2.6
 	github.com/sqlc-dev/sqlc v1.23.0
-	github.com/vektra/mockery/v2 v2.37.1
+	github.com/vektra/mockery/v2 v2.40.1
 	golang.org/x/exp v0.0.0-20231006140011-7918f672742d
 	golang.org/x/vuln v1.0.1
 	google.golang.org/grpc/cmd/protoc-gen-go-grpc v1.3.0
@@ -126,7 +126,7 @@ require (
 	github.com/ccojocar/zxcvbn-go v1.0.1 // indirect
 	github.com/charithe/durationcheck v0.0.10 // indirect
 	github.com/chavacava/garif v0.1.0 // indirect
-	github.com/chigopher/pathlib v0.15.0 // indirect
+	github.com/chigopher/pathlib v0.19.1 // indirect
 	github.com/cubicdaiya/gonp v1.0.4 // indirect
 	github.com/curioswitch/go-reassign v0.2.0 // indirect
 	github.com/cznic/mathutil v0.0.0-20181122101859-297441e03548 // indirect
