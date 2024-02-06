@@ -347,7 +347,7 @@ func TestConnected_defaultSyncConfigLoop(t *testing.T) {
 			assert.ErrorIs(t, err, ErrUnauthenticated)
 		})
 
-		t.Run("err unavailable", func(t *testing.T) {
+		t.Run("session timeout", func(t *testing.T) {
 			ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 			defer cancel()
 
@@ -362,7 +362,7 @@ func TestConnected_defaultSyncConfigLoop(t *testing.T) {
 			getDeviceConfigClient.EXPECT().Recv().Return(nil, context.DeadlineExceeded)
 
 			err := c.defaultSyncConfigLoop(ctx)
-			assert.ErrorIs(t, err, ErrUnauthenticated)
+			assert.ErrorIs(t, err, context.DeadlineExceeded)
 		})
 		t.Run("err unauthenticated", func(t *testing.T) {
 			ctx, cancel := context.WithTimeout(context.Background(), time.Second)
