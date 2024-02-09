@@ -91,7 +91,7 @@ const (
 	maxTenants          = 10
 	maxGateways         = 30
 	slackURL            = "slack://channel?team=T5LNAMWNA&id=D011T20LDHD"
-	softwareReleasePage = "https://doc.nais.io/device/update/"
+	softwareReleasePage = "https://doc.nais.io/how-to-guides/naisdevice/update"
 	requestBackoff      = 5 * time.Second
 )
 

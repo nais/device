@@ -199,7 +199,7 @@ func versionChecker(ctx context.Context, newVersionChannel chan<- bool, notifier
 
 			newVersionChannel <- newVersionAvailable
 			if newVersionAvailable {
-				notifier.Infof("New version of device agent available: https://doc.nais.io/device/update/")
+				notifier.Infof("New version of device agent available: https://doc.nais.io/how-to-guides/naisdevice/update")
 				versionCheckTimer.Stop()
 			} else {
 				versionCheckTimer.Reset(versionCheckInterval)
