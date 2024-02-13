@@ -22,6 +22,7 @@ import (
 	"github.com/nais/device/internal/device-agent/runtimeconfig"
 	"github.com/nais/device/internal/logger"
 	"github.com/nais/device/internal/notify"
+	"github.com/nais/device/internal/otel"
 	"github.com/nais/device/internal/pb"
 	"github.com/nais/device/internal/unixsocket"
 	"github.com/nais/device/internal/version"
@@ -94,6 +95,16 @@ func run(ctx context.Context, log *logrus.Entry, cfg *config.Config, notifier no
 	if err := filesystem.EnsurePrerequisites(cfg); err != nil {
 		return fmt.Errorf("missing prerequisites: %s", err)
 	}
+
+	otelCancel, err := otel.SetupOTelSDK(ctx)
+	if err != nil {
+		return fmt.Errorf("setup OTel SDK: %s", err)
+	}
+	defer func() {
+		if err := otelCancel(ctx); err != nil {
+			log.Errorf("shutdown OTel SDK: %s", err)
+		}
+	}()
 
 	rc, err := runtimeconfig.New(log.WithField("component", "runtimeconfig"), cfg)
 	if err != nil {
