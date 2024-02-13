@@ -88,11 +88,6 @@ func (c *Connected) Enter(ctx context.Context) statemachine.Event {
 		c.unhealthy = false
 	}()
 
-	done := func() statemachine.Event {
-		c.logger.Infof("Config sync loop done: %s", ctx.Err())
-		return statemachine.EventWaitForExternalEvent
-	}
-
 	attempt := 0
 	for ctx.Err() == nil {
 		attempt++
@@ -111,9 +106,13 @@ func (c *Connected) Enter(ctx context.Context) statemachine.Event {
 		case errors.Is(e, ErrLostConnection):
 			c.logger.Infof("Lost connection, reconnecting..")
 			attempt = 0
-		case errors.Is(e, context.Canceled) || errors.Is(e, context.DeadlineExceeded):
-			c.logger.Infof("syncConfigLoop: %v", err)
-			return done()
+		case errors.Is(e, context.DeadlineExceeded):
+			c.logger.Infof("syncConfigLoop deadline exceeded: %v", err)
+			return statemachine.EventDisconnect
+		case errors.Is(e, context.Canceled):
+			// in this case something from the outside canceled us, let them decide next state
+			c.logger.Infof("syncConfigLoop canceled: %v", err)
+			return statemachine.EventWaitForExternalEvent
 		case e != nil:
 			// Unhandled error: disconnect
 			c.logger.Errorf("error in syncConfigLoop: %v", err)
@@ -122,7 +121,7 @@ func (c *Connected) Enter(ctx context.Context) statemachine.Event {
 		}
 	}
 
-	return done()
+	return statemachine.EventDisconnect
 }
 func (c *Connected) triggerStatusUpdate() {
 	select {
