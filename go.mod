@@ -26,7 +26,7 @@ require (
 	golang.org/x/text v0.14.0 // indirect
 	google.golang.org/api v0.161.0
 	google.golang.org/genproto v0.0.0-20240102182953-50ed04b92917 // indirect
-	google.golang.org/grpc v1.60.1
+	google.golang.org/grpc v1.61.0
 	google.golang.org/protobuf v1.32.0
 )
 
@@ -278,11 +278,12 @@ require (
 	github.com/ykadowak/zerologlint v0.1.3 // indirect
 	gitlab.com/bosi/decorder v0.4.1 // indirect
 	go-simpler.org/sloglint v0.1.2 // indirect
-	go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc v0.47.0 // indirect
+	go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc v0.48.0 // indirect
 	go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.47.0 // indirect
-	go.opentelemetry.io/otel v1.22.0 // indirect
-	go.opentelemetry.io/otel/metric v1.22.0 // indirect
-	go.opentelemetry.io/otel/trace v1.22.0 // indirect
+	go.opentelemetry.io/otel v1.23.1 // indirect
+	go.opentelemetry.io/otel/metric v1.23.1 // indirect
+	go.opentelemetry.io/otel/sdk v1.23.1 // indirect
+	go.opentelemetry.io/otel/trace v1.23.1 // indirect
 	go.tmz.dev/musttag v0.7.2 // indirect
 	golang.org/x/exp/typeparams v0.0.0-20231006140011-7918f672742d // indirect
 	golang.org/x/mod v0.14.0 // indirect
