@@ -28,6 +28,7 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials/insecure"
+	"google.golang.org/grpc/keepalive"
 	grpcstatus "google.golang.org/grpc/status"
 )
 
@@ -78,6 +79,11 @@ func (rc *runtimeConfig) DialAPIServer(ctx context.Context) (*grpc.ClientConn, e
 		rc.apiServerGRPCAddress(),
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 		grpc.WithBlock(),
+		grpc.WithKeepaliveParams(keepalive.ClientParameters{
+			Time:                time.Second * 10,
+			Timeout:             time.Second * 2,
+			PermitWithoutStream: false,
+		}),
 		grpc.WithReturnConnectionError(),
 	)
 }
