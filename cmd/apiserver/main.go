@@ -31,6 +31,7 @@ import (
 	kolidepb "github.com/nais/kolide-event-handler/pkg/pb"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/keepalive"
 )
 
 const (
@@ -257,7 +258,11 @@ func run(log *logrus.Entry, cfg config.Config) error {
 		sessions,
 	)
 
-	grpcServer := grpc.NewServer()
+	opts := []grpc.ServerOption{
+		grpc.KeepaliveEnforcementPolicy(keepalive.EnforcementPolicy{MinTime: 9 * time.Second}),
+	}
+
+	grpcServer := grpc.NewServer(opts...)
 	pb.RegisterAPIServerServer(grpcServer, grpcHandler)
 
 	grpcListener, err := net.Listen("tcp", cfg.GRPCBindAddress)
