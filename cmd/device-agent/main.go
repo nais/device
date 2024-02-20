@@ -122,6 +122,7 @@ func run(ctx context.Context, log *logrus.Entry, cfg *config.Config, notifier no
 	defer connection.Close()
 
 	go func() {
+		var helperCheckErrors []error
 		for ctx.Err() == nil {
 			select {
 			case <-ctx.Done():
@@ -129,10 +130,17 @@ func run(ctx context.Context, log *logrus.Entry, cfg *config.Config, notifier no
 			case <-time.After(healthCheckInterval):
 				err = helperHealthCheck(ctx, client)
 				if err != nil {
-					log.WithError(err).Errorf("Unable to communicate with helper. Shutting down")
-					notifier.Errorf("Unable to communicate with helper. Shutting down.")
+					helperCheckErrors = append(helperCheckErrors, err)
+					if len(helperCheckErrors) < 3 {
+						break
+					}
+
+					log.WithField("errors", helperCheckErrors).Errorf("Unable to communicate with helper. Agent shutting down")
+					notifier.Errorf("Unable to communicate with helper. Agent shutting down.")
 					cancel()
 				}
+				// healthcheck successful, reset errors
+				helperCheckErrors = nil
 			}
 		}
 	}()
