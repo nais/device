@@ -67,6 +67,7 @@ func main() {
 
 	logDir := filepath.Join(cfg.ConfigDir, logger.LogDir)
 	log := logger.SetupLogger(cfg.LogLevel, logDir, logger.Agent).WithField("component", "main")
+	defer logger.CapturePanic(log)
 
 	programContext, programCancel := context.WithCancel(context.Background())
 	handleSignals(log, programCancel)

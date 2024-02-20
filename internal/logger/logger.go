@@ -4,6 +4,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"runtime/debug"
 	"time"
 
 	"github.com/sirupsen/logrus"
@@ -73,4 +74,10 @@ func Setup(level string) *logrus.Logger {
 	}
 
 	return log
+}
+
+func CapturePanic(log logrus.FieldLogger) {
+	if err := recover(); err != nil {
+		log.WithField("stack", string(debug.Stack())).Errorf("recovered from panic, %T: %x", err, err)
+	}
 }
