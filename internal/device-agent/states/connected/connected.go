@@ -204,6 +204,8 @@ func (c *Connected) defaultSyncConfigLoop(ctx context.Context) error {
 		switch e := err; {
 		case grpcstatus.Code(e) == codes.Unavailable:
 			return fmt.Errorf("recv(%w): %w", ErrLostConnection, e)
+		case grpcstatus.Code(e) == codes.Unauthenticated:
+			return fmt.Errorf("recv(%w): %w", ErrUnauthenticated, e)
 		case grpcstatus.Code(e) == codes.Canceled:
 			return fmt.Errorf("recv(%w): %w", context.Canceled, e)
 		case grpcstatus.Code(e) == codes.DeadlineExceeded:
