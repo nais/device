@@ -75,6 +75,7 @@ func (sm *StateMachine) triggerStatusUpdate() {
 	select {
 	case sm.statusUpdates <- sm.current.state.Status():
 	default:
+		sm.logger.Warn("failed to trigger status update, channel full")
 	}
 }
 
