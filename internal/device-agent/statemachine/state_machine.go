@@ -37,7 +37,7 @@ type StateMachine struct {
 }
 
 type Transitions struct {
-	State   State
+	Target  State
 	Sources []State
 }
 
@@ -58,7 +58,7 @@ func New(
 	}
 
 	for e, t := range stateMachine.transitions {
-		if t.State == nil {
+		if t.Target == nil {
 			panic(fmt.Sprintf("transition with nil state detected for event: %v", e))
 		}
 		for _, s := range t.Sources {
@@ -133,7 +133,7 @@ func (sm *StateMachine) transition(event Event) {
 
 	for _, s := range t.Sources {
 		if s == sm.current.state {
-			sm.setState(t.State)
+			sm.setState(t.Target)
 			return
 		}
 	}
