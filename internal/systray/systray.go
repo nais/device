@@ -7,9 +7,10 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 
+	"github.com/sirupsen/logrus"
+
 	"github.com/nais/device/internal/notify"
 	"github.com/nais/device/internal/pb"
-	"github.com/sirupsen/logrus"
 )
 
 const ConfigFile = "systray-config.json"

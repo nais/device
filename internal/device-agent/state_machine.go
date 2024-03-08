@@ -3,6 +3,8 @@ package device_agent
 import (
 	"context"
 
+	"github.com/sirupsen/logrus"
+
 	"github.com/nais/device/internal/device-agent/config"
 	"github.com/nais/device/internal/device-agent/runtimeconfig"
 	"github.com/nais/device/internal/device-agent/statemachine"
@@ -12,7 +14,6 @@ import (
 	"github.com/nais/device/internal/device-agent/states/disconnected"
 	"github.com/nais/device/internal/notify"
 	"github.com/nais/device/internal/pb"
-	"github.com/sirupsen/logrus"
 )
 
 func NewStateMachine(
@@ -32,25 +33,25 @@ func NewStateMachine(
 
 	transitions := map[statemachine.Event]statemachine.Transitions{
 		statemachine.EventLogin: {
-			State: stateAuthenticating,
+			Target: stateAuthenticating,
 			Sources: []statemachine.State{
 				stateDisconnected,
 			},
 		},
 		statemachine.EventAuthenticated: {
-			State: stateBootstrapping,
+			Target: stateBootstrapping,
 			Sources: []statemachine.State{
 				stateAuthenticating,
 			},
 		},
 		statemachine.EventBootstrapped: {
-			State: stateConnected,
+			Target: stateConnected,
 			Sources: []statemachine.State{
 				stateBootstrapping,
 			},
 		},
 		statemachine.EventDisconnect: {
-			State: stateDisconnected,
+			Target: stateDisconnected,
 			Sources: []statemachine.State{
 				stateConnected,
 				stateAuthenticating,
