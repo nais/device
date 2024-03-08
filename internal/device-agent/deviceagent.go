@@ -20,7 +20,7 @@ import (
 type DeviceAgentServer struct {
 	pb.UnimplementedDeviceAgentServer
 	AgentStatus    *pb.AgentStatus
-	lock           sync.Mutex
+	lock           sync.RWMutex
 	statusChannels map[uuid.UUID]chan *pb.AgentStatus
 	Config         *config.Config
 	notifier       notify.Notifier
@@ -83,7 +83,7 @@ func (das *DeviceAgentServer) ConfigureJITA(context.Context, *pb.ConfigureJITARe
 func (das *DeviceAgentServer) UpdateAgentStatus(status *pb.AgentStatus) {
 	das.AgentStatus = status
 
-	das.lock.Lock()
+	das.lock.RLock()
 	for _, c := range das.statusChannels {
 		select {
 		case c <- status:
@@ -91,7 +91,7 @@ func (das *DeviceAgentServer) UpdateAgentStatus(status *pb.AgentStatus) {
 			das.log.Errorf("BUG: update agent status: channel is full")
 		}
 	}
-	das.lock.Unlock()
+	das.lock.RUnlock()
 }
 
 func (das *DeviceAgentServer) SetAgentConfiguration(ctx context.Context, req *pb.SetAgentConfigurationRequest) (*pb.SetAgentConfigurationResponse, error) {
