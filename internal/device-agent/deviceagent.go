@@ -44,7 +44,7 @@ func (das *DeviceAgentServer) Status(request *pb.AgentStatusRequest, statusServe
 
 	das.log.Debug("grpc: client connection established to device helper")
 
-	agentStatusChan := make(chan *pb.AgentStatus, 1)
+	agentStatusChan := make(chan *pb.AgentStatus, 8)
 	agentStatusChan <- das.AgentStatus
 
 	das.lock.Lock()
@@ -57,8 +57,8 @@ func (das *DeviceAgentServer) Status(request *pb.AgentStatusRequest, statusServe
 			das.log.Debugf("grpc: keepalive not requested, tearing down connections...")
 			das.sendEvent(statemachine.EventDisconnect)
 		}
-		das.lock.Lock()
 		close(agentStatusChan)
+		das.lock.Lock()
 		delete(das.statusChannels, id)
 		das.lock.Unlock()
 	}()
@@ -85,7 +85,11 @@ func (das *DeviceAgentServer) UpdateAgentStatus(status *pb.AgentStatus) {
 
 	das.lock.Lock()
 	for _, c := range das.statusChannels {
-		c <- status
+		select {
+		case c <- status:
+		default:
+			das.log.Errorf("BUG: update agent status: channel is full")
+		}
 	}
 	das.lock.Unlock()
 }
