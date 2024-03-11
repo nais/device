@@ -88,7 +88,7 @@ require (
 	github.com/sqlc-dev/sqlc v1.25.0
 	github.com/vektra/mockery/v2 v2.40.1
 	golang.org/x/exp v0.0.0-20240205201215-2c58cdc269a3
-	golang.org/x/vuln v1.0.1
+	golang.org/x/vuln v1.0.4
 	google.golang.org/grpc/cmd/protoc-gen-go-grpc v1.3.0
 	honnef.co/go/tools v0.4.6
 	mvdan.cc/gofumpt v0.5.0
