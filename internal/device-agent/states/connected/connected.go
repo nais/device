@@ -116,7 +116,7 @@ func (c *Connected) Enter(ctx context.Context) statemachine.Event {
 		case e != nil:
 			// Unhandled error: disconnect
 			c.logger.Errorf("error in syncConfigLoop: %v", err)
-			c.notifier.Errorf("Unhandled error while updating config. Plase send your logs to the NAIS team.")
+			c.notifier.Errorf("Unhandled error while updating config. Please send your logs to the NAIS team.")
 			return statemachine.EventDisconnect
 		}
 	}
