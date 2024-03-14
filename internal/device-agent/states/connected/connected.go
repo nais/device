@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
 	"math"
 	"net"
 	"sync"
@@ -11,15 +12,16 @@ import (
 
 	"github.com/sirupsen/logrus"
 
+	"google.golang.org/grpc/codes"
+	grpcstatus "google.golang.org/grpc/status"
+	"google.golang.org/protobuf/types/known/timestamppb"
+
 	"github.com/nais/device/internal/device-agent/config"
 	"github.com/nais/device/internal/device-agent/runtimeconfig"
 	"github.com/nais/device/internal/device-agent/statemachine"
 	"github.com/nais/device/internal/notify"
 	"github.com/nais/device/internal/pb"
 	"github.com/nais/device/internal/version"
-	"google.golang.org/grpc/codes"
-	grpcstatus "google.golang.org/grpc/status"
-	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 const (
@@ -103,8 +105,11 @@ func (c *Connected) Enter(ctx context.Context) statemachine.Event {
 			c.notifier.Errorf("Unauthenticated: %v", err)
 			c.rc.SetToken(nil)
 			return statemachine.EventDisconnect
+		case errors.Is(e, io.EOF):
+			c.logger.Infof("Connection unexpectedly lost (EOF), reconnecting...")
+			attempt = 0
 		case errors.Is(e, ErrLostConnection):
-			c.logger.Infof("Lost connection, reconnecting..")
+			c.logger.Infof("Lost connection, reconnecting...")
 			attempt = 0
 		case errors.Is(e, context.DeadlineExceeded):
 			c.logger.Infof("syncConfigLoop deadline exceeded: %v", err)
