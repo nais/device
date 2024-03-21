@@ -7,9 +7,10 @@ import (
 	"time"
 
 	"github.com/lestrrat-go/jwx/jwt"
-	"github.com/nais/device/internal/auth"
 	codeverifier "github.com/nirasan/go-oauth-pkce-code-verifier"
 	"golang.org/x/oauth2"
+
+	"github.com/nais/device/internal/auth"
 )
 
 func handleRedirectAzure(state string, conf oauth2.Config, codeVerifier *codeverifier.CodeVerifier, authFlowChan chan *authFlowResponse) http.HandlerFunc {
@@ -27,7 +28,10 @@ func handleRedirectAzure(state string, conf oauth2.Config, codeVerifier *codever
 			return
 		}
 
-		ctx, cancel := context.WithDeadline(r.Context(), time.Now().Add(30*time.Second))
+		// We used to use r.Context() here, but a Google Chrome update broke that.
+		// It seems that Chrome closes the HTTP connection prematurely, because the context
+		// is at this point already canceled.
+		ctx, cancel := context.WithDeadline(context.Background(), time.Now().Add(30*time.Second))
 		defer cancel()
 
 		codeVerifierParam := oauth2.SetAuthURLParam("code_verifier", codeVerifier.String())
