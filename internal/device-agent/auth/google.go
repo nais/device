@@ -38,10 +38,7 @@ func handleRedirectGoogle(state, redirectURI string, codeVerifier *codeverifier.
 			return
 		}
 
-		// We used to use r.Context() here, but a Google Chrome update broke that.
-		// It seems that Chrome closes the HTTP connection prematurely, because the context
-		// is at this point already canceled.
-		ctx, cancel := context.WithDeadline(context.Background(), time.Now().Add(10*time.Second))
+		ctx, cancel := context.WithDeadline(r.Context(), time.Now().Add(10*time.Second))
 		defer cancel()
 
 		exchangeRequest := ExchangeRequest{
