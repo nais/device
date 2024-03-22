@@ -28,10 +28,7 @@ func handleRedirectAzure(state string, conf oauth2.Config, codeVerifier *codever
 			return
 		}
 
-		// We used to use r.Context() here, but a Google Chrome update broke that.
-		// It seems that Chrome closes the HTTP connection prematurely, because the context
-		// is at this point already canceled.
-		ctx, cancel := context.WithDeadline(context.Background(), time.Now().Add(30*time.Second))
+		ctx, cancel := context.WithDeadline(r.Context(), time.Now().Add(30*time.Second))
 		defer cancel()
 
 		codeVerifierParam := oauth2.SetAuthURLParam("code_verifier", codeVerifier.String())
