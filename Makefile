@@ -110,7 +110,7 @@ app: wg wireguard-go macos-icon macos-client
 	cp packaging/macos/jq-osx-amd64 naisdevice.app/Contents/MacOS/jq
 	cp packaging/macos/icons/naisdevice.icns naisdevice.app/Contents/Resources
 	sed 's/VERSIONSTRING/${VERSION}/' packaging/macos/Info.plist.tpl > naisdevice.app/Contents/Info.plist
-	codesign -s "Developer ID Application: Torbjorn Hallenberg (T7D7Y5484F)" -f -v --timestamp --deep --options runtime naisdevice.app/Contents/MacOS/*
+	codesign -s "Developer ID Application: Arbeids- og velferdsetaten (GC9RAU27PY)" -f -v --timestamp --deep --options runtime naisdevice.app/Contents/MacOS/*
 
 test:
 	@go test $(shell go list ./... | grep -v systray) -count=1
