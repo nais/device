@@ -21,7 +21,7 @@ require (
 	github.com/urfave/cli/v2 v2.25.7
 	golang.org/x/crypto v0.21.0
 	golang.org/x/net v0.23.0 // indirect
-	golang.org/x/oauth2 v0.17.0
+	golang.org/x/oauth2 v0.18.0
 	golang.org/x/sys v0.18.0
 	golang.org/x/text v0.14.0 // indirect
 	google.golang.org/api v0.167.0
