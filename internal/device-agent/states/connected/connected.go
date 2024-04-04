@@ -16,6 +16,7 @@ import (
 	grpcstatus "google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/timestamppb"
 
+	"github.com/nais/device/internal/apiserver/auth"
 	"github.com/nais/device/internal/device-agent/config"
 	"github.com/nais/device/internal/device-agent/runtimeconfig"
 	"github.com/nais/device/internal/device-agent/statemachine"
@@ -101,6 +102,11 @@ func (c *Connected) Enter(ctx context.Context) statemachine.Event {
 			c.logger.Warnf("Synchronize config: not connected to API server: %v", err)
 			time.Sleep(apiServerRetryInterval * time.Duration(math.Pow(float64(attempt), 3)))
 			continue
+		case errors.Is(e, auth.ErrTermsNotAccepted):
+			c.notifier.Errorf("%v", e)
+			return statemachine.EventDisconnect
+		case errors.Is(e, &auth.ParseTokenError{}):
+			fallthrough
 		case errors.Is(e, ErrUnauthenticated):
 			c.notifier.Errorf("Unauthenticated: %v", err)
 			c.rc.SetToken(nil)
