@@ -89,7 +89,7 @@ require (
 	golang.org/x/exp v0.0.0-20240205201215-2c58cdc269a3
 	golang.org/x/vuln v1.0.4
 	google.golang.org/grpc/cmd/protoc-gen-go-grpc v1.3.0
-	honnef.co/go/tools v0.4.6
+	honnef.co/go/tools v0.4.7
 	mvdan.cc/gofumpt v0.6.0
 )
 
