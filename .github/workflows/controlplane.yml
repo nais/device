@@ -18,10 +18,10 @@ jobs:
     name: Test
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - id: tool_versions
         run: echo "go=$(grep golang .tool-versions | awk '{print $2}')" >> $GITHUB_OUTPUT
-      - uses: actions/setup-go@v4
+      - uses: actions/setup-go@v5
         with:
           go-version: ${{ steps.tool_versions.outputs.go }}
       - name: run tests
@@ -39,10 +39,10 @@ jobs:
     container:
       image: ghcr.io/nais/naisdevice-ci:v5
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - id: tool_versions
         run: echo "go=$(grep golang .tool-versions | awk '{print $2}')" >> $GITHUB_OUTPUT
-      - uses: actions/setup-go@v4
+      - uses: actions/setup-go@v5
         with:
           go-version: ${{ steps.tool_versions.outputs.go }}
 
@@ -75,7 +75,7 @@ jobs:
     container:
       image: ghcr.io/nais/naisdevice-ci:v5
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - id: "auth"
         name: "Authenticate to Google Cloud"
@@ -132,7 +132,7 @@ jobs:
       packages: read
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - id: "auth"
         name: "Authenticate to Google Cloud"
