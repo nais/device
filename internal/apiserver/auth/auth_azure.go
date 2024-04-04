@@ -7,11 +7,12 @@ import (
 	"time"
 
 	"github.com/lestrrat-go/jwx/jwt"
+	"google.golang.org/protobuf/types/known/timestamppb"
+
 	"github.com/nais/device/internal/apiserver/database"
 	"github.com/nais/device/internal/auth"
 	"github.com/nais/device/internal/pb"
 	"github.com/nais/device/internal/random"
-	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 type azureAuth struct {
@@ -31,7 +32,7 @@ func NewAuthenticator(azureConfig *auth.Azure, db database.APIServer, store Sess
 func (s *azureAuth) Login(ctx context.Context, token, serial, platform string) (*pb.Session, error) {
 	parsedToken, err := jwt.ParseString(token, s.Azure.JwtOptions()...)
 	if err != nil {
-		return nil, fmt.Errorf("parse token: %w", err)
+		return nil, &ParseTokenError{err}
 	}
 
 	claims, err := parsedToken.AsMap(ctx)
@@ -45,7 +46,7 @@ func (s *azureAuth) Login(ctx context.Context, token, serial, platform string) (
 	}
 
 	if !auth.UserInNaisdeviceApprovalGroup(claims) {
-		return nil, fmt.Errorf("do's and don'ts not accepted, visit: https://naisdevice-approval.external.prod-gcp.nav.cloud.nais.io/ to read and accept")
+		return nil, ErrTermsNotAccepted
 	}
 
 	username := claims["preferred_username"].(string)
