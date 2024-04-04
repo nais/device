@@ -23,7 +23,7 @@ jobs:
           fetch-depth: 1
       - id: tool_versions
         run: echo "go=$(grep golang .tool-versions | awk '{print $2}')" >> $GITHUB_OUTPUT
-      - uses: actions/setup-go@v4
+      - uses: actions/setup-go@v5
         with:
           go-version: ${{ steps.tool_versions.outputs.go }}
       - if: matrix.os == 'ubuntu-22.04'
@@ -39,7 +39,7 @@ jobs:
     outputs:
       version: ${{ steps.set-version.outputs.version }}
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: set version
         id: set-version
         run: echo "version=${GITHUB_REF#refs/*/}" >> ${GITHUB_OUTPUT}
@@ -57,10 +57,10 @@ jobs:
             output-suffix: "-tenant"
 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - id: tool_versions
         run: echo "go=$(grep golang .tool-versions | awk '{print $2}')" >> $GITHUB_OUTPUT
-      - uses: actions/setup-go@v4
+      - uses: actions/setup-go@v5
         with:
           go-version: ${{ steps.tool_versions.outputs.go }}
 
@@ -103,10 +103,10 @@ jobs:
       - set-version
     runs-on: macos-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - id: tool_versions
         run: echo "go=$(grep golang .tool-versions | awk '{print $2}')" >> $GITHUB_OUTPUT
-      - uses: actions/setup-go@v4
+      - uses: actions/setup-go@v5
         with:
           go-version: ${{ steps.tool_versions.outputs.go }}
       - name: Import Code-Signing Certificates
@@ -141,10 +141,10 @@ jobs:
       - set-version
     runs-on: ubuntu-22.04
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - id: tool_versions
         run: echo "go=$(grep golang .tool-versions | awk '{print $2}')" >> $GITHUB_OUTPUT
-      - uses: actions/setup-go@v4
+      - uses: actions/setup-go@v5
         with:
           go-version: ${{ steps.tool_versions.outputs.go }}
       - name: create debian package

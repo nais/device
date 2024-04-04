@@ -15,7 +15,7 @@ jobs:
   update-cask:
     runs-on: ubuntu-20.04
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Get Latest version
         id: latest_version
         uses: abatilo/release-info-action@5774bec4e3eabad433b4ae8f625e83afa0e7bb22

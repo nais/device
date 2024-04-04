@@ -15,7 +15,7 @@ jobs:
           fetch-depth: 1
       - id: tool_versions
         run: echo "go=$(grep golang .tool-versions | awk '{print $2}')" >> $GITHUB_OUTPUT
-      - uses: actions/setup-go@v4
+      - uses: actions/setup-go@v5
         with:
           go-version: ${{ steps.tool_versions.outputs.go }}
       - if: matrix.os == 'ubuntu-22.04'
