@@ -125,7 +125,7 @@ pkg: app
 	cp ./packaging/macos/preinstall ./pkgtemp/scripts/preinstall
 	pkgbuild --root ./pkgtemp/pkgroot --identifier ${PKGID} --scripts ./pkgtemp/scripts --version ${VERSION} --ownership recommended ./component.pkg
 	productbuild --identifier ${PKGID}.${VERSION} --package ./component.pkg ./unsigned.pkg
-	productsign --sign "Developer ID Application: Arbeids- og velferdsetaten (GC9RAU27PY)" unsigned.pkg naisdevice.pkg
+	productsign --sign "Developer ID Installer: Arbeids- og velferdsetaten" unsigned.pkg naisdevice.pkg
 	rm -f ./component.pkg ./unsigned.pkg
 	rm -rf ./pkgtemp ./naisdevice.app
 
