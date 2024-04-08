@@ -80,7 +80,7 @@ require (
 require (
 	fyne.io/systray v1.10.1-0.20231115130155-104f5ef7839e
 	github.com/akavel/rsrc v0.10.2
-	github.com/golang-migrate/migrate/v4 v4.16.2
+	github.com/golang-migrate/migrate/v4 v4.17.0
 	github.com/golangci/golangci-lint v1.55.2
 	github.com/google/gopacket v1.1.20-0.20220810144506-32ee38206866
 	github.com/jackmordaunt/icns/v2 v2.2.6
