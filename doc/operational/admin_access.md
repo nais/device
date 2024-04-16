@@ -65,7 +65,7 @@ done | xpanes -c '{}'
 ### Tenant gateways
 
 ```shell
-for project in $(gcloud projects list --filter "labels.naiscluster:true" --format 'value(projectId)'); do
+for project in $(gcloud projects list --filter "labels.naiscluster:true and labels.tenant:<tenant>" --format 'value(projectId)'); do
     for vm in $(gcloud compute instances list --project $project --filter "labels.usage:naisdevice" --format 'value(name)'); do
         echo gcloud compute ssh --tunnel-through-iap --project $project $vm
     done
