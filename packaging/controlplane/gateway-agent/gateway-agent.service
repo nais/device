@@ -4,6 +4,8 @@ Description=naisdevice gateway agent
 
 [Service]
 Restart=always
+RestartSteps=4
+RestartMaxDelaySec=30s
 EnvironmentFile=/etc/default/gateway-agent
 ExecStart=/usr/bin/gateway-agent
 

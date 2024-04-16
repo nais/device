@@ -4,6 +4,8 @@ Description=naisdevice apiserver
 
 [Service]
 Restart=always
+RestartSteps=4
+RestartMaxDelaySec=30s
 EnvironmentFile=/etc/default/apiserver
 ExecStart=/usr/bin/apiserver
 

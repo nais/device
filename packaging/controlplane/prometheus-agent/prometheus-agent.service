@@ -4,6 +4,8 @@ Description=naisdevice prometheus agent
 
 [Service]
 Restart=always
+RestartSteps=4
+RestartMaxDelaySec=30s
 EnvironmentFile=/etc/default/prometheus-agent
 ExecStart=/usr/bin/prometheus-agent
 
