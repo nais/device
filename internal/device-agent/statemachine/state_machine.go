@@ -140,4 +140,5 @@ func (sm *StateMachine) transition(event Event) {
 	}
 
 	sm.logger.Warnf("No defined transition for event %s in state %s", event, sm.GetAgentState())
+	sm.triggerStatusUpdate()
 }
