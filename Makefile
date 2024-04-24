@@ -102,32 +102,12 @@ bin/macos-client/wireguard-go:
 	cd wireguard-go-*/ && make && cp wireguard-go ../bin/macos-client/
 	rm -rf ./wireguard-go-*
 
-
-app: wg wireguard-go macos-icon macos-client
-	rm -rf naisdevice.app
-	mkdir -p naisdevice.app/Contents/{MacOS,Resources}
-	cp bin/macos-client/* naisdevice.app/Contents/MacOS
-	cp packaging/macos/jq-osx-amd64 naisdevice.app/Contents/MacOS/jq
-	cp packaging/macos/icons/naisdevice.icns naisdevice.app/Contents/Resources
-	sed 's/VERSIONSTRING/${VERSION}/' packaging/macos/Info.plist.tpl > naisdevice.app/Contents/Info.plist
-	codesign -s "Developer ID Application: Arbeids- og velferdsetaten (GC9RAU27PY)" -f -v --timestamp --deep --options runtime naisdevice.app/Contents/MacOS/*
-
 test:
 	@go test $(shell go list ./... | grep -v systray) -count=1
 
 # Run by GitHub actions on macos
-pkg: app
-	rm -f ./naisdevice*.pkg
-	rm -rf ./pkgtemp
-	mkdir -p ./pkgtemp/{scripts,pkgroot/Applications}
-	cp -r ./naisdevice.app ./pkgtemp/pkgroot/Applications/
-	cp ./packaging/macos/postinstall ./pkgtemp/scripts/postinstall
-	cp ./packaging/macos/preinstall ./pkgtemp/scripts/preinstall
-	pkgbuild --root ./pkgtemp/pkgroot --identifier ${PKGID} --scripts ./pkgtemp/scripts --version ${VERSION} --ownership recommended ./component.pkg
-	productbuild --identifier ${PKGID}.${VERSION} --package ./component.pkg ./unsigned.pkg
-	productsign --sign "Developer ID Installer: Arbeids- og velferdsetaten" unsigned.pkg naisdevice.pkg
-	rm -f ./component.pkg ./unsigned.pkg
-	rm -rf ./pkgtemp ./naisdevice.app
+pkg: wg wireguard-go macos-icon macos-client
+	./packaging/macos/build-pkg $(VERSION)
 
 # Run by GitHub actions on linux
 deb: linux-client linux-icon
