@@ -28,7 +28,7 @@ jobs:
           go-version: ${{ steps.tool_versions.outputs.go }}
       - if: matrix.os == 'ubuntu-22.04'
         run: |
-          sudo apt-add-repository --remove 'deb https://packages.microsoft.com/ubuntu/22.04/prod jammy InRelease'
+          sudo apt-add-repository --remove deb https://packages.microsoft.com/ubuntu/22.04/prod jammy InRelease --yes
           sudo apt-get update
           sudo apt-get install --yes build-essential
       - run: "make test"
