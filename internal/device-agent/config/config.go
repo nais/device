@@ -110,7 +110,7 @@ func (c *Config) PopulateAgentConfiguration(log *logrus.Entry) {
 
 	tempCfg := &pb.AgentConfiguration{}
 	if err := protojson.Unmarshal(in, tempCfg); err != nil {
-		log.Fatalln("Failed to parse address book:", err)
+		log.Fatalln("Failed to parse agent config:", err)
 	}
 
 	c.AgentConfiguration = tempCfg
