@@ -4,6 +4,7 @@ LAST_COMMIT = $(shell git --no-pager log -1 --pretty=%h)
 VERSION := $(shell date "+%Y-%m-%d-%H%M%S")
 LDFLAGS := -X github.com/nais/device/internal/version.Revision=$(shell git rev-parse --short HEAD) -X github.com/nais/device/internal/version.Version=$(VERSION)
 PKGID = io.nais.device
+RELEASE ?= false
 GOPATH ?= ~/go
 GOTAGS ?=
 
@@ -107,7 +108,7 @@ test:
 
 # Run by GitHub actions on macos
 pkg: wg wireguard-go macos-icon macos-client
-	./packaging/macos/build-pkg $(VERSION)
+	./packaging/macos/build-pkg $(VERSION) $(RELEASE)
 
 # Run by GitHub actions on linux
 deb: linux-client linux-icon

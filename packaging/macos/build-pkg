@@ -1,20 +1,28 @@
 #!/usr/bin/env bash
 version="$1"
+isRelease="$2"
 if [ -z "$version" ]; then
-    echo "Usage: $0 <version>"
+    echo "Usage: $0 <version> <isRelease>"
     exit 1
 fi
-if [ -z "$APPLE_NOTARIZE_AUTH_KEY_P8_BASE64" ]; then
-    echo "Please set APPLE_NOTARIZE_AUTH_KEY_P8_BASE64"
+if [ -z "$isRelease" ]; then
+    echo "Usage: $0 <version> <isRelease>"
     exit 1
 fi
-if [ -z "$APPLE_NOTARIZE_D" ]; then
-    echo "Please set APPLE_NOTARIZE_D"
-    exit 1
-fi
-if [ -z "$APPLE_NOTARIZE_I" ]; then
-    echo "Please set APPLE_NOTARIZE_I"
-    exit 1
+
+if [ "$isRelease" == "true" ]; then
+    if [ -z "$APPLE_NOTARIZE_AUTH_KEY_P8_BASE64" ]; then
+        echo "Please set APPLE_NOTARIZE_AUTH_KEY_P8_BASE64"
+        exit 1
+    fi
+    if [ -z "$APPLE_NOTARIZE_D" ]; then
+        echo "Please set APPLE_NOTARIZE_D"
+        exit 1
+    fi
+    if [ -z "$APPLE_NOTARIZE_I" ]; then
+        echo "Please set APPLE_NOTARIZE_I"
+        exit 1
+    fi
 fi
 
 build_dir="$(mktemp -d)"
@@ -56,9 +64,12 @@ pkgbuild \
     --sign "$install_cert" \
     --ownership recommended \
     "$pkg_path"
-xcrun notarytool submit "$pkg_path" \
-    -k AuthKey.p8 \
-    -d "$APPLE_NOTARIZE_D" \
-    -i "$APPLE_NOTARIZE_I" \
-    --wait
-xcrun stapler staple "$pkg_path"
+
+if [ "$isRelease" == "true" ]; then
+    xcrun notarytool submit "$pkg_path" \
+        -k AuthKey.p8 \
+        -d "$APPLE_NOTARIZE_D" \
+        -i "$APPLE_NOTARIZE_I" \
+        --wait
+    xcrun stapler staple "$pkg_path"
+fi
