@@ -1,9 +1,0 @@
-{
-  "apple_id": {
-  },
-  "notarize": [{
-    "path": "naisdevice.pkg",
-    "bundle_id": "io.nais.device",
-    "staple": true
-  }]
-}
