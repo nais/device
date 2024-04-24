@@ -11,11 +11,6 @@ log_dir="${config_dir}/logs"
 mkdir -p -m 0700 "${config_dir}"
 mkdir -p -m 0700 "${log_dir}"
 
-if [ -f "$config_dir/agent-config.json" ]; then
-	tmp="$(mktemp)"
-	mv "$tmp" "$config_dir/agent-config.json"
-fi
-
 chown -R "${user}:staff" "${config_dir}"
 
 
