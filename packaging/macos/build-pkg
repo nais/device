@@ -43,9 +43,10 @@ cp ./bin/macos-client/* "$build_dir/naisdevice.app/Contents/MacOS/"
 cp ./packaging/macos/jq-osx-amd64 "$build_dir/naisdevice.app/Contents/MacOS/jq"
 cp ./packaging/macos/icons/naisdevice.icns "$build_dir/naisdevice.app/Contents/Resources/"
 
-sed "s/VERSIONSTRING/$version/" ./packaging/macos/Info.plist.tpl > "${build_dir}/naisdevice.app/Contents/Info.plist"
+sed "s/VERSIONSTRING/$version/" ./packaging/macos/Info.plist.tpl > "$build_dir/naisdevice.app/Contents/Info.plist"
 
 codesign -s "$app_cert" -f -v --timestamp --deep --options runtime "$build_dir/naisdevice.app/Contents/MacOS/"*
+codesign -s "$app_cert" -f -v --timestamp --deep --options runtime "$build_dir/naisdevice.app/Contents/Info.plist"
 
 # Build and sign pkg
 mkdir -p "$build_dir/"{scripts/,pkgroot/}
