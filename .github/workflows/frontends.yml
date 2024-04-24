@@ -116,8 +116,9 @@ jobs:
           p12-password: ${{ secrets.CERTIFICATES_P12_PASSWORD }}
       - name: build pkg
         env:
-          AC_USERNAME: ${{ secrets.AC_USERNAME }}
-          AC_PASSWORD: ${{ secrets.AC_PASSWORD }}
+          APPLE_NOTARIZE_AUTH_KEY_P8_BASE64: "${{ secrets.APPLE_NOTARIZE_AUTH_KEY_P8_BASE64 }}"
+          APPLE_NOTARIZE_D: "${{ secrets.APPLE_NOTARIZE_D }}"
+          APPLE_NOTARIZE_I: "${{ secrets.APPLE_NOTARIZE_I }}"
         run: |
           make pkg GOTAGS=${{ matrix.gotags }} VERSION=${{ needs.set-version.outputs.version }}
           md5 bin/macos-client/*
