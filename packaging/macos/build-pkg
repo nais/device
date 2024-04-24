@@ -21,7 +21,8 @@ build_dir="$(mktemp -d)"
 app_dir="$build_dir/naisdevice.app"
 build_plist="$build_dir/naisdevice.plist"
 
-sign_cert='Developer ID Installer: Arbeids- og velferdsetaten (GC9RAU27PY)'
+app_cert='Developer ID Application: Arbeids- og velferdsetaten (GC9RAU27PY)'
+install_cert='Developer ID Installer: Arbeids- og velferdsetaten (GC9RAU27PY)'
 pkgid="io.nais.device"
 pkg_path="./naisdevice.pkg"
 
@@ -36,7 +37,7 @@ cp ./packaging/macos/icons/naisdevice.icns "$build_dir/naisdevice.app/Contents/R
 
 sed "s/VERSIONSTRING/$version/" ./packaging/macos/Info.plist.tpl > "${build_dir}/naisdevice.app/Contents/Info.plist"
 
-codesign -s "Developer ID Application: Arbeids- og velferdsetaten (GC9RAU27PY)" -f -v --timestamp --deep --options runtime "$build_dir/naisdevice.app/Contents/MacOS/"*
+codesign -s "$app_cert" -f -v --timestamp --deep --options runtime "$build_dir/naisdevice.app/Contents/MacOS/"*
 
 # Build and sign pkg
 mkdir -p "$build_dir/"{scripts/,pkgroot/}
@@ -52,7 +53,7 @@ pkgbuild \
     --install-location "/Applications" \
     --scripts "$build_dir/scripts" \
     --version "$version" \
-    --sign "$sign_cert" \
+    --sign "$install_cert" \
     --ownership recommended \
     "$pkg_path"
 xcrun notarytool submit "$pkg_path" \
