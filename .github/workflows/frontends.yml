@@ -28,8 +28,9 @@ jobs:
           go-version: ${{ steps.tool_versions.outputs.go }}
       - if: matrix.os == 'ubuntu-22.04'
         run: |
-          sudo apt update
-          sudo apt install --yes build-essential
+          sudo apt-add-repository --remove 'deb https://packages.microsoft.com/ubuntu/22.04/prod jammy InRelease'
+          sudo apt-get update
+          sudo apt-get install --yes build-essential
       - run: "make test"
       - run: "make check"
       - run: "go vet ./..."
