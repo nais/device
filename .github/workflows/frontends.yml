@@ -28,8 +28,6 @@ jobs:
           go-version: ${{ steps.tool_versions.outputs.go }}
       - if: matrix.os == 'ubuntu-22.04'
         run: |
-          sudo apt-add-repository --list
-          sudo apt-add-repository --remove deb https://packages.microsoft.com/ubuntu/22.04/prod jammy InRelease --yes
           sudo apt-get update
           sudo apt-get install --yes build-essential
       - run: "make test"
@@ -71,8 +69,8 @@ jobs:
           MSI_SIGN_CERT: "${{ secrets.MSI_SIGN_CERT }}"
           MSI_SIGN_KEY: "${{ secrets.MSI_SIGN_KEY }}"
         run: |
-          sudo apt update
-          sudo apt install --yes nsis osslsigncode
+          sudo apt-get update
+          sudo apt-get install --yes nsis osslsigncode
           echo "${MSI_SIGN_CERT}" > packaging/windows/naisdevice.crt
           echo "${MSI_SIGN_KEY}" > packaging/windows/naisdevice.key
           make nsis GOTAGS=${{ matrix.gotags }} VERSION=${{ needs.set-version.outputs.version }}
@@ -154,8 +152,8 @@ jobs:
         env:
           SUFFIX: "${{ matrix.output-suffix }}"
         run: |
-          sudo apt update
-          sudo apt install --yes build-essential ruby ruby-dev rubygems
+          sudo apt-get update
+          sudo apt-get install --yes build-essential ruby ruby-dev rubygems
           sudo gem install --no-document fpm -v 1.15.1
           make deb GOTAGS=${{ matrix.gotags }} VERSION=${{ needs.set-version.outputs.version }}
           md5sum naisdevice*.deb
