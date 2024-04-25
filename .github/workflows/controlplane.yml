@@ -26,8 +26,8 @@ jobs:
           go-version: ${{ steps.tool_versions.outputs.go }}
       - name: run tests
         run: |
-          sudo apt update
-          sudo apt install --yes build-essential
+          sudo apt-get update
+          sudo apt-get install --yes build-essential
           make check
           make test
 
