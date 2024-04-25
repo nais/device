@@ -59,14 +59,6 @@ jobs:
       #   If the Autobuild fails above, remove it and uncomment the following three lines.
       #   modify them (or add more) to build your code if your project, please refer to the EXAMPLE below for guidance.
 
-      - id: tool_versions
-        run: echo "go=$(grep golang .tool-versions | awk '{print $2}')" >> $GITHUB_OUTPUT
-      - uses: actions/setup-go@v5
-        with:
-          go-version: ${{ steps.tool_versions.outputs.go }}
-      - run: |
-          sudo apt-get update
-          sudo apt-get install --yes build-essential
       - run: |
           make local
 
