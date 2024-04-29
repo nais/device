@@ -174,6 +174,10 @@ func (c *Connected) login(ctx context.Context, apiserverClient pb.APIServerClien
 }
 
 func (c *Connected) defaultSyncConfigLoop(ctx context.Context) error {
+	if ctx.Err() != nil {
+		return ctx.Err()
+	}
+
 	session, err := c.rc.GetTenantSession()
 	if err != nil {
 		return err
