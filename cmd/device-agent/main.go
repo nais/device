@@ -13,9 +13,8 @@ import (
 
 	"github.com/sirupsen/logrus"
 	flag "github.com/spf13/pflag"
-	"go.opentelemetry.io/otel"
-	"go.opentelemetry.io/otel/attribute"
-	"go.opentelemetry.io/otel/trace"
+	"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
+	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 
@@ -25,7 +24,7 @@ import (
 	"github.com/nais/device/internal/device-agent/runtimeconfig"
 	"github.com/nais/device/internal/logger"
 	"github.com/nais/device/internal/notify"
-	setup_otel "github.com/nais/device/internal/otel"
+	"github.com/nais/device/internal/otel"
 	"github.com/nais/device/internal/pb"
 	"github.com/nais/device/internal/unixsocket"
 	"github.com/nais/device/internal/version"
@@ -96,11 +95,7 @@ func run(ctx context.Context, log *logrus.Entry, cfg *config.Config, notifier no
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
-	if err := filesystem.EnsurePrerequisites(cfg); err != nil {
-		return fmt.Errorf("missing prerequisites: %s", err)
-	}
-
-	otelCancel, err := setup_otel.SetupOTelSDK(ctx)
+	otelCancel, err := otel.SetupOTelSDK(ctx, "device-agent", log)
 	if err != nil {
 		return fmt.Errorf("setup OTel SDK: %s", err)
 	}
@@ -110,24 +105,9 @@ func run(ctx context.Context, log *logrus.Entry, cfg *config.Config, notifier no
 		}
 	}()
 
-	go func() {
-		tracer := otel.Tracer("device-agent main")
-		attrs := []attribute.KeyValue{attribute.String("key", "value")}
-		ctx, span := tracer.Start(ctx, "outer span", trace.WithAttributes(attrs...))
-
-		for i := range 10 {
-			_, innerSpan := tracer.Start(
-				ctx,
-				fmt.Sprintf("sample-%d", i),
-				trace.WithAttributes(attribute.Int("i", i)),
-			)
-			<-time.After(time.Millisecond * 100)
-			innerSpan.AddEvent("something happened")
-			innerSpan.End()
-		}
-
-		defer span.End()
-	}()
+	if err := filesystem.EnsurePrerequisites(cfg); err != nil {
+		return fmt.Errorf("missing prerequisites: %s", err)
+	}
 
 	rc, err := runtimeconfig.New(log.WithField("component", "runtimeconfig"), cfg)
 	if err != nil {
@@ -147,6 +127,7 @@ func run(ctx context.Context, log *logrus.Entry, cfg *config.Config, notifier no
 		"unix:"+cfg.DeviceAgentHelperAddress,
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 		grpc.WithIdleTimeout(10*time.Hour),
+		grpc.WithStatsHandler(otelgrpc.NewClientHandler()),
 	)
 	if err != nil {
 		return fmt.Errorf("connect to naisdevice-helper: %v", err)
@@ -188,7 +169,9 @@ func run(ctx context.Context, log *logrus.Entry, cfg *config.Config, notifier no
 	statusChannel := make(chan *pb.AgentStatus, 32)
 	stateMachine := deviceagent.NewStateMachine(ctx, rc, *cfg, notifier, client, statusChannel, log.WithField("component", "statemachine"))
 
-	grpcServer := grpc.NewServer()
+	grpcServer := grpc.NewServer(
+		grpc.StatsHandler(otelgrpc.NewServerHandler()),
+	)
 	das := deviceagent.NewServer(ctx, log.WithField("component", "device-agent-server"), cfg, rc, notifier, stateMachine.SendEvent)
 	pb.RegisterDeviceAgentServer(grpcServer, das)
 
@@ -265,11 +248,15 @@ func checkNewVersionAvailable(ctx context.Context) (bool, error) {
 		Tag string `json:"tag_name"`
 	}
 
+	ctx, span := otel.Start(ctx, "CheckNewVersionAvailable")
+	defer span.End()
+
 	req, err := http.NewRequestWithContext(ctx, "GET", "https://api.github.com/repos/nais/device/releases/latest", nil)
 	if err != nil {
+		span.RecordError(err)
 		return false, err
 	}
-	resp, err := http.DefaultClient.Do(req)
+	resp, err := otelhttp.DefaultClient.Do(req)
 	if err != nil {
 		return false, fmt.Errorf("retrieve current release version: %s", err)
 	}
@@ -280,6 +267,7 @@ func checkNewVersionAvailable(ctx context.Context) (bool, error) {
 	decoder := json.NewDecoder(resp.Body)
 	err = decoder.Decode(res)
 	if err != nil {
+		span.RecordError(err)
 		return false, fmt.Errorf("unmarshal response: %s", err)
 	}
 

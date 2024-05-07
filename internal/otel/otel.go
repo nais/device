@@ -6,7 +6,11 @@ import (
 	"runtime"
 	"time"
 
+	"github.com/google/uuid"
+	"github.com/nais/device/internal/version"
+	"github.com/sirupsen/logrus"
 	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/exporters/otlp/otlpmetric/otlpmetrichttp"
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp"
 	"go.opentelemetry.io/otel/propagation"
@@ -14,11 +18,20 @@ import (
 	"go.opentelemetry.io/otel/sdk/resource"
 	"go.opentelemetry.io/otel/sdk/trace"
 	semconv "go.opentelemetry.io/otel/semconv/v1.17.0"
+	otrace "go.opentelemetry.io/otel/trace"
+	"go.opentelemetry.io/otel/trace/noop"
+)
+
+var (
+	tracer otrace.Tracer = noop.NewTracerProvider().Tracer("noop")
+	id                   = uuid.New().String()
 )
 
 // setupOTelSDK bootstraps the OpenTelemetry pipeline.
 // If it does not return an error, make sure to call shutdown for proper cleanup.
-func SetupOTelSDK(ctx context.Context) (shutdown func(context.Context) error, err error) {
+func SetupOTelSDK(ctx context.Context, name string, log logrus.FieldLogger) (shutdown func(context.Context) error, err error) {
+	log.WithField("tracer.id", id).Info("Setting up OpenTelemetry SDK")
+
 	var shutdownFuncs []func(context.Context) error
 
 	// shutdown calls cleanup functions registered via shutdownFuncs.
@@ -45,8 +58,10 @@ func SetupOTelSDK(ctx context.Context) (shutdown func(context.Context) error, er
 	// Set up resource.
 	res := resource.NewWithAttributes(
 		semconv.SchemaURL,
-		semconv.ServiceName("device-agent"),
+		semconv.ServiceName(name),
 		semconv.OSName(runtime.GOOS),
+		semconv.ServiceVersion(version.Version+"-"+version.Revision),
+		attribute.String("tracer.id", id),
 	)
 
 	// Set up trace provider.
@@ -57,6 +72,7 @@ func SetupOTelSDK(ctx context.Context) (shutdown func(context.Context) error, er
 	}
 	shutdownFuncs = append(shutdownFuncs, tracerProvider.Shutdown)
 	otel.SetTracerProvider(tracerProvider)
+	tracer = tracerProvider.Tracer(name)
 
 	// Set up meter provider.
 	meterProvider, err := newMeterProvider(ctx, res)
@@ -68,6 +84,10 @@ func SetupOTelSDK(ctx context.Context) (shutdown func(context.Context) error, er
 	otel.SetMeterProvider(meterProvider)
 
 	return
+}
+
+func Start(ctx context.Context, name string, opts ...otrace.SpanStartOption) (context.Context, otrace.Span) {
+	return tracer.Start(ctx, name, opts...)
 }
 
 func newPropagator() propagation.TextMapPropagator {

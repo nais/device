@@ -20,6 +20,7 @@ import (
 	"github.com/nais/device/internal/device-agent/auth"
 	"github.com/nais/device/internal/device-agent/config"
 	"github.com/nais/device/internal/device-agent/wireguard"
+	"github.com/nais/device/internal/otel"
 	"github.com/nais/device/internal/pb"
 	"github.com/nais/device/internal/pubsubenroll"
 	"github.com/sirupsen/logrus"
@@ -85,6 +86,9 @@ func (rc *runtimeConfig) DialAPIServer(ctx context.Context) (*grpc.ClientConn, e
 			PermitWithoutStream: false,
 		}),
 		grpc.WithReturnConnectionError(),
+		grpc.WithStatsHandler(otel.NewGRPCClientHandler(
+			"/naisdevice.APIServer/GetDeviceConfiguration",
+		)),
 	)
 }
 

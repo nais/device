@@ -21,6 +21,7 @@ import (
 	"github.com/nais/device/internal/device-agent/runtimeconfig"
 	"github.com/nais/device/internal/device-agent/statemachine"
 	"github.com/nais/device/internal/notify"
+	"github.com/nais/device/internal/otel"
 	"github.com/nais/device/internal/pb"
 	"github.com/nais/device/internal/version"
 )
@@ -134,6 +135,7 @@ func (c *Connected) Enter(ctx context.Context) statemachine.Event {
 
 	return statemachine.EventDisconnect
 }
+
 func (c *Connected) triggerStatusUpdate() {
 	select {
 	case c.statusUpdates <- c.Status():
@@ -146,13 +148,18 @@ func (c *Connected) login(ctx context.Context, apiserverClient pb.APIServerClien
 		return session, nil
 	}
 
+	ctx, span := otel.Start(ctx, "Login")
+	defer span.End()
+
 	serial, err := c.deviceHelper.GetSerial(ctx, &pb.GetSerialRequest{})
 	if err != nil {
+		span.RecordError(err)
 		return nil, err
 	}
 
 	token, err := c.rc.GetToken(ctx)
 	if err != nil {
+		span.RecordError(err)
 		return nil, err
 	}
 
@@ -163,10 +170,12 @@ func (c *Connected) login(ctx context.Context, apiserverClient pb.APIServerClien
 		Version:  version.Version,
 	})
 	if err != nil {
+		span.RecordError(err)
 		return nil, err
 	}
 
 	if err := c.rc.SetTenantSession(loginResponse.Session); err != nil {
+		span.RecordError(err)
 		return nil, err
 	}
 
@@ -178,95 +187,125 @@ func (c *Connected) defaultSyncConfigLoop(ctx context.Context) error {
 		return ctx.Err()
 	}
 
-	session, err := c.rc.GetTenantSession()
+	stream, cancel, err := c.syncSetup(ctx)
 	if err != nil {
 		return err
+	}
+	defer cancel()
+
+	var healthCheckCancel context.CancelFunc = func() {}
+	for ctx.Err() == nil {
+		err := func() error {
+			cfg, err := stream.Recv()
+			healthCheckCancel()
+			ctx, span := otel.Start(ctx, "SyncConfigLoop/recv")
+			defer span.End()
+			span.RecordError(err)
+
+			switch e := err; {
+			case grpcstatus.Code(e) == codes.Unavailable:
+				return fmt.Errorf("recv(%w): %w", ErrLostConnection, e)
+			case grpcstatus.Code(e) == codes.Unauthenticated:
+				return fmt.Errorf("recv(%w): %w", ErrUnauthenticated, e)
+			case grpcstatus.Code(e) == codes.Canceled:
+				return fmt.Errorf("recv(%w): %w", context.Canceled, e)
+			case grpcstatus.Code(e) == codes.DeadlineExceeded:
+				return fmt.Errorf("recv(%w): %w", context.DeadlineExceeded, e)
+			case e != nil:
+				return fmt.Errorf("recv: %w", e)
+			}
+
+			c.logger.Infof("Received gateway configuration from API server")
+
+			switch cfg.Status {
+			case pb.DeviceConfigurationStatus_InvalidSession:
+				span.AddEvent("session.invalid")
+				return fmt.Errorf("invalid session (%w), config status: %v", ErrUnauthenticated, cfg.Status)
+			case pb.DeviceConfigurationStatus_DeviceUnhealthy:
+				span.AddEvent("device.unhealthy")
+
+				c.logger.Errorf("Device is not healthy: %v", err)
+				c.notifier.Errorf("No access as your device is unhealthy. Run '/msg @Kolide status' on Slack and fix the errors")
+
+				c.unhealthy = true
+				c.gateways = nil
+
+				c.triggerStatusUpdate()
+				return nil
+			case pb.DeviceConfigurationStatus_DeviceHealthy:
+				span.AddEvent("device.healthy")
+
+				c.logger.Infof("Device is healthy; server pushed %d gateways", len(cfg.Gateways))
+
+				c.unhealthy = false
+
+				helperCtx, helperCancel := context.WithTimeout(ctx, helperTimeout)
+				_, err = c.deviceHelper.Configure(helperCtx, c.rc.BuildHelperConfiguration(append(
+					[]*pb.Gateway{
+						c.rc.APIServerPeer(),
+					},
+					cfg.Gateways...,
+				)))
+				helperCancel()
+				if err != nil {
+					return fmt.Errorf("configure helper: %w", err)
+				}
+
+				c.gateways = pb.MergeGatewayHealth(c.gateways, cfg.Gateways)
+				c.triggerStatusUpdate()
+				healthCheckCancel = c.launchHealthCheck(ctx)
+			}
+			return nil
+		}()
+		if err != nil {
+			return err
+		}
+	}
+
+	return ctx.Err()
+}
+
+func (c *Connected) syncSetup(ctx context.Context) (pb.APIServer_GetDeviceConfigurationClient, context.CancelFunc, error) {
+	ctx, span := otel.Start(ctx, "SyncConfigLoop/setup")
+	defer span.End()
+
+	session, err := c.rc.GetTenantSession()
+	if err != nil {
+		return nil, nil, err
 	}
 
 	apiserverClient, cleanup, err := c.rc.ConnectToAPIServer(ctx)
 	if err != nil {
 		if grpcstatus.Code(err) == codes.Unavailable {
-			return fmt.Errorf("connect to apiserver(%w): %w", ErrUnavailable, err)
+			return nil, nil, fmt.Errorf("connect to apiserver(%w): %w", ErrUnavailable, err)
 		}
-		return err
+		return nil, nil, err
 	}
-	defer cleanup()
 
 	session, err = c.login(ctx, apiserverClient, session)
 	if err != nil {
-		return err
+		cleanup()
+		return nil, nil, err
 	}
 
 	streamContext, cancel := context.WithDeadline(ctx, session.Expiry.AsTime())
-	defer cancel()
 
 	stream, err := apiserverClient.GetDeviceConfiguration(streamContext, &pb.GetDeviceConfigurationRequest{
 		SessionKey: session.Key,
 	})
 	if err != nil {
-		return err
+		cancel()
+		cleanup()
+		return nil, nil, err
 	}
 
 	c.connectedSince = timestamppb.Now()
 	c.logger.Infof("Gateway configuration stream established")
 
-	var healthCheckCancel context.CancelFunc = func() {}
-
-	for ctx.Err() == nil {
-		cfg, err := stream.Recv()
-		healthCheckCancel()
-
-		switch e := err; {
-		case grpcstatus.Code(e) == codes.Unavailable:
-			return fmt.Errorf("recv(%w): %w", ErrLostConnection, e)
-		case grpcstatus.Code(e) == codes.Unauthenticated:
-			return fmt.Errorf("recv(%w): %w", ErrUnauthenticated, e)
-		case grpcstatus.Code(e) == codes.Canceled:
-			return fmt.Errorf("recv(%w): %w", context.Canceled, e)
-		case grpcstatus.Code(e) == codes.DeadlineExceeded:
-			return fmt.Errorf("recv(%w): %w", context.DeadlineExceeded, e)
-		case e != nil:
-			return fmt.Errorf("recv: %w", e)
-		}
-
-		c.logger.Infof("Received gateway configuration from API server")
-
-		switch cfg.Status {
-		case pb.DeviceConfigurationStatus_InvalidSession:
-			return fmt.Errorf("invalid session (%w), config status: %v", ErrUnauthenticated, cfg.Status)
-		case pb.DeviceConfigurationStatus_DeviceUnhealthy:
-			c.logger.Errorf("Device is not healthy: %v", err)
-			c.notifier.Errorf("No access as your device is unhealthy. Run '/msg @Kolide status' on Slack and fix the errors")
-
-			c.unhealthy = true
-			c.gateways = nil
-
-			c.triggerStatusUpdate()
-			continue
-		case pb.DeviceConfigurationStatus_DeviceHealthy:
-			c.logger.Infof("Device is healthy; server pushed %d gateways", len(cfg.Gateways))
-
-			c.unhealthy = false
-
-			helperCtx, helperCancel := context.WithTimeout(ctx, helperTimeout)
-			_, err = c.deviceHelper.Configure(helperCtx, c.rc.BuildHelperConfiguration(append(
-				[]*pb.Gateway{
-					c.rc.APIServerPeer(),
-				},
-				cfg.Gateways...,
-			)))
-			helperCancel()
-			if err != nil {
-				return fmt.Errorf("configure helper: %w", err)
-			}
-
-			c.gateways = pb.MergeGatewayHealth(c.gateways, cfg.Gateways)
-			c.triggerStatusUpdate()
-			healthCheckCancel = c.launchHealthCheck(ctx)
-		}
-	}
-
-	return ctx.Err()
+	return stream, func() {
+		cancel()
+		cleanup()
+	}, nil
 }
 
 func (c Connected) AgentState() pb.AgentState {

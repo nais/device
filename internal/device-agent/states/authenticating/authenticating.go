@@ -9,6 +9,7 @@ import (
 	"github.com/nais/device/internal/device-agent/runtimeconfig"
 	"github.com/nais/device/internal/device-agent/statemachine"
 	"github.com/nais/device/internal/notify"
+	"github.com/nais/device/internal/otel"
 	"github.com/nais/device/internal/pb"
 	"github.com/sirupsen/logrus"
 )
@@ -37,8 +38,12 @@ func New(rc runtimeconfig.RuntimeConfig, cfg config.Config, logger logrus.FieldL
 }
 
 func (a *Authenticating) Enter(ctx context.Context) statemachine.Event {
+	ctx, span := otel.Start(ctx, "Authenticating")
+	defer span.End()
+
 	session, _ := a.rc.GetTenantSession()
 	if !session.Expired() {
+		span.AddEvent("session.active")
 		return statemachine.EventAuthenticated
 	}
 
@@ -47,10 +52,12 @@ func (a *Authenticating) Enter(ctx context.Context) statemachine.Event {
 	token, err := a.getToken(ctx, a.logger, oauth2Config, a.cfg.GoogleAuthServerAddress)
 	cancel()
 	if err != nil {
+		span.RecordError(err)
 		a.notifier.Errorf("Get token: %v", err)
 		return statemachine.EventDisconnect
 	}
 
+	span.AddEvent("session.new")
 	a.rc.SetToken(token)
 	return statemachine.EventAuthenticated
 }

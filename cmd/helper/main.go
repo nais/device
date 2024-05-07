@@ -15,6 +15,7 @@ import (
 	"github.com/nais/device/internal/helper/config"
 	"github.com/nais/device/internal/helper/dns"
 	"github.com/nais/device/internal/logger"
+	"github.com/nais/device/internal/otel"
 	"github.com/nais/device/internal/pb"
 	"github.com/nais/device/internal/unixsocket"
 	"github.com/nais/device/internal/version"
@@ -35,8 +36,18 @@ func main() {
 	log := logger.SetupLogger(cfg.LogLevel, config.LogDir, logger.Helper).WithField("component", "main")
 
 	programContext, cancel := context.WithCancel(context.Background())
+	otelCancel, err := otel.SetupOTelSDK(programContext, "device-agent", log)
+	if err != nil {
+		log.Fatalf("setup OTel SDK: %s", err)
+	}
+	defer func() {
+		if err := otelCancel(programContext); err != nil {
+			log.Errorf("shutdown OTel SDK: %s", err)
+		}
+	}()
+
 	// for windows service control, noop on unix
-	err := helper.StartService(log, programContext, cancel)
+	err = helper.StartService(log, programContext, cancel)
 	if err != nil {
 		log.Fatalf("Starting windows service: %v", err)
 	}
