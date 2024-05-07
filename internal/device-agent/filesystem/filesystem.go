@@ -8,15 +8,11 @@ import (
 )
 
 func EnsurePrerequisites(c *config.Config) error {
-	if err := filesExist(c.WireGuardBinary); err != nil {
-		return fmt.Errorf("verifying if file exists: %v", err)
-	}
-
 	if err := ensureDirectories(c.ConfigDir); err != nil {
 		return fmt.Errorf("ensuring directory exists: %v", err)
 	}
 
-	return ensurePlatformPrerequisites(c)
+	return nil
 }
 
 func FileMustExist(filepath string) error {
