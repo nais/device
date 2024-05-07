@@ -95,7 +95,7 @@ func run(ctx context.Context, log *logrus.Entry, cfg *config.Config, notifier no
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
-	otelCancel, err := otel.SetupOTelSDK(ctx, "device-agent", log)
+	otelCancel, err := otel.SetupOTelSDK(ctx, "naisdevice-agent", log)
 	if err != nil {
 		return fmt.Errorf("setup OTel SDK: %s", err)
 	}
