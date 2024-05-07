@@ -33,16 +33,14 @@ type Config struct {
 	GoogleOAuth2Config       oauth2.Config
 	Platform                 string
 	PrivateKeyPath           string
-	WireGuardBinary          string
 	WireGuardConfigPath      string
-	WireGuardGoBinary        string
 	EnrollProjectID          string
 	EnrollTopicName          string
 }
 
 func (c *Config) SetDefaults() {
 	c.Platform = Platform
-	c.SetPlatformDefaults()
+	c.Interface = "utun69"
 	c.PrivateKeyPath = filepath.Join(c.ConfigDir, "private.key")
 	c.WireGuardConfigPath = filepath.Join(c.ConfigDir, c.Interface+".conf")
 }
@@ -60,8 +58,12 @@ func DefaultConfig() (*Config, error) {
 		DeviceAgentHelperAddress: filepath.Join(config2.RuntimeDir, "helper.sock"),
 		GoogleAuthServerAddress:  "https://naisdevice-auth-server-h2pjqrstja-lz.a.run.app",
 		AzureOAuth2Config: oauth2.Config{
-			ClientID:    "8086d321-c6d3-4398-87da-0d54e3d93967",
-			Scopes:      []string{"openid", "6e45010d-2637-4a40-b91d-d4cbb451fb57/.default", "offline_access"},
+			ClientID: "8086d321-c6d3-4398-87da-0d54e3d93967",
+			Scopes: []string{
+				"openid",
+				"6e45010d-2637-4a40-b91d-d4cbb451fb57/.default",
+				"offline_access",
+			},
 			Endpoint:    endpoints.AzureAD("62366534-1ec3-4962-8869-9b5535279d0b"),
 			RedirectURL: "http://localhost:PORT/",
 		},

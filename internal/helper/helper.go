@@ -37,7 +37,11 @@ type DeviceHelperServer struct {
 	log            *logrus.Entry
 }
 
-func NewDeviceHelperServer(log *logrus.Entry, config Config, osConfigurator OSConfigurator) *DeviceHelperServer {
+func NewDeviceHelperServer(
+	log *logrus.Entry,
+	config Config,
+	osConfigurator OSConfigurator,
+) *DeviceHelperServer {
 	return &DeviceHelperServer{
 		log:            log,
 		config:         config,
@@ -45,7 +49,10 @@ func NewDeviceHelperServer(log *logrus.Entry, config Config, osConfigurator OSCo
 	}
 }
 
-func (dhs *DeviceHelperServer) Teardown(ctx context.Context, req *pb.TeardownRequest) (*pb.TeardownResponse, error) {
+func (dhs *DeviceHelperServer) Teardown(
+	ctx context.Context,
+	req *pb.TeardownRequest,
+) (*pb.TeardownResponse, error) {
 	dhs.log.Infof("Removing network interface '%s' and all routes", dhs.config.Interface)
 	err := dhs.osConfigurator.TeardownInterface(ctx)
 	if err != nil {
@@ -64,7 +71,10 @@ func (dhs *DeviceHelperServer) Teardown(ctx context.Context, req *pb.TeardownReq
 	return &pb.TeardownResponse{}, nil
 }
 
-func (dhs *DeviceHelperServer) Configure(ctx context.Context, cfg *pb.Configuration) (*pb.ConfigureResponse, error) {
+func (dhs *DeviceHelperServer) Configure(
+	ctx context.Context,
+	cfg *pb.Configuration,
+) (*pb.ConfigureResponse, error) {
 	dhs.log.Infof("New configuration received from device-agent")
 
 	err := dhs.writeConfigFile(cfg)
@@ -85,14 +95,22 @@ func (dhs *DeviceHelperServer) Configure(ctx context.Context, cfg *pb.Configurat
 		if loopErr != nil {
 			backoff := time.Duration(attempt) * time.Second
 			dhs.log.Errorf("synchronize WireGuard configuration: %s", loopErr)
-			dhs.log.Infof("attempt %d at configuring failed, sleeping %v before retrying", attempt+1, backoff)
+			dhs.log.Infof(
+				"attempt %d at configuring failed, sleeping %v before retrying",
+				attempt+1,
+				backoff,
+			)
 			time.Sleep(backoff)
 			continue
 		}
 		break
 	}
 	if loopErr != nil {
-		return nil, status.Errorf(codes.FailedPrecondition, "synchronize WireGuard configuration: %s", loopErr)
+		return nil, status.Errorf(
+			codes.FailedPrecondition,
+			"synchronize WireGuard configuration: %s",
+			loopErr,
+		)
 	}
 
 	err = dhs.osConfigurator.SetupRoutes(ctx, cfg.GetGateways())
@@ -129,7 +147,10 @@ func (dhs *DeviceHelperServer) writeConfigFile(cfg *pb.Configuration) error {
 	return nil
 }
 
-func (dhs *DeviceHelperServer) GetSerial(context.Context, *pb.GetSerialRequest) (*pb.GetSerialResponse, error) {
+func (dhs *DeviceHelperServer) GetSerial(
+	context.Context,
+	*pb.GetSerialRequest,
+) (*pb.GetSerialResponse, error) {
 	device_serial, err := serial.GetDeviceSerial()
 	if err != nil {
 		return nil, err
@@ -137,6 +158,9 @@ func (dhs *DeviceHelperServer) GetSerial(context.Context, *pb.GetSerialRequest) 
 	return &pb.GetSerialResponse{Serial: device_serial}, nil
 }
 
-func (dhs *DeviceHelperServer) Upgrade(context.Context, *pb.UpgradeRequest) (*pb.UpgradeResponse, error) {
+func (dhs *DeviceHelperServer) Upgrade(
+	context.Context,
+	*pb.UpgradeRequest,
+) (*pb.UpgradeResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Upgrade not implemented")
 }

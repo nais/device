@@ -9,9 +9,7 @@ import (
 	"github.com/nais/device/internal/pb"
 )
 
-const (
-	wireguardBinary = "/usr/bin/wg"
-)
+var wireguardBinary = ""
 
 func New(helperConfig Config) *LinuxConfigurator {
 	return &LinuxConfigurator{
@@ -26,15 +24,26 @@ type LinuxConfigurator struct {
 var _ OSConfigurator = &LinuxConfigurator{}
 
 func (c *LinuxConfigurator) Prerequisites() error {
-	if err := filesExist(wireguardBinary); err != nil {
-		return fmt.Errorf("verifying if file exists: %w", err)
+	var err error
+	wireguardBinary, err = exec.LookPath("wg")
+	if err != nil {
+		return fmt.Errorf("unable to find wg binary: %w", err)
+	}
+	if wireguardBinary == "" {
+		return fmt.Errorf("wg path is empty string")
 	}
 
 	return nil
 }
 
 func (c *LinuxConfigurator) SyncConf(ctx context.Context, cfg *pb.Configuration) error {
-	cmd := exec.CommandContext(ctx, wireguardBinary, "syncconf", c.helperConfig.Interface, c.helperConfig.WireGuardConfigPath)
+	cmd := exec.CommandContext(
+		ctx,
+		wireguardBinary,
+		"syncconf",
+		c.helperConfig.Interface,
+		c.helperConfig.WireGuardConfigPath,
+	)
 	if b, err := cmd.CombinedOutput(); err != nil {
 		return fmt.Errorf("running syncconf: %w: %v", err, string(b))
 	}
@@ -53,7 +62,15 @@ func (c *LinuxConfigurator) SetupRoutes(ctx context.Context, gateways []*pb.Gate
 
 			cidr = strings.TrimSpace(cidr)
 
-			cmd := exec.CommandContext(ctx, "ip", "route", "add", cidr, "dev", c.helperConfig.Interface)
+			cmd := exec.CommandContext(
+				ctx,
+				"ip",
+				"route",
+				"add",
+				cidr,
+				"dev",
+				c.helperConfig.Interface,
+			)
 			output, err := cmd.CombinedOutput()
 			if exitErr, ok := err.(*exec.ExitError); ok {
 				if exitErr.ExitCode() == 2 && strings.Contains(string(output), "File exists") {
