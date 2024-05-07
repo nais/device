@@ -13,6 +13,9 @@ import (
 
 	"github.com/sirupsen/logrus"
 	flag "github.com/spf13/pflag"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/trace"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 
@@ -22,7 +25,7 @@ import (
 	"github.com/nais/device/internal/device-agent/runtimeconfig"
 	"github.com/nais/device/internal/logger"
 	"github.com/nais/device/internal/notify"
-	"github.com/nais/device/internal/otel"
+	setup_otel "github.com/nais/device/internal/otel"
 	"github.com/nais/device/internal/pb"
 	"github.com/nais/device/internal/unixsocket"
 	"github.com/nais/device/internal/version"
@@ -97,7 +100,7 @@ func run(ctx context.Context, log *logrus.Entry, cfg *config.Config, notifier no
 		return fmt.Errorf("missing prerequisites: %s", err)
 	}
 
-	otelCancel, err := otel.SetupOTelSDK(ctx)
+	otelCancel, err := setup_otel.SetupOTelSDK(ctx)
 	if err != nil {
 		return fmt.Errorf("setup OTel SDK: %s", err)
 	}
@@ -105,6 +108,25 @@ func run(ctx context.Context, log *logrus.Entry, cfg *config.Config, notifier no
 		if err := otelCancel(ctx); err != nil {
 			log.Errorf("shutdown OTel SDK: %s", err)
 		}
+	}()
+
+	go func() {
+		tracer := otel.Tracer("device-agent main")
+		attrs := []attribute.KeyValue{attribute.String("key", "value")}
+		ctx, span := tracer.Start(ctx, "outer span", trace.WithAttributes(attrs...))
+
+		for i := range 10 {
+			_, innerSpan := tracer.Start(
+				ctx,
+				fmt.Sprintf("sample-%d", i),
+				trace.WithAttributes(attribute.Int("i", i)),
+			)
+			<-time.After(time.Millisecond * 100)
+			innerSpan.AddEvent("something happened")
+			innerSpan.End()
+		}
+
+		defer span.End()
 	}()
 
 	rc, err := runtimeconfig.New(log.WithField("component", "runtimeconfig"), cfg)

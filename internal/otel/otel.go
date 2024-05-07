@@ -79,8 +79,7 @@ func newPropagator() propagation.TextMapPropagator {
 
 func newTraceProvider(ctx context.Context, res *resource.Resource) (*trace.TracerProvider, error) {
 	traceExporter, err := otlptracehttp.New(ctx,
-		otlptracehttp.WithEndpoint("localhost:12347"),
-		otlptracehttp.WithURLPath("/collect"),
+		otlptracehttp.WithEndpoint("localhost:4317"),
 		otlptracehttp.WithInsecure(),
 	)
 	if err != nil {
@@ -99,8 +98,7 @@ func newTraceProvider(ctx context.Context, res *resource.Resource) (*trace.Trace
 
 func newMeterProvider(ctx context.Context, res *resource.Resource) (*metric.MeterProvider, error) {
 	metricExporter, err := otlpmetrichttp.New(ctx,
-		otlpmetrichttp.WithEndpoint("localhost:12347"),
-		otlpmetrichttp.WithURLPath("/collect"),
+		otlpmetrichttp.WithEndpoint("localhost:4317"),
 		otlpmetrichttp.WithInsecure(),
 	)
 	if err != nil {
