@@ -27,6 +27,9 @@ var (
 	id                   = uuid.New().String()
 )
 
+// Will be overridden when built for production.
+var endpointURL = "http://localhost:4317"
+
 // setupOTelSDK bootstraps the OpenTelemetry pipeline.
 // If it does not return an error, make sure to call shutdown for proper cleanup.
 func SetupOTelSDK(ctx context.Context, name string, log logrus.FieldLogger) (shutdown func(context.Context) error, err error) {
@@ -98,10 +101,7 @@ func newPropagator() propagation.TextMapPropagator {
 }
 
 func newTraceProvider(ctx context.Context, res *resource.Resource) (*trace.TracerProvider, error) {
-	traceExporter, err := otlptracehttp.New(ctx,
-		otlptracehttp.WithEndpoint("localhost:4317"),
-		otlptracehttp.WithInsecure(),
-	)
+	traceExporter, err := otlptracehttp.New(ctx, otlptracehttp.WithEndpointURL(endpointURL))
 	if err != nil {
 		return nil, err
 	}
@@ -117,10 +117,7 @@ func newTraceProvider(ctx context.Context, res *resource.Resource) (*trace.Trace
 }
 
 func newMeterProvider(ctx context.Context, res *resource.Resource) (*metric.MeterProvider, error) {
-	metricExporter, err := otlpmetrichttp.New(ctx,
-		otlpmetrichttp.WithEndpoint("localhost:4317"),
-		otlpmetrichttp.WithInsecure(),
-	)
+	metricExporter, err := otlpmetrichttp.New(ctx, otlpmetrichttp.WithEndpointURL(endpointURL))
 	if err != nil {
 		return nil, err
 	}
