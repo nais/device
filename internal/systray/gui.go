@@ -14,6 +14,7 @@ import (
 	"github.com/nais/device/internal/helper"
 	helperconfig "github.com/nais/device/internal/helper/config"
 	"github.com/nais/device/internal/logger"
+	"github.com/nais/device/internal/otel"
 
 	"github.com/nais/device/assets"
 	"github.com/nais/device/internal/device-agent/open"
@@ -165,6 +166,7 @@ func (gui *Gui) EventLoop(ctx context.Context) {
 	for {
 		select {
 		case guiEvent := <-gui.Events:
+			spanCtx, span := otel.Start(ctx, "event/"+guiEvent)
 			gui.handleGuiEvent(guiEvent)
 			if guiEvent == QuitClicked {
 				systray.Quit()

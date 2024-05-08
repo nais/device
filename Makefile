@@ -15,7 +15,7 @@ all: test
 clients: linux-client macos-client windows-client
 
 proto: install-protobuf-go
-	${PROTOC} --go-grpc_opt=paths=source_relative --go_opt=paths=source_relative --go_out=. --go-grpc_out=. internal/pb/protobuf-api.proto
+	PATH="${PATH}:$(shell go env GOPATH)/bin" ${PROTOC} --go-grpc_opt=paths=source_relative --go_opt=paths=source_relative --go_out=. --go-grpc_out=. internal/pb/protobuf-api.proto
 
 install-protobuf-go:
 	go install google.golang.org/protobuf/cmd/protoc-gen-go
@@ -169,6 +169,11 @@ lint:
 
 staticcheck:
 	go run honnef.co/go/tools/cmd/staticcheck ./...
+
+generate-guievent-strings:
+	go run golang.org/x/tools/cmd/stringer -type=GuiEvent ./internal/systray
+
+generate: generate-guievent-strings mocks generate-sqlc proto
 
 govulncheck:
 	go run golang.org/x/vuln/cmd/govulncheck ./...
