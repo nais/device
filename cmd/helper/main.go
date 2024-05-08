@@ -42,9 +42,11 @@ func main() {
 		log.Fatalf("setup OTel SDK: %s", err)
 	}
 	defer func() {
-		if err := otelCancel(programContext); err != nil {
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		if err := otelCancel(ctx); err != nil {
 			log.Errorf("shutdown OTel SDK: %s", err)
 		}
+		cancel()
 	}()
 
 	// for windows service control, noop on unix

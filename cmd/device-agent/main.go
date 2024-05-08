@@ -100,9 +100,11 @@ func run(ctx context.Context, log *logrus.Entry, cfg *config.Config, notifier no
 		return fmt.Errorf("setup OTel SDK: %s", err)
 	}
 	defer func() {
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		if err := otelCancel(ctx); err != nil {
 			log.Errorf("shutdown OTel SDK: %s", err)
 		}
+		cancel()
 	}()
 
 	if err := filesystem.EnsurePrerequisites(cfg); err != nil {
