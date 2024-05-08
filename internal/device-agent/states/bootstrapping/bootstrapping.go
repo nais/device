@@ -28,7 +28,7 @@ func New(rc runtimeconfig.RuntimeConfig, logger logrus.FieldLogger, notifier not
 	}
 }
 
-func (b *Bootstrapping) Enter(ctx context.Context) statemachine.Event {
+func (b *Bootstrapping) Enter(ctx context.Context) statemachine.EventWithSpan {
 	ctx, span := otel.Start(ctx, "Bootstrapping")
 	defer span.End()
 
@@ -45,7 +45,7 @@ func (b *Bootstrapping) Enter(ctx context.Context) statemachine.Event {
 		if err != nil {
 			span.RecordError(err)
 			b.notifier.Errorf("Unable to get serial number: %v", err)
-			return statemachine.EventDisconnect
+			return statemachine.SpanEvent(ctx, statemachine.EventDisconnect)
 		}
 
 		err = b.rc.EnsureEnrolled(enrollCtx, serial.GetSerial())
@@ -54,11 +54,11 @@ func (b *Bootstrapping) Enter(ctx context.Context) statemachine.Event {
 		if err != nil {
 			span.RecordError(err)
 			b.notifier.Errorf("Bootstrap: %v", err)
-			return statemachine.EventDisconnect
+			return statemachine.SpanEvent(ctx, statemachine.EventDisconnect)
 		}
 	}
 
-	return statemachine.EventBootstrapped
+	return statemachine.SpanEvent(ctx, statemachine.EventBootstrapped)
 }
 
 func (Bootstrapping) AgentState() pb.AgentState {

@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/sirupsen/logrus"
+	"go.opentelemetry.io/otel/trace"
 
 	"google.golang.org/grpc/codes"
 	grpcstatus "google.golang.org/grpc/status"
@@ -70,7 +71,7 @@ var (
 	ErrLostConnection  = errors.New("lost connection")
 )
 
-func (c *Connected) Enter(ctx context.Context) statemachine.Event {
+func (c *Connected) Enter(ctx context.Context) statemachine.EventWithSpan {
 	// Set up WireGuard interface for communication with APIServer
 	helperCtx, cancel := context.WithTimeout(ctx, helperTimeout)
 	_, err := c.deviceHelper.Configure(helperCtx, c.rc.BuildHelperConfiguration([]*pb.Gateway{
@@ -79,7 +80,7 @@ func (c *Connected) Enter(ctx context.Context) statemachine.Event {
 	cancel()
 	if err != nil {
 		c.notifier.Errorf(err.Error())
-		return statemachine.EventDisconnect
+		return statemachine.SpanEvent(ctx, statemachine.EventDisconnect)
 	}
 
 	// Teardown WireGuard interface when this state is finished
@@ -105,13 +106,13 @@ func (c *Connected) Enter(ctx context.Context) statemachine.Event {
 			continue
 		case errors.Is(e, auth.ErrTermsNotAccepted):
 			c.notifier.Errorf("%v", e)
-			return statemachine.EventDisconnect
+			return statemachine.SpanEvent(ctx, statemachine.EventDisconnect)
 		case errors.Is(e, &auth.ParseTokenError{}):
 			fallthrough
 		case errors.Is(e, ErrUnauthenticated):
 			c.notifier.Errorf("Unauthenticated: %v", err)
 			c.rc.SetToken(nil)
-			return statemachine.EventDisconnect
+			return statemachine.SpanEvent(ctx, statemachine.EventDisconnect)
 		case errors.Is(e, io.EOF):
 			c.logger.Infof("Connection unexpectedly lost (EOF), reconnecting...")
 			attempt = 0
@@ -120,20 +121,20 @@ func (c *Connected) Enter(ctx context.Context) statemachine.Event {
 			attempt = 0
 		case errors.Is(e, context.DeadlineExceeded):
 			c.logger.Infof("syncConfigLoop deadline exceeded: %v", err)
-			return statemachine.EventDisconnect
+			return statemachine.SpanEvent(ctx, statemachine.EventDisconnect)
 		case errors.Is(e, context.Canceled):
 			// in this case something from the outside canceled us, let them decide next state
 			c.logger.Infof("syncConfigLoop canceled: %v", err)
-			return statemachine.EventWaitForExternalEvent
+			return statemachine.SpanEvent(ctx, statemachine.EventWaitForExternalEvent)
 		case e != nil:
 			// Unhandled error: disconnect
 			c.logger.Errorf("error in syncConfigLoop: %v", err)
 			c.notifier.Errorf("Unhandled error while updating config. Please send your logs to the NAIS team.")
-			return statemachine.EventDisconnect
+			return statemachine.SpanEvent(ctx, statemachine.EventDisconnect)
 		}
 	}
 
-	return statemachine.EventDisconnect
+	return statemachine.SpanEvent(ctx, statemachine.EventDisconnect)
 }
 
 func (c *Connected) triggerStatusUpdate() {
@@ -198,7 +199,7 @@ func (c *Connected) defaultSyncConfigLoop(ctx context.Context) error {
 		err := func() error {
 			cfg, err := stream.Recv()
 			healthCheckCancel()
-			ctx, span := otel.Start(ctx, "SyncConfigLoop/recv")
+			ctx, span := otel.Start(ctx, "SyncConfigLoop/recv", trace.WithNewRoot())
 			defer span.End()
 			span.RecordError(err)
 

@@ -57,10 +57,10 @@ func TestStateMachine(t *testing.T) {
 		sm := device_agent.NewStateMachine(ctx, rc, cfg, notifier, deviceHelper, nil, log)
 		go sm.Run(ctx)
 
-		sm.SendEvent(statemachine.EventLogin)
+		sm.SendEvent(statemachine.SpanEvent(ctx, statemachine.EventLogin))
 		assert.Eventually(t, func() bool { return sm.GetAgentState() == pb.AgentState_Connected }, 2000*time.Millisecond, 5*time.Millisecond)
 
-		sm.SendEvent(statemachine.EventDisconnect)
+		sm.SendEvent(statemachine.SpanEvent(ctx, statemachine.EventDisconnect))
 		assert.Eventually(t, func() bool { return sm.GetAgentState() == pb.AgentState_Disconnected }, 3000*time.Millisecond, 5*time.Millisecond)
 	})
 }

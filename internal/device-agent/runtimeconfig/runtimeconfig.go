@@ -87,7 +87,7 @@ func (rc *runtimeConfig) DialAPIServer(ctx context.Context) (*grpc.ClientConn, e
 		}),
 		grpc.WithReturnConnectionError(),
 		grpc.WithStatsHandler(otel.NewGRPCClientHandler(
-			"/naisdevice.APIServer/GetDeviceConfiguration",
+			pb.APIServer_GetDeviceConfiguration_FullMethodName,
 		)),
 	)
 }

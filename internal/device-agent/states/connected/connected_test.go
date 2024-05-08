@@ -47,7 +47,7 @@ func TestConnected_Enter(t *testing.T) {
 			notifier:     notifier,
 			deviceHelper: deviceHelper,
 		}
-		event := c.Enter(ctx)
+		event := c.Enter(ctx).Event
 		assert.Equal(t, statemachine.EventDisconnect, event)
 	})
 
@@ -89,7 +89,7 @@ func TestConnected_Enter(t *testing.T) {
 					return ErrUnauthenticated
 				},
 			}
-			event := c.Enter(ctx)
+			event := c.Enter(ctx).Event
 			assert.Equal(t, statemachine.EventDisconnect, event)
 		})
 
@@ -108,7 +108,7 @@ func TestConnected_Enter(t *testing.T) {
 					return fmt.Errorf("unhandled error")
 				},
 			}
-			event := c.Enter(ctx)
+			event := c.Enter(ctx).Event
 			assert.Equal(t, statemachine.EventDisconnect, event)
 		})
 
@@ -127,7 +127,7 @@ func TestConnected_Enter(t *testing.T) {
 					return context.Canceled
 				},
 			}
-			event := c.Enter(ctx)
+			event := c.Enter(ctx).Event
 			assert.Equal(t, statemachine.EventWaitForExternalEvent, event)
 		})
 
@@ -152,7 +152,7 @@ func TestConnected_Enter(t *testing.T) {
 					return ErrUnavailable
 				},
 			}
-			event := c.Enter(ctx)
+			event := c.Enter(ctx).Event
 			assert.Equal(t, statemachine.EventWaitForExternalEvent, event)
 		})
 
@@ -177,7 +177,7 @@ func TestConnected_Enter(t *testing.T) {
 					return ErrLostConnection
 				},
 			}
-			event := c.Enter(ctx)
+			event := c.Enter(ctx).Event
 			assert.Equal(t, statemachine.EventWaitForExternalEvent, event)
 		})
 	})
@@ -245,7 +245,7 @@ func TestConnected_defaultSyncConfigLoop(t *testing.T) {
 	})
 
 	t.Run("defaultSyncConfigLop.recv", func(t *testing.T) {
-		setupMocks := func(ctx context.Context) (*runtimeconfig.MockRuntimeConfig, *pb.MockDeviceHelperClient, *pb.MockAPIServer_GetDeviceConfigurationClient) {
+		setupMocks := func() (*runtimeconfig.MockRuntimeConfig, *pb.MockDeviceHelperClient, *pb.MockAPIServer_GetDeviceConfigurationClient) {
 			session := &pb.Session{Expiry: timestamppb.New(time.Now().Add(time.Hour)), Key: "key"}
 
 			getDeviceConfigClient := pb.NewMockAPIServer_GetDeviceConfigurationClient(t)
@@ -265,7 +265,7 @@ func TestConnected_defaultSyncConfigLoop(t *testing.T) {
 			ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 			defer cancel()
 
-			rc, deviceHelper, getDeviceConfigClient := setupMocks(ctx)
+			rc, deviceHelper, getDeviceConfigClient := setupMocks()
 
 			c := &Connected{
 				rc:           rc,
@@ -299,7 +299,7 @@ func TestConnected_defaultSyncConfigLoop(t *testing.T) {
 			ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 			defer cancel()
 
-			rc, deviceHelper, getDeviceConfigClient := setupMocks(ctx)
+			rc, deviceHelper, getDeviceConfigClient := setupMocks()
 			notifier := notify.NewMockNotifier(t)
 			notifier.EXPECT().Errorf(mock.Anything, mock.Anything)
 
@@ -330,7 +330,7 @@ func TestConnected_defaultSyncConfigLoop(t *testing.T) {
 			ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 			defer cancel()
 
-			rc, deviceHelper, getDeviceConfigClient := setupMocks(ctx)
+			rc, deviceHelper, getDeviceConfigClient := setupMocks()
 
 			c := &Connected{
 				rc:           rc,
@@ -351,7 +351,7 @@ func TestConnected_defaultSyncConfigLoop(t *testing.T) {
 			ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 			defer cancel()
 
-			rc, deviceHelper, getDeviceConfigClient := setupMocks(ctx)
+			rc, deviceHelper, getDeviceConfigClient := setupMocks()
 
 			c := &Connected{
 				rc:           rc,
@@ -368,7 +368,7 @@ func TestConnected_defaultSyncConfigLoop(t *testing.T) {
 			ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 			defer cancel()
 
-			rc, deviceHelper, getDeviceConfigClient := setupMocks(ctx)
+			rc, deviceHelper, getDeviceConfigClient := setupMocks()
 
 			c := &Connected{
 				rc:           rc,
@@ -385,7 +385,7 @@ func TestConnected_defaultSyncConfigLoop(t *testing.T) {
 			ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 			defer cancel()
 
-			rc, deviceHelper, getDeviceConfigClient := setupMocks(ctx)
+			rc, deviceHelper, getDeviceConfigClient := setupMocks()
 
 			c := &Connected{
 				rc:           rc,

@@ -23,16 +23,16 @@ func New(rc runtimeconfig.RuntimeConfig, cfg config.Config) statemachine.State {
 	}
 }
 
-func (d *Disconnected) Enter(ctx context.Context) statemachine.Event {
+func (d *Disconnected) Enter(ctx context.Context) statemachine.EventWithSpan {
 	d.rc.SetToken(nil)
 	d.rc.ResetEnrollConfig()
 
 	if d.cfg.AgentConfiguration.AutoConnect && !d.autoConnectTriggered {
 		d.autoConnectTriggered = true
-		return statemachine.EventLogin
+		return statemachine.SpanEvent(ctx, statemachine.EventLogin)
 	}
 	<-ctx.Done()
-	return statemachine.EventWaitForExternalEvent
+	return statemachine.SpanEvent(ctx, statemachine.EventWaitForExternalEvent)
 }
 
 func (Disconnected) AgentState() pb.AgentState {

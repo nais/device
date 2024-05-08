@@ -37,14 +37,14 @@ func New(rc runtimeconfig.RuntimeConfig, cfg config.Config, logger logrus.FieldL
 	}
 }
 
-func (a *Authenticating) Enter(ctx context.Context) statemachine.Event {
+func (a *Authenticating) Enter(ctx context.Context) statemachine.EventWithSpan {
 	ctx, span := otel.Start(ctx, "Authenticating")
 	defer span.End()
 
 	session, _ := a.rc.GetTenantSession()
 	if !session.Expired() {
 		span.AddEvent("session.active")
-		return statemachine.EventAuthenticated
+		return statemachine.SpanEvent(ctx, statemachine.EventAuthenticated)
 	}
 
 	ctx, cancel := context.WithTimeout(ctx, authFlowTimeout)
@@ -54,12 +54,12 @@ func (a *Authenticating) Enter(ctx context.Context) statemachine.Event {
 	if err != nil {
 		span.RecordError(err)
 		a.notifier.Errorf("Get token: %v", err)
-		return statemachine.EventDisconnect
+		return statemachine.SpanEvent(ctx, statemachine.EventDisconnect)
 	}
 
 	span.AddEvent("session.new")
 	a.rc.SetToken(token)
-	return statemachine.EventAuthenticated
+	return statemachine.SpanEvent(ctx, statemachine.EventAuthenticated)
 }
 
 func (Authenticating) AgentState() pb.AgentState {

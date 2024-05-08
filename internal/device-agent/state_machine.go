@@ -31,7 +31,7 @@ func NewStateMachine(
 	stateBootstrapping := bootstrapping.New(rc, logger, notifier, deviceHelper)
 	stateConnected := connected.New(rc, logger, notifier, deviceHelper, statusUpdates)
 
-	transitions := map[statemachine.Event]statemachine.Transitions{
+	transitions := map[statemachine.EventType]statemachine.Transitions{
 		statemachine.EventLogin: {
 			Target: stateAuthenticating,
 			Sources: []statemachine.State{

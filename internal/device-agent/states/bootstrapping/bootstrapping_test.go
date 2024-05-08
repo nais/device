@@ -33,7 +33,7 @@ func TestBootstrapping_Enter(t *testing.T) {
 			notifier:     notifier,
 			deviceHelper: deviceHelper,
 		}
-		event := b.Enter(ctx)
+		event := b.Enter(ctx).Event
 		assert.Equal(t, statemachine.EventBootstrapped, event)
 	})
 
@@ -56,7 +56,7 @@ func TestBootstrapping_Enter(t *testing.T) {
 			notifier:     notifier,
 			deviceHelper: deviceHelper,
 		}
-		event := b.Enter(ctx)
+		event := b.Enter(ctx).Event
 		assert.Equal(t, statemachine.EventDisconnect, event)
 	})
 
@@ -80,7 +80,7 @@ func TestBootstrapping_Enter(t *testing.T) {
 			notifier:     notifier,
 			deviceHelper: deviceHelper,
 		}
-		event := b.Enter(ctx)
+		event := b.Enter(ctx).Event
 		assert.Equal(t, statemachine.EventDisconnect, event)
 	})
 
@@ -103,7 +103,7 @@ func TestBootstrapping_Enter(t *testing.T) {
 			notifier:     notifier,
 			deviceHelper: deviceHelper,
 		}
-		event := b.Enter(ctx)
+		event := b.Enter(ctx).Event
 		assert.Equal(t, statemachine.EventBootstrapped, event)
 	})
 }

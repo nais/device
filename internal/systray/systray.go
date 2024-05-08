@@ -4,7 +4,6 @@ import (
 	"context"
 
 	"fyne.io/systray"
-	"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 
@@ -31,7 +30,7 @@ func (s *trayState) onReady() {
 	s.connection, err = grpc.Dial(
 		"unix:"+s.cfg.GrpcAddress,
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
-		grpc.WithStatsHandler(otelgrpc.NewClientHandler()),
+		grpc.WithStatsHandler(otel.NewGRPCClientHandler(pb.DeviceAgent_Status_FullMethodName)),
 	)
 	if err != nil {
 		s.log.Fatalf("unable to connect to naisdevice-agent grpc server: %v", err)
