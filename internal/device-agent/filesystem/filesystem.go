@@ -27,16 +27,6 @@ func FileMustExist(filepath string) error {
 	return nil
 }
 
-func filesExist(files ...string) error {
-	for _, file := range files {
-		if err := FileMustExist(file); err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
-
 func ensureDirectories(dirs ...string) error {
 	for _, dir := range dirs {
 		if err := ensureDirectory(dir); err != nil {

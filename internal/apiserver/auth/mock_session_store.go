@@ -26,6 +26,10 @@ func (_m *MockSessionStore) EXPECT() *MockSessionStore_Expecter {
 func (_m *MockSessionStore) All() []*pb.Session {
 	ret := _m.Called()
 
+	if len(ret) == 0 {
+		panic("no return value specified for All")
+	}
+
 	var r0 []*pb.Session
 	if rf, ok := ret.Get(0).(func() []*pb.Session); ok {
 		r0 = rf()
@@ -68,6 +72,10 @@ func (_c *MockSessionStore_All_Call) RunAndReturn(run func() []*pb.Session) *Moc
 // Get provides a mock function with given fields: _a0, _a1
 func (_m *MockSessionStore) Get(_a0 context.Context, _a1 string) (*pb.Session, error) {
 	ret := _m.Called(_a0, _a1)
+
+	if len(ret) == 0 {
+		panic("no return value specified for Get")
+	}
 
 	var r0 *pb.Session
 	var r1 error
@@ -123,6 +131,10 @@ func (_c *MockSessionStore_Get_Call) RunAndReturn(run func(context.Context, stri
 // Set provides a mock function with given fields: _a0, _a1
 func (_m *MockSessionStore) Set(_a0 context.Context, _a1 *pb.Session) error {
 	ret := _m.Called(_a0, _a1)
+
+	if len(ret) == 0 {
+		panic("no return value specified for Set")
+	}
 
 	var r0 error
 	if rf, ok := ret.Get(0).(func(context.Context, *pb.Session) error); ok {

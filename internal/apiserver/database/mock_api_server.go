@@ -26,6 +26,10 @@ func (_m *MockAPIServer) EXPECT() *MockAPIServer_Expecter {
 func (_m *MockAPIServer) AddDevice(ctx context.Context, device *pb.Device) error {
 	ret := _m.Called(ctx, device)
 
+	if len(ret) == 0 {
+		panic("no return value specified for AddDevice")
+	}
+
 	var r0 error
 	if rf, ok := ret.Get(0).(func(context.Context, *pb.Device) error); ok {
 		r0 = rf(ctx, device)
@@ -68,6 +72,10 @@ func (_c *MockAPIServer_AddDevice_Call) RunAndReturn(run func(context.Context, *
 // AddGateway provides a mock function with given fields: ctx, gateway
 func (_m *MockAPIServer) AddGateway(ctx context.Context, gateway *pb.Gateway) error {
 	ret := _m.Called(ctx, gateway)
+
+	if len(ret) == 0 {
+		panic("no return value specified for AddGateway")
+	}
 
 	var r0 error
 	if rf, ok := ret.Get(0).(func(context.Context, *pb.Gateway) error); ok {
@@ -112,6 +120,10 @@ func (_c *MockAPIServer_AddGateway_Call) RunAndReturn(run func(context.Context, 
 func (_m *MockAPIServer) AddSessionInfo(ctx context.Context, si *pb.Session) error {
 	ret := _m.Called(ctx, si)
 
+	if len(ret) == 0 {
+		panic("no return value specified for AddSessionInfo")
+	}
+
 	var r0 error
 	if rf, ok := ret.Get(0).(func(context.Context, *pb.Session) error); ok {
 		r0 = rf(ctx, si)
@@ -154,6 +166,10 @@ func (_c *MockAPIServer_AddSessionInfo_Call) RunAndReturn(run func(context.Conte
 // ReadDevice provides a mock function with given fields: ctx, publicKey
 func (_m *MockAPIServer) ReadDevice(ctx context.Context, publicKey string) (*pb.Device, error) {
 	ret := _m.Called(ctx, publicKey)
+
+	if len(ret) == 0 {
+		panic("no return value specified for ReadDevice")
+	}
 
 	var r0 *pb.Device
 	var r1 error
@@ -210,6 +226,10 @@ func (_c *MockAPIServer_ReadDevice_Call) RunAndReturn(run func(context.Context, 
 func (_m *MockAPIServer) ReadDeviceById(ctx context.Context, deviceID int64) (*pb.Device, error) {
 	ret := _m.Called(ctx, deviceID)
 
+	if len(ret) == 0 {
+		panic("no return value specified for ReadDeviceById")
+	}
+
 	var r0 *pb.Device
 	var r1 error
 	if rf, ok := ret.Get(0).(func(context.Context, int64) (*pb.Device, error)); ok {
@@ -264,6 +284,10 @@ func (_c *MockAPIServer_ReadDeviceById_Call) RunAndReturn(run func(context.Conte
 // ReadDeviceBySerialPlatform provides a mock function with given fields: ctx, serial, platform
 func (_m *MockAPIServer) ReadDeviceBySerialPlatform(ctx context.Context, serial string, platform string) (*pb.Device, error) {
 	ret := _m.Called(ctx, serial, platform)
+
+	if len(ret) == 0 {
+		panic("no return value specified for ReadDeviceBySerialPlatform")
+	}
 
 	var r0 *pb.Device
 	var r1 error
@@ -321,6 +345,10 @@ func (_c *MockAPIServer_ReadDeviceBySerialPlatform_Call) RunAndReturn(run func(c
 func (_m *MockAPIServer) ReadDevices(ctx context.Context) ([]*pb.Device, error) {
 	ret := _m.Called(ctx)
 
+	if len(ret) == 0 {
+		panic("no return value specified for ReadDevices")
+	}
+
 	var r0 []*pb.Device
 	var r1 error
 	if rf, ok := ret.Get(0).(func(context.Context) ([]*pb.Device, error)); ok {
@@ -374,6 +402,10 @@ func (_c *MockAPIServer_ReadDevices_Call) RunAndReturn(run func(context.Context)
 // ReadGateway provides a mock function with given fields: ctx, name
 func (_m *MockAPIServer) ReadGateway(ctx context.Context, name string) (*pb.Gateway, error) {
 	ret := _m.Called(ctx, name)
+
+	if len(ret) == 0 {
+		panic("no return value specified for ReadGateway")
+	}
 
 	var r0 *pb.Gateway
 	var r1 error
@@ -430,6 +462,10 @@ func (_c *MockAPIServer_ReadGateway_Call) RunAndReturn(run func(context.Context,
 func (_m *MockAPIServer) ReadGateways(ctx context.Context) ([]*pb.Gateway, error) {
 	ret := _m.Called(ctx)
 
+	if len(ret) == 0 {
+		panic("no return value specified for ReadGateways")
+	}
+
 	var r0 []*pb.Gateway
 	var r1 error
 	if rf, ok := ret.Get(0).(func(context.Context) ([]*pb.Gateway, error)); ok {
@@ -483,6 +519,10 @@ func (_c *MockAPIServer_ReadGateways_Call) RunAndReturn(run func(context.Context
 // ReadMostRecentSessionInfo provides a mock function with given fields: ctx, deviceID
 func (_m *MockAPIServer) ReadMostRecentSessionInfo(ctx context.Context, deviceID int64) (*pb.Session, error) {
 	ret := _m.Called(ctx, deviceID)
+
+	if len(ret) == 0 {
+		panic("no return value specified for ReadMostRecentSessionInfo")
+	}
 
 	var r0 *pb.Session
 	var r1 error
@@ -539,6 +579,10 @@ func (_c *MockAPIServer_ReadMostRecentSessionInfo_Call) RunAndReturn(run func(co
 func (_m *MockAPIServer) ReadSessionInfo(ctx context.Context, key string) (*pb.Session, error) {
 	ret := _m.Called(ctx, key)
 
+	if len(ret) == 0 {
+		panic("no return value specified for ReadSessionInfo")
+	}
+
 	var r0 *pb.Session
 	var r1 error
 	if rf, ok := ret.Get(0).(func(context.Context, string) (*pb.Session, error)); ok {
@@ -594,6 +638,10 @@ func (_c *MockAPIServer_ReadSessionInfo_Call) RunAndReturn(run func(context.Cont
 func (_m *MockAPIServer) ReadSessionInfos(ctx context.Context) ([]*pb.Session, error) {
 	ret := _m.Called(ctx)
 
+	if len(ret) == 0 {
+		panic("no return value specified for ReadSessionInfos")
+	}
+
 	var r0 []*pb.Session
 	var r1 error
 	if rf, ok := ret.Get(0).(func(context.Context) ([]*pb.Session, error)); ok {
@@ -648,6 +696,10 @@ func (_c *MockAPIServer_ReadSessionInfos_Call) RunAndReturn(run func(context.Con
 func (_m *MockAPIServer) RemoveExpiredSessions(ctx context.Context) error {
 	ret := _m.Called(ctx)
 
+	if len(ret) == 0 {
+		panic("no return value specified for RemoveExpiredSessions")
+	}
+
 	var r0 error
 	if rf, ok := ret.Get(0).(func(context.Context) error); ok {
 		r0 = rf(ctx)
@@ -689,6 +741,10 @@ func (_c *MockAPIServer_RemoveExpiredSessions_Call) RunAndReturn(run func(contex
 // UpdateDevices provides a mock function with given fields: ctx, devices
 func (_m *MockAPIServer) UpdateDevices(ctx context.Context, devices []*pb.Device) error {
 	ret := _m.Called(ctx, devices)
+
+	if len(ret) == 0 {
+		panic("no return value specified for UpdateDevices")
+	}
 
 	var r0 error
 	if rf, ok := ret.Get(0).(func(context.Context, []*pb.Device) error); ok {
@@ -733,6 +789,10 @@ func (_c *MockAPIServer_UpdateDevices_Call) RunAndReturn(run func(context.Contex
 func (_m *MockAPIServer) UpdateGateway(ctx context.Context, gateway *pb.Gateway) error {
 	ret := _m.Called(ctx, gateway)
 
+	if len(ret) == 0 {
+		panic("no return value specified for UpdateGateway")
+	}
+
 	var r0 error
 	if rf, ok := ret.Get(0).(func(context.Context, *pb.Gateway) error); ok {
 		r0 = rf(ctx, gateway)
@@ -775,6 +835,10 @@ func (_c *MockAPIServer_UpdateGateway_Call) RunAndReturn(run func(context.Contex
 // UpdateGatewayDynamicFields provides a mock function with given fields: ctx, gateway
 func (_m *MockAPIServer) UpdateGatewayDynamicFields(ctx context.Context, gateway *pb.Gateway) error {
 	ret := _m.Called(ctx, gateway)
+
+	if len(ret) == 0 {
+		panic("no return value specified for UpdateGatewayDynamicFields")
+	}
 
 	var r0 error
 	if rf, ok := ret.Get(0).(func(context.Context, *pb.Gateway) error); ok {

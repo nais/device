@@ -21,6 +21,10 @@ func (_m *MockNetworkConfigurer) EXPECT() *MockNetworkConfigurer_Expecter {
 func (_m *MockNetworkConfigurer) ApplyWireGuardConfig(peers []Peer) error {
 	ret := _m.Called(peers)
 
+	if len(ret) == 0 {
+		panic("no return value specified for ApplyWireGuardConfig")
+	}
+
 	var r0 error
 	if rf, ok := ret.Get(0).(func([]Peer) error); ok {
 		r0 = rf(peers)
@@ -62,6 +66,10 @@ func (_c *MockNetworkConfigurer_ApplyWireGuardConfig_Call) RunAndReturn(run func
 // ForwardRoutesV4 provides a mock function with given fields: routes
 func (_m *MockNetworkConfigurer) ForwardRoutesV4(routes []string) error {
 	ret := _m.Called(routes)
+
+	if len(ret) == 0 {
+		panic("no return value specified for ForwardRoutesV4")
+	}
 
 	var r0 error
 	if rf, ok := ret.Get(0).(func([]string) error); ok {
@@ -105,6 +113,10 @@ func (_c *MockNetworkConfigurer_ForwardRoutesV4_Call) RunAndReturn(run func([]st
 func (_m *MockNetworkConfigurer) ForwardRoutesV6(routes []string) error {
 	ret := _m.Called(routes)
 
+	if len(ret) == 0 {
+		panic("no return value specified for ForwardRoutesV6")
+	}
+
 	var r0 error
 	if rf, ok := ret.Get(0).(func([]string) error); ok {
 		r0 = rf(routes)
@@ -147,6 +159,10 @@ func (_c *MockNetworkConfigurer_ForwardRoutesV6_Call) RunAndReturn(run func([]st
 func (_m *MockNetworkConfigurer) SetupIPTables() error {
 	ret := _m.Called()
 
+	if len(ret) == 0 {
+		panic("no return value specified for SetupIPTables")
+	}
+
 	var r0 error
 	if rf, ok := ret.Get(0).(func() error); ok {
 		r0 = rf()
@@ -187,6 +203,10 @@ func (_c *MockNetworkConfigurer_SetupIPTables_Call) RunAndReturn(run func() erro
 // SetupInterface provides a mock function with given fields:
 func (_m *MockNetworkConfigurer) SetupInterface() error {
 	ret := _m.Called()
+
+	if len(ret) == 0 {
+		panic("no return value specified for SetupInterface")
+	}
 
 	var r0 error
 	if rf, ok := ret.Get(0).(func() error); ok {

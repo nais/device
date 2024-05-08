@@ -26,6 +26,10 @@ func (_m *MockOSConfigurator) EXPECT() *MockOSConfigurator_Expecter {
 func (_m *MockOSConfigurator) Prerequisites() error {
 	ret := _m.Called()
 
+	if len(ret) == 0 {
+		panic("no return value specified for Prerequisites")
+	}
+
 	var r0 error
 	if rf, ok := ret.Get(0).(func() error); ok {
 		r0 = rf()
@@ -66,6 +70,10 @@ func (_c *MockOSConfigurator_Prerequisites_Call) RunAndReturn(run func() error) 
 // SetupInterface provides a mock function with given fields: ctx, cfg
 func (_m *MockOSConfigurator) SetupInterface(ctx context.Context, cfg *pb.Configuration) error {
 	ret := _m.Called(ctx, cfg)
+
+	if len(ret) == 0 {
+		panic("no return value specified for SetupInterface")
+	}
 
 	var r0 error
 	if rf, ok := ret.Get(0).(func(context.Context, *pb.Configuration) error); ok {
@@ -110,6 +118,10 @@ func (_c *MockOSConfigurator_SetupInterface_Call) RunAndReturn(run func(context.
 func (_m *MockOSConfigurator) SetupRoutes(ctx context.Context, gateways []*pb.Gateway) error {
 	ret := _m.Called(ctx, gateways)
 
+	if len(ret) == 0 {
+		panic("no return value specified for SetupRoutes")
+	}
+
 	var r0 error
 	if rf, ok := ret.Get(0).(func(context.Context, []*pb.Gateway) error); ok {
 		r0 = rf(ctx, gateways)
@@ -153,6 +165,10 @@ func (_c *MockOSConfigurator_SetupRoutes_Call) RunAndReturn(run func(context.Con
 func (_m *MockOSConfigurator) SyncConf(ctx context.Context, cfg *pb.Configuration) error {
 	ret := _m.Called(ctx, cfg)
 
+	if len(ret) == 0 {
+		panic("no return value specified for SyncConf")
+	}
+
 	var r0 error
 	if rf, ok := ret.Get(0).(func(context.Context, *pb.Configuration) error); ok {
 		r0 = rf(ctx, cfg)
@@ -195,6 +211,10 @@ func (_c *MockOSConfigurator_SyncConf_Call) RunAndReturn(run func(context.Contex
 // TeardownInterface provides a mock function with given fields: ctx
 func (_m *MockOSConfigurator) TeardownInterface(ctx context.Context) error {
 	ret := _m.Called(ctx)
+
+	if len(ret) == 0 {
+		panic("no return value specified for TeardownInterface")
+	}
 
 	var r0 error
 	if rf, ok := ret.Get(0).(func(context.Context) error); ok {

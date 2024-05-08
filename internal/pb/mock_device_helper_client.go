@@ -34,6 +34,10 @@ func (_m *MockDeviceHelperClient) Configure(ctx context.Context, in *Configurati
 	_ca = append(_ca, _va...)
 	ret := _m.Called(_ca...)
 
+	if len(ret) == 0 {
+		panic("no return value specified for Configure")
+	}
+
 	var r0 *ConfigureResponse
 	var r1 error
 	if rf, ok := ret.Get(0).(func(context.Context, *Configuration, ...grpc.CallOption) (*ConfigureResponse, error)); ok {
@@ -103,6 +107,10 @@ func (_m *MockDeviceHelperClient) GetSerial(ctx context.Context, in *GetSerialRe
 	_ca = append(_ca, ctx, in)
 	_ca = append(_ca, _va...)
 	ret := _m.Called(_ca...)
+
+	if len(ret) == 0 {
+		panic("no return value specified for GetSerial")
+	}
 
 	var r0 *GetSerialResponse
 	var r1 error
@@ -174,6 +182,10 @@ func (_m *MockDeviceHelperClient) Teardown(ctx context.Context, in *TeardownRequ
 	_ca = append(_ca, _va...)
 	ret := _m.Called(_ca...)
 
+	if len(ret) == 0 {
+		panic("no return value specified for Teardown")
+	}
+
 	var r0 *TeardownResponse
 	var r1 error
 	if rf, ok := ret.Get(0).(func(context.Context, *TeardownRequest, ...grpc.CallOption) (*TeardownResponse, error)); ok {
@@ -243,6 +255,10 @@ func (_m *MockDeviceHelperClient) Upgrade(ctx context.Context, in *UpgradeReques
 	_ca = append(_ca, ctx, in)
 	_ca = append(_ca, _va...)
 	ret := _m.Called(_ca...)
+
+	if len(ret) == 0 {
+		panic("no return value specified for Upgrade")
+	}
 
 	var r0 *UpgradeResponse
 	var r1 error

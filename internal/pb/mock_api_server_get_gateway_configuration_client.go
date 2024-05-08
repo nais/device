@@ -26,6 +26,10 @@ func (_m *MockAPIServer_GetGatewayConfigurationClient) EXPECT() *MockAPIServer_G
 func (_m *MockAPIServer_GetGatewayConfigurationClient) CloseSend() error {
 	ret := _m.Called()
 
+	if len(ret) == 0 {
+		panic("no return value specified for CloseSend")
+	}
+
 	var r0 error
 	if rf, ok := ret.Get(0).(func() error); ok {
 		r0 = rf()
@@ -66,6 +70,10 @@ func (_c *MockAPIServer_GetGatewayConfigurationClient_CloseSend_Call) RunAndRetu
 // Context provides a mock function with given fields:
 func (_m *MockAPIServer_GetGatewayConfigurationClient) Context() context.Context {
 	ret := _m.Called()
+
+	if len(ret) == 0 {
+		panic("no return value specified for Context")
+	}
 
 	var r0 context.Context
 	if rf, ok := ret.Get(0).(func() context.Context); ok {
@@ -109,6 +117,10 @@ func (_c *MockAPIServer_GetGatewayConfigurationClient_Context_Call) RunAndReturn
 // Header provides a mock function with given fields:
 func (_m *MockAPIServer_GetGatewayConfigurationClient) Header() (metadata.MD, error) {
 	ret := _m.Called()
+
+	if len(ret) == 0 {
+		panic("no return value specified for Header")
+	}
 
 	var r0 metadata.MD
 	var r1 error
@@ -163,6 +175,10 @@ func (_c *MockAPIServer_GetGatewayConfigurationClient_Header_Call) RunAndReturn(
 func (_m *MockAPIServer_GetGatewayConfigurationClient) Recv() (*GetGatewayConfigurationResponse, error) {
 	ret := _m.Called()
 
+	if len(ret) == 0 {
+		panic("no return value specified for Recv")
+	}
+
 	var r0 *GetGatewayConfigurationResponse
 	var r1 error
 	if rf, ok := ret.Get(0).(func() (*GetGatewayConfigurationResponse, error)); ok {
@@ -216,6 +232,10 @@ func (_c *MockAPIServer_GetGatewayConfigurationClient_Recv_Call) RunAndReturn(ru
 func (_m *MockAPIServer_GetGatewayConfigurationClient) RecvMsg(m interface{}) error {
 	ret := _m.Called(m)
 
+	if len(ret) == 0 {
+		panic("no return value specified for RecvMsg")
+	}
+
 	var r0 error
 	if rf, ok := ret.Get(0).(func(interface{}) error); ok {
 		r0 = rf(m)
@@ -258,6 +278,10 @@ func (_c *MockAPIServer_GetGatewayConfigurationClient_RecvMsg_Call) RunAndReturn
 func (_m *MockAPIServer_GetGatewayConfigurationClient) SendMsg(m interface{}) error {
 	ret := _m.Called(m)
 
+	if len(ret) == 0 {
+		panic("no return value specified for SendMsg")
+	}
+
 	var r0 error
 	if rf, ok := ret.Get(0).(func(interface{}) error); ok {
 		r0 = rf(m)
@@ -299,6 +323,10 @@ func (_c *MockAPIServer_GetGatewayConfigurationClient_SendMsg_Call) RunAndReturn
 // Trailer provides a mock function with given fields:
 func (_m *MockAPIServer_GetGatewayConfigurationClient) Trailer() metadata.MD {
 	ret := _m.Called()
+
+	if len(ret) == 0 {
+		panic("no return value specified for Trailer")
+	}
 
 	var r0 metadata.MD
 	if rf, ok := ret.Get(0).(func() metadata.MD); ok {
