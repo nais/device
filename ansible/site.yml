@@ -25,7 +25,7 @@
       - name: b123034
         authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIHuGnZzl2NCrBA8QMhH507yFgSLaOapwqQl5Fw6jMRms roger.bjornstad@nav.no"
       - name: m152973
-        authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIO7fYA2cjne20QGuDjsVAorHikWPB5iPVzfbh/ej6pWZ vegar@sechmann.no-20190405\nssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIB49qLBkoHhlnpf7HxhcjIozk2ffeOQdAwaElMbusQ9J vegar@laptux-vegar-nav\nssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIJYHRi0ZSwjOdL9S9blV7AdNM2LQN7aHiJp1T5dAXIgp"
+        authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIO7fYA2cjne20QGuDjsVAorHikWPB5iPVzfbh/ej6pWZ vegar@sechmann.no-20190405\nssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIB49qLBkoHhlnpf7HxhcjIozk2ffeOQdAwaElMbusQ9J vegar@laptux-vegar-nav\nssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIJYHRi0ZSwjOdL9S9blV7AdNM2LQN7aHiJp1T5dAXIgp\nssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIKUFV67ZGk8kIdPvho4IBF4fLMemDNVPbhNlnaVcatIP"
       - name: h129009
         authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIHsIXwF/eT74JubXMiAmk1Qwxs4VgZESy/JT/0gKTRG1 johnny@horvi.no-2019-05-15"
       - name: r137915
