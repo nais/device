@@ -31,7 +31,6 @@ import (
 	wg "github.com/nais/device/internal/wireguard"
 	kolidepb "github.com/nais/kolide-event-handler/pkg/pb"
 	"github.com/sirupsen/logrus"
-	"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/keepalive"
 )
@@ -274,7 +273,7 @@ func run(log *logrus.Entry, cfg config.Config) error {
 
 	opts := []grpc.ServerOption{
 		grpc.KeepaliveEnforcementPolicy(keepalive.EnforcementPolicy{MinTime: 9 * time.Second}),
-		grpc.StatsHandler(otelgrpc.NewServerHandler()),
+		grpc.StatsHandler(otel.NewGRPCClientHandler(pb.APIServer_GetDeviceConfiguration_FullMethodName, pb.APIServer_GetGatewayConfiguration_FullMethodName)),
 	}
 
 	grpcServer := grpc.NewServer(opts...)
