@@ -26,7 +26,7 @@ type OSConfigurator interface {
 	SetupInterface(ctx context.Context, cfg *pb.Configuration) error
 	TeardownInterface(ctx context.Context) error
 	SyncConf(ctx context.Context, cfg *pb.Configuration) error
-	SetupRoutes(ctx context.Context, gateways []*pb.Gateway) error
+	SetupRoutes(ctx context.Context, gateways []*pb.Gateway) (routesAdded int, err error)
 	Prerequisites() error
 }
 
@@ -113,7 +113,7 @@ func (dhs *DeviceHelperServer) Configure(
 		)
 	}
 
-	err = dhs.osConfigurator.SetupRoutes(ctx, cfg.GetGateways())
+	_, err = dhs.osConfigurator.SetupRoutes(ctx, cfg.GetGateways())
 	if err != nil {
 		return nil, status.Errorf(codes.FailedPrecondition, "setting up routes: %s", err)
 	}

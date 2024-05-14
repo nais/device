@@ -177,7 +177,7 @@ func tableTest(t *testing.T, log *logrus.Entry, testDevice *pb.Device, endState 
 		})).Return(nil)
 	}
 
-	setupRoutesMock := osConfigurator.EXPECT().SetupRoutes(mock.AnythingOfType("*context.valueCtx"), mock.AnythingOfType("[]*pb.Gateway")).Return(nil)
+	setupRoutesMock := osConfigurator.EXPECT().SetupRoutes(mock.AnythingOfType("*context.valueCtx"), mock.AnythingOfType("[]*pb.Gateway")).Return(0, nil)
 	if len(expectedGateways) > 1 {
 		setupRoutesMock.Run(func(_ context.Context, gateways []*pb.Gateway) {
 			for _, gateway := range gateways {

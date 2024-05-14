@@ -19,6 +19,8 @@ type WindowsConfigurator struct {
 	wgNeedsRestart     bool
 }
 
+var _ OSConfigurator = &WindowsConfigurator{}
+
 func New(helperConfig Config) *WindowsConfigurator {
 	return &WindowsConfigurator{
 		helperConfig: helperConfig,
@@ -60,8 +62,8 @@ func (configurator *WindowsConfigurator) SetupInterface(ctx context.Context, cfg
 	return nil
 }
 
-func (configurator *WindowsConfigurator) SetupRoutes(ctx context.Context, gateways []*pb.Gateway) error {
-	return nil
+func (configurator *WindowsConfigurator) SetupRoutes(ctx context.Context, gateways []*pb.Gateway) (int, error) {
+	return 0, nil
 }
 
 func (configurator *WindowsConfigurator) SyncConf(ctx context.Context, cfg *pb.Configuration) error {

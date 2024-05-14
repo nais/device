@@ -54,7 +54,7 @@ func main() {
 		log.Fatalf("Starting windows service: %v", err)
 	}
 
-	osConfigurator := &helper.TracedConfigurator{Wrapped: helper.New(cfg)}
+	osConfigurator := helper.NewTracedConfigurator(helper.New(cfg))
 
 	log.Infof("naisdevice-helper %s starting up", version.Version)
 	log.Infof("configuration: %+v", cfg)

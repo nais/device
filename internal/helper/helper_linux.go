@@ -51,7 +51,8 @@ func (c *LinuxConfigurator) SyncConf(ctx context.Context, cfg *pb.Configuration)
 	return nil
 }
 
-func (c *LinuxConfigurator) SetupRoutes(ctx context.Context, gateways []*pb.Gateway) error {
+func (c *LinuxConfigurator) SetupRoutes(ctx context.Context, gateways []*pb.Gateway) (int, error) {
+	routesAdded := 0
 	for _, gw := range gateways {
 		// For Linux we can handle ipv4/6 addreses the same - the `ip` utility handles this for us
 		for _, cidr := range append(gw.GetRoutesIPv4(), gw.GetRoutesIPv6()...) {
@@ -76,12 +77,13 @@ func (c *LinuxConfigurator) SetupRoutes(ctx context.Context, gateways []*pb.Gate
 				if exitErr.ExitCode() == 2 && strings.Contains(string(output), "File exists") {
 					continue
 				}
-				return fmt.Errorf("executing %v: %w, stderr: %s", cmd, exitErr, string(output))
+				return routesAdded, fmt.Errorf("executing %v: %w, stderr: %s", cmd, exitErr, string(output))
 			}
+			routesAdded++
 		}
 	}
 
-	return nil
+	return routesAdded, nil
 }
 
 func (c *LinuxConfigurator) SetupInterface(ctx context.Context, cfg *pb.Configuration) error {
