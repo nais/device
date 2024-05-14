@@ -158,6 +158,13 @@ func (dhs *DeviceHelperServer) GetSerial(
 	return &pb.GetSerialResponse{Serial: device_serial}, nil
 }
 
+func (dhs *DeviceHelperServer) Ping(
+	context.Context,
+	*pb.PingRequest,
+) (*pb.PingResponse, error) {
+	return &pb.PingResponse{}, nil
+}
+
 func (dhs *DeviceHelperServer) Upgrade(
 	context.Context,
 	*pb.UpgradeRequest,

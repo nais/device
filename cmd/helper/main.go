@@ -9,7 +9,6 @@ import (
 	"time"
 
 	flag "github.com/spf13/pflag"
-	"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
 	"google.golang.org/grpc"
 
 	"github.com/nais/device/internal/helper"
@@ -78,7 +77,7 @@ func main() {
 	log.Infof("accepting network connections on unix socket %s", grpcPath)
 
 	notifier := pb.NewConnectionNotifier()
-	grpcServer := grpc.NewServer(grpc.StatsHandler(notifier), grpc.StatsHandler(otelgrpc.NewServerHandler()))
+	grpcServer := grpc.NewServer(grpc.StatsHandler(notifier), grpc.StatsHandler(otel.NewGRPCClientHandler(pb.DeviceHelper_Ping_FullMethodName)))
 
 	dhs := helper.NewDeviceHelperServer(log, cfg, osConfigurator)
 	pb.RegisterDeviceHelperServer(grpcServer, dhs)

@@ -171,6 +171,80 @@ func (_c *MockDeviceHelperClient_GetSerial_Call) RunAndReturn(run func(context.C
 	return _c
 }
 
+// Ping provides a mock function with given fields: ctx, in, opts
+func (_m *MockDeviceHelperClient) Ping(ctx context.Context, in *PingRequest, opts ...grpc.CallOption) (*PingResponse, error) {
+	_va := make([]interface{}, len(opts))
+	for _i := range opts {
+		_va[_i] = opts[_i]
+	}
+	var _ca []interface{}
+	_ca = append(_ca, ctx, in)
+	_ca = append(_ca, _va...)
+	ret := _m.Called(_ca...)
+
+	if len(ret) == 0 {
+		panic("no return value specified for Ping")
+	}
+
+	var r0 *PingResponse
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, *PingRequest, ...grpc.CallOption) (*PingResponse, error)); ok {
+		return rf(ctx, in, opts...)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, *PingRequest, ...grpc.CallOption) *PingResponse); ok {
+		r0 = rf(ctx, in, opts...)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*PingResponse)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, *PingRequest, ...grpc.CallOption) error); ok {
+		r1 = rf(ctx, in, opts...)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// MockDeviceHelperClient_Ping_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'Ping'
+type MockDeviceHelperClient_Ping_Call struct {
+	*mock.Call
+}
+
+// Ping is a helper method to define mock.On call
+//   - ctx context.Context
+//   - in *PingRequest
+//   - opts ...grpc.CallOption
+func (_e *MockDeviceHelperClient_Expecter) Ping(ctx interface{}, in interface{}, opts ...interface{}) *MockDeviceHelperClient_Ping_Call {
+	return &MockDeviceHelperClient_Ping_Call{Call: _e.mock.On("Ping",
+		append([]interface{}{ctx, in}, opts...)...)}
+}
+
+func (_c *MockDeviceHelperClient_Ping_Call) Run(run func(ctx context.Context, in *PingRequest, opts ...grpc.CallOption)) *MockDeviceHelperClient_Ping_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		variadicArgs := make([]grpc.CallOption, len(args)-2)
+		for i, a := range args[2:] {
+			if a != nil {
+				variadicArgs[i] = a.(grpc.CallOption)
+			}
+		}
+		run(args[0].(context.Context), args[1].(*PingRequest), variadicArgs...)
+	})
+	return _c
+}
+
+func (_c *MockDeviceHelperClient_Ping_Call) Return(_a0 *PingResponse, _a1 error) *MockDeviceHelperClient_Ping_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *MockDeviceHelperClient_Ping_Call) RunAndReturn(run func(context.Context, *PingRequest, ...grpc.CallOption) (*PingResponse, error)) *MockDeviceHelperClient_Ping_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // Teardown provides a mock function with given fields: ctx, in, opts
 func (_m *MockDeviceHelperClient) Teardown(ctx context.Context, in *TeardownRequest, opts ...grpc.CallOption) (*TeardownResponse, error) {
 	_va := make([]interface{}, len(opts))

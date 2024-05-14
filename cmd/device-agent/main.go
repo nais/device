@@ -129,7 +129,7 @@ func run(ctx context.Context, log *logrus.Entry, cfg *config.Config, notifier no
 		"unix:"+cfg.DeviceAgentHelperAddress,
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 		grpc.WithIdleTimeout(10*time.Hour),
-		grpc.WithStatsHandler(otelgrpc.NewClientHandler()),
+		grpc.WithStatsHandler(otel.NewGRPCClientHandler(pb.DeviceHelper_Ping_FullMethodName)),
 	)
 	if err != nil {
 		return fmt.Errorf("connect to naisdevice-helper: %v", err)
@@ -239,7 +239,7 @@ func helperHealthCheck(ctx context.Context, client pb.DeviceHelperClient) error 
 	helperHealthCheckCtx, helperHealthCheckCancel := context.WithTimeout(ctx, 5*time.Second)
 	defer helperHealthCheckCancel()
 
-	if _, err := client.GetSerial(helperHealthCheckCtx, &pb.GetSerialRequest{}); err != nil {
+	if _, err := client.Ping(helperHealthCheckCtx, &pb.PingRequest{}); err != nil {
 		return err
 	}
 	return nil
