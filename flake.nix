@@ -66,6 +66,7 @@
               gotools
               go-tools
               protobuf
+              sqlite
             ];
           };
         }
