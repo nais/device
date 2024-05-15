@@ -25,6 +25,10 @@ func (_m *MockClient) EXPECT() *MockClient_Expecter {
 func (_m *MockClient) Open(ctx context.Context) (Object, error) {
 	ret := _m.Called(ctx)
 
+	if len(ret) == 0 {
+		panic("no return value specified for Open")
+	}
+
 	var r0 Object
 	var r1 error
 	if rf, ok := ret.Get(0).(func(context.Context) (Object, error)); ok {

@@ -9,6 +9,7 @@ import (
 	"github.com/nais/device/internal/device-agent/runtimeconfig"
 	"github.com/nais/device/internal/device-agent/statemachine"
 	"github.com/nais/device/internal/notify"
+	"github.com/nais/device/internal/otel"
 	"github.com/nais/device/internal/pb"
 	"github.com/sirupsen/logrus"
 )
@@ -36,10 +37,14 @@ func New(rc runtimeconfig.RuntimeConfig, cfg config.Config, logger logrus.FieldL
 	}
 }
 
-func (a *Authenticating) Enter(ctx context.Context) statemachine.Event {
+func (a *Authenticating) Enter(ctx context.Context) statemachine.EventWithSpan {
+	ctx, span := otel.Start(ctx, "Authenticating")
+	defer span.End()
+
 	session, _ := a.rc.GetTenantSession()
 	if !session.Expired() {
-		return statemachine.EventAuthenticated
+		span.AddEvent("session.active")
+		return statemachine.SpanEvent(ctx, statemachine.EventAuthenticated)
 	}
 
 	ctx, cancel := context.WithTimeout(ctx, authFlowTimeout)
@@ -47,12 +52,14 @@ func (a *Authenticating) Enter(ctx context.Context) statemachine.Event {
 	token, err := a.getToken(ctx, a.logger, oauth2Config, a.cfg.GoogleAuthServerAddress)
 	cancel()
 	if err != nil {
+		span.RecordError(err)
 		a.notifier.Errorf("Get token: %v", err)
-		return statemachine.EventDisconnect
+		return statemachine.SpanEvent(ctx, statemachine.EventDisconnect)
 	}
 
+	span.AddEvent("session.new")
 	a.rc.SetToken(token)
-	return statemachine.EventAuthenticated
+	return statemachine.SpanEvent(ctx, statemachine.EventAuthenticated)
 }
 
 func (Authenticating) AgentState() pb.AgentState {

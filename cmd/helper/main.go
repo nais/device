@@ -15,6 +15,7 @@ import (
 	"github.com/nais/device/internal/helper/config"
 	"github.com/nais/device/internal/helper/dns"
 	"github.com/nais/device/internal/logger"
+	"github.com/nais/device/internal/otel"
 	"github.com/nais/device/internal/pb"
 	"github.com/nais/device/internal/unixsocket"
 	"github.com/nais/device/internal/version"
@@ -35,13 +36,25 @@ func main() {
 	log := logger.SetupLogger(cfg.LogLevel, config.LogDir, logger.Helper).WithField("component", "main")
 
 	programContext, cancel := context.WithCancel(context.Background())
+	otelCancel, err := otel.SetupOTelSDK(programContext, "naisdevice-helper", log)
+	if err != nil {
+		log.Fatalf("setup OTel SDK: %s", err)
+	}
+	defer func() {
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		if err := otelCancel(ctx); err != nil {
+			log.Errorf("shutdown OTel SDK: %s", err)
+		}
+		cancel()
+	}()
+
 	// for windows service control, noop on unix
-	err := helper.StartService(log, programContext, cancel)
+	err = helper.StartService(log, programContext, cancel)
 	if err != nil {
 		log.Fatalf("Starting windows service: %v", err)
 	}
 
-	osConfigurator := helper.New(cfg)
+	osConfigurator := helper.NewTracedConfigurator(helper.New(cfg))
 
 	log.Infof("naisdevice-helper %s starting up", version.Version)
 	log.Infof("configuration: %+v", cfg)
@@ -64,7 +77,7 @@ func main() {
 	log.Infof("accepting network connections on unix socket %s", grpcPath)
 
 	notifier := pb.NewConnectionNotifier()
-	grpcServer := grpc.NewServer(grpc.StatsHandler(notifier))
+	grpcServer := grpc.NewServer(grpc.StatsHandler(notifier), grpc.StatsHandler(otel.NewGRPCClientHandler(pb.DeviceHelper_Ping_FullMethodName)))
 
 	dhs := helper.NewDeviceHelperServer(log, cfg, osConfigurator)
 	pb.RegisterDeviceHelperServer(grpcServer, dhs)
@@ -78,8 +91,10 @@ func main() {
 		}
 	}
 
+	_, span := otel.Start(programContext, "DNS/Workaround")
 	zones := []string{"cloud.nais.io", "intern.nav.no", "intern.dev.nav.no", "knada.io"}
 	if err := dns.Apply(zones); err != nil {
+		span.RecordError(err)
 		log.Errorf("applying dns config: %v", err)
 	}
 

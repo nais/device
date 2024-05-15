@@ -47,7 +47,7 @@ func TestConnected_Enter(t *testing.T) {
 			notifier:     notifier,
 			deviceHelper: deviceHelper,
 		}
-		event := c.Enter(ctx)
+		event := c.Enter(ctx).Event
 		assert.Equal(t, statemachine.EventDisconnect, event)
 	})
 
@@ -89,7 +89,7 @@ func TestConnected_Enter(t *testing.T) {
 					return ErrUnauthenticated
 				},
 			}
-			event := c.Enter(ctx)
+			event := c.Enter(ctx).Event
 			assert.Equal(t, statemachine.EventDisconnect, event)
 		})
 
@@ -108,7 +108,7 @@ func TestConnected_Enter(t *testing.T) {
 					return fmt.Errorf("unhandled error")
 				},
 			}
-			event := c.Enter(ctx)
+			event := c.Enter(ctx).Event
 			assert.Equal(t, statemachine.EventDisconnect, event)
 		})
 
@@ -127,7 +127,7 @@ func TestConnected_Enter(t *testing.T) {
 					return context.Canceled
 				},
 			}
-			event := c.Enter(ctx)
+			event := c.Enter(ctx).Event
 			assert.Equal(t, statemachine.EventWaitForExternalEvent, event)
 		})
 
@@ -152,7 +152,7 @@ func TestConnected_Enter(t *testing.T) {
 					return ErrUnavailable
 				},
 			}
-			event := c.Enter(ctx)
+			event := c.Enter(ctx).Event
 			assert.Equal(t, statemachine.EventWaitForExternalEvent, event)
 		})
 
@@ -177,7 +177,7 @@ func TestConnected_Enter(t *testing.T) {
 					return ErrLostConnection
 				},
 			}
-			event := c.Enter(ctx)
+			event := c.Enter(ctx).Event
 			assert.Equal(t, statemachine.EventWaitForExternalEvent, event)
 		})
 	})
@@ -213,7 +213,7 @@ func TestConnected_defaultSyncConfigLoop(t *testing.T) {
 
 		rc := runtimeconfig.NewMockRuntimeConfig(t)
 		rc.EXPECT().GetTenantSession().Return(session, nil)
-		rc.EXPECT().ConnectToAPIServer(ctx).Return(nil, func() {}, expectedError)
+		rc.EXPECT().ConnectToAPIServer(mock.Anything).Return(nil, func() {}, expectedError)
 
 		c := &Connected{
 			rc:     rc,
@@ -233,7 +233,7 @@ func TestConnected_defaultSyncConfigLoop(t *testing.T) {
 
 		rc := runtimeconfig.NewMockRuntimeConfig(t)
 		rc.EXPECT().GetTenantSession().Return(session, nil)
-		rc.EXPECT().ConnectToAPIServer(ctx).Return(nil, func() {}, unavailableGRPCErr)
+		rc.EXPECT().ConnectToAPIServer(mock.Anything).Return(nil, func() {}, unavailableGRPCErr)
 
 		c := &Connected{
 			rc:     rc,
@@ -245,7 +245,7 @@ func TestConnected_defaultSyncConfigLoop(t *testing.T) {
 	})
 
 	t.Run("defaultSyncConfigLop.recv", func(t *testing.T) {
-		setupMocks := func(ctx context.Context) (*runtimeconfig.MockRuntimeConfig, *pb.MockDeviceHelperClient, *pb.MockAPIServer_GetDeviceConfigurationClient) {
+		setupMocks := func() (*runtimeconfig.MockRuntimeConfig, *pb.MockDeviceHelperClient, *pb.MockAPIServer_GetDeviceConfigurationClient) {
 			session := &pb.Session{Expiry: timestamppb.New(time.Now().Add(time.Hour)), Key: "key"}
 
 			getDeviceConfigClient := pb.NewMockAPIServer_GetDeviceConfigurationClient(t)
@@ -255,7 +255,7 @@ func TestConnected_defaultSyncConfigLoop(t *testing.T) {
 
 			rc := runtimeconfig.NewMockRuntimeConfig(t)
 			rc.EXPECT().GetTenantSession().Return(session, nil)
-			rc.EXPECT().ConnectToAPIServer(ctx).Return(apiServerClient, func() {}, nil)
+			rc.EXPECT().ConnectToAPIServer(mock.Anything).Return(apiServerClient, func() {}, nil)
 
 			deviceHelper := pb.NewMockDeviceHelperClient(t)
 			return rc, deviceHelper, getDeviceConfigClient
@@ -265,7 +265,7 @@ func TestConnected_defaultSyncConfigLoop(t *testing.T) {
 			ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 			defer cancel()
 
-			rc, deviceHelper, getDeviceConfigClient := setupMocks(ctx)
+			rc, deviceHelper, getDeviceConfigClient := setupMocks()
 
 			c := &Connected{
 				rc:           rc,
@@ -299,7 +299,7 @@ func TestConnected_defaultSyncConfigLoop(t *testing.T) {
 			ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 			defer cancel()
 
-			rc, deviceHelper, getDeviceConfigClient := setupMocks(ctx)
+			rc, deviceHelper, getDeviceConfigClient := setupMocks()
 			notifier := notify.NewMockNotifier(t)
 			notifier.EXPECT().Errorf(mock.Anything, mock.Anything)
 
@@ -330,7 +330,7 @@ func TestConnected_defaultSyncConfigLoop(t *testing.T) {
 			ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 			defer cancel()
 
-			rc, deviceHelper, getDeviceConfigClient := setupMocks(ctx)
+			rc, deviceHelper, getDeviceConfigClient := setupMocks()
 
 			c := &Connected{
 				rc:           rc,
@@ -351,7 +351,7 @@ func TestConnected_defaultSyncConfigLoop(t *testing.T) {
 			ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 			defer cancel()
 
-			rc, deviceHelper, getDeviceConfigClient := setupMocks(ctx)
+			rc, deviceHelper, getDeviceConfigClient := setupMocks()
 
 			c := &Connected{
 				rc:           rc,
@@ -368,7 +368,7 @@ func TestConnected_defaultSyncConfigLoop(t *testing.T) {
 			ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 			defer cancel()
 
-			rc, deviceHelper, getDeviceConfigClient := setupMocks(ctx)
+			rc, deviceHelper, getDeviceConfigClient := setupMocks()
 
 			c := &Connected{
 				rc:           rc,
@@ -385,7 +385,7 @@ func TestConnected_defaultSyncConfigLoop(t *testing.T) {
 			ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 			defer cancel()
 
-			rc, deviceHelper, getDeviceConfigClient := setupMocks(ctx)
+			rc, deviceHelper, getDeviceConfigClient := setupMocks()
 
 			c := &Connected{
 				rc:           rc,
@@ -422,11 +422,11 @@ func TestConnected_login(t *testing.T) {
 		apiServerClient.EXPECT().Login(mock.Anything, mock.Anything).Return(expectedLoginResponse, nil)
 
 		rc := runtimeconfig.NewMockRuntimeConfig(t)
-		rc.EXPECT().GetToken(ctx).Return("token", nil)
+		rc.EXPECT().GetToken(mock.Anything).Return("token", nil)
 		rc.EXPECT().SetTenantSession(expectedLoginResponse.Session).Return(nil)
 
 		deviceHelper := pb.NewMockDeviceHelperClient(t)
-		deviceHelper.EXPECT().GetSerial(ctx, mock.Anything).Return(&pb.GetSerialResponse{Serial: "serial"}, nil)
+		deviceHelper.EXPECT().GetSerial(mock.Anything, mock.Anything).Return(&pb.GetSerialResponse{Serial: "serial"}, nil)
 
 		c := &Connected{
 			rc:           rc,

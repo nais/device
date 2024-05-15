@@ -26,6 +26,10 @@ func (_m *MockAPIServer_GetDeviceConfigurationClient) EXPECT() *MockAPIServer_Ge
 func (_m *MockAPIServer_GetDeviceConfigurationClient) CloseSend() error {
 	ret := _m.Called()
 
+	if len(ret) == 0 {
+		panic("no return value specified for CloseSend")
+	}
+
 	var r0 error
 	if rf, ok := ret.Get(0).(func() error); ok {
 		r0 = rf()
@@ -66,6 +70,10 @@ func (_c *MockAPIServer_GetDeviceConfigurationClient_CloseSend_Call) RunAndRetur
 // Context provides a mock function with given fields:
 func (_m *MockAPIServer_GetDeviceConfigurationClient) Context() context.Context {
 	ret := _m.Called()
+
+	if len(ret) == 0 {
+		panic("no return value specified for Context")
+	}
 
 	var r0 context.Context
 	if rf, ok := ret.Get(0).(func() context.Context); ok {
@@ -109,6 +117,10 @@ func (_c *MockAPIServer_GetDeviceConfigurationClient_Context_Call) RunAndReturn(
 // Header provides a mock function with given fields:
 func (_m *MockAPIServer_GetDeviceConfigurationClient) Header() (metadata.MD, error) {
 	ret := _m.Called()
+
+	if len(ret) == 0 {
+		panic("no return value specified for Header")
+	}
 
 	var r0 metadata.MD
 	var r1 error
@@ -163,6 +175,10 @@ func (_c *MockAPIServer_GetDeviceConfigurationClient_Header_Call) RunAndReturn(r
 func (_m *MockAPIServer_GetDeviceConfigurationClient) Recv() (*GetDeviceConfigurationResponse, error) {
 	ret := _m.Called()
 
+	if len(ret) == 0 {
+		panic("no return value specified for Recv")
+	}
+
 	var r0 *GetDeviceConfigurationResponse
 	var r1 error
 	if rf, ok := ret.Get(0).(func() (*GetDeviceConfigurationResponse, error)); ok {
@@ -216,6 +232,10 @@ func (_c *MockAPIServer_GetDeviceConfigurationClient_Recv_Call) RunAndReturn(run
 func (_m *MockAPIServer_GetDeviceConfigurationClient) RecvMsg(m interface{}) error {
 	ret := _m.Called(m)
 
+	if len(ret) == 0 {
+		panic("no return value specified for RecvMsg")
+	}
+
 	var r0 error
 	if rf, ok := ret.Get(0).(func(interface{}) error); ok {
 		r0 = rf(m)
@@ -258,6 +278,10 @@ func (_c *MockAPIServer_GetDeviceConfigurationClient_RecvMsg_Call) RunAndReturn(
 func (_m *MockAPIServer_GetDeviceConfigurationClient) SendMsg(m interface{}) error {
 	ret := _m.Called(m)
 
+	if len(ret) == 0 {
+		panic("no return value specified for SendMsg")
+	}
+
 	var r0 error
 	if rf, ok := ret.Get(0).(func(interface{}) error); ok {
 		r0 = rf(m)
@@ -299,6 +323,10 @@ func (_c *MockAPIServer_GetDeviceConfigurationClient_SendMsg_Call) RunAndReturn(
 // Trailer provides a mock function with given fields:
 func (_m *MockAPIServer_GetDeviceConfigurationClient) Trailer() metadata.MD {
 	ret := _m.Called()
+
+	if len(ret) == 0 {
+		panic("no return value specified for Trailer")
+	}
 
 	var r0 metadata.MD
 	if rf, ok := ret.Get(0).(func() metadata.MD); ok {

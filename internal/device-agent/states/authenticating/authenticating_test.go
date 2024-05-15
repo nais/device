@@ -33,7 +33,7 @@ func TestAuthenticating(t *testing.T) {
 			rc: rc,
 		}
 
-		assert.Equal(t, statemachine.EventAuthenticated, state.Enter(ctx))
+		assert.Equal(t, statemachine.EventAuthenticated, state.Enter(ctx).Event)
 	})
 
 	t.Run("get token succeeds", func(t *testing.T) {
@@ -57,7 +57,7 @@ func TestAuthenticating(t *testing.T) {
 			rc: rc,
 		}
 
-		assert.Equal(t, statemachine.EventAuthenticated, state.Enter(ctx))
+		assert.Equal(t, statemachine.EventAuthenticated, state.Enter(ctx).Event)
 	})
 
 	t.Run("get token fails", func(t *testing.T) {
@@ -84,6 +84,6 @@ func TestAuthenticating(t *testing.T) {
 			notifier: notifier,
 		}
 
-		assert.Equal(t, statemachine.EventDisconnect, state.Enter(ctx))
+		assert.Equal(t, statemachine.EventDisconnect, state.Enter(ctx).Event)
 	})
 }

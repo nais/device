@@ -29,7 +29,7 @@ func TestDisconnected(t *testing.T) {
 		ctx, cancel := context.WithCancel(context.Background())
 		cancel()
 
-		event := state.Enter(ctx)
+		event := state.Enter(ctx).Event
 		assert.Equal(t, statemachine.EventWaitForExternalEvent, event)
 	})
 
@@ -48,8 +48,8 @@ func TestDisconnected(t *testing.T) {
 		ctx, cancel := context.WithCancel(context.Background())
 		cancel()
 
-		assert.Equal(t, statemachine.EventLogin, state.Enter(ctx))
-		assert.Equal(t, statemachine.EventWaitForExternalEvent, state.Enter(ctx))
+		assert.Equal(t, statemachine.EventLogin, state.Enter(ctx).Event)
+		assert.Equal(t, statemachine.EventWaitForExternalEvent, state.Enter(ctx).Event)
 	})
 
 }

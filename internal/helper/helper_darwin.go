@@ -43,7 +43,8 @@ func (c *DarwinConfigurator) SyncConf(ctx context.Context, cfg *pb.Configuration
 	return nil
 }
 
-func (c *DarwinConfigurator) SetupRoutes(ctx context.Context, gateways []*pb.Gateway) error {
+func (c *DarwinConfigurator) SetupRoutes(ctx context.Context, gateways []*pb.Gateway) (int, error) {
+	routesAdded := 0
 	for _, gw := range gateways {
 		applyRoute := func(cidr, family string) error {
 			cmd := exec.CommandContext(ctx, "route", "-q", "-n", "add", family, cidr, "-interface", c.helperConfig.Interface)
@@ -62,19 +63,21 @@ func (c *DarwinConfigurator) SetupRoutes(ctx context.Context, gateways []*pb.Gat
 			}
 			err := applyRoute(cidr, "-inet")
 			if err != nil {
-				return err
+				return routesAdded, err
 			}
+			routesAdded++
 		}
 
 		for _, cidr := range gw.GetRoutesIPv6() {
 			err := applyRoute(cidr, "-inet6")
 			if err != nil {
-				return err
+				return routesAdded, err
 			}
+			routesAdded++
 		}
 	}
 
-	return nil
+	return routesAdded, nil
 }
 
 func (c *DarwinConfigurator) SetupInterface(ctx context.Context, cfg *pb.Configuration) error {

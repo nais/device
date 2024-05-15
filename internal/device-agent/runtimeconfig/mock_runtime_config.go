@@ -31,6 +31,10 @@ func (_m *MockRuntimeConfig) EXPECT() *MockRuntimeConfig_Expecter {
 func (_m *MockRuntimeConfig) APIServerPeer() *pb.Gateway {
 	ret := _m.Called()
 
+	if len(ret) == 0 {
+		panic("no return value specified for APIServerPeer")
+	}
+
 	var r0 *pb.Gateway
 	if rf, ok := ret.Get(0).(func() *pb.Gateway); ok {
 		r0 = rf()
@@ -73,6 +77,10 @@ func (_c *MockRuntimeConfig_APIServerPeer_Call) RunAndReturn(run func() *pb.Gate
 // BuildHelperConfiguration provides a mock function with given fields: peers
 func (_m *MockRuntimeConfig) BuildHelperConfiguration(peers []*pb.Gateway) *pb.Configuration {
 	ret := _m.Called(peers)
+
+	if len(ret) == 0 {
+		panic("no return value specified for BuildHelperConfiguration")
+	}
 
 	var r0 *pb.Configuration
 	if rf, ok := ret.Get(0).(func([]*pb.Gateway) *pb.Configuration); ok {
@@ -117,6 +125,10 @@ func (_c *MockRuntimeConfig_BuildHelperConfiguration_Call) RunAndReturn(run func
 // ConnectToAPIServer provides a mock function with given fields: _a0
 func (_m *MockRuntimeConfig) ConnectToAPIServer(_a0 context.Context) (pb.APIServerClient, func(), error) {
 	ret := _m.Called(_a0)
+
+	if len(ret) == 0 {
+		panic("no return value specified for ConnectToAPIServer")
+	}
 
 	var r0 pb.APIServerClient
 	var r1 func()
@@ -181,6 +193,10 @@ func (_c *MockRuntimeConfig_ConnectToAPIServer_Call) RunAndReturn(run func(conte
 func (_m *MockRuntimeConfig) DialAPIServer(_a0 context.Context) (*grpc.ClientConn, error) {
 	ret := _m.Called(_a0)
 
+	if len(ret) == 0 {
+		panic("no return value specified for DialAPIServer")
+	}
+
 	var r0 *grpc.ClientConn
 	var r1 error
 	if rf, ok := ret.Get(0).(func(context.Context) (*grpc.ClientConn, error)); ok {
@@ -235,6 +251,10 @@ func (_c *MockRuntimeConfig_DialAPIServer_Call) RunAndReturn(run func(context.Co
 func (_m *MockRuntimeConfig) EnsureEnrolled(_a0 context.Context, _a1 string) error {
 	ret := _m.Called(_a0, _a1)
 
+	if len(ret) == 0 {
+		panic("no return value specified for EnsureEnrolled")
+	}
+
 	var r0 error
 	if rf, ok := ret.Get(0).(func(context.Context, string) error); ok {
 		r0 = rf(_a0, _a1)
@@ -278,6 +298,10 @@ func (_c *MockRuntimeConfig_EnsureEnrolled_Call) RunAndReturn(run func(context.C
 func (_m *MockRuntimeConfig) GetActiveTenant() *pb.Tenant {
 	ret := _m.Called()
 
+	if len(ret) == 0 {
+		panic("no return value specified for GetActiveTenant")
+	}
+
 	var r0 *pb.Tenant
 	if rf, ok := ret.Get(0).(func() *pb.Tenant); ok {
 		r0 = rf()
@@ -320,6 +344,10 @@ func (_c *MockRuntimeConfig_GetActiveTenant_Call) RunAndReturn(run func() *pb.Te
 // GetTenantSession provides a mock function with given fields:
 func (_m *MockRuntimeConfig) GetTenantSession() (*pb.Session, error) {
 	ret := _m.Called()
+
+	if len(ret) == 0 {
+		panic("no return value specified for GetTenantSession")
+	}
 
 	var r0 *pb.Session
 	var r1 error
@@ -374,6 +402,10 @@ func (_c *MockRuntimeConfig_GetTenantSession_Call) RunAndReturn(run func() (*pb.
 func (_m *MockRuntimeConfig) GetToken(_a0 context.Context) (string, error) {
 	ret := _m.Called(_a0)
 
+	if len(ret) == 0 {
+		panic("no return value specified for GetToken")
+	}
+
 	var r0 string
 	var r1 error
 	if rf, ok := ret.Get(0).(func(context.Context) (string, error)); ok {
@@ -426,6 +458,10 @@ func (_c *MockRuntimeConfig_GetToken_Call) RunAndReturn(run func(context.Context
 func (_m *MockRuntimeConfig) LoadEnrollConfig() error {
 	ret := _m.Called()
 
+	if len(ret) == 0 {
+		panic("no return value specified for LoadEnrollConfig")
+	}
+
 	var r0 error
 	if rf, ok := ret.Get(0).(func() error); ok {
 		r0 = rf()
@@ -466,6 +502,10 @@ func (_c *MockRuntimeConfig_LoadEnrollConfig_Call) RunAndReturn(run func() error
 // PopulateTenants provides a mock function with given fields: _a0
 func (_m *MockRuntimeConfig) PopulateTenants(_a0 context.Context) error {
 	ret := _m.Called(_a0)
+
+	if len(ret) == 0 {
+		panic("no return value specified for PopulateTenants")
+	}
 
 	var r0 error
 	if rf, ok := ret.Get(0).(func(context.Context) error); ok {
@@ -541,6 +581,10 @@ func (_c *MockRuntimeConfig_ResetEnrollConfig_Call) RunAndReturn(run func()) *Mo
 func (_m *MockRuntimeConfig) SaveEnrollConfig() error {
 	ret := _m.Called()
 
+	if len(ret) == 0 {
+		panic("no return value specified for SaveEnrollConfig")
+	}
+
 	var r0 error
 	if rf, ok := ret.Get(0).(func() error); ok {
 		r0 = rf()
@@ -581,6 +625,10 @@ func (_c *MockRuntimeConfig_SaveEnrollConfig_Call) RunAndReturn(run func() error
 // SetActiveTenant provides a mock function with given fields: _a0
 func (_m *MockRuntimeConfig) SetActiveTenant(_a0 string) error {
 	ret := _m.Called(_a0)
+
+	if len(ret) == 0 {
+		panic("no return value specified for SetActiveTenant")
+	}
 
 	var r0 error
 	if rf, ok := ret.Get(0).(func(string) error); ok {
@@ -623,6 +671,10 @@ func (_c *MockRuntimeConfig_SetActiveTenant_Call) RunAndReturn(run func(string) 
 // SetTenantSession provides a mock function with given fields: _a0
 func (_m *MockRuntimeConfig) SetTenantSession(_a0 *pb.Session) error {
 	ret := _m.Called(_a0)
+
+	if len(ret) == 0 {
+		panic("no return value specified for SetTenantSession")
+	}
 
 	var r0 error
 	if rf, ok := ret.Get(0).(func(*pb.Session) error); ok {
@@ -698,6 +750,10 @@ func (_c *MockRuntimeConfig_SetToken_Call) RunAndReturn(run func(*auth.Tokens)) 
 // Tenants provides a mock function with given fields:
 func (_m *MockRuntimeConfig) Tenants() []*pb.Tenant {
 	ret := _m.Called()
+
+	if len(ret) == 0 {
+		panic("no return value specified for Tenants")
+	}
 
 	var r0 []*pb.Tenant
 	if rf, ok := ret.Get(0).(func() []*pb.Tenant); ok {

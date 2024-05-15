@@ -26,6 +26,10 @@ func (_m *MockOSConfigurator) EXPECT() *MockOSConfigurator_Expecter {
 func (_m *MockOSConfigurator) Prerequisites() error {
 	ret := _m.Called()
 
+	if len(ret) == 0 {
+		panic("no return value specified for Prerequisites")
+	}
+
 	var r0 error
 	if rf, ok := ret.Get(0).(func() error); ok {
 		r0 = rf()
@@ -67,6 +71,10 @@ func (_c *MockOSConfigurator_Prerequisites_Call) RunAndReturn(run func() error) 
 func (_m *MockOSConfigurator) SetupInterface(ctx context.Context, cfg *pb.Configuration) error {
 	ret := _m.Called(ctx, cfg)
 
+	if len(ret) == 0 {
+		panic("no return value specified for SetupInterface")
+	}
+
 	var r0 error
 	if rf, ok := ret.Get(0).(func(context.Context, *pb.Configuration) error); ok {
 		r0 = rf(ctx, cfg)
@@ -107,17 +115,31 @@ func (_c *MockOSConfigurator_SetupInterface_Call) RunAndReturn(run func(context.
 }
 
 // SetupRoutes provides a mock function with given fields: ctx, gateways
-func (_m *MockOSConfigurator) SetupRoutes(ctx context.Context, gateways []*pb.Gateway) error {
+func (_m *MockOSConfigurator) SetupRoutes(ctx context.Context, gateways []*pb.Gateway) (int, error) {
 	ret := _m.Called(ctx, gateways)
 
-	var r0 error
-	if rf, ok := ret.Get(0).(func(context.Context, []*pb.Gateway) error); ok {
-		r0 = rf(ctx, gateways)
-	} else {
-		r0 = ret.Error(0)
+	if len(ret) == 0 {
+		panic("no return value specified for SetupRoutes")
 	}
 
-	return r0
+	var r0 int
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, []*pb.Gateway) (int, error)); ok {
+		return rf(ctx, gateways)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, []*pb.Gateway) int); ok {
+		r0 = rf(ctx, gateways)
+	} else {
+		r0 = ret.Get(0).(int)
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, []*pb.Gateway) error); ok {
+		r1 = rf(ctx, gateways)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
 }
 
 // MockOSConfigurator_SetupRoutes_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'SetupRoutes'
@@ -139,12 +161,12 @@ func (_c *MockOSConfigurator_SetupRoutes_Call) Run(run func(ctx context.Context,
 	return _c
 }
 
-func (_c *MockOSConfigurator_SetupRoutes_Call) Return(_a0 error) *MockOSConfigurator_SetupRoutes_Call {
-	_c.Call.Return(_a0)
+func (_c *MockOSConfigurator_SetupRoutes_Call) Return(routesAdded int, err error) *MockOSConfigurator_SetupRoutes_Call {
+	_c.Call.Return(routesAdded, err)
 	return _c
 }
 
-func (_c *MockOSConfigurator_SetupRoutes_Call) RunAndReturn(run func(context.Context, []*pb.Gateway) error) *MockOSConfigurator_SetupRoutes_Call {
+func (_c *MockOSConfigurator_SetupRoutes_Call) RunAndReturn(run func(context.Context, []*pb.Gateway) (int, error)) *MockOSConfigurator_SetupRoutes_Call {
 	_c.Call.Return(run)
 	return _c
 }
@@ -152,6 +174,10 @@ func (_c *MockOSConfigurator_SetupRoutes_Call) RunAndReturn(run func(context.Con
 // SyncConf provides a mock function with given fields: ctx, cfg
 func (_m *MockOSConfigurator) SyncConf(ctx context.Context, cfg *pb.Configuration) error {
 	ret := _m.Called(ctx, cfg)
+
+	if len(ret) == 0 {
+		panic("no return value specified for SyncConf")
+	}
 
 	var r0 error
 	if rf, ok := ret.Get(0).(func(context.Context, *pb.Configuration) error); ok {
@@ -195,6 +221,10 @@ func (_c *MockOSConfigurator_SyncConf_Call) RunAndReturn(run func(context.Contex
 // TeardownInterface provides a mock function with given fields: ctx
 func (_m *MockOSConfigurator) TeardownInterface(ctx context.Context) error {
 	ret := _m.Called(ctx)
+
+	if len(ret) == 0 {
+		panic("no return value specified for TeardownInterface")
+	}
 
 	var r0 error
 	if rf, ok := ret.Get(0).(func(context.Context) error); ok {

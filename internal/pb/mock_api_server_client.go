@@ -34,6 +34,10 @@ func (_m *MockAPIServerClient) EnrollGateway(ctx context.Context, in *ModifyGate
 	_ca = append(_ca, _va...)
 	ret := _m.Called(_ca...)
 
+	if len(ret) == 0 {
+		panic("no return value specified for EnrollGateway")
+	}
+
 	var r0 *ModifyGatewayResponse
 	var r1 error
 	if rf, ok := ret.Get(0).(func(context.Context, *ModifyGatewayRequest, ...grpc.CallOption) (*ModifyGatewayResponse, error)); ok {
@@ -103,6 +107,10 @@ func (_m *MockAPIServerClient) GetDeviceConfiguration(ctx context.Context, in *G
 	_ca = append(_ca, ctx, in)
 	_ca = append(_ca, _va...)
 	ret := _m.Called(_ca...)
+
+	if len(ret) == 0 {
+		panic("no return value specified for GetDeviceConfiguration")
+	}
 
 	var r0 APIServer_GetDeviceConfigurationClient
 	var r1 error
@@ -174,6 +182,10 @@ func (_m *MockAPIServerClient) GetGateway(ctx context.Context, in *ModifyGateway
 	_ca = append(_ca, _va...)
 	ret := _m.Called(_ca...)
 
+	if len(ret) == 0 {
+		panic("no return value specified for GetGateway")
+	}
+
 	var r0 *Gateway
 	var r1 error
 	if rf, ok := ret.Get(0).(func(context.Context, *ModifyGatewayRequest, ...grpc.CallOption) (*Gateway, error)); ok {
@@ -243,6 +255,10 @@ func (_m *MockAPIServerClient) GetGatewayConfiguration(ctx context.Context, in *
 	_ca = append(_ca, ctx, in)
 	_ca = append(_ca, _va...)
 	ret := _m.Called(_ca...)
+
+	if len(ret) == 0 {
+		panic("no return value specified for GetGatewayConfiguration")
+	}
 
 	var r0 APIServer_GetGatewayConfigurationClient
 	var r1 error
@@ -314,6 +330,10 @@ func (_m *MockAPIServerClient) GetSessions(ctx context.Context, in *GetSessionsR
 	_ca = append(_ca, _va...)
 	ret := _m.Called(_ca...)
 
+	if len(ret) == 0 {
+		panic("no return value specified for GetSessions")
+	}
+
 	var r0 *GetSessionsResponse
 	var r1 error
 	if rf, ok := ret.Get(0).(func(context.Context, *GetSessionsRequest, ...grpc.CallOption) (*GetSessionsResponse, error)); ok {
@@ -383,6 +403,10 @@ func (_m *MockAPIServerClient) ListGateways(ctx context.Context, in *ListGateway
 	_ca = append(_ca, ctx, in)
 	_ca = append(_ca, _va...)
 	ret := _m.Called(_ca...)
+
+	if len(ret) == 0 {
+		panic("no return value specified for ListGateways")
+	}
 
 	var r0 APIServer_ListGatewaysClient
 	var r1 error
@@ -454,6 +478,10 @@ func (_m *MockAPIServerClient) Login(ctx context.Context, in *APIServerLoginRequ
 	_ca = append(_ca, _va...)
 	ret := _m.Called(_ca...)
 
+	if len(ret) == 0 {
+		panic("no return value specified for Login")
+	}
+
 	var r0 *APIServerLoginResponse
 	var r1 error
 	if rf, ok := ret.Get(0).(func(context.Context, *APIServerLoginRequest, ...grpc.CallOption) (*APIServerLoginResponse, error)); ok {
@@ -523,6 +551,10 @@ func (_m *MockAPIServerClient) UpdateGateway(ctx context.Context, in *ModifyGate
 	_ca = append(_ca, ctx, in)
 	_ca = append(_ca, _va...)
 	ret := _m.Called(_ca...)
+
+	if len(ret) == 0 {
+		panic("no return value specified for UpdateGateway")
+	}
 
 	var r0 *ModifyGatewayResponse
 	var r1 error

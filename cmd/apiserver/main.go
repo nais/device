@@ -25,6 +25,7 @@ import (
 	"github.com/nais/device/internal/apiserver/kolide"
 	apiserver_metrics "github.com/nais/device/internal/apiserver/metrics"
 	"github.com/nais/device/internal/logger"
+	"github.com/nais/device/internal/otel"
 	"github.com/nais/device/internal/pb"
 	"github.com/nais/device/internal/version"
 	wg "github.com/nais/device/internal/wireguard"
@@ -74,6 +75,18 @@ func run(log *logrus.Entry, cfg config.Config) error {
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
+
+	otelCancel, err := otel.SetupOTelSDK(ctx, "naisdevice-apiserver", log)
+	if err != nil {
+		return fmt.Errorf("setup OTel SDK: %s", err)
+	}
+	defer func() {
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		if err := otelCancel(ctx); err != nil {
+			log.Errorf("shutdown OTel SDK: %s", err)
+		}
+		cancel()
+	}()
 
 	log.Infof("naisdevice API server %s starting up", version.Version)
 	log.Infof("WireGuard IPv4 address: %v", cfg.WireGuardIPv4Prefix)
@@ -260,6 +273,7 @@ func run(log *logrus.Entry, cfg config.Config) error {
 
 	opts := []grpc.ServerOption{
 		grpc.KeepaliveEnforcementPolicy(keepalive.EnforcementPolicy{MinTime: 9 * time.Second}),
+		grpc.StatsHandler(otel.NewGRPCClientHandler(pb.APIServer_GetDeviceConfiguration_FullMethodName, pb.APIServer_GetGatewayConfiguration_FullMethodName)),
 	}
 
 	grpcServer := grpc.NewServer(opts...)

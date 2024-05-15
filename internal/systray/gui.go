@@ -14,6 +14,7 @@ import (
 	"github.com/nais/device/internal/helper"
 	helperconfig "github.com/nais/device/internal/helper/config"
 	"github.com/nais/device/internal/logger"
+	"github.com/nais/device/internal/otel"
 
 	"github.com/nais/device/assets"
 	"github.com/nais/device/internal/device-agent/open"
@@ -165,7 +166,9 @@ func (gui *Gui) EventLoop(ctx context.Context) {
 	for {
 		select {
 		case guiEvent := <-gui.Events:
-			gui.handleGuiEvent(guiEvent)
+			ctx, span := otel.Start(ctx, "event/"+guiEvent.String())
+			gui.handleGuiEvent(ctx, guiEvent)
+			span.End()
 			if guiEvent == QuitClicked {
 				systray.Quit()
 				return
@@ -390,7 +393,7 @@ func (gui *Gui) updateIcons() {
 	}
 }
 
-func (gui *Gui) handleGuiEvent(guiEvent GuiEvent) {
+func (gui *Gui) handleGuiEvent(ctx context.Context, guiEvent GuiEvent) {
 	switch guiEvent {
 	case VersionClicked:
 		open.Open(softwareReleasePage)
@@ -399,7 +402,7 @@ func (gui *Gui) handleGuiEvent(guiEvent GuiEvent) {
 		open.Open(slackURL)
 
 	case AutoConnectClicked:
-		getConfigResponse, err := gui.DeviceAgentClient.GetAgentConfiguration(context.Background(), &pb.GetAgentConfigurationRequest{})
+		getConfigResponse, err := gui.DeviceAgentClient.GetAgentConfiguration(ctx, &pb.GetAgentConfigurationRequest{})
 		if err != nil {
 			gui.log.Errorf("get agent config: %v", err)
 			break
@@ -408,7 +411,7 @@ func (gui *Gui) handleGuiEvent(guiEvent GuiEvent) {
 		getConfigResponse.Config.AutoConnect = !gui.MenuItems.AutoConnect.Checked()
 		setConfigRequest := &pb.SetAgentConfigurationRequest{Config: getConfigResponse.Config}
 
-		_, err = gui.DeviceAgentClient.SetAgentConfiguration(context.Background(), setConfigRequest)
+		_, err = gui.DeviceAgentClient.SetAgentConfiguration(ctx, setConfigRequest)
 		if err != nil {
 			gui.log.Errorf("set agent config: %v", err)
 			break
@@ -433,12 +436,12 @@ func (gui *Gui) handleGuiEvent(guiEvent GuiEvent) {
 	case ConnectClicked:
 		gui.log.Infof("Connect button clicked")
 		if gui.AgentStatus.GetConnectionState() == pb.AgentState_Disconnected {
-			_, err := gui.DeviceAgentClient.Login(context.Background(), &pb.LoginRequest{})
+			_, err := gui.DeviceAgentClient.Login(ctx, &pb.LoginRequest{})
 			if err != nil {
 				gui.log.Errorf("connect: %v", err)
 			}
 		} else {
-			_, err := gui.DeviceAgentClient.Logout(context.Background(), &pb.LogoutRequest{})
+			_, err := gui.DeviceAgentClient.Logout(ctx, &pb.LogoutRequest{})
 			if err != nil {
 				gui.log.Errorf("while disconnecting: %v", err)
 			}
@@ -471,7 +474,7 @@ func (gui *Gui) handleGuiEvent(guiEvent GuiEvent) {
 	case AcceptableUseClicked:
 		open.Open("https://naisdevice-approval.external.prod-gcp.nav.cloud.nais.io/")
 	case QuitClicked:
-		_, err := gui.DeviceAgentClient.Logout(context.Background(), &pb.LogoutRequest{})
+		_, err := gui.DeviceAgentClient.Logout(ctx, &pb.LogoutRequest{})
 		if err != nil {
 			gui.log.Fatalf("while disconnecting: %v", err)
 		}

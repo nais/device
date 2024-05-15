@@ -2,7 +2,8 @@
 
 LAST_COMMIT = $(shell git --no-pager log -1 --pretty=%h)
 VERSION := $(shell date "+%Y-%m-%d-%H%M%S")
-LDFLAGS := -X github.com/nais/device/internal/version.Revision=$(shell git rev-parse --short HEAD) -X github.com/nais/device/internal/version.Version=$(VERSION)
+OTEL_COLLECTOR_ENDPOINT := "https://collector-internet.nav.cloud.nais.io"
+LDFLAGS := -X github.com/nais/device/internal/version.Revision=$(shell git rev-parse --short HEAD) -X github.com/nais/device/internal/version.Version=$(VERSION) -X github.com/nais/device/internal/otel.endpointURL=$(OTEL_COLLECTOR_ENDPOINT)
 PKGID = io.nais.device
 RELEASE ?= false
 GOPATH ?= ~/go
@@ -14,7 +15,7 @@ all: test
 clients: linux-client macos-client windows-client
 
 proto: install-protobuf-go
-	${PROTOC} --go-grpc_opt=paths=source_relative --go_opt=paths=source_relative --go_out=. --go-grpc_out=. internal/pb/protobuf-api.proto
+	PATH="${PATH}:$(shell go env GOPATH)/bin" ${PROTOC} --go-grpc_opt=paths=source_relative --go_opt=paths=source_relative --go_out=. --go-grpc_out=. internal/pb/protobuf-api.proto
 
 install-protobuf-go:
 	go install google.golang.org/protobuf/cmd/protoc-gen-go
@@ -50,7 +51,7 @@ macos-client:
 # Run by GitHub actions on linux
 windows-client:
 	mkdir -p ./bin/windows-client
-	
+
 	go run github.com/akavel/rsrc -arch amd64 -manifest ./packaging/windows/admin_manifest.xml -ico assets/nais-logo-blue.ico -o ./cmd/helper/main_windows.syso
 	go run github.com/akavel/rsrc -ico assets/nais-logo-blue.ico -o ./cmd/device-agent/main_windows.syso
 	GOOS=windows GOARCH=amd64 go build -o bin/windows-client/naisdevice-systray.exe --tags "$(GOTAGS)" -ldflags "-s $(LDFLAGS) -H=windowsgui" ./cmd/systray
@@ -168,6 +169,11 @@ lint:
 
 staticcheck:
 	go run honnef.co/go/tools/cmd/staticcheck ./...
+
+generate-guievent-strings:
+	go run golang.org/x/tools/cmd/stringer -type=GuiEvent ./internal/systray
+
+generate: generate-guievent-strings mocks generate-sqlc proto
 
 govulncheck:
 	go run golang.org/x/vuln/cmd/govulncheck ./...

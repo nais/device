@@ -22,7 +22,7 @@ func newStateLifecycle(ctx context.Context, state State) *stateLifecycle {
 	}
 }
 
-func (s *stateLifecycle) enter(out chan<- Event) {
+func (s *stateLifecycle) enter(out chan<- EventWithSpan) {
 	s.mutex.Lock()
 	go func() {
 		out <- s.state.Enter(s.ctx)

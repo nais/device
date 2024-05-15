@@ -21,6 +21,9 @@ service DeviceHelper {
 
   rpc GetSerial (GetSerialRequest) returns (GetSerialResponse) {
   }
+
+  rpc Ping (PingRequest) returns (PingResponse) {
+  }
 }
 
 service DeviceAgent {
@@ -321,4 +324,9 @@ message GetSessionsRequest{
 
 message GetSessionsResponse{
   repeated Session sessions = 1;
+}
+
+message PingRequest {
+}
+message PingResponse {
 }

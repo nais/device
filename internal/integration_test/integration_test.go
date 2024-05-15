@@ -177,7 +177,7 @@ func tableTest(t *testing.T, log *logrus.Entry, testDevice *pb.Device, endState 
 		})).Return(nil)
 	}
 
-	setupRoutesMock := osConfigurator.EXPECT().SetupRoutes(mock.AnythingOfType("*context.valueCtx"), mock.AnythingOfType("[]*pb.Gateway")).Return(nil)
+	setupRoutesMock := osConfigurator.EXPECT().SetupRoutes(mock.AnythingOfType("*context.valueCtx"), mock.AnythingOfType("[]*pb.Gateway")).Return(0, nil)
 	if len(expectedGateways) > 1 {
 		setupRoutesMock.Run(func(_ context.Context, gateways []*pb.Gateway) {
 			for _, gateway := range gateways {
@@ -186,7 +186,7 @@ func tableTest(t *testing.T, log *logrus.Entry, testDevice *pb.Device, endState 
 		})
 	}
 
-	osConfigurator.EXPECT().TeardownInterface(mock.AnythingOfType("*context.valueCtx")).Return(nil).Maybe()
+	osConfigurator.EXPECT().TeardownInterface(mock.AnythingOfType("*context.timerCtx")).Return(nil).Maybe()
 
 	helperListener, stopHelper := serve(t, NewHelper(t, log.WithField("component", "helper"), osConfigurator), wg)
 
@@ -199,7 +199,7 @@ func tableTest(t *testing.T, log *logrus.Entry, testDevice *pb.Device, endState 
 	apiServerClient := pb.NewAPIServerClient(apiDial)
 
 	rc := runtimeconfig.NewMockRuntimeConfig(t)
-	rc.EXPECT().ConnectToAPIServer(mock.AnythingOfType("*context.cancelCtx")).Return(apiServerClient, cleanup, nil)
+	rc.EXPECT().ConnectToAPIServer(mock.Anything).Return(apiServerClient, cleanup, nil)
 	rc.EXPECT().SetToken(mock.AnythingOfType("*auth.Tokens")).Return()
 	rc.EXPECT().ResetEnrollConfig().Return()
 	rc.EXPECT().GetTenantSession().Return(session, nil)

@@ -26,6 +26,10 @@ func (_m *MockObject) EXPECT() *MockObject_Expecter {
 func (_m *MockObject) Close() error {
 	ret := _m.Called()
 
+	if len(ret) == 0 {
+		panic("no return value specified for Close")
+	}
+
 	var r0 error
 	if rf, ok := ret.Get(0).(func() error); ok {
 		r0 = rf()
@@ -67,6 +71,10 @@ func (_c *MockObject_Close_Call) RunAndReturn(run func() error) *MockObject_Clos
 func (_m *MockObject) LastUpdated() time.Time {
 	ret := _m.Called()
 
+	if len(ret) == 0 {
+		panic("no return value specified for LastUpdated")
+	}
+
 	var r0 time.Time
 	if rf, ok := ret.Get(0).(func() time.Time); ok {
 		r0 = rf()
@@ -107,6 +115,10 @@ func (_c *MockObject_LastUpdated_Call) RunAndReturn(run func() time.Time) *MockO
 // Reader provides a mock function with given fields:
 func (_m *MockObject) Reader() io.Reader {
 	ret := _m.Called()
+
+	if len(ret) == 0 {
+		panic("no return value specified for Reader")
+	}
 
 	var r0 io.Reader
 	if rf, ok := ret.Get(0).(func() io.Reader); ok {
