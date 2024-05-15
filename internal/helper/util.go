@@ -16,16 +16,6 @@ const (
 	TunnelNetworkPrefix = "10.255.24."
 )
 
-func filesExist(files ...string) error {
-	for _, file := range files {
-		if err := RegularFileExists(file); err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
-
 func RegularFileExists(filepath string) error {
 	info, err := os.Stat(filepath)
 	if err != nil {
