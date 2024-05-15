@@ -41,7 +41,7 @@ if echo "$service_accounts" | jq -e 'length > 0' > /dev/null; then
 	if [ "$is_not_whitelisted" = "1" ]; then
 		printf "\nYou've got service-users running on your system which require being logged in.\n"
 		printf "\tThis is the list of whitelisted service_accounts: %s\n" $whitelisted_service_accounts
-		echo "Are you perhaps running an unsupported display manager/desktop environment? Ref: https://doc.nais.io/device/install/#ubuntu-installation"
+		echo "Are you perhaps running an unsupported display manager/desktop environment? Ref: https://doc.nais.io/operate/naisdevice/how-to/install/#__tabbed_1_4"
 		exit 1
 	fi
 fi

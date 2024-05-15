@@ -15,7 +15,7 @@ fpm \
     --vendor "NAV / nais team" \
     --maintainer "NAV / nais team" \
     --description "naisdevice is a mechanism enabling NAVs developers to connect to internal resources in a secure and friendly manner." \
-    --url https://doc.nais.io/device \
+    --url https://doc.nais.io/operate/naisdevice/how-to/install \
     --depends jq \
     --depends sed \
     --depends wireguard \

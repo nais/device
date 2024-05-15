@@ -89,7 +89,7 @@ The `prometheus-agent` component connects to all gateways over WireGuard and con
 
 ### How to install
 
-See https://doc.nais.io/device
+See https://doc.nais.io/operate/naisdevice/how-to/install/
 
 ## Stuff we use
 [Kolide](https://www.kolide.com/)

@@ -11,7 +11,7 @@ KEY_FILE=${3}
 SIGNED_FILE=$(mktemp --suffix .exe)
 
 rm "${SIGNED_FILE}" # osslsigncode crashes if out-file exists
-osslsigncode sign -certs "${CERT_FILE}" -key "${KEY_FILE}" -n "naisdevice" -i "https://doc.nais.io/device" -verbose -in "${TARGET_FILE}" -out "${SIGNED_FILE}"
+osslsigncode sign -certs "${CERT_FILE}" -key "${KEY_FILE}" -n "naisdevice" -i "https://doc.nais.io/operate/naisdevice/" -verbose -in "${TARGET_FILE}" -out "${SIGNED_FILE}"
 
 # Overwrite the original, since that's what makensis expects
 mv "${SIGNED_FILE}" "${TARGET_FILE}"

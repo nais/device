@@ -1,6 +1,6 @@
 [Unit]
 Description=Naisdevice helper
-Documentation=https://doc.nais.io/device
+Documentation=https://doc.nais.io/operate/naisdevice
 
 [Service]
 ExecStart=/usr/sbin/naisdevice-helper
