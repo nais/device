@@ -87,7 +87,7 @@ packaging/windows/assets/naisdevice.ico: assets/svg/blue.svg
 macos-icon: packaging/macos/icons/naisdevice.icns
 packaging/macos/icons/naisdevice.icns:
 	mkdir -p packaging/macos/icons/
-	magick -background transparent -resize 1024x1024 -gravity center -extent 1024x1024 assets/svg/blue.svg packaging/macos/icons/naisdevice.png
+	magick assets/svg/blue.svg -background transparent -resize 1024x1024 -gravity center -extent 1024x1024 packaging/macos/icons/naisdevice.png
 	go run github.com/jackmordaunt/icns/v2/cmd/icnsify -i packaging/macos/icons/naisdevice.png -o packaging/macos/icons/naisdevice.icns
 
 wg: bin/macos-client/wg
