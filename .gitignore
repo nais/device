@@ -24,3 +24,4 @@ packaging/windows/naisdevice.key
 *.db
 operational/scripts/data/
 .direnv
+result

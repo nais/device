@@ -20,7 +20,12 @@
       forAllSystems = nixpkgs.lib.genAttrs supportedSystems;
 
       # Nixpkgs instantiated for supported system types.
-      nixpkgsFor = forAllSystems (system: import nixpkgs { inherit system; });
+      nixpkgsFor = forAllSystems (system: import nixpkgs { inherit system overlays; });
+
+      overlays = [
+        goOverlay
+        naisdeviceOverlay
+      ];
 
       goVersion = "1.22.3";
       goOverlay = final: prev: {
@@ -32,42 +37,74 @@
           };
         });
       };
+
+      buildNaisdevice =
+        pkgs: vendorHash:
+        pkgs.buildGoModule {
+          pname = "naisdevice";
+          subPackages = [
+            "cmd/naisdevice-helper"
+            "cmd/naisdevice-systray"
+            "cmd/naisdevice-agent"
+          ];
+          inherit version;
+          src = ./.;
+          vendorHash = vendorHash;
+
+          meta = with pkgs.lib; {
+            description = "naisdevice - next gen vpn";
+            homepage = "https://github.com/nais/device";
+            license = licenses.mit;
+          };
+        };
+      naisdeviceOverlay = final: prev: {
+        naisdevice = buildNaisdevice prev.pkgs "sha256-+Wgx4/usjAivatYC4jcwjpssGS8U22nimcvVmLfsvfA=";
+      };
     in
     {
-      # Provide some binary packages for selected system types.
-      packages = forAllSystems (
-        system:
+      package = nixpkgsFor.x86_64-linux.naisdevice;
+      nixosModules.naisdevice =
+        {
+          config,
+          lib,
+          pkgs,
+          ...
+        }:
         let
-          pkgs = (nixpkgsFor.${system}.extend goOverlay);
+          inherit (lib) types mkOption;
+          cfg = config.services.naisdevice;
         in
         {
-          device-agent = pkgs.buildGoModule {
-            pname = "device-agent";
-            inherit version;
-            # In 'nix develop', we don't need a copy of the source tree
-            # in the Nix store.
-            src = ./.;
-
-            # This hash locks the dependencies of this package. It is
-            # necessary because of how Go requires network access to resolve
-            # VCS.  See https://www.tweag.io/blog/2021-03-04-gomod2nix/ for
-            # details. Normally one can build with a fake hash and rely on native Go
-            # mechanisms to tell you what the hash should be or determine what
-            # it should be "out-of-band" with other tooling (eg. gomod2nix).
-            # To begin with it is recommended to set this, but one must
-            # remember to bump this hash when your dependencies change.
-            # vendorHash = pkgs.lib.fakeHash;
-
-            vendorHash = "sha256-AgRQO3h7Atq4lnieTBohzrwrw0lRcbQi2cvpeol3owM=";
+          options.services.naisdevice = {
+            enable = lib.mkEnableOption "naisdevice-helper service";
+            package = mkOption {
+              type = types.package;
+              default = nixpkgsFor.x86_64-linux.naisdevice;
+              description = lib.mdDoc ''
+                The naisdevice package to use.
+              '';
+            };
           };
-        }
-      );
 
-      # Add dependencies that are only needed for development
+          config = lib.mkIf cfg.enable {
+            environment.systemPackages = [ pkgs.wireguard-tools ];
+            systemd.services.naisdevice-helper = {
+              description = "naisdevice-helper service";
+              wantedBy = [ "multi-user.target" ];
+              path = [
+                pkgs.wireguard-tools
+                pkgs.iproute2
+              ];
+              serviceConfig.ExecStart = "${cfg.package}/bin/naisdevice-helper";
+              serviceConfig.Restart = "always";
+            };
+          };
+        };
+
       devShells = forAllSystems (
         system:
         let
-          pkgs = (nixpkgsFor.${system}.extend goOverlay);
+          pkgs = nixpkgsFor.${system};
         in
         {
           default = pkgs.mkShell {
@@ -84,10 +121,6 @@
         }
       );
 
-      # The default package for 'nix build'. This makes sense if the
-      # flake provides only one package or there is a clear "main"
-      # package.
-      defaultPackage = forAllSystems (system: self.packages.${system}.device-agent);
       formatter.x86_64-linux = nixpkgs.legacyPackages.x86_64-linux.nixfmt-rfc-style;
     };
 }

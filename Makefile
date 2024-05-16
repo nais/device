@@ -37,28 +37,28 @@ controlplane:
 # Run by GitHub actions on linux
 linux-client:
 	mkdir -p ./bin/linux-client
-	GOOS=linux GOARCH=amd64 go build -o bin/linux-client/naisdevice-systray --tags "$(GOTAGS)" -ldflags "-s $(LDFLAGS)" ./cmd/systray
-	GOOS=linux GOARCH=amd64 go build -o bin/linux-client/naisdevice-agent --tags "$(GOTAGS)" -ldflags "-s $(LDFLAGS)" ./cmd/device-agent
-	GOOS=linux GOARCH=amd64 go build -o bin/linux-client/naisdevice-helper --tags "$(GOTAGS)" -ldflags "-s $(LDFLAGS)" ./cmd/helper
+	GOOS=linux GOARCH=amd64 go build -o bin/linux-client/naisdevice-systray --tags "$(GOTAGS)" -ldflags "-s $(LDFLAGS)" ./cmd/naisdevice-systray
+	GOOS=linux GOARCH=amd64 go build -o bin/linux-client/naisdevice-agent --tags "$(GOTAGS)" -ldflags "-s $(LDFLAGS)" ./cmd/naisdevice-agent
+	GOOS=linux GOARCH=amd64 go build -o bin/linux-client/naisdevice-helper --tags "$(GOTAGS)" -ldflags "-s $(LDFLAGS)" ./cmd/naisdevice-helper
 
 # Run by GitHub actions on macos
 macos-client:
 	mkdir -p ./bin/macos-client
-	GOOS=darwin GOARCH=amd64 go build -o bin/macos-client/naisdevice-agent --tags "$(GOTAGS)" -ldflags "-s $(LDFLAGS)" ./cmd/device-agent
-	GOOS=darwin GOARCH=amd64 go build -o bin/macos-client/naisdevice-systray --tags "$(GOTAGS)" -ldflags "-s $(LDFLAGS)" ./cmd/systray
-	GOOS=darwin GOARCH=amd64 go build -o bin/macos-client/naisdevice-helper --tags "$(GOTAGS)" -ldflags "-s $(LDFLAGS)" ./cmd/helper
+	GOOS=darwin GOARCH=amd64 go build -o bin/macos-client/naisdevice-agent --tags "$(GOTAGS)" -ldflags "-s $(LDFLAGS)" ./cmd/naisdevice-agent
+	GOOS=darwin GOARCH=amd64 go build -o bin/macos-client/naisdevice-systray --tags "$(GOTAGS)" -ldflags "-s $(LDFLAGS)" ./cmd/naisdevice-systray
+	GOOS=darwin GOARCH=amd64 go build -o bin/macos-client/naisdevice-helper --tags "$(GOTAGS)" -ldflags "-s $(LDFLAGS)" ./cmd/naisdevice-helper
 
 # Run by GitHub actions on linux
 windows-client:
 	mkdir -p ./bin/windows-client
 
-	go run github.com/akavel/rsrc -arch amd64 -manifest ./packaging/windows/admin_manifest.xml -ico assets/nais-logo-blue.ico -o ./cmd/helper/main_windows.syso
-	go run github.com/akavel/rsrc -ico assets/nais-logo-blue.ico -o ./cmd/device-agent/main_windows.syso
-	GOOS=windows GOARCH=amd64 go build -o bin/windows-client/naisdevice-systray.exe --tags "$(GOTAGS)" -ldflags "-s $(LDFLAGS) -H=windowsgui" ./cmd/systray
+	go run github.com/akavel/rsrc -arch amd64 -manifest ./packaging/windows/admin_manifest.xml -ico assets/nais-logo-blue.ico -o ./cmd/naisdevice-helper/main_windows.syso
+	go run github.com/akavel/rsrc -ico assets/nais-logo-blue.ico -o ./cmd/naisdevice-agent/main_windows.syso
+	GOOS=windows GOARCH=amd64 go build -o bin/windows-client/naisdevice-systray.exe --tags "$(GOTAGS)" -ldflags "-s $(LDFLAGS) -H=windowsgui" ./cmd/naisdevice-systray
 	./packaging/windows/sign-exe bin/windows-client/naisdevice-systray.exe ./packaging/windows/naisdevice.crt ./packaging/windows/naisdevice.key
-	GOOS=windows GOARCH=amd64 go build -o bin/windows-client/naisdevice-agent.exe --tags "$(GOTAGS)" -ldflags "-s $(LDFLAGS) -H=windowsgui" ./cmd/device-agent
+	GOOS=windows GOARCH=amd64 go build -o bin/windows-client/naisdevice-agent.exe --tags "$(GOTAGS)" -ldflags "-s $(LDFLAGS) -H=windowsgui" ./cmd/naisdevice-agent
 	./packaging/windows/sign-exe bin/windows-client/naisdevice-agent.exe ./packaging/windows/naisdevice.crt ./packaging/windows/naisdevice.key
-	GOOS=windows GOARCH=amd64 go build -o bin/windows-client/naisdevice-helper.exe --tags "$(GOTAGS)" -ldflags "-s $(LDFLAGS)" ./cmd/helper
+	GOOS=windows GOARCH=amd64 go build -o bin/windows-client/naisdevice-helper.exe --tags "$(GOTAGS)" -ldflags "-s $(LDFLAGS)" ./cmd/naisdevice-helper
 	./packaging/windows/sign-exe bin/windows-client/naisdevice-helper.exe ./packaging/windows/naisdevice.crt ./packaging/windows/naisdevice.key
 
 local:
@@ -67,9 +67,9 @@ local:
 	go build -o bin/local/gateway-agent --tags "$(GOTAGS)" -ldflags "-s $(LDFLAGS)" ./cmd/gateway-agent
 	go build -o bin/local/prometheus-agent --tags "$(GOTAGS)" -ldflags "-s $(LDFLAGS)" ./cmd/prometheus-agent
 	go build -o bin/local/controlplane-cli --tags "$(GOTAGS)" -ldflags "-s $(LDFLAGS)" ./cmd/controlplane-cli
-	go build -o bin/local/naisdevice-agent --tags "$(GOTAGS)" -ldflags "-s $(LDFLAGS)" ./cmd/device-agent
-	go build -o bin/local/naisdevice-systray --tags "$(GOTAGS)" -ldflags "-s $(LDFLAGS)" ./cmd/systray
-	go build -o bin/local/naisdevice-helper --tags "$(GOTAGS)" -ldflags "-s $(LDFLAGS)" ./cmd/helper
+	go build -o bin/local/naisdevice-agent --tags "$(GOTAGS)" -ldflags "-s $(LDFLAGS)" ./cmd/naisdevice-agent
+	go build -o bin/local/naisdevice-systray --tags "$(GOTAGS)" -ldflags "-s $(LDFLAGS)" ./cmd/naisdevice-systray
+	go build -o bin/local/naisdevice-helper --tags "$(GOTAGS)" -ldflags "-s $(LDFLAGS)" ./cmd/naisdevice-helper
 
 linux-icon: packaging/linux/icons/*/apps/naisdevice.png
 packaging/linux/icons/*/apps/naisdevice.png: assets/svg/blue.svg
