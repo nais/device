@@ -101,7 +101,7 @@ jobs:
             output-suffix: "-tenant"
     needs:
       - set-version
-    runs-on: macos-latest
+    runs-on: macos-13
     steps:
       - uses: actions/checkout@v4
       - id: tool_versions
