@@ -26,6 +26,16 @@ func New(helperConfig Config) *DarwinConfigurator {
 	}
 }
 
+func filesExist(files ...string) error {
+	for _, file := range files {
+		if err := RegularFileExists(file); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
 func (c *DarwinConfigurator) Prerequisites() error {
 	if err := filesExist(wireGuardBinary, wireGuardGoBinary); err != nil {
 		return fmt.Errorf("verifying if file exists: %w", err)
