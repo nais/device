@@ -22,12 +22,12 @@
       # Nixpkgs instantiated for supported system types.
       nixpkgsFor = forAllSystems (system: import nixpkgs { inherit system; });
 
+      goVersion = "1.22.3";
       goOverlay = final: prev: {
         go = prev.go.overrideAttrs (old: {
-          version = "1.22.3";
-
+          version = goVersion;
           src = prev.fetchurl {
-            url = "https://go.dev/dl/go1.22.3.src.tar.gz";
+            url = "https://go.dev/dl/go${goVersion}.src.tar.gz";
             hash = "sha256-gGSO80+QMZPXKlnA3/AZ9fmK4MmqE63gsOy/+ZGnb2g=";
           };
         });
