@@ -8,7 +8,7 @@ RUN go mod download
 COPY . /workspace
 
 # Build
-RUN CGO_ENABLED=0 go build -o auth-server .
+RUN CGO_ENABLED=0 go build -o auth-server ./cmd/auth-server
 
 FROM alpine:3.15
 WORKDIR /

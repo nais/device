@@ -171,7 +171,7 @@ jobs:
       - name: Build and push auth-server
         uses: docker/build-push-action@v2
         with:
-          context: ./cmd/auth-server/
+          context: .
           file: cmd/auth-server/Dockerfile
           push: true
           tags: ${{ steps.metadata.outputs.tags }}
