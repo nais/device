@@ -21,13 +21,24 @@
 
       # Nixpkgs instantiated for supported system types.
       nixpkgsFor = forAllSystems (system: import nixpkgs { inherit system; });
+
+      goOverlay = final: prev: {
+        go = prev.go.overrideAttrs (old: {
+          version = "1.22.3";
+
+          src = prev.fetchurl {
+            url = "https://go.dev/dl/go1.22.3.src.tar.gz";
+            hash = "sha256-gGSO80+QMZPXKlnA3/AZ9fmK4MmqE63gsOy/+ZGnb2g=";
+          };
+        });
+      };
     in
     {
       # Provide some binary packages for selected system types.
       packages = forAllSystems (
         system:
         let
-          pkgs = nixpkgsFor.${system};
+          pkgs = (nixpkgsFor.${system}.extend goOverlay);
         in
         {
           device-agent = pkgs.buildGoModule {
@@ -56,7 +67,7 @@
       devShells = forAllSystems (
         system:
         let
-          pkgs = nixpkgsFor.${system};
+          pkgs = (nixpkgsFor.${system}.extend goOverlay);
         in
         {
           default = pkgs.mkShell {
