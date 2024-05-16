@@ -27,6 +27,16 @@ func New(helperConfig Config) *WindowsConfigurator {
 	}
 }
 
+func filesExist(files ...string) error {
+	for _, file := range files {
+		if err := RegularFileExists(file); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
 func (configurator *WindowsConfigurator) Prerequisites() error {
 	if err := filesExist(wireGuardBinary); err != nil {
 		return fmt.Errorf("verifying if file exists: %w", err)
