@@ -78,6 +78,7 @@
               go-tools
               protobuf
               sqlite
+              imagemagick
             ];
           };
         }
