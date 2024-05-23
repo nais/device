@@ -51,6 +51,12 @@
           src = ./.;
           vendorHash = vendorHash;
 
+          ldflags = [
+            "-X github.com/nais/device/internal/version.Revision=${self.rev or "dirty"}"
+            "-X github.com/nais/device/internal/version.Version=${version}"
+            "-X github.com/nais/device/internal/otel.endpointURL=https://collector-internet.nav.cloud.nais.io"
+          ];
+
           meta = with pkgs.lib; {
             description = "naisdevice - next gen vpn";
             homepage = "https://github.com/nais/device";
