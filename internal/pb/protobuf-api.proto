@@ -286,6 +286,16 @@ message APIServerLoginResponse {
 message GetDeviceConfigurationResponse {
   DeviceConfigurationStatus status = 1;
   repeated Gateway Gateways = 2;
+	repeated DeviceIssues issues = 3;
+}
+
+message DeviceIssues {
+	string title = 1;
+	string message = 2;
+	string severity = 3;
+	google.protobuf.Timestamp detectedAt = 4;
+	google.protobuf.Timestamp lastUpdated = 5;
+	google.protobuf.Timestamp resolveBefore = 6;
 }
 
 message ListGatewayRequest {
