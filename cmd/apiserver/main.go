@@ -194,6 +194,34 @@ func run(log *logrus.Entry, cfg config.Config) error {
 		}()
 	}
 
+	var kolideClient *kolide.Client
+	if cfg.KolideIntegrationEnabled {
+		if cfg.KolideApiToken == "" {
+			return fmt.Errorf("kolide integration enabled but no kolide-api-token provided")
+		}
+
+		kolideClient = kolide.New(cfg.KolideApiToken)
+		err := kolideClient.RefreshCache(ctx)
+		if err != nil {
+			return fmt.Errorf("initial kolide cache warmup: %w", err)
+		}
+
+		go func() {
+			sleep := time.NewTicker(1 * time.Minute)
+			for {
+				select {
+				case <-ctx.Done():
+					return
+				case <-sleep.C:
+					err := kolideClient.RefreshCache(ctx)
+					if err != nil {
+						log.Errorf("kolide cache refresh: %v", err)
+					}
+				}
+			}
+		}()
+	}
+
 	if cfg.AutoEnrollEnabled {
 		enrollPeers := append(cfg.StaticPeers(), cfg.APIServerPeer())
 		e, err := enroller.NewAutoEnroll(ctx, db, enrollPeers, cfg.GRPCBindAddress, log.WithField("component", "auto-enroller"))

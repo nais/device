@@ -1,0 +1,83 @@
+package kolide
+
+import (
+	"errors"
+	"net/http"
+	"strconv"
+	"time"
+
+	log "github.com/sirupsen/logrus"
+)
+
+var ErrMaxRetriesExceeded = errors.New("max retries exceeded")
+
+type Transport struct {
+	Token             string
+	Transport         http.RoundTripper
+	DefaultRetryAfter time.Duration
+	MaxHttpRetries    int
+}
+
+func NewTransport(token string) *Transport {
+	return &Transport{
+		Token:             token,
+		Transport:         http.DefaultClient.Transport,
+		MaxHttpRetries:    10,
+		DefaultRetryAfter: time.Second,
+	}
+}
+
+func (t *Transport) RoundTrip(req *http.Request) (*http.Response, error) {
+	req.Header.Set("Authorization", "Bearer "+t.Token)
+	req.Header.Set("Content-Type", "application/json")
+
+	for attempt := range t.MaxHttpRetries {
+		resp, err := t.Transport.RoundTrip(req)
+		if err != nil {
+			return nil, err
+		}
+
+		if resp.StatusCode != http.StatusTooManyRequests && resp.StatusCode < 500 {
+			return resp, nil
+		}
+		retryAfter := t.getRetryAfter(resp.Header)
+		log.Debugf("[attempt %d/%d] %s: sleeping %v", attempt+1, t.MaxHttpRetries, resp.Status, retryAfter)
+
+		select {
+		case <-time.After(retryAfter):
+		case <-req.Context().Done():
+			return nil, req.Context().Err()
+		}
+	}
+
+	return nil, ErrMaxRetriesExceeded
+}
+
+func (t *Transport) getRetryAfter(header http.Header) time.Duration {
+	limit := header.Get("Ratelimit-Limit")
+	remaining := header.Get("Ratelimit-Remaining")
+	reset := header.Get("Ratelimit-Reset")
+	retryAfter := header.Get("Retry-After")
+
+	if retryAfter == "" {
+		return 0
+	}
+
+	log.Debugf("rate-limited: limit: %s, remaining: %s, reset: %s, retry-after: %s", limit, remaining, reset, retryAfter)
+
+	seconds, err := strconv.Atoi(retryAfter)
+	if err != nil {
+		retryAfterDate, err := time.Parse(time.RFC1123, retryAfter)
+		if err != nil || retryAfterDate.Before(time.Now()) {
+			return t.DefaultRetryAfter
+		}
+
+		return time.Second + time.Until(retryAfterDate).Round(time.Second)
+	}
+
+	if seconds < 0 {
+		return t.DefaultRetryAfter
+	}
+
+	return time.Second * time.Duration(seconds)
+}

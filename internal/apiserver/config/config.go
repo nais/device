@@ -31,6 +31,8 @@ type Config struct {
 	JitaUrl                           string
 	JitaUsername                      string
 	JitaEnabled                       bool
+	KolideIntegrationEnabled          bool
+	KolideApiToken                    string
 	KolideEventHandlerAddress         string
 	KolideEventHandlerEnabled         bool
 	KolideEventHandlerToken           string
