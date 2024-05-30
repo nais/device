@@ -11,7 +11,12 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-type Client struct {
+type Client interface {
+	RefreshCache(ctx context.Context) error
+	GetDevice(ctx context.Context, email, platform, serial string) (Device, error)
+}
+
+type client struct {
 	baseUrl string
 	client  *http.Client
 
@@ -21,8 +26,8 @@ type Client struct {
 	log logrus.FieldLogger
 }
 
-func New(token string) *Client {
-	return &Client{
+func New(token string) Client {
+	return &client{
 		baseUrl: "https://k2.kolide.com/api/v0",
 		client: &http.Client{
 			Transport: NewTransport(token),
@@ -36,7 +41,7 @@ func deviceKey(email, platform, serial string) string {
 	return strings.ToLower(fmt.Sprintf("%v-%v-%v", email, platform, serial))
 }
 
-func (kc *Client) RefreshCache(ctx context.Context) error {
+func (kc *client) RefreshCache(ctx context.Context) error {
 	checks, err := kc.getChecks(ctx)
 	if err != nil {
 		return fmt.Errorf("getting checks: %w", err)
@@ -64,7 +69,7 @@ func (kc *Client) RefreshCache(ctx context.Context) error {
 	return nil
 }
 
-func (kc *Client) GetDevice(ctx context.Context, email, platform, serial string) (Device, error) {
+func (kc *client) GetDevice(ctx context.Context, email, platform, serial string) (Device, error) {
 	key := deviceKey(email, platform, serial)
 	device, ok := kc.devices.Get(key)
 	if !ok {
@@ -80,7 +85,7 @@ func (kc *Client) GetDevice(ctx context.Context, email, platform, serial string)
 	return device, nil
 }
 
-func (kc *Client) getChecks(ctx context.Context) ([]Check, error) {
+func (kc *client) getChecks(ctx context.Context) ([]Check, error) {
 	rawChecks, err := kc.getPaginated(ctx, kc.baseUrl+"/checks")
 	if err != nil {
 		return nil, fmt.Errorf("getting checks: %w", err)
@@ -98,7 +103,7 @@ func (kc *Client) getChecks(ctx context.Context) ([]Check, error) {
 	return checks, nil
 }
 
-func (kc *Client) getCheck(ctx context.Context, checkID uint64) (Check, error) {
+func (kc *client) getCheck(ctx context.Context, checkID uint64) (Check, error) {
 	check, ok := kc.checks.Get(checkID)
 	if ok {
 		return check, nil
@@ -124,7 +129,7 @@ func (kc *Client) getCheck(ctx context.Context, checkID uint64) (Check, error) {
 	return check, nil
 }
 
-func (kc *Client) getPaginated(ctx context.Context, initialUrl string) ([]json.RawMessage, error) {
+func (kc *client) getPaginated(ctx context.Context, initialUrl string) ([]json.RawMessage, error) {
 	var data []json.RawMessage
 	nextUrl, err := url.Parse(initialUrl)
 	if err != nil {
@@ -160,7 +165,7 @@ func (kc *Client) getPaginated(ctx context.Context, initialUrl string) ([]json.R
 	}
 }
 
-func (kc *Client) getDevices(ctx context.Context) ([]Device, error) {
+func (kc *client) getDevices(ctx context.Context) ([]Device, error) {
 	kc.log.Debugf("Getting all devices...")
 	url := kc.baseUrl + "/devices"
 	rawDevices, err := kc.getPaginated(ctx, url)
@@ -182,7 +187,7 @@ func (kc *Client) getDevices(ctx context.Context) ([]Device, error) {
 	return devices, nil
 }
 
-func (kc *Client) getDeviceFailures(ctx context.Context, deviceID uint64) ([]DeviceFailure, error) {
+func (kc *client) getDeviceFailures(ctx context.Context, deviceID uint64) ([]DeviceFailure, error) {
 	url := fmt.Sprintf(kc.baseUrl+"/devices/%v/failures", deviceID)
 	rawFailures, err := kc.getPaginated(ctx, url)
 	if err != nil {
@@ -207,7 +212,7 @@ func (kc *Client) getDeviceFailures(ctx context.Context, deviceID uint64) ([]Dev
 	return failures, nil
 }
 
-func (kc *Client) get(ctx context.Context, url string) (*http.Response, error) {
+func (kc *client) get(ctx context.Context, url string) (*http.Response, error) {
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 	if err != nil {
 		return nil, fmt.Errorf("creating request: %w", err)

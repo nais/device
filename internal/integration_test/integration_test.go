@@ -7,6 +7,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/nais/device/internal/apiserver/kolide"
 	"github.com/nais/device/internal/device-agent/runtimeconfig"
 	"github.com/nais/device/internal/helper"
 	"github.com/nais/device/internal/pb"
@@ -28,6 +29,7 @@ func TestIntegration(t *testing.T) {
 	type testCase struct {
 		name             string
 		device           *pb.Device
+		deviceFailures   []kolide.DeviceFailure
 		endState         pb.AgentState
 		expectedGateways map[string]*pb.Gateway
 	}
@@ -41,6 +43,7 @@ func TestIntegration(t *testing.T) {
 				Username:  "tester",
 				Platform:  "linux",
 			},
+			deviceFailures:   []kolide.DeviceFailure{},
 			endState:         pb.AgentState_Unhealthy,
 			expectedGateways: nil,
 		},
@@ -53,7 +56,8 @@ func TestIntegration(t *testing.T) {
 				Username:  "tester",
 				Platform:  "linux",
 			},
-			endState: pb.AgentState_Connected,
+			deviceFailures: []kolide.DeviceFailure{},
+			endState:       pb.AgentState_Connected,
 			expectedGateways: map[string]*pb.Gateway{
 				"expected-gateway": {
 					Name:           "expected-gateway",
@@ -77,20 +81,32 @@ func TestIntegration(t *testing.T) {
 					},
 				}
 				log := logger.WithField("component", "test")
-				tableTest(t, log, test.device, test.endState, test.expectedGateways)
+				tableTest(t, log, test.device, test.deviceFailures, test.endState, test.expectedGateways)
 			}
 		}
 		t.Run(test.name, wrap(t, test))
 	}
 }
 
-func tableTest(t *testing.T, log *logrus.Entry, testDevice *pb.Device, endState pb.AgentState, expectedGateways map[string]*pb.Gateway) {
+func tableTest(t *testing.T, log *logrus.Entry, testDevice *pb.Device, deviceFailures []kolide.DeviceFailure, endState pb.AgentState, expectedGateways map[string]*pb.Gateway) {
 	wg := &sync.WaitGroup{}
 	t.Helper()
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
 	defer cancel()
 
+	now := time.Now()
 	devicePrivateKey := "devicePrivateKey"
+	kolideDevice := kolide.Device{
+		LastSeenAt: &now,
+		Serial:     testDevice.Serial,
+		Platform:   testDevice.Platform,
+		AssignedOwner: kolide.DeviceOwner{
+			Email: testDevice.Username,
+		},
+		Failures:     deviceFailures,
+		FailureCount: len(deviceFailures),
+	}
+	kolideClient := kolide.NewFakeClient().WithDevice(kolideDevice).Build()
 
 	db := NewDB(t)
 	assert.NoError(t, db.AddDevice(ctx, testDevice))
@@ -131,7 +147,7 @@ func tableTest(t *testing.T, log *logrus.Entry, testDevice *pb.Device, endState 
 	// The apiserver is treated as a normal gateway by the device-agent
 	expectedGateways[apiserverPeer.Name] = apiserverPeer
 
-	apiserverListener, stopAPIServer := serve(t, NewAPIServer(t, ctx, log.WithField("component", "apiserver"), db), wg)
+	apiserverListener, stopAPIServer := serve(t, NewAPIServer(t, ctx, log.WithField("component", "apiserver"), db, kolideClient), wg)
 
 	osConfigurator := helper.NewMockOSConfigurator(t)
 

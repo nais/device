@@ -9,6 +9,7 @@ import (
 	"github.com/nais/device/internal/apiserver/api"
 	"github.com/nais/device/internal/apiserver/auth"
 	"github.com/nais/device/internal/apiserver/database"
+	"github.com/nais/device/internal/apiserver/kolide"
 	"github.com/nais/device/internal/pb"
 	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
@@ -22,6 +23,24 @@ import (
 )
 
 const bufSize = 1024 * 1024
+
+var (
+	testDevice = &pb.Device{
+		Healthy:  true,
+		Serial:   "serial",
+		Platform: "darwin",
+		Username: "user@example.com",
+	}
+	now              = time.Now()
+	testKolideDevice = kolide.Device{
+		LastSeenAt: &now,
+		Serial:     testDevice.Serial,
+		Platform:   testDevice.Platform,
+		AssignedOwner: kolide.DeviceOwner{
+			Email: testDevice.Username,
+		},
+	}
+)
 
 func contextBufDialer(listener *bufconn.Listener) func(context.Context, string) (net.Conn, error) {
 	return func(context.Context, string) (net.Conn, error) {
@@ -43,9 +62,7 @@ func TestGetDeviceConfiguration(t *testing.T) {
 			Groups: accessGroups,
 			Expiry: timestamppb.New(time.Now().Add(10 * time.Second)),
 		}, nil)
-	db.On("ReadDeviceById", mock.Anything, mock.Anything).Return(&pb.Device{
-		Healthy: true,
-	}, nil)
+	db.On("ReadDeviceById", mock.Anything, mock.Anything).Return(testDevice, nil)
 	db.On("ReadGateways", mock.Anything).Return([]*pb.Gateway{
 		{
 			Endpoint:       "1.2.3.4:56789",
@@ -56,10 +73,12 @@ func TestGetDeviceConfiguration(t *testing.T) {
 		},
 	}, nil)
 
+	kolideClient := kolide.NewFakeClient().WithDevice(testKolideDevice).Build()
+
 	gatewayAuthenticator := auth.NewGatewayAuthenticator(db)
 
 	log := logrus.StandardLogger().WithField("component", "test")
-	server := api.NewGRPCServer(ctx, log, db, nil, nil, gatewayAuthenticator, nil, nil, auth.NewSessionStore(db))
+	server := api.NewGRPCServer(ctx, log, db, nil, nil, gatewayAuthenticator, nil, nil, auth.NewSessionStore(db), kolideClient)
 
 	s := grpc.NewServer()
 	pb.RegisterAPIServerServer(s, server)
@@ -121,7 +140,7 @@ func TestGatewayPasswordAuthentication(t *testing.T) {
 	gatewayAuthenticator := auth.NewGatewayAuthenticator(db)
 
 	log := logrus.StandardLogger().WithField("component", "test")
-	server := api.NewGRPCServer(ctx, log, db, nil, nil, gatewayAuthenticator, nil, nil, sessionStore)
+	server := api.NewGRPCServer(ctx, log, db, nil, nil, gatewayAuthenticator, nil, nil, sessionStore, nil)
 
 	s := grpc.NewServer()
 	pb.RegisterAPIServerServer(s, server)
@@ -177,7 +196,7 @@ func TestGatewayPasswordAuthenticationFail(t *testing.T) {
 	gatewayAuthenticator := auth.NewGatewayAuthenticator(db)
 
 	log := logrus.StandardLogger().WithField("component", "test")
-	server := api.NewGRPCServer(ctx, log, db, nil, nil, gatewayAuthenticator, nil, nil, nil)
+	server := api.NewGRPCServer(ctx, log, db, nil, nil, gatewayAuthenticator, nil, nil, nil, nil)
 
 	s := grpc.NewServer()
 	pb.RegisterAPIServerServer(s, server)

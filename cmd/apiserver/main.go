@@ -194,7 +194,7 @@ func run(log *logrus.Entry, cfg config.Config) error {
 		}()
 	}
 
-	var kolideClient *kolide.Client
+	var kolideClient kolide.Client
 	if cfg.KolideIntegrationEnabled {
 		if cfg.KolideApiToken == "" {
 			return fmt.Errorf("kolide integration enabled but no kolide-api-token provided")
@@ -278,7 +278,6 @@ func run(log *logrus.Entry, cfg config.Config) error {
 		prometheusAuthenticator = auth.NewAPIKeyAuthenticator(promauth)
 
 		log.Infof("Control plane authentication enabled.")
-
 	} else {
 		adminAuthenticator = auth.NewMockAPIKeyAuthenticator()
 		gatewayAuthenticator = auth.NewMockAPIKeyAuthenticator()
@@ -297,6 +296,7 @@ func run(log *logrus.Entry, cfg config.Config) error {
 		prometheusAuthenticator,
 		jitaClient,
 		sessions,
+		kolideClient,
 	)
 
 	opts := []grpc.ServerOption{
