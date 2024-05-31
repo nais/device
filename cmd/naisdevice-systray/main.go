@@ -56,6 +56,9 @@ func main() {
 }
 
 func run(ctx context.Context, notifier notify.Notifier) error {
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+
 	otelCancel, err := otel.SetupOTelSDK(ctx, "naisdevice-systray", log)
 	if err != nil {
 		log.WithError(err).Warnf("setup OTel SDK")
@@ -104,7 +107,13 @@ func run(ctx context.Context, notifier notify.Notifier) error {
 			span.RecordError(err)
 			return fmt.Errorf("spawning naisdevice-agent: %w", err)
 		}
-		defer command.Wait()
+		defer func() {
+			cancel()
+			err := command.Wait()
+			if err != nil {
+				log.Errorf("naisdevice-agent exited with error: %v", err)
+			}
+		}()
 	} else {
 		span.AddEvent("agent.reuse")
 		err := conn.Close()
