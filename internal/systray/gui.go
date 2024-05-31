@@ -262,7 +262,7 @@ func (gui *Gui) handleAgentDisconnect() {
 }
 
 func (gui *Gui) handleAgentStatus(agentStatus *pb.AgentStatus) {
-	gui.log.Debugf("received agent status: %v", agentStatus)
+	gui.log.Infof("received agent status: %v", agentStatus)
 
 	gui.AgentStatus = agentStatus
 
