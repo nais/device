@@ -5,7 +5,7 @@ go 1.22
 require (
 	cloud.google.com/go/pubsub v1.37.0
 	cloud.google.com/go/storage v1.38.0
-	fyne.io/systray v1.10.1-0.20240111184411-11c585fff98d
+	fyne.io/systray v1.10.1-0.20231115130155-104f5ef7839e
 	github.com/akavel/rsrc v0.10.2
 	github.com/coreos/go-iptables v0.7.0
 	github.com/gen2brain/beeep v0.0.0-20210529141713-5586760f0cc1
