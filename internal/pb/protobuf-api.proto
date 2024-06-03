@@ -286,13 +286,21 @@ message APIServerLoginResponse {
 message GetDeviceConfigurationResponse {
   DeviceConfigurationStatus status = 1;
   repeated Gateway Gateways = 2;
-	repeated DeviceIssues issues = 3;
+	repeated DeviceIssue issues = 3;
 }
 
-message DeviceIssues {
+enum Severity {
+  Info = 0;
+  Notice = 1;
+  Warning = 2;
+  Danger = 3;
+  Critical = 4;
+}
+
+message DeviceIssue {
 	string title = 1;
 	string message = 2;
-	string severity = 3;
+	Severity severity = 3;
 	google.protobuf.Timestamp detectedAt = 4;
 	google.protobuf.Timestamp lastUpdated = 5;
 	google.protobuf.Timestamp resolveBefore = 6;

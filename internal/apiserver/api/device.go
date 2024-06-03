@@ -3,8 +3,11 @@ package api
 import (
 	"context"
 	"fmt"
+	"slices"
+	"sync"
 	"time"
 
+	"github.com/nais/device/internal/apiserver/kolide"
 	apiserver_metrics "github.com/nais/device/internal/apiserver/metrics"
 	"github.com/nais/device/internal/pb"
 	"google.golang.org/grpc/codes"
@@ -27,15 +30,34 @@ func (s *grpcServer) GetDeviceConfiguration(request *pb.GetDeviceConfigurationRe
 	apiserver_metrics.DevicesConnected.Set(float64(len(s.deviceConfigTrigger)))
 	s.deviceConfigTriggerLock.Unlock()
 
+	issues := []*pb.DeviceIssue{}
+	kolideDeviceStream := make(chan kolide.Device)
+	if s.kolideClient != nil {
+		kolideDevice, err := s.kolideClient.GetDevice(stream.Context(), session.GetDevice().GetUsername(), session.GetDevice().GetPlatform(), session.GetDevice().GetSerial())
+		if err != nil {
+			return err
+		}
+		issues = kolideDevice.Issues()
+
+		watchDone := &sync.Mutex{}
+		watchDone.Lock()
+		go s.watchKolideDevice(stream.Context(), s.kolideClient, kolideDevice, kolideDeviceStream, watchDone)
+		defer func() {
+			watchDone.Lock()
+			close(kolideDeviceStream)
+		}()
+	}
+
 	if len(session.GetGroups()) == 0 {
 		s.log.WithField("deviceId", session.GetDevice().GetId()).Warnf("session with no groups detected")
 	}
 
-	defer func() {
+	defer func() { // cleanup
 		s.deviceConfigTriggerLock.Lock()
 		delete(s.deviceConfigTrigger, deviceId)
 		apiserver_metrics.DevicesConnected.Set(float64(len(s.deviceConfigTrigger)))
 		s.deviceConfigTriggerLock.Unlock()
+
 	}()
 
 	timeout := time.After(time.Until(session.GetExpiry().AsTime()))
@@ -48,13 +70,15 @@ func (s *grpcServer) GetDeviceConfiguration(request *pb.GetDeviceConfigurationRe
 		case <-stream.Context().Done(): // Disconnect
 			s.log.Debugf("stream context for device %d done, tearing down", deviceId)
 			return nil
+		case d := <-kolideDeviceStream:
+			issues = d.Issues()
 		case <-trigger: // Send config triggered
 			session, err := s.sessionStore.Get(stream.Context(), request.SessionKey)
 			if err != nil {
 				return err
 			}
 
-			cfg, err := s.makeDeviceConfiguration(stream.Context(), session)
+			cfg, err := s.makeDeviceConfiguration(stream.Context(), session, issues)
 			if err != nil {
 				s.log.Errorf("make device config: %v", err)
 			} else {
@@ -67,14 +91,38 @@ func (s *grpcServer) GetDeviceConfiguration(request *pb.GetDeviceConfigurationRe
 	}
 }
 
-func (s *grpcServer) makeDeviceConfiguration(ctx context.Context, sessionInfo *pb.Session) (*pb.GetDeviceConfigurationResponse, error) {
+func (s *grpcServer) watchKolideDevice(ctx context.Context, kolideClient kolide.Client, d kolide.Device, deviceStream chan<- kolide.Device, done *sync.Mutex) {
+	defer done.Unlock()
+
+	ticker := time.NewTicker(5 * time.Minute)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-ticker.C:
+			d, err := kolideClient.GetDevice(ctx, d.AssignedOwner.Email, d.Platform, d.Serial)
+			if err != nil {
+				s.log.Errorf("get device from kolide: %v", err)
+			} else {
+				deviceStream <- d
+			}
+		}
+	}
+}
+
+func (s *grpcServer) makeDeviceConfiguration(ctx context.Context, sessionInfo *pb.Session, issues []*pb.DeviceIssue) (*pb.GetDeviceConfigurationResponse, error) {
 	device, err := s.db.ReadDeviceById(ctx, sessionInfo.GetDevice().GetId())
 	if err != nil {
 		return nil, fmt.Errorf("read device from db: %w", err)
 	}
 
-	if !device.GetHealthy() {
-		return &pb.GetDeviceConfigurationResponse{Status: pb.DeviceConfigurationStatus_DeviceUnhealthy}, nil
+	if !device.GetHealthy() || slices.ContainsFunc(issues, AfterGracePeriod) {
+		return &pb.GetDeviceConfigurationResponse{
+			Status: pb.DeviceConfigurationStatus_DeviceUnhealthy,
+			Issues: issues,
+		}, nil
 	}
 
 	gateways, err := s.UserGateways(ctx, sessionInfo.GetGroups())
@@ -86,6 +134,7 @@ func (s *grpcServer) makeDeviceConfiguration(ctx context.Context, sessionInfo *p
 
 	return &pb.GetDeviceConfigurationResponse{
 		Status:   pb.DeviceConfigurationStatus_DeviceHealthy,
+		Issues:   issues,
 		Gateways: gateways,
 	}, nil
 }

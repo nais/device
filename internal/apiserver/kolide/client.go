@@ -135,7 +135,10 @@ func (kc *client) getPaginated(ctx context.Context, initialUrl string) ([]json.R
 	if err != nil {
 		return nil, err
 	}
-	nextUrl.Query().Set("per_page", "100")
+
+	q := nextUrl.Query()
+	q.Set("per_page", "100")
+	nextUrl.RawQuery = q.Encode()
 
 	for {
 		err := func() error {

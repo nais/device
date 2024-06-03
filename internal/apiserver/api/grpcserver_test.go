@@ -61,6 +61,7 @@ func TestGetDeviceConfiguration(t *testing.T) {
 		&pb.Session{
 			Groups: accessGroups,
 			Expiry: timestamppb.New(time.Now().Add(10 * time.Second)),
+			Device: testDevice,
 		}, nil)
 	db.On("ReadDeviceById", mock.Anything, mock.Anything).Return(testDevice, nil)
 	db.On("ReadGateways", mock.Anything).Return([]*pb.Gateway{

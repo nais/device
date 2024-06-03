@@ -1,10 +1,16 @@
 package api
 
 import (
+	"time"
+
 	"github.com/nais/device/internal/apiserver/jita"
 	apiserver_metrics "github.com/nais/device/internal/apiserver/metrics"
 	"github.com/nais/device/internal/pb"
 )
+
+func AfterGracePeriod(d *pb.DeviceIssue) bool {
+	return time.Now().After(d.GetResolveBefore().AsTime())
+}
 
 // Return a list of user sessions that are authorized to access a gateway through JITA.
 func privileged(jita jita.Client, gateway *pb.Gateway, sessions []*pb.Session) []*pb.Session {

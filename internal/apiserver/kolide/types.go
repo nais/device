@@ -6,14 +6,15 @@ import (
 )
 
 type DeviceFailure struct {
-	ID         uint64                 `json:"id"`
-	CheckID    uint64                 `json:"check_id"`
-	Value      map[string]interface{} `json:"value"`
-	Title      string                 `json:"title"`
-	Timestamp  *time.Time             `json:"timestamp"`
-	ResolvedAt *time.Time             `json:"resolved_at"`
-	Ignored    bool                   `json:"ignored"`
-	Check      Check                  `json:"check"`
+	ID          uint64                 `json:"id"`
+	CheckID     uint64                 `json:"check_id"`
+	Value       map[string]interface{} `json:"value"`
+	Title       string                 `json:"title"`
+	Timestamp   *time.Time             `json:"timestamp"`
+	ResolvedAt  *time.Time             `json:"resolved_at"`
+	LastUpdated time.Time              `json:"-"`
+	Ignored     bool                   `json:"ignored"`
+	Check       Check                  `json:"check"`
 }
 
 type DeviceOwner struct {
@@ -34,8 +35,10 @@ type Device struct {
 }
 
 type Check struct {
-	ID   uint64   `json:"id"`
-	Tags []string `json:"tags"`
+	ID          uint64   `json:"id"`
+	Tags        []string `json:"tags"`
+	DisplayName string   `json:"display_name"`
+	Description string   `json:"description"`
 }
 
 type Pagination struct {

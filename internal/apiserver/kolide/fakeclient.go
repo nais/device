@@ -28,7 +28,7 @@ func (f *FakeClient) Build() Client {
 }
 
 // GetDevice implements Client.
-func (f *FakeClient) GetDevice(ctx context.Context, email string, platform string, serial string) (Device, error) {
+func (f *FakeClient) GetDevice(ctx context.Context, email, platform, serial string) (Device, error) {
 	for _, d := range f.devices {
 		if strings.EqualFold(d.AssignedOwner.Email, email) &&
 			strings.EqualFold(d.Platform, platform) &&
@@ -37,7 +37,7 @@ func (f *FakeClient) GetDevice(ctx context.Context, email string, platform strin
 		}
 	}
 
-	return Device{}, fmt.Errorf("device not found in fake client. use WithDevice() before Build() to add it")
+	return Device{}, fmt.Errorf("device (%v, %v, %v) not found in fake client. use WithDevice() before Build() to add it. we currently have: %+v", email, platform, serial, f.devices)
 }
 
 // RefreshCache implements Client.
