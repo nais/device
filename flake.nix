@@ -22,10 +22,7 @@
         {
           packages.default = config.packages.naisdevice;
 
-          packages.naisdevice = pkgs.callPackage ./packaging/nix/naisdevice/package.nix {
-            version = builtins.substring 0 8 (self.lastModifiedDate or self.lastModified or "19700101");
-            rev = self.rev or "dirty";
-          };
+          packages.naisdevice = pkgs.callPackage ./packaging/nix/naisdevice/package.nix { inherit self; };
 
           checks.naisdevice = pkgs.callPackage ./packaging/nix/naisdevice/test.nix {
             naisdevice = config.packages.naisdevice;

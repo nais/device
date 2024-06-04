@@ -1,9 +1,8 @@
-{
-  pkgs,
-  version,
-  rev,
-  ...
-}:
+{ pkgs, self, ... }:
+let
+  version = builtins.substring 0 8 (self.lastModifiedDate or self.lastModified or "19700101");
+  rev = self.rev or "dirty";
+in
 pkgs.buildGoModule {
   pname = "naisdevice";
   subPackages = [
@@ -12,7 +11,7 @@ pkgs.buildGoModule {
     "cmd/naisdevice-agent"
   ];
   inherit version;
-  src = ../../../.;
+  src = self;
   vendorHash = "sha256-Sul8Bre6uvS9OSKa2Hqinlz51kvts6ZM76SAzttJ4tw=";
 
   ldflags = [
