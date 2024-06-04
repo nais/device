@@ -1,120 +1,37 @@
 {
-  description = "A simple Go package";
+  description = "Naisdevice";
 
-  # Nixpkgs / NixOS version to use.
-  inputs.nixpkgs.url = "nixpkgs/nixos-unstable";
+  inputs = {
+    flake-parts.url = "github:hercules-ci/flake-parts";
+    nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
+    devshell.url = "github:numtide/devshell";
+  };
 
   outputs =
-    { self, nixpkgs }:
-    let
-      # to work with older version of flakes
-      lastModifiedDate = self.lastModifiedDate or self.lastModified or "19700101";
-
-      # Generate a user-friendly version number.
-      version = builtins.substring 0 8 lastModifiedDate;
-
-      # System types to support.
-      supportedSystems = [ "x86_64-linux" ]; # "x86_64-darwin" "aarch64-linux" "aarch64-darwin"];
-
-      # Helper function to generate an attrset '{ x86_64-linux = f "x86_64-linux"; ... }'.
-      forAllSystems = nixpkgs.lib.genAttrs supportedSystems;
-
-      # Nixpkgs instantiated for supported system types.
-      nixpkgsFor = forAllSystems (system: import nixpkgs { inherit system overlays; });
-
-      overlays = [
-        goOverlay
-        naisdeviceOverlay
+    inputs@{ self, flake-parts, ... }:
+    flake-parts.lib.mkFlake { inherit inputs; } {
+      imports = [ inputs.devshell.flakeModule ];
+      systems = [
+        "x86_64-linux"
+        "aarch64-linux"
+        "aarch64-darwin"
+        "x86_64-darwin"
       ];
-
-      goVersion = "1.22.3";
-      goOverlay = final: prev: {
-        go = prev.go.overrideAttrs (old: {
-          version = goVersion;
-          src = prev.fetchurl {
-            url = "https://go.dev/dl/go${goVersion}.src.tar.gz";
-            hash = "sha256-gGSO80+QMZPXKlnA3/AZ9fmK4MmqE63gsOy/+ZGnb2g=";
-          };
-        });
-      };
-
-      buildNaisdevice =
-        pkgs: vendorHash:
-        pkgs.buildGoModule {
-          pname = "naisdevice";
-          subPackages = [
-            "cmd/naisdevice-helper"
-            "cmd/naisdevice-systray"
-            "cmd/naisdevice-agent"
-          ];
-          inherit version;
-          src = ./.;
-          vendorHash = vendorHash;
-
-          ldflags = [
-            "-X github.com/nais/device/internal/version.Revision=${self.rev or "dirty"}"
-            "-X github.com/nais/device/internal/version.Version=${version}"
-            "-X github.com/nais/device/internal/otel.endpointURL=https://collector-internet.nav.cloud.nais.io"
-          ];
-
-          meta = with pkgs.lib; {
-            description = "naisdevice - next gen vpn";
-            homepage = "https://github.com/nais/device";
-            license = licenses.mit;
-          };
-        };
-      naisdeviceOverlay = final: prev: {
-        naisdevice = buildNaisdevice prev.pkgs "sha256-+Wgx4/usjAivatYC4jcwjpssGS8U22nimcvVmLfsvfA=";
-      };
-    in
-    {
-      package = nixpkgsFor.x86_64-linux.naisdevice;
-      nixosModules.naisdevice =
+      perSystem =
+        { config, pkgs, ... }:
         {
-          config,
-          lib,
-          pkgs,
-          ...
-        }:
-        let
-          inherit (lib) types mkOption;
-          cfg = config.services.naisdevice;
-        in
-        {
-          options.services.naisdevice = {
-            enable = lib.mkEnableOption "naisdevice-helper service";
-            package = mkOption {
-              type = types.package;
-              default = nixpkgsFor.x86_64-linux.naisdevice;
-              description = lib.mdDoc ''
-                The naisdevice package to use.
-              '';
-            };
+          packages.default = config.packages.naisdevice;
+
+          packages.naisdevice = pkgs.callPackage ./packaging/nix/naisdevice/package.nix {
+            version = builtins.substring 0 8 (self.lastModifiedDate or self.lastModified or "19700101");
+            rev = self.rev or "dirty";
           };
 
-          config = lib.mkIf cfg.enable {
-            environment.systemPackages = [ pkgs.wireguard-tools ];
-            systemd.services.naisdevice-helper = {
-              description = "naisdevice-helper service";
-              wantedBy = [ "multi-user.target" ];
-              path = [
-                pkgs.wireguard-tools
-                pkgs.iproute2
-              ];
-              serviceConfig.ExecStart = "${cfg.package}/bin/naisdevice-helper";
-              serviceConfig.Restart = "always";
-            };
+          checks.naisdevice = pkgs.callPackage ./packaging/nix/naisdevice/test.nix {
+            naisdevice = config.packages.naisdevice;
           };
-        };
-
-      devShells = forAllSystems (
-        system:
-        let
-          pkgs = nixpkgsFor.${system};
-        in
-        {
-          default = pkgs.mkShell {
-            buildInputs = with pkgs; [
+          devshells.default = {
+            packages = with pkgs; [
               go
               gopls
               gotools
@@ -124,9 +41,47 @@
               imagemagick
             ];
           };
-        }
-      );
+          formatter = pkgs.nixfmt-rfc-style;
+        };
+      flake = {
+        nixosModules.naisdevice =
+          {
+            config,
+            lib,
+            pkgs,
 
-      formatter.x86_64-linux = nixpkgs.legacyPackages.x86_64-linux.nixfmt-rfc-style;
+            ...
+          }:
+          let
+            inherit (lib) types mkOption;
+            cfg = config.services.naisdevice;
+          in
+          {
+            options.services.naisdevice = {
+              enable = lib.mkEnableOption "naisdevice-helper service";
+              package = mkOption {
+                type = types.package;
+                default = self.packages.${pkgs.stdenv.hostPlatform.system}.naisdevice;
+                description = lib.mdDoc ''
+                  The naisdevice package to use.
+                '';
+              };
+            };
+
+            config = lib.mkIf cfg.enable {
+              environment.systemPackages = [ pkgs.wireguard-tools ];
+              systemd.services.naisdevice-helper = {
+                description = "naisdevice-helper service";
+                wantedBy = [ "multi-user.target" ];
+                path = [
+                  pkgs.wireguard-tools
+                  pkgs.iproute2
+                ];
+                serviceConfig.ExecStart = "${cfg.package}/bin/naisdevice-helper";
+                serviceConfig.Restart = "always";
+              };
+            };
+          };
+      };
     };
 }
