@@ -19,7 +19,6 @@ import (
 
 type DeviceAgentServer struct {
 	pb.UnimplementedDeviceAgentServer
-	AgentStatus    *pb.AgentStatus
 	lock           sync.RWMutex
 	statusChannels map[uuid.UUID]chan *pb.AgentStatus
 	Config         *config.Config
@@ -27,6 +26,9 @@ type DeviceAgentServer struct {
 	rc             runtimeconfig.RuntimeConfig
 	log            *logrus.Entry
 	sendEvent      func(state.EventWithSpan)
+
+	AgentStatus     *pb.AgentStatus
+	agentStatusLock sync.RWMutex
 }
 
 func (das *DeviceAgentServer) Login(ctx context.Context, request *pb.LoginRequest) (*pb.LoginResponse, error) {
@@ -45,7 +47,9 @@ func (das *DeviceAgentServer) Status(request *pb.AgentStatusRequest, statusServe
 	das.log.Debug("grpc: client connection established to device helper")
 
 	agentStatusChan := make(chan *pb.AgentStatus, 8)
+	das.agentStatusLock.RLock()
 	agentStatusChan <- das.AgentStatus
+	das.agentStatusLock.RUnlock()
 
 	das.lock.Lock()
 	das.statusChannels[id] = agentStatusChan
@@ -81,7 +85,9 @@ func (das *DeviceAgentServer) ConfigureJITA(context.Context, *pb.ConfigureJITARe
 }
 
 func (das *DeviceAgentServer) UpdateAgentStatus(status *pb.AgentStatus) {
+	das.agentStatusLock.Lock()
 	das.AgentStatus = status
+	das.agentStatusLock.Unlock()
 
 	das.lock.RLock()
 	for _, c := range das.statusChannels {
