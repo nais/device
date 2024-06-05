@@ -61,16 +61,12 @@ func (b *Bootstrapping) Enter(ctx context.Context) state.EventWithSpan {
 	return state.SpanEvent(ctx, state.EventBootstrapped)
 }
 
-func (Bootstrapping) AgentState() pb.AgentState {
-	return pb.AgentState_Bootstrapping
-}
-
 func (b Bootstrapping) String() string {
 	return "Bootstrapping"
 }
 
 func (b Bootstrapping) Status() *pb.AgentStatus {
 	return &pb.AgentStatus{
-		ConnectionState: b.AgentState(),
+		ConnectionState: pb.AgentState_Bootstrapping,
 	}
 }

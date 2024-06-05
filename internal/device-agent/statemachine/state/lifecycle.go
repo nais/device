@@ -7,7 +7,7 @@ import (
 	"github.com/nais/device/internal/pb"
 )
 
-type StateLifecycle struct {
+type Lifecycle struct {
 	name   string
 	state  State
 	status *pb.AgentStatus
@@ -17,9 +17,9 @@ type StateLifecycle struct {
 	mutex      *sync.Mutex
 }
 
-func NewStateLifecycle(ctx context.Context, state State) *StateLifecycle {
+func NewLifecycle(ctx context.Context, state State) *Lifecycle {
 	ctx, cancel := context.WithCancel(ctx)
-	return &StateLifecycle{
+	return &Lifecycle{
 		state:  state,
 		name:   state.String(), // cache as it's not thread safe
 		status: state.Status(), // cache as it's not thread safe
@@ -30,7 +30,7 @@ func NewStateLifecycle(ctx context.Context, state State) *StateLifecycle {
 	}
 }
 
-func (s *StateLifecycle) Enter(out chan<- EventWithSpan) {
+func (s *Lifecycle) Enter(out chan<- EventWithSpan) {
 	s.mutex.Lock()
 	go func() {
 		out <- s.state.Enter(s.ctx)
@@ -38,7 +38,7 @@ func (s *StateLifecycle) Enter(out chan<- EventWithSpan) {
 	}()
 }
 
-func (s *StateLifecycle) Exit() {
+func (s *Lifecycle) Exit() {
 	if s.cancelFunc == nil {
 		panic("Current state has no cancel function, this is a programmer error")
 	}
@@ -48,14 +48,14 @@ func (s *StateLifecycle) Exit() {
 	s.mutex.Lock()
 }
 
-func (s *StateLifecycle) String() string {
+func (s *Lifecycle) String() string {
 	return s.name
 }
 
-func (s *StateLifecycle) Status() *pb.AgentStatus {
+func (s *Lifecycle) Status() *pb.AgentStatus {
 	return s.status
 }
 
-func (s *StateLifecycle) IsState(state State) bool {
+func (s *Lifecycle) IsState(state State) bool {
 	return state == s.state
 }

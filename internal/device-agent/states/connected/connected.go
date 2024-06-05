@@ -309,23 +309,20 @@ func (c *Connected) syncSetup(ctx context.Context) (pb.APIServer_GetDeviceConfig
 	}, nil
 }
 
-func (c Connected) AgentState() pb.AgentState {
-	if c.unhealthy {
-		return pb.AgentState_Unhealthy
-	} else {
-		return pb.AgentState_Connected
-	}
-}
-
 func (c Connected) String() string {
 	return "Connected"
 }
 
 func (c Connected) Status() *pb.AgentStatus {
+	state := pb.AgentState_Connected
+	if c.unhealthy {
+		state = pb.AgentState_Unhealthy
+	}
+
 	return &pb.AgentStatus{
 		ConnectedSince:  c.connectedSince,
 		Gateways:        c.gateways,
-		ConnectionState: c.AgentState(),
+		ConnectionState: state,
 	}
 }
 

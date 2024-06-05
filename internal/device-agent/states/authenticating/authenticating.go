@@ -62,16 +62,12 @@ func (a *Authenticating) Enter(ctx context.Context) state.EventWithSpan {
 	return state.SpanEvent(ctx, state.EventAuthenticated)
 }
 
-func (Authenticating) AgentState() pb.AgentState {
-	return pb.AgentState_Authenticating
-}
-
 func (a Authenticating) String() string {
 	return "Authenticating"
 }
 
 func (a Authenticating) Status() *pb.AgentStatus {
 	return &pb.AgentStatus{
-		ConnectionState: a.AgentState(),
+		ConnectionState: pb.AgentState_Authenticating,
 	}
 }
