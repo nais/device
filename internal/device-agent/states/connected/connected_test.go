@@ -400,7 +400,6 @@ func TestConnected_defaultSyncConfigLoop(t *testing.T) {
 			assert.ErrorIs(t, err, expectedError)
 		})
 	})
-
 }
 
 func TestConnected_login(t *testing.T) {
@@ -438,5 +437,4 @@ func TestConnected_login(t *testing.T) {
 		assert.NoError(t, err)
 		assert.Equal(t, expectedLoginResponse.Session, session)
 	})
-
 }

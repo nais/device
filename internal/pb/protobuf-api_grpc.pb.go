@@ -8,6 +8,7 @@ package pb
 
 import (
 	context "context"
+
 	grpc "google.golang.org/grpc"
 	codes "google.golang.org/grpc/codes"
 	status "google.golang.org/grpc/status"
@@ -109,21 +110,24 @@ type DeviceHelperServer interface {
 }
 
 // UnimplementedDeviceHelperServer must be embedded to have forward compatible implementations.
-type UnimplementedDeviceHelperServer struct {
-}
+type UnimplementedDeviceHelperServer struct{}
 
 func (UnimplementedDeviceHelperServer) Configure(context.Context, *Configuration) (*ConfigureResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Configure not implemented")
 }
+
 func (UnimplementedDeviceHelperServer) Teardown(context.Context, *TeardownRequest) (*TeardownResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Teardown not implemented")
 }
+
 func (UnimplementedDeviceHelperServer) Upgrade(context.Context, *UpgradeRequest) (*UpgradeResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Upgrade not implemented")
 }
+
 func (UnimplementedDeviceHelperServer) GetSerial(context.Context, *GetSerialRequest) (*GetSerialResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetSerial not implemented")
 }
+
 func (UnimplementedDeviceHelperServer) Ping(context.Context, *PingRequest) (*PingResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Ping not implemented")
 }
@@ -410,27 +414,32 @@ type DeviceAgentServer interface {
 }
 
 // UnimplementedDeviceAgentServer must be embedded to have forward compatible implementations.
-type UnimplementedDeviceAgentServer struct {
-}
+type UnimplementedDeviceAgentServer struct{}
 
 func (UnimplementedDeviceAgentServer) Status(*AgentStatusRequest, DeviceAgent_StatusServer) error {
 	return status.Errorf(codes.Unimplemented, "method Status not implemented")
 }
+
 func (UnimplementedDeviceAgentServer) ConfigureJITA(context.Context, *ConfigureJITARequest) (*ConfigureJITAResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method ConfigureJITA not implemented")
 }
+
 func (UnimplementedDeviceAgentServer) Login(context.Context, *LoginRequest) (*LoginResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Login not implemented")
 }
+
 func (UnimplementedDeviceAgentServer) Logout(context.Context, *LogoutRequest) (*LogoutResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Logout not implemented")
 }
+
 func (UnimplementedDeviceAgentServer) SetActiveTenant(context.Context, *SetActiveTenantRequest) (*SetActiveTenantResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method SetActiveTenant not implemented")
 }
+
 func (UnimplementedDeviceAgentServer) SetAgentConfiguration(context.Context, *SetAgentConfigurationRequest) (*SetAgentConfigurationResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method SetAgentConfiguration not implemented")
 }
+
 func (UnimplementedDeviceAgentServer) GetAgentConfiguration(context.Context, *GetAgentConfigurationRequest) (*GetAgentConfigurationResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetAgentConfiguration not implemented")
 }
@@ -824,30 +833,36 @@ type APIServerServer interface {
 }
 
 // UnimplementedAPIServerServer must be embedded to have forward compatible implementations.
-type UnimplementedAPIServerServer struct {
-}
+type UnimplementedAPIServerServer struct{}
 
 func (UnimplementedAPIServerServer) Login(context.Context, *APIServerLoginRequest) (*APIServerLoginResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Login not implemented")
 }
+
 func (UnimplementedAPIServerServer) GetDeviceConfiguration(*GetDeviceConfigurationRequest, APIServer_GetDeviceConfigurationServer) error {
 	return status.Errorf(codes.Unimplemented, "method GetDeviceConfiguration not implemented")
 }
+
 func (UnimplementedAPIServerServer) GetGatewayConfiguration(*GetGatewayConfigurationRequest, APIServer_GetGatewayConfigurationServer) error {
 	return status.Errorf(codes.Unimplemented, "method GetGatewayConfiguration not implemented")
 }
+
 func (UnimplementedAPIServerServer) GetGateway(context.Context, *ModifyGatewayRequest) (*Gateway, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetGateway not implemented")
 }
+
 func (UnimplementedAPIServerServer) ListGateways(*ListGatewayRequest, APIServer_ListGatewaysServer) error {
 	return status.Errorf(codes.Unimplemented, "method ListGateways not implemented")
 }
+
 func (UnimplementedAPIServerServer) EnrollGateway(context.Context, *ModifyGatewayRequest) (*ModifyGatewayResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method EnrollGateway not implemented")
 }
+
 func (UnimplementedAPIServerServer) UpdateGateway(context.Context, *ModifyGatewayRequest) (*ModifyGatewayResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method UpdateGateway not implemented")
 }
+
 func (UnimplementedAPIServerServer) GetSessions(context.Context, *GetSessionsRequest) (*GetSessionsResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetSessions not implemented")
 }

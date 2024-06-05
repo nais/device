@@ -6,13 +6,13 @@
 - name: Enable IPv4 forwarding in sysctl
   ansible.posix.sysctl:
     name: net.ipv4.ip_forward
-    value: '1'
+    value: "1"
     reload: true
 
 - name: Enable IPv6 forwarding in sysctl
   ansible.posix.sysctl:
     name: net.ipv6.conf.all.forwarding
-    value: '1'
+    value: "1"
     reload: true
 
 - name: Install dmesg-to-json
@@ -25,6 +25,6 @@
   ansible.builtin.template:
     owner: root
     group: root
-    mode: '0640'
+    mode: "0640"
     src: logrotate-gateway-agent.j2
     dest: /etc/logrotate.d/naisdevice-gateway-agent

@@ -57,7 +57,6 @@ func (s *grpcServer) GetDeviceConfiguration(request *pb.GetDeviceConfigurationRe
 		delete(s.deviceConfigTrigger, deviceId)
 		apiserver_metrics.DevicesConnected.Set(float64(len(s.deviceConfigTrigger)))
 		s.deviceConfigTriggerLock.Unlock()
-
 	}()
 
 	timeout := time.After(time.Until(session.GetExpiry().AsTime()))

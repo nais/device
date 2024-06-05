@@ -6,6 +6,6 @@
 - name: Add logrotate config
   ansible.builtin.template:
     owner: root
-    mode: '0640'
+    mode: "0640"
     src: logrotate-apiserver.j2
     dest: /etc/logrotate.d/naisdevice-apiserver

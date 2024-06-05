@@ -51,5 +51,4 @@ func TestDisconnected(t *testing.T) {
 		assert.Equal(t, statemachine.EventLogin, state.Enter(ctx).Event)
 		assert.Equal(t, statemachine.EventWaitForExternalEvent, state.Enter(ctx).Event)
 	})
-
 }

@@ -15,7 +15,6 @@ import (
 )
 
 func TestURL(t *testing.T) {
-
 	u, err := url.Parse("https://k2.kolide.com/api/v0/devices/25215")
 	assert.NoError(t, err)
 

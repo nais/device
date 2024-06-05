@@ -5,5 +5,5 @@
 
 - name: Set up controlplane repo
   ansible.builtin.apt_repository:
-    repo: 'deb [arch=amd64] https://europe-north1-apt.pkg.dev/projects/naisdevice controlplane main'
+    repo: "deb [arch=amd64] https://europe-north1-apt.pkg.dev/projects/naisdevice controlplane main"
     state: present

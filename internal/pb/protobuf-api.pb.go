@@ -7,11 +7,12 @@
 package pb
 
 import (
+	reflect "reflect"
+	sync "sync"
+
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	timestamppb "google.golang.org/protobuf/types/known/timestamppb"
-	reflect "reflect"
-	sync "sync"
 )
 
 const (
@@ -2877,57 +2878,59 @@ func file_internal_pb_protobuf_api_proto_rawDescGZIP() []byte {
 	return file_internal_pb_protobuf_api_proto_rawDescData
 }
 
-var file_internal_pb_protobuf_api_proto_enumTypes = make([]protoimpl.EnumInfo, 4)
-var file_internal_pb_protobuf_api_proto_msgTypes = make([]protoimpl.MessageInfo, 42)
-var file_internal_pb_protobuf_api_proto_goTypes = []interface{}{
-	(AgentState)(0),                         // 0: naisdevice.AgentState
-	(DeviceConfigurationStatus)(0),          // 1: naisdevice.DeviceConfigurationStatus
-	(AuthProvider)(0),                       // 2: naisdevice.AuthProvider
-	(Severity)(0),                           // 3: naisdevice.Severity
-	(*TeardownRequest)(nil),                 // 4: naisdevice.TeardownRequest
-	(*TeardownResponse)(nil),                // 5: naisdevice.TeardownResponse
-	(*ConfigureResponse)(nil),               // 6: naisdevice.ConfigureResponse
-	(*ConfigureJITAResponse)(nil),           // 7: naisdevice.ConfigureJITAResponse
-	(*LoginResponse)(nil),                   // 8: naisdevice.LoginResponse
-	(*LogoutResponse)(nil),                  // 9: naisdevice.LogoutResponse
-	(*UpgradeRequest)(nil),                  // 10: naisdevice.UpgradeRequest
-	(*UpgradeResponse)(nil),                 // 11: naisdevice.UpgradeResponse
-	(*GetSerialRequest)(nil),                // 12: naisdevice.GetSerialRequest
-	(*GetSerialResponse)(nil),               // 13: naisdevice.GetSerialResponse
-	(*ConfigureJITARequest)(nil),            // 14: naisdevice.ConfigureJITARequest
-	(*LoginRequest)(nil),                    // 15: naisdevice.LoginRequest
-	(*LogoutRequest)(nil),                   // 16: naisdevice.LogoutRequest
-	(*SetAgentConfigurationRequest)(nil),    // 17: naisdevice.SetAgentConfigurationRequest
-	(*SetAgentConfigurationResponse)(nil),   // 18: naisdevice.SetAgentConfigurationResponse
-	(*GetAgentConfigurationRequest)(nil),    // 19: naisdevice.GetAgentConfigurationRequest
-	(*GetAgentConfigurationResponse)(nil),   // 20: naisdevice.GetAgentConfigurationResponse
-	(*AgentStatusRequest)(nil),              // 21: naisdevice.AgentStatusRequest
-	(*AgentStatus)(nil),                     // 22: naisdevice.AgentStatus
-	(*Configuration)(nil),                   // 23: naisdevice.Configuration
-	(*ModifyGatewayRequest)(nil),            // 24: naisdevice.ModifyGatewayRequest
-	(*ModifyGatewayResponse)(nil),           // 25: naisdevice.ModifyGatewayResponse
-	(*Gateway)(nil),                         // 26: naisdevice.Gateway
-	(*Error)(nil),                           // 27: naisdevice.Error
-	(*SetActiveTenantRequest)(nil),          // 28: naisdevice.SetActiveTenantRequest
-	(*SetActiveTenantResponse)(nil),         // 29: naisdevice.SetActiveTenantResponse
-	(*Tenant)(nil),                          // 30: naisdevice.Tenant
-	(*AgentConfiguration)(nil),              // 31: naisdevice.AgentConfiguration
-	(*GetGatewayConfigurationRequest)(nil),  // 32: naisdevice.GetGatewayConfigurationRequest
-	(*GetGatewayConfigurationResponse)(nil), // 33: naisdevice.GetGatewayConfigurationResponse
-	(*GetDeviceConfigurationRequest)(nil),   // 34: naisdevice.GetDeviceConfigurationRequest
-	(*APIServerLoginRequest)(nil),           // 35: naisdevice.APIServerLoginRequest
-	(*APIServerLoginResponse)(nil),          // 36: naisdevice.APIServerLoginResponse
-	(*GetDeviceConfigurationResponse)(nil),  // 37: naisdevice.GetDeviceConfigurationResponse
-	(*DeviceIssue)(nil),                     // 38: naisdevice.DeviceIssue
-	(*ListGatewayRequest)(nil),              // 39: naisdevice.ListGatewayRequest
-	(*Device)(nil),                          // 40: naisdevice.Device
-	(*Session)(nil),                         // 41: naisdevice.Session
-	(*GetSessionsRequest)(nil),              // 42: naisdevice.GetSessionsRequest
-	(*GetSessionsResponse)(nil),             // 43: naisdevice.GetSessionsResponse
-	(*PingRequest)(nil),                     // 44: naisdevice.PingRequest
-	(*PingResponse)(nil),                    // 45: naisdevice.PingResponse
-	(*timestamppb.Timestamp)(nil),           // 46: google.protobuf.Timestamp
-}
+var (
+	file_internal_pb_protobuf_api_proto_enumTypes = make([]protoimpl.EnumInfo, 4)
+	file_internal_pb_protobuf_api_proto_msgTypes  = make([]protoimpl.MessageInfo, 42)
+	file_internal_pb_protobuf_api_proto_goTypes   = []interface{}{
+		(AgentState)(0),                         // 0: naisdevice.AgentState
+		(DeviceConfigurationStatus)(0),          // 1: naisdevice.DeviceConfigurationStatus
+		(AuthProvider)(0),                       // 2: naisdevice.AuthProvider
+		(Severity)(0),                           // 3: naisdevice.Severity
+		(*TeardownRequest)(nil),                 // 4: naisdevice.TeardownRequest
+		(*TeardownResponse)(nil),                // 5: naisdevice.TeardownResponse
+		(*ConfigureResponse)(nil),               // 6: naisdevice.ConfigureResponse
+		(*ConfigureJITAResponse)(nil),           // 7: naisdevice.ConfigureJITAResponse
+		(*LoginResponse)(nil),                   // 8: naisdevice.LoginResponse
+		(*LogoutResponse)(nil),                  // 9: naisdevice.LogoutResponse
+		(*UpgradeRequest)(nil),                  // 10: naisdevice.UpgradeRequest
+		(*UpgradeResponse)(nil),                 // 11: naisdevice.UpgradeResponse
+		(*GetSerialRequest)(nil),                // 12: naisdevice.GetSerialRequest
+		(*GetSerialResponse)(nil),               // 13: naisdevice.GetSerialResponse
+		(*ConfigureJITARequest)(nil),            // 14: naisdevice.ConfigureJITARequest
+		(*LoginRequest)(nil),                    // 15: naisdevice.LoginRequest
+		(*LogoutRequest)(nil),                   // 16: naisdevice.LogoutRequest
+		(*SetAgentConfigurationRequest)(nil),    // 17: naisdevice.SetAgentConfigurationRequest
+		(*SetAgentConfigurationResponse)(nil),   // 18: naisdevice.SetAgentConfigurationResponse
+		(*GetAgentConfigurationRequest)(nil),    // 19: naisdevice.GetAgentConfigurationRequest
+		(*GetAgentConfigurationResponse)(nil),   // 20: naisdevice.GetAgentConfigurationResponse
+		(*AgentStatusRequest)(nil),              // 21: naisdevice.AgentStatusRequest
+		(*AgentStatus)(nil),                     // 22: naisdevice.AgentStatus
+		(*Configuration)(nil),                   // 23: naisdevice.Configuration
+		(*ModifyGatewayRequest)(nil),            // 24: naisdevice.ModifyGatewayRequest
+		(*ModifyGatewayResponse)(nil),           // 25: naisdevice.ModifyGatewayResponse
+		(*Gateway)(nil),                         // 26: naisdevice.Gateway
+		(*Error)(nil),                           // 27: naisdevice.Error
+		(*SetActiveTenantRequest)(nil),          // 28: naisdevice.SetActiveTenantRequest
+		(*SetActiveTenantResponse)(nil),         // 29: naisdevice.SetActiveTenantResponse
+		(*Tenant)(nil),                          // 30: naisdevice.Tenant
+		(*AgentConfiguration)(nil),              // 31: naisdevice.AgentConfiguration
+		(*GetGatewayConfigurationRequest)(nil),  // 32: naisdevice.GetGatewayConfigurationRequest
+		(*GetGatewayConfigurationResponse)(nil), // 33: naisdevice.GetGatewayConfigurationResponse
+		(*GetDeviceConfigurationRequest)(nil),   // 34: naisdevice.GetDeviceConfigurationRequest
+		(*APIServerLoginRequest)(nil),           // 35: naisdevice.APIServerLoginRequest
+		(*APIServerLoginResponse)(nil),          // 36: naisdevice.APIServerLoginResponse
+		(*GetDeviceConfigurationResponse)(nil),  // 37: naisdevice.GetDeviceConfigurationResponse
+		(*DeviceIssue)(nil),                     // 38: naisdevice.DeviceIssue
+		(*ListGatewayRequest)(nil),              // 39: naisdevice.ListGatewayRequest
+		(*Device)(nil),                          // 40: naisdevice.Device
+		(*Session)(nil),                         // 41: naisdevice.Session
+		(*GetSessionsRequest)(nil),              // 42: naisdevice.GetSessionsRequest
+		(*GetSessionsResponse)(nil),             // 43: naisdevice.GetSessionsResponse
+		(*PingRequest)(nil),                     // 44: naisdevice.PingRequest
+		(*PingResponse)(nil),                    // 45: naisdevice.PingResponse
+		(*timestamppb.Timestamp)(nil),           // 46: google.protobuf.Timestamp
+	}
+)
 var file_internal_pb_protobuf_api_proto_depIdxs = []int32{
 	26, // 0: naisdevice.ConfigureJITARequest.gateway:type_name -> naisdevice.Gateway
 	31, // 1: naisdevice.SetAgentConfigurationRequest.config:type_name -> naisdevice.AgentConfiguration

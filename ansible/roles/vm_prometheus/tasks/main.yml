@@ -12,7 +12,7 @@
   ansible.builtin.copy:
     src: prometheus.yml
     dest: /etc/prometheus/
-    mode: '0640'
+    mode: "0640"
   notify:
     - Restart prometheus
 
@@ -20,6 +20,6 @@
   ansible.builtin.template:
     owner: root
     group: root
-    mode: '0640'
+    mode: "0640"
     src: logrotate-prometheus-agent.j2
     dest: /etc/logrotate.d/naisdevice-prometheus-agent

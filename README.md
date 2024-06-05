@@ -3,12 +3,14 @@
 naisdevice is a mechanism enabling NAVs developers to connect to internal resources in a secure and friendly manner.
 
 Each resource is _protected_ by a gateway, and the developer is only granted access to the gateway if all of the following requirements are met:
+
 - Has a valid account
 - Has accepted naisdevice [terms and conditions](https://naisdevice-approval.external.prod-gcp.nav.cloud.nais.io/)
 - Device is [healthy](#what-is-a-healthy-device)
 - Is member of the AAD access group for the gateway (e.g. to connect to team A's DB (via gateway), you must be member of team A's AAD-group)
 
 ## Deploying client changes
+
 Executing `make release-frontend` is required for deploy of new naisdevice client to be released and made available for download/install/update.
 
 ## key attributes
@@ -92,6 +94,7 @@ The `prometheus-agent` component connects to all gateways over WireGuard and con
 See https://doc.nais.io/operate/naisdevice/how-to/install/
 
 ## Stuff we use
+
 [Kolide](https://www.kolide.com/)
 
 [WireGuard](https://www.wireguard.com)

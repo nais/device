@@ -3,6 +3,9 @@ package bootstrapping
 import (
 	"context"
 	"fmt"
+	"testing"
+	"time"
+
 	"github.com/nais/device/internal/device-agent/runtimeconfig"
 	"github.com/nais/device/internal/device-agent/statemachine"
 	"github.com/nais/device/internal/notify"
@@ -10,8 +13,6 @@ import (
 	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
-	"testing"
-	"time"
 )
 
 func TestBootstrapping_Enter(t *testing.T) {

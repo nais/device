@@ -6,11 +6,11 @@
 
 - name: Set nopasswd for members of 'sudo' group
   ansible.builtin.copy:
-    mode: '0600'
+    mode: "0600"
     owner: root
     group: root
     dest: /etc/sudoers.d/sudo-group-nopasswd
-    content: '%sudo ALL=(ALL:ALL) NOPASSWD:ALL'
+    content: "%sudo ALL=(ALL:ALL) NOPASSWD:ALL"
 
 - name: Create admin users
   ansible.builtin.user:
@@ -35,6 +35,6 @@
   ansible.builtin.template:
     owner: root
     group: root
-    mode: '0640'
+    mode: "0640"
     src: logrotate-gateway-agent.j2
     dest: /etc/logrotate.d/naisdevice-gateway-agent

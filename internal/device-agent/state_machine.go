@@ -25,7 +25,6 @@ func NewStateMachine(
 	statusUpdates chan<- *pb.AgentStatus,
 	logger logrus.FieldLogger,
 ) *statemachine.StateMachine {
-
 	stateDisconnected := disconnected.New(rc, cfg)
 	stateAuthenticating := authenticating.New(rc, cfg, logger, notifier)
 	stateBootstrapping := bootstrapping.New(rc, logger, notifier, deviceHelper)
