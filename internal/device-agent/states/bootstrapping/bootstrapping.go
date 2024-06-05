@@ -5,7 +5,7 @@ import (
 	"time"
 
 	"github.com/nais/device/internal/device-agent/runtimeconfig"
-	"github.com/nais/device/internal/device-agent/statemachine"
+	"github.com/nais/device/internal/device-agent/statemachine/state"
 	"github.com/nais/device/internal/notify"
 	"github.com/nais/device/internal/otel"
 	"github.com/nais/device/internal/pb"
@@ -19,7 +19,7 @@ type Bootstrapping struct {
 	deviceHelper pb.DeviceHelperClient
 }
 
-func New(rc runtimeconfig.RuntimeConfig, logger logrus.FieldLogger, notifier notify.Notifier, deviceHelper pb.DeviceHelperClient) statemachine.State {
+func New(rc runtimeconfig.RuntimeConfig, logger logrus.FieldLogger, notifier notify.Notifier, deviceHelper pb.DeviceHelperClient) state.State {
 	return &Bootstrapping{
 		rc:           rc,
 		notifier:     notifier,
@@ -28,7 +28,7 @@ func New(rc runtimeconfig.RuntimeConfig, logger logrus.FieldLogger, notifier not
 	}
 }
 
-func (b *Bootstrapping) Enter(ctx context.Context) statemachine.EventWithSpan {
+func (b *Bootstrapping) Enter(ctx context.Context) state.EventWithSpan {
 	ctx, span := otel.Start(ctx, "Bootstrapping")
 	defer span.End()
 
@@ -45,7 +45,7 @@ func (b *Bootstrapping) Enter(ctx context.Context) statemachine.EventWithSpan {
 		if err != nil {
 			span.RecordError(err)
 			b.notifier.Errorf("Unable to get serial number: %v", err)
-			return statemachine.SpanEvent(ctx, statemachine.EventDisconnect)
+			return state.SpanEvent(ctx, state.EventDisconnect)
 		}
 
 		err = b.rc.EnsureEnrolled(enrollCtx, serial.GetSerial())
@@ -54,11 +54,11 @@ func (b *Bootstrapping) Enter(ctx context.Context) statemachine.EventWithSpan {
 		if err != nil {
 			span.RecordError(err)
 			b.notifier.Errorf("Bootstrap: %v", err)
-			return statemachine.SpanEvent(ctx, statemachine.EventDisconnect)
+			return state.SpanEvent(ctx, state.EventDisconnect)
 		}
 	}
 
-	return statemachine.SpanEvent(ctx, statemachine.EventBootstrapped)
+	return state.SpanEvent(ctx, state.EventBootstrapped)
 }
 
 func (Bootstrapping) AgentState() pb.AgentState {

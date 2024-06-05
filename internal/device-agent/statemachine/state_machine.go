@@ -7,56 +7,35 @@ import (
 	"github.com/sirupsen/logrus"
 	"go.opentelemetry.io/otel/trace"
 
+	"github.com/nais/device/internal/device-agent/statemachine/state"
 	"github.com/nais/device/internal/pb"
 )
 
-type EventWithSpan struct {
-	Event EventType
-	Span  trace.Span
-}
-
-type EventType string
-
-const (
-	EventWaitForExternalEvent EventType = "WaitForExternalEvent"
-	EventLogin                EventType = "Login"
-	EventAuthenticated        EventType = "Authenticated"
-	EventBootstrapped         EventType = "Bootstrapped"
-	EventDisconnect           EventType = "Disconnect"
-)
-
-type State interface {
-	Enter(context.Context) EventWithSpan
-	AgentState() pb.AgentState
-	Status() *pb.AgentStatus
-	String() string
-}
-
 type StateMachine struct {
 	ctx           context.Context
-	current       *stateLifecycle
-	events        chan EventWithSpan
-	initialState  State
-	transitions   map[EventType]Transitions
+	current       *state.StateLifecycle
+	events        chan state.EventWithSpan
+	initialState  state.State
+	transitions   map[state.EventType]Transitions
 	logger        logrus.FieldLogger
 	statusUpdates chan<- *pb.AgentStatus
 }
 
 type Transitions struct {
-	Target  State
-	Sources []State
+	Target  state.State
+	Sources []state.State
 }
 
 func New(
 	ctx context.Context,
-	transitions map[EventType]Transitions,
-	initialState State,
+	transitions map[state.EventType]Transitions,
+	initialState state.State,
 	statusUpdates chan<- *pb.AgentStatus,
 	logger logrus.FieldLogger,
 ) *StateMachine {
 	stateMachine := StateMachine{
 		ctx:           ctx,
-		events:        make(chan EventWithSpan, 255),
+		events:        make(chan state.EventWithSpan, 255),
 		logger:        logger,
 		statusUpdates: statusUpdates,
 		transitions:   transitions,
@@ -79,13 +58,13 @@ func New(
 
 func (sm *StateMachine) triggerStatusUpdate() {
 	select {
-	case sm.statusUpdates <- sm.current.state.Status():
+	case sm.statusUpdates <- sm.current.Status():
 	default:
 		sm.logger.Warn("failed to trigger status update, channel full")
 	}
 }
 
-func (sm *StateMachine) SendEvent(e EventWithSpan) {
+func (sm *StateMachine) SendEvent(e state.EventWithSpan) {
 	sm.events <- e
 }
 
@@ -102,7 +81,7 @@ func (sm *StateMachine) Run(ctx context.Context) {
 			}
 
 			sm.logger.Infof("Event received: %s", event)
-			if event.Event == EventWaitForExternalEvent {
+			if event.Event == state.EventWaitForExternalEvent {
 				continue
 			}
 
@@ -110,29 +89,23 @@ func (sm *StateMachine) Run(ctx context.Context) {
 		}
 	}
 
-	sm.current.exit()
+	sm.current.Exit()
 }
 
-func (sm *StateMachine) GetAgentState() pb.AgentState {
-	if sm.current == nil {
-		return sm.initialState.AgentState()
+func (sm *StateMachine) setState(ctx context.Context, s state.State) {
+	if sm.current != nil {
+		sm.logger.Infof("Exiting state: %v", sm.current)
+		sm.current.Exit()
 	}
 
-	return sm.current.state.AgentState()
-}
-
-func (sm *StateMachine) setState(ctx context.Context, state State) {
-	sm.logger.Infof("Exiting state: %v", sm.current)
-	sm.current.exit()
-
-	sm.current = newStateLifecycle(ctx, state)
+	sm.current = state.NewStateLifecycle(ctx, s)
 	sm.triggerStatusUpdate()
 
 	sm.logger.Infof("Entering state: %v", sm.current)
-	sm.current.enter(sm.events)
+	sm.current.Enter(sm.events)
 }
 
-func (sm *StateMachine) transition(event EventWithSpan) {
+func (sm *StateMachine) transition(event state.EventWithSpan) {
 	t, ok := sm.transitions[event.Event]
 	if !ok {
 		sm.logger.Warnf("No defined transitions for event: %s", event)
@@ -140,19 +113,12 @@ func (sm *StateMachine) transition(event EventWithSpan) {
 
 	ctx := trace.ContextWithSpan(sm.ctx, event.Span)
 	for _, s := range t.Sources {
-		if s == sm.current.state {
+		if sm.current.IsState(s) {
 			sm.setState(ctx, t.Target)
 			return
 		}
 	}
 
-	sm.logger.Warnf("No defined transition for event %s in state %s", event, sm.GetAgentState())
+	sm.logger.Warnf("No defined transition for event %s in state %s", event, sm.current)
 	sm.triggerStatusUpdate()
-}
-
-func SpanEvent(ctx context.Context, e EventType) EventWithSpan {
-	return EventWithSpan{
-		Event: e,
-		Span:  trace.SpanFromContext(ctx),
-	}
 }

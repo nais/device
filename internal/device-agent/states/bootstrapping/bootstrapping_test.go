@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/nais/device/internal/device-agent/runtimeconfig"
-	"github.com/nais/device/internal/device-agent/statemachine"
+	"github.com/nais/device/internal/device-agent/statemachine/state"
 	"github.com/nais/device/internal/notify"
 	"github.com/nais/device/internal/pb"
 	"github.com/sirupsen/logrus"
@@ -35,7 +35,7 @@ func TestBootstrapping_Enter(t *testing.T) {
 			deviceHelper: deviceHelper,
 		}
 		event := b.Enter(ctx).Event
-		assert.Equal(t, statemachine.EventBootstrapped, event)
+		assert.Equal(t, state.EventBootstrapped, event)
 	})
 
 	t.Run("disconnect when fail to get serial", func(t *testing.T) {
@@ -58,7 +58,7 @@ func TestBootstrapping_Enter(t *testing.T) {
 			deviceHelper: deviceHelper,
 		}
 		event := b.Enter(ctx).Event
-		assert.Equal(t, statemachine.EventDisconnect, event)
+		assert.Equal(t, state.EventDisconnect, event)
 	})
 
 	t.Run("disconnect when unable to enroll", func(t *testing.T) {
@@ -82,7 +82,7 @@ func TestBootstrapping_Enter(t *testing.T) {
 			deviceHelper: deviceHelper,
 		}
 		event := b.Enter(ctx).Event
-		assert.Equal(t, statemachine.EventDisconnect, event)
+		assert.Equal(t, state.EventDisconnect, event)
 	})
 
 	t.Run("bootstrapped when enrolled", func(t *testing.T) {
@@ -105,6 +105,6 @@ func TestBootstrapping_Enter(t *testing.T) {
 			deviceHelper: deviceHelper,
 		}
 		event := b.Enter(ctx).Event
-		assert.Equal(t, statemachine.EventBootstrapped, event)
+		assert.Equal(t, state.EventBootstrapped, event)
 	})
 }

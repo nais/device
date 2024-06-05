@@ -8,7 +8,7 @@ import (
 
 	"github.com/nais/device/internal/device-agent/auth"
 	"github.com/nais/device/internal/device-agent/runtimeconfig"
-	"github.com/nais/device/internal/device-agent/statemachine"
+	"github.com/nais/device/internal/device-agent/statemachine/state"
 	"github.com/nais/device/internal/notify"
 	"github.com/nais/device/internal/pb"
 	"github.com/sirupsen/logrus"
@@ -29,11 +29,11 @@ func TestAuthenticating(t *testing.T) {
 			Expiry: timestamppb.New(time.Now().Add(time.Hour)),
 		}, nil)
 
-		state := &Authenticating{
+		authState := &Authenticating{
 			rc: rc,
 		}
 
-		assert.Equal(t, statemachine.EventAuthenticated, state.Enter(ctx).Event)
+		assert.Equal(t, state.EventAuthenticated, authState.Enter(ctx).Event)
 	})
 
 	t.Run("get token succeeds", func(t *testing.T) {
@@ -50,14 +50,14 @@ func TestAuthenticating(t *testing.T) {
 		rc.EXPECT().GetActiveTenant().Return(&pb.Tenant{AuthProvider: pb.AuthProvider_Google})
 		rc.EXPECT().SetToken(tokens)
 
-		state := &Authenticating{
+		authState := &Authenticating{
 			getToken: func(ctx context.Context, fl logrus.FieldLogger, c oauth2.Config, s string) (*auth.Tokens, error) {
 				return tokens, nil
 			},
 			rc: rc,
 		}
 
-		assert.Equal(t, statemachine.EventAuthenticated, state.Enter(ctx).Event)
+		assert.Equal(t, state.EventAuthenticated, authState.Enter(ctx).Event)
 	})
 
 	t.Run("get token fails", func(t *testing.T) {
@@ -76,7 +76,7 @@ func TestAuthenticating(t *testing.T) {
 		notifier := notify.NewMockNotifier(t)
 		notifier.EXPECT().Errorf(mock.Anything, expectedError)
 
-		state := &Authenticating{
+		authState := &Authenticating{
 			getToken: func(ctx context.Context, fl logrus.FieldLogger, c oauth2.Config, s string) (*auth.Tokens, error) {
 				return nil, expectedError
 			},
@@ -84,6 +84,6 @@ func TestAuthenticating(t *testing.T) {
 			notifier: notifier,
 		}
 
-		assert.Equal(t, statemachine.EventDisconnect, state.Enter(ctx).Event)
+		assert.Equal(t, state.EventDisconnect, authState.Enter(ctx).Event)
 	})
 }

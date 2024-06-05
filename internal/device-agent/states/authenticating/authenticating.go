@@ -7,7 +7,7 @@ import (
 	"github.com/nais/device/internal/device-agent/auth"
 	"github.com/nais/device/internal/device-agent/config"
 	"github.com/nais/device/internal/device-agent/runtimeconfig"
-	"github.com/nais/device/internal/device-agent/statemachine"
+	"github.com/nais/device/internal/device-agent/statemachine/state"
 	"github.com/nais/device/internal/notify"
 	"github.com/nais/device/internal/otel"
 	"github.com/nais/device/internal/pb"
@@ -26,7 +26,7 @@ type Authenticating struct {
 	logger   logrus.FieldLogger
 }
 
-func New(rc runtimeconfig.RuntimeConfig, cfg config.Config, logger logrus.FieldLogger, notifier notify.Notifier) statemachine.State {
+func New(rc runtimeconfig.RuntimeConfig, cfg config.Config, logger logrus.FieldLogger, notifier notify.Notifier) state.State {
 	return &Authenticating{
 		rc:       rc,
 		cfg:      cfg,
@@ -37,14 +37,14 @@ func New(rc runtimeconfig.RuntimeConfig, cfg config.Config, logger logrus.FieldL
 	}
 }
 
-func (a *Authenticating) Enter(ctx context.Context) statemachine.EventWithSpan {
+func (a *Authenticating) Enter(ctx context.Context) state.EventWithSpan {
 	ctx, span := otel.Start(ctx, "Authenticating")
 	defer span.End()
 
 	session, _ := a.rc.GetTenantSession()
 	if !session.Expired() {
 		span.AddEvent("session.active")
-		return statemachine.SpanEvent(ctx, statemachine.EventAuthenticated)
+		return state.SpanEvent(ctx, state.EventAuthenticated)
 	}
 
 	ctx, cancel := context.WithTimeout(ctx, authFlowTimeout)
@@ -54,12 +54,12 @@ func (a *Authenticating) Enter(ctx context.Context) statemachine.EventWithSpan {
 	if err != nil {
 		span.RecordError(err)
 		a.notifier.Errorf("Get token: %v", err)
-		return statemachine.SpanEvent(ctx, statemachine.EventDisconnect)
+		return state.SpanEvent(ctx, state.EventDisconnect)
 	}
 
 	span.AddEvent("session.new")
 	a.rc.SetToken(token)
-	return statemachine.SpanEvent(ctx, statemachine.EventAuthenticated)
+	return state.SpanEvent(ctx, state.EventAuthenticated)
 }
 
 func (Authenticating) AgentState() pb.AgentState {

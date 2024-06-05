@@ -8,6 +8,7 @@ import (
 	"github.com/nais/device/internal/device-agent/config"
 	"github.com/nais/device/internal/device-agent/runtimeconfig"
 	"github.com/nais/device/internal/device-agent/statemachine"
+	"github.com/nais/device/internal/device-agent/statemachine/state"
 	"github.com/nais/device/internal/device-agent/states/authenticating"
 	"github.com/nais/device/internal/device-agent/states/bootstrapping"
 	"github.com/nais/device/internal/device-agent/states/connected"
@@ -30,28 +31,28 @@ func NewStateMachine(
 	stateBootstrapping := bootstrapping.New(rc, logger, notifier, deviceHelper)
 	stateConnected := connected.New(rc, logger, notifier, deviceHelper, statusUpdates)
 
-	transitions := map[statemachine.EventType]statemachine.Transitions{
-		statemachine.EventLogin: {
+	transitions := map[state.EventType]statemachine.Transitions{
+		state.EventLogin: {
 			Target: stateAuthenticating,
-			Sources: []statemachine.State{
+			Sources: []state.State{
 				stateDisconnected,
 			},
 		},
-		statemachine.EventAuthenticated: {
+		state.EventAuthenticated: {
 			Target: stateBootstrapping,
-			Sources: []statemachine.State{
+			Sources: []state.State{
 				stateAuthenticating,
 			},
 		},
-		statemachine.EventBootstrapped: {
+		state.EventBootstrapped: {
 			Target: stateConnected,
-			Sources: []statemachine.State{
+			Sources: []state.State{
 				stateBootstrapping,
 			},
 		},
-		statemachine.EventDisconnect: {
+		state.EventDisconnect: {
 			Target: stateDisconnected,
-			Sources: []statemachine.State{
+			Sources: []state.State{
 				stateConnected,
 				stateAuthenticating,
 				stateBootstrapping,

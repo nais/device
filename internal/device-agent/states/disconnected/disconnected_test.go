@@ -7,7 +7,7 @@ import (
 	"github.com/nais/device/internal/device-agent/auth"
 	"github.com/nais/device/internal/device-agent/config"
 	"github.com/nais/device/internal/device-agent/runtimeconfig"
-	"github.com/nais/device/internal/device-agent/statemachine"
+	statemachine "github.com/nais/device/internal/device-agent/statemachine/state"
 	"github.com/nais/device/internal/device-agent/states/disconnected"
 	"github.com/nais/device/internal/pb"
 	"github.com/stretchr/testify/assert"
@@ -25,11 +25,11 @@ func TestDisconnected(t *testing.T) {
 				AutoConnect: false,
 			},
 		}
-		state := disconnected.New(rc, cfg)
+		stateDisconnected := disconnected.New(rc, cfg)
 		ctx, cancel := context.WithCancel(context.Background())
 		cancel()
 
-		event := state.Enter(ctx).Event
+		event := stateDisconnected.Enter(ctx).Event
 		assert.Equal(t, statemachine.EventWaitForExternalEvent, event)
 	})
 
@@ -44,11 +44,11 @@ func TestDisconnected(t *testing.T) {
 				AutoConnect: true,
 			},
 		}
-		state := disconnected.New(rc, cfg)
+		stateDisconnected := disconnected.New(rc, cfg)
 		ctx, cancel := context.WithCancel(context.Background())
 		cancel()
 
-		assert.Equal(t, statemachine.EventLogin, state.Enter(ctx).Event)
-		assert.Equal(t, statemachine.EventWaitForExternalEvent, state.Enter(ctx).Event)
+		assert.Equal(t, statemachine.EventLogin, stateDisconnected.Enter(ctx).Event)
+		assert.Equal(t, statemachine.EventWaitForExternalEvent, stateDisconnected.Enter(ctx).Event)
 	})
 }

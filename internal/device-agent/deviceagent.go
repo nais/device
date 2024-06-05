@@ -13,7 +13,7 @@ import (
 
 	"github.com/nais/device/internal/device-agent/config"
 	"github.com/nais/device/internal/device-agent/runtimeconfig"
-	"github.com/nais/device/internal/device-agent/statemachine"
+	"github.com/nais/device/internal/device-agent/statemachine/state"
 	"github.com/nais/device/internal/pb"
 )
 
@@ -26,16 +26,16 @@ type DeviceAgentServer struct {
 	notifier       notify.Notifier
 	rc             runtimeconfig.RuntimeConfig
 	log            *logrus.Entry
-	sendEvent      func(statemachine.EventWithSpan)
+	sendEvent      func(state.EventWithSpan)
 }
 
 func (das *DeviceAgentServer) Login(ctx context.Context, request *pb.LoginRequest) (*pb.LoginResponse, error) {
-	das.sendEvent(statemachine.SpanEvent(ctx, statemachine.EventLogin))
+	das.sendEvent(state.SpanEvent(ctx, state.EventLogin))
 	return &pb.LoginResponse{}, nil
 }
 
 func (das *DeviceAgentServer) Logout(ctx context.Context, request *pb.LogoutRequest) (*pb.LogoutResponse, error) {
-	das.sendEvent(statemachine.SpanEvent(ctx, statemachine.EventDisconnect))
+	das.sendEvent(state.SpanEvent(ctx, state.EventDisconnect))
 	return &pb.LogoutResponse{}, nil
 }
 
@@ -55,7 +55,7 @@ func (das *DeviceAgentServer) Status(request *pb.AgentStatusRequest, statusServe
 		das.log.Debugf("grpc: client connection with device helper closed")
 		if !request.GetKeepConnectionOnComplete() {
 			das.log.Debugf("grpc: keepalive not requested, tearing down connections...")
-			das.sendEvent(statemachine.SpanEvent(statusServer.Context(), statemachine.EventDisconnect))
+			das.sendEvent(state.SpanEvent(statusServer.Context(), state.EventDisconnect))
 		}
 		close(agentStatusChan)
 		das.lock.Lock()
@@ -109,11 +109,11 @@ func (das *DeviceAgentServer) GetAgentConfiguration(ctx context.Context, req *pb
 func (das *DeviceAgentServer) SetActiveTenant(ctx context.Context, req *pb.SetActiveTenantRequest) (*pb.SetActiveTenantResponse, error) {
 	if err := das.rc.SetActiveTenant(req.Name); err != nil {
 		das.notifier.Errorf("while activating tenant: %s", err)
-		das.sendEvent(statemachine.SpanEvent(ctx, statemachine.EventDisconnect))
+		das.sendEvent(state.SpanEvent(ctx, state.EventDisconnect))
 		return &pb.SetActiveTenantResponse{}, nil
 	}
 
-	das.sendEvent(statemachine.SpanEvent(ctx, statemachine.EventDisconnect))
+	das.sendEvent(state.SpanEvent(ctx, state.EventDisconnect))
 	das.log.Infof("activated tenant: %s", req.Name)
 	return &pb.SetActiveTenantResponse{}, nil
 }
@@ -123,7 +123,7 @@ func NewServer(ctx context.Context,
 	cfg *config.Config,
 	rc runtimeconfig.RuntimeConfig,
 	notifier notify.Notifier,
-	sendEvent func(statemachine.EventWithSpan),
+	sendEvent func(state.EventWithSpan),
 ) *DeviceAgentServer {
 	return &DeviceAgentServer{
 		log:            log,

@@ -20,7 +20,7 @@ import (
 	"github.com/nais/device/internal/apiserver/auth"
 	"github.com/nais/device/internal/device-agent/config"
 	"github.com/nais/device/internal/device-agent/runtimeconfig"
-	"github.com/nais/device/internal/device-agent/statemachine"
+	"github.com/nais/device/internal/device-agent/statemachine/state"
 	"github.com/nais/device/internal/notify"
 	"github.com/nais/device/internal/otel"
 	"github.com/nais/device/internal/pb"
@@ -53,7 +53,7 @@ func New(
 	notifier notify.Notifier,
 	deviceHelper pb.DeviceHelperClient,
 	statusUpdates chan<- *pb.AgentStatus,
-) statemachine.State {
+) state.State {
 	c := &Connected{
 		rc:            rc,
 		logger:        logger,
@@ -71,7 +71,7 @@ var (
 	ErrLostConnection  = errors.New("lost connection")
 )
 
-func (c *Connected) Enter(ctx context.Context) statemachine.EventWithSpan {
+func (c *Connected) Enter(ctx context.Context) state.EventWithSpan {
 	// Set up WireGuard interface for communication with APIServer
 	helperCtx, cancel := context.WithTimeout(ctx, helperTimeout)
 	_, err := c.deviceHelper.Configure(helperCtx, c.rc.BuildHelperConfiguration([]*pb.Gateway{
@@ -80,7 +80,7 @@ func (c *Connected) Enter(ctx context.Context) statemachine.EventWithSpan {
 	cancel()
 	if err != nil {
 		c.notifier.Errorf(err.Error())
-		return statemachine.SpanEvent(ctx, statemachine.EventDisconnect)
+		return state.SpanEvent(ctx, state.EventDisconnect)
 	}
 
 	// Teardown WireGuard interface when this state is finished
@@ -106,13 +106,13 @@ func (c *Connected) Enter(ctx context.Context) statemachine.EventWithSpan {
 			continue
 		case errors.Is(e, auth.ErrTermsNotAccepted):
 			c.notifier.Errorf("%v", e)
-			return statemachine.SpanEvent(ctx, statemachine.EventDisconnect)
+			return state.SpanEvent(ctx, state.EventDisconnect)
 		case errors.Is(e, &auth.ParseTokenError{}):
 			fallthrough
 		case errors.Is(e, ErrUnauthenticated):
 			c.notifier.Errorf("Unauthenticated: %v", err)
 			c.rc.SetToken(nil)
-			return statemachine.SpanEvent(ctx, statemachine.EventDisconnect)
+			return state.SpanEvent(ctx, state.EventDisconnect)
 		case errors.Is(e, io.EOF):
 			c.logger.Infof("Connection unexpectedly lost (EOF), reconnecting...")
 			attempt = 0
@@ -121,20 +121,20 @@ func (c *Connected) Enter(ctx context.Context) statemachine.EventWithSpan {
 			attempt = 0
 		case errors.Is(e, context.DeadlineExceeded):
 			c.logger.Infof("syncConfigLoop deadline exceeded: %v", err)
-			return statemachine.SpanEvent(ctx, statemachine.EventDisconnect)
+			return state.SpanEvent(ctx, state.EventDisconnect)
 		case errors.Is(e, context.Canceled):
 			// in this case something from the outside canceled us, let them decide next state
 			c.logger.Infof("syncConfigLoop canceled: %v", err)
-			return statemachine.SpanEvent(ctx, statemachine.EventWaitForExternalEvent)
+			return state.SpanEvent(ctx, state.EventWaitForExternalEvent)
 		case e != nil:
 			// Unhandled error: disconnect
 			c.logger.Errorf("error in syncConfigLoop: %v", err)
 			c.notifier.Errorf("Unhandled error while updating config. Please send your logs to the NAIS team.")
-			return statemachine.SpanEvent(ctx, statemachine.EventDisconnect)
+			return state.SpanEvent(ctx, state.EventDisconnect)
 		}
 	}
 
-	return statemachine.SpanEvent(ctx, statemachine.EventDisconnect)
+	return state.SpanEvent(ctx, state.EventDisconnect)
 }
 
 func (c *Connected) triggerStatusUpdate() {

@@ -9,7 +9,7 @@ import (
 
 	"github.com/nais/device/internal/device-agent/auth"
 	"github.com/nais/device/internal/device-agent/runtimeconfig"
-	"github.com/nais/device/internal/device-agent/statemachine"
+	"github.com/nais/device/internal/device-agent/statemachine/state"
 	"github.com/nais/device/internal/notify"
 	"github.com/nais/device/internal/pb"
 	"github.com/sirupsen/logrus"
@@ -48,7 +48,7 @@ func TestConnected_Enter(t *testing.T) {
 			deviceHelper: deviceHelper,
 		}
 		event := c.Enter(ctx).Event
-		assert.Equal(t, statemachine.EventDisconnect, event)
+		assert.Equal(t, state.EventDisconnect, event)
 	})
 
 	t.Run("syncConfigLoop", func(t *testing.T) {
@@ -90,7 +90,7 @@ func TestConnected_Enter(t *testing.T) {
 				},
 			}
 			event := c.Enter(ctx).Event
-			assert.Equal(t, statemachine.EventDisconnect, event)
+			assert.Equal(t, state.EventDisconnect, event)
 		})
 
 		t.Run("returns unhandled error", func(t *testing.T) {
@@ -109,7 +109,7 @@ func TestConnected_Enter(t *testing.T) {
 				},
 			}
 			event := c.Enter(ctx).Event
-			assert.Equal(t, statemachine.EventDisconnect, event)
+			assert.Equal(t, state.EventDisconnect, event)
 		})
 
 		t.Run("returns context.Canceled", func(t *testing.T) {
@@ -128,7 +128,7 @@ func TestConnected_Enter(t *testing.T) {
 				},
 			}
 			event := c.Enter(ctx).Event
-			assert.Equal(t, statemachine.EventWaitForExternalEvent, event)
+			assert.Equal(t, state.EventWaitForExternalEvent, event)
 		})
 
 		t.Run("returns ErrUnavailable", func(t *testing.T) {
@@ -153,7 +153,7 @@ func TestConnected_Enter(t *testing.T) {
 				},
 			}
 			event := c.Enter(ctx).Event
-			assert.Equal(t, statemachine.EventWaitForExternalEvent, event)
+			assert.Equal(t, state.EventWaitForExternalEvent, event)
 		})
 
 		t.Run("returns ErrLostConnection", func(t *testing.T) {
@@ -178,7 +178,7 @@ func TestConnected_Enter(t *testing.T) {
 				},
 			}
 			event := c.Enter(ctx).Event
-			assert.Equal(t, statemachine.EventWaitForExternalEvent, event)
+			assert.Equal(t, state.EventWaitForExternalEvent, event)
 		})
 	})
 }

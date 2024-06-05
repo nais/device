@@ -8,7 +8,7 @@ import (
 	device_agent "github.com/nais/device/internal/device-agent"
 	"github.com/nais/device/internal/device-agent/config"
 	"github.com/nais/device/internal/device-agent/runtimeconfig"
-	"github.com/nais/device/internal/device-agent/statemachine"
+	"github.com/nais/device/internal/device-agent/statemachine/state"
 	"github.com/nais/device/internal/notify"
 	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/mock"
@@ -54,13 +54,25 @@ func TestStateMachine(t *testing.T) {
 		deviceHelper.EXPECT().Configure(mock.Anything, mock.Anything).Return(&pb.ConfigureResponse{}, nil)
 		deviceHelper.EXPECT().Teardown(mock.Anything, mock.Anything).Return(&pb.TeardownResponse{}, nil)
 
-		sm := device_agent.NewStateMachine(ctx, rc, cfg, notifier, deviceHelper, nil, log)
+		statusChan := make(chan *pb.AgentStatus, 6)
+		sm := device_agent.NewStateMachine(ctx, rc, cfg, notifier, deviceHelper, statusChan, log)
 		go sm.Run(ctx)
 
-		sm.SendEvent(statemachine.SpanEvent(ctx, statemachine.EventLogin))
-		assert.Eventually(t, func() bool { return sm.GetAgentState() == pb.AgentState_Connected }, 2000*time.Millisecond, 5*time.Millisecond)
+		isState := func(state pb.AgentState) func() bool {
+			return func() bool {
+				select {
+				case s := <-statusChan:
+					return state == s.ConnectionState
+				default:
+					return false
+				}
+			}
+		}
 
-		sm.SendEvent(statemachine.SpanEvent(ctx, statemachine.EventDisconnect))
-		assert.Eventually(t, func() bool { return sm.GetAgentState() == pb.AgentState_Disconnected }, 3000*time.Millisecond, 5*time.Millisecond)
+		sm.SendEvent(state.SpanEvent(ctx, state.EventLogin))
+		assert.Eventually(t, isState(pb.AgentState_Connected), 2000*time.Millisecond, 5*time.Millisecond)
+
+		sm.SendEvent(state.SpanEvent(ctx, state.EventDisconnect))
+		assert.Eventually(t, isState(pb.AgentState_Disconnected), 3000*time.Millisecond, 5*time.Millisecond)
 	})
 }

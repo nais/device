@@ -5,7 +5,7 @@ import (
 
 	"github.com/nais/device/internal/device-agent/config"
 	"github.com/nais/device/internal/device-agent/runtimeconfig"
-	"github.com/nais/device/internal/device-agent/statemachine"
+	"github.com/nais/device/internal/device-agent/statemachine/state"
 	"github.com/nais/device/internal/pb"
 )
 
@@ -16,23 +16,23 @@ type Disconnected struct {
 	autoConnectTriggered bool
 }
 
-func New(rc runtimeconfig.RuntimeConfig, cfg config.Config) statemachine.State {
+func New(rc runtimeconfig.RuntimeConfig, cfg config.Config) state.State {
 	return &Disconnected{
 		rc:  rc,
 		cfg: cfg,
 	}
 }
 
-func (d *Disconnected) Enter(ctx context.Context) statemachine.EventWithSpan {
+func (d *Disconnected) Enter(ctx context.Context) state.EventWithSpan {
 	d.rc.SetToken(nil)
 	d.rc.ResetEnrollConfig()
 
 	if d.cfg.AgentConfiguration.AutoConnect && !d.autoConnectTriggered {
 		d.autoConnectTriggered = true
-		return statemachine.SpanEvent(ctx, statemachine.EventLogin)
+		return state.SpanEvent(ctx, state.EventLogin)
 	}
 	<-ctx.Done()
-	return statemachine.SpanEvent(ctx, statemachine.EventWaitForExternalEvent)
+	return state.SpanEvent(ctx, state.EventWaitForExternalEvent)
 }
 
 func (Disconnected) AgentState() pb.AgentState {
