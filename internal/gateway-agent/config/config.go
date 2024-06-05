@@ -1,6 +1,5 @@
 package config
 
-import "C"
 import (
 	"fmt"
 	"net/netip"
