@@ -13,7 +13,7 @@ import (
 
 type StateMachine struct {
 	ctx           context.Context
-	current       *state.StateLifecycle
+	current       *state.Lifecycle
 	events        chan state.EventWithSpan
 	initialState  state.State
 	transitions   map[state.EventType]Transitions
@@ -98,7 +98,7 @@ func (sm *StateMachine) setState(ctx context.Context, s state.State) {
 		sm.current.Exit()
 	}
 
-	sm.current = state.NewStateLifecycle(ctx, s)
+	sm.current = state.NewLifecycle(ctx, s)
 	sm.triggerStatusUpdate()
 
 	sm.logger.Infof("Entering state: %v", sm.current)

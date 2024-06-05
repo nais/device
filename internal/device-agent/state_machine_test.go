@@ -32,14 +32,33 @@ func TestStateMachine(t *testing.T) {
 		rc.EXPECT().LoadEnrollConfig().Return(nil)
 		rc.EXPECT().APIServerPeer().Return(&pb.Gateway{})
 		rc.EXPECT().BuildHelperConfiguration(mock.Anything).Return(&pb.Configuration{})
+
 		mockGetDeviceConfigclient := pb.NewMockAPIServer_GetDeviceConfigurationClient(t)
-		mockGetDeviceConfigclient.EXPECT().Recv().WaitUntil(time.After(20*time.Millisecond)).Return(&pb.GetDeviceConfigurationResponse{
-			Status:   pb.DeviceConfigurationStatus_DeviceHealthy,
-			Gateways: []*pb.Gateway{},
-		}, nil)
+		recv := mockGetDeviceConfigclient.EXPECT().Recv().After(20*time.Millisecond).Return(
+			&pb.GetDeviceConfigurationResponse{
+				Status:   pb.DeviceConfigurationStatus_DeviceHealthy,
+				Gateways: []*pb.Gateway{},
+			}, nil)
+		var streamContext context.Context
+		recv.Run(func(args mock.Arguments) {
+			if streamContext != nil && streamContext.Err() != nil {
+				recv.ReturnArguments = []any{nil, streamContext.Err()}
+			} else {
+				recv.ReturnArguments = []any{
+					&pb.GetDeviceConfigurationResponse{
+						Status:   pb.DeviceConfigurationStatus_DeviceHealthy,
+						Gateways: []*pb.Gateway{},
+					}, nil,
+				}
+			}
+		})
+
 		mockApiServerClient := pb.NewMockAPIServerClient(t)
 		mockApiServerClient.EXPECT().GetDeviceConfiguration(mock.Anything, mock.Anything).Return(mockGetDeviceConfigclient, nil)
-		rc.EXPECT().ConnectToAPIServer(mock.Anything).Return(mockApiServerClient, func() {}, nil)
+		rc.EXPECT().ConnectToAPIServer(mock.Anything).Return(mockApiServerClient, func() {}, nil).Run(func(ctx context.Context) {
+			streamContext = ctx
+		})
+
 		rc.EXPECT().SetToken(mock.Anything)
 		rc.EXPECT().ResetEnrollConfig()
 
@@ -54,7 +73,7 @@ func TestStateMachine(t *testing.T) {
 		deviceHelper.EXPECT().Configure(mock.Anything, mock.Anything).Return(&pb.ConfigureResponse{}, nil)
 		deviceHelper.EXPECT().Teardown(mock.Anything, mock.Anything).Return(&pb.TeardownResponse{}, nil)
 
-		statusChan := make(chan *pb.AgentStatus, 6)
+		statusChan := make(chan *pb.AgentStatus, 10)
 		sm := device_agent.NewStateMachine(ctx, rc, cfg, notifier, deviceHelper, statusChan, log)
 		go sm.Run(ctx)
 
@@ -62,6 +81,7 @@ func TestStateMachine(t *testing.T) {
 			return func() bool {
 				select {
 				case s := <-statusChan:
+					t.Logf("got state: %v", s)
 					return state == s.ConnectionState
 				default:
 					return false
