@@ -19,13 +19,14 @@ import (
 
 type DeviceAgentServer struct {
 	pb.UnimplementedDeviceAgentServer
-	lock           sync.RWMutex
-	statusChannels map[uuid.UUID]chan *pb.AgentStatus
-	Config         *config.Config
-	notifier       notify.Notifier
-	rc             runtimeconfig.RuntimeConfig
-	log            *logrus.Entry
-	sendEvent      func(state.EventWithSpan)
+	Config    *config.Config
+	notifier  notify.Notifier
+	rc        runtimeconfig.RuntimeConfig
+	log       *logrus.Entry
+	sendEvent func(state.EventWithSpan)
+
+	statusChannelsLock sync.RWMutex
+	statusChannels     map[uuid.UUID]chan *pb.AgentStatus
 
 	AgentStatus     *pb.AgentStatus
 	agentStatusLock sync.RWMutex
@@ -51,9 +52,9 @@ func (das *DeviceAgentServer) Status(request *pb.AgentStatusRequest, statusServe
 	agentStatusChan <- das.AgentStatus
 	das.agentStatusLock.RUnlock()
 
-	das.lock.Lock()
+	das.statusChannelsLock.Lock()
 	das.statusChannels[id] = agentStatusChan
-	das.lock.Unlock()
+	das.statusChannelsLock.Unlock()
 
 	defer func() {
 		das.log.Debugf("grpc: client connection with device helper closed")
@@ -61,10 +62,10 @@ func (das *DeviceAgentServer) Status(request *pb.AgentStatusRequest, statusServe
 			das.log.Debugf("grpc: keepalive not requested, tearing down connections...")
 			das.sendEvent(state.SpanEvent(statusServer.Context(), state.EventDisconnect))
 		}
+		das.statusChannelsLock.Lock()
 		close(agentStatusChan)
-		das.lock.Lock()
 		delete(das.statusChannels, id)
-		das.lock.Unlock()
+		das.statusChannelsLock.Unlock()
 	}()
 
 	for {
@@ -89,7 +90,7 @@ func (das *DeviceAgentServer) UpdateAgentStatus(status *pb.AgentStatus) {
 	das.AgentStatus = status
 	das.agentStatusLock.Unlock()
 
-	das.lock.RLock()
+	das.statusChannelsLock.RLock()
 	for _, c := range das.statusChannels {
 		select {
 		case c <- status:
@@ -97,7 +98,7 @@ func (das *DeviceAgentServer) UpdateAgentStatus(status *pb.AgentStatus) {
 			das.log.Errorf("BUG: update agent status: channel is full")
 		}
 	}
-	das.lock.RUnlock()
+	das.statusChannelsLock.RUnlock()
 }
 
 func (das *DeviceAgentServer) SetAgentConfiguration(ctx context.Context, req *pb.SetAgentConfigurationRequest) (*pb.SetAgentConfigurationResponse, error) {
