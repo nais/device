@@ -41,13 +41,15 @@
         devshells.default = {
           packages =
             (with pkgs; [
+              gcc # needed for sqlite3-go
+              gnumake
               go
+              go-tools
               gopls
               gotools
-              go-tools
+              imagemagick
               protobuf
               sqlite
-              imagemagick
             ])
             ++ [config.treefmt.build.wrapper];
         };
