@@ -34,11 +34,7 @@ func TestStateMachine(t *testing.T) {
 		rc.EXPECT().BuildHelperConfiguration(mock.Anything).Return(&pb.Configuration{})
 
 		mockGetDeviceConfigclient := pb.NewMockAPIServer_GetDeviceConfigurationClient(t)
-		recv := mockGetDeviceConfigclient.EXPECT().Recv().After(20*time.Millisecond).Return(
-			&pb.GetDeviceConfigurationResponse{
-				Status:   pb.DeviceConfigurationStatus_DeviceHealthy,
-				Gateways: []*pb.Gateway{},
-			}, nil)
+		recv := mockGetDeviceConfigclient.EXPECT().Recv().After(20 * time.Millisecond)
 		var streamContext context.Context
 		recv.Run(func(args mock.Arguments) {
 			if streamContext != nil && streamContext.Err() != nil {
