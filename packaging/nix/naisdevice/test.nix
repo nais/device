@@ -1,6 +1,8 @@
-{ naisdevice, runCommand }:
-
-runCommand "test-naisdevice-agent" { inherit naisdevice; } ''
+{
+  naisdevice,
+  runCommand,
+}:
+runCommand "test-naisdevice-agent" {inherit naisdevice;} ''
   (
     set -x
     [[ "" == "$(${naisdevice}/bin/naisdevice-agent --help)" ]]
