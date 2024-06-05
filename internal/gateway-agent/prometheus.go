@@ -9,6 +9,7 @@ import (
 )
 
 var (
+	initialized               = false
 	FailedConfigFetches       prometheus.Counter
 	LastSuccessfulConfigFetch prometheus.Gauge
 	RegisteredDevices         prometheus.Gauge
@@ -21,6 +22,10 @@ func Serve(log *logrus.Entry, address string) {
 }
 
 func InitializeMetrics(name, version string) {
+	if initialized {
+		return
+	}
+	initialized = true
 	CurrentVersion = prometheus.NewCounter(prometheus.CounterOpts{
 		Name:        "current_version",
 		Help:        "current running version",
