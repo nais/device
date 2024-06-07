@@ -202,7 +202,7 @@ func tableTest(t *testing.T, log *logrus.Entry, testDevice *pb.Device, deviceFai
 		})
 	}
 
-	osConfigurator.EXPECT().TeardownInterface(mock.AnythingOfType("context.Context")).Return(nil).Maybe()
+	osConfigurator.EXPECT().TeardownInterface(mock.Anything).Return(nil).Maybe()
 
 	helperListener, stopHelper := serve(t, NewHelper(t, log.WithField("component", "helper"), osConfigurator), wg)
 
