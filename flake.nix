@@ -29,8 +29,15 @@
       perSystem = {
         config,
         pkgs,
+        system,
         ...
       }: {
+        _module.args.pkgs = import inputs.nixpkgs {
+          inherit system;
+          overlays = [
+            (import ./packaging/nix/naisdevice/overlay.nix)
+          ];
+        };
         packages.default = config.packages.naisdevice;
 
         packages.naisdevice = pkgs.callPackage ./packaging/nix/naisdevice/package.nix {inherit self;};
