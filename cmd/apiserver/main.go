@@ -200,14 +200,19 @@ func run(log *logrus.Entry, cfg config.Config) error {
 			return fmt.Errorf("kolide integration enabled but no kolide-api-token provided")
 		}
 
+		log.Info("Kolide client configured, populating cache...")
+
 		kolideClient = kolide.New(cfg.KolideApiToken, log.WithField("component", "kolide-client"))
 		err := kolideClient.RefreshCache(ctx)
 		if err != nil {
 			return fmt.Errorf("initial kolide cache warmup: %w", err)
 		}
 
+		kolideRefreshInterval := 1 * time.Minute
+		log.Infof("Kolide cache populated, will auto refresh every %v", kolideRefreshInterval)
+
 		go func() {
-			sleep := time.NewTicker(1 * time.Minute)
+			sleep := time.NewTicker(kolideRefreshInterval)
 			for {
 				select {
 				case <-ctx.Done():
