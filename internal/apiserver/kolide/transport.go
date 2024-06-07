@@ -18,10 +18,12 @@ type Transport struct {
 	MaxHttpRetries    int
 }
 
+var _ http.RoundTripper = &Transport{}
+
 func NewTransport(token string) *Transport {
 	return &Transport{
 		Token:             token,
-		Transport:         http.DefaultClient.Transport,
+		Transport:         http.DefaultTransport,
 		MaxHttpRetries:    10,
 		DefaultRetryAfter: time.Second,
 	}
