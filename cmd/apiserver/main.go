@@ -200,7 +200,7 @@ func run(log *logrus.Entry, cfg config.Config) error {
 			return fmt.Errorf("kolide integration enabled but no kolide-api-token provided")
 		}
 
-		kolideClient = kolide.New(cfg.KolideApiToken)
+		kolideClient = kolide.New(cfg.KolideApiToken, log.WithField("component", "kolide-client"))
 		err := kolideClient.RefreshCache(ctx)
 		if err != nil {
 			return fmt.Errorf("initial kolide cache warmup: %w", err)

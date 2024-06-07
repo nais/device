@@ -26,7 +26,7 @@ type client struct {
 	log logrus.FieldLogger
 }
 
-func New(token string) Client {
+func New(token string, log logrus.FieldLogger) Client {
 	return &client{
 		baseUrl: "https://k2.kolide.com/api/v0",
 		client: &http.Client{
@@ -34,6 +34,7 @@ func New(token string) Client {
 		},
 		checks:  &Cache[uint64, Check]{},
 		devices: &Cache[string, Device]{},
+		log:     log,
 	}
 }
 
