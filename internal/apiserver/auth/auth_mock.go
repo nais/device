@@ -11,6 +11,15 @@ import (
 	"github.com/nais/device/internal/random"
 )
 
+func MockDevice() *pb.Device {
+	return &pb.Device{
+		Id:       1,
+		Serial:   "mock",
+		Username: "mock",
+		Platform: "linux",
+	}
+}
+
 type mockAuthenticator struct {
 	store SessionStore
 }
@@ -21,12 +30,7 @@ func (m *mockAuthenticator) Login(ctx context.Context, _, _, _ string) (*pb.Sess
 		Expiry:   timestamppb.New(time.Now().Add(SessionDuration)),
 		Groups:   []string{"group1", "group2"},
 		ObjectID: "objectId123",
-		Device: &pb.Device{
-			Id:       1,
-			Serial:   "mock",
-			Username: "mock",
-			Platform: "linux",
-		},
+		Device:   MockDevice(),
 	}
 
 	err := m.store.Set(ctx, session)

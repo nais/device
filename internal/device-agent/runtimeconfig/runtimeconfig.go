@@ -256,6 +256,17 @@ func (r *runtimeConfig) LoadEnrollConfig() error {
 		return nil
 	}
 
+	if r.getPartnerDomain() == "mock" {
+		r.enrollConfig = &bootstrap.Config{
+			DeviceIPv4:     "",
+			APIServerIP:    "127.0.0.1",
+			DeviceIPv6:     "",
+			PublicKey:      "",
+			TunnelEndpoint: "",
+		}
+		return nil
+	}
+
 	path := r.path()
 	b, err := os.ReadFile(path)
 	if err != nil {
@@ -315,6 +326,10 @@ func (r *runtimeConfig) getEnrollURL(ctx context.Context) (string, error) {
 }
 
 func (r *runtimeConfig) getPartnerDomain() string {
+	if r.config.LocalAPIServer {
+		return "mock"
+	}
+
 	if r.GetActiveTenant().Domain != "" {
 		return r.GetActiveTenant().Domain
 	}

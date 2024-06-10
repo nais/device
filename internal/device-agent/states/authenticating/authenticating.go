@@ -12,6 +12,7 @@ import (
 	"github.com/nais/device/internal/otel"
 	"github.com/nais/device/internal/pb"
 	"github.com/sirupsen/logrus"
+	"golang.org/x/oauth2"
 )
 
 const (
@@ -40,6 +41,14 @@ func New(rc runtimeconfig.RuntimeConfig, cfg config.Config, logger logrus.FieldL
 func (a *Authenticating) Enter(ctx context.Context) state.EventWithSpan {
 	ctx, span := otel.Start(ctx, "Authenticating")
 	defer span.End()
+
+	if a.cfg.LocalAPIServer {
+		span.AddEvent("mock.auth")
+		a.rc.SetToken(&auth.Tokens{
+			Token: &oauth2.Token{},
+		})
+		return state.SpanEvent(ctx, state.EventAuthenticated)
+	}
 
 	session, _ := a.rc.GetTenantSession()
 	if !session.Expired() {

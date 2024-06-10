@@ -36,6 +36,7 @@ type Config struct {
 	WireGuardConfigPath      string
 	EnrollProjectID          string
 	EnrollTopicName          string
+	LocalAPIServer           bool
 }
 
 func (c *Config) SetDefaults() {

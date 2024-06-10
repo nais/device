@@ -64,6 +64,7 @@ func main() {
 	flag.StringVar(&cfg.GrpcAddress, "grpc-address", cfg.GrpcAddress, "unix socket for gRPC server")
 	flag.StringVar(&cfg.DeviceAgentHelperAddress, "device-agent-helper-address", cfg.DeviceAgentHelperAddress, "device-agent-helper unix socket")
 	flag.StringVar(&cfg.GoogleAuthServerAddress, "google-auth-server-address", cfg.GoogleAuthServerAddress, "Google auth-server address")
+	flag.BoolVar(&cfg.LocalAPIServer, "local-apiserver", false, "Connect to a local apiserver on 127.0.0.1:8099 using mock authentication")
 	flag.Parse()
 
 	cfg.SetDefaults()
@@ -125,18 +126,23 @@ func run(ctx context.Context, log *logrus.Entry, cfg *config.Config, notifier no
 	}
 
 	log.Infof("naisdevice-helper connection on unix socket %s", cfg.DeviceAgentHelperAddress)
-	connection, err := grpc.Dial(
-		"unix:"+cfg.DeviceAgentHelperAddress,
-		grpc.WithTransportCredentials(insecure.NewCredentials()),
-		grpc.WithIdleTimeout(10*time.Hour),
-		grpc.WithStatsHandler(otel.NewGRPCClientHandler(pb.DeviceHelper_Ping_FullMethodName)),
-	)
-	if err != nil {
-		return fmt.Errorf("connect to naisdevice-helper: %v", err)
-	}
 
-	client := pb.NewDeviceHelperClient(connection)
-	defer connection.Close()
+	var client pb.DeviceHelperClient
+	if cfg.LocalAPIServer {
+		client = pb.NewMockHelperClient(log)
+	} else {
+		connection, err := grpc.Dial(
+			"unix:"+cfg.DeviceAgentHelperAddress,
+			grpc.WithTransportCredentials(insecure.NewCredentials()),
+			grpc.WithIdleTimeout(10*time.Hour),
+			grpc.WithStatsHandler(otel.NewGRPCClientHandler(pb.DeviceHelper_Ping_FullMethodName)),
+		)
+		if err != nil {
+			return fmt.Errorf("connect to naisdevice-helper: %v", err)
+		}
+		client = pb.NewDeviceHelperClient(connection)
+		defer connection.Close()
+	}
 
 	go func() {
 		var helperCheckErrors []error

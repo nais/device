@@ -33,6 +33,18 @@ The `apiserver` component serves as the gRPC API server, responsible for handlin
   - [prometheus-agent](#prometheus-agent)
 - Retrieving device health status from the `nais/kolide-event-handler`.
 
+### Run API server locally
+
+```shell
+# Create a sqlite database file with a mock device
+go run ./hack/local-device.go
+# Start apiserver
+go run ./cmd/apiserver
+
+## Run device agent with access to your local apiserver
+go run ./cmd/naisdevice-agent --local-apiserver
+```
+
 ## gateway-agent
 
 The `gateway-agent` runs on virtual machines (VMs) and interacts with the `apiserver` to receive and apply configurations. Key features of the `gateway-agent` include:
