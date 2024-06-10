@@ -39,7 +39,18 @@ func New(token string, log logrus.FieldLogger) Client {
 }
 
 func deviceKey(email, platform, serial string) string {
-	return strings.ToLower(fmt.Sprintf("%v-%v-%v", email, platform, serial))
+	convertPlatform := func(platform string) string {
+		switch strings.ToLower(platform) {
+		case "darwin":
+			return "darwin"
+		case "windows":
+			return "windows"
+		default:
+			return "linux"
+		}
+	}
+
+	return strings.ToLower(fmt.Sprintf("%v-%v-%v", email, convertPlatform(platform), serial))
 }
 
 func (kc *client) RefreshCache(ctx context.Context) error {
