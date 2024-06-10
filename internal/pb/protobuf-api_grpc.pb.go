@@ -8,7 +8,6 @@ package pb
 
 import (
 	context "context"
-
 	grpc "google.golang.org/grpc"
 	codes "google.golang.org/grpc/codes"
 	status "google.golang.org/grpc/status"
@@ -110,24 +109,21 @@ type DeviceHelperServer interface {
 }
 
 // UnimplementedDeviceHelperServer must be embedded to have forward compatible implementations.
-type UnimplementedDeviceHelperServer struct{}
+type UnimplementedDeviceHelperServer struct {
+}
 
 func (UnimplementedDeviceHelperServer) Configure(context.Context, *Configuration) (*ConfigureResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Configure not implemented")
 }
-
 func (UnimplementedDeviceHelperServer) Teardown(context.Context, *TeardownRequest) (*TeardownResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Teardown not implemented")
 }
-
 func (UnimplementedDeviceHelperServer) Upgrade(context.Context, *UpgradeRequest) (*UpgradeResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Upgrade not implemented")
 }
-
 func (UnimplementedDeviceHelperServer) GetSerial(context.Context, *GetSerialRequest) (*GetSerialResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetSerial not implemented")
 }
-
 func (UnimplementedDeviceHelperServer) Ping(context.Context, *PingRequest) (*PingResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Ping not implemented")
 }
@@ -414,32 +410,27 @@ type DeviceAgentServer interface {
 }
 
 // UnimplementedDeviceAgentServer must be embedded to have forward compatible implementations.
-type UnimplementedDeviceAgentServer struct{}
+type UnimplementedDeviceAgentServer struct {
+}
 
 func (UnimplementedDeviceAgentServer) Status(*AgentStatusRequest, DeviceAgent_StatusServer) error {
 	return status.Errorf(codes.Unimplemented, "method Status not implemented")
 }
-
 func (UnimplementedDeviceAgentServer) ConfigureJITA(context.Context, *ConfigureJITARequest) (*ConfigureJITAResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method ConfigureJITA not implemented")
 }
-
 func (UnimplementedDeviceAgentServer) Login(context.Context, *LoginRequest) (*LoginResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Login not implemented")
 }
-
 func (UnimplementedDeviceAgentServer) Logout(context.Context, *LogoutRequest) (*LogoutResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Logout not implemented")
 }
-
 func (UnimplementedDeviceAgentServer) SetActiveTenant(context.Context, *SetActiveTenantRequest) (*SetActiveTenantResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method SetActiveTenant not implemented")
 }
-
 func (UnimplementedDeviceAgentServer) SetAgentConfiguration(context.Context, *SetAgentConfigurationRequest) (*SetAgentConfigurationResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method SetAgentConfiguration not implemented")
 }
-
 func (UnimplementedDeviceAgentServer) GetAgentConfiguration(context.Context, *GetAgentConfigurationRequest) (*GetAgentConfigurationResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetAgentConfiguration not implemented")
 }
@@ -636,6 +627,7 @@ const (
 	APIServer_EnrollGateway_FullMethodName           = "/naisdevice.APIServer/EnrollGateway"
 	APIServer_UpdateGateway_FullMethodName           = "/naisdevice.APIServer/UpdateGateway"
 	APIServer_GetSessions_FullMethodName             = "/naisdevice.APIServer/GetSessions"
+	APIServer_GetKolideCache_FullMethodName          = "/naisdevice.APIServer/GetKolideCache"
 )
 
 // APIServerClient is the client API for APIServer service.
@@ -658,6 +650,8 @@ type APIServerClient interface {
 	UpdateGateway(ctx context.Context, in *ModifyGatewayRequest, opts ...grpc.CallOption) (*ModifyGatewayResponse, error)
 	// Admin endpoint for reading sessions from the cache
 	GetSessions(ctx context.Context, in *GetSessionsRequest, opts ...grpc.CallOption) (*GetSessionsResponse, error)
+	// Admin endpoint for reading kolide cache
+	GetKolideCache(ctx context.Context, in *GetKolideCacheRequest, opts ...grpc.CallOption) (*GetKolideCacheResponse, error)
 }
 
 type aPIServerClient struct {
@@ -809,6 +803,15 @@ func (c *aPIServerClient) GetSessions(ctx context.Context, in *GetSessionsReques
 	return out, nil
 }
 
+func (c *aPIServerClient) GetKolideCache(ctx context.Context, in *GetKolideCacheRequest, opts ...grpc.CallOption) (*GetKolideCacheResponse, error) {
+	out := new(GetKolideCacheResponse)
+	err := c.cc.Invoke(ctx, APIServer_GetKolideCache_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // APIServerServer is the server API for APIServer service.
 // All implementations must embed UnimplementedAPIServerServer
 // for forward compatibility
@@ -829,42 +832,41 @@ type APIServerServer interface {
 	UpdateGateway(context.Context, *ModifyGatewayRequest) (*ModifyGatewayResponse, error)
 	// Admin endpoint for reading sessions from the cache
 	GetSessions(context.Context, *GetSessionsRequest) (*GetSessionsResponse, error)
+	// Admin endpoint for reading kolide cache
+	GetKolideCache(context.Context, *GetKolideCacheRequest) (*GetKolideCacheResponse, error)
 	mustEmbedUnimplementedAPIServerServer()
 }
 
 // UnimplementedAPIServerServer must be embedded to have forward compatible implementations.
-type UnimplementedAPIServerServer struct{}
+type UnimplementedAPIServerServer struct {
+}
 
 func (UnimplementedAPIServerServer) Login(context.Context, *APIServerLoginRequest) (*APIServerLoginResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Login not implemented")
 }
-
 func (UnimplementedAPIServerServer) GetDeviceConfiguration(*GetDeviceConfigurationRequest, APIServer_GetDeviceConfigurationServer) error {
 	return status.Errorf(codes.Unimplemented, "method GetDeviceConfiguration not implemented")
 }
-
 func (UnimplementedAPIServerServer) GetGatewayConfiguration(*GetGatewayConfigurationRequest, APIServer_GetGatewayConfigurationServer) error {
 	return status.Errorf(codes.Unimplemented, "method GetGatewayConfiguration not implemented")
 }
-
 func (UnimplementedAPIServerServer) GetGateway(context.Context, *ModifyGatewayRequest) (*Gateway, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetGateway not implemented")
 }
-
 func (UnimplementedAPIServerServer) ListGateways(*ListGatewayRequest, APIServer_ListGatewaysServer) error {
 	return status.Errorf(codes.Unimplemented, "method ListGateways not implemented")
 }
-
 func (UnimplementedAPIServerServer) EnrollGateway(context.Context, *ModifyGatewayRequest) (*ModifyGatewayResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method EnrollGateway not implemented")
 }
-
 func (UnimplementedAPIServerServer) UpdateGateway(context.Context, *ModifyGatewayRequest) (*ModifyGatewayResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method UpdateGateway not implemented")
 }
-
 func (UnimplementedAPIServerServer) GetSessions(context.Context, *GetSessionsRequest) (*GetSessionsResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetSessions not implemented")
+}
+func (UnimplementedAPIServerServer) GetKolideCache(context.Context, *GetKolideCacheRequest) (*GetKolideCacheResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetKolideCache not implemented")
 }
 func (UnimplementedAPIServerServer) mustEmbedUnimplementedAPIServerServer() {}
 
@@ -1032,6 +1034,24 @@ func _APIServer_GetSessions_Handler(srv interface{}, ctx context.Context, dec fu
 	return interceptor(ctx, in, info, handler)
 }
 
+func _APIServer_GetKolideCache_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetKolideCacheRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(APIServerServer).GetKolideCache(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: APIServer_GetKolideCache_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(APIServerServer).GetKolideCache(ctx, req.(*GetKolideCacheRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // APIServer_ServiceDesc is the grpc.ServiceDesc for APIServer service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -1058,6 +1078,10 @@ var APIServer_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GetSessions",
 			Handler:    _APIServer_GetSessions_Handler,
+		},
+		{
+			MethodName: "GetKolideCache",
+			Handler:    _APIServer_GetKolideCache_Handler,
 		},
 	},
 	Streams: []grpc.StreamDesc{

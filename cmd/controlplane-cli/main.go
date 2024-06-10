@@ -37,6 +37,18 @@ func main() {
 				Action: controlplanecli.HashPassword,
 			},
 			{
+				Name:    "kolide",
+				Aliases: []string{"k"},
+				Usage:   "kolide cache",
+				Subcommands: []*cli.Command{
+					{
+						Name:   "dump",
+						Usage:  "dump kolide cache",
+						Action: controlplanecli.GetKolideCache,
+					},
+				},
+			},
+			{
 				Name:    "session",
 				Aliases: []string{"s"},
 				Usage:   "options for sessions",

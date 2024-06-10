@@ -45,3 +45,13 @@ func (f *FakeClient) RefreshCache(ctx context.Context) error {
 	// no-op
 	return nil
 }
+
+// DumpChecks implements Client.
+func (f *FakeClient) DumpChecks() ([]byte, error) {
+	panic("unimplemented")
+}
+
+// DumpDevices implements Client.
+func (f *FakeClient) DumpDevices() ([]byte, error) {
+	panic("unimplemented")
+}

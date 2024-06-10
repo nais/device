@@ -14,6 +14,8 @@ import (
 type Client interface {
 	RefreshCache(ctx context.Context) error
 	GetDevice(ctx context.Context, email, platform, serial string) (Device, error)
+	DumpDevices() ([]byte, error)
+	DumpChecks() ([]byte, error)
 }
 
 type client struct {
@@ -234,4 +236,12 @@ func (kc *client) get(ctx context.Context, url string) (*http.Response, error) {
 	}
 
 	return kc.client.Do(req)
+}
+
+func (kc client) DumpDevices() ([]byte, error) {
+	return json.Marshal(kc.devices)
+}
+
+func (kc client) DumpChecks() ([]byte, error) {
+	return json.Marshal(kc.checks)
 }

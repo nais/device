@@ -81,3 +81,25 @@ func (s *grpcServer) GetSessions(ctx context.Context, r *pb.GetSessionsRequest) 
 		Sessions: s.sessionStore.All(),
 	}, nil
 }
+
+func (s *grpcServer) GetKolideCache(ctx context.Context, r *pb.GetKolideCacheRequest) (*pb.GetKolideCacheResponse, error) {
+	err := s.adminAuth.Authenticate(r.GetUsername(), r.GetPassword())
+	if err != nil {
+		return nil, status.Errorf(codes.Unauthenticated, err.Error())
+	}
+
+	devices, err := s.kolideClient.DumpDevices()
+	if err != nil {
+		return nil, err
+	}
+
+	checks, err := s.kolideClient.DumpChecks()
+	if err != nil {
+		return nil, err
+	}
+
+	return &pb.GetKolideCacheResponse{
+		RawDevices: devices,
+		RawChecks:  checks,
+	}, nil
+}

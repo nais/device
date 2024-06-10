@@ -89,6 +89,10 @@ service APIServer {
   // Admin endpoint for reading sessions from the cache
   rpc GetSessions (GetSessionsRequest) returns (GetSessionsResponse) {
   }
+
+  // Admin endpoint for reading kolide cache
+  rpc GetKolideCache (GetKolideCacheRequest) returns (GetKolideCacheResponse) {
+  }
 }
 
 enum AgentState {
@@ -347,4 +351,14 @@ message GetSessionsResponse{
 message PingRequest {
 }
 message PingResponse {
+}
+
+message GetKolideCacheRequest {
+  string password = 1;
+  string username = 2;
+}
+
+message GetKolideCacheResponse {
+	bytes rawDevices = 98;
+	bytes rawChecks = 99;
 }
