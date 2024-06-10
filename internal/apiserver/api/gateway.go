@@ -32,8 +32,6 @@ func (s *grpcServer) GetGatewayConfiguration(request *pb.GetGatewayConfiguration
 	s.log.Infof("Gateway %s connected (%d active gateways)", request.Gateway, len(s.gatewayConfigTrigger))
 	s.gatewayConfigTriggerLock.Unlock()
 
-	s.reportOnlineGateways()
-
 	for {
 		select {
 		case <-c:
@@ -52,8 +50,6 @@ func (s *grpcServer) GetGatewayConfiguration(request *pb.GetGatewayConfiguration
 			delete(s.gatewayConfigTrigger, request.Gateway)
 			s.log.Infof("Gateway %s disconnected (%d active gateways)", request.Gateway, len(s.gatewayConfigTrigger))
 			s.gatewayConfigTriggerLock.Unlock()
-
-			s.reportOnlineGateways()
 
 			return nil
 		}
@@ -95,7 +91,7 @@ func (s *grpcServer) MakeGatewayConfiguration(ctx context.Context, gatewayName s
 	return gatewayConfig, nil
 }
 
-func (s *grpcServer) reportOnlineGateways() {
+func (s *grpcServer) ReportOnlineGateways() {
 	s.gatewayConfigTriggerLock.RLock()
 	connectedGatewayNames := make([]string, 0, len(s.gatewayConfigTrigger))
 	for k := range s.gatewayConfigTrigger {

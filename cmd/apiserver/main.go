@@ -376,6 +376,18 @@ func run(log *logrus.Entry, cfg config.Config) error {
 		cancel()
 	}()
 
+	go func() {
+		ticker := time.NewTicker(5 * time.Second)
+		for ctx.Err() == nil {
+			select {
+			case <-ctx.Done():
+				return
+			case <-ticker.C:
+				grpcHandler.ReportOnlineGateways()
+			}
+		}
+	}()
+
 	sigs := make(chan os.Signal, 1)
 	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
 	go func() {
