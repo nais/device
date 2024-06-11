@@ -195,6 +195,7 @@ message AgentStatus {
   bool newVersionAvailable = 3;
   repeated Gateway Gateways = 4;
   repeated Tenant Tenants = 5;
+	repeated DeviceIssue Issues = 6;
 }
 
 message Configuration {
