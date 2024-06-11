@@ -28,8 +28,16 @@ type client struct {
 	log logrus.FieldLogger
 }
 
-func New(token string, log logrus.FieldLogger) Client {
-	return &client{
+type ClientOption func(*client)
+
+func WithBaseUrl(baseUrl string) ClientOption {
+	return func(c *client) {
+		c.baseUrl = baseUrl
+	}
+}
+
+func New(token string, log logrus.FieldLogger, opts ...ClientOption) Client {
+	c := &client{
 		baseUrl: "https://k2.kolide.com/api/v0",
 		client: &http.Client{
 			Transport: NewTransport(token),
@@ -38,6 +46,10 @@ func New(token string, log logrus.FieldLogger) Client {
 		devices: &Cache[string, Device]{},
 		log:     log,
 	}
+	for _, opt := range opts {
+		opt(c)
+	}
+	return c
 }
 
 func deviceKey(email, platform, serial string) string {
