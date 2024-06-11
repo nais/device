@@ -231,7 +231,7 @@ func (kc *client) getDeviceFailures(ctx context.Context, deviceID uint64) ([]Dev
 			return nil, fmt.Errorf("unmarshal failure: %w", err)
 		}
 
-		failure.Check, err = kc.getCheck(ctx, failure.Check.ID)
+		failure.Check, err = kc.getCheck(ctx, failure.CheckID)
 		if err != nil {
 			return nil, fmt.Errorf("getting check: %w", err)
 		}
