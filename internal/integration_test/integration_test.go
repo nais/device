@@ -31,7 +31,6 @@ func TestIntegration(t *testing.T) {
 	type testCase struct {
 		name                   string
 		device                 *pb.Device
-		deviceFailures         []kolide.DeviceFailure
 		endState               pb.AgentState
 		expectedGateways       map[string]*pb.Gateway
 		expectedKolideFailures []kolide.DeviceFailure
