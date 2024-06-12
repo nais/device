@@ -27,14 +27,7 @@ const testGroup = "test-group"
 
 func TestIntegration(t *testing.T) {
 	now := time.Now()
-	testIssue := &pb.DeviceIssue{
-		Title:         "Issue used in integration test",
-		Message:       "This is just a fake issue used in integration test",
-		Severity:      pb.Severity_Critical,
-		DetectedAt:    timestamppb.New(now),
-		LastUpdated:   timestamppb.New(now),
-		ResolveBefore: timestamppb.New(now),
-	}
+
 	type testCase struct {
 		name             string
 		device           *pb.Device
@@ -53,11 +46,17 @@ func TestIntegration(t *testing.T) {
 				Username:  "tester",
 				Platform:  "linux",
 			},
-			deviceFailures:   []kolide.DeviceFailure{},
 			endState:         pb.AgentState_Unhealthy,
 			expectedGateways: nil,
 			expectedIssues: []*pb.DeviceIssue{
-				testIssue,
+				{
+					Title:         "Issue used in integration test",
+					Message:       "This is just a fake issue used in integration test",
+					Severity:      pb.Severity_Critical,
+					DetectedAt:    timestamppb.New(now.Add(-(2 * time.Hour))),
+					ResolveBefore: timestamppb.New(now.Add(-time.Second)),
+					LastUpdated:   timestamppb.New(now),
+				},
 			},
 		},
 		{
@@ -69,8 +68,7 @@ func TestIntegration(t *testing.T) {
 				Username:  "tester",
 				Platform:  "linux",
 			},
-			deviceFailures: []kolide.DeviceFailure{},
-			endState:       pb.AgentState_Connected,
+			endState: pb.AgentState_Connected,
 			expectedGateways: map[string]*pb.Gateway{
 				"expected-gateway": {
 					Name:           "expected-gateway",
@@ -94,20 +92,34 @@ func TestIntegration(t *testing.T) {
 					},
 				}
 				log := logger.WithField("component", "test")
-				tableTest(t, log, test.device, test.deviceFailures, test.endState, test.expectedGateways, test.expectedIssues)
+				tableTest(t, log, now, test.device, test.endState, test.expectedGateways, test.expectedIssues)
 			}
 		}
 		t.Run(test.name, wrap(test))
 	}
 }
 
-func tableTest(t *testing.T, log *logrus.Entry, testDevice *pb.Device, deviceFailures []kolide.DeviceFailure, endState pb.AgentState, expectedGateways map[string]*pb.Gateway, expectedIssues []*pb.DeviceIssue) {
+func tableTest(t *testing.T, log *logrus.Entry, now time.Time, testDevice *pb.Device, endState pb.AgentState, expectedGateways map[string]*pb.Gateway, expectedIssues []*pb.DeviceIssue) {
 	wg := &sync.WaitGroup{}
 	t.Helper()
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
 	defer cancel()
 
-	now := time.Now()
+	deviceFailures := []kolide.DeviceFailure{}
+	for _, issue := range expectedIssues {
+		deviceFailures = append(deviceFailures, kolide.DeviceFailure{
+			Title: issue.Title,
+			Check: kolide.Check{
+				Tags:        []string{pb.Severity_Critical.String()},
+				Description: issue.Message,
+				DisplayName: "fake check: field not used by anything",
+			},
+			LastUpdated: now,
+			Timestamp:   &now,
+		},
+		)
+	}
+
 	devicePrivateKey := "devicePrivateKey"
 	kolideDevice := kolide.Device{
 		LastSeenAt: &now,
@@ -301,7 +313,7 @@ func tableTest(t *testing.T, log *logrus.Entry, testDevice *pb.Device, deviceFai
 	assert.NoError(t, err)
 
 	deviceAgentClient := pb.NewDeviceAgentClient(deviceAgentConnection)
-	statusClient, err := deviceAgentClient.Status(ctx, &pb.AgentStatusRequest{})
+	statusStream, err := deviceAgentClient.Status(ctx, &pb.AgentStatusRequest{})
 	assert.NoError(t, err)
 
 	_, err = deviceAgentClient.Login(ctx, &pb.LoginRequest{})
@@ -313,7 +325,7 @@ func tableTest(t *testing.T, log *logrus.Entry, testDevice *pb.Device, deviceFai
 	wg.Add(1)
 	go func() {
 		for {
-			status, err := statusClient.Recv()
+			status, err := statusStream.Recv()
 			if grpc_status.Code(err) == codes.Canceled || grpc_status.Code(err) == codes.Unavailable {
 				t.Logf("receiving agent status: %v", err)
 				wg.Done()
