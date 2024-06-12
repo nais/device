@@ -40,10 +40,8 @@ type Connected struct {
 	deviceHelper  pb.DeviceHelperClient
 	statusUpdates chan<- *pb.AgentStatus
 
-	gateways       []*pb.Gateway
-	issues         []*pb.DeviceIssue
+	cfg            *pb.GetDeviceConfigurationResponse
 	connectedSince *timestamppb.Timestamp
-	unhealthy      bool
 
 	syncConfigLoop func(ctx context.Context) error
 }
@@ -90,9 +88,7 @@ func (c *Connected) Enter(ctx context.Context) state.EventWithSpan {
 		ctx, cancel := context.WithTimeout(context.Background(), helperTimeout)
 		_, err = c.deviceHelper.Teardown(ctx, &pb.TeardownRequest{})
 		cancel()
-		c.gateways = nil
-		c.issues = nil
-		c.unhealthy = false
+		c.cfg = nil
 	}()
 
 	attempt := 0
@@ -230,9 +226,7 @@ func (c *Connected) defaultSyncConfigLoop(ctx context.Context) error {
 				c.logger.Errorf("Device is not healthy: %v", err)
 				c.notifier.Errorf("No access as your device is unhealthy. Run '/msg @Kolide status' on Slack and fix the errors")
 
-				c.unhealthy = true
-				c.gateways = nil
-				c.issues = cfg.Issues
+				c.cfg = cfg
 
 				c.triggerStatusUpdate()
 				return nil
@@ -240,8 +234,6 @@ func (c *Connected) defaultSyncConfigLoop(ctx context.Context) error {
 				span.AddEvent("device.healthy")
 
 				c.logger.Infof("Device is healthy; server pushed %d gateways", len(cfg.Gateways))
-
-				c.unhealthy = false
 
 				helperCtx, helperCancel := context.WithTimeout(ctx, helperTimeout)
 				_, err = c.deviceHelper.Configure(helperCtx, c.rc.BuildHelperConfiguration(append(
@@ -255,8 +247,9 @@ func (c *Connected) defaultSyncConfigLoop(ctx context.Context) error {
 					return fmt.Errorf("configure helper: %w", err)
 				}
 
-				c.gateways = pb.MergeGatewayHealth(c.gateways, cfg.Gateways)
-				c.issues = cfg.Issues
+				cfg.Gateways = pb.MergeGatewayHealth(c.cfg.GetGateways(), cfg.GetGateways())
+				c.cfg = cfg
+
 				c.triggerStatusUpdate()
 				healthCheckCancel = c.launchHealthCheck(ctx)
 			}
@@ -319,14 +312,14 @@ func (c Connected) String() string {
 
 func (c Connected) Status() *pb.AgentStatus {
 	state := pb.AgentState_Connected
-	if c.unhealthy {
+	if c.cfg != nil && c.cfg.Status == pb.DeviceConfigurationStatus_DeviceUnhealthy {
 		state = pb.AgentState_Unhealthy
 	}
 
 	return &pb.AgentStatus{
 		ConnectedSince:  c.connectedSince,
-		Gateways:        c.gateways,
-		Issues:          c.issues,
+		Gateways:        c.cfg.GetGateways(),
+		Issues:          c.cfg.GetIssues(),
 		ConnectionState: state,
 	}
 }
@@ -334,7 +327,7 @@ func (c Connected) Status() *pb.AgentStatus {
 func (c *Connected) launchHealthCheck(ctx context.Context) context.CancelFunc {
 	ctx, cancel := context.WithCancel(ctx)
 
-	gateways := c.gateways
+	gateways := c.cfg.GetGateways()
 
 	go func() {
 		timer := time.NewTimer(10 * time.Millisecond)
