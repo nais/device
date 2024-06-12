@@ -29,12 +29,13 @@ func TestIntegration(t *testing.T) {
 	now := time.Now()
 
 	type testCase struct {
-		name             string
-		device           *pb.Device
-		deviceFailures   []kolide.DeviceFailure
-		endState         pb.AgentState
-		expectedGateways map[string]*pb.Gateway
-		expectedIssues   []*pb.DeviceIssue
+		name                   string
+		device                 *pb.Device
+		deviceFailures         []kolide.DeviceFailure
+		endState               pb.AgentState
+		expectedGateways       map[string]*pb.Gateway
+		expectedKolideFailures []kolide.DeviceFailure
+		expectedIssues         []*pb.DeviceIssue
 	}
 	tests := []testCase{
 		{
@@ -48,14 +49,24 @@ func TestIntegration(t *testing.T) {
 			},
 			endState:         pb.AgentState_Unhealthy,
 			expectedGateways: nil,
+			expectedKolideFailures: []kolide.DeviceFailure{
+				{
+					Title: "Issue used in integration test",
+					Check: kolide.Check{
+						Tags:        []string{pb.Severity_Critical.String()},
+						Description: "This is just a fake issue used in integration test",
+					},
+					Timestamp:   ptrTo(now.Add(-(2 * time.Hour))),
+					LastUpdated: now,
+				},
+			},
 			expectedIssues: []*pb.DeviceIssue{
 				{
-					Title:         "Issue used in integration test",
-					Message:       "This is just a fake issue used in integration test",
-					Severity:      pb.Severity_Critical,
-					DetectedAt:    timestamppb.New(now.Add(-(2 * time.Hour))),
-					ResolveBefore: timestamppb.New(now.Add(-time.Second)),
-					LastUpdated:   timestamppb.New(now),
+					Title:       "Issue used in integration test",
+					Message:     "This is just a fake issue used in integration test",
+					Severity:    pb.Severity_Critical,
+					DetectedAt:  timestamppb.New(now.Add(-(2 * time.Hour))),
+					LastUpdated: timestamppb.New(now),
 				},
 			},
 		},
@@ -92,33 +103,18 @@ func TestIntegration(t *testing.T) {
 					},
 				}
 				log := logger.WithField("component", "test")
-				tableTest(t, log, now, test.device, test.endState, test.expectedGateways, test.expectedIssues)
+				tableTest(t, log, now, test.device, test.endState, test.expectedGateways, test.expectedIssues, test.expectedKolideFailures)
 			}
 		}
 		t.Run(test.name, wrap(test))
 	}
 }
 
-func tableTest(t *testing.T, log *logrus.Entry, now time.Time, testDevice *pb.Device, endState pb.AgentState, expectedGateways map[string]*pb.Gateway, expectedIssues []*pb.DeviceIssue) {
+func tableTest(t *testing.T, log *logrus.Entry, now time.Time, testDevice *pb.Device, endState pb.AgentState, expectedGateways map[string]*pb.Gateway, expectedIssues []*pb.DeviceIssue, expectedKolideFailures []kolide.DeviceFailure) {
 	wg := &sync.WaitGroup{}
 	t.Helper()
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
 	defer cancel()
-
-	deviceFailures := []kolide.DeviceFailure{}
-	for _, issue := range expectedIssues {
-		deviceFailures = append(deviceFailures, kolide.DeviceFailure{
-			Title: issue.Title,
-			Check: kolide.Check{
-				Tags:        []string{pb.Severity_Critical.String()},
-				Description: issue.Message,
-				DisplayName: "fake check: field not used by anything",
-			},
-			LastUpdated: now,
-			Timestamp:   &now,
-		},
-		)
-	}
 
 	devicePrivateKey := "devicePrivateKey"
 	kolideDevice := kolide.Device{
@@ -128,8 +124,8 @@ func tableTest(t *testing.T, log *logrus.Entry, now time.Time, testDevice *pb.De
 		AssignedOwner: kolide.DeviceOwner{
 			Email: testDevice.Username,
 		},
-		Failures:     deviceFailures,
-		FailureCount: len(deviceFailures),
+		Failures:     expectedKolideFailures,
+		FailureCount: len(expectedKolideFailures),
 	}
 	kolideClient := kolide.NewFakeClient().WithDevice(kolideDevice).Build()
 
@@ -370,7 +366,8 @@ func tableTest(t *testing.T, log *logrus.Entry, now time.Time, testDevice *pb.De
 			lastKnownState = status.ConnectionState
 			lastKnownGateways = status.Gateways
 			if status.ConnectionState == endState &&
-				matchExactGateways(expectedGateways)(append(status.Gateways, apiserverPeer)) {
+				matchExactGateways(expectedGateways)(append(status.Gateways, apiserverPeer)) &&
+				len(expectedIssues) == len(status.Issues) {
 				t.Logf("agent reached expected end state: %v", endState)
 
 				// Verify all gateways have the exact expected parameters
@@ -391,7 +388,7 @@ func tableTest(t *testing.T, log *logrus.Entry, now time.Time, testDevice *pb.De
 				wg.Wait() // TODO make sure cleanup works as expected
 				return
 			} else {
-				t.Logf("received non final status: %+v, with gateways: %+v", status.String(), status.Gateways)
+				t.Logf("received non final status: %+v, with gateways: %+v, issues: %+v", status.String(), status.Gateways, status.Issues)
 			}
 		}
 	}
@@ -400,17 +397,18 @@ func tableTest(t *testing.T, log *logrus.Entry, now time.Time, testDevice *pb.De
 func assertEqualIssueLists(t *testing.T, expected, actual []*pb.DeviceIssue) {
 	t.Helper()
 	equalIssues := func(a, b *pb.DeviceIssue) bool {
+		t.Logf("comparing issues (%v,%v,%v,%v,%v)", a.Title == b.Title, a.Message == b.Message, a.Severity == b.Severity, a.DetectedAt.AsTime().Equal(b.DetectedAt.AsTime()), a.LastUpdated.AsTime().Equal(b.LastUpdated.AsTime()))
 		return a.Title == b.Title &&
 			a.Message == b.Message &&
 			a.Severity == b.Severity &&
 			a.DetectedAt.AsTime().Equal(b.DetectedAt.AsTime()) &&
-			a.LastUpdated.AsTime().Equal(b.LastUpdated.AsTime()) &&
-			a.ResolveBefore.AsTime().Equal(b.ResolveBefore.AsTime())
+			a.LastUpdated.AsTime().Equal(b.LastUpdated.AsTime())
 	}
 
 	for _, expectedIssue := range expected {
 		found := false
 		for _, actualIssue := range actual {
+			assert.False(t, actualIssue.ResolveBefore.AsTime().IsZero())
 			if equalIssues(expectedIssue, actualIssue) {
 				found = true
 				break
@@ -418,9 +416,10 @@ func assertEqualIssueLists(t *testing.T, expected, actual []*pb.DeviceIssue) {
 		}
 
 		if !found {
-			t.Errorf("FAIL: expected issue (%+v) not found in actual issues: %+v", expectedIssue.Title, actual)
+			t.Errorf("FAIL: expected issue (%+v) not found in actual issues: %+v", expectedIssue, actual)
 		}
 	}
+
 	for _, actualIssue := range actual {
 		found := false
 		for _, expectedIssue := range expected {
@@ -431,7 +430,7 @@ func assertEqualIssueLists(t *testing.T, expected, actual []*pb.DeviceIssue) {
 		}
 
 		if !found {
-			t.Errorf("FAIL: unexpected issue (%+v) found in actual issues. Expected: %+v", actualIssue.Title, expected)
+			t.Errorf("FAIL: unexpected issue (%+v) found in actual issues. Expected: %+v", actualIssue, expected)
 		}
 	}
 }
@@ -552,4 +551,8 @@ type testLogWriter struct {
 func (t *testLogWriter) Write(p []byte) (n int, err error) {
 	t.t.Logf("%s", p)
 	return len(p), nil
+}
+
+func ptrTo[A any](v A) *A {
+	return &v
 }

@@ -41,6 +41,7 @@ type Connected struct {
 	statusUpdates chan<- *pb.AgentStatus
 
 	gateways       []*pb.Gateway
+	issues         []*pb.DeviceIssue
 	connectedSince *timestamppb.Timestamp
 	unhealthy      bool
 
@@ -90,6 +91,7 @@ func (c *Connected) Enter(ctx context.Context) state.EventWithSpan {
 		_, err = c.deviceHelper.Teardown(ctx, &pb.TeardownRequest{})
 		cancel()
 		c.gateways = nil
+		c.issues = nil
 		c.unhealthy = false
 	}()
 
@@ -230,6 +232,7 @@ func (c *Connected) defaultSyncConfigLoop(ctx context.Context) error {
 
 				c.unhealthy = true
 				c.gateways = nil
+				c.issues = cfg.Issues
 
 				c.triggerStatusUpdate()
 				return nil
@@ -253,6 +256,7 @@ func (c *Connected) defaultSyncConfigLoop(ctx context.Context) error {
 				}
 
 				c.gateways = pb.MergeGatewayHealth(c.gateways, cfg.Gateways)
+				c.issues = cfg.Issues
 				c.triggerStatusUpdate()
 				healthCheckCancel = c.launchHealthCheck(ctx)
 			}
@@ -322,6 +326,7 @@ func (c Connected) Status() *pb.AgentStatus {
 	return &pb.AgentStatus{
 		ConnectedSince:  c.connectedSince,
 		Gateways:        c.gateways,
+		Issues:          c.issues,
 		ConnectionState: state,
 	}
 }
