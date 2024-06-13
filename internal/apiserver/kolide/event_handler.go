@@ -52,8 +52,7 @@ func DeviceEventStreamer(ctx context.Context, log *logrus.Entry, grpcAddress, gr
 		dialOpts = append(dialOpts, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	}
 
-	conn, err := grpc.DialContext(
-		ctx,
+	conn, err := grpc.NewClient(
 		grpcAddress,
 		dialOpts...,
 	)
@@ -109,6 +108,10 @@ func LookupDevice(ctx context.Context, db database.APIServer, event *kolidepb.De
 	device, err := db.ReadDeviceBySerialPlatform(ctx, event.GetSerial(), p)
 	if err != nil {
 		return nil, fmt.Errorf("read device with serial=%s platform=%s: %w", event.GetSerial(), p, err)
+	}
+
+	if device.ExternalID == "" {
+		device.ExternalID = event.GetExternalID()
 	}
 
 	return device, nil

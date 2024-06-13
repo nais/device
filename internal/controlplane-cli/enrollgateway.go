@@ -28,8 +28,7 @@ const (
 const AdminUsername = "admin"
 
 func ListGateways(c *cli.Context) error {
-	conn, err := grpc.DialContext(
-		c.Context,
+	conn, err := grpc.NewClient(
 		c.String(FlagAPIServer),
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 	)
@@ -76,8 +75,7 @@ func HashPassword(c *cli.Context) error {
 }
 
 func EditGateway(c *cli.Context) error {
-	conn, err := grpc.DialContext(
-		c.Context,
+	conn, err := grpc.NewClient(
 		c.String(FlagAPIServer),
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 	)
@@ -156,8 +154,7 @@ func EnrollGateway(c *cli.Context) error {
 	fmt.Fprintf(os.Stderr, "passhash....: %s\n", req.Gateway.PasswordHash)
 	fmt.Fprintf(os.Stderr, "\n")
 
-	conn, err := grpc.DialContext(
-		c.Context,
+	conn, err := grpc.NewClient(
 		c.String(FlagAPIServer),
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 	)

@@ -75,17 +75,14 @@ type runtimeConfig struct {
 
 func (rc *runtimeConfig) DialAPIServer(ctx context.Context) (*grpc.ClientConn, error) {
 	rc.log.Infof("Attempting gRPC connection to API server on %s...", rc.apiServerGRPCAddress())
-	return grpc.DialContext(
-		ctx,
+	return grpc.NewClient(
 		rc.apiServerGRPCAddress(),
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
-		grpc.WithBlock(),
 		grpc.WithKeepaliveParams(keepalive.ClientParameters{
 			Time:                time.Second * 10,
 			Timeout:             time.Second * 2,
 			PermitWithoutStream: false,
 		}),
-		grpc.WithReturnConnectionError(),
 		grpc.WithStatsHandler(otel.NewGRPCClientHandler(
 			pb.APIServer_GetDeviceConfiguration_FullMethodName,
 		)),

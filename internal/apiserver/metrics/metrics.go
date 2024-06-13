@@ -1,7 +1,8 @@
-package apiserver_metrics
+package metrics
 
 import (
 	"net/http"
+	"strconv"
 
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
@@ -14,7 +15,8 @@ var (
 	PrivilegedUsersPerGateway *prometheus.GaugeVec
 	LoginRequests             *prometheus.CounterVec
 
-	gatewayStatus *prometheus.GaugeVec
+	gatewayStatus     *prometheus.GaugeVec
+	kolideStatusCodes *prometheus.CounterVec
 )
 
 func Serve(address string) error {
@@ -34,6 +36,10 @@ func SetConnectedGateways(allGateways, connectedGateways []string) {
 			"gateway": gateway,
 		}).Set(value)
 	}
+}
+
+func IncKolideStatusCode(code int) {
+	kolideStatusCodes.WithLabelValues(strconv.Itoa(code)).Inc()
 }
 
 func init() {
@@ -79,6 +85,13 @@ func init() {
 		Help:      "Device logins with agent version.",
 	}, []string{"version"})
 
+	kolideStatusCodes = prometheus.NewCounterVec(prometheus.CounterOpts{
+		Namespace: "naisdevice",
+		Subsystem: "apiserver",
+		Name:      "kolide_status_codes",
+		Help:      "Kolide status codes from API.",
+	}, []string{"code"})
+
 	prometheus.MustRegister(
 		DevicesConnected,
 		gatewayStatus,
@@ -86,5 +99,6 @@ func init() {
 		DeviceConfigsReturned,
 		GatewayConfigsReturned,
 		LoginRequests,
+		kolideStatusCodes,
 	)
 }

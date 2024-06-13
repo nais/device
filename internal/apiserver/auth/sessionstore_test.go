@@ -5,12 +5,14 @@ import (
 	"errors"
 	"strconv"
 	"testing"
+	"time"
 
 	"github.com/nais/device/internal/apiserver/auth"
 	"github.com/nais/device/internal/apiserver/database"
 	"github.com/nais/device/internal/pb"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
+	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 func TestSessionStore_SetAndGetFromCache(t *testing.T) {
@@ -125,13 +127,14 @@ func TestSessionStore_UpdateDevice(t *testing.T) {
 	db := database.NewMockAPIServer(t)
 	store := auth.NewSessionStore(db)
 
+	now := time.Now()
 	sessions := make([]*pb.Session, 20)
 	for i := range sessions {
 		sessions[i] = &pb.Session{
 			Key: strconv.Itoa(i),
 			Device: &pb.Device{
-				Id:      int64(i),
-				Healthy: false,
+				Id:       int64(i),
+				LastSeen: timestamppb.New(now),
 			},
 		}
 	}
@@ -145,17 +148,17 @@ func TestSessionStore_UpdateDevice(t *testing.T) {
 	assert.NoError(t, err)
 
 	updatedDevice := &pb.Device{
-		Id:      int64(0),
-		Healthy: true,
+		Id:       int64(0),
+		LastSeen: timestamppb.New(now.Add(2 * time.Hour)),
 	}
 
 	sess, err := store.Get(ctx, "0")
 	assert.NoError(t, err)
-	assert.False(t, sess.GetDevice().GetHealthy())
+	assert.False(t, sess.GetDevice().GetLastSeen().AsTime().Equal(updatedDevice.GetLastSeen().AsTime()))
 
 	store.UpdateDevice(updatedDevice)
 
 	sess, err = store.Get(ctx, "0")
 	assert.NoError(t, err)
-	assert.True(t, sess.GetDevice().GetHealthy())
+	assert.True(t, sess.GetDevice().GetLastSeen().AsTime().Equal(updatedDevice.GetLastSeen().AsTime()))
 }

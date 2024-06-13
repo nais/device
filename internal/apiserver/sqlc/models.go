@@ -18,6 +18,9 @@ type Device struct {
 	PublicKey   string
 	Ipv4        string
 	Ipv6        string
+	LastSeen    sql.NullString
+	Issues      sql.NullString
+	ExternalID  sql.NullString
 }
 
 type Gateway struct {

@@ -15,6 +15,7 @@ type Querier interface {
 	AddGatewayRoute(ctx context.Context, arg AddGatewayRouteParams) error
 	AddSession(ctx context.Context, arg AddSessionParams) error
 	AddSessionAccessGroupID(ctx context.Context, arg AddSessionAccessGroupIDParams) error
+	ClearDeviceIssuesExceptFor(ctx context.Context, unhealthyDeviceIds interface{}) error
 	DeleteGatewayAccessGroupIDs(ctx context.Context, gatewayName string) error
 	DeleteGatewayRoutes(ctx context.Context, gatewayName string) error
 	GetDeviceByID(ctx context.Context, id int64) (*Device, error)
@@ -31,7 +32,7 @@ type Querier interface {
 	GetSessionGroupIDs(ctx context.Context, sessionKey string) ([]string, error)
 	GetSessions(ctx context.Context) ([]*GetSessionsRow, error)
 	RemoveExpiredSessions(ctx context.Context) error
-	UpdateDevice(ctx context.Context, arg UpdateDeviceParams) error
+	UpdateDevice(ctx context.Context, arg UpdateDeviceParams) (int64, error)
 	UpdateGateway(ctx context.Context, arg UpdateGatewayParams) error
 	UpdateGatewayDynamicFields(ctx context.Context, arg UpdateGatewayDynamicFieldsParams) error
 }

@@ -6,6 +6,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/nais/device/internal/apiserver/metrics"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -38,6 +39,8 @@ func (t *Transport) RoundTrip(req *http.Request) (*http.Response, error) {
 		if err != nil {
 			return nil, err
 		}
+
+		metrics.IncKolideStatusCode(resp.StatusCode)
 
 		if resp.StatusCode != http.StatusTooManyRequests && resp.StatusCode < 500 {
 			return resp, nil

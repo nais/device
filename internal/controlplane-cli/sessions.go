@@ -10,8 +10,7 @@ import (
 )
 
 func ListSessions(c *cli.Context) error {
-	conn, err := grpc.DialContext(
-		c.Context,
+	conn, err := grpc.NewClient(
 		c.String(FlagAPIServer),
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 	)
@@ -29,13 +28,14 @@ func ListSessions(c *cli.Context) error {
 	}
 
 	for _, s := range resp.GetSessions() {
-		fmt.Printf("user: %s, healthy: %t, ipv4: %s, ipv6: %s, pubkey: %q, expired: %t\n",
+		fmt.Printf("user: %s, lastSeen: %v, ipv4: %s, ipv6: %s, pubkey: %q, expired: %t, issues: %v\n",
 			s.Device.GetUsername(),
-			s.Device.GetHealthy(),
+			s.Device.GetLastSeen(),
 			s.Device.GetIpv4(),
 			s.Device.GetIpv6(),
 			s.Device.GetPublicKey(),
 			s.Expired(),
+			len(s.Device.GetIssues()),
 		)
 	}
 

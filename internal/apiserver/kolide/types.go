@@ -17,6 +17,11 @@ type DeviceFailure struct {
 	Check       Check                  `json:"check"`
 }
 
+type DeviceFailureWithDevice struct {
+	DeviceFailure
+	Device Device `json:"device"`
+}
+
 type DeviceOwner struct {
 	Email string `json:"email"`
 }

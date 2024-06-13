@@ -24,23 +24,11 @@ import (
 
 const bufSize = 1024 * 1024
 
-var (
-	testDevice = &pb.Device{
-		Healthy:  true,
-		Serial:   "serial",
-		Platform: "darwin",
-		Username: "user@example.com",
-	}
-	now              = time.Now()
-	testKolideDevice = kolide.Device{
-		LastSeenAt: &now,
-		Serial:     testDevice.Serial,
-		Platform:   testDevice.Platform,
-		AssignedOwner: kolide.DeviceOwner{
-			Email: testDevice.Username,
-		},
-	}
-)
+var testDevice = &pb.Device{
+	Serial:   "serial",
+	Platform: "darwin",
+	Username: "user@example.com",
+}
 
 func contextBufDialer(listener *bufconn.Listener) func(context.Context, string) (net.Conn, error) {
 	return func(context.Context, string) (net.Conn, error) {
@@ -74,7 +62,7 @@ func TestGetDeviceConfiguration(t *testing.T) {
 		},
 	}, nil)
 
-	kolideClient := kolide.NewFakeClient().WithDevice(testKolideDevice).Build()
+	kolideClient := kolide.NewFakeClient().Build()
 
 	gatewayAuthenticator := auth.NewGatewayAuthenticator(db)
 
@@ -88,9 +76,8 @@ func TestGetDeviceConfiguration(t *testing.T) {
 		assert.NoError(t, err)
 	}()
 
-	conn, err := grpc.DialContext(
-		ctx,
-		"bufnet",
+	conn, err := grpc.NewClient(
+		"passthrough:///bufnet",
 		grpc.WithContextDialer(contextBufDialer(lis)),
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 	)
@@ -147,9 +134,8 @@ func TestGatewayPasswordAuthentication(t *testing.T) {
 	pb.RegisterAPIServerServer(s, server)
 	go s.Serve(lis)
 
-	conn, err := grpc.DialContext(
-		ctx,
-		"bufnet",
+	conn, err := grpc.NewClient(
+		"passthrough:///bufnet",
 		grpc.WithContextDialer(contextBufDialer(lis)),
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 	)
@@ -203,9 +189,8 @@ func TestGatewayPasswordAuthenticationFail(t *testing.T) {
 	pb.RegisterAPIServerServer(s, server)
 	go s.Serve(lis)
 
-	conn, err := grpc.DialContext(
-		ctx,
-		"bufnet",
+	conn, err := grpc.NewClient(
+		"passthrough:///bufnet",
 		grpc.WithContextDialer(contextBufDialer(lis)),
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 	)

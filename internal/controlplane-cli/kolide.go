@@ -11,8 +11,7 @@ import (
 )
 
 func GetKolideCache(c *cli.Context) error {
-	conn, err := grpc.DialContext(
-		c.Context,
+	conn, err := grpc.NewClient(
 		c.String(FlagAPIServer),
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 	)
@@ -33,8 +32,7 @@ func GetKolideCache(c *cli.Context) error {
 		Devices json.RawMessage
 		Checks  json.RawMessage
 	}{
-		Devices: resp.RawDevices,
-		Checks:  resp.RawChecks,
+		Checks: resp.RawChecks,
 	}
 
 	return json.NewEncoder(os.Stdout).Encode(out)

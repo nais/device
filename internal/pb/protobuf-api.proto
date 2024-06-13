@@ -324,12 +324,16 @@ message Device {
   google.protobuf.Timestamp lastUpdated = 4;
   reserved 'kolideLastSeen';
   reserved 5;
-  bool healthy = 6;
+  reserved 'healthy';
+  reserved 6;
   string publicKey = 7;
   string ipv4 = 8;
   string username = 9;
   string platform = 10;
   string ipv6 = 11;
+  repeated DeviceIssue issues = 12;
+  google.protobuf.Timestamp lastSeen = 13;
+  string externalID = 14;
 }
 
 message Session {
@@ -360,6 +364,5 @@ message GetKolideCacheRequest {
 }
 
 message GetKolideCacheResponse {
-	bytes rawDevices = 98;
 	bytes rawChecks = 99;
 }

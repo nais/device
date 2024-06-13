@@ -37,3 +37,9 @@ func (c *Cache[K, V]) MarshalJSON() ([]byte, error) {
 	defer c.mutex.RUnlock()
 	return json.Marshal(c.cache)
 }
+
+func (c *Cache[K, V]) Len() int {
+	c.mutex.RLock()
+	defer c.mutex.RUnlock()
+	return len(c.cache)
+}

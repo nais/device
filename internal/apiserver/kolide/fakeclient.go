@@ -2,13 +2,11 @@ package kolide
 
 import (
 	"context"
-	"fmt"
-	"strings"
+
+	"github.com/nais/device/internal/pb"
 )
 
-type FakeClient struct {
-	devices []Device
-}
+type FakeClient struct{}
 
 var _ Client = &FakeClient{}
 
@@ -17,27 +15,8 @@ func NewFakeClient() *FakeClient {
 	return &FakeClient{}
 }
 
-func (f *FakeClient) WithDevice(device Device) *FakeClient {
-	return &FakeClient{
-		devices: append(f.devices, device),
-	}
-}
-
 func (f *FakeClient) Build() Client {
 	return f
-}
-
-// GetDevice implements Client.
-func (f *FakeClient) GetDevice(ctx context.Context, email, platform, serial string) (Device, error) {
-	for _, d := range f.devices {
-		if strings.EqualFold(d.AssignedOwner.Email, email) &&
-			strings.EqualFold(d.Platform, platform) &&
-			strings.EqualFold(d.Serial, serial) {
-			return d, nil
-		}
-	}
-
-	return Device{}, fmt.Errorf("device (%v, %v, %v) not found in fake client. use WithDevice() before Build() to add it. we currently have: %+v", email, platform, serial, f.devices)
 }
 
 // RefreshCache implements Client.
@@ -46,12 +25,17 @@ func (f *FakeClient) RefreshCache(ctx context.Context) error {
 	return nil
 }
 
+// GetDeviceFailures implements Client.
+func (f *FakeClient) GetDeviceFailures(ctx context.Context, deviceID string) ([]*pb.DeviceIssue, error) {
+	panic("unimplemented")
+}
+
 // DumpChecks implements Client.
 func (f *FakeClient) DumpChecks() ([]byte, error) {
 	panic("unimplemented")
 }
 
-// DumpDevices implements Client.
-func (f *FakeClient) DumpDevices() ([]byte, error) {
+// UpdateDeviceFailures implements Client.
+func (f *FakeClient) UpdateDeviceFailures(ctx context.Context) error {
 	panic("unimplemented")
 }

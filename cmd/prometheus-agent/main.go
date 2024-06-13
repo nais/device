@@ -108,7 +108,7 @@ func run(log *logrus.Entry, cfg config.Config) error {
 		return fmt.Errorf("apply initial WireGuard config: %w", err)
 	}
 
-	grpcClient, err := grpc.DialContext(ctx, cfg.APIServerURL, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	grpcClient, err := grpc.NewClient(cfg.APIServerURL, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		return fmt.Errorf("grpc dial: %w", err)
 	}

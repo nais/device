@@ -27,7 +27,7 @@ type trayState struct {
 func (s *trayState) onReady() {
 	var err error
 
-	s.connection, err = grpc.Dial(
+	s.connection, err = grpc.NewClient(
 		"unix:"+s.cfg.GrpcAddress,
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 		grpc.WithStatsHandler(otel.NewGRPCClientHandler(pb.DeviceAgent_Status_FullMethodName)),

@@ -29,51 +29,36 @@ func TestIntegration(t *testing.T) {
 	now := time.Now()
 
 	type testCase struct {
-		name                   string
-		device                 *pb.Device
-		endState               pb.AgentState
-		expectedGateways       map[string]*pb.Gateway
-		expectedKolideFailures []kolide.DeviceFailure
-		expectedIssues         []*pb.DeviceIssue
+		name             string
+		device           *pb.Device
+		endState         pb.AgentState
+		expectedGateways map[string]*pb.Gateway
 	}
 	tests := []testCase{
 		{
 			name: "test happy unhealthy path",
 			device: &pb.Device{
 				Serial:    "test-serial",
-				Healthy:   false,
 				PublicKey: "publicKey",
 				Username:  "tester",
 				Platform:  "linux",
+				Issues: []*pb.DeviceIssue{
+					{
+						Title:       "Issue used in integration test",
+						Message:     "This is just a fake issue used in integration test",
+						Severity:    pb.Severity_Critical,
+						DetectedAt:  timestamppb.New(now.Add(-(2 * time.Hour))),
+						LastUpdated: timestamppb.New(now),
+					},
+				},
 			},
 			endState:         pb.AgentState_Unhealthy,
 			expectedGateways: nil,
-			expectedKolideFailures: []kolide.DeviceFailure{
-				{
-					Title: "Issue used in integration test",
-					Check: kolide.Check{
-						Tags:        []string{pb.Severity_Critical.String()},
-						Description: "This is just a fake issue used in integration test",
-					},
-					Timestamp:   ptrTo(now.Add(-(2 * time.Hour))),
-					LastUpdated: now,
-				},
-			},
-			expectedIssues: []*pb.DeviceIssue{
-				{
-					Title:       "Issue used in integration test",
-					Message:     "This is just a fake issue used in integration test",
-					Severity:    pb.Severity_Critical,
-					DetectedAt:  timestamppb.New(now.Add(-(2 * time.Hour))),
-					LastUpdated: timestamppb.New(now),
-				},
-			},
 		},
 		{
 			name: "test happy healthy path",
 			device: &pb.Device{
 				Serial:    "test-serial",
-				Healthy:   true,
 				PublicKey: "publicKey",
 				Username:  "tester",
 				Platform:  "linux",
@@ -102,31 +87,21 @@ func TestIntegration(t *testing.T) {
 					},
 				}
 				log := logger.WithField("component", "test")
-				tableTest(t, log, now, test.device, test.endState, test.expectedGateways, test.expectedIssues, test.expectedKolideFailures)
+				tableTest(t, log, test.device, test.endState, test.expectedGateways)
 			}
 		}
 		t.Run(test.name, wrap(test))
 	}
 }
 
-func tableTest(t *testing.T, log *logrus.Entry, now time.Time, testDevice *pb.Device, endState pb.AgentState, expectedGateways map[string]*pb.Gateway, expectedIssues []*pb.DeviceIssue, expectedKolideFailures []kolide.DeviceFailure) {
+func tableTest(t *testing.T, log *logrus.Entry, testDevice *pb.Device, endState pb.AgentState, expectedGateways map[string]*pb.Gateway) {
 	wg := &sync.WaitGroup{}
 	t.Helper()
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
 	defer cancel()
 
 	devicePrivateKey := "devicePrivateKey"
-	kolideDevice := kolide.Device{
-		LastSeenAt: &now,
-		Serial:     testDevice.Serial,
-		Platform:   testDevice.Platform,
-		AssignedOwner: kolide.DeviceOwner{
-			Email: testDevice.Username,
-		},
-		Failures:     expectedKolideFailures,
-		FailureCount: len(expectedKolideFailures),
-	}
-	kolideClient := kolide.NewFakeClient().WithDevice(kolideDevice).Build()
+	kolideClient := kolide.NewFakeClient()
 
 	db := NewDB(t)
 	assert.NoError(t, db.AddDevice(ctx, testDevice))
@@ -226,7 +201,7 @@ func tableTest(t *testing.T, log *logrus.Entry, now time.Time, testDevice *pb.De
 
 	helperListener, stopHelper := serve(t, NewHelper(t, log.WithField("component", "helper"), osConfigurator), wg)
 
-	apiDial, err := dial(ctx, apiserverListener)
+	apiDial, err := dial(apiserverListener)
 	assert.NoError(t, err)
 	cleanup := func() {
 		apiDial.Close()
@@ -304,7 +279,7 @@ func tableTest(t *testing.T, log *logrus.Entry, now time.Time, testDevice *pb.De
 
 	deviceAgentListener, stopDeviceAgent := serve(t, NewDeviceAgent(t, wg, ctx, log.WithField("component", "device-agent"), helperListener, rc), wg)
 
-	deviceAgentConnection, err := dial(ctx, deviceAgentListener)
+	deviceAgentConnection, err := dial(deviceAgentListener)
 	assert.NoError(t, err)
 
 	deviceAgentClient := pb.NewDeviceAgentClient(deviceAgentConnection)
@@ -366,7 +341,7 @@ func tableTest(t *testing.T, log *logrus.Entry, now time.Time, testDevice *pb.De
 			lastKnownGateways = status.Gateways
 			if status.ConnectionState == endState &&
 				matchExactGateways(expectedGateways)(append(status.Gateways, apiserverPeer)) &&
-				len(expectedIssues) == len(status.Issues) {
+				len(testDevice.Issues) == len(status.Issues) {
 				t.Logf("agent reached expected end state: %v", endState)
 
 				// Verify all gateways have the exact expected parameters
@@ -380,7 +355,7 @@ func tableTest(t *testing.T, log *logrus.Entry, now time.Time, testDevice *pb.De
 					assertEqualGateway(t, expectedGateway, gateway)
 				}
 
-				assertEqualIssueLists(t, expectedIssues, status.Issues)
+				assertEqualIssueLists(t, testDevice.Issues, status.Issues)
 
 				// test done
 				stopStuff()
@@ -534,10 +509,9 @@ func serve(t *testing.T, server *grpc.Server, wg *sync.WaitGroup) (*bufconn.List
 	return lis, server.Stop
 }
 
-func dial(ctx context.Context, lis *bufconn.Listener) (*grpc.ClientConn, error) {
-	return grpc.DialContext(
-		ctx,
-		"bufnet",
+func dial(lis *bufconn.Listener) (*grpc.ClientConn, error) {
+	return grpc.NewClient(
+		"passthrough:///bufnet",
 		grpc.WithContextDialer(bufconnDialer(lis)),
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 	)
@@ -550,8 +524,4 @@ type testLogWriter struct {
 func (t *testLogWriter) Write(p []byte) (n int, err error) {
 	t.t.Logf("%s", p)
 	return len(p), nil
-}
-
-func ptrTo[A any](v A) *A {
-	return &v
 }

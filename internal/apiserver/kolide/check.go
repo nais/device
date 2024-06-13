@@ -103,9 +103,13 @@ func (device *Device) Issues() []*pb.DeviceIssue {
 		}
 	}
 
+	return convertFailuresToOpenDeviceIssues(device.Failures)
+}
+
+func convertFailuresToOpenDeviceIssues(failures []DeviceFailure) []*pb.DeviceIssue {
 	// Any failure means device failure
 	openIssues := []*pb.DeviceIssue{}
-	for _, failure := range device.Failures {
+	for _, failure := range failures {
 		if !failure.Relevant() {
 			continue
 		}
@@ -133,6 +137,5 @@ func (device *Device) Issues() []*pb.DeviceIssue {
 			LastUpdated:   timestamppb.New(failure.LastUpdated),
 		})
 	}
-
 	return openIssues
 }

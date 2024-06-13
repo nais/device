@@ -13,7 +13,7 @@ import (
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/status"
 
-	"github.com/nais/device/internal/gateway-agent"
+	gateway_agent "github.com/nais/device/internal/gateway-agent"
 	"github.com/nais/device/internal/gateway-agent/config"
 	"github.com/nais/device/internal/passwordhash"
 	"github.com/nais/device/internal/pb"
@@ -160,8 +160,7 @@ func run(log *logrus.Entry, cfg config.Config) error {
 	}
 
 	log.Infof("Attempting gRPC connection to API server on %s...", cfg.APIServerURL)
-	apiserver, err := grpc.DialContext(
-		ctx,
+	apiserver, err := grpc.NewClient(
 		cfg.APIServerURL,
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 	)

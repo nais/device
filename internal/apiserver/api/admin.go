@@ -88,18 +88,12 @@ func (s *grpcServer) GetKolideCache(ctx context.Context, r *pb.GetKolideCacheReq
 		return nil, status.Errorf(codes.Unauthenticated, err.Error())
 	}
 
-	devices, err := s.kolideClient.DumpDevices()
-	if err != nil {
-		return nil, err
-	}
-
 	checks, err := s.kolideClient.DumpChecks()
 	if err != nil {
 		return nil, err
 	}
 
 	return &pb.GetKolideCacheResponse{
-		RawDevices: devices,
-		RawChecks:  checks,
+		RawChecks: checks,
 	}, nil
 }

@@ -2,6 +2,7 @@ package database
 
 import (
 	"context"
+	"time"
 
 	"github.com/nais/device/internal/pb"
 )
@@ -23,4 +24,6 @@ type APIServer interface {
 	ReadSessionInfos(ctx context.Context) ([]*pb.Session, error)
 	RemoveExpiredSessions(ctx context.Context) error
 	ReadMostRecentSessionInfo(ctx context.Context, deviceID int64) (*pb.Session, error)
+	ClearDeviceIssuesExceptFor(ctx context.Context, deviceIds []int64) error
+	UpdateSingleDevice(ctx context.Context, externalID, serial, platform string, lastSeen *time.Time, issues []*pb.DeviceIssue) (int64, error)
 }

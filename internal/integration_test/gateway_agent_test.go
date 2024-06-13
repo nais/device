@@ -13,7 +13,7 @@ import (
 )
 
 func StartGatewayAgent(t *testing.T, ctx context.Context, log *logrus.Entry, name string, apiserverConn *bufconn.Listener, apiserverPeer *pb.Gateway, networkConfigurer wireguard.NetworkConfigurer) error {
-	apiserverDial, err := dial(ctx, apiserverConn)
+	apiserverDial, err := dial(apiserverConn)
 	assert.NoError(t, err)
 
 	apiserverClient := pb.NewAPIServerClient(apiserverDial)

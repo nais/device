@@ -1,6 +1,7 @@
 package api
 
 import (
+	"slices"
 	"time"
 
 	"github.com/nais/device/internal/apiserver/jita"
@@ -39,7 +40,7 @@ func healthy(devices []*pb.Device) []*pb.Device {
 	var healthyDevices []*pb.Device
 
 	for _, device := range devices {
-		if device.GetHealthy() {
+		if !slices.ContainsFunc(device.GetIssues(), AfterGracePeriod) {
 			healthyDevices = append(healthyDevices, device)
 		}
 	}

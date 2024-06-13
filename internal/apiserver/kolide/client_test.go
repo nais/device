@@ -24,6 +24,8 @@ func TestClient(t *testing.T) {
 				fmt.Fprintf(w, `{}`)
 			case "/checks":
 				fmt.Fprintf(w, `{}`)
+			case "/failures/open":
+				fmt.Fprintf(w, `{}`)
 			default:
 				t.Errorf("unexpected request to %v", r.URL.Path)
 			}

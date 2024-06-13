@@ -11,6 +11,8 @@ import (
 )
 
 const addDevice = `-- name: AddDevice :exec
+;
+
 INSERT INTO devices (serial, username, public_key, ipv4, ipv6, healthy, platform)
 VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)
 ON CONFLICT(serial, platform) DO
@@ -40,8 +42,19 @@ func (q *Queries) AddDevice(ctx context.Context, arg AddDeviceParams) error {
 	return err
 }
 
+const clearDeviceIssuesExceptFor = `-- name: ClearDeviceIssuesExceptFor :exec
+UPDATE devices
+SET issues = NULL
+WHERE id NOT IN (CAST(?1 AS INTEGER[]))
+`
+
+func (q *Queries) ClearDeviceIssuesExceptFor(ctx context.Context, unhealthyDeviceIds interface{}) error {
+	_, err := q.exec(ctx, q.clearDeviceIssuesExceptForStmt, clearDeviceIssuesExceptFor, unhealthyDeviceIds)
+	return err
+}
+
 const getDeviceByID = `-- name: GetDeviceByID :one
-SELECT id, username, serial, platform, healthy, last_updated, public_key, ipv4, ipv6 FROM devices WHERE id = ?1
+SELECT id, username, serial, platform, healthy, last_updated, public_key, ipv4, ipv6, last_seen, issues, external_id FROM devices WHERE id = ?1
 `
 
 func (q *Queries) GetDeviceByID(ctx context.Context, id int64) (*Device, error) {
@@ -57,12 +70,15 @@ func (q *Queries) GetDeviceByID(ctx context.Context, id int64) (*Device, error) 
 		&i.PublicKey,
 		&i.Ipv4,
 		&i.Ipv6,
+		&i.LastSeen,
+		&i.Issues,
+		&i.ExternalID,
 	)
 	return &i, err
 }
 
 const getDeviceByPublicKey = `-- name: GetDeviceByPublicKey :one
-SELECT id, username, serial, platform, healthy, last_updated, public_key, ipv4, ipv6 FROM devices WHERE public_key = ?1
+SELECT id, username, serial, platform, healthy, last_updated, public_key, ipv4, ipv6, last_seen, issues, external_id FROM devices WHERE public_key = ?1
 `
 
 func (q *Queries) GetDeviceByPublicKey(ctx context.Context, publicKey string) (*Device, error) {
@@ -78,12 +94,15 @@ func (q *Queries) GetDeviceByPublicKey(ctx context.Context, publicKey string) (*
 		&i.PublicKey,
 		&i.Ipv4,
 		&i.Ipv6,
+		&i.LastSeen,
+		&i.Issues,
+		&i.ExternalID,
 	)
 	return &i, err
 }
 
 const getDeviceBySerialAndPlatform = `-- name: GetDeviceBySerialAndPlatform :one
-SELECT id, username, serial, platform, healthy, last_updated, public_key, ipv4, ipv6 from devices WHERE serial = ?1 AND platform = ?2
+SELECT id, username, serial, platform, healthy, last_updated, public_key, ipv4, ipv6, last_seen, issues, external_id from devices WHERE serial = ?1 AND platform = ?2
 `
 
 type GetDeviceBySerialAndPlatformParams struct {
@@ -104,12 +123,15 @@ func (q *Queries) GetDeviceBySerialAndPlatform(ctx context.Context, arg GetDevic
 		&i.PublicKey,
 		&i.Ipv4,
 		&i.Ipv6,
+		&i.LastSeen,
+		&i.Issues,
+		&i.ExternalID,
 	)
 	return &i, err
 }
 
 const getDevices = `-- name: GetDevices :many
-SELECT id, username, serial, platform, healthy, last_updated, public_key, ipv4, ipv6 FROM devices ORDER BY id
+SELECT id, username, serial, platform, healthy, last_updated, public_key, ipv4, ipv6, last_seen, issues, external_id FROM devices ORDER BY id
 `
 
 func (q *Queries) GetDevices(ctx context.Context) ([]*Device, error) {
@@ -131,6 +153,9 @@ func (q *Queries) GetDevices(ctx context.Context) ([]*Device, error) {
 			&i.PublicKey,
 			&i.Ipv4,
 			&i.Ipv6,
+			&i.LastSeen,
+			&i.Issues,
+			&i.ExternalID,
 		); err != nil {
 			return nil, err
 		}
@@ -145,25 +170,34 @@ func (q *Queries) GetDevices(ctx context.Context) ([]*Device, error) {
 	return items, nil
 }
 
-const updateDevice = `-- name: UpdateDevice :exec
+const updateDevice = `-- name: UpdateDevice :one
 UPDATE devices
-SET healthy = ?1, last_updated = ?2
-WHERE serial = ?3 AND platform = ?4
+SET external_id = ?1, healthy = ?2, last_updated = ?3, last_seen = ?4, issues = ?5
+WHERE serial = ?6 AND platform = ?7
+RETURNING id
 `
 
 type UpdateDeviceParams struct {
+	ExternalID  sql.NullString
 	Healthy     bool
 	LastUpdated sql.NullString
+	LastSeen    sql.NullString
+	Issues      sql.NullString
 	Serial      string
 	Platform    string
 }
 
-func (q *Queries) UpdateDevice(ctx context.Context, arg UpdateDeviceParams) error {
-	_, err := q.exec(ctx, q.updateDeviceStmt, updateDevice,
+func (q *Queries) UpdateDevice(ctx context.Context, arg UpdateDeviceParams) (int64, error) {
+	row := q.queryRow(ctx, q.updateDeviceStmt, updateDevice,
+		arg.ExternalID,
 		arg.Healthy,
 		arg.LastUpdated,
+		arg.LastSeen,
+		arg.Issues,
 		arg.Serial,
 		arg.Platform,
 	)
-	return err
+	var id int64
+	err := row.Scan(&id)
+	return id, err
 }

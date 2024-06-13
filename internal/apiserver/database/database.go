@@ -3,6 +3,7 @@ package database
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"strings"
@@ -53,22 +54,90 @@ func (db *ApiServerDB) ReadDevices(ctx context.Context) ([]*pb.Device, error) {
 
 	devices := make([]*pb.Device, 0)
 	for _, row := range rows {
-		devices = append(devices, sqlcDeviceToPbDevice(*row))
+		device, err := sqlcDeviceToPbDevice(*row)
+		if err != nil {
+			return nil, fmt.Errorf("converting device %v: %w", row.ID, err)
+		}
+		devices = append(devices, device)
 	}
 
 	return devices, nil
 }
 
+func (db *ApiServerDB) UpdateSingleDevice(ctx context.Context, externalID, serial, platform string, lastSeen *time.Time, issues []*pb.DeviceIssue) (int64, error) {
+	var (
+		b   []byte
+		err error
+	)
+	if len(issues) > 0 {
+		b, err = json.Marshal(issues)
+		if err != nil {
+			return 0, fmt.Errorf("marshal issues: %w", err)
+		}
+	}
+
+	lastSeenCol := sql.NullString{}
+	if lastSeen != nil {
+		lastSeenCol = sql.NullString{
+			String: timeToString(*lastSeen),
+			Valid:  true,
+		}
+	}
+	return db.queries.UpdateDevice(ctx, sqlc.UpdateDeviceParams{
+		Healthy:  false,
+		Serial:   serial,
+		Platform: platform,
+		LastUpdated: sql.NullString{
+			String: timeToString(time.Now().UTC()),
+			Valid:  true,
+		},
+		LastSeen: lastSeenCol,
+		Issues: sql.NullString{
+			String: string(b),
+			Valid:  b != nil,
+		},
+		ExternalID: sql.NullString{
+			String: externalID,
+			Valid:  externalID != "",
+		},
+	})
+}
+
 func (db *ApiServerDB) UpdateDevices(ctx context.Context, devices []*pb.Device) error {
 	err := db.queries.Transaction(ctx, func(ctx context.Context, queries *sqlc.Queries) error {
 		for _, device := range devices {
-			err := queries.UpdateDevice(ctx, sqlc.UpdateDeviceParams{
-				Healthy:  device.Healthy,
+			lastSeen := sql.NullString{}
+			if device.LastSeen != nil {
+				lastSeen = sql.NullString{
+					String: timeToString(device.LastSeen.AsTime().UTC()),
+					Valid:  true,
+				}
+			}
+
+			issuesCol := sql.NullString{}
+			if len(device.Issues) > 0 {
+				issues, err := json.Marshal(device.Issues)
+				if err != nil {
+					return fmt.Errorf("marshal issues: %w", err)
+				}
+				issuesCol = sql.NullString{
+					String: string(issues),
+					Valid:  true,
+				}
+			}
+
+			_, err := queries.UpdateDevice(ctx, sqlc.UpdateDeviceParams{
 				Serial:   device.Serial,
 				Platform: device.Platform,
 				LastUpdated: sql.NullString{
 					String: timeToString(time.Now().UTC()),
 					Valid:  true,
+				},
+				LastSeen: lastSeen,
+				Issues:   issuesCol,
+				ExternalID: sql.NullString{
+					String: device.ExternalID,
+					Valid:  device.ExternalID != "",
 				},
 			})
 			if err != nil {
@@ -316,7 +385,7 @@ func (db *ApiServerDB) ReadDevice(ctx context.Context, publicKey string) (*pb.De
 		return nil, err
 	}
 
-	return sqlcDeviceToPbDevice(*device), nil
+	return sqlcDeviceToPbDevice(*device)
 }
 
 func (db *ApiServerDB) ReadDeviceById(ctx context.Context, deviceID int64) (*pb.Device, error) {
@@ -325,7 +394,7 @@ func (db *ApiServerDB) ReadDeviceById(ctx context.Context, deviceID int64) (*pb.
 		return nil, err
 	}
 
-	return sqlcDeviceToPbDevice(*device), nil
+	return sqlcDeviceToPbDevice(*device)
 }
 
 func (db *ApiServerDB) ReadGateways(ctx context.Context) ([]*pb.Gateway, error) {
@@ -396,7 +465,7 @@ func (db *ApiServerDB) readExistingIPs(ctx context.Context) ([]string, error) {
 }
 
 func (db *ApiServerDB) ReadDeviceBySerialPlatform(ctx context.Context, serial, platform string) (*pb.Device, error) {
-	gateway, err := db.queries.GetDeviceBySerialAndPlatform(ctx, sqlc.GetDeviceBySerialAndPlatformParams{
+	device, err := db.queries.GetDeviceBySerialAndPlatform(ctx, sqlc.GetDeviceBySerialAndPlatformParams{
 		Serial:   serial,
 		Platform: platform,
 	})
@@ -404,7 +473,7 @@ func (db *ApiServerDB) ReadDeviceBySerialPlatform(ctx context.Context, serial, p
 		return nil, err
 	}
 
-	return sqlcDeviceToPbDevice(*gateway), nil
+	return sqlcDeviceToPbDevice(*device)
 }
 
 func (db *ApiServerDB) AddSessionInfo(ctx context.Context, si *pb.Session) error {
@@ -448,7 +517,7 @@ func (db *ApiServerDB) ReadSessionInfo(ctx context.Context, key string) (*pb.Ses
 		return nil, err
 	}
 
-	return sqlcSessionAndDeviceToPbSession(row.Session, row.Device, groupIDs), nil
+	return sqlcSessionAndDeviceToPbSession(row.Session, row.Device, groupIDs)
 }
 
 func (db *ApiServerDB) ReadSessionInfos(ctx context.Context) ([]*pb.Session, error) {
@@ -464,7 +533,12 @@ func (db *ApiServerDB) ReadSessionInfos(ctx context.Context) ([]*pb.Session, err
 			return nil, err
 		}
 
-		sessions = append(sessions, sqlcSessionAndDeviceToPbSession(row.Session, row.Device, groupIDs))
+		session, err := sqlcSessionAndDeviceToPbSession(row.Session, row.Device, groupIDs)
+		if err != nil {
+			return nil, err
+		}
+
+		sessions = append(sessions, session)
 	}
 
 	return sessions, nil
@@ -481,7 +555,7 @@ func (db *ApiServerDB) ReadMostRecentSessionInfo(ctx context.Context, deviceID i
 		return nil, err
 	}
 
-	return sqlcSessionAndDeviceToPbSession(row.Session, row.Device, groupIDs), nil
+	return sqlcSessionAndDeviceToPbSession(row.Session, row.Device, groupIDs)
 }
 
 func (db *ApiServerDB) getNextAvailableIPv4(ctx context.Context) (string, error) {
@@ -517,23 +591,37 @@ func (db *ApiServerDB) RemoveExpiredSessions(ctx context.Context) error {
 	return db.queries.RemoveExpiredSessions(ctx)
 }
 
-func sqlcDeviceToPbDevice(sqlcDevice sqlc.Device) *pb.Device {
+func (db *ApiServerDB) ClearDeviceIssuesExceptFor(ctx context.Context, deviceIds []int64) error {
+	return db.queries.ClearDeviceIssuesExceptFor(ctx, deviceIds)
+}
+
+func sqlcDeviceToPbDevice(sqlcDevice sqlc.Device) (*pb.Device, error) {
 	pbDevice := &pb.Device{
-		Id:        int64(sqlcDevice.ID),
-		Serial:    sqlcDevice.Serial,
-		Healthy:   sqlcDevice.Healthy,
-		PublicKey: sqlcDevice.PublicKey,
-		Ipv4:      sqlcDevice.Ipv4,
-		Ipv6:      sqlcDevice.Ipv6,
-		Username:  sqlcDevice.Username,
-		Platform:  string(sqlcDevice.Platform),
+		Id:         int64(sqlcDevice.ID),
+		Serial:     sqlcDevice.Serial,
+		PublicKey:  sqlcDevice.PublicKey,
+		Ipv4:       sqlcDevice.Ipv4,
+		Ipv6:       sqlcDevice.Ipv6,
+		Username:   sqlcDevice.Username,
+		ExternalID: sqlcDevice.ExternalID.String,
+		Platform:   string(sqlcDevice.Platform),
+	}
+
+	if sqlcDevice.Issues.Valid {
+		err := json.Unmarshal([]byte(sqlcDevice.Issues.String), &pbDevice.Issues)
+		if err != nil {
+			return nil, fmt.Errorf("unmarshal issues: %w", err)
+		}
 	}
 
 	if sqlcDevice.LastUpdated.Valid {
 		pbDevice.LastUpdated = timestamppb.New(stringToTime(sqlcDevice.LastUpdated.String))
 	}
+	if sqlcDevice.LastSeen.Valid {
+		pbDevice.LastSeen = timestamppb.New(stringToTime(sqlcDevice.LastSeen.String))
+	}
 
-	return pbDevice
+	return pbDevice, nil
 }
 
 func timeToString(t time.Time) string {
@@ -574,12 +662,17 @@ func sqlcGatewayToPbGateway(g sqlc.Gateway, groupIDs []string, routes []*sqlc.Ge
 	}
 }
 
-func sqlcSessionAndDeviceToPbSession(s sqlc.Session, d sqlc.Device, groupIDs []string) *pb.Session {
+func sqlcSessionAndDeviceToPbSession(s sqlc.Session, d sqlc.Device, groupIDs []string) (*pb.Session, error) {
+	device, err := sqlcDeviceToPbDevice(d)
+	if err != nil {
+		return nil, fmt.Errorf("converting device: %w", err)
+	}
+
 	return &pb.Session{
 		Key:      s.Key,
-		Device:   sqlcDeviceToPbDevice(d),
+		Device:   device,
 		ObjectID: s.ObjectID,
 		Expiry:   timestamppb.New(stringToTime(s.Expiry)),
 		Groups:   groupIDs,
-	}
+	}, nil
 }

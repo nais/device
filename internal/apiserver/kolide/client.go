@@ -7,25 +7,27 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
+	"time"
 
+	"github.com/nais/device/internal/apiserver/database"
+	"github.com/nais/device/internal/pb"
 	"github.com/sirupsen/logrus"
 )
 
 type Client interface {
 	RefreshCache(ctx context.Context) error
-	GetDevice(ctx context.Context, email, platform, serial string) (Device, error)
-	DumpDevices() ([]byte, error)
 	DumpChecks() ([]byte, error)
+	GetDeviceFailures(ctx context.Context, deviceID string) ([]*pb.DeviceIssue, error)
 }
 
 type client struct {
 	baseUrl string
 	client  *http.Client
 
-	checks  *Cache[uint64, Check]
-	devices *Cache[string, Device]
+	checks *Cache[uint64, Check]
 
 	log logrus.FieldLogger
+	db  database.APIServer
 }
 
 type ClientOption func(*client)
@@ -42,9 +44,8 @@ func New(token string, log logrus.FieldLogger, opts ...ClientOption) Client {
 		client: &http.Client{
 			Transport: NewTransport(token),
 		},
-		checks:  &Cache[uint64, Check]{},
-		devices: &Cache[string, Device]{},
-		log:     log,
+		checks: &Cache[uint64, Check]{},
+		log:    log,
 	}
 	for _, opt := range opts {
 		opt(c)
@@ -52,25 +53,25 @@ func New(token string, log logrus.FieldLogger, opts ...ClientOption) Client {
 	return c
 }
 
-func deviceKey(email, platform, serial string) string {
-	convertPlatform := func(platform string) string {
-		switch strings.ToLower(platform) {
-		case "darwin":
-			return "darwin"
-		case "windows":
-			return "windows"
-		default:
-			return "linux"
-		}
+func convertPlatform(platform string) string {
+	switch strings.ToLower(platform) {
+	case "darwin":
+		return "darwin"
+	case "windows":
+		return "windows"
+	default:
+		return "linux"
 	}
-
-	return strings.ToLower(fmt.Sprintf("%v-%v-%v", email, convertPlatform(platform), serial))
 }
 
 func (kc *client) RefreshCache(ctx context.Context) error {
 	checks, err := kc.getChecks(ctx)
 	if err != nil {
-		return fmt.Errorf("getting checks: %w", err)
+		if kc.checks.Len() == 0 {
+			return fmt.Errorf("getting checks: %w", err)
+		} else {
+			kc.log.Errorf("getting checks: %v", err)
+		}
 	}
 
 	checksCache := make(map[uint64]Check, len(checks))
@@ -82,33 +83,77 @@ func (kc *client) RefreshCache(ctx context.Context) error {
 
 	devices, err := kc.getDevices(ctx)
 	if err != nil {
-		return fmt.Errorf("getting devices: %w", err)
+		kc.log.Errorf("getting devices: %v", err)
+	} else {
+		for _, device := range devices {
+			_, err := kc.db.UpdateSingleDevice(ctx, fmt.Sprint(device.ID), device.Serial, device.Platform, device.LastSeenAt, nil)
+			if err != nil {
+				kc.log.Errorf("storing device: %v", err)
+			}
+		}
 	}
 
-	devicesCache := make(map[string]Device, len(devices))
-	for _, device := range devices {
-		devicesCache[deviceKey(device.AssignedOwner.Email, device.Platform, device.Serial)] = device
+	if err := kc.updateDeviceFailures(ctx); err != nil {
+		kc.log.Errorf("updating device failures: %v", err)
 	}
-
-	kc.devices.Replace(devicesCache)
 
 	return nil
 }
 
-func (kc *client) GetDevice(ctx context.Context, email, platform, serial string) (Device, error) {
-	key := deviceKey(email, platform, serial)
-	device, ok := kc.devices.Get(key)
-	if !ok {
-		return Device{}, fmt.Errorf("device with key %v not found in cache", key)
-	}
-
-	failures, err := kc.getDeviceFailures(ctx, device.ID)
+func (kc *client) updateDeviceFailures(ctx context.Context) error {
+	resp, err := kc.getPaginated(ctx, kc.baseUrl+"/failures/open")
 	if err != nil {
-		return Device{}, fmt.Errorf("getting device failures: %w", err)
+		return fmt.Errorf("getting open failures: %w", err)
 	}
 
-	device.Failures = failures
-	return device, nil
+	type deviceKey struct {
+		deviceID   string
+		platform   string
+		serial     string
+		lastSeenAt *time.Time
+	}
+
+	devices := make(map[deviceKey][]DeviceFailure)
+	for _, rawFailure := range resp {
+		failure := DeviceFailureWithDevice{}
+		err := json.Unmarshal(rawFailure, &failure)
+		if err != nil {
+			return fmt.Errorf("unmarshal failure: %w", err)
+		}
+
+		failure.Check, err = kc.getCheck(ctx, failure.CheckID)
+		if err != nil {
+			return fmt.Errorf("getting check: %w", err)
+		}
+
+		key := deviceKey{
+			deviceID:   fmt.Sprint(failure.Device.ID),
+			platform:   convertPlatform(failure.Device.Platform),
+			serial:     failure.Device.Serial,
+			lastSeenAt: failure.Device.LastSeenAt,
+		}
+		devices[key] = append(devices[key], failure.DeviceFailure)
+	}
+
+	checkedDevices := []int64{}
+	for device, failures := range devices {
+		issues := convertFailuresToOpenDeviceIssues(failures)
+		id, err := kc.db.UpdateSingleDevice(ctx, device.deviceID, device.serial, device.platform, device.lastSeenAt, issues)
+		if err != nil {
+			kc.log.Errorf("storing device issues: %v", err)
+			continue
+		}
+		checkedDevices = append(checkedDevices, id)
+	}
+
+	if len(checkedDevices) > 0 {
+		err := kc.db.ClearDeviceIssuesExceptFor(ctx, checkedDevices)
+		if err != nil {
+			return fmt.Errorf("clearing device issues: %w", err)
+		}
+	}
+
+	return nil
 }
 
 func (kc *client) getChecks(ctx context.Context) ([]Check, error) {
@@ -210,13 +255,14 @@ func (kc *client) getDevices(ctx context.Context) ([]Device, error) {
 			return nil, fmt.Errorf("unmarshal device: %w", err)
 		}
 
+		device.Platform = convertPlatform(device.Platform)
 		devices = append(devices, device)
 	}
 
 	return devices, nil
 }
 
-func (kc *client) getDeviceFailures(ctx context.Context, deviceID uint64) ([]DeviceFailure, error) {
+func (kc *client) GetDeviceFailures(ctx context.Context, deviceID string) ([]*pb.DeviceIssue, error) {
 	url := fmt.Sprintf(kc.baseUrl+"/devices/%v/failures", deviceID)
 	rawFailures, err := kc.getPaginated(ctx, url)
 	if err != nil {
@@ -235,10 +281,11 @@ func (kc *client) getDeviceFailures(ctx context.Context, deviceID uint64) ([]Dev
 		if err != nil {
 			return nil, fmt.Errorf("getting check: %w", err)
 		}
+
 		failures = append(failures, failure)
 	}
 
-	return failures, nil
+	return convertFailuresToOpenDeviceIssues(failures), nil
 }
 
 func (kc *client) get(ctx context.Context, url string) (*http.Response, error) {
@@ -248,10 +295,6 @@ func (kc *client) get(ctx context.Context, url string) (*http.Response, error) {
 	}
 
 	return kc.client.Do(req)
-}
-
-func (kc client) DumpDevices() ([]byte, error) {
-	return json.Marshal(kc.devices)
 }
 
 func (kc client) DumpChecks() ([]byte, error) {

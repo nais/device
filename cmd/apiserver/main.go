@@ -9,6 +9,7 @@ import (
 	"net/netip"
 	"os"
 	"os/signal"
+	"slices"
 	"syscall"
 	"time"
 
@@ -200,18 +201,17 @@ func run(log *logrus.Entry, cfg config.Config) error {
 			return fmt.Errorf("kolide integration enabled but no kolide-api-token provided")
 		}
 
-		log.Info("Kolide client configured, populating cache...")
-
-		kolideClient = kolide.New(cfg.KolideApiToken, log.WithField("component", "kolide-client"))
-		err := kolideClient.RefreshCache(ctx)
-		if err != nil {
-			return fmt.Errorf("initial kolide cache warmup: %w", err)
-		}
-
-		kolideRefreshInterval := 1 * time.Minute
-		log.Infof("Kolide cache populated, will auto refresh every %v", kolideRefreshInterval)
-
 		go func() {
+			log.Info("Kolide client configured, populating cache...")
+
+			kolideClient = kolide.New(cfg.KolideApiToken, log.WithField("component", "kolide-client"))
+			err := kolideClient.RefreshCache(ctx)
+			if err != nil {
+				log.Errorf("initial kolide cache warmup: %v", err)
+			}
+
+			kolideRefreshInterval := 1 * time.Minute
+			log.Infof("Kolide cache populated, will auto refresh every %v", kolideRefreshInterval)
 			sleep := time.NewTicker(kolideRefreshInterval)
 			for {
 				select {
@@ -324,18 +324,22 @@ func run(log *logrus.Entry, cfg config.Config) error {
 		}
 
 		changed := false
-		if device.Healthy != event.GetState().Healthy() {
+		failures, err := kolideClient.GetDeviceFailures(ctx, device.ExternalID)
+		if err != nil {
+			return err
+		}
+		if slices.ContainsFunc(device.Issues, api.AfterGracePeriod) != slices.ContainsFunc(failures, api.AfterGracePeriod) {
 			changed = true
 		}
 
-		device.Healthy = event.GetState().Healthy()
+		device.Issues = failures
 		device.LastUpdated = event.GetTimestamp()
+		sessions.UpdateDevice(device)
 		err = db.UpdateDevices(ctx, []*pb.Device{device})
 		if err != nil {
 			return err
 		}
 		if changed {
-			sessions.UpdateDevice(device)
 			grpcHandler.SendDeviceConfiguration(device)
 			grpcHandler.SendAllGatewayConfigurations()
 		}

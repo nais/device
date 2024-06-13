@@ -131,7 +131,7 @@ func run(ctx context.Context, log *logrus.Entry, cfg *config.Config, notifier no
 	if cfg.LocalAPIServer {
 		client = pb.NewMockHelperClient(log)
 	} else {
-		connection, err := grpc.Dial(
+		connection, err := grpc.NewClient(
 			"unix:"+cfg.DeviceAgentHelperAddress,
 			grpc.WithTransportCredentials(insecure.NewCredentials()),
 			grpc.WithIdleTimeout(10*time.Hour),

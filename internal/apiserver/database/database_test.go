@@ -96,8 +96,17 @@ func TestAddDevice(t *testing.T) {
 	defer cancel()
 
 	serial := "serial"
+	issues := []*pb.DeviceIssue{
+		{
+			Title: "integration test issue",
+		},
+	}
 	d := &pb.Device{Username: "username", PublicKey: "publickey", Serial: serial, Platform: "darwin"}
 	err := db.AddDevice(ctx, d)
+	assert.NoError(t, err)
+
+	ls := d.LastSeen.AsTime()
+	_, err = db.UpdateSingleDevice(ctx, d.ExternalID, d.Serial, d.Platform, &ls, issues)
 	assert.NoError(t, err)
 
 	device, err := db.ReadDevice(ctx, d.PublicKey)
@@ -106,7 +115,7 @@ func TestAddDevice(t *testing.T) {
 	assert.Equal(t, d.PublicKey, device.PublicKey)
 	assert.Equal(t, d.Serial, device.Serial)
 	assert.Equal(t, d.Platform, device.Platform)
-	assert.False(t, device.Healthy)
+	assert.EqualValues(t, issues, device.Issues)
 
 	err = db.AddDevice(ctx, d)
 	assert.NoError(t, err)

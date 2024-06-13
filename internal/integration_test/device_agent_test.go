@@ -18,7 +18,7 @@ import (
 )
 
 func NewDeviceAgent(t *testing.T, wg *sync.WaitGroup, ctx context.Context, log *logrus.Entry, helperconn *bufconn.Listener, rc *runtimeconfig.MockRuntimeConfig) *grpc.Server {
-	helperDial, err := dial(ctx, helperconn)
+	helperDial, err := dial(helperconn)
 	assert.NoError(t, err)
 
 	helperClient := pb.NewDeviceHelperClient(helperDial)
