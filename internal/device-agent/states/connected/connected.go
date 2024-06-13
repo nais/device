@@ -224,7 +224,19 @@ func (c *Connected) defaultSyncConfigLoop(ctx context.Context) error {
 				span.AddEvent("device.unhealthy")
 
 				c.logger.Errorf("Device is not healthy: %v", err)
-				c.notifier.Errorf("No access as your device is unhealthy. Run '/msg @Kolide status' on Slack and fix the errors")
+				for _, issue := range cfg.Issues {
+					c.logger.Errorf("Issue detected: %+v", issue)
+				}
+				if len(cfg.Issues) == 1 {
+					c.notifier.Errorf("%v. Run '/msg @Kolide status' on Slack and fix the errors", cfg.Issues[0].Title)
+				} else {
+					// Make sure we do not report `Found 0 issues`
+					count := ""
+					if len(cfg.Issues) > 0 {
+						count = fmt.Sprintf(" %v", len(cfg.Issues))
+					}
+					c.notifier.Errorf("Found%v issues on your device. Run '/msg @Kolide status' on Slack and fix the errors", count)
+				}
 
 				c.cfg = cfg
 
