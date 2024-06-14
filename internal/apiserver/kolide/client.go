@@ -2,12 +2,13 @@ package kolide
 
 import (
 	"context"
+	"database/sql"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"net/url"
 	"strings"
-	"time"
 
 	"github.com/nais/device/internal/apiserver/database"
 	"github.com/nais/device/internal/pb"
@@ -27,7 +28,7 @@ type client struct {
 	checks *Cache[uint64, Check]
 
 	log logrus.FieldLogger
-	db  database.APIServer
+	db  database.Database
 }
 
 type ClientOption func(*client)
@@ -38,13 +39,14 @@ func WithBaseUrl(baseUrl string) ClientOption {
 	}
 }
 
-func New(token string, log logrus.FieldLogger, opts ...ClientOption) Client {
+func New(token string, db database.Database, log logrus.FieldLogger, opts ...ClientOption) Client {
 	c := &client{
 		baseUrl: "https://k2.kolide.com/api/v0",
 		client: &http.Client{
 			Transport: NewTransport(token),
 		},
 		checks: &Cache[uint64, Check]{},
+		db:     db,
 		log:    log,
 	}
 	for _, opt := range opts {
@@ -81,79 +83,53 @@ func (kc *client) RefreshCache(ctx context.Context) error {
 
 	kc.checks.Replace(checksCache)
 
+	issuesByExternalID, err := kc.getDeviceIssues(ctx)
+	if err != nil {
+		return err
+	}
+
 	devices, err := kc.getDevices(ctx)
 	if err != nil {
 		kc.log.Errorf("getting devices: %v", err)
 	} else {
 		for _, device := range devices {
-			_, err := kc.db.UpdateSingleDevice(ctx, fmt.Sprint(device.ID), device.Serial, device.Platform, device.LastSeenAt, nil)
-			if err != nil {
+			err := kc.db.UpdateSingleDevice(ctx, fmt.Sprint(device.ID), device.Serial, device.Platform, device.LastSeenAt, issuesByExternalID[fmt.Sprint(device.ID)])
+			if err != nil && !errors.Is(err, sql.ErrNoRows) {
 				kc.log.Errorf("storing device: %v", err)
 			}
 		}
 	}
-
-	if err := kc.updateDeviceFailures(ctx); err != nil {
-		kc.log.Errorf("updating device failures: %v", err)
-	}
-
 	return nil
 }
 
-func (kc *client) updateDeviceFailures(ctx context.Context) error {
+func (kc *client) getDeviceIssues(ctx context.Context) (map[string][]*pb.DeviceIssue, error) {
 	resp, err := kc.getPaginated(ctx, kc.baseUrl+"/failures/open")
 	if err != nil {
-		return fmt.Errorf("getting open failures: %w", err)
+		return nil, fmt.Errorf("getting open failures: %w", err)
 	}
 
-	type deviceKey struct {
-		deviceID   string
-		platform   string
-		serial     string
-		lastSeenAt *time.Time
-	}
-
-	devices := make(map[deviceKey][]DeviceFailure)
+	issues := make(map[string][]*pb.DeviceIssue)
 	for _, rawFailure := range resp {
 		failure := DeviceFailureWithDevice{}
 		err := json.Unmarshal(rawFailure, &failure)
 		if err != nil {
-			return fmt.Errorf("unmarshal failure: %w", err)
+			return nil, fmt.Errorf("unmarshal failure: %w", err)
 		}
 
 		failure.Check, err = kc.getCheck(ctx, failure.CheckID)
 		if err != nil {
-			return fmt.Errorf("getting check: %w", err)
+			return nil, fmt.Errorf("getting check: %w", err)
 		}
 
-		key := deviceKey{
-			deviceID:   fmt.Sprint(failure.Device.ID),
-			platform:   convertPlatform(failure.Device.Platform),
-			serial:     failure.Device.Serial,
-			lastSeenAt: failure.Device.LastSeenAt,
-		}
-		devices[key] = append(devices[key], failure.DeviceFailure)
-	}
-
-	checkedDevices := []int64{}
-	for device, failures := range devices {
-		issues := convertFailuresToOpenDeviceIssues(failures)
-		id, err := kc.db.UpdateSingleDevice(ctx, device.deviceID, device.serial, device.platform, device.lastSeenAt, issues)
-		if err != nil {
-			kc.log.Errorf("storing device issues: %v", err)
+		if !failure.Relevant() {
 			continue
 		}
-		checkedDevices = append(checkedDevices, id)
+
+		externalID := fmt.Sprint(failure.Device.ID)
+		issues[externalID] = append(issues[externalID], failure.DeviceFailure.AsDeviceIssue())
 	}
 
-	if len(checkedDevices) > 0 {
-		err := kc.db.ClearDeviceIssuesExceptFor(ctx, checkedDevices)
-		if err != nil {
-			return fmt.Errorf("clearing device issues: %w", err)
-		}
-	}
-
-	return nil
+	return issues, nil
 }
 
 func (kc *client) getChecks(ctx context.Context) ([]Check, error) {
@@ -269,7 +245,7 @@ func (kc *client) GetDeviceFailures(ctx context.Context, deviceID string) ([]*pb
 		return nil, fmt.Errorf("getting paginated device failures: %v", err)
 	}
 
-	var failures []DeviceFailure
+	var issues []*pb.DeviceIssue
 	for _, rawFailure := range rawFailures {
 		failure := DeviceFailure{}
 		err := json.Unmarshal(rawFailure, &failure)
@@ -282,10 +258,13 @@ func (kc *client) GetDeviceFailures(ctx context.Context, deviceID string) ([]*pb
 			return nil, fmt.Errorf("getting check: %w", err)
 		}
 
-		failures = append(failures, failure)
-	}
+		if !failure.Relevant() {
+			continue
+		}
 
-	return convertFailuresToOpenDeviceIssues(failures), nil
+		issues = append(issues, failure.AsDeviceIssue())
+	}
+	return issues, nil
 }
 
 func (kc *client) get(ctx context.Context, url string) (*http.Response, error) {

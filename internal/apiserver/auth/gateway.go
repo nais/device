@@ -10,10 +10,10 @@ import (
 )
 
 type gatewayAuthenticator struct {
-	db database.APIServer
+	db database.Database
 }
 
-func NewGatewayAuthenticator(db database.APIServer) UsernamePasswordAuthenticator {
+func NewGatewayAuthenticator(db database.Database) UsernamePasswordAuthenticator {
 	return &gatewayAuthenticator{
 		db: db,
 	}

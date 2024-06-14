@@ -14,12 +14,12 @@ import (
 )
 
 type googleAuth struct {
-	db     database.APIServer
+	db     database.Database
 	store  SessionStore
 	google *auth.Google
 }
 
-func NewGoogleAuthenticator(googleConfig *auth.Google, db database.APIServer, store SessionStore) Authenticator {
+func NewGoogleAuthenticator(googleConfig *auth.Google, db database.Database, store SessionStore) Authenticator {
 	return &googleAuth{
 		db:     db,
 		store:  store,

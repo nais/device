@@ -22,7 +22,7 @@ type autoEnrollConfig struct {
 }
 
 type AutoEnroll struct {
-	db                   database.APIServer
+	db                   database.Database
 	peers                []*pb.Gateway
 	apiServerGRPCAddress string
 	log                  *logrus.Entry
@@ -35,7 +35,7 @@ type AutoEnroll struct {
 
 func NewAutoEnroll(
 	ctx context.Context,
-	db database.APIServer,
+	db database.Database,
 	peers []*pb.Gateway,
 	apiServerGRPCAddress string,
 	log *logrus.Entry,

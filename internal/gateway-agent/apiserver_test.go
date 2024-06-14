@@ -40,11 +40,11 @@ func TestSyncFromStream(t *testing.T) {
 			APIServerPassword: password,
 		}
 
-		stream := &pb.MockAPIServer_GetGatewayConfigurationClient{}
+		stream := pb.NewMockAPIServer_GetGatewayConfigurationClient(t)
 		stream.On("Recv").Return(resp, nil).Once()
 		stream.On("Recv").Return(nil, knownError).Once()
 
-		client := &pb.MockAPIServerClient{}
+		client := pb.NewMockAPIServerClient(t)
 		client.On("GetGatewayConfiguration",
 			mock.Anything,
 			req,
@@ -53,8 +53,7 @@ func TestSyncFromStream(t *testing.T) {
 		staticPeers := cfg.StaticPeers()
 		peers := wireguard.CastPeerList(resp.Devices)
 		peers = append(peers, staticPeers...)
-		netConf := &wireguard.MockNetworkConfigurer{}
-		netConf.On("ConnectedDeviceCount").Return(1, nil)
+		netConf := wireguard.NewMockNetworkConfigurer(t)
 		netConf.On("ApplyWireGuardConfig", peers).Return(nil)
 		netConf.On("ForwardRoutesV4", resp.GetRoutesIPv4()).Return(nil)
 		netConf.On("ForwardRoutesV6", resp.GetRoutesIPv6()).Return(nil)

@@ -14,7 +14,7 @@ var ErrNoSession = errors.New("no active session")
 
 // sessionStore provides a database-backed session storage, with an in-memory caching layer.
 type sessionStore struct {
-	db    database.APIServer
+	db    database.Database
 	cache map[string]*pb.Session
 	lock  sync.Mutex
 }
@@ -25,7 +25,7 @@ type SessionStore interface {
 	All() []*pb.Session
 }
 
-func NewSessionStore(db database.APIServer) *sessionStore {
+func NewSessionStore(db database.Database) *sessionStore {
 	return &sessionStore{
 		db:    db,
 		cache: make(map[string]*pb.Session),

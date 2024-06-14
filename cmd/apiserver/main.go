@@ -204,7 +204,7 @@ func run(log *logrus.Entry, cfg config.Config) error {
 		go func() {
 			log.Info("Kolide client configured, populating cache...")
 
-			kolideClient = kolide.New(cfg.KolideApiToken, log.WithField("component", "kolide-client"))
+			kolideClient = kolide.New(cfg.KolideApiToken, db, log.WithField("component", "kolide-client"))
 			err := kolideClient.RefreshCache(ctx)
 			if err != nil {
 				log.Errorf("initial kolide cache warmup: %v", err)
@@ -420,7 +420,7 @@ func run(log *logrus.Entry, cfg config.Config) error {
 	return nil
 }
 
-func readd(ctx context.Context, db database.APIServer) error {
+func readd(ctx context.Context, db database.Database) error {
 	gateways, err := db.ReadGateways(ctx)
 	if err != nil {
 		return err
@@ -450,7 +450,7 @@ func readd(ctx context.Context, db database.APIServer) error {
 	return nil
 }
 
-func SyncLoop(ctx context.Context, log *logrus.Entry, db database.APIServer, netConf wg.NetworkConfigurer, staticPeers []*pb.Gateway) {
+func SyncLoop(ctx context.Context, log *logrus.Entry, db database.Database, netConf wg.NetworkConfigurer, staticPeers []*pb.Gateway) {
 	log.Debugf("Starting config sync")
 
 	sync := func(ctx context.Context) error {

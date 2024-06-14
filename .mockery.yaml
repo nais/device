@@ -13,7 +13,7 @@ packages:
       Object:
   github.com/nais/device/internal/apiserver/database:
     interfaces:
-      APIServer:
+      Database:
   github.com/nais/device/internal/pb:
     interfaces:
       APIServerClient:

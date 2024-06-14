@@ -14,14 +14,14 @@ import (
 )
 
 type GatewayConfigurer struct {
-	db           database.APIServer
+	db           database.Database
 	bucket       bucket.Client
 	syncInterval time.Duration
 	lastUpdated  time.Time
 	log          *logrus.Entry
 }
 
-func NewGatewayConfigurer(log *logrus.Entry, db database.APIServer, bucket bucket.Client, syncInterval time.Duration) *GatewayConfigurer {
+func NewGatewayConfigurer(log *logrus.Entry, db database.Database, bucket bucket.Client, syncInterval time.Duration) *GatewayConfigurer {
 	return &GatewayConfigurer{
 		db:           db,
 		bucket:       bucket,

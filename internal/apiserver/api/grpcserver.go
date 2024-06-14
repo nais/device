@@ -28,7 +28,7 @@ type grpcServer struct {
 	gatewayConfigTrigger     map[string]chan struct{}
 	gatewayConfigTriggerLock sync.RWMutex
 
-	db           database.APIServer
+	db           database.Database
 	sessionStore auth.SessionStore
 
 	programContext context.Context
@@ -38,7 +38,7 @@ type grpcServer struct {
 
 var _ pb.APIServerServer = &grpcServer{}
 
-func NewGRPCServer(ctx context.Context, log logrus.FieldLogger, db database.APIServer, authenticator auth.Authenticator, adminAuth, gatewayAuth, prometheusAuth auth.UsernamePasswordAuthenticator, jita jita.Client, sessionStore auth.SessionStore, kolideClient kolide.Client) *grpcServer {
+func NewGRPCServer(ctx context.Context, log logrus.FieldLogger, db database.Database, authenticator auth.Authenticator, adminAuth, gatewayAuth, prometheusAuth auth.UsernamePasswordAuthenticator, jita jita.Client, sessionStore auth.SessionStore, kolideClient kolide.Client) *grpcServer {
 	return &grpcServer{
 		deviceConfigTrigger:  make(map[int64]chan struct{}),
 		gatewayConfigTrigger: make(map[string]chan struct{}),

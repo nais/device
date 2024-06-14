@@ -17,7 +17,7 @@ import (
 	"github.com/nais/device/internal/pb"
 )
 
-type ApiServerDB struct {
+type database struct {
 	queries             Querier
 	ipv4Allocator       ip.Allocator
 	ipv6Allocator       ip.Allocator
@@ -26,13 +26,13 @@ type ApiServerDB struct {
 
 var mux sync.Mutex
 
-func New(_ context.Context, dbPath string, v4Allocator ip.Allocator, v6Allocator ip.Allocator, defaultDeviceHealth bool) (APIServer, error) {
+func New(_ context.Context, dbPath string, v4Allocator ip.Allocator, v6Allocator ip.Allocator, defaultDeviceHealth bool) (*database, error) {
 	db, err := sql.Open("sqlite3", dbPath)
 	if err != nil {
 		return nil, fmt.Errorf("open database: %w", err)
 	}
 
-	apiServerDB := ApiServerDB{
+	apiServerDB := database{
 		queries:             NewQuerier(db),
 		ipv4Allocator:       v4Allocator,
 		ipv6Allocator:       v6Allocator,
@@ -46,7 +46,9 @@ func New(_ context.Context, dbPath string, v4Allocator ip.Allocator, v6Allocator
 	return &apiServerDB, nil
 }
 
-func (db *ApiServerDB) ReadDevices(ctx context.Context) ([]*pb.Device, error) {
+var _ Database = &database{}
+
+func (db *database) ReadDevices(ctx context.Context) ([]*pb.Device, error) {
 	rows, err := db.queries.GetDevices(ctx)
 	if err != nil {
 		return nil, err
@@ -64,7 +66,7 @@ func (db *ApiServerDB) ReadDevices(ctx context.Context) ([]*pb.Device, error) {
 	return devices, nil
 }
 
-func (db *ApiServerDB) UpdateSingleDevice(ctx context.Context, externalID, serial, platform string, lastSeen *time.Time, issues []*pb.DeviceIssue) (int64, error) {
+func (db *database) UpdateSingleDevice(ctx context.Context, externalID, serial, platform string, lastSeen *time.Time, issues []*pb.DeviceIssue) error {
 	var (
 		b   []byte
 		err error
@@ -72,7 +74,7 @@ func (db *ApiServerDB) UpdateSingleDevice(ctx context.Context, externalID, seria
 	if len(issues) > 0 {
 		b, err = json.Marshal(issues)
 		if err != nil {
-			return 0, fmt.Errorf("marshal issues: %w", err)
+			return fmt.Errorf("marshal issues: %w", err)
 		}
 	}
 
@@ -103,7 +105,7 @@ func (db *ApiServerDB) UpdateSingleDevice(ctx context.Context, externalID, seria
 	})
 }
 
-func (db *ApiServerDB) UpdateDevices(ctx context.Context, devices []*pb.Device) error {
+func (db *database) UpdateDevices(ctx context.Context, devices []*pb.Device) error {
 	err := db.queries.Transaction(ctx, func(ctx context.Context, queries *sqlc.Queries) error {
 		for _, device := range devices {
 			lastSeen := sql.NullString{}
@@ -126,7 +128,7 @@ func (db *ApiServerDB) UpdateDevices(ctx context.Context, devices []*pb.Device) 
 				}
 			}
 
-			_, err := queries.UpdateDevice(ctx, sqlc.UpdateDeviceParams{
+			err := queries.UpdateDevice(ctx, sqlc.UpdateDeviceParams{
 				Serial:   device.Serial,
 				Platform: device.Platform,
 				LastUpdated: sql.NullString{
@@ -154,7 +156,7 @@ func (db *ApiServerDB) UpdateDevices(ctx context.Context, devices []*pb.Device) 
 	return nil
 }
 
-func (db *ApiServerDB) UpdateGateway(ctx context.Context, gw *pb.Gateway) error {
+func (db *database) UpdateGateway(ctx context.Context, gw *pb.Gateway) error {
 	err := db.queries.Transaction(ctx, func(ctx context.Context, qtx *sqlc.Queries) error {
 		err := qtx.UpdateGateway(ctx, sqlc.UpdateGatewayParams{
 			PublicKey:                gw.PublicKey,
@@ -219,7 +221,7 @@ func (db *ApiServerDB) UpdateGateway(ctx context.Context, gw *pb.Gateway) error 
 	return nil
 }
 
-func (db *ApiServerDB) UpdateGatewayDynamicFields(ctx context.Context, gw *pb.Gateway) error {
+func (db *database) UpdateGatewayDynamicFields(ctx context.Context, gw *pb.Gateway) error {
 	err := db.queries.Transaction(ctx, func(ctx context.Context, qtx *sqlc.Queries) error {
 		err := qtx.UpdateGatewayDynamicFields(ctx, sqlc.UpdateGatewayDynamicFieldsParams{
 			RequiresPrivilegedAccess: gw.RequiresPrivilegedAccess,
@@ -280,7 +282,7 @@ func (db *ApiServerDB) UpdateGatewayDynamicFields(ctx context.Context, gw *pb.Ga
 	return nil
 }
 
-func (db *ApiServerDB) AddGateway(ctx context.Context, gw *pb.Gateway) error {
+func (db *database) AddGateway(ctx context.Context, gw *pb.Gateway) error {
 	mux.Lock()
 	defer mux.Unlock()
 
@@ -349,7 +351,7 @@ func (db *ApiServerDB) AddGateway(ctx context.Context, gw *pb.Gateway) error {
 	return nil
 }
 
-func (db *ApiServerDB) AddDevice(ctx context.Context, device *pb.Device) error {
+func (db *database) AddDevice(ctx context.Context, device *pb.Device) error {
 	mux.Lock()
 	defer mux.Unlock()
 
@@ -379,7 +381,7 @@ func (db *ApiServerDB) AddDevice(ctx context.Context, device *pb.Device) error {
 	return nil
 }
 
-func (db *ApiServerDB) ReadDevice(ctx context.Context, publicKey string) (*pb.Device, error) {
+func (db *database) ReadDevice(ctx context.Context, publicKey string) (*pb.Device, error) {
 	device, err := db.queries.GetDeviceByPublicKey(ctx, publicKey)
 	if err != nil {
 		return nil, err
@@ -388,7 +390,7 @@ func (db *ApiServerDB) ReadDevice(ctx context.Context, publicKey string) (*pb.De
 	return sqlcDeviceToPbDevice(*device)
 }
 
-func (db *ApiServerDB) ReadDeviceById(ctx context.Context, deviceID int64) (*pb.Device, error) {
+func (db *database) ReadDeviceById(ctx context.Context, deviceID int64) (*pb.Device, error) {
 	device, err := db.queries.GetDeviceByID(ctx, deviceID)
 	if err != nil {
 		return nil, err
@@ -397,7 +399,7 @@ func (db *ApiServerDB) ReadDeviceById(ctx context.Context, deviceID int64) (*pb.
 	return sqlcDeviceToPbDevice(*device)
 }
 
-func (db *ApiServerDB) ReadDeviceByExternalID(ctx context.Context, externalID string) (*pb.Device, error) {
+func (db *database) ReadDeviceByExternalID(ctx context.Context, externalID string) (*pb.Device, error) {
 	id := sql.NullString{
 		String: externalID,
 		Valid:  true,
@@ -410,7 +412,7 @@ func (db *ApiServerDB) ReadDeviceByExternalID(ctx context.Context, externalID st
 	return sqlcDeviceToPbDevice(*device)
 }
 
-func (db *ApiServerDB) ReadGateways(ctx context.Context) ([]*pb.Gateway, error) {
+func (db *database) ReadGateways(ctx context.Context) ([]*pb.Gateway, error) {
 	rows, err := db.queries.GetGateways(ctx)
 	if err != nil {
 		return nil, err
@@ -434,7 +436,7 @@ func (db *ApiServerDB) ReadGateways(ctx context.Context) ([]*pb.Gateway, error) 
 	return gateways, nil
 }
 
-func (db *ApiServerDB) ReadGateway(ctx context.Context, name string) (*pb.Gateway, error) {
+func (db *database) ReadGateway(ctx context.Context, name string) (*pb.Gateway, error) {
 	gateway, err := db.queries.GetGatewayByName(ctx, name)
 	if err != nil {
 		return nil, err
@@ -453,7 +455,7 @@ func (db *ApiServerDB) ReadGateway(ctx context.Context, name string) (*pb.Gatewa
 	return sqlcGatewayToPbGateway(*gateway, accessGroupIDs, routes), nil
 }
 
-func (db *ApiServerDB) readExistingIPs(ctx context.Context) ([]string, error) {
+func (db *database) readExistingIPs(ctx context.Context) ([]string, error) {
 	var ips []string
 
 	devices, err := db.ReadDevices(ctx)
@@ -477,7 +479,7 @@ func (db *ApiServerDB) readExistingIPs(ctx context.Context) ([]string, error) {
 	return ips, nil
 }
 
-func (db *ApiServerDB) ReadDeviceBySerialPlatform(ctx context.Context, serial, platform string) (*pb.Device, error) {
+func (db *database) ReadDeviceBySerialPlatform(ctx context.Context, serial, platform string) (*pb.Device, error) {
 	device, err := db.queries.GetDeviceBySerialAndPlatform(ctx, sqlc.GetDeviceBySerialAndPlatformParams{
 		Serial:   serial,
 		Platform: platform,
@@ -489,7 +491,7 @@ func (db *ApiServerDB) ReadDeviceBySerialPlatform(ctx context.Context, serial, p
 	return sqlcDeviceToPbDevice(*device)
 }
 
-func (db *ApiServerDB) AddSessionInfo(ctx context.Context, si *pb.Session) error {
+func (db *database) AddSessionInfo(ctx context.Context, si *pb.Session) error {
 	err := db.queries.Transaction(ctx, func(ctx context.Context, qtx *sqlc.Queries) error {
 		err := qtx.AddSession(ctx, sqlc.AddSessionParams{
 			Key:      si.Key,
@@ -519,7 +521,7 @@ func (db *ApiServerDB) AddSessionInfo(ctx context.Context, si *pb.Session) error
 	return nil
 }
 
-func (db *ApiServerDB) ReadSessionInfo(ctx context.Context, key string) (*pb.Session, error) {
+func (db *database) ReadSessionInfo(ctx context.Context, key string) (*pb.Session, error) {
 	row, err := db.queries.GetSessionByKey(ctx, key)
 	if err != nil {
 		return nil, err
@@ -533,7 +535,7 @@ func (db *ApiServerDB) ReadSessionInfo(ctx context.Context, key string) (*pb.Ses
 	return sqlcSessionAndDeviceToPbSession(row.Session, row.Device, groupIDs)
 }
 
-func (db *ApiServerDB) ReadSessionInfos(ctx context.Context) ([]*pb.Session, error) {
+func (db *database) ReadSessionInfos(ctx context.Context) ([]*pb.Session, error) {
 	rows, err := db.queries.GetSessions(ctx)
 	if err != nil {
 		return nil, err
@@ -557,7 +559,7 @@ func (db *ApiServerDB) ReadSessionInfos(ctx context.Context) ([]*pb.Session, err
 	return sessions, nil
 }
 
-func (db *ApiServerDB) ReadMostRecentSessionInfo(ctx context.Context, deviceID int64) (*pb.Session, error) {
+func (db *database) ReadMostRecentSessionInfo(ctx context.Context, deviceID int64) (*pb.Session, error) {
 	row, err := db.queries.GetMostRecentDeviceSession(ctx, deviceID)
 	if err != nil {
 		return nil, err
@@ -571,7 +573,7 @@ func (db *ApiServerDB) ReadMostRecentSessionInfo(ctx context.Context, deviceID i
 	return sqlcSessionAndDeviceToPbSession(row.Session, row.Device, groupIDs)
 }
 
-func (db *ApiServerDB) getNextAvailableIPv4(ctx context.Context) (string, error) {
+func (db *database) getNextAvailableIPv4(ctx context.Context) (string, error) {
 	existingIps, err := db.readExistingIPs(ctx)
 	if err != nil {
 		return "", fmt.Errorf("reading existing ips: %w", err)
@@ -585,7 +587,7 @@ func (db *ApiServerDB) getNextAvailableIPv4(ctx context.Context) (string, error)
 	return availableIp, nil
 }
 
-func (db *ApiServerDB) getNextAvailableIPv6(ctx context.Context) (string, error) {
+func (db *database) getNextAvailableIPv6(ctx context.Context) (string, error) {
 	lastUsedIP, err := db.queries.GetLastUsedIPV6(ctx)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) || strings.Contains(err.Error(), "converting NULL to string is unsupported") {
@@ -600,12 +602,8 @@ func (db *ApiServerDB) getNextAvailableIPv6(ctx context.Context) (string, error)
 	return db.ipv6Allocator.NextIP([]string{lastUsedIP})
 }
 
-func (db *ApiServerDB) RemoveExpiredSessions(ctx context.Context) error {
+func (db *database) RemoveExpiredSessions(ctx context.Context) error {
 	return db.queries.RemoveExpiredSessions(ctx)
-}
-
-func (db *ApiServerDB) ClearDeviceIssuesExceptFor(ctx context.Context, deviceIds []int64) error {
-	return db.queries.ClearDeviceIssuesExceptFor(ctx, deviceIds)
 }
 
 func sqlcDeviceToPbDevice(sqlcDevice sqlc.Device) (*pb.Device, error) {

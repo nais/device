@@ -106,7 +106,7 @@ func TestAddDevice(t *testing.T) {
 	assert.NoError(t, err)
 
 	ls := d.LastSeen.AsTime()
-	_, err = db.UpdateSingleDevice(ctx, d.ExternalID, d.Serial, d.Platform, &ls, issues)
+	err = db.UpdateSingleDevice(ctx, d.ExternalID, d.Serial, d.Platform, &ls, issues)
 	assert.NoError(t, err)
 
 	device, err := db.ReadDevice(ctx, d.PublicKey)

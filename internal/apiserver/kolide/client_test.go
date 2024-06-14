@@ -31,7 +31,7 @@ func TestClient(t *testing.T) {
 			}
 		}))
 
-		client := kolide.New("token", logrus.New(), kolide.WithBaseUrl(s.URL))
+		client := kolide.New("token", nil, logrus.New(), kolide.WithBaseUrl(s.URL))
 		err := client.RefreshCache(ctx)
 		assert.NoError(t, err)
 	})

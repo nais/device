@@ -12,7 +12,7 @@ import (
 )
 
 type GoogleMetadata struct {
-	db  database.APIServer
+	db  database.Database
 	log *logrus.Entry
 }
 
@@ -22,7 +22,7 @@ type GatewayMetadata struct {
 	RequiresPrivilegedAccess bool     `json:"requires_privileged_access"`
 }
 
-func NewGoogleMetadata(db database.APIServer, log *logrus.Entry) *GoogleMetadata {
+func NewGoogleMetadata(db database.Database, log *logrus.Entry) *GoogleMetadata {
 	return &GoogleMetadata{
 		db:  db,
 		log: log,

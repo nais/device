@@ -19,7 +19,7 @@ const (
 	apiserverWireGuardIP    = "10.255.240.1"
 )
 
-func Setup(t *testing.T) database.APIServer {
+func Setup(t *testing.T) database.Database {
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 

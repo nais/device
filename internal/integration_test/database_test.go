@@ -7,6 +7,6 @@ import (
 	"github.com/nais/device/internal/apiserver/testdatabase"
 )
 
-func NewDB(t *testing.T) database.APIServer {
+func NewDB(t *testing.T) database.Database {
 	return testdatabase.Setup(t)
 }

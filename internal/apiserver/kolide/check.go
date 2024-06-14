@@ -68,74 +68,27 @@ func (failure *DeviceFailure) Relevant() bool {
 
 const MaxTimeSinceKolideLastSeen = 25 * time.Hour
 
-// If one check fails, the device is unhealthy.
-func (device *Device) Issues() []*pb.DeviceIssue {
-	// Allow only registered devices
-	if device.AssignedOwner.Email == "" {
-		return []*pb.DeviceIssue{
-			{
-				Title:         "Device is not registered with an owner",
-				Severity:      pb.Severity_Critical,
-				Message:       "This device is not registered with an owner. Please talk with the Kolide bot on Slack.",
-				DetectedAt:    timestamppb.Now(),
-				ResolveBefore: timestamppb.New(time.Time{}),
-				LastUpdated:   timestamppb.Now(),
-			},
-		}
+func (f DeviceFailure) AsDeviceIssue() *pb.DeviceIssue {
+	graceTime := GraceTime(f.Check.Severity())
+	if graceTime == DurationUnknown {
+		log.Errorf("DurationUnknown grace time for check %+v", f.Check.DisplayName)
 	}
 
-	// Devices must phone home regularly
-	lastSeen := time.Time{}
-	if device.LastSeenAt != nil {
-		lastSeen = *device.LastSeenAt
-	}
-	deadline := lastSeen.Add(MaxTimeSinceKolideLastSeen)
-	if time.Now().After(deadline) {
-		return []*pb.DeviceIssue{
-			{
-				Title:         "Kolide's information about this device is out of date",
-				Severity:      pb.Severity_Critical,
-				Message:       "Kolide's information about this device is out of date. Make sure the Kolide Launcher is running.",
-				DetectedAt:    timestamppb.Now(),
-				ResolveBefore: timestamppb.New(time.Time{}),
-				LastUpdated:   timestamppb.Now(),
-			},
-		}
+	var failureTimestamp *timestamppb.Timestamp
+	var deadline *timestamppb.Timestamp
+	if f.Timestamp != nil {
+		failureTimestamp = timestamppb.New(*f.Timestamp)
+		deadline = timestamppb.New(f.Timestamp.Add(graceTime))
+	} else {
+		log.Warnf("Timestamp missing for failure %+v", f)
 	}
 
-	return convertFailuresToOpenDeviceIssues(device.Failures)
-}
-
-func convertFailuresToOpenDeviceIssues(failures []DeviceFailure) []*pb.DeviceIssue {
-	// Any failure means device failure
-	openIssues := []*pb.DeviceIssue{}
-	for _, failure := range failures {
-		if !failure.Relevant() {
-			continue
-		}
-
-		graceTime := GraceTime(failure.Check.Severity())
-		if graceTime == DurationUnknown {
-			log.Errorf("DurationUnknown grace time for check %+v", failure.Check.DisplayName)
-		}
-
-		var failureTimestamp *timestamppb.Timestamp
-		var deadline *timestamppb.Timestamp
-		if failure.Timestamp != nil {
-			failureTimestamp = timestamppb.New(*failure.Timestamp)
-			deadline = timestamppb.New(failure.Timestamp.Add(graceTime))
-		} else {
-			log.Warnf("Timestamp missing for failure %+v", failure)
-		}
-
-		openIssues = append(openIssues, &pb.DeviceIssue{
-			Title:         failure.Title,
-			Severity:      failure.Check.Severity(),
-			Message:       failure.Check.Description,
-			DetectedAt:    failureTimestamp,
-			ResolveBefore: deadline,
-			LastUpdated:   timestamppb.New(failure.LastUpdated),
-		})
+	return &pb.DeviceIssue{
+		Title:         f.Title,
+		Severity:      f.Check.Severity(),
+		Message:       f.Check.Description,
+		DetectedAt:    failureTimestamp,
+		ResolveBefore: deadline,
+		LastUpdated:   timestamppb.New(f.LastUpdated),
 	}
-	return openIssues
 }

@@ -44,7 +44,7 @@ func TestGetDeviceConfiguration(t *testing.T) {
 
 	accessGroups := []string{"auth"}
 
-	db := &database.MockAPIServer{}
+	db := database.NewMockDatabase(t)
 	db.On("ReadSessionInfo", mock.Anything, mock.Anything).Return(
 		&pb.Session{
 			Groups: accessGroups,
@@ -94,8 +94,6 @@ func TestGetDeviceConfiguration(t *testing.T) {
 	gw := resp.Gateways[0]
 
 	assert.Equal(t, "", gw.PasswordHash)
-
-	db.AssertExpectations(t)
 }
 
 func TestGatewayPasswordAuthentication(t *testing.T) {
@@ -114,13 +112,8 @@ func TestGatewayPasswordAuthentication(t *testing.T) {
 			"mockroute",
 		},
 	}
-	db := &database.MockAPIServer{}
+	db := database.NewMockDatabase(t)
 	db.On("ReadGateway", mock.Anything, "gateway").Return(gwResponse, nil).Times(2)
-	db.On("ReadGateways", mock.Anything).Return([]*pb.Gateway{
-		{
-			Name: "gateway",
-		},
-	}, nil)
 
 	sessionStore := auth.NewMockSessionStore(t)
 	sessionStore.On("All", mock.Anything).Return([]*pb.Session{}, nil)
@@ -177,7 +170,7 @@ func TestGatewayPasswordAuthenticationFail(t *testing.T) {
 		},
 	}
 
-	db := &database.MockAPIServer{}
+	db := database.NewMockDatabase(t)
 	db.On("ReadGateway", mock.Anything, "gateway").Return(gwResponse, nil).Times(1)
 
 	gatewayAuthenticator := auth.NewGatewayAuthenticator(db)

@@ -11,8 +11,6 @@ import (
 )
 
 const addDevice = `-- name: AddDevice :exec
-;
-
 INSERT INTO devices (serial, username, public_key, ipv4, ipv6, healthy, platform)
 VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)
 ON CONFLICT(serial, platform) DO
@@ -39,17 +37,6 @@ func (q *Queries) AddDevice(ctx context.Context, arg AddDeviceParams) error {
 		arg.Healthy,
 		arg.Platform,
 	)
-	return err
-}
-
-const clearDeviceIssuesExceptFor = `-- name: ClearDeviceIssuesExceptFor :exec
-UPDATE devices
-SET issues = NULL
-WHERE id NOT IN (CAST(?1 AS INTEGER[]))
-`
-
-func (q *Queries) ClearDeviceIssuesExceptFor(ctx context.Context, unhealthyDeviceIds interface{}) error {
-	_, err := q.exec(ctx, q.clearDeviceIssuesExceptForStmt, clearDeviceIssuesExceptFor, unhealthyDeviceIds)
 	return err
 }
 
@@ -194,11 +181,10 @@ func (q *Queries) GetDevices(ctx context.Context) ([]*Device, error) {
 	return items, nil
 }
 
-const updateDevice = `-- name: UpdateDevice :one
+const updateDevice = `-- name: UpdateDevice :exec
 UPDATE devices
 SET external_id = ?1, healthy = ?2, last_updated = ?3, last_seen = ?4, issues = ?5
 WHERE serial = ?6 AND platform = ?7
-RETURNING id
 `
 
 type UpdateDeviceParams struct {
@@ -211,8 +197,8 @@ type UpdateDeviceParams struct {
 	Platform    string
 }
 
-func (q *Queries) UpdateDevice(ctx context.Context, arg UpdateDeviceParams) (int64, error) {
-	row := q.queryRow(ctx, q.updateDeviceStmt, updateDevice,
+func (q *Queries) UpdateDevice(ctx context.Context, arg UpdateDeviceParams) error {
+	_, err := q.exec(ctx, q.updateDeviceStmt, updateDevice,
 		arg.ExternalID,
 		arg.Healthy,
 		arg.LastUpdated,
@@ -221,7 +207,5 @@ func (q *Queries) UpdateDevice(ctx context.Context, arg UpdateDeviceParams) (int
 		arg.Serial,
 		arg.Platform,
 	)
-	var id int64
-	err := row.Scan(&id)
-	return id, err
+	return err
 }

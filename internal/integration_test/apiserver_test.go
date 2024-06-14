@@ -14,7 +14,7 @@ import (
 	"google.golang.org/grpc"
 )
 
-func NewAPIServer(t *testing.T, ctx context.Context, log *logrus.Entry, db database.APIServer, kolideClient kolide.Client) *grpc.Server {
+func NewAPIServer(t *testing.T, ctx context.Context, log *logrus.Entry, db database.Database, kolideClient kolide.Client) *grpc.Server {
 	sessions := auth.NewSessionStore(db)
 	deviceAuth := auth.NewMockAuthenticator(sessions)
 	gatewayAuth := auth.NewMockAPIKeyAuthenticator()

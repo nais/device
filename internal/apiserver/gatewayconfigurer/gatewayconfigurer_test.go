@@ -31,9 +31,9 @@ func TestGatewayConfigurer_SyncConfig(t *testing.T) {
 	log := logrus.StandardLogger().WithField("component", "test")
 
 	t.Run("updates gateway config in database according to bucket definition", func(t *testing.T) {
-		db := &database.MockAPIServer{}
-		mockClient := &bucket.MockClient{}
-		mockObject := &bucket.MockObject{}
+		db := database.NewMockDatabase(t)
+		mockClient := bucket.NewMockClient(t)
+		mockObject := bucket.NewMockObject(t)
 		lastUpdated := time.Now()
 		reader := strings.NewReader(gatewayConfig(gatewayName, route, accessGroupId, requiresPrivilegedAccess))
 
@@ -60,14 +60,11 @@ func TestGatewayConfigurer_SyncConfig(t *testing.T) {
 
 		err = gc.SyncConfig(ctx)
 		assert.NoError(t, err)
-
-		mock.AssertExpectationsForObjects(t, db, mockClient, mockObject)
 	})
 
 	t.Run("handles errors from bucket interface", func(t *testing.T) {
-		db := &database.MockAPIServer{}
-		mockClient := &bucket.MockClient{}
-		mockObject := &bucket.MockObject{}
+		db := database.NewMockDatabase(t)
+		mockClient := bucket.NewMockClient(t)
 
 		gc := gatewayconfigurer.NewGatewayConfigurer(log, db, mockClient, 0)
 
@@ -76,13 +73,12 @@ func TestGatewayConfigurer_SyncConfig(t *testing.T) {
 		err := gc.SyncConfig(ctx)
 
 		assert.EqualError(t, err, "open bucket: expected error")
-		mock.AssertExpectationsForObjects(t, mockClient, mockObject)
 	})
 
 	t.Run("handles errors from unmarshal", func(t *testing.T) {
-		db := &database.MockAPIServer{}
-		mockClient := &bucket.MockClient{}
-		mockObject := &bucket.MockObject{}
+		db := database.NewMockDatabase(t)
+		mockClient := bucket.NewMockClient(t)
+		mockObject := bucket.NewMockObject(t)
 		lastUpdated := time.Now()
 		reader := strings.NewReader(`this is not valid json`)
 
@@ -96,14 +92,12 @@ func TestGatewayConfigurer_SyncConfig(t *testing.T) {
 		err := gc.SyncConfig(ctx)
 
 		assert.Error(t, err)
-
-		mock.AssertExpectationsForObjects(t, mockClient, mockObject)
 	})
 
 	t.Run("handles errors from updategateway", func(t *testing.T) {
-		db := &database.MockAPIServer{}
-		mockClient := &bucket.MockClient{}
-		mockObject := &bucket.MockObject{}
+		db := database.NewMockDatabase(t)
+		mockClient := bucket.NewMockClient(t)
+		mockObject := bucket.NewMockObject(t)
 		lastUpdated := time.Now()
 		reader := strings.NewReader(gatewayConfig(gatewayName, route, accessGroupId, requiresPrivilegedAccess))
 
@@ -121,8 +115,6 @@ func TestGatewayConfigurer_SyncConfig(t *testing.T) {
 		err := gc.SyncConfig(ctx)
 
 		assert.Error(t, err)
-
-		mock.AssertExpectationsForObjects(t, db, mockClient, mockObject)
 	})
 }
 

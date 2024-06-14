@@ -17,7 +17,7 @@ import (
 
 func TestSessionStore_SetAndGetFromCache(t *testing.T) {
 	ctx := context.Background()
-	db := &database.MockAPIServer{}
+	db := database.NewMockDatabase(t)
 	store := auth.NewSessionStore(db)
 
 	session := &pb.Session{
@@ -32,14 +32,11 @@ func TestSessionStore_SetAndGetFromCache(t *testing.T) {
 	retrieved, err := store.Get(ctx, session.Key)
 	assert.EqualValues(t, session, retrieved)
 	assert.NoError(t, err)
-
-	// Assert that our query hit the cache, not the database
-	db.AssertExpectations(t)
 }
 
 func TestSessionStore_GetFromDatabase(t *testing.T) {
 	ctx := context.Background()
-	db := &database.MockAPIServer{}
+	db := database.NewMockDatabase(t)
 	store := auth.NewSessionStore(db)
 
 	session := &pb.Session{
@@ -58,13 +55,11 @@ func TestSessionStore_GetFromDatabase(t *testing.T) {
 	retrieved, err = store.Get(ctx, "abc")
 	assert.EqualValues(t, session, retrieved)
 	assert.NoError(t, err)
-
-	db.AssertExpectations(t)
 }
 
 func TestSessionStore_Errors(t *testing.T) {
 	ctx := context.Background()
-	db := &database.MockAPIServer{}
+	db := database.NewMockDatabase(t)
 	store := auth.NewSessionStore(db)
 
 	session := &pb.Session{
@@ -90,13 +85,11 @@ func TestSessionStore_Errors(t *testing.T) {
 	// Fail warmup
 	err = store.Warmup(ctx)
 	assert.EqualError(t, err, "warm cache from database: error from database")
-
-	db.AssertExpectations(t)
 }
 
 func TestSessionStore_Warmup(t *testing.T) {
 	ctx := context.Background()
-	db := &database.MockAPIServer{}
+	db := database.NewMockDatabase(t)
 	store := auth.NewSessionStore(db)
 
 	sessions := make([]*pb.Session, 20)
@@ -118,13 +111,11 @@ func TestSessionStore_Warmup(t *testing.T) {
 	retrieved, err := store.Get(ctx, "14")
 	assert.Equal(t, &pb.Session{Key: "14"}, retrieved)
 	assert.NoError(t, err)
-
-	db.AssertExpectations(t)
 }
 
 func TestSessionStore_UpdateDevice(t *testing.T) {
 	ctx := context.Background()
-	db := database.NewMockAPIServer(t)
+	db := database.NewMockDatabase(t)
 	store := auth.NewSessionStore(db)
 
 	now := time.Now()

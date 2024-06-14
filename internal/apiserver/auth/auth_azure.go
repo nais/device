@@ -16,12 +16,12 @@ import (
 )
 
 type azureAuth struct {
-	db    database.APIServer
+	db    database.Database
 	store SessionStore
 	Azure *auth.Azure
 }
 
-func NewAuthenticator(azureConfig *auth.Azure, db database.APIServer, store SessionStore) Authenticator {
+func NewAuthenticator(azureConfig *auth.Azure, db database.Database, store SessionStore) Authenticator {
 	return &azureAuth{
 		db:    db,
 		store: store,
