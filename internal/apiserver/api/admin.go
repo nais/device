@@ -2,6 +2,7 @@ package api
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/nais/device/internal/pb"
 	"google.golang.org/grpc/codes"
@@ -86,6 +87,10 @@ func (s *grpcServer) GetKolideCache(ctx context.Context, r *pb.GetKolideCacheReq
 	err := s.adminAuth.Authenticate(r.GetUsername(), r.GetPassword())
 	if err != nil {
 		return nil, status.Errorf(codes.Unauthenticated, err.Error())
+	}
+
+	if s.kolideClient == nil {
+		return nil, fmt.Errorf("kolide client not configured")
 	}
 
 	checks, err := s.kolideClient.DumpChecks()
