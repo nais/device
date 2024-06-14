@@ -271,6 +271,65 @@ func (_c *MockAPIServer_ReadDevice_Call) RunAndReturn(run func(context.Context, 
 	return _c
 }
 
+// ReadDeviceByExternalID provides a mock function with given fields: ctx, externalID
+func (_m *MockAPIServer) ReadDeviceByExternalID(ctx context.Context, externalID string) (*pb.Device, error) {
+	ret := _m.Called(ctx, externalID)
+
+	if len(ret) == 0 {
+		panic("no return value specified for ReadDeviceByExternalID")
+	}
+
+	var r0 *pb.Device
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, string) (*pb.Device, error)); ok {
+		return rf(ctx, externalID)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, string) *pb.Device); ok {
+		r0 = rf(ctx, externalID)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*pb.Device)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, string) error); ok {
+		r1 = rf(ctx, externalID)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// MockAPIServer_ReadDeviceByExternalID_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'ReadDeviceByExternalID'
+type MockAPIServer_ReadDeviceByExternalID_Call struct {
+	*mock.Call
+}
+
+// ReadDeviceByExternalID is a helper method to define mock.On call
+//   - ctx context.Context
+//   - externalID string
+func (_e *MockAPIServer_Expecter) ReadDeviceByExternalID(ctx interface{}, externalID interface{}) *MockAPIServer_ReadDeviceByExternalID_Call {
+	return &MockAPIServer_ReadDeviceByExternalID_Call{Call: _e.mock.On("ReadDeviceByExternalID", ctx, externalID)}
+}
+
+func (_c *MockAPIServer_ReadDeviceByExternalID_Call) Run(run func(ctx context.Context, externalID string)) *MockAPIServer_ReadDeviceByExternalID_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(string))
+	})
+	return _c
+}
+
+func (_c *MockAPIServer_ReadDeviceByExternalID_Call) Return(_a0 *pb.Device, _a1 error) *MockAPIServer_ReadDeviceByExternalID_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *MockAPIServer_ReadDeviceByExternalID_Call) RunAndReturn(run func(context.Context, string) (*pb.Device, error)) *MockAPIServer_ReadDeviceByExternalID_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // ReadDeviceById provides a mock function with given fields: ctx, deviceID
 func (_m *MockAPIServer) ReadDeviceById(ctx context.Context, deviceID int64) (*pb.Device, error) {
 	ret := _m.Called(ctx, deviceID)

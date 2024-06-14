@@ -51,6 +51,9 @@ func Prepare(ctx context.Context, db DBTX) (*Queries, error) {
 	if q.deleteGatewayRoutesStmt, err = db.PrepareContext(ctx, deleteGatewayRoutes); err != nil {
 		return nil, fmt.Errorf("error preparing query DeleteGatewayRoutes: %w", err)
 	}
+	if q.getDeviceByExternalIDStmt, err = db.PrepareContext(ctx, getDeviceByExternalID); err != nil {
+		return nil, fmt.Errorf("error preparing query GetDeviceByExternalID: %w", err)
+	}
 	if q.getDeviceByIDStmt, err = db.PrepareContext(ctx, getDeviceByID); err != nil {
 		return nil, fmt.Errorf("error preparing query GetDeviceByID: %w", err)
 	}
@@ -150,6 +153,11 @@ func (q *Queries) Close() error {
 	if q.deleteGatewayRoutesStmt != nil {
 		if cerr := q.deleteGatewayRoutesStmt.Close(); cerr != nil {
 			err = fmt.Errorf("error closing deleteGatewayRoutesStmt: %w", cerr)
+		}
+	}
+	if q.getDeviceByExternalIDStmt != nil {
+		if cerr := q.getDeviceByExternalIDStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing getDeviceByExternalIDStmt: %w", cerr)
 		}
 	}
 	if q.getDeviceByIDStmt != nil {
@@ -285,6 +293,7 @@ type Queries struct {
 	clearDeviceIssuesExceptForStmt   *sql.Stmt
 	deleteGatewayAccessGroupIDsStmt  *sql.Stmt
 	deleteGatewayRoutesStmt          *sql.Stmt
+	getDeviceByExternalIDStmt        *sql.Stmt
 	getDeviceByIDStmt                *sql.Stmt
 	getDeviceByPublicKeyStmt         *sql.Stmt
 	getDeviceBySerialAndPlatformStmt *sql.Stmt
@@ -317,6 +326,7 @@ func (q *Queries) WithTx(tx *sql.Tx) *Queries {
 		clearDeviceIssuesExceptForStmt:   q.clearDeviceIssuesExceptForStmt,
 		deleteGatewayAccessGroupIDsStmt:  q.deleteGatewayAccessGroupIDsStmt,
 		deleteGatewayRoutesStmt:          q.deleteGatewayRoutesStmt,
+		getDeviceByExternalIDStmt:        q.getDeviceByExternalIDStmt,
 		getDeviceByIDStmt:                q.getDeviceByIDStmt,
 		getDeviceByPublicKeyStmt:         q.getDeviceByPublicKeyStmt,
 		getDeviceBySerialAndPlatformStmt: q.getDeviceBySerialAndPlatformStmt,

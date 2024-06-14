@@ -6,6 +6,7 @@ package sqlc
 
 import (
 	"context"
+	"database/sql"
 )
 
 type Querier interface {
@@ -18,6 +19,7 @@ type Querier interface {
 	ClearDeviceIssuesExceptFor(ctx context.Context, unhealthyDeviceIds interface{}) error
 	DeleteGatewayAccessGroupIDs(ctx context.Context, gatewayName string) error
 	DeleteGatewayRoutes(ctx context.Context, gatewayName string) error
+	GetDeviceByExternalID(ctx context.Context, externalID sql.NullString) (*Device, error)
 	GetDeviceByID(ctx context.Context, id int64) (*Device, error)
 	GetDeviceByPublicKey(ctx context.Context, publicKey string) (*Device, error)
 	GetDeviceBySerialAndPlatform(ctx context.Context, arg GetDeviceBySerialAndPlatformParams) (*Device, error)

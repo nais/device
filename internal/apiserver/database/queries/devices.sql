@@ -4,6 +4,9 @@ SELECT * FROM devices ORDER BY id;
 -- name: GetDeviceByPublicKey :one
 SELECT * FROM devices WHERE public_key = @public_key;
 
+-- name: GetDeviceByExternalID :one
+SELECT * FROM devices WHERE external_id = @external_id;
+
 -- name: GetDeviceByID :one
 SELECT * FROM devices WHERE id = @id;
 

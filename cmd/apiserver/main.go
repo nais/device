@@ -318,9 +318,9 @@ func run(log *logrus.Entry, cfg config.Config) error {
 	}
 
 	updateDevice := func(event *kolidepb.DeviceEvent) error {
-		device, err := kolide.LookupDevice(ctx, db, event)
+		device, err := db.ReadDeviceByExternalID(ctx, event.GetExternalID())
 		if err != nil {
-			return err
+			return fmt.Errorf("read device with external_id=%v: %w", event.GetExternalID(), err)
 		}
 
 		changed := false

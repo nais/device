@@ -512,10 +512,8 @@ github.com/moricho/tparallel v0.3.1 h1:fQKD4U1wRMAYNngDonW5XupoB/ZGJHdpzrWqgyg9k
 github.com/moricho/tparallel v0.3.1/go.mod h1:leENX2cUv7Sv2qDgdi0D0fCftN8fRC67Bcn8pqzeYNI=
 github.com/mwitkow/go-conntrack v0.0.0-20161129095857-cc309e4a2223/go.mod h1:qRWi+5nqEBWmkhHvq77mSJWrCKwh8bxhgT7d/eI7P4U=
 github.com/mwitkow/go-conntrack v0.0.0-20190716064945-2f068394615f/go.mod h1:qRWi+5nqEBWmkhHvq77mSJWrCKwh8bxhgT7d/eI7P4U=
-github.com/nais/kolide-event-handler v0.0.0-20240613124908-c26ee6800776 h1:W5G0sRZnAOvr7Gt6Su3BUpf0dqVotuokB1Z1sKUPYQI=
-github.com/nais/kolide-event-handler v0.0.0-20240613124908-c26ee6800776/go.mod h1:1Ta1n1Q+EtH7EIHuU3/svAkCQ8AWk9/qfs6nBj0lhxE=
-github.com/nais/kolide-event-handler v0.0.0-20240614075259-de023eff2206 h1:AT0hiUcqyJyfP48JVgtiGXeIbsuKOdpyKBn1jgSpsFA=
-github.com/nais/kolide-event-handler v0.0.0-20240614075259-de023eff2206/go.mod h1:7Dl7mqto/Jb4Ng8NntCAsnnYCX2clIuOUd6X7b5s+7o=
+github.com/nais/kolide-event-handler v0.0.0-20240614084216-95ac8998fd8f h1:AuoUs1nEs0XUyQjwgwDygPC4zE5+EvQGkMNr5TfmPlw=
+github.com/nais/kolide-event-handler v0.0.0-20240614084216-95ac8998fd8f/go.mod h1:1Ta1n1Q+EtH7EIHuU3/svAkCQ8AWk9/qfs6nBj0lhxE=
 github.com/nakabonne/nestif v0.3.1 h1:wm28nZjhQY5HyYPx+weN3Q65k6ilSBxDb8v5S81B81U=
 github.com/nakabonne/nestif v0.3.1/go.mod h1:9EtoZochLn5iUprVDmDjqGKPofoUEBL8U4Ngq6aY7OE=
 github.com/nfnt/resize v0.0.0-20180221191011-83c6a9932646 h1:zYyBkD/k9seD2A7fsi6Oo2LfFZAehjjQMERAvZLEDnQ=

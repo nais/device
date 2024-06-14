@@ -53,6 +53,30 @@ func (q *Queries) ClearDeviceIssuesExceptFor(ctx context.Context, unhealthyDevic
 	return err
 }
 
+const getDeviceByExternalID = `-- name: GetDeviceByExternalID :one
+SELECT id, username, serial, platform, healthy, last_updated, public_key, ipv4, ipv6, last_seen, issues, external_id FROM devices WHERE external_id = ?1
+`
+
+func (q *Queries) GetDeviceByExternalID(ctx context.Context, externalID sql.NullString) (*Device, error) {
+	row := q.queryRow(ctx, q.getDeviceByExternalIDStmt, getDeviceByExternalID, externalID)
+	var i Device
+	err := row.Scan(
+		&i.ID,
+		&i.Username,
+		&i.Serial,
+		&i.Platform,
+		&i.Healthy,
+		&i.LastUpdated,
+		&i.PublicKey,
+		&i.Ipv4,
+		&i.Ipv6,
+		&i.LastSeen,
+		&i.Issues,
+		&i.ExternalID,
+	)
+	return &i, err
+}
+
 const getDeviceByID = `-- name: GetDeviceByID :one
 SELECT id, username, serial, platform, healthy, last_updated, public_key, ipv4, ipv6, last_seen, issues, external_id FROM devices WHERE id = ?1
 `

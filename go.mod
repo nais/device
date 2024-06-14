@@ -17,7 +17,7 @@ require (
 	github.com/jackmordaunt/icns/v2 v2.2.6
 	github.com/kelseyhightower/envconfig v1.4.0
 	github.com/lestrrat-go/jwx v1.2.29
-	github.com/nais/kolide-event-handler v0.0.0-20240614075259-de023eff2206
+	github.com/nais/kolide-event-handler v0.0.0-20240614084216-95ac8998fd8f
 	github.com/nirasan/go-oauth-pkce-code-verifier v0.0.0-20170819232839-0fbfe93532da
 	github.com/prometheus/client_golang v1.17.0
 	github.com/sirupsen/logrus v1.9.3

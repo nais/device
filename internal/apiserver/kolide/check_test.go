@@ -5,37 +5,37 @@ import (
 	"testing"
 	"time"
 
-	kolideclient "github.com/nais/kolide-event-handler/pkg/kolide"
-
+	"github.com/nais/device/internal/apiserver/kolide"
+	"github.com/nais/device/internal/pb"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestCheck(t *testing.T) {
 	tagTests := []struct {
 		tags     []string
-		severity kolideclient.Severity
+		severity pb.Severity
 		duration time.Duration
 	}{
-		{[]string{}, kolideclient.SeverityWarning, kolideclient.DurationWarning},
-		{[]string{"foo", "bar"}, kolideclient.SeverityWarning, kolideclient.DurationWarning},
-		{[]string{"foo", "notice"}, kolideclient.SeverityNotice, kolideclient.DurationNotice},
-		{[]string{"warning", "notice", "danger"}, kolideclient.SeverityDanger, kolideclient.DurationDanger},
-		{[]string{"notice"}, kolideclient.SeverityNotice, kolideclient.DurationNotice},
-		{[]string{"warning"}, kolideclient.SeverityWarning, kolideclient.DurationWarning},
-		{[]string{"danger"}, kolideclient.SeverityDanger, kolideclient.DurationDanger},
-		{[]string{"critical"}, kolideclient.SeverityCritical, kolideclient.DurationCritical},
+		{[]string{}, pb.Severity_Warning, kolide.DurationWarning},
+		{[]string{"foo", "bar"}, pb.Severity_Warning, kolide.DurationWarning},
+		{[]string{"foo", "notice"}, pb.Severity_Notice, kolide.DurationNotice},
+		{[]string{"warning", "notice", "danger"}, pb.Severity_Danger, kolide.DurationDanger},
+		{[]string{"notice"}, pb.Severity_Notice, kolide.DurationNotice},
+		{[]string{"warning"}, pb.Severity_Warning, kolide.DurationWarning},
+		{[]string{"danger"}, pb.Severity_Danger, kolide.DurationDanger},
+		{[]string{"critical"}, pb.Severity_Critical, kolide.DurationCritical},
 	}
 
 	for _, tt := range tagTests {
 		t.Run(strings.Join(tt.tags, ", "), func(t *testing.T) {
-			check := kolideclient.Check{
+			check := kolide.Check{
 				Tags: tt.tags,
 			}
 
 			severity := check.Severity()
 
 			assert.Equal(t, tt.severity, severity)
-			assert.Equal(t, tt.duration, severity.GraceTime())
+			assert.Equal(t, tt.duration, kolide.GraceTime(severity))
 		})
 	}
 }

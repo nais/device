@@ -397,6 +397,19 @@ func (db *ApiServerDB) ReadDeviceById(ctx context.Context, deviceID int64) (*pb.
 	return sqlcDeviceToPbDevice(*device)
 }
 
+func (db *ApiServerDB) ReadDeviceByExternalID(ctx context.Context, externalID string) (*pb.Device, error) {
+	id := sql.NullString{
+		String: externalID,
+		Valid:  true,
+	}
+	device, err := db.queries.GetDeviceByExternalID(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+
+	return sqlcDeviceToPbDevice(*device)
+}
+
 func (db *ApiServerDB) ReadGateways(ctx context.Context) ([]*pb.Gateway, error) {
 	rows, err := db.queries.GetGateways(ctx)
 	if err != nil {
