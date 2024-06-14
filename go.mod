@@ -17,7 +17,7 @@ require (
 	github.com/jackmordaunt/icns/v2 v2.2.6
 	github.com/kelseyhightower/envconfig v1.4.0
 	github.com/lestrrat-go/jwx v1.2.29
-	github.com/nais/kolide-event-handler v0.0.0-20240613124908-c26ee6800776
+	github.com/nais/kolide-event-handler v0.0.0-20240614075259-de023eff2206
 	github.com/nirasan/go-oauth-pkce-code-verifier v0.0.0-20170819232839-0fbfe93532da
 	github.com/prometheus/client_golang v1.17.0
 	github.com/sirupsen/logrus v1.9.3
@@ -49,6 +49,8 @@ require (
 	honnef.co/go/tools v0.4.7
 	mvdan.cc/gofumpt v0.6.0
 )
+
+require github.com/rivo/uniseg v0.4.4 // indirect
 
 require (
 	4d63.com/gocheckcompilerdirectives v1.2.1 // indirect
@@ -188,7 +190,7 @@ require (
 	github.com/matoous/godox v0.0.0-20230222163458-006bad1f9d26 // indirect
 	github.com/mattn/go-colorable v0.1.13 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect
-	github.com/mattn/go-runewidth v0.0.9 // indirect
+	github.com/mattn/go-runewidth v0.0.13 // indirect
 	github.com/mattn/go-sqlite3 v1.14.18 // indirect
 	github.com/matttproud/golang_protobuf_extensions v1.0.4 // indirect
 	github.com/mbilski/exhaustivestruct v1.2.0 // indirect
