@@ -5,6 +5,7 @@ import (
 	"crypto/tls"
 	"time"
 
+	"github.com/nais/device/internal/apiserver/database"
 	kolidepb "github.com/nais/kolide-event-handler/pkg/pb"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
@@ -31,18 +32,22 @@ const (
 	eventStreamBackoff = 10 * time.Second
 )
 
-func DeviceEventStreamer(ctx context.Context, log *logrus.Entry, grpcAddress, grpcToken string, grpcSecure bool, stream chan<- *kolidepb.DeviceEvent) error {
-	interceptor := &ClientInterceptor{
-		RequireTLS: grpcSecure,
-		Token:      grpcToken,
-	}
-
+func KolideEventHandler(ctx context.Context,
+	db database.Database,
+	grpcAddress, grpcToken string,
+	grpcSecure bool,
+	kolideClient Client,
+	onEvent func(externalID string),
+	log *logrus.Entry,
+) error {
 	dialOpts := make([]grpc.DialOption, 0)
-
 	if grpcSecure {
 		cred := credentials.NewTLS(&tls.Config{})
 		dialOpts = append(dialOpts, grpc.WithTransportCredentials(cred))
-		dialOpts = append(dialOpts, grpc.WithPerRPCCredentials(interceptor))
+		dialOpts = append(dialOpts, grpc.WithPerRPCCredentials(&ClientInterceptor{
+			RequireTLS: grpcSecure,
+			Token:      grpcToken,
+		}))
 	} else {
 		dialOpts = append(dialOpts, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	}
@@ -79,7 +84,12 @@ func DeviceEventStreamer(ctx context.Context, log *logrus.Entry, grpcAddress, gr
 				break
 			}
 
-			stream <- event
+			if event.GetTimestamp().AsTime().Before(time.Now().Add(5 * (-time.Minute))) {
+				log.Infof("Ignoring too old event %+v", event)
+				continue
+			}
+
+			onEvent(event.GetExternalID())
 		}
 	}
 

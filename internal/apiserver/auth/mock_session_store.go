@@ -175,6 +175,39 @@ func (_c *MockSessionStore_Set_Call) RunAndReturn(run func(context.Context, *pb.
 	return _c
 }
 
+// UpdateDevice provides a mock function with given fields: device
+func (_m *MockSessionStore) UpdateDevice(device *pb.Device) {
+	_m.Called(device)
+}
+
+// MockSessionStore_UpdateDevice_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'UpdateDevice'
+type MockSessionStore_UpdateDevice_Call struct {
+	*mock.Call
+}
+
+// UpdateDevice is a helper method to define mock.On call
+//   - device *pb.Device
+func (_e *MockSessionStore_Expecter) UpdateDevice(device interface{}) *MockSessionStore_UpdateDevice_Call {
+	return &MockSessionStore_UpdateDevice_Call{Call: _e.mock.On("UpdateDevice", device)}
+}
+
+func (_c *MockSessionStore_UpdateDevice_Call) Run(run func(device *pb.Device)) *MockSessionStore_UpdateDevice_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(*pb.Device))
+	})
+	return _c
+}
+
+func (_c *MockSessionStore_UpdateDevice_Call) Return() *MockSessionStore_UpdateDevice_Call {
+	_c.Call.Return()
+	return _c
+}
+
+func (_c *MockSessionStore_UpdateDevice_Call) RunAndReturn(run func(*pb.Device)) *MockSessionStore_UpdateDevice_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // NewMockSessionStore creates a new instance of MockSessionStore. It also registers a testing interface on the mock and a cleanup function to assert the mocks expectations.
 // The first argument is typically a *testing.T value.
 func NewMockSessionStore(t interface {
