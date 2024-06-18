@@ -245,7 +245,7 @@ func run(log *logrus.Entry, cfg config.Config) error {
 
 	jitaClient := jita.New(log.WithField("component", "jita"), cfg.JitaUsername, cfg.JitaPassword, cfg.JitaUrl)
 	if cfg.JitaEnabled {
-		go SyncJitaContinuosly(ctx, log, jitaClient)
+		go SyncJitContinuously(ctx, log, jitaClient)
 	}
 
 	switch cfg.GatewayConfigurer {
@@ -488,7 +488,7 @@ func SyncLoop(ctx context.Context, log *logrus.Entry, db database.Database, netC
 	}
 }
 
-func SyncJitaContinuosly(ctx context.Context, log *logrus.Entry, j jita.Client) {
+func SyncJitContinuously(ctx context.Context, log *logrus.Entry, j jita.Client) {
 	ticker := time.NewTicker(10 * time.Second)
 	for {
 		select {
