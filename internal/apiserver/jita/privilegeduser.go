@@ -21,8 +21,8 @@ func (j *client) GetPrivilegedUsersForGateway(gateway string) []PrivilegedUser {
 	return j.PrivilegedUsers[gateway]
 }
 
-func (j *client) UpdatePrivilegedUsers() error {
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+func (j *client) UpdatePrivilegedUsers(ctx context.Context) error {
+	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
 	defer cancel()
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, fmt.Sprintf("%s/%s", j.URL, "gatewaysAccess"), nil)

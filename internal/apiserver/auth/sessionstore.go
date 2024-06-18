@@ -23,6 +23,7 @@ type SessionStore interface {
 	Get(context.Context, string) (*pb.Session, error)
 	Set(context.Context, *pb.Session) error
 	All() []*pb.Session
+	UpdateDevice(device *pb.Device)
 }
 
 func NewSessionStore(db database.Database) *sessionStore {

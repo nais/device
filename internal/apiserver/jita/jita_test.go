@@ -1,6 +1,7 @@
 package jita_test
 
 import (
+	"context"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -45,7 +46,8 @@ func TestJita(t *testing.T) {
 		defer s.Close()
 
 		j := jita.New(log, "", "", s.URL)
-		err := j.UpdatePrivilegedUsers()
+		ctx := context.Background()
+		err := j.UpdatePrivilegedUsers(ctx)
 		assert.NoError(t, err)
 
 		usersOnprem := j.GetPrivilegedUsersForGateway("onprem-k8s-prod")
@@ -81,7 +83,8 @@ func TestJita(t *testing.T) {
 		defer s.Close()
 
 		j := jita.New(log, "", "", s.URL)
-		err := j.UpdatePrivilegedUsers()
+		ctx := context.Background()
+		err := j.UpdatePrivilegedUsers(ctx)
 		assert.NoError(t, err)
 
 		var expectedEmpty []jita.PrivilegedUser

@@ -15,7 +15,7 @@ in
     ];
     inherit version;
     src = self;
-    vendorHash = "sha256-Sul8Bre6uvS9OSKa2Hqinlz51kvts6ZM76SAzttJ4tw=";
+    vendorHash = "sha256-srufJtnwPvndPZHoycFkBhU5fsFiX0c35ITyPlpn17I=";
 
     ldflags = [
       "-X github.com/nais/device/internal/version.Revision=${rev}"

@@ -1,6 +1,7 @@
 package jita
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"sync"
@@ -19,7 +20,7 @@ type client struct {
 
 type Client interface {
 	GetPrivilegedUsersForGateway(gateway string) []PrivilegedUser
-	UpdatePrivilegedUsers() error
+	UpdatePrivilegedUsers(ctx context.Context) error
 }
 
 func New(log *logrus.Entry, username, password, url string) Client {
