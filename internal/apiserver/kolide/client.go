@@ -2,9 +2,7 @@ package kolide
 
 import (
 	"context"
-	"database/sql"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -13,10 +11,12 @@ import (
 	"github.com/nais/device/internal/apiserver/database"
 	"github.com/nais/device/internal/pb"
 	"github.com/sirupsen/logrus"
+	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 type Client interface {
 	RefreshCache(ctx context.Context) error
+	FillKolideData(ctx context.Context, devices []*pb.Device) error
 	DumpChecks() ([]byte, error)
 	GetDeviceFailures(ctx context.Context, deviceID string) ([]*pb.DeviceIssue, error)
 }
@@ -28,7 +28,6 @@ type client struct {
 	checks *Cache[uint64, Check]
 
 	log logrus.FieldLogger
-	db  database.Database
 }
 
 type ClientOption func(*client)
@@ -46,7 +45,6 @@ func New(token string, db database.Database, log logrus.FieldLogger, opts ...Cli
 			Transport: NewTransport(token),
 		},
 		checks: &Cache[uint64, Check]{},
-		db:     db,
 		log:    log,
 	}
 	for _, opt := range opts {
@@ -83,26 +81,24 @@ func (kc *client) RefreshCache(ctx context.Context) error {
 
 	kc.checks.Replace(checksCache)
 
-	issuesByExternalID, err := kc.getDeviceIssues(ctx)
-	if err != nil {
-		return err
-	}
-
-	devices, err := kc.getDevices(ctx)
-	if err != nil {
-		kc.log.Errorf("getting devices: %v", err)
-	} else {
-		for _, device := range devices {
-			err := kc.db.UpdateSingleDevice(ctx, fmt.Sprint(device.ID), device.Serial, device.Platform, device.LastSeenAt, issuesByExternalID[fmt.Sprint(device.ID)])
-			if err != nil && !errors.Is(err, sql.ErrNoRows) {
-				kc.log.Errorf("storing device: %v", err)
-			}
-		}
-	}
 	return nil
 }
 
-func (kc *client) getDeviceIssues(ctx context.Context) (map[string][]*pb.DeviceIssue, error) {
+func sameIssues(a, b []*pb.DeviceIssue) bool {
+	if len(a) != len(b) {
+		return false
+	}
+
+	for i := range a {
+		if !a[i].Equal(b[i]) {
+			return false
+		}
+	}
+
+	return true
+}
+
+func (kc *client) getAllDeviceIssues(ctx context.Context) (map[string][]*pb.DeviceIssue, error) {
 	resp, err := kc.getPaginated(ctx, kc.baseUrl+"/failures/open")
 	if err != nil {
 		return nil, fmt.Errorf("getting open failures: %w", err)
@@ -126,7 +122,7 @@ func (kc *client) getDeviceIssues(ctx context.Context) (map[string][]*pb.DeviceI
 		}
 
 		externalID := fmt.Sprint(failure.Device.ID)
-		issues[externalID] = append(issues[externalID], failure.DeviceFailure.AsDeviceIssue())
+		issues[externalID] = append(issues[externalID], failure.AsDeviceIssue())
 	}
 
 	return issues, nil
@@ -213,6 +209,46 @@ func (kc *client) getPaginated(ctx context.Context, initialUrl string) ([]json.R
 			return data, err
 		}
 	}
+}
+
+func (kc *client) FillKolideData(ctx context.Context, devices []*pb.Device) error {
+	kolideDevices, err := kc.getDevices(ctx)
+	if err != nil {
+		return fmt.Errorf("getting devices: %w", err)
+	}
+
+	issuesByExternalID, err := kc.getAllDeviceIssues(ctx)
+	if err != nil {
+		return fmt.Errorf("getting device issues: %w", err)
+	}
+
+	type key struct {
+		serial   string
+		platform string
+	}
+
+	kolideDeviceByKey := make(map[key]*Device)
+	for _, kolideDevice := range kolideDevices {
+		kolideDeviceByKey[key{kolideDevice.Serial, kolideDevice.Platform}] = &kolideDevice
+	}
+
+	for _, device := range devices {
+		kolideDevice, ok := kolideDeviceByKey[key{device.Serial, device.Platform}]
+		if !ok {
+			continue
+		}
+
+		device.ExternalID = fmt.Sprint(kolideDevice.ID)
+		if kolideDevice.LastSeenAt != nil {
+			lastSeenAt := *kolideDevice.LastSeenAt
+			device.LastSeen = timestamppb.New(lastSeenAt)
+		}
+		if issues, found := issuesByExternalID[device.ExternalID]; found {
+			device.Issues = issues
+		}
+	}
+
+	return nil
 }
 
 func (kc *client) getDevices(ctx context.Context) ([]Device, error) {

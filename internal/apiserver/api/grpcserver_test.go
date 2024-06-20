@@ -62,7 +62,7 @@ func TestGetDeviceConfiguration(t *testing.T) {
 		},
 	}, nil)
 
-	kolideClient := kolide.NewFakeClient().Build()
+	kolideClient := &kolide.FakeClient{}
 
 	gatewayAuthenticator := auth.NewGatewayAuthenticator(db)
 

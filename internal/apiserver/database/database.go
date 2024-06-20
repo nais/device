@@ -106,54 +106,47 @@ func (db *database) UpdateSingleDevice(ctx context.Context, externalID, serial, 
 }
 
 func (db *database) UpdateDevices(ctx context.Context, devices []*pb.Device) error {
-	err := db.queries.Transaction(ctx, func(ctx context.Context, queries *sqlc.Queries) error {
-		for _, device := range devices {
-			lastSeen := sql.NullString{}
-			if device.LastSeen != nil {
-				lastSeen = sql.NullString{
-					String: timeToString(device.LastSeen.AsTime().UTC()),
-					Valid:  true,
-				}
-			}
-
-			issuesCol := sql.NullString{}
-			if len(device.Issues) > 0 {
-				issues, err := json.Marshal(device.Issues)
-				if err != nil {
-					return fmt.Errorf("marshal issues: %w", err)
-				}
-				issuesCol = sql.NullString{
-					String: string(issues),
-					Valid:  true,
-				}
-			}
-
-			err := queries.UpdateDevice(ctx, sqlc.UpdateDeviceParams{
-				Serial:   device.Serial,
-				Platform: device.Platform,
-				LastUpdated: sql.NullString{
-					String: timeToString(time.Now().UTC()),
-					Valid:  true,
-				},
-				LastSeen: lastSeen,
-				Issues:   issuesCol,
-				ExternalID: sql.NullString{
-					String: device.ExternalID,
-					Valid:  device.ExternalID != "",
-				},
-			})
-			if err != nil {
-				return err
+	var errs error
+	for _, device := range devices {
+		lastSeen := sql.NullString{}
+		if device.LastSeen != nil {
+			lastSeen = sql.NullString{
+				String: timeToString(device.LastSeen.AsTime().UTC()),
+				Valid:  true,
 			}
 		}
 
-		return nil
-	})
-	if err != nil {
-		return fmt.Errorf("error in transaction: %w", err)
+		issuesCol := sql.NullString{}
+		if len(device.Issues) > 0 {
+			issues, err := json.Marshal(device.Issues)
+			if err != nil {
+				errs = errors.Join(fmt.Errorf("marshal issues: %w", err))
+				continue
+			}
+			issuesCol = sql.NullString{
+				String: string(issues),
+				Valid:  true,
+			}
+		}
+
+		errs = errors.Join(db.queries.UpdateDevice(ctx, sqlc.UpdateDeviceParams{
+			Serial:   device.Serial,
+			Platform: device.Platform,
+			LastUpdated: sql.NullString{
+				String: timeToString(time.Now().UTC()),
+				Valid:  true,
+			},
+			LastSeen: lastSeen,
+			Issues:   issuesCol,
+			ExternalID: sql.NullString{
+				String: device.ExternalID,
+				Valid:  device.ExternalID != "",
+			},
+		}))
+
 	}
 
-	return nil
+	return errs
 }
 
 func (db *database) UpdateGateway(ctx context.Context, gw *pb.Gateway) error {

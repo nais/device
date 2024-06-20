@@ -2,6 +2,8 @@ package api
 
 import (
 	"context"
+	"database/sql"
+	"errors"
 	"fmt"
 	"slices"
 	"time"
@@ -159,4 +161,23 @@ func (s *grpcServer) Login(ctx context.Context, r *pb.APIServerLoginRequest) (*p
 	return &pb.APIServerLoginResponse{
 		Session: session,
 	}, nil
+}
+
+func (s *grpcServer) UpdateAllDevices(ctx context.Context) error {
+	devices, err := s.db.ReadDevices(ctx)
+	if err != nil {
+		return nil
+	}
+
+	err = s.kolideClient.FillKolideData(ctx, devices)
+	if err != nil {
+		return err
+	}
+
+	err = s.db.UpdateDevices(ctx, devices)
+	if err != nil && !errors.Is(err, sql.ErrNoRows) {
+		s.log.Errorf("storing device: %v", err)
+	}
+
+	return err
 }

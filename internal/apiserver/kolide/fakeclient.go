@@ -6,13 +6,15 @@ import (
 	"github.com/nais/device/internal/pb"
 )
 
-type FakeClient struct{}
+type FakeClient struct {
+	Devices []Device
+}
 
 var _ Client = &FakeClient{}
 
-// NewFakeClient returns a fake client that returns the provided devices.
-func NewFakeClient() *FakeClient {
-	return &FakeClient{}
+// FillKolideData implements Client.
+func (f *FakeClient) FillKolideData(ctx context.Context, devices []*pb.Device) error {
+	panic("unimplemented")
 }
 
 func (f *FakeClient) Build() Client {

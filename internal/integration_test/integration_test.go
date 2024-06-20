@@ -101,7 +101,7 @@ func tableTest(t *testing.T, log *logrus.Entry, testDevice *pb.Device, endState 
 	defer cancel()
 
 	devicePrivateKey := "devicePrivateKey"
-	kolideClient := kolide.NewFakeClient()
+	kolideClient := &kolide.FakeClient{}
 
 	db := NewDB(t)
 	assert.NoError(t, db.AddDevice(ctx, testDevice))
