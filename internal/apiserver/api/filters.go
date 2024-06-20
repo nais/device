@@ -1,17 +1,10 @@
 package api
 
 import (
-	"slices"
-	"time"
-
 	"github.com/nais/device/internal/apiserver/jita"
 	apiserver_metrics "github.com/nais/device/internal/apiserver/metrics"
 	"github.com/nais/device/internal/pb"
 )
-
-func AfterGracePeriod(d *pb.DeviceIssue) bool {
-	return time.Now().After(d.GetResolveBefore().AsTime())
-}
 
 // Return a list of user sessions that are authorized to access a gateway through JITA.
 func privileged(jita jita.Client, gateway *pb.Gateway, sessions []*pb.Session) []*pb.Session {
@@ -40,7 +33,7 @@ func healthy(devices []*pb.Device) []*pb.Device {
 	var healthyDevices []*pb.Device
 
 	for _, device := range devices {
-		if !slices.ContainsFunc(device.GetIssues(), AfterGracePeriod) {
+		if device.Healthy() {
 			healthyDevices = append(healthyDevices, device)
 		}
 	}

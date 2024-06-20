@@ -1,5 +1,7 @@
 package pb
 
+import "slices"
+
 func (x *Gateway) MergeHealth(y *Gateway) {
 	x.Healthy = y.GetHealthy()
 }
@@ -30,4 +32,25 @@ func (x *Gateway) GetAllowedIPs() []string {
 		ips = append(ips, x.GetRoutesIPv6()...)
 	}
 	return ips
+}
+
+func (d *Gateway) Equal(other *Gateway) bool {
+	if d == other {
+		return true
+	}
+
+	if d == nil || other == nil {
+		return false
+	}
+
+	return d.GetName() == other.GetName() &&
+		d.GetIpv4() == other.GetIpv4() &&
+		d.GetIpv6() == other.GetIpv6() &&
+		d.GetEndpoint() == other.GetEndpoint() &&
+		d.GetPublicKey() == other.GetPublicKey() &&
+		d.GetRequiresPrivilegedAccess() == other.GetRequiresPrivilegedAccess() &&
+		slices.Equal(d.GetRoutesIPv4(), other.GetRoutesIPv4()) &&
+		slices.Equal(d.GetRoutesIPv6(), other.GetRoutesIPv6()) &&
+		slices.Equal(d.GetAllowedIPs(), other.GetAllowedIPs()) &&
+		slices.Equal(d.GetAccessGroupIDs(), other.GetAccessGroupIDs())
 }

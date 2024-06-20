@@ -5,7 +5,6 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	"slices"
 	"time"
 
 	apiserver_metrics "github.com/nais/device/internal/apiserver/metrics"
@@ -17,7 +16,6 @@ import (
 func (s *grpcServer) GetDeviceConfiguration(request *pb.GetDeviceConfigurationRequest, stream pb.APIServer_GetDeviceConfigurationServer) error {
 	s.log.WithField("session", request.SessionKey).Debugf("get device configuration: started")
 	trigger := make(chan struct{}, 1)
-	trigger <- struct{}{} // immediately send one config back on the stream
 
 	session, err := s.sessionStore.Get(stream.Context(), request.SessionKey)
 	if err != nil {
@@ -31,7 +29,7 @@ func (s *grpcServer) GetDeviceConfiguration(request *pb.GetDeviceConfigurationRe
 	s.deviceConfigTriggerLock.Unlock()
 
 	if len(session.GetGroups()) == 0 {
-		s.log.WithField("deviceId", session.GetDevice().GetId()).Warnf("session with no groups detected")
+		s.log.WithField("deviceId", deviceId).Warnf("session with no groups detected")
 	}
 
 	defer func() { // cleanup
@@ -42,63 +40,101 @@ func (s *grpcServer) GetDeviceConfiguration(request *pb.GetDeviceConfigurationRe
 	}()
 
 	timeout := time.After(time.Until(session.GetExpiry().AsTime()))
-
-	updateDevice := time.NewTicker(1 * time.Minute)
+	updateDeviceTicker := time.NewTicker(1 * time.Minute)
+	var lastCfg *pb.GetDeviceConfigurationResponse
 	for {
-		select {
-
-		case <-updateDevice.C:
-			device, err := s.db.ReadDeviceById(stream.Context(), deviceId)
+		cfg, err := s.makeDeviceConfiguration(stream.Context(), request.SessionKey)
+		if err != nil {
+			s.log.WithError(err).Error("make device config")
+		} else if EqualDeviceConfigurations(lastCfg, cfg) {
+			// no change, don't send
+		} else {
+			err := stream.Send(cfg)
 			if err != nil {
-				s.log.Errorf("get device from kolide: %v", err)
-				continue
+				s.log.WithError(err).Debugf("stream send for device %+v failed", cfg)
 			}
+			lastCfg = cfg
+		}
 
-			if len(device.Issues) > 0 {
-				select {
-				case trigger <- struct{}{}:
-				default:
-				}
-			}
+		// block until trigger or done
+		select {
 		case <-timeout:
 			s.log.Debugf("session for device %d timed out, tearing down", deviceId)
 			return nil
 		case <-stream.Context().Done(): // Disconnect
 			s.log.Debugf("stream context for device %d done, tearing down", deviceId)
 			return nil
-		case <-trigger: // Send config triggered
-			session, err := s.sessionStore.Get(stream.Context(), request.SessionKey)
-			if err != nil {
-				return err
-			}
-
-			cfg, err := s.makeDeviceConfiguration(stream.Context(), session)
-			if err != nil {
-				s.log.Errorf("make device config: %v", err)
-			} else {
-				err := stream.Send(cfg)
-				if err != nil {
-					s.log.Debugf("stream end for device %d failed, err: %v", deviceId, err)
-				}
-			}
+		case <-updateDeviceTicker.C:
+		case <-trigger:
 		}
 	}
 }
 
-func (s *grpcServer) makeDeviceConfiguration(ctx context.Context, sessionInfo *pb.Session) (*pb.GetDeviceConfigurationResponse, error) {
-	device, err := s.db.ReadDeviceById(ctx, sessionInfo.GetDevice().GetId())
-	if err != nil {
-		return nil, fmt.Errorf("read device from db: %w", err)
+func EqualDeviceConfigurations(a, b *pb.GetDeviceConfigurationResponse) bool {
+	if a == b {
+		return true
 	}
 
-	if slices.ContainsFunc(device.Issues, AfterGracePeriod) {
+	if a == nil || b == nil {
+		return false
+	}
+
+	if a.Status != b.Status {
+		return false
+	}
+
+	if len(a.Issues) != len(b.Issues) {
+		return false
+	}
+
+	for i, issue := range a.Issues {
+		if issue != b.Issues[i] {
+			return false
+		}
+	}
+
+	if len(a.Gateways) != len(b.Gateways) {
+		return false
+	}
+
+	if len(a.Issues) != len(b.Issues) {
+		return false
+	}
+
+	for i := range a.Gateways {
+		if !a.GetGateways()[i].Equal(b.GetGateways()[i]) {
+			return false
+		}
+	}
+
+	for i := range a.Issues {
+		if !a.GetIssues()[i].Equal(b.GetIssues()[i]) {
+			return false
+		}
+	}
+
+	return true
+}
+
+func (s *grpcServer) makeDeviceConfiguration(ctx context.Context, sessionKey string) (*pb.GetDeviceConfigurationResponse, error) {
+	session, err := s.sessionStore.Get(ctx, sessionKey)
+	if err != nil {
+		return nil, err
+	}
+
+	device, err := s.db.ReadDeviceById(ctx, session.GetDevice().GetId())
+	if err != nil {
+		return nil, err
+	}
+
+	if !device.Healthy() {
 		return &pb.GetDeviceConfigurationResponse{
 			Status: pb.DeviceConfigurationStatus_DeviceUnhealthy,
 			Issues: device.Issues,
 		}, nil
 	}
 
-	gateways, err := s.UserGateways(ctx, sessionInfo.GetGroups())
+	gateways, err := s.UserGateways(ctx, session.GetGroups())
 	if err != nil {
 		return nil, fmt.Errorf("get user gateways: %w", err)
 	}
@@ -177,6 +213,10 @@ func (s *grpcServer) UpdateAllDevices(ctx context.Context) error {
 	err = s.db.UpdateDevices(ctx, devices)
 	if err != nil && !errors.Is(err, sql.ErrNoRows) {
 		s.log.Errorf("storing device: %v", err)
+	}
+
+	for _, device := range devices {
+		s.SendDeviceConfiguration(device)
 	}
 
 	return err

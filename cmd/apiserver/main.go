@@ -9,7 +9,6 @@ import (
 	"net/netip"
 	"os"
 	"os/signal"
-	"slices"
 	"syscall"
 	"time"
 
@@ -324,44 +323,22 @@ func run(log *logrus.Entry, cfg config.Config) error {
 			return fmt.Errorf("read device with external_id=%v: %w", event.GetExternalID(), err)
 		}
 
-		changed := false
 		failures, err := kolideClient.GetDeviceFailures(ctx, device.ExternalID)
 		if err != nil {
 			return err
 		}
-		if slices.ContainsFunc(device.Issues, api.AfterGracePeriod) != slices.ContainsFunc(failures, api.AfterGracePeriod) {
-			changed = true
-		}
 
-		device.Issues = failures
-		device.LastUpdated = event.GetTimestamp()
 		sessions.UpdateDevice(device)
-		err = db.UpdateDevices(ctx, []*pb.Device{device})
+
+		now := time.Now()
+		err = db.UpdateSingleDevice(ctx, device.ExternalID, device.Serial, device.Platform, &now, failures)
 		if err != nil {
 			return err
 		}
-		if changed {
-			grpcHandler.SendDeviceConfiguration(device)
-			grpcHandler.SendAllGatewayConfigurations()
-		}
+		grpcHandler.SendDeviceConfiguration(device)
+		grpcHandler.SendAllGatewayConfigurations()
 		return nil
 	}
-
-	// TODO: remove when we've improved JITA
-	// This triggers sync every 10 sec to let gateways know if someone has JITA'd
-	go func() {
-		ticker := time.NewTicker(10 * time.Second)
-		for {
-			select {
-			case <-ticker.C:
-				grpcHandler.SendAllGatewayConfigurations()
-
-			case <-ctx.Done():
-				log.Infof("Stopped gateway-sync hack")
-				return
-			}
-		}
-	}()
 
 	go func() {
 		log.Infof("Prometheus serving metrics at %v", cfg.PrometheusAddr)

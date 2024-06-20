@@ -3,6 +3,7 @@ package api
 import (
 	"context"
 	"fmt"
+	"time"
 
 	apiserver_metrics "github.com/nais/device/internal/apiserver/metrics"
 	"github.com/nais/device/internal/pb"
@@ -24,27 +25,31 @@ func (s *grpcServer) GetGatewayConfiguration(request *pb.GetGatewayConfiguration
 		return status.Errorf(codes.Aborted, "this gateway already has an open session")
 	}
 
-	c := make(chan struct{}, 1)
-	c <- struct{}{} // trigger config send immediately
+	trigger := make(chan struct{}, 1)
 
 	s.gatewayConfigTriggerLock.Lock()
-	s.gatewayConfigTrigger[request.Gateway] = c
+	s.gatewayConfigTrigger[request.Gateway] = trigger
 	s.log.Infof("Gateway %s connected (%d active gateways)", request.Gateway, len(s.gatewayConfigTrigger))
 	s.gatewayConfigTriggerLock.Unlock()
 
+	updateGatewayTicker := time.NewTicker(10 * time.Second)
+	var lastCfg *pb.GetGatewayConfigurationResponse
 	for {
-		select {
-		case <-c:
-			cfg, err := s.MakeGatewayConfiguration(stream.Context(), request.Gateway)
-			if err != nil {
-				s.log.Errorf("make gateway config: %v", err)
-			}
-
+		cfg, err := s.MakeGatewayConfiguration(stream.Context(), request.Gateway)
+		if err != nil {
+			s.log.Errorf("make gateway config: %v", err)
+		} else if EqualGatewayConfigurations(lastCfg, cfg) {
+			// no change, don't send
+		} else {
 			err = stream.Send(cfg)
 			if err != nil {
 				s.log.Errorf("send gateway config: %v", err)
 			}
+			lastCfg = cfg
+		}
 
+		// block until trigger or done
+		select {
 		case <-stream.Context().Done():
 			s.gatewayConfigTriggerLock.Lock()
 			delete(s.gatewayConfigTrigger, request.Gateway)
@@ -52,8 +57,44 @@ func (s *grpcServer) GetGatewayConfiguration(request *pb.GetGatewayConfiguration
 			s.gatewayConfigTriggerLock.Unlock()
 
 			return nil
+		case <-trigger:
+		case <-updateGatewayTicker.C:
 		}
 	}
+}
+
+func EqualGatewayConfigurations(a, b *pb.GetGatewayConfigurationResponse) bool {
+	if a == b {
+		return true
+	}
+
+	if a == nil || b == nil {
+		return false
+	}
+
+	if len(a.Devices) != len(b.Devices) {
+		return false
+	}
+
+	for i := range a.Devices {
+		da, db := a.Devices[i], b.Devices[i]
+		if da.Id != db.Id || da.Healthy() != db.Healthy() {
+			return false
+		}
+	}
+
+	for i := range a.RoutesIPv4 {
+		if a.RoutesIPv4[i] != b.RoutesIPv4[i] {
+			return false
+		}
+	}
+
+	for i := range a.RoutesIPv6 {
+		if a.RoutesIPv6[i] != b.RoutesIPv6[i] {
+			return false
+		}
+	}
+	return true
 }
 
 func (s *grpcServer) SendAllGatewayConfigurations() {

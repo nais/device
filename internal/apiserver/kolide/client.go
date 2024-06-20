@@ -84,20 +84,6 @@ func (kc *client) RefreshCache(ctx context.Context) error {
 	return nil
 }
 
-func sameIssues(a, b []*pb.DeviceIssue) bool {
-	if len(a) != len(b) {
-		return false
-	}
-
-	for i := range a {
-		if !a[i].Equal(b[i]) {
-			return false
-		}
-	}
-
-	return true
-}
-
 func (kc *client) getAllDeviceIssues(ctx context.Context) (map[string][]*pb.DeviceIssue, error) {
 	resp, err := kc.getPaginated(ctx, kc.baseUrl+"/failures/open")
 	if err != nil {

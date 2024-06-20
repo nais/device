@@ -1,5 +1,10 @@
 package pb
 
+import (
+	"slices"
+	"time"
+)
+
 // Satisfy WireGuard interface.
 // This value is written to the config file as a comment, so we put in the serial of the device in order to identify it.
 func (x *Device) GetName() string {
@@ -20,4 +25,16 @@ func (x *Device) GetAllowedIPs() []string {
 // Endpoints are not used when configuring gateway and api server; connections are initiated from the client.
 func (x *Device) GetEndpoint() string {
 	return ""
+}
+
+func AfterGracePeriod(d *DeviceIssue) bool {
+	return time.Now().After(d.GetResolveBefore().AsTime())
+}
+
+func (x *Device) Healthy() bool {
+	if x == nil {
+		return false
+	}
+
+	return !slices.ContainsFunc(x.GetIssues(), AfterGracePeriod)
 }
