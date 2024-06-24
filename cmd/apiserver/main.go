@@ -23,6 +23,7 @@ import (
 	"github.com/nais/device/internal/apiserver/ip"
 	"github.com/nais/device/internal/apiserver/jita"
 	"github.com/nais/device/internal/apiserver/kolide"
+	"github.com/nais/device/internal/apiserver/metrics"
 	apiserver_metrics "github.com/nais/device/internal/apiserver/metrics"
 	"github.com/nais/device/internal/logger"
 	"github.com/nais/device/internal/otel"
@@ -358,17 +359,14 @@ func run(log *logrus.Entry, cfg config.Config) error {
 		cancel()
 	}()
 
-	go func() {
-		ticker := time.NewTicker(5 * time.Second)
-		for ctx.Err() == nil {
-			select {
-			case <-ctx.Done():
-				return
-			case <-ticker.C:
-				grpcHandler.ReportOnlineGateways()
-			}
-		}
-	}()
+	// initialize gateway metrics
+	gateways, err := db.ReadGateways(ctx)
+	if err != nil {
+		return err
+	}
+	for _, gateway := range gateways {
+		metrics.SetGatewayConnected(gateway.Name, false)
+	}
 
 	sigs := make(chan os.Signal, 1)
 	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)

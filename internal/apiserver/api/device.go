@@ -14,63 +14,57 @@ import (
 )
 
 func (s *grpcServer) GetDeviceConfiguration(request *pb.GetDeviceConfigurationRequest, stream pb.APIServer_GetDeviceConfigurationServer) error {
-	s.log.WithField("session", request.SessionKey).Debugf("get device configuration: started")
-	trigger := make(chan struct{}, 1)
-
 	session, err := s.sessionStore.Get(stream.Context(), request.SessionKey)
 	if err != nil {
 		return err
 	}
-	deviceId := session.GetDevice().GetId()
 
-	s.deviceConfigTriggerLock.Lock()
-	s.deviceConfigTrigger[deviceId] = trigger
-	apiserver_metrics.DevicesConnected.Set(float64(len(s.deviceConfigTrigger)))
-	s.deviceConfigTriggerLock.Unlock()
+	log := s.log.WithField("deviceId", session.GetDevice().GetId())
+	log.Debug("incoming connection")
+
+	trigger, err := s.devices.Add(session.GetDevice().GetId())
+	if err != nil {
+		return err
+	}
+	defer s.devices.Remove(session.GetDevice().GetId())
+
+	apiserver_metrics.DevicesConnected.Set(float64(s.devices.Length()))
+	defer apiserver_metrics.DevicesConnected.Set(float64(s.devices.Length()))
 
 	if len(session.GetGroups()) == 0 {
-		s.log.WithField("deviceId", deviceId).Warnf("session with no groups detected")
+		log.Warn("session with no groups detected")
 	}
-
-	defer func() { // cleanup
-		s.deviceConfigTriggerLock.Lock()
-		delete(s.deviceConfigTrigger, deviceId)
-		apiserver_metrics.DevicesConnected.Set(float64(len(s.deviceConfigTrigger)))
-		s.deviceConfigTriggerLock.Unlock()
-	}()
 
 	timeout := time.After(time.Until(session.GetExpiry().AsTime()))
 	updateDeviceTicker := time.NewTicker(1 * time.Minute)
 	var lastCfg *pb.GetDeviceConfigurationResponse
 	for {
-		cfg, err := s.makeDeviceConfiguration(stream.Context(), request.SessionKey)
-		if err != nil {
-			s.log.WithError(err).Error("make device config")
-		} else if EqualDeviceConfigurations(lastCfg, cfg) {
+		if cfg, err := s.makeDeviceConfiguration(stream.Context(), request.SessionKey); err != nil {
+			log.WithError(err).Error("make device config")
+		} else if equalDeviceConfigurations(lastCfg, cfg) {
 			// no change, don't send
 		} else {
-			err := stream.Send(cfg)
-			if err != nil {
-				s.log.WithError(err).Debugf("stream send for device %+v failed", cfg)
+			if err := stream.Send(cfg); err != nil {
+				log.WithError(err).Debug("stream send for device failed")
 			}
 			lastCfg = cfg
 		}
 
 		// block until trigger or done
 		select {
-		case <-timeout:
-			s.log.Debugf("session for device %d timed out, tearing down", deviceId)
-			return nil
-		case <-stream.Context().Done(): // Disconnect
-			s.log.Debugf("stream context for device %d done, tearing down", deviceId)
-			return nil
-		case <-updateDeviceTicker.C:
 		case <-trigger:
+		case <-updateDeviceTicker.C:
+		case <-stream.Context().Done():
+			log.Debugf("stream context done, tearing down")
+			return nil
+		case <-timeout:
+			log.Debugf("session timed out, tearing down")
+			return nil
 		}
 	}
 }
 
-func EqualDeviceConfigurations(a, b *pb.GetDeviceConfigurationResponse) bool {
+func equalDeviceConfigurations(a, b *pb.GetDeviceConfigurationResponse) bool {
 	if a == b {
 		return true
 	}
@@ -149,18 +143,7 @@ func (s *grpcServer) makeDeviceConfiguration(ctx context.Context, sessionKey str
 }
 
 func (s *grpcServer) SendDeviceConfiguration(device *pb.Device) {
-	s.deviceConfigTriggerLock.RLock()
-	defer s.deviceConfigTriggerLock.RUnlock()
-
-	c, ok := s.deviceConfigTrigger[device.GetId()]
-	if !ok {
-		return
-	}
-
-	select {
-	case c <- struct{}{}:
-	default:
-	}
+	s.devices.Trigger(device.GetId())
 }
 
 func (s *grpcServer) UserGateways(ctx context.Context, userGroups []string) ([]*pb.Gateway, error) {

@@ -23,18 +23,12 @@ func Serve(address string) error {
 	return http.ListenAndServe(address, promhttp.Handler())
 }
 
-func SetConnectedGateways(allGateways, connectedGateways []string) {
-	for _, gateway := range allGateways {
-		value := 0.0
-		for _, conntectedGateway := range connectedGateways {
-			if gateway == conntectedGateway {
-				value = 1.0
-				break
-			}
-		}
-		gatewayStatus.With(prometheus.Labels{
-			"gateway": gateway,
-		}).Set(value)
+func SetGatewayConnected(name string, connected bool) {
+	labels := prometheus.Labels{"gateway": name}
+	if connected {
+		gatewayStatus.With(labels).Set(1.0)
+	} else {
+		gatewayStatus.With(labels).Set(0.0)
 	}
 }
 

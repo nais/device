@@ -107,6 +107,9 @@ bin/macos-client/wireguard-go:
 test:
 	@go test $(shell go list ./... | grep -v systray) -count=1
 
+test-heavy:
+	@go test $(shell go list ./... | grep -v systray) -count=100 -race
+
 # Run by GitHub actions on macos
 pkg: wg wireguard-go macos-icon macos-client
 	./packaging/macos/build-pkg $(VERSION) $(RELEASE)

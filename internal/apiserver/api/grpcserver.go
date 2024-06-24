@@ -2,8 +2,8 @@ package api
 
 import (
 	"context"
-	"sync"
 
+	"github.com/nais/device/internal/apiserver/api/triggers"
 	"github.com/nais/device/internal/apiserver/auth"
 	"github.com/nais/device/internal/apiserver/database"
 	"github.com/nais/device/internal/apiserver/jita"
@@ -22,11 +22,8 @@ type grpcServer struct {
 	jita           jita.Client
 	kolideClient   kolide.Client
 
-	deviceConfigTrigger     map[int64]chan struct{}
-	deviceConfigTriggerLock sync.RWMutex
-
-	gatewayConfigTrigger     map[string]chan struct{}
-	gatewayConfigTriggerLock sync.RWMutex
+	devices  *triggers.StreamTriggers[int64]
+	gateways *triggers.StreamTriggers[string]
 
 	db           database.Database
 	sessionStore auth.SessionStore
@@ -40,18 +37,18 @@ var _ pb.APIServerServer = &grpcServer{}
 
 func NewGRPCServer(ctx context.Context, log logrus.FieldLogger, db database.Database, authenticator auth.Authenticator, adminAuth, gatewayAuth, prometheusAuth auth.UsernamePasswordAuthenticator, jita jita.Client, sessionStore auth.SessionStore, kolideClient kolide.Client) *grpcServer {
 	return &grpcServer{
-		deviceConfigTrigger:  make(map[int64]chan struct{}),
-		gatewayConfigTrigger: make(map[string]chan struct{}),
-		authenticator:        authenticator,
-		adminAuth:            adminAuth,
-		gatewayAuth:          gatewayAuth,
-		prometheusAuth:       prometheusAuth,
-		db:                   db,
-		jita:                 jita,
-		kolideClient:         kolideClient,
-		sessionStore:         sessionStore,
-		programContext:       ctx,
-		log:                  log,
+		devices:        triggers.New[int64](),
+		gateways:       triggers.New[string](),
+		authenticator:  authenticator,
+		adminAuth:      adminAuth,
+		gatewayAuth:    gatewayAuth,
+		prometheusAuth: prometheusAuth,
+		db:             db,
+		jita:           jita,
+		kolideClient:   kolideClient,
+		sessionStore:   sessionStore,
+		programContext: ctx,
+		log:            log,
 	}
 }
 
@@ -61,5 +58,6 @@ func authenticateAny(username, password string, auths ...auth.UsernamePasswordAu
 			return nil
 		}
 	}
+
 	return auth.ErrInvalidAuth
 }
