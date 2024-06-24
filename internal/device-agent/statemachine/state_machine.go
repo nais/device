@@ -80,7 +80,7 @@ func (sm *StateMachine) Run(ctx context.Context) {
 				break
 			}
 
-			sm.logger.WithField("even", event).Info("event received")
+			sm.logger.WithField("event", event).Info("event received")
 			if event.Event == state.EventWaitForExternalEvent {
 				continue
 			}
