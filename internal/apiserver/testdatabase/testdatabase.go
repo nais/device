@@ -1,7 +1,6 @@
 package testdatabase
 
 import (
-	"context"
 	"fmt"
 	"net/netip"
 	"os"
@@ -20,9 +19,6 @@ const (
 )
 
 func Setup(t *testing.T) database.Database {
-	ctx, cancel := context.WithTimeout(context.Background(), timeout)
-	defer cancel()
-
 	tempFile, err := os.CreateTemp(os.TempDir(), fmt.Sprintf("%s*.db", strings.ReplaceAll(t.Name(), "/", "_")))
 	if err != nil {
 		t.Fatalf("unable to setup test database: %v", err)
@@ -37,7 +33,7 @@ func Setup(t *testing.T) database.Database {
 	ipAllocator := ip.NewV4Allocator(netip.MustParsePrefix(wireguardNetworkAddress), []string{apiserverWireGuardIP})
 	prefix := netip.MustParsePrefix("fd00::/64")
 	ip6Allocator := ip.NewV6Allocator(&prefix)
-	db, err := database.New(ctx, tempFile.Name(), ipAllocator, ip6Allocator, false)
+	db, err := database.New(tempFile.Name(), ipAllocator, ip6Allocator, false)
 	if err != nil {
 		t.Fatalf("Instantiating database: %v", err)
 	}
