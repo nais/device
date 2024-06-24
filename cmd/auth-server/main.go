@@ -1,13 +1,16 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"net/http"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/kelseyhightower/envconfig"
 	"github.com/nais/device/internal/logger"
+	"github.com/nais/device/internal/program"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/endpoints"
@@ -30,11 +33,14 @@ type ExchangeResponse struct {
 }
 
 func main() {
+	ctx, cancel := program.MainContext(time.Second)
+	defer cancel()
+
 	cfg := &Config{}
 	log := logger.Setup(logrus.InfoLevel.String()).WithField("component", "main")
 	err := envconfig.Process("AUTH_SERVER", cfg)
 	if err != nil {
-		log.Fatalf("process envconfig: %s", err)
+		log.WithError(err).Fatal("process envconfig")
 	}
 
 	cfg.ClientID = strings.TrimSpace(cfg.ClientID)
@@ -55,13 +61,28 @@ func main() {
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("/exchange", exchange(log, baseOAuth2Config))
-	log.WithField("bind", bind).Info("listening")
-	err = http.ListenAndServe(bind, mux)
-	if err != http.ErrServerClosed {
-		log.WithError(err).Warn("server closed for unknown reason")
+	log.WithField("address", bind).Info("listening")
+
+	server := &http.Server{
+		Addr:    bind,
+		Handler: mux,
 	}
 
-	log.Info("finished")
+	go func() {
+		if err := server.ListenAndServe(); err != http.ErrServerClosed {
+			log.WithError(err).Warn("server closed for unknown reason")
+		}
+	}()
+
+	<-ctx.Done()
+
+	// Give 5s more to process existing requests
+	shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	if err := server.Shutdown(shutdownCtx); err != nil {
+		log.WithError(err).Error("http server shutdown")
+	}
 }
 
 func exchange(log *logrus.Entry, oauth2config *oauth2.Config) http.HandlerFunc {
@@ -70,7 +91,7 @@ func exchange(log *logrus.Entry, oauth2config *oauth2.Config) http.HandlerFunc {
 		err := json.NewDecoder(r.Body).Decode(&exchangeData)
 		if err != nil {
 			w.WriteHeader(http.StatusBadRequest)
-			log.WithError(err).Warnf("decode exchange data")
+			log.WithError(err).Warn("decode exchange data")
 			return
 		}
 
@@ -79,7 +100,7 @@ func exchange(log *logrus.Entry, oauth2config *oauth2.Config) http.HandlerFunc {
 		token, err := oauth2config.Exchange(r.Context(), exchangeData.AccessCode, codeVerifierParam, redirectURIParam)
 		if err != nil {
 			w.WriteHeader(http.StatusUnauthorized)
-			log.WithError(err).Warnf("exchange code for token")
+			log.WithError(err).Warn("exchange code for token")
 			return
 		}
 
@@ -88,10 +109,10 @@ func exchange(log *logrus.Entry, oauth2config *oauth2.Config) http.HandlerFunc {
 			IDToken: token.Extra("id_token").(string),
 		})
 		if err != nil {
-			log.WithError(err).Warnf("encode response")
+			log.WithError(err).Warn("encode response")
 			return
 		}
 
-		log.Infof("successfully returned token")
+		log.Info("successfully returned token")
 	}
 }

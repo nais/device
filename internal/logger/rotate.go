@@ -36,14 +36,12 @@ func filterOldFilesByDate(files []os.DirEntry, treshold time.Time) ([]os.DirEntr
 	for _, logFile := range files {
 		matches := filenameFormat.FindAllStringSubmatch(logFile.Name(), -1)
 		if len(matches) != 1 || len(matches[0]) != 3 {
-			// log.Debug("ignoring file: ", logFile)
 			continue
 		}
 
 		date := matches[0][2]
 		logDate, err := time.Parse(time.DateOnly, date)
 		if err != nil {
-			// log.Errorf("filter old log files: unable to parse date: %q, err: %v", date, err)
 			continue
 		}
 

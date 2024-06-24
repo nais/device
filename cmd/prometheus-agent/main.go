@@ -5,12 +5,11 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"os/signal"
-	"syscall"
 	"time"
 
 	"github.com/kelseyhightower/envconfig"
 	"github.com/nais/device/internal/pb"
+	"github.com/nais/device/internal/program"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/sirupsen/logrus"
@@ -43,17 +42,15 @@ func main() {
 	log := logger.Setup(cfg.LogLevel).WithField("component", "main")
 	err := run(log, cfg)
 	if err != nil {
-		log.Fatalf("Running prometheus-agent: %s", err)
+		log.WithError(err).Error("running prometheus-agent")
 	}
 }
 
 func run(log *logrus.Entry, cfg config.Config) error {
-	var err error
-
-	ctx, cancel := context.WithCancel(context.Background())
+	ctx, cancel := program.MainContext(time.Second)
 	defer cancel()
 
-	err = envconfig.Process("PROMETHEUS_AGENT", &cfg)
+	err := envconfig.Process("PROMETHEUS_AGENT", &cfg)
 	if err != nil {
 		return fmt.Errorf("read environment configuration: %w", err)
 	}
@@ -65,12 +62,12 @@ func run(log *logrus.Entry, cfg config.Config) error {
 
 	logger.Setup(cfg.LogLevel)
 
-	log.Infof("prometheus-agent version %s, revision: %s", version.Version, version.Revision)
+	log.WithFields(version.LogFields).Info("prometheus-agent starting")
 
 	prometheus.MustRegister(lastSuccessfulConfigUpdate)
 
 	go func() {
-		log.Infof("Prometheus serving metrics at %v", cfg.PrometheusAddress)
+		log.WithField("address", cfg.PrometheusAddress).Info("serving metrics")
 		_ = http.ListenAndServe(cfg.PrometheusAddress, promhttp.Handler())
 	}()
 
@@ -115,9 +112,6 @@ func run(log *logrus.Entry, cfg config.Config) error {
 
 	apiClient := pb.NewAPIServerClient(grpcClient)
 
-	ctx, cancel = signal.NotifyContext(ctx, syscall.SIGINT, syscall.SIGTERM)
-	defer cancel()
-
 	update := func() error {
 		ctx, cancel := context.WithTimeout(ctx, updateTimeout)
 		defer cancel()
@@ -131,18 +125,18 @@ func run(log *logrus.Entry, cfg config.Config) error {
 	}
 
 	for ctx.Err() == nil {
-		log.Debugf("Polling for new configuration...")
+		log.Debug("polling for new configuration...")
 		err = update()
 		if err != nil {
-			log.Error(err)
+			log.WithError(err).Error("update")
 		} else {
-			log.Debugf("Configuration successfully applied")
+			log.Debug("configuration successfully applied")
 			lastSuccessfulConfigUpdate.SetToCurrentTime()
 		}
 
 		select {
 		case <-ctx.Done():
-			log.Infof("prometheus-agent program context done, exiting")
+			log.Info("prometheus-agent program context done, exiting")
 			return nil
 		case <-time.After(updateInterval):
 		}

@@ -52,9 +52,7 @@ func (w *worker) receive(ctx context.Context, msg *pubsub.Message) {
 
 	subject := msg.Attributes["subject"]
 	if subject == "" {
-		w.log.WithFields(logrus.Fields{
-			"attributes": msg.Attributes,
-		}).Error("missing subject")
+		w.log.WithField("attributes", msg.Attributes).Error("missing subject")
 		msg.Nack()
 		return
 	}

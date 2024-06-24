@@ -33,7 +33,7 @@ var endpointURL = "http://localhost:4317"
 // setupOTelSDK bootstraps the OpenTelemetry pipeline.
 // If it does not return an error, make sure to call shutdown for proper cleanup.
 func SetupOTelSDK(ctx context.Context, name string, log logrus.FieldLogger) (shutdown func(context.Context) error, err error) {
-	log.WithField("tracer.id", id).Info("Setting up OpenTelemetry SDK")
+	log.WithField("tracer.id", id).Info("setting up OpenTelemetry SDK")
 
 	var shutdownFuncs []func(context.Context) error
 

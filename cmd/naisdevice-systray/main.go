@@ -6,9 +6,7 @@ import (
 	"net"
 	"os"
 	"os/exec"
-	"os/signal"
 	"path/filepath"
-	"syscall"
 	"time"
 
 	"github.com/sirupsen/logrus"
@@ -18,39 +16,22 @@ import (
 	"github.com/nais/device/internal/logger"
 	"github.com/nais/device/internal/notify"
 	"github.com/nais/device/internal/otel"
+	"github.com/nais/device/internal/program"
 	"github.com/nais/device/internal/systray"
 	"github.com/nais/device/internal/version"
 )
 
 var log logrus.FieldLogger = logrus.StandardLogger().WithField("component", "main")
 
-func handleSignals(cancel context.CancelFunc) {
-	signals := make(chan os.Signal, 1)
-	signal.Notify(signals, syscall.SIGINT, syscall.SIGTERM)
-
-	go func() {
-		sig := <-signals
-
-		log.Infof("signal handler: got signal '%s', canceling main context", sig)
-		cancel()
-		log.Info("signal handler: allowing 1s to stop gracefully...", sig)
-		// normally cancelling the context will result in the program returning before the next lines are evaluated
-		time.Sleep(1 * time.Second)
-		log.Info("signal handler: force-exiting")
-		os.Exit(0)
-	}()
-}
-
 func main() {
-	ctx, cancel := context.WithCancel(context.Background())
-	handleSignals(cancel)
+	ctx, cancel := program.MainContext(time.Second)
 	defer cancel()
 
 	notifier := notify.New(log)
 	err := run(ctx, notifier)
 	if err != nil {
 		notifier.Errorf(err.Error())
-		log.Error(err)
+		log.WithError(err).Error("run error")
 		os.Exit(1)
 	}
 }
@@ -61,12 +42,12 @@ func run(ctx context.Context, notifier notify.Notifier) error {
 
 	otelCancel, err := otel.SetupOTelSDK(ctx, "naisdevice-systray", log)
 	if err != nil {
-		log.WithError(err).Warnf("setup OTel SDK")
+		log.WithError(err).Warn("setup OTel SDK")
 	}
 	defer func() {
 		ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
 		if err := otelCancel(ctx); err != nil {
-			log.WithError(err).Errorf("shutdown OTel SDK")
+			log.WithError(err).Error("shutdown OTel SDK")
 		}
 		cancel()
 	}()
@@ -111,7 +92,7 @@ func run(ctx context.Context, notifier notify.Notifier) error {
 			cancel()
 			err := command.Wait()
 			if err != nil {
-				log.Errorf("naisdevice-agent exited with error: %v", err)
+				log.WithError(err).Error("naisdevice-agent exited")
 			}
 		}()
 	} else {
@@ -123,8 +104,7 @@ func run(ctx context.Context, notifier notify.Notifier) error {
 		}
 	}
 
-	log.Infof("naisdevice-systray %s starting up", version.Version)
-	log.Infof("configuration: %+v", cfg)
+	log.WithFields(version.LogFields).WithField("cfg", cfg).Info("starting naisdevice-systray")
 
 	span.End()
 	systray.Spawn(ctx, log.WithField("component", "systray"), *cfg, notifier)

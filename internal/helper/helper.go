@@ -53,19 +53,19 @@ func (dhs *DeviceHelperServer) Teardown(
 	ctx context.Context,
 	req *pb.TeardownRequest,
 ) (*pb.TeardownResponse, error) {
-	dhs.log.Infof("Removing network interface '%s' and all routes", dhs.config.Interface)
+	dhs.log.WithField("interface", dhs.config.Interface).Info("Removing network interface and all routes")
 	err := dhs.osConfigurator.TeardownInterface(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("tearing down interface: %v", err)
 	}
 
-	dhs.log.Infof("Flushing WireGuard configuration from disk")
+	dhs.log.Info("Flushing WireGuard configuration from disk")
 	err = os.Remove(dhs.config.WireGuardConfigPath)
 	if err != nil {
 		if !os.IsNotExist(err) {
 			return nil, fmt.Errorf("flush WireGuard configuration from disk: %v", err)
 		}
-		dhs.log.Infof("WireGuard configuration file does not exist on disk")
+		dhs.log.Info("WireGuard configuration file does not exist on disk")
 	}
 
 	return &pb.TeardownResponse{}, nil
@@ -75,14 +75,14 @@ func (dhs *DeviceHelperServer) Configure(
 	ctx context.Context,
 	cfg *pb.Configuration,
 ) (*pb.ConfigureResponse, error) {
-	dhs.log.Infof("New configuration received from device-agent")
+	dhs.log.Info("New configuration received from device-agent")
 
 	err := dhs.writeConfigFile(cfg)
 	if err != nil {
 		return nil, status.Errorf(codes.ResourceExhausted, "write WireGuard configuration: %s", err)
 	}
 
-	dhs.log.Infof("Wrote WireGuard config to disk")
+	dhs.log.Info("Wrote WireGuard config to disk")
 
 	err = dhs.osConfigurator.SetupInterface(ctx, cfg)
 	if err != nil {
@@ -94,12 +94,8 @@ func (dhs *DeviceHelperServer) Configure(
 		loopErr = dhs.osConfigurator.SyncConf(ctx, cfg)
 		if loopErr != nil {
 			backoff := time.Duration(attempt) * time.Second
-			dhs.log.Errorf("synchronize WireGuard configuration: %s", loopErr)
-			dhs.log.Infof(
-				"attempt %d at configuring failed, sleeping %v before retrying",
-				attempt+1,
-				backoff,
-			)
+			dhs.log.WithError(err).Error("synchronize WireGuard configuration")
+			dhs.log.WithField("attempt", attempt+1).WithField("backoff", backoff).Info("configuring failed, sleeping before retrying")
 			time.Sleep(backoff)
 			continue
 		}

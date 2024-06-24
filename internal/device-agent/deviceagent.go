@@ -57,9 +57,9 @@ func (das *DeviceAgentServer) Status(request *pb.AgentStatusRequest, statusServe
 	das.statusChannelsLock.Unlock()
 
 	defer func() {
-		das.log.Debugf("grpc: client connection with device helper closed")
+		das.log.Debug("grpc: client connection with device helper closed")
 		if !request.GetKeepConnectionOnComplete() {
-			das.log.Debugf("grpc: keepalive not requested, tearing down connections...")
+			das.log.Debug("grpc: keepalive not requested, tearing down connections...")
 			das.sendEvent(state.SpanEvent(statusServer.Context(), state.EventDisconnect))
 		}
 		das.statusChannelsLock.Lock()
@@ -75,7 +75,7 @@ func (das *DeviceAgentServer) Status(request *pb.AgentStatusRequest, statusServe
 		case status := <-agentStatusChan:
 			err := statusServer.Send(status)
 			if err != nil {
-				das.log.Errorf("while sending agent status: %s", err)
+				das.log.WithError(err).Error("while sending agent status")
 			}
 		}
 	}
@@ -95,7 +95,7 @@ func (das *DeviceAgentServer) UpdateAgentStatus(status *pb.AgentStatus) {
 		select {
 		case c <- status:
 		default:
-			das.log.Errorf("BUG: update agent status: channel is full")
+			das.log.Error("BUG: update agent status: channel is full")
 		}
 	}
 	das.statusChannelsLock.RUnlock()
@@ -121,7 +121,7 @@ func (das *DeviceAgentServer) SetActiveTenant(ctx context.Context, req *pb.SetAc
 	}
 
 	das.sendEvent(state.SpanEvent(ctx, state.EventDisconnect))
-	das.log.Infof("activated tenant: %s", req.Name)
+	das.log.WithField("name", req.Name).Info("activated tenant")
 	return &pb.SetActiveTenantResponse{}, nil
 }
 

@@ -30,7 +30,7 @@ func NewGoogleMetadata(db database.Database, log *logrus.Entry) *GoogleMetadata 
 }
 
 func (g *GoogleMetadata) SyncContinuously(ctx context.Context, syncInterval time.Duration) {
-	g.log.Infof("Syncing gatway-config from google vm metadata every %q", syncInterval)
+	g.log.WithField("interval", syncInterval).Info("start syncing gatway-config from google vm metadata")
 
 	ticker := time.NewTicker(syncInterval)
 	defer ticker.Stop()
@@ -39,7 +39,7 @@ func (g *GoogleMetadata) SyncContinuously(ctx context.Context, syncInterval time
 		select {
 		case <-ticker.C:
 			if err := g.syncConfig(ctx); err != nil {
-				g.log.WithError(err).Error("Synchronizing gateway configuration")
+				g.log.WithError(err).Error("synchronizing gateway configuration")
 			}
 		case <-ctx.Done():
 			return

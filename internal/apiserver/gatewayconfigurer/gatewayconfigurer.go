@@ -42,13 +42,13 @@ type GatewayConfig struct {
 }
 
 func (g *GatewayConfigurer) SyncContinuously(ctx context.Context) {
-	g.log.Infof("Syncing gateway-config from bucket %q every %q", g.bucket, g.syncInterval)
+	g.log.WithField("bucket", g.bucket).WithField("interval", g.syncInterval).Info("start syncing gateway-config from bucket")
 
 	for {
 		select {
 		case <-time.After(g.syncInterval):
 			if err := g.SyncConfig(ctx); err != nil {
-				g.log.Errorf("Synchronizing gateway configuration: %v", err)
+				g.log.WithError(err).Error("synchronizing gateway configuration")
 			}
 		case <-ctx.Done():
 			return
@@ -69,7 +69,7 @@ func (g *GatewayConfigurer) SyncConfig(ctx context.Context) error {
 		return nil
 	}
 
-	g.log.Info("Syncing gateway configuration from bucket")
+	g.log.Info("syncing gateway configuration from bucket")
 	var gatewayConfigs map[string]GatewayConfig
 	if err := json.NewDecoder(object.Reader()).Decode(&gatewayConfigs); err != nil {
 		return fmt.Errorf("unmarshaling gateway config json: %v", err)

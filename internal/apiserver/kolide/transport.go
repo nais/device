@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/nais/device/internal/apiserver/metrics"
+	"github.com/sirupsen/logrus"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -46,7 +47,12 @@ func (t *Transport) RoundTrip(req *http.Request) (*http.Response, error) {
 			return resp, nil
 		}
 		retryAfter := t.getRetryAfter(resp.Header)
-		log.Debugf("[attempt %d/%d] %s: sleeping %v", attempt+1, t.MaxHttpRetries, resp.Status, retryAfter)
+		log.WithFields(logrus.Fields{
+			"attempt":      attempt + 1,
+			"max_attempts": t.MaxHttpRetries,
+			"response":     resp.Status,
+			"retry_after":  retryAfter,
+		}).Debug("rate limited, sleeping")
 
 		select {
 		case <-time.After(retryAfter):
@@ -68,7 +74,12 @@ func (t *Transport) getRetryAfter(header http.Header) time.Duration {
 		return 0
 	}
 
-	log.Debugf("rate-limited: limit: %s, remaining: %s, reset: %s, retry-after: %s", limit, remaining, reset, retryAfter)
+	log.WithFields(logrus.Fields{
+		"limit":      limit,
+		"remaining":  remaining,
+		"reset":      reset,
+		"retryAfter": retryAfter,
+	}).Debug("rate-limited")
 
 	seconds, err := strconv.Atoi(retryAfter)
 	if err != nil {

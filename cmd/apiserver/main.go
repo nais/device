@@ -8,8 +8,6 @@ import (
 	"net"
 	"net/netip"
 	"os"
-	"os/signal"
-	"syscall"
 	"time"
 
 	"github.com/kelseyhightower/envconfig"
@@ -27,6 +25,7 @@ import (
 	"github.com/nais/device/internal/logger"
 	"github.com/nais/device/internal/otel"
 	"github.com/nais/device/internal/pb"
+	"github.com/nais/device/internal/program"
 	"github.com/nais/device/internal/version"
 	wg "github.com/nais/device/internal/wireguard"
 	kolidepb "github.com/nais/kolide-event-handler/pkg/pb"
@@ -54,13 +53,13 @@ func main() {
 
 	err = cfg.Parse() // sets dynamic defaults for some config values
 	if err != nil {
-		log.Errorf("parse configuration: %v", err)
+		log.WithError(err).Error("parse configuration")
 		os.Exit(1)
 	}
 
 	err = run(log, cfg)
 	if err != nil {
-		log.Errorf("unhandled error: %s", err)
+		log.WithError(err).Error("unhandled error")
 		os.Exit(1)
 	} else {
 		log.Info("naisdevice API server has shut down cleanly.")
@@ -73,7 +72,7 @@ func run(log *logrus.Entry, cfg config.Config) error {
 	var gatewayAuthenticator auth.UsernamePasswordAuthenticator
 	var prometheusAuthenticator auth.UsernamePasswordAuthenticator
 
-	ctx, cancel := context.WithCancel(context.Background())
+	ctx, cancel := program.MainContext(1 * time.Second)
 	defer cancel()
 
 	otelCancel, err := otel.SetupOTelSDK(ctx, "naisdevice-apiserver", log)
@@ -83,14 +82,13 @@ func run(log *logrus.Entry, cfg config.Config) error {
 	defer func() {
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		if err := otelCancel(ctx); err != nil {
-			log.Errorf("shutdown OTel SDK: %s", err)
+			log.WithError(err).Error("shutdown OTel SDK")
 		}
 		cancel()
 	}()
 
-	log.Infof("naisdevice API server %s starting up", version.Version)
-	log.Infof("WireGuard IPv4 address: %v", cfg.WireGuardIPv4Prefix)
-	log.Infof("WireGuard IPv6 address: %v", cfg.WireGuardIPv6Prefix)
+	log.WithFields(version.LogFields).Info("starting naisdevice apiserver")
+	log.WithField("WireGuardIPv4Prefix", cfg.WireGuardIPv4Prefix).WithField("WireGuardIPv6Prefix", cfg.WireGuardIPv6Prefix).Info("networks config")
 
 	wireguardPrefix, err := netip.ParsePrefix(cfg.WireGuardNetworkAddress)
 	if err != nil {
@@ -106,12 +104,12 @@ func run(log *logrus.Entry, cfg config.Config) error {
 
 	err = readd(ctx, db)
 	if err != nil {
-		log.Errorf("upsert IPv6: %v", err)
+		log.WithError(err).Error("upsert IPv6")
 	} else {
 		log.Info("re-added all gateways and devices")
 	}
 
-	log.Infof("Loading user sessions from database...")
+	log.Info("loading user sessions from database...")
 
 	sessions := auth.NewSessionStore(db)
 	err = sessions.Warmup(ctx)
@@ -121,31 +119,31 @@ func run(log *logrus.Entry, cfg config.Config) error {
 
 	switch cfg.DeviceAuthenticationProvider {
 	case "azure":
-		log.Infof("Fetching Azure OIDC configuration...")
+		log.Info("fetching Azure OIDC configuration...")
 		err = cfg.Azure.SetupJwkSetAutoRefresh()
 		if err != nil {
 			return fmt.Errorf("fetch Azure jwks: %w", err)
 		}
 
 		authenticator = auth.NewAuthenticator(cfg.Azure, db, sessions)
-		log.Infof("Azure OIDC authenticator configured to authenticate device sessions.")
+		log.Info("Azure OIDC authenticator configured to authenticate device sessions.")
 	case "google":
-		log.Infof("Setting up Google OIDC configuration...")
+		log.Info("setting up Google OIDC configuration...")
 		err = cfg.Google.SetupJwkSetAutoRefresh()
 		if err != nil {
 			return fmt.Errorf("set up Google jwks: %w", err)
 		}
 
 		authenticator = auth.NewGoogleAuthenticator(cfg.Google, db, sessions)
-		log.Infof("Google OIDC authenticator configured to authenticate device sessions.")
+		log.Info("Google OIDC authenticator configured to authenticate device sessions.")
 	default:
 		authenticator = auth.NewMockAuthenticator(sessions)
-		log.Warnf("Device authentication DISABLED! Do not run this configuration in production!")
-		log.Warnf("To enable device authentication, specify auth provider with --device-authentication-provider=azure|google")
+		log.Warn("Device authentication DISABLED! Do not run this configuration in production!")
+		log.Warn("To enable device authentication, specify auth provider with --device-authentication-provider=azure|google")
 	}
 
 	if cfg.WireGuardEnabled {
-		log.Infof("Setting up WireGuard integration...")
+		log.Info("Setting up WireGuard integration...")
 
 		key, err := wg.ReadOrCreatePrivateKey(cfg.WireGuardPrivateKeyPath, log.WithField("component", "wireguard"))
 		if err != nil {
@@ -165,10 +163,10 @@ func run(log *logrus.Entry, cfg config.Config) error {
 
 		go SyncLoop(ctx, log, db, netConf, cfg.StaticPeers())
 
-		log.Infof("WireGuard successfully configured.")
+		log.Info("WireGuard successfully configured")
 
 	} else {
-		log.Warnf("WireGuard integration DISABLED! Do not run this configuration in production!")
+		log.Warn("WireGuard integration DISABLED! Do not run this configuration in production!")
 	}
 
 	deviceUpdates := make(chan *kolidepb.DeviceEvent, 64)
@@ -179,7 +177,7 @@ func run(log *logrus.Entry, cfg config.Config) error {
 		}
 
 		go func() {
-			log.Infof("Kolide event handler stream starting on %s", cfg.KolideEventHandlerAddress)
+			log.WithField("event_handler_address", cfg.KolideEventHandlerAddress).Info("Kolide event handler stream starting")
 			err := kolide.DeviceEventStreamer(ctx,
 				log.WithField("component", "kolide-event-handler"),
 				cfg.KolideEventHandlerAddress,
@@ -188,7 +186,7 @@ func run(log *logrus.Entry, cfg config.Config) error {
 				deviceUpdates,
 			)
 			if err != nil {
-				log.Errorf("Kolide event streamer finished: %s", err)
+				log.WithError(err).Error("Kolide event streamer finished")
 			}
 			cancel()
 		}()
@@ -207,11 +205,11 @@ func run(log *logrus.Entry, cfg config.Config) error {
 
 			err := kolideClient.RefreshCache(ctx)
 			if err != nil {
-				log.Errorf("initial kolide cache warmup: %v", err)
+				log.WithError(err).Error("initial kolide cache warmup")
 			}
 
 			kolideRefreshInterval := 1 * time.Minute
-			log.Infof("Kolide cache populated, will auto refresh every %v", kolideRefreshInterval)
+			log.WithField("interval", kolideRefreshInterval).Info("Kolide cache populated, will auto refresh")
 			sleep := time.NewTicker(kolideRefreshInterval)
 			for {
 				select {
@@ -220,7 +218,7 @@ func run(log *logrus.Entry, cfg config.Config) error {
 				case <-sleep.C:
 					err := kolideClient.RefreshCache(ctx)
 					if err != nil {
-						log.Errorf("kolide cache refresh: %v", err)
+						log.WithError(err).Error("Kolide cache refresh")
 					}
 				}
 			}
@@ -282,13 +280,13 @@ func run(log *logrus.Entry, cfg config.Config) error {
 		gatewayAuthenticator = auth.NewGatewayAuthenticator(db)
 		prometheusAuthenticator = auth.NewAPIKeyAuthenticator(promauth)
 
-		log.Infof("Control plane authentication enabled.")
+		log.Info("Control plane authentication enabled.")
 	} else {
 		adminAuthenticator = auth.NewMockAPIKeyAuthenticator()
 		gatewayAuthenticator = auth.NewMockAPIKeyAuthenticator()
 		prometheusAuthenticator = auth.NewMockAPIKeyAuthenticator()
 
-		log.Warnf("Control plane authentication DISABLED! Do not run this configuration in production!")
+		log.Warn("Control plane authentication DISABLED! Do not run this configuration in production!")
 	}
 
 	grpcHandler := api.NewGRPCServer(
@@ -341,19 +339,19 @@ func run(log *logrus.Entry, cfg config.Config) error {
 	}
 
 	go func() {
-		log.Infof("Prometheus serving metrics at %v", cfg.PrometheusAddr)
+		log.WithField("address", cfg.PrometheusAddr).Info("serving metrics")
 		err := metrics.Serve(cfg.PrometheusAddr)
 		if err != nil {
-			log.Errorf("metrics server shut down with error; killing apiserver process: %s", err)
+			log.WithError(err).Error("metrics server shut down with error; killing apiserver process")
 			cancel()
 		}
 	}()
 
 	go func() {
-		log.Infof("gRPC server starting on %s", cfg.GRPCBindAddress)
+		log.WithField("address", cfg.GRPCBindAddress).Info("gRPC server starting")
 		err := grpcServer.Serve(grpcListener)
 		if err != nil {
-			log.Errorf("gRPC server exited with error: %s", err)
+			log.WithError(err).Error("gRPC server exited with error")
 		}
 		cancel()
 	}()
@@ -367,23 +365,13 @@ func run(log *logrus.Entry, cfg config.Config) error {
 		metrics.SetGatewayConnected(gateway.Name, false)
 	}
 
-	sigs := make(chan os.Signal, 1)
-	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
-	go func() {
-		s := <-sigs
-		log.Infof("Received signal %s", s)
-		cancel()
-	}()
-
 	defer grpcServer.Stop()
 
 	go func() {
 		for event := range deviceUpdates {
 			if err := updateDevice(event); err != nil {
-				if errors.Is(err, sql.ErrNoRows) {
-					log.Debugf("Update device health: %s", err)
-				} else {
-					log.Errorf("Update device health: %s", err)
+				if !errors.Is(err, sql.ErrNoRows) {
+					log.WithError(err).Error("Update device health")
 				}
 			}
 		}
@@ -391,7 +379,7 @@ func run(log *logrus.Entry, cfg config.Config) error {
 
 	<-ctx.Done()
 
-	log.Warnf("Program context canceled; shutting down.")
+	log.Warn("Program context canceled; shutting down.")
 	return nil
 }
 
@@ -426,7 +414,7 @@ func readd(ctx context.Context, db database.Database) error {
 }
 
 func SyncLoop(ctx context.Context, log *logrus.Entry, db database.Database, netConf wg.NetworkConfigurer, staticPeers []*pb.Gateway) {
-	log.Debugf("Starting config sync")
+	log.Debug("Starting config sync")
 
 	sync := func(ctx context.Context) error {
 		devices, err := db.ReadDevices(ctx)
@@ -457,7 +445,7 @@ func SyncLoop(ctx context.Context, log *logrus.Entry, db database.Database, netC
 		err := sync(ctx)
 		cancel()
 		if err != nil {
-			log.Errorf("syncing wg config: %s", err)
+			log.WithError(err).Error("syncing wg config")
 		}
 	}
 }
@@ -467,14 +455,14 @@ func SyncJitaContinuosly(ctx context.Context, log *logrus.Entry, j jita.Client) 
 	for {
 		select {
 		case <-ticker.C:
-			log.Debug("Updating jita privileged users")
+			log.Debug("updating jita privileged users")
 			err := j.UpdatePrivilegedUsers()
 			if err != nil {
-				log.Errorf("Updating jita privileged users: %s", err)
+				log.WithError(err).Error("updating jita privileged users")
 			}
 
 		case <-ctx.Done():
-			log.Infof("Stopped jita-sync")
+			log.Info("Stopped jita-sync")
 			return
 		}
 	}

@@ -80,7 +80,7 @@ func (sm *StateMachine) Run(ctx context.Context) {
 				break
 			}
 
-			sm.logger.Infof("Event received: %s", event)
+			sm.logger.WithField("even", event).Info("event received")
 			if event.Event == state.EventWaitForExternalEvent {
 				continue
 			}
@@ -94,21 +94,21 @@ func (sm *StateMachine) Run(ctx context.Context) {
 
 func (sm *StateMachine) setState(ctx context.Context, s state.State) {
 	if sm.current != nil {
-		sm.logger.Infof("Exiting state: %v", sm.current)
+		sm.logger.WithField("current_state", sm.current).Info("exiting state")
 		sm.current.Exit()
 	}
 
 	sm.current = state.NewLifecycle(ctx, s)
 	sm.triggerStatusUpdate()
 
-	sm.logger.Infof("Entering state: %v", sm.current)
+	sm.logger.WithField("new_state", sm.current).Info("entering state")
 	sm.current.Enter(sm.events)
 }
 
 func (sm *StateMachine) transition(event state.EventWithSpan) {
 	t, ok := sm.transitions[event.Event]
 	if !ok {
-		sm.logger.Warnf("No defined transitions for event: %s", event)
+		sm.logger.WithField("event", event).Warn("no defined transitions for event")
 	}
 
 	ctx := trace.ContextWithSpan(sm.ctx, event.Span)
@@ -119,6 +119,6 @@ func (sm *StateMachine) transition(event state.EventWithSpan) {
 		}
 	}
 
-	sm.logger.Warnf("No defined transition for event %s in state %s", event, sm.current)
+	sm.logger.WithField("event", event).WithField("state", sm.current).Warn("No defined transition for event in state")
 	sm.triggerStatusUpdate()
 }

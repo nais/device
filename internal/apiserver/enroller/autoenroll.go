@@ -42,7 +42,7 @@ func NewAutoEnroll(
 ) (*AutoEnroll, error) {
 	projectID, err := pubsubenroll.GetGoogleMetadataString(ctx, "project/project-id")
 	if err != nil {
-		log.WithError(err).Fatal("Failed to get project ID")
+		log.WithError(err).Fatal("failed to get project ID")
 	}
 
 	client, err := pubsub.NewClient(ctx, projectID)
@@ -77,7 +77,7 @@ func (a *AutoEnroll) Run(ctx context.Context) error {
 	a.log.WithFields(logrus.Fields{
 		"topic": a.gatewayTopic.String(),
 		"sub":   a.gatewaySubscription.String(),
-	}).Info("Starting auto enroll...")
+	}).Info("starting auto enroll...")
 	eg, ctx := errgroup.WithContext(ctx)
 
 	eg.Go(func() error {
@@ -94,14 +94,14 @@ func (a *AutoEnroll) receiveGateway(ctx context.Context, msg *pubsub.Message) {
 	defer msg.Ack()
 
 	if msg.Attributes["type"] != pubsubenroll.TypeEnrollRequest {
-		a.log.Debugf("ignoring pubsub message with attribtes: %#v", msg.Attributes)
+		a.log.WithField("attributes", msg.Attributes).Debug("ignoring pubsub message")
 		msg.Nack()
 		return
 	}
 
 	var req *pubsubenroll.GatewayRequest
 	if err := json.Unmarshal(msg.Data, &req); err != nil {
-		a.log.WithError(err).Error("Failed to unmarshal request")
+		a.log.WithError(err).Error("failed to unmarshal request")
 		return
 	}
 	log := a.log.WithField("gateway", req.Name)
@@ -114,14 +114,14 @@ func (a *AutoEnroll) receiveGateway(ctx context.Context, msg *pubsub.Message) {
 	})
 	if err != nil {
 		msg.Nack()
-		log.WithError(err).Error("Failed to add gateway")
+		log.WithError(err).Error("failed to add gateway")
 		return
 	}
 
 	gw, err := a.db.ReadGateway(ctx, req.Name)
 	if err != nil {
 		msg.Nack()
-		log.WithError(err).Error("Failed to get gateway")
+		log.WithError(err).Error("failed to get gateway")
 		return
 	}
 
@@ -135,7 +135,7 @@ func (a *AutoEnroll) receiveGateway(ctx context.Context, msg *pubsub.Message) {
 	b, err := json.Marshal(&resp)
 	if err != nil {
 		msg.Nack()
-		log.WithError(err).Error("Failed to marshal response")
+		log.WithError(err).Error("failed to marshal response")
 		return
 	}
 
@@ -149,17 +149,17 @@ func (a *AutoEnroll) receiveGateway(ctx context.Context, msg *pubsub.Message) {
 	})
 	_, err = pubresp.Get(ctx)
 	if err != nil {
-		log.WithError(err).Error("Failed to publish response")
+		log.WithError(err).Error("failed to publish response")
 	}
 
-	log.Infof("Enrolled gateway")
+	log.Info("enrolled gateway")
 }
 
 func (a *AutoEnroll) receiveDevice(ctx context.Context, msg *pubsub.Message) {
 	defer msg.Ack()
 
 	if msg.Attributes["type"] != pubsubenroll.TypeEnrollRequest {
-		a.log.Debugf("ignoring pubsub message with attribtes: %#v", msg.Attributes)
+		a.log.WithField("attributes", msg.Attributes).Debug("ignoring pubsub message")
 		msg.Nack()
 		return
 	}
@@ -179,14 +179,14 @@ func (a *AutoEnroll) receiveDevice(ctx context.Context, msg *pubsub.Message) {
 	})
 	if err != nil {
 		msg.Nack()
-		log.WithError(err).Error("Failed to add device")
+		log.WithError(err).Error("failed to add device")
 		return
 	}
 
 	gw, err := a.db.ReadDeviceBySerialPlatform(ctx, req.Serial, req.Platform)
 	if err != nil {
 		msg.Nack()
-		log.WithError(err).Error("Failed to get device")
+		log.WithError(err).Error("failed to get device")
 		return
 	}
 
@@ -200,7 +200,7 @@ func (a *AutoEnroll) receiveDevice(ctx context.Context, msg *pubsub.Message) {
 	b, err := json.Marshal(&resp)
 	if err != nil {
 		msg.Nack()
-		log.WithError(err).Error("Failed to marshal response")
+		log.WithError(err).Error("failed to marshal response")
 		return
 	}
 
@@ -214,8 +214,8 @@ func (a *AutoEnroll) receiveDevice(ctx context.Context, msg *pubsub.Message) {
 	})
 	_, err = pubresp.Get(ctx)
 	if err != nil {
-		log.WithError(err).Error("Failed to publish response")
+		log.WithError(err).Error("failed to publish response")
 	}
 
-	log.Infof("Enrolled device")
+	log.Info("enrolled device")
 }

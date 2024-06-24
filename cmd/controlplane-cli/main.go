@@ -1,10 +1,10 @@
 package main
 
 import (
-	"log"
 	"os"
 
 	controlplanecli "github.com/nais/device/internal/controlplane-cli"
+	"github.com/sirupsen/logrus"
 	"github.com/urfave/cli/v2"
 )
 
@@ -114,8 +114,9 @@ func main() {
 		},
 	}
 
+	log := logrus.StandardLogger()
 	err := app.Run(os.Args)
 	if err != nil {
-		log.Fatal(err)
+		log.WithError(err).Error("run")
 	}
 }

@@ -27,7 +27,7 @@ func (check Check) Severity() pb.Severity {
 		case strings.EqualFold(tag, pb.Severity_Critical.String()):
 			severity = pb.Severity_Critical
 		default:
-			log.Warnf("kolide severity parser: failed to parse tag: %q", tag)
+			log.WithField("tag", tag).Warn("Kolide severity parser: failed to parse tag")
 		}
 
 		if severity > highest {
@@ -36,7 +36,7 @@ func (check Check) Severity() pb.Severity {
 	}
 
 	if highest == -1 {
-		log.Warnf("Check missing a severity tag: %+v", check)
+		log.WithField("check", check).Warn("Check missing a severity tag")
 		highest = pb.Severity_Warning
 	}
 
@@ -71,7 +71,7 @@ const MaxTimeSinceKolideLastSeen = 25 * time.Hour
 func (f DeviceFailure) AsDeviceIssue() *pb.DeviceIssue {
 	graceTime := GraceTime(f.Check.Severity())
 	if graceTime == DurationUnknown {
-		log.Errorf("DurationUnknown grace time for check %+v", f.Check.DisplayName)
+		log.WithField("check_name", f.Check.DisplayName).Error("DurationUnknown grace time for check")
 	}
 
 	var failureTimestamp *timestamppb.Timestamp
@@ -80,7 +80,7 @@ func (f DeviceFailure) AsDeviceIssue() *pb.DeviceIssue {
 		failureTimestamp = timestamppb.New(*f.Timestamp)
 		deadline = timestamppb.New(f.Timestamp.Add(graceTime))
 	} else {
-		log.Warnf("Timestamp missing for failure %+v", f)
+		log.WithField("failure", f).Warn("timestamp missing for failure")
 	}
 
 	return &pb.DeviceIssue{

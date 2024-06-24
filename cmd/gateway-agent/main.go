@@ -3,9 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
-	"os/signal"
 	"path/filepath"
-	"syscall"
 	"time"
 
 	"google.golang.org/grpc"
@@ -17,6 +15,7 @@ import (
 	"github.com/nais/device/internal/gateway-agent/config"
 	"github.com/nais/device/internal/passwordhash"
 	"github.com/nais/device/internal/pb"
+	"github.com/nais/device/internal/program"
 	"github.com/nais/device/internal/pubsubenroll"
 	"github.com/nais/device/internal/wireguard"
 
@@ -42,30 +41,26 @@ func main() {
 	log := logger.Setup(cfg.LogLevel).WithField("component", "main")
 	err := run(log, cfg)
 	if err != nil {
-		log.Fatalf("Running gateway-agent: %s", err)
+		log.WithError(err).Error("running gateway-agent")
 	}
 }
 
 func run(log *logrus.Entry, cfg config.Config) error {
-	var err error
-
-	ctx, cancel := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
+	ctx, cancel := program.MainContext(1 * time.Second)
 	defer cancel()
 
-	err = envconfig.Process("GATEWAY_AGENT", &cfg)
+	err := envconfig.Process("GATEWAY_AGENT", &cfg)
 	if err != nil {
 		return fmt.Errorf("read environment configuration: %w", err)
 	}
 
 	logger.Setup(cfg.LogLevel)
 
-	log.Infof("gateway-agent version %s, revision: %s", version.Version, version.Revision)
-
-	log.Info("starting gateway-agent")
+	log.WithFields(version.LogFields).Info("starting gateway-agent")
 
 	staticPeers := cfg.StaticPeers()
 	if cfg.AutoEnroll {
-		log.Info("Auto bootstrap enabled")
+		log.Info("auto bootstrap enabled")
 		password, hashedPassword, err := passwordhash.GeneratePasswordAndHash()
 		if err != nil {
 			return err
@@ -159,7 +154,7 @@ func run(log *logrus.Entry, cfg config.Config) error {
 		return fmt.Errorf("apply wireguard config: %w", err)
 	}
 
-	log.Infof("Attempting gRPC connection to API server on %s...", cfg.APIServerURL)
+	log.WithField("url", cfg.APIServerURL).Info("attempting gRPC connection to apiserver")
 	apiserver, err := grpc.NewClient(
 		cfg.APIServerURL,
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
@@ -181,8 +176,8 @@ func run(log *logrus.Entry, cfg config.Config) error {
 				// so we terminate here to let the OS restart us.
 				return err
 			}
-			log.Errorf("attempt %v: %v", attempt, err)
-			log.Debugf("Waiting %s before next retry...", grpcConnectBackoff)
+			log.WithError(err).WithField("attempt", attempt).Error("failed, retrying")
+			log.WithField("backoff", grpcConnectBackoff).Debug("sleep before retry...")
 			select {
 			case <-ctx.Done(): // context cancelled
 				log.Info("context done, shutting down")

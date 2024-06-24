@@ -25,12 +25,12 @@ func SetupLogger(level, logDir, prefix string) *logrus.Logger {
 
 	err := os.MkdirAll(logDir, 0o755)
 	if err != nil {
-		log.Fatalf("Creating log dir: %v", err)
+		log.WithError(err).Fatal("creating log dir")
 	}
 
 	err = deleteOldLogFiles(logDir, time.Now().Add(-logfileMaxAge))
 	if err != nil {
-		log.Errorf("unable to delete old log files: %v", err)
+		log.WithError(err).Error("unable to delete old log files")
 	}
 
 	// clean up old log file without date
@@ -41,7 +41,7 @@ func SetupLogger(level, logDir, prefix string) *logrus.Logger {
 
 	logFile, err := os.OpenFile(logFilePath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0o664)
 	if err != nil {
-		log.Fatalf("unable to open log file %s, error: %v", logFilePath, err)
+		log.WithError(err).WithField("path", logFilePath).Fatal("unable to open log file")
 	}
 
 	// file must be before os.Stdout here because when running as windows service writes to stdout fail.
@@ -50,12 +50,12 @@ func SetupLogger(level, logDir, prefix string) *logrus.Logger {
 
 	loglevel, err := logrus.ParseLevel(level)
 	if err != nil {
-		log.Errorf("unable to parse log level %s, error: %v", level, err)
+		log.WithError(err).WithField("level", level).Error("unable to parse log level")
 		return nil
 	}
 	log.SetLevel(loglevel)
 	log.SetFormatter(&logrus.TextFormatter{})
-	log.Infof("Successfully set up logging. Level %s", loglevel)
+	log.WithField("level", loglevel).Info("Successfully set up logging")
 	return log
 }
 
@@ -68,7 +68,7 @@ func Setup(level string) *logrus.Logger {
 	log.SetLevel(logrus.InfoLevel)
 	l, err := logrus.ParseLevel(level)
 	if err != nil {
-		log.Warnf("parse log level %s failed, using default level info", level)
+		log.WithField("level", level).Warn("parse log level failed, using default level info")
 	} else {
 		log.SetLevel(l)
 	}

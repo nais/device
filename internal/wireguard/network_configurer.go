@@ -99,7 +99,7 @@ func NewConfigurer(log *logrus.Entry, configPath string, ipv4 *netip.Prefix, ipv
 	}
 	if iptablesV6 != nil && router != nil {
 		if iface, src, err := detectDefaultRoute(router, ipv6); err != nil {
-			log.Warnf("no IPv6 default route found, IPv6 will not be configured. err: %v", err)
+			log.WithError(err).Warn("no IPv6 default route found, IPv6 will not be configured")
 		} else {
 			nc.v6.iface = iface
 			nc.v6.src = src
@@ -116,7 +116,7 @@ func (nc *networkConfigurer) SetupInterface() error {
 	}
 
 	if err := exec.Command("ip", "link", "del", nc.wireguardInterface).Run(); err != nil {
-		nc.log.Infof("pre-deleting WireGuard interface (ok if this fails): %v", err)
+		nc.log.WithError(err).Info("pre-deleting WireGuard interface (ok if this fails)")
 	}
 
 	// sysctl net.ipv4.ip_forward
@@ -176,7 +176,7 @@ func (nc *networkConfigurer) ApplyWireGuardConfig(peers []Peer) error {
 		return fmt.Errorf("sync WireGuard config: %w: out: %v", err, string(out))
 	}
 
-	nc.log.Debugf("Actuated WireGuard config at %v", nc.configPath)
+	nc.log.WithField("path", nc.configPath).Debug("actuated WireGuard config")
 
 	return nil
 }

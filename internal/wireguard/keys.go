@@ -62,7 +62,7 @@ func ReadOrCreatePrivateKey(path string, log *logrus.Entry) (PrivateKey, error) 
 	}
 
 	if errors.Is(err, fs.ErrNotExist) {
-		log.Info("No private key found, generating new one...")
+		log.Info("no private key found, generating new one...")
 		b, err = GenKey()
 		if err != nil {
 			return nil, fmt.Errorf("generate private key: %w", err)
@@ -76,7 +76,7 @@ func ReadOrCreatePrivateKey(path string, log *logrus.Entry) (PrivateKey, error) 
 			return nil, fmt.Errorf("write private key: %w", err)
 		}
 	} else {
-		log.Info("Found private key, using it...")
+		log.Info("found private key, using it...")
 	}
 
 	return PrivateKey(b), nil

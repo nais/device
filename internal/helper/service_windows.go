@@ -35,18 +35,18 @@ func StartService(log *logrus.Entry, programContext context.Context, cancel cont
 
 		err = svc.Run(serviceName, s)
 		if err != nil {
-			log.Fatalf("Running service: %v", err)
+			log.WithError(err).Fatal("running service")
 		}
 	}()
 
-	log.Infof("ran service handler")
+	log.Info("ran service handler")
 	return nil
 }
 
 func (service *MyService) Execute(args []string, r <-chan svc.ChangeRequest, changes chan<- svc.Status) (ssec bool, errno uint32) {
 	const cmdsAccepted = svc.AcceptStop | svc.AcceptShutdown
 	changes <- svc.Status{State: svc.StartPending}
-	service.log.Infof("service started with args: %v", args)
+	service.log.WithField("args", args).Info("service started")
 	changes <- svc.Status{State: svc.Running, Accepts: cmdsAccepted}
 loop:
 	for {
@@ -60,11 +60,11 @@ loop:
 				time.Sleep(100 * time.Millisecond)
 				changes <- c.CurrentStatus
 			case svc.Stop, svc.Shutdown:
-				service.log.Infof("Stop service: %v", c)
+				service.log.WithField("change_request", c).Info("stop service")
 				service.cancel()
 				break loop
 			default:
-				service.log.Errorf("unexpected control request #%d", c)
+				service.log.WithField("change_request", c).Error("unexpected control reques")
 			}
 		}
 	}

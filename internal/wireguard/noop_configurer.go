@@ -13,36 +13,36 @@ func NewNoOpConfigurer(log *logrus.Entry) NetworkConfigurer {
 }
 
 func (n *noopConfigurer) ApplyWireGuardConfig(peers []Peer) error {
-	n.log.Debugf("Applying WireGuard configuration with %d peers", len(peers))
+	n.log.WithField("num_peers", len(peers)).Debug("applying WireGuard configuration")
 	for _, peer := range peers {
-		n.log.Debugf("%#v", peer)
+		n.log.WithField("peer", peer).Debug("log peer")
 	}
 	return nil
 }
 
 func (n *noopConfigurer) ForwardRoutesV4(routes []string) error {
-	n.log.Debugf("Applying %d forwarding routes:", len(routes))
-	for i, route := range routes {
-		n.log.Debugf("(%02d) %s", i+1, route)
+	n.log.WithField("num_routes", len(routes)).Debug("applying forwarding routes")
+	for _, route := range routes {
+		n.log.WithField("route", route).Debug("log route")
 	}
 	return nil
 }
 
 func (n *noopConfigurer) ForwardRoutesV6(routes []string) error {
-	n.log.Debugf("Applying %d forwarding routes:", len(routes))
-	for i, route := range routes {
-		n.log.Debugf("(%02d) %s", i+1, route)
+	n.log.WithField("num_routes", len(routes)).Debug("applying forwarding routes")
+	for _, route := range routes {
+		n.log.WithField("route", route).Debug("log route")
 	}
 	return nil
 }
 
 func (n *noopConfigurer) SetupInterface() error {
-	n.log.Debugf("SetupInterface()")
+	n.log.Debug("SetupInterface()")
 	return nil
 }
 
 func (n *noopConfigurer) SetupIPTables() error {
-	n.log.Debugf("SetupIPTables()")
+	n.log.Debug("SetupIPTables()")
 	return nil
 }
 

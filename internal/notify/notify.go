@@ -43,7 +43,7 @@ func (n *notifier) printf(logLevel logrus.Level, format string, args ...any) {
 	logger(message)
 	err := beeep.Notify("naisdevice", message, appIconPath)
 	if err != nil {
-		n.log.Errorf("sending notification: %s", err)
+		n.log.WithError(err).Error("sending notification")
 	}
 }
 

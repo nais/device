@@ -63,7 +63,6 @@ func (configurator *WindowsConfigurator) SetupInterface(ctx context.Context, cfg
 	if b, err := installService.CombinedOutput(); err != nil {
 		return fmt.Errorf("installing tunnel service: %v: %v", err, string(b))
 	} else {
-		// log.Infof("installed tunnel service, sleeping 6 sec to let it finish")
 		time.Sleep(6 * time.Second)
 	}
 
@@ -92,9 +91,6 @@ func (configurator *WindowsConfigurator) SyncConf(ctx context.Context, cfg *pb.C
 	}
 
 	if fileActuallyChanged(configurator.oldWireGuardConfig, newWireGuardConfig) {
-		// log.Debugf("old: %s", string(configurator.oldWireGuardConfig))
-		// log.Debugf("new: %s", string(newWireGuardConfig))
-
 		commands := [][]string{
 			{"net", "stop", tunnelName(configurator.helperConfig.Interface)},
 			{"net", "start", tunnelName(configurator.helperConfig.Interface)},
@@ -108,7 +104,6 @@ func (configurator *WindowsConfigurator) SyncConf(ctx context.Context, cfg *pb.C
 
 func (configurator *WindowsConfigurator) TeardownInterface(ctx context.Context) error {
 	if !interfaceExists(ctx, configurator.helperConfig.Interface) {
-		// log.Info("no interface")
 		return nil
 	}
 
@@ -118,7 +113,6 @@ func (configurator *WindowsConfigurator) TeardownInterface(ctx context.Context) 
 	if err != nil {
 		return fmt.Errorf("uninstalling tunnel service: %v: %v", err, string(b))
 	} else {
-		// log.Infof("uninstalled tunnel service (sleeping 3 sec to let it finish)")
 		time.Sleep(3 * time.Second)
 	}
 

@@ -262,7 +262,7 @@ func (gui *Gui) handleAgentDisconnect() {
 }
 
 func (gui *Gui) handleAgentStatus(agentStatus *pb.AgentStatus) {
-	gui.log.Infof("received agent status: %v", agentStatus)
+	gui.log.WithField("status", agentStatus).Info("received agent status")
 
 	gui.AgentStatus = agentStatus
 
@@ -404,7 +404,7 @@ func (gui *Gui) handleGuiEvent(ctx context.Context, guiEvent GuiEvent) {
 	case AutoConnectClicked:
 		getConfigResponse, err := gui.DeviceAgentClient.GetAgentConfiguration(ctx, &pb.GetAgentConfigurationRequest{})
 		if err != nil {
-			gui.log.Errorf("get agent config: %v", err)
+			gui.log.WithError(err).Error("get agent config")
 			break
 		}
 
@@ -413,7 +413,7 @@ func (gui *Gui) handleGuiEvent(ctx context.Context, guiEvent GuiEvent) {
 
 		_, err = gui.DeviceAgentClient.SetAgentConfiguration(ctx, setConfigRequest)
 		if err != nil {
-			gui.log.Errorf("set agent config: %v", err)
+			gui.log.WithError(err).Error("set agent config")
 			break
 		}
 
@@ -434,16 +434,16 @@ func (gui *Gui) handleGuiEvent(ctx context.Context, guiEvent GuiEvent) {
 		gui.Config.Persist()
 
 	case ConnectClicked:
-		gui.log.Infof("Connect button clicked")
+		gui.log.Info("Connect button clicked")
 		if gui.AgentStatus.GetConnectionState() == pb.AgentState_Disconnected {
 			_, err := gui.DeviceAgentClient.Login(ctx, &pb.LoginRequest{})
 			if err != nil {
-				gui.log.Errorf("connect: %v", err)
+				gui.log.WithError(err).Error("connect")
 			}
 		} else {
 			_, err := gui.DeviceAgentClient.Logout(ctx, &pb.LogoutRequest{})
 			if err != nil {
-				gui.log.Errorf("while disconnecting: %v", err)
+				gui.log.WithError(err).Error("while disconnecting")
 			}
 		}
 
@@ -463,7 +463,7 @@ func (gui *Gui) handleGuiEvent(ctx context.Context, guiEvent GuiEvent) {
 		}
 		zipLocation, err := helper.ZipLogFiles(logFiles[:])
 		if err != nil {
-			gui.log.Errorf("zipping log files: %v", err)
+			gui.log.WithError(err).Error("zipping log files")
 		}
 		open.Open("file://" + filepath.Dir(zipLocation))
 
@@ -476,7 +476,7 @@ func (gui *Gui) handleGuiEvent(ctx context.Context, guiEvent GuiEvent) {
 	case QuitClicked:
 		_, err := gui.DeviceAgentClient.Logout(ctx, &pb.LogoutRequest{})
 		if err != nil {
-			gui.log.Fatalf("while disconnecting: %v", err)
+			gui.log.WithError(err).Fatal("while disconnecting")
 		}
 	}
 }
@@ -485,26 +485,26 @@ func (gui *Gui) handleStatusStream(ctx context.Context) {
 	for {
 		select {
 		case <-ctx.Done():
-			gui.log.Infof("stopping handleStatusStream as context is done")
+			gui.log.Info("stopping handleStatusStream as context is done")
 			return
 		default:
 			gui.handleAgentDisconnect()
-			gui.log.Infof("Requesting status updates from naisdevice-agent...")
+			gui.log.Info("requesting status updates from naisdevice-agent...")
 
 			statusStream, err := gui.DeviceAgentClient.Status(ctx, &pb.AgentStatusRequest{})
 			if err != nil {
-				gui.log.Errorf("Request status stream: %s", err)
+				gui.log.WithError(err).Error("request status stream")
 				time.Sleep(requestBackoff)
 				continue
 			}
 
-			gui.log.Infof("naisdevice-agent status stream established")
+			gui.log.Info("naisdevice-agent status stream established")
 			gui.handleAgentConnect()
 
 			for {
 				status, err := statusStream.Recv()
 				if err != nil {
-					gui.log.Errorf("Receive status from device-agent stream: %v", err)
+					gui.log.WithError(err).Error("Receive status from device-agent stream")
 					break
 				}
 
@@ -556,14 +556,14 @@ func (gui *Gui) activateTenant(ctx context.Context, name string) {
 
 	getConfigResponse, err := gui.DeviceAgentClient.GetAgentConfiguration(ctx, &pb.GetAgentConfigurationRequest{})
 	if err != nil {
-		gui.log.Errorf("Failed to get agent configuration, err: %v", err)
+		gui.log.WithError(err).Error("Failed to get agent configuration")
 		return
 	}
 
 	if getConfigResponse.Config.AutoConnect {
 		_, err = gui.DeviceAgentClient.Login(ctx, &pb.LoginRequest{})
 		if err != nil {
-			gui.log.Errorf("connect: %v", err)
+			gui.log.WithError(err).Error("connect")
 		}
 	}
 }

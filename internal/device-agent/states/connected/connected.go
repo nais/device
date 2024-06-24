@@ -94,12 +94,12 @@ func (c *Connected) Enter(ctx context.Context) state.EventWithSpan {
 	attempt := 0
 	for ctx.Err() == nil {
 		attempt++
-		c.logger.Infof("[attempt %d] Setting up gateway configuration stream...", attempt)
+		c.logger.WithField("attempt", attempt).Info("setting up gateway configuration stream...")
 		err := c.syncConfigLoop(ctx)
 
 		switch e := err; {
 		case errors.Is(e, ErrUnavailable):
-			c.logger.Warnf("Synchronize config: not connected to API server: %v", err)
+			c.logger.WithError(err).Warn("synchronize config: not connected to API server")
 			time.Sleep(apiServerRetryInterval * time.Duration(math.Pow(float64(attempt), 3)))
 			continue
 		case errors.Is(e, auth.ErrTermsNotAccepted):
@@ -108,25 +108,25 @@ func (c *Connected) Enter(ctx context.Context) state.EventWithSpan {
 		case errors.Is(e, &auth.ParseTokenError{}):
 			fallthrough
 		case errors.Is(e, ErrUnauthenticated):
-			c.notifier.Errorf("Unauthenticated: %v", err)
+			c.notifier.Errorf("unauthenticated: %v", err)
 			c.rc.SetToken(nil)
 			return state.SpanEvent(ctx, state.EventDisconnect)
 		case errors.Is(e, io.EOF):
-			c.logger.Infof("Connection unexpectedly lost (EOF), reconnecting...")
+			c.logger.Info("connection unexpectedly lost (EOF), reconnecting...")
 			attempt = 0
 		case errors.Is(e, ErrLostConnection):
-			c.logger.Infof("Lost connection, reconnecting...")
+			c.logger.Info("lost connection, reconnecting...")
 			attempt = 0
 		case errors.Is(e, context.DeadlineExceeded):
-			c.logger.Infof("syncConfigLoop deadline exceeded: %v", err)
+			c.logger.WithError(err).Info("syncConfigLoop deadline exceeded")
 			return state.SpanEvent(ctx, state.EventDisconnect)
 		case errors.Is(e, context.Canceled):
 			// in this case something from the outside canceled us, let them decide next state
-			c.logger.Infof("syncConfigLoop canceled: %v", err)
+			c.logger.WithError(err).Info("syncConfigLoop canceled")
 			return state.SpanEvent(ctx, state.EventWaitForExternalEvent)
 		case e != nil:
 			// Unhandled error: disconnect
-			c.logger.Errorf("error in syncConfigLoop: %v", err)
+			c.logger.WithError(err).Error("error in syncConfigLoop")
 			c.notifier.Errorf("Unhandled error while updating config. Please send your logs to the NAIS team.")
 			return state.SpanEvent(ctx, state.EventDisconnect)
 		}
@@ -214,7 +214,7 @@ func (c *Connected) defaultSyncConfigLoop(ctx context.Context) error {
 				return fmt.Errorf("recv: %w", e)
 			}
 
-			c.logger.Infof("Received gateway configuration from API server")
+			c.logger.Info("received gateway configuration from API server")
 
 			switch cfg.Status {
 			case pb.DeviceConfigurationStatus_InvalidSession:
@@ -223,9 +223,9 @@ func (c *Connected) defaultSyncConfigLoop(ctx context.Context) error {
 			case pb.DeviceConfigurationStatus_DeviceUnhealthy:
 				span.AddEvent("device.unhealthy")
 
-				c.logger.Errorf("Device is not healthy: %v", err)
+				c.logger.WithError(err).Error("device is not healthy")
 				for _, issue := range cfg.Issues {
-					c.logger.Errorf("Issue detected: %+v", issue)
+					c.logger.WithField("issue", issue).Error("issue detected")
 				}
 				if len(cfg.Issues) == 1 {
 					c.notifier.Errorf("%v. Run '/msg @Kolide status' on Slack and fix the errors", cfg.Issues[0].Title)
@@ -245,7 +245,7 @@ func (c *Connected) defaultSyncConfigLoop(ctx context.Context) error {
 			case pb.DeviceConfigurationStatus_DeviceHealthy:
 				span.AddEvent("device.healthy")
 
-				c.logger.Infof("Device is healthy; server pushed %d gateways", len(cfg.Gateways))
+				c.logger.WithField("num_gateways", len(cfg.Gateways)).Info("device is healthy; got config")
 
 				helperCtx, helperCancel := context.WithTimeout(ctx, helperTimeout)
 				_, err = c.deviceHelper.Configure(helperCtx, c.rc.BuildHelperConfiguration(append(
@@ -310,7 +310,7 @@ func (c *Connected) syncSetup(ctx context.Context) (pb.APIServer_GetDeviceConfig
 	}
 
 	c.connectedSince = timestamppb.Now()
-	c.logger.Infof("Gateway configuration stream established")
+	c.logger.Info("gateway configuration stream established")
 
 	return stream, func() {
 		cancel()
@@ -352,7 +352,7 @@ func (c *Connected) launchHealthCheck(ctx context.Context) context.CancelFunc {
 				wg := &sync.WaitGroup{}
 
 				total := len(gateways)
-				c.logger.Debugf("Pinging %d gateways...", total)
+				c.logger.WithField("num_gateways", total).Debug("pinging gateways...")
 				for i, gw := range gateways {
 					wg.Add(1)
 					go func(i int, gw *pb.Gateway) {
@@ -361,10 +361,18 @@ func (c *Connected) launchHealthCheck(ctx context.Context) context.CancelFunc {
 						pos := fmt.Sprintf("[%02d/%02d]", i+1, total)
 						if err == nil {
 							gw.Healthy = true
-							c.logger.Debugf("%s %s: successfully pinged %v", pos, gw.Name, gw.Ipv4)
+							c.logger.WithFields(logrus.Fields{
+								"num":     pos,
+								"gateway": gw.Name,
+								"ip":      gw.Ipv4,
+							}).Debug("successfully pinged")
 						} else {
 							gw.Healthy = false
-							c.logger.Debugf("%s %s: unable to ping %s: %v", pos, gw.Name, gw.Ipv4, err)
+							c.logger.WithError(err).WithFields(logrus.Fields{
+								"num":     pos,
+								"gateway": gw.Name,
+								"ip":      gw.Ipv4,
+							}).Debug("unable to ping")
 						}
 					}(i, gw)
 				}
@@ -385,7 +393,7 @@ func ping(log logrus.FieldLogger, addr string) error {
 
 	err = c.Close()
 	if err != nil {
-		log.Errorf("closing ping connection: %v", err)
+		log.WithError(err).Error("closing ping connection")
 	}
 
 	return nil

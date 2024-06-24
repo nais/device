@@ -89,13 +89,13 @@ func (c *Config) PersistAgentConfiguration(log *logrus.Entry) {
 
 	out, err := protojson.MarshalOptions{Indent: "  "}.Marshal(c.AgentConfiguration)
 	if err != nil {
-		log.Errorf("Encode AgentConfiguration: %v", err)
+		log.WithError(err).Error("encode AgentConfiguration")
 	}
 
-	log.Debugf("persisting agent-config: %+v", c.AgentConfiguration)
+	log.WithField("cfg", c.AgentConfiguration).Debug("persisting agent-config")
 
 	if err := os.WriteFile(agentConfigPath, out, 0o644); err != nil {
-		log.Errorf("Write AgentConfiguration: %v", err)
+		log.WithError(err).Error("write AgentConfiguration")
 	}
 }
 
@@ -108,16 +108,16 @@ func (c *Config) PopulateAgentConfiguration(log *logrus.Entry) {
 			return
 		}
 
-		log.Errorf("Read AgentConfiguration: %v", err)
+		log.WithError(err).Error("read AgentConfiguration")
 	}
 
 	tempCfg := &pb.AgentConfiguration{}
 	if err := protojson.Unmarshal(in, tempCfg); err != nil {
-		log.Fatalln("Failed to parse agent config:", err)
+		log.WithError(err).Fatal("failed to parse agent config")
 	}
 
 	c.AgentConfiguration = tempCfg
 	c.PersistAgentConfiguration(log)
 
-	log.Debugf("read agent-config: %v", c.AgentConfiguration)
+	log.WithField("cfg", c.AgentConfiguration).Debug("read agent-config")
 }

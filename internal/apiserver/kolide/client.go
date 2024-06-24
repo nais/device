@@ -70,7 +70,7 @@ func (kc *client) RefreshCache(ctx context.Context) error {
 		if kc.checks.Len() == 0 {
 			return fmt.Errorf("getting checks: %w", err)
 		} else {
-			kc.log.Errorf("getting checks: %v", err)
+			kc.log.WithError(err).Error("getting checks")
 		}
 	}
 
@@ -137,7 +137,7 @@ func (kc *client) getCheck(ctx context.Context, checkID uint64) (Check, error) {
 	if ok {
 		return check, nil
 	}
-	kc.log.Infof("cache miss for check with id: %v", checkID)
+	kc.log.WithField("id", checkID).Info("cache miss for check")
 
 	url := fmt.Sprintf(kc.baseUrl+"/checks/%v", checkID)
 	response, err := kc.get(ctx, url)
@@ -238,7 +238,7 @@ func (kc *client) FillKolideData(ctx context.Context, devices []*pb.Device) erro
 }
 
 func (kc *client) getDevices(ctx context.Context) ([]Device, error) {
-	kc.log.Debugf("Getting all devices...")
+	kc.log.Debug("getting all devices...")
 	url := kc.baseUrl + "/devices"
 	rawDevices, err := kc.getPaginated(ctx, url)
 	if err != nil {

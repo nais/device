@@ -17,7 +17,7 @@ var (
 )
 
 func Serve(log *logrus.Entry, address string) {
-	log.Infof("Prometheus serving metrics at %v", address)
+	log.WithField("address", address).Info("serving metrics")
 	_ = http.ListenAndServe(address, promhttp.Handler())
 }
 

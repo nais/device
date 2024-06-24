@@ -62,19 +62,19 @@ func DeviceEventStreamer(ctx context.Context, log *logrus.Entry, grpcAddress, gr
 	for ctx.Err() == nil {
 		events, err := s.Events(ctx, &kolidepb.EventsRequest{})
 		if err != nil {
-			log.Errorf("Start Kolide event stream: %v", err)
-			log.Warnf("Restarting event stream in %s...", eventStreamBackoff)
+			log.WithError(err).Error("start Kolide event stream")
+			log.WithField("backoff", eventStreamBackoff).Warn("restarting event stream after backoff...")
 			time.Sleep(eventStreamBackoff)
 			continue
 		}
 
-		log.Infof("Started Kolide event stream to %v", conn.Target())
+		log.WithField("address", conn.Target()).Info("started Kolide event stream")
 
 		for {
 			event, err := events.Recv()
 			if err != nil {
-				log.Errorf("Receive Kolide event: %v", err)
-				log.Warnf("Restarting event stream in %s...", eventStreamBackoff)
+				log.WithError(err).Error("receive Kolide event")
+				log.WithField("backoff", eventStreamBackoff).Warn("restarting event stream after backoff...")
 				time.Sleep(eventStreamBackoff)
 				break
 			}

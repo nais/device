@@ -28,7 +28,7 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	var req DeviceRequest
 
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		h.log.Errorf("error decoding device request: %v", err)
+		h.log.WithError(err).Error("error decoding device request")
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
@@ -36,13 +36,13 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	resp, err := h.worker.Send(r.Context(), &req)
 	if err != nil {
-		h.log.Errorf("error sending device request: %v", err)
+		h.log.WithError(err).Error("error sending device request")
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
 	if err := json.NewEncoder(w).Encode(resp); err != nil {
-		h.log.Errorf("error decoding device response: %v", err)
+		h.log.WithError(err).Error("error decoding device response")
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}

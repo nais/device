@@ -6,9 +6,7 @@ import (
 	"fmt"
 	"net/http"
 	"os"
-	"os/signal"
 	"path/filepath"
-	"syscall"
 	"time"
 
 	"github.com/sirupsen/logrus"
@@ -26,6 +24,7 @@ import (
 	"github.com/nais/device/internal/notify"
 	"github.com/nais/device/internal/otel"
 	"github.com/nais/device/internal/pb"
+	"github.com/nais/device/internal/program"
 	"github.com/nais/device/internal/unixsocket"
 	"github.com/nais/device/internal/version"
 )
@@ -35,26 +34,10 @@ const (
 	versionCheckInterval = 1 * time.Hour    // how often to check for a new version of naisdevice
 )
 
-func handleSignals(log *logrus.Entry, cancel context.CancelFunc) {
-	signals := make(chan os.Signal, 1)
-	signal.Notify(signals, syscall.SIGINT, syscall.SIGTERM)
-
-	go func() {
-		sig := <-signals
-		log.Infof("signal handler: got signal '%s', canceling main context", sig)
-		cancel()
-		log.Info("signal handler: allowing 1s to stop gracefully...", sig)
-		// normally cancelling the context will result in the program returning before the next lines are evaluated
-		time.Sleep(1 * time.Second)
-		log.Info("signal handler: force-exiting")
-		os.Exit(0)
-	}()
-}
-
 func main() {
 	cfg, err := config.DefaultConfig()
 	if err != nil {
-		logrus.StandardLogger().Errorf("unable to read default configuration: %v", err)
+		logrus.StandardLogger().WithError(err).Error("unable to read default configuration")
 		os.Exit(1)
 	}
 
@@ -73,23 +56,22 @@ func main() {
 	log := logger.SetupLogger(cfg.LogLevel, logDir, logger.Agent).WithField("component", "main")
 	defer logger.CapturePanic(log)
 
-	programContext, programCancel := context.WithCancel(context.Background())
-	handleSignals(log, programCancel)
+	ctx, cancel := program.MainContext(time.Second)
+	defer cancel()
 
 	cfg.PopulateAgentConfiguration(log)
 
-	log.Infof("naisdevice-agent %s starting up", version.Version)
-	log.Infof("configuration: %+v", cfg)
+	log.WithFields(version.LogFields).WithField("cfg", *cfg).Info("starting naisdevice-agent")
 
 	notifier := notify.New(log)
-	err = run(programContext, log, cfg, notifier)
+	err = run(ctx, log, cfg, notifier)
 	if err != nil {
 		notifier.Errorf(err.Error())
-		log.Errorf("naisdevice-agent terminated with error.")
+		log.WithError(err).Error("naisdevice-agent terminated")
 		os.Exit(1)
 	}
 
-	log.Infof("naisdevice-agent shutting down.")
+	log.Info("naisdevice-agent shutting down")
 }
 
 func run(ctx context.Context, log *logrus.Entry, cfg *config.Config, notifier notify.Notifier) error {
@@ -103,7 +85,7 @@ func run(ctx context.Context, log *logrus.Entry, cfg *config.Config, notifier no
 	defer func() {
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		if err := otelCancel(ctx); err != nil {
-			log.Errorf("shutdown OTel SDK: %s", err)
+			log.WithError(err).Error("shutdown OTel SDK")
 		}
 		cancel()
 	}()
@@ -114,7 +96,7 @@ func run(ctx context.Context, log *logrus.Entry, cfg *config.Config, notifier no
 
 	rc, err := runtimeconfig.New(log.WithField("component", "runtimeconfig"), cfg)
 	if err != nil {
-		log.Errorf("instantiate runtime config: %v", err)
+		log.WithError(err).Error("instantiate runtime config")
 		return fmt.Errorf("unable to start naisdevice-agent, check logs for details")
 	}
 
@@ -125,7 +107,7 @@ func run(ctx context.Context, log *logrus.Entry, cfg *config.Config, notifier no
 		}
 	}
 
-	log.Infof("naisdevice-helper connection on unix socket %s", cfg.DeviceAgentHelperAddress)
+	log.WithField("helper_address", cfg.DeviceAgentHelperAddress).Info("naisdevice-helper connection")
 
 	var client pb.DeviceHelperClient
 	if cfg.LocalAPIServer {
@@ -158,7 +140,7 @@ func run(ctx context.Context, log *logrus.Entry, cfg *config.Config, notifier no
 						break
 					}
 
-					log.WithField("errors", helperCheckErrors).Errorf("Unable to communicate with helper. Agent shutting down")
+					log.WithField("errors", helperCheckErrors).Error("Unable to communicate with helper. Agent shutting down")
 					notifier.Errorf("Unable to communicate with helper. Agent shutting down.")
 					cancel()
 				}
@@ -172,7 +154,7 @@ func run(ctx context.Context, log *logrus.Entry, cfg *config.Config, notifier no
 	if err != nil {
 		return err
 	}
-	log.Infof("accepting network connections on unix socket %s", cfg.GrpcAddress)
+	log.WithField("grpc_address", cfg.GrpcAddress).Info("accepting network connections on unix socket")
 
 	statusChannel := make(chan *pb.AgentStatus, 32)
 	stateMachine := deviceagent.NewStateMachine(ctx, rc, *cfg, notifier, client, statusChannel, log.WithField("component", "statemachine"))
@@ -212,12 +194,12 @@ func run(ctx context.Context, log *logrus.Entry, cfg *config.Config, notifier no
 		return fmt.Errorf("failed to start gRPC server: %v", err)
 	}
 
-	log.Infof("gRPC server shut down.")
+	log.Info("gRPC server shut down")
 
 	return nil
 }
 
-func versionChecker(ctx context.Context, newVersionChannel chan<- bool, notifier notify.Notifier, logger logrus.FieldLogger) {
+func versionChecker(ctx context.Context, newVersionChannel chan<- bool, notifier notify.Notifier, log logrus.FieldLogger) {
 	versionCheckTimer := time.NewTimer(versionCheckInterval)
 	for ctx.Err() == nil {
 		select {
@@ -226,7 +208,7 @@ func versionChecker(ctx context.Context, newVersionChannel chan<- bool, notifier
 		case <-versionCheckTimer.C:
 			newVersionAvailable, err := checkNewVersionAvailable(ctx)
 			if err != nil {
-				logger.Infof("check for new version: %s", err)
+				log.WithError(err).Info("check for new version")
 				break
 			}
 

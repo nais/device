@@ -74,7 +74,7 @@ type runtimeConfig struct {
 }
 
 func (rc *runtimeConfig) DialAPIServer(ctx context.Context) (*grpc.ClientConn, error) {
-	rc.log.Infof("Attempting gRPC connection to API server on %s...", rc.apiServerGRPCAddress())
+	rc.log.WithField("address", rc.apiServerGRPCAddress()).Info("attempting gRPC connection to API server...")
 	return grpc.NewClient(
 		rc.apiServerGRPCAddress(),
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
@@ -101,7 +101,7 @@ func (rc *runtimeConfig) ConnectToAPIServer(ctx context.Context) (pb.APIServerCl
 		cancel()
 		return nil, func() {}, grpcstatus.Errorf(codes.Unavailable, err.Error())
 	}
-	rc.log.Infof("Connected to API server")
+	rc.log.Info("connected to API server")
 
 	return pb.NewAPIServerClient(conn), func() {
 		cancel()
@@ -164,7 +164,7 @@ func New(log *logrus.Entry, cfg *config.Config) (*runtimeConfig, error) {
 		return nil, fmt.Errorf("ensuring private key: %w", err)
 	}
 
-	rc.log.Infof("Runtime config initialized with public key: %s", wireguard.PublicKey(rc.privateKey))
+	rc.log.WithField("public_key", wireguard.PublicKey(rc.privateKey)).Info("runtime config initialized")
 
 	return rc, nil
 }

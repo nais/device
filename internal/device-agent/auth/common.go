@@ -59,7 +59,7 @@ func GetDeviceAgentToken(ctx context.Context, log logrus.FieldLogger, conf oauth
 		oauth2.SetAuthURLParam("code_challenge", codeVerifier.CodeChallengeS256()))
 
 	open.Open(url)
-	log.Infof("If the browser didn't open, visit this url to sign in: %v\n", url)
+	log.WithField("url", url).Info("if the browser didn't open, visit url to sign in")
 
 	select {
 	case <-ctx.Done():

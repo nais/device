@@ -46,7 +46,7 @@ func NewGatewayClient(ctx context.Context, publicKey []byte, hashedPassword stri
 }
 
 func (c *GatewayClient) Bootstrap(ctx context.Context) (*Response, error) {
-	c.log.Info("Bootstrapping...")
+	c.log.Info("bootstrapping...")
 	projectID, err := GetGoogleMetadataString(ctx, "project/project-id")
 	if err != nil {
 		return nil, fmt.Errorf("get google metadata: %w", err)
@@ -82,8 +82,7 @@ func (c *GatewayClient) Bootstrap(ctx context.Context) (*Response, error) {
 		cancel()
 	})
 
-	c.log.WithFields(logrus.Fields{
-		"err":      err,
+	c.log.WithError(err).WithFields(logrus.Fields{
 		"can":      errors.Is(err, context.Canceled),
 		"deadline": errors.Is(err, context.DeadlineExceeded),
 	}).Debug("receive err")
@@ -92,8 +91,7 @@ func (c *GatewayClient) Bootstrap(ctx context.Context) (*Response, error) {
 	}
 
 	err = ctx.Err()
-	c.log.WithFields(logrus.Fields{
-		"err":      err,
+	c.log.WithError(err).WithFields(logrus.Fields{
 		"can":      errors.Is(err, context.Canceled),
 		"deadline": errors.Is(err, context.DeadlineExceeded),
 	}).Debug("ctx err")

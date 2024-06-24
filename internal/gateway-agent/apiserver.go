@@ -20,7 +20,7 @@ func SyncFromStream(ctx context.Context, log *logrus.Entry, name, password strin
 		return err
 	}
 
-	log.Infof("Authenticated with API server and streaming configuration updates.")
+	log.Info("authenticated with API server and streaming configuration updates")
 
 	for {
 		gwConfig, err := stream.Recv()
@@ -28,7 +28,7 @@ func SyncFromStream(ctx context.Context, log *logrus.Entry, name, password strin
 			return fmt.Errorf("get gateway config: %w", err)
 		}
 
-		log.Infof("Received updated configuration.")
+		log.Info("received updated configuration")
 
 		err = applyGatewayConfig(netConf, gwConfig, staticPeers...)
 		if err != nil {

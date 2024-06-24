@@ -3,9 +3,7 @@ package main
 import (
 	"context"
 	"os"
-	"os/signal"
 	"path/filepath"
-	"syscall"
 	"time"
 
 	flag "github.com/spf13/pflag"
@@ -17,6 +15,7 @@ import (
 	"github.com/nais/device/internal/logger"
 	"github.com/nais/device/internal/otel"
 	"github.com/nais/device/internal/pb"
+	"github.com/nais/device/internal/program"
 	"github.com/nais/device/internal/unixsocket"
 	"github.com/nais/device/internal/version"
 )
@@ -35,46 +34,46 @@ func init() {
 func main() {
 	log := logger.SetupLogger(cfg.LogLevel, config.LogDir, logger.Helper).WithField("component", "main")
 
-	programContext, cancel := context.WithCancel(context.Background())
-	otelCancel, err := otel.SetupOTelSDK(programContext, "naisdevice-helper", log)
-	if err != nil {
-		log.Fatalf("setup OTel SDK: %s", err)
-	}
-	defer func() {
-		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-		if err := otelCancel(ctx); err != nil {
-			log.Errorf("shutdown OTel SDK: %s", err)
-		}
-		cancel()
-	}()
+	ctx, cancel := program.MainContext(time.Second)
 
-	// for windows service control, noop on unix
-	err = helper.StartService(log, programContext, cancel)
+	otelCancel, err := otel.SetupOTelSDK(ctx, "naisdevice-helper", log)
 	if err != nil {
-		log.Fatalf("Starting windows service: %v", err)
+		log.WithError(err).Error("setup OTel SDK")
+	} else {
+		defer func() {
+			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+			if err := otelCancel(ctx); err != nil {
+				log.WithError(err).Error("shutdown OTel SDK")
+			}
+			cancel()
+		}()
+	}
+	// for windows service control, noop on unix
+	err = helper.StartService(log, ctx, cancel)
+	if err != nil {
+		log.WithError(err).Fatal("Starting windows service")
 	}
 
 	osConfigurator := helper.NewTracedConfigurator(helper.New(cfg))
 
-	log.Infof("naisdevice-helper %s starting up", version.Version)
-	log.Infof("configuration: %+v", cfg)
+	log.WithFields(version.LogFields).WithField("cfg", cfg).Info("starting naisdevice-helper")
 
 	if err := osConfigurator.Prerequisites(); err != nil {
-		log.Fatalf("Checking prerequisites: %v", err)
+		log.WithError(err).Fatal("Checking prerequisites")
 	}
 	if err := os.MkdirAll(config.RuntimeDir, 0o755); err != nil {
-		log.Fatalf("Setting up runtime dir: %v", err)
+		log.WithError(err).Fatal("Setting up runtime dir")
 	}
 	if err := os.MkdirAll(config.ConfigDir, 0o750); err != nil {
-		log.Fatalf("Setting up config dir: %v", err)
+		log.WithError(err).Fatal("Setting up config dir")
 	}
 
-	grpcPath := filepath.Join(config.RuntimeDir, "helper.sock")
-	listener, err := unixsocket.ListenWithFileMode(grpcPath, 0o666)
+	unixSocket := filepath.Join(config.RuntimeDir, "helper.sock")
+	listener, err := unixsocket.ListenWithFileMode(unixSocket, 0o666)
 	if err != nil {
-		log.Fatal(err)
+		log.WithError(err).Fatal("failed to listen on unix socket")
 	}
-	log.Infof("accepting network connections on unix socket %s", grpcPath)
+	log.WithField("unix_socket", unixSocket).Info("accepting network connections")
 
 	notifier := pb.NewConnectionNotifier()
 	grpcServer := grpc.NewServer(grpc.StatsHandler(notifier), grpc.StatsHandler(otel.NewGRPCClientHandler(pb.DeviceHelper_Ping_FullMethodName)))
@@ -83,19 +82,19 @@ func main() {
 	pb.RegisterDeviceHelperServer(grpcServer, dhs)
 
 	teardown := func() {
-		ctx, cancel := context.WithTimeout(programContext, time.Second*2)
+		ctx, cancel := context.WithTimeout(ctx, time.Second*2)
 		defer cancel()
 		_, err := dhs.Teardown(ctx, &pb.TeardownRequest{})
 		if err != nil {
-			log.Warn(err)
+			log.WithError(err).Warn("teardown failed")
 		}
 	}
 
-	_, span := otel.Start(programContext, "DNS/Workaround")
+	_, span := otel.Start(ctx, "DNS/Workaround")
 	zones := []string{"cloud.nais.io", "intern.nav.no", "intern.dev.nav.no", "knada.io"}
 	if err := dns.Apply(zones); err != nil {
 		span.RecordError(err)
-		log.Errorf("applying dns config: %v", err)
+		log.WithError(err).Error("applying dns config")
 	}
 
 	defer teardown()
@@ -104,30 +103,22 @@ func main() {
 		for {
 			select {
 			case <-notifier.Connect():
-				log.Infof("Client gRPC connection established")
+				log.Info("client gRPC connection established")
 			case <-notifier.Disconnect():
-				log.Infof("Client gRPC connection shut down")
+				log.Info("client gRPC connection shut down")
 				teardown()
 			}
 		}
 	}()
 
 	go func() {
-		interrupt := make(chan os.Signal, 1)
-		signal.Notify(interrupt, os.Interrupt, syscall.SIGTERM)
-		sig := <-interrupt
-		log.Infof("Received %s, shutting down gracefully.", sig)
-		grpcServer.Stop()
-	}()
-
-	go func() {
-		<-programContext.Done()
+		<-ctx.Done()
 		grpcServer.Stop()
 	}()
 
 	err = grpcServer.Serve(listener)
 	if err != nil {
-		log.Fatalf("failed to start gRPC server: %v", err)
+		log.WithError(err).Fatal("failed to start gRPC server")
 	}
-	log.Infof("gRPC server shut down.")
+	log.Info("gRPC server shut down.")
 }

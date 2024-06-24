@@ -33,7 +33,7 @@ func (s *trayState) onReady() {
 		grpc.WithStatsHandler(otel.NewGRPCClientHandler(pb.DeviceAgent_Status_FullMethodName)),
 	)
 	if err != nil {
-		s.log.Fatalf("unable to connect to naisdevice-agent grpc server: %v", err)
+		s.log.WithError(err).Fatal("unable to connect to naisdevice-agent grpc server")
 	}
 
 	client := pb.NewDeviceAgentClient(s.connection)

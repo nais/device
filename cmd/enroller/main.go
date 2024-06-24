@@ -5,11 +5,11 @@ import (
 	"fmt"
 	"net/http"
 	"os"
-	"os/signal"
 	"time"
 
 	"github.com/kelseyhightower/envconfig"
 	"github.com/nais/device/internal/auth"
+	"github.com/nais/device/internal/program"
 	"github.com/nais/device/internal/pubsubenroll"
 	"github.com/sirupsen/logrus"
 )
@@ -37,16 +37,16 @@ func main() {
 	log.Formatter = &logrus.JSONFormatter{}
 
 	if err := run(cfg, log.WithField("component", "main")); err != nil {
-		log.Errorf("main: %v", err)
+		log.WithError(err).Error("main")
 		os.Exit(1)
 	} else {
-		log.Errorf("main finished")
+		log.Error("main finished")
 	}
 }
 
 func run(cfg Config, log *logrus.Entry) error {
-	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, os.Kill)
-	defer stop()
+	ctx, cancel := program.MainContext(5 * time.Second)
+	defer cancel()
 
 	if err := envconfig.Process("ENROLLER", &cfg); err != nil {
 		return fmt.Errorf("process envconfig: %w", err)
@@ -81,23 +81,18 @@ func run(cfg Config, log *logrus.Entry) error {
 		Handler:           tokenValidator(mux),
 	}
 
-	log.WithField("addr", ":"+port).Info("starting server")
-	ctx, cancel := context.WithCancel(ctx)
+	log.WithField("address", ":"+port).Info("starting server")
 	go logErr(log, cancel, func() error { return worker.Run(ctx) })
 	go logErr(log, cancel, server.ListenAndServe)
 
 	<-ctx.Done()
 
-	// Reset os.Interrupt default behavior, similar to signal.Reset
-	stop()
-	log.Info("shutting down gracefully, press Ctrl+C again to force")
-
 	// Give 5s more to process existing requests
-	timeoutCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	if err := server.Shutdown(timeoutCtx); err != nil {
-		log.Error(err)
+	if err := server.Shutdown(shutdownCtx); err != nil {
+		log.WithError(err).Error("http server shutdown")
 	}
 
 	return nil
@@ -106,7 +101,7 @@ func run(cfg Config, log *logrus.Entry) error {
 func logErr(log *logrus.Entry, cancel context.CancelFunc, fn func() error) {
 	if err := fn(); err != nil {
 		cancel()
-		log.WithError(err).Error("error")
+		log.WithError(err).Error("closing")
 	}
 }
 
@@ -114,7 +109,7 @@ func makeWorker(cfg Config, ctx context.Context, log *logrus.Entry) (pubsubenrol
 	if cfg.AzureEnabled || cfg.GoogleEnabled {
 		return pubsubenroll.NewWorker(ctx, log)
 	} else {
-		log.Warnf("AUTH DISABLED, this should NOT run in production")
+		log.Warn("AUTH DISABLED, this should NOT run in production")
 		return pubsubenroll.NewNoopWorker(context.Background(), log), nil
 	}
 }
@@ -135,7 +130,7 @@ func makeTokenValidator(cfg Config, log *logrus.Entry) (auth.TokenValidator, err
 
 		return cfg.Google.TokenValidatorMiddleware(), nil
 	} else {
-		log.Warnf("AUTH DISABLED, this should NOT run in production")
+		log.Warn("AUTH DISABLED, this should NOT run in production")
 		return auth.MockTokenValidator(), nil
 	}
 }

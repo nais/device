@@ -55,10 +55,10 @@ func (s *grpcServer) GetDeviceConfiguration(request *pb.GetDeviceConfigurationRe
 		case <-trigger:
 		case <-updateDeviceTicker.C:
 		case <-stream.Context().Done():
-			log.Debugf("stream context done, tearing down")
+			log.Debug("stream context done, tearing down")
 			return nil
 		case <-timeout:
-			log.Debugf("session timed out, tearing down")
+			log.Debug("session timed out, tearing down")
 			return nil
 		}
 	}
@@ -195,7 +195,7 @@ func (s *grpcServer) UpdateAllDevices(ctx context.Context) error {
 
 	err = s.db.UpdateDevices(ctx, devices)
 	if err != nil && !errors.Is(err, sql.ErrNoRows) {
-		s.log.Errorf("storing device: %v", err)
+		s.log.WithError(err).Error("storing device")
 	}
 
 	for _, device := range devices {

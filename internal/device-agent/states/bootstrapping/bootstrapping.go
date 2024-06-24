@@ -34,11 +34,11 @@ func (b *Bootstrapping) Enter(ctx context.Context) state.EventWithSpan {
 
 	if err := b.rc.LoadEnrollConfig(); err == nil {
 		span.AddEvent("enroll.loaded")
-		b.logger.Infof("Loaded enroll")
+		b.logger.Info("loaded enroll")
 	} else {
 		span.AddEvent("enroll.new")
-		b.logger.Infof("Unable to load enroll config: %s", err)
-		b.logger.Infof("Enrolling device")
+		b.logger.WithError(err).Info("unable to load enroll config")
+		b.logger.Info("enrolling device")
 		enrollCtx, cancel := context.WithTimeout(ctx, 1*time.Minute)
 		defer cancel()
 		serial, err := b.deviceHelper.GetSerial(enrollCtx, &pb.GetSerialRequest{})
