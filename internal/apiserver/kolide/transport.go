@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/nais/device/internal/apiserver/metrics"
-	"github.com/sirupsen/logrus"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -47,7 +46,7 @@ func (t *Transport) RoundTrip(req *http.Request) (*http.Response, error) {
 			return resp, nil
 		}
 		retryAfter := t.getRetryAfter(resp.Header)
-		log.WithFields(logrus.Fields{
+		log.WithFields(log.Fields{
 			"attempt":      attempt + 1,
 			"max_attempts": t.MaxHttpRetries,
 			"response":     resp.Status,
@@ -74,7 +73,7 @@ func (t *Transport) getRetryAfter(header http.Header) time.Duration {
 		return 0
 	}
 
-	log.WithFields(logrus.Fields{
+	log.WithFields(log.Fields{
 		"limit":      limit,
 		"remaining":  remaining,
 		"reset":      reset,
