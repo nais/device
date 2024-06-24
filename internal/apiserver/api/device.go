@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"time"
 
-	apiserver_metrics "github.com/nais/device/internal/apiserver/metrics"
+	"github.com/nais/device/internal/apiserver/metrics"
 	"github.com/nais/device/internal/pb"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -28,8 +28,8 @@ func (s *grpcServer) GetDeviceConfiguration(request *pb.GetDeviceConfigurationRe
 	}
 	defer s.devices.Remove(session.GetDevice().GetId())
 
-	apiserver_metrics.DevicesConnected.Set(float64(s.devices.Length()))
-	defer apiserver_metrics.DevicesConnected.Set(float64(s.devices.Length()))
+	metrics.DevicesConnected.Set(float64(s.devices.Length()))
+	defer metrics.DevicesConnected.Set(float64(s.devices.Length()))
 
 	if len(session.GetGroups()) == 0 {
 		log.Warn("session with no groups detected")
@@ -133,7 +133,7 @@ func (s *grpcServer) makeDeviceConfiguration(ctx context.Context, sessionKey str
 		return nil, fmt.Errorf("get user gateways: %w", err)
 	}
 
-	apiserver_metrics.DeviceConfigsReturned.WithLabelValues(device.Serial, device.Username).Inc()
+	metrics.DeviceConfigsReturned.WithLabelValues(device.Serial, device.Username).Inc()
 
 	return &pb.GetDeviceConfigurationResponse{
 		Status:   pb.DeviceConfigurationStatus_DeviceHealthy,
@@ -168,7 +168,7 @@ func (s *grpcServer) Login(ctx context.Context, r *pb.APIServerLoginRequest) (*p
 	if version == "" {
 		version = "unknown"
 	}
-	apiserver_metrics.LoginRequests.WithLabelValues(version).Inc()
+	metrics.LoginRequests.WithLabelValues(version).Inc()
 
 	session, err := s.authenticator.Login(ctx, r.Token, r.Serial, r.Platform)
 	if err != nil {

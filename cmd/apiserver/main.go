@@ -24,7 +24,6 @@ import (
 	"github.com/nais/device/internal/apiserver/jita"
 	"github.com/nais/device/internal/apiserver/kolide"
 	"github.com/nais/device/internal/apiserver/metrics"
-	apiserver_metrics "github.com/nais/device/internal/apiserver/metrics"
 	"github.com/nais/device/internal/logger"
 	"github.com/nais/device/internal/otel"
 	"github.com/nais/device/internal/pb"
@@ -343,7 +342,7 @@ func run(log *logrus.Entry, cfg config.Config) error {
 
 	go func() {
 		log.Infof("Prometheus serving metrics at %v", cfg.PrometheusAddr)
-		err := apiserver_metrics.Serve(cfg.PrometheusAddr)
+		err := metrics.Serve(cfg.PrometheusAddr)
 		if err != nil {
 			log.Errorf("metrics server shut down with error; killing apiserver process: %s", err)
 			cancel()

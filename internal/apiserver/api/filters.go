@@ -2,7 +2,7 @@ package api
 
 import (
 	"github.com/nais/device/internal/apiserver/jita"
-	apiserver_metrics "github.com/nais/device/internal/apiserver/metrics"
+	"github.com/nais/device/internal/apiserver/metrics"
 	"github.com/nais/device/internal/pb"
 )
 
@@ -13,7 +13,7 @@ func privileged(jita jita.Client, gateway *pb.Gateway, sessions []*pb.Session) [
 	}
 	privilegedUsers := jita.GetPrivilegedUsersForGateway(gateway.Name)
 
-	m, _ := apiserver_metrics.PrivilegedUsersPerGateway.GetMetricWithLabelValues(gateway.Name)
+	m, _ := metrics.PrivilegedUsersPerGateway.GetMetricWithLabelValues(gateway.Name)
 	m.Set(float64(len(privilegedUsers)))
 
 	var sessionsToReturn []*pb.Session

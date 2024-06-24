@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"time"
 
-	apiserver_metrics "github.com/nais/device/internal/apiserver/metrics"
+	"github.com/nais/device/internal/apiserver/metrics"
 	"github.com/nais/device/internal/pb"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -27,8 +27,8 @@ func (s *grpcServer) GetGatewayConfiguration(request *pb.GetGatewayConfiguration
 	defer s.gateways.Remove(request.Gateway)
 
 	log.Info("gateway connected", request.Gateway)
-	apiserver_metrics.SetGatewayConnected(request.Gateway, true)
-	defer apiserver_metrics.SetGatewayConnected(request.Gateway, false)
+	metrics.SetGatewayConnected(request.Gateway, true)
+	defer metrics.SetGatewayConnected(request.Gateway, false)
 
 	updateGatewayTicker := time.NewTicker(10 * time.Second)
 	var lastCfg *pb.GetGatewayConfigurationResponse
@@ -107,7 +107,7 @@ func (s *grpcServer) makeGatewayConfiguration(ctx context.Context, gatewayName s
 		RoutesIPv6: gateway.GetRoutesIPv6(),
 	}
 
-	apiserver_metrics.GatewayConfigsReturned.WithLabelValues(gateway.Name).Inc()
+	metrics.GatewayConfigsReturned.WithLabelValues(gateway.Name).Inc()
 
 	return gatewayConfig, nil
 }
