@@ -188,6 +188,9 @@ func (c *Connected) defaultSyncConfigLoop(ctx context.Context) error {
 
 	stream, cancel, err := c.syncSetup(ctx)
 	if err != nil {
+		if grpcstatus.Code(err) == codes.Unavailable {
+			return fmt.Errorf("setup gateway stream(%w): %w", ErrUnavailable, err)
+		}
 		return err
 	}
 	defer cancel()
@@ -286,18 +289,13 @@ func (c *Connected) syncSetup(ctx context.Context) (pb.APIServer_GetDeviceConfig
 
 	apiserverClient, cleanup, err := c.rc.ConnectToAPIServer(ctx)
 	if err != nil {
-		if grpcstatus.Code(err) == codes.Unavailable {
-			return nil, nil, fmt.Errorf("connect to apiserver(%w): %w", ErrUnavailable, err)
-		}
 		return nil, nil, err
 	}
 
 	session, err = c.login(ctx, apiserverClient, session)
 	if err != nil {
 		cleanup()
-		if grpcstatus.Code(err) == codes.Unavailable {
-			return nil, nil, fmt.Errorf("connect to apiserver(%w): %w", ErrUnavailable, err)
-		}
+		return nil, nil, err
 	}
 
 	streamContext, cancel := context.WithDeadline(ctx, session.Expiry.AsTime())
@@ -308,9 +306,7 @@ func (c *Connected) syncSetup(ctx context.Context) (pb.APIServer_GetDeviceConfig
 	if err != nil {
 		cancel()
 		cleanup()
-		if grpcstatus.Code(err) == codes.Unavailable {
-			return nil, nil, fmt.Errorf("get device config stream(%w): %w", ErrUnavailable, err)
-		}
+		return nil, nil, err
 	}
 
 	c.connectedSince = timestamppb.Now()
