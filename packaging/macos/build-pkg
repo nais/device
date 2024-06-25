@@ -2,27 +2,27 @@
 version="$1"
 isRelease="$2"
 if [ -z "$version" ]; then
-    echo "Usage: $0 <version> <isRelease>"
-    exit 1
+	echo "Usage: $0 <version> <isRelease>"
+	exit 1
 fi
 if [ -z "$isRelease" ]; then
-    echo "Usage: $0 <version> <isRelease>"
-    exit 1
+	echo "Usage: $0 <version> <isRelease>"
+	exit 1
 fi
 
 if [ "$isRelease" == "true" ]; then
-    if [ -z "$APPLE_NOTARIZE_AUTH_KEY_P8_BASE64" ]; then
-        echo "Please set APPLE_NOTARIZE_AUTH_KEY_P8_BASE64"
-        exit 1
-    fi
-    if [ -z "$APPLE_NOTARIZE_D" ]; then
-        echo "Please set APPLE_NOTARIZE_D"
-        exit 1
-    fi
-    if [ -z "$APPLE_NOTARIZE_I" ]; then
-        echo "Please set APPLE_NOTARIZE_I"
-        exit 1
-    fi
+	if [ -z "$APPLE_NOTARIZE_AUTH_KEY_P8_BASE64" ]; then
+		echo "Please set APPLE_NOTARIZE_AUTH_KEY_P8_BASE64"
+		exit 1
+	fi
+	if [ -z "$APPLE_NOTARIZE_D" ]; then
+		echo "Please set APPLE_NOTARIZE_D"
+		exit 1
+	fi
+	if [ -z "$APPLE_NOTARIZE_I" ]; then
+		echo "Please set APPLE_NOTARIZE_I"
+		exit 1
+	fi
 fi
 
 build_dir="$(mktemp -d)"
@@ -35,15 +35,14 @@ pkgid="io.nais.device"
 pkg_path="./naisdevice.pkg"
 
 # Prepare notarization key
-base64 -d > AuthKey.p8 <<< "$APPLE_NOTARIZE_AUTH_KEY_P8_BASE64"
+base64 -d >AuthKey.p8 <<<"$APPLE_NOTARIZE_AUTH_KEY_P8_BASE64"
 
 # Build and sign app
 mkdir -p "$app_dir/Contents/"{MacOS,Resources}
 cp ./bin/macos-client/* "$build_dir/naisdevice.app/Contents/MacOS/"
-cp ./packaging/macos/jq-osx-amd64 "$build_dir/naisdevice.app/Contents/MacOS/jq"
 cp ./packaging/macos/icons/naisdevice.icns "$build_dir/naisdevice.app/Contents/Resources/"
 
-sed "s/VERSIONSTRING/$version/" ./packaging/macos/Info.plist.tpl > "$build_dir/naisdevice.app/Contents/Info.plist"
+sed "s/VERSIONSTRING/$version/" ./packaging/macos/Info.plist.tpl >"$build_dir/naisdevice.app/Contents/Info.plist"
 
 codesign -s "$app_cert" -f -v --timestamp --deep --options runtime "$build_dir/naisdevice.app/Contents/MacOS/"*
 codesign -s "$app_cert" -f -v --timestamp --deep --options runtime "$build_dir/naisdevice.app/Contents/Info.plist"
@@ -56,21 +55,21 @@ xattr -rc "$build_dir/pkgroot/$(basename "$app_dir")"
 
 pkgbuild --analyze --root "$build_dir/pkgroot/" "$build_plist"
 pkgbuild \
-    --root "$build_dir/pkgroot/" \
-    --component-plist "$build_plist" \
-    --identifier "$pkgid" \
-    --install-location "/Applications" \
-    --scripts "$build_dir/scripts" \
-    --version "$version" \
-    --sign "$install_cert" \
-    --ownership recommended \
-    "$pkg_path"
+	--root "$build_dir/pkgroot/" \
+	--component-plist "$build_plist" \
+	--identifier "$pkgid" \
+	--install-location "/Applications" \
+	--scripts "$build_dir/scripts" \
+	--version "$version" \
+	--sign "$install_cert" \
+	--ownership recommended \
+	"$pkg_path"
 
 if [ "$isRelease" == "true" ]; then
-    xcrun notarytool submit "$pkg_path" \
-        -k AuthKey.p8 \
-        -d "$APPLE_NOTARIZE_D" \
-        -i "$APPLE_NOTARIZE_I" \
-        --wait
-    xcrun stapler staple "$pkg_path"
+	xcrun notarytool submit "$pkg_path" \
+		-k AuthKey.p8 \
+		-d "$APPLE_NOTARIZE_D" \
+		-i "$APPLE_NOTARIZE_I" \
+		--wait
+	xcrun stapler staple "$pkg_path"
 fi
