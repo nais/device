@@ -24,7 +24,8 @@ func (s *grpcServer) GetDeviceConfiguration(request *pb.GetDeviceConfigurationRe
 
 	trigger, err := s.devices.Add(session.GetDevice().GetId())
 	if err != nil {
-		return err
+		// indicate that the client should retry
+		return status.Error(codes.Unavailable, err.Error())
 	}
 	defer s.devices.Remove(session.GetDevice().GetId())
 
