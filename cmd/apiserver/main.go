@@ -62,7 +62,7 @@ func main() {
 		log.WithError(err).Error("unhandled error")
 		os.Exit(1)
 	} else {
-		log.Info("naisdevice API server has shut down cleanly.")
+		log.Info("naisdevice API server has shut down cleanly")
 	}
 }
 
@@ -126,7 +126,7 @@ func run(log *logrus.Entry, cfg config.Config) error {
 		}
 
 		authenticator = auth.NewAuthenticator(cfg.Azure, db, sessions)
-		log.Info("Azure OIDC authenticator configured to authenticate device sessions.")
+		log.Info("Azure OIDC authenticator configured to authenticate device sessions")
 	case "google":
 		log.Info("setting up Google OIDC configuration...")
 		err = cfg.Google.SetupJwkSetAutoRefresh()
@@ -135,15 +135,15 @@ func run(log *logrus.Entry, cfg config.Config) error {
 		}
 
 		authenticator = auth.NewGoogleAuthenticator(cfg.Google, db, sessions)
-		log.Info("Google OIDC authenticator configured to authenticate device sessions.")
+		log.Info("Google OIDC authenticator configured to authenticate device sessions")
 	default:
 		authenticator = auth.NewMockAuthenticator(sessions)
-		log.Warn("Device authentication DISABLED! Do not run this configuration in production!")
-		log.Warn("To enable device authentication, specify auth provider with --device-authentication-provider=azure|google")
+		log.Warn("device authentication DISABLED! Do not run this configuration in production!")
+		log.Warn("to enable device authentication, specify auth provider with --device-authentication-provider=azure|google")
 	}
 
 	if cfg.WireGuardEnabled {
-		log.Info("Setting up WireGuard integration...")
+		log.Info("setting up WireGuard integration...")
 
 		key, err := wg.ReadOrCreatePrivateKey(cfg.WireGuardPrivateKeyPath, log.WithField("component", "wireguard"))
 		if err != nil {
@@ -234,7 +234,7 @@ func run(log *logrus.Entry, cfg config.Config) error {
 		go func() {
 			err := e.Run(ctx)
 			if err != nil {
-				log.WithError(err).Error("Run AutoEnroll failed")
+				log.WithError(err).Error("run AutoEnroll failed")
 				cancel()
 			}
 		}()
@@ -254,7 +254,7 @@ func run(log *logrus.Entry, cfg config.Config) error {
 		updater := gatewayconfigurer.NewGoogleMetadata(db, log.WithField("component", "gatewayconfigurer"))
 		go updater.SyncContinuously(ctx, gatewayConfigSyncInterval)
 	default:
-		log.Warn("no valid gateway configurer set, gateways won't be updated.")
+		log.Warn("no valid gateway configurer set, gateways won't be updated")
 	}
 
 	if cfg.ControlPlaneAuthenticationEnabled {
@@ -280,13 +280,13 @@ func run(log *logrus.Entry, cfg config.Config) error {
 		gatewayAuthenticator = auth.NewGatewayAuthenticator(db)
 		prometheusAuthenticator = auth.NewAPIKeyAuthenticator(promauth)
 
-		log.Info("Control plane authentication enabled.")
+		log.Info("controlplane authentication enabled")
 	} else {
 		adminAuthenticator = auth.NewMockAPIKeyAuthenticator()
 		gatewayAuthenticator = auth.NewMockAPIKeyAuthenticator()
 		prometheusAuthenticator = auth.NewMockAPIKeyAuthenticator()
 
-		log.Warn("Control plane authentication DISABLED! Do not run this configuration in production!")
+		log.Warn("controlplane authentication DISABLED! Do not run this configuration in production!")
 	}
 
 	grpcHandler := api.NewGRPCServer(
@@ -371,7 +371,7 @@ func run(log *logrus.Entry, cfg config.Config) error {
 		for event := range deviceUpdates {
 			if err := updateDevice(event); err != nil {
 				if !errors.Is(err, sql.ErrNoRows) {
-					log.WithError(err).Error("Update device health")
+					log.WithError(err).Error("update device health")
 				}
 			}
 		}
@@ -379,7 +379,7 @@ func run(log *logrus.Entry, cfg config.Config) error {
 
 	<-ctx.Done()
 
-	log.Warn("Program context canceled; shutting down.")
+	log.Warn("program context canceled; shutting down")
 	return nil
 }
 
@@ -414,7 +414,7 @@ func readd(ctx context.Context, db database.Database) error {
 }
 
 func SyncLoop(ctx context.Context, log *logrus.Entry, db database.Database, netConf wg.NetworkConfigurer, staticPeers []*pb.Gateway) {
-	log.Debug("Starting config sync")
+	log.Debug("starting config sync")
 
 	sync := func(ctx context.Context) error {
 		devices, err := db.ReadDevices(ctx)
@@ -462,7 +462,7 @@ func SyncJitaContinuosly(ctx context.Context, log *logrus.Entry, j jita.Client) 
 			}
 
 		case <-ctx.Done():
-			log.Info("Stopped jita-sync")
+			log.Info("stopped jita-sync")
 			return
 		}
 	}

@@ -53,13 +53,13 @@ func (dhs *DeviceHelperServer) Teardown(
 	ctx context.Context,
 	req *pb.TeardownRequest,
 ) (*pb.TeardownResponse, error) {
-	dhs.log.WithField("interface", dhs.config.Interface).Info("Removing network interface and all routes")
+	dhs.log.WithField("interface", dhs.config.Interface).Info("removing network interface and all routes")
 	err := dhs.osConfigurator.TeardownInterface(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("tearing down interface: %v", err)
 	}
 
-	dhs.log.Info("Flushing WireGuard configuration from disk")
+	dhs.log.Info("flushing WireGuard configuration from disk")
 	err = os.Remove(dhs.config.WireGuardConfigPath)
 	if err != nil {
 		if !os.IsNotExist(err) {
@@ -75,14 +75,14 @@ func (dhs *DeviceHelperServer) Configure(
 	ctx context.Context,
 	cfg *pb.Configuration,
 ) (*pb.ConfigureResponse, error) {
-	dhs.log.Info("New configuration received from device-agent")
+	dhs.log.Info("new configuration received from device-agent")
 
 	err := dhs.writeConfigFile(cfg)
 	if err != nil {
 		return nil, status.Errorf(codes.ResourceExhausted, "write WireGuard configuration: %s", err)
 	}
 
-	dhs.log.Info("Wrote WireGuard config to disk")
+	dhs.log.Info("wrote WireGuard config to disk")
 
 	err = dhs.osConfigurator.SetupInterface(ctx, cfg)
 	if err != nil {

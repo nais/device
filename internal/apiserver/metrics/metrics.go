@@ -62,28 +62,28 @@ func init() {
 		Namespace: "naisdevice",
 		Subsystem: "apiserver",
 		Name:      "user_configs_returned",
-		Help:      "Total number of configs returned to device since apiserver started.",
+		Help:      "Total number of configs returned to device since apiserver started",
 	}, []string{"serial", "username"})
 
 	GatewayConfigsReturned = prometheus.NewCounterVec(prometheus.CounterOpts{
 		Namespace: "naisdevice",
 		Subsystem: "apiserver",
 		Name:      "gateway_configs_returned",
-		Help:      "Total number of configs returned to gateway since apiserver started.",
+		Help:      "Total number of configs returned to gateway since apiserver started",
 	}, []string{"gateway"})
 
 	LoginRequests = prometheus.NewCounterVec(prometheus.CounterOpts{
 		Namespace: "naisdevice",
 		Subsystem: "apiserver",
 		Name:      "device_login_requests",
-		Help:      "Device logins with agent version.",
+		Help:      "Device logins with agent version",
 	}, []string{"version"})
 
 	kolideStatusCodes = prometheus.NewCounterVec(prometheus.CounterOpts{
 		Namespace: "naisdevice",
 		Subsystem: "apiserver",
 		Name:      "kolide_status_codes",
-		Help:      "Kolide status codes from API.",
+		Help:      "Kolide status codes from API",
 	}, []string{"code"})
 
 	prometheus.MustRegister(

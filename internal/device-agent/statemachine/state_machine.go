@@ -119,6 +119,6 @@ func (sm *StateMachine) transition(event state.EventWithSpan) {
 		}
 	}
 
-	sm.logger.WithField("event", event).WithField("state", sm.current).Warn("No defined transition for event in state")
+	sm.logger.WithField("event", event).WithField("state", sm.current).Warn("no defined transition for event in state")
 	sm.triggerStatusUpdate()
 }

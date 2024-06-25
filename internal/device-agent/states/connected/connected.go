@@ -127,7 +127,7 @@ func (c *Connected) Enter(ctx context.Context) state.EventWithSpan {
 		case e != nil:
 			// Unhandled error: disconnect
 			c.logger.WithError(e).Error("error in syncConfigLoop")
-			c.notifier.Errorf("Unhandled error while updating config. Please send your logs to the NAIS team.")
+			c.notifier.Errorf("Unhandled error while updating config. Please send your logs to the NAIS team")
 			return state.SpanEvent(ctx, state.EventDisconnect)
 		}
 	}

@@ -434,7 +434,7 @@ func (gui *Gui) handleGuiEvent(ctx context.Context, guiEvent GuiEvent) {
 		gui.Config.Persist()
 
 	case ConnectClicked:
-		gui.log.Info("Connect button clicked")
+		gui.log.Info("connect button clicked")
 		if gui.AgentStatus.GetConnectionState() == pb.AgentState_Disconnected {
 			_, err := gui.DeviceAgentClient.Login(ctx, &pb.LoginRequest{})
 			if err != nil {
@@ -504,7 +504,7 @@ func (gui *Gui) handleStatusStream(ctx context.Context) {
 			for {
 				status, err := statusStream.Recv()
 				if err != nil {
-					gui.log.WithError(err).Error("Receive status from device-agent stream")
+					gui.log.WithError(err).Error("receive status from device-agent stream")
 					break
 				}
 
@@ -556,7 +556,7 @@ func (gui *Gui) activateTenant(ctx context.Context, name string) {
 
 	getConfigResponse, err := gui.DeviceAgentClient.GetAgentConfiguration(ctx, &pb.GetAgentConfigurationRequest{})
 	if err != nil {
-		gui.log.WithError(err).Error("Failed to get agent configuration")
+		gui.log.WithError(err).Error("failed to get agent configuration")
 		return
 	}
 

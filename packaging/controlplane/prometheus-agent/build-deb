@@ -7,18 +7,18 @@ set -o nounset
 rm -f ./prometheus-agent*.deb
 
 fpm \
-  --verbose \
-  --output-type deb \
-  --input-type dir \
-  --name prometheus-agent \
-  --version "${1:-Unknown}" \
-  --vendor "NAV / nais team" \
-  --maintainer "NAV / nais team" \
-  --description "prometheus-agent connects to a naisdevice-apiserver for WireGuard config and connects to entire controlplane to scrape metrics. Also generates prometheus scrape config." \
-  --url https://github.com/nais/device \
-  --deb-systemd packaging/controlplane/prometheus-agent/prometheus-agent.service \
-  --deb-systemd-enable \
-  --deb-systemd-auto-start \
-  --deb-systemd-restart-after-upgrade \
-  --depends wireguard \
-  bin/controlplane/prometheus-agent=/usr/bin/prometheus-agent
+	--verbose \
+	--output-type deb \
+	--input-type dir \
+	--name prometheus-agent \
+	--version "${1:-Unknown}" \
+	--vendor "NAV / nais team" \
+	--maintainer "NAV / nais team" \
+	--description "prometheus-agent connects to a naisdevice-apiserver for WireGuard config and connects to entire controlplane to scrape metrics. Also generates prometheus scrape config" \
+	--url https://github.com/nais/device \
+	--deb-systemd packaging/controlplane/prometheus-agent/prometheus-agent.service \
+	--deb-systemd-enable \
+	--deb-systemd-auto-start \
+	--deb-systemd-restart-after-upgrade \
+	--depends wireguard \
+	bin/controlplane/prometheus-agent=/usr/bin/prometheus-agent

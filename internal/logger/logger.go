@@ -55,7 +55,7 @@ func SetupLogger(level, logDir, prefix string) *logrus.Logger {
 	}
 	log.SetLevel(loglevel)
 	log.SetFormatter(&logrus.TextFormatter{})
-	log.WithField("level", loglevel).Info("Successfully set up logging")
+	log.WithField("level", loglevel).Info("successfully set up logging")
 	return log
 }
 

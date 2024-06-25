@@ -36,7 +36,7 @@ func (check Check) Severity() pb.Severity {
 	}
 
 	if highest == -1 {
-		log.WithField("check", check).Warn("Check missing a severity tag")
+		log.WithField("check", check).Warn("check missing a severity tag")
 		highest = pb.Severity_Warning
 	}
 

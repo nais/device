@@ -140,8 +140,8 @@ func run(ctx context.Context, log *logrus.Entry, cfg *config.Config, notifier no
 						break
 					}
 
-					log.WithField("errors", helperCheckErrors).Error("Unable to communicate with helper. Agent shutting down")
-					notifier.Errorf("Unable to communicate with helper. Agent shutting down.")
+					log.WithField("errors", helperCheckErrors).Error("unable to communicate with helper, agent shutting down")
+					notifier.Errorf("unable to communicate with helper, agent shutting down")
 					cancel()
 				}
 				// healthcheck successful, reset errors

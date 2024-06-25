@@ -166,7 +166,7 @@ func (a *AutoEnroll) receiveDevice(ctx context.Context, msg *pubsub.Message) {
 
 	var req *pubsubenroll.DeviceRequest
 	if err := json.Unmarshal(msg.Data, &req); err != nil {
-		a.log.WithError(err).Error("Failed to unmarshal request")
+		a.log.WithError(err).Error("failed to unmarshal request")
 		return
 	}
 	log := a.log.WithFields(logrus.Fields{"serial": req.Serial, "platform": req.Platform})

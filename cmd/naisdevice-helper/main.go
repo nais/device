@@ -51,7 +51,7 @@ func main() {
 	// for windows service control, noop on unix
 	err = helper.StartService(log, ctx, cancel)
 	if err != nil {
-		log.WithError(err).Fatal("Starting windows service")
+		log.WithError(err).Fatal("starting windows service")
 	}
 
 	osConfigurator := helper.NewTracedConfigurator(helper.New(cfg))
@@ -59,13 +59,13 @@ func main() {
 	log.WithFields(version.LogFields).WithField("cfg", cfg).Info("starting naisdevice-helper")
 
 	if err := osConfigurator.Prerequisites(); err != nil {
-		log.WithError(err).Fatal("Checking prerequisites")
+		log.WithError(err).Fatal("checking prerequisites")
 	}
 	if err := os.MkdirAll(config.RuntimeDir, 0o755); err != nil {
-		log.WithError(err).Fatal("Setting up runtime dir")
+		log.WithError(err).Fatal("setting up runtime dir")
 	}
 	if err := os.MkdirAll(config.ConfigDir, 0o750); err != nil {
-		log.WithError(err).Fatal("Setting up config dir")
+		log.WithError(err).Fatal("setting up config dir")
 	}
 
 	unixSocket := filepath.Join(config.RuntimeDir, "helper.sock")
@@ -120,5 +120,5 @@ func main() {
 	if err != nil {
 		log.WithError(err).Fatal("failed to start gRPC server")
 	}
-	log.Info("gRPC server shut down.")
+	log.Info("gRPC server shut down")
 }

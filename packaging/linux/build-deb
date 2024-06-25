@@ -7,34 +7,34 @@ set -o nounset
 rm -f ./naisdevice*.deb
 
 fpm \
-    --verbose \
-    --output-type deb \
-    --input-type dir \
-    --name "naisdevice${SUFFIX}" \
-    --version "${1:-Unknown}" \
-    --vendor "NAV / nais team" \
-    --maintainer "NAV / nais team" \
-    --description "naisdevice is a mechanism enabling NAVs developers to connect to internal resources in a secure and friendly manner." \
-    --url https://doc.nais.io/operate/naisdevice/how-to/install \
-    --depends jq \
-    --depends sed \
-    --depends wireguard \
-    --depends libnss3-tools \
-    --depends openssl \
-    --after-remove packaging/linux/postrm \
-    --after-install packaging/linux/postinstall \
-    --after-upgrade packaging/linux/postinstall \
-    --deb-systemd packaging/linux/naisdevice-helper.service \
-    --deb-systemd-enable \
-    --deb-systemd-auto-start \
-    --deb-systemd-restart-after-upgrade \
-    "bin/linux-client/naisdevice-helper=/usr/sbin/naisdevice-helper" \
-    "bin/linux-client/naisdevice-agent=/usr/bin/naisdevice-agent" \
-    "bin/linux-client/naisdevice-systray=/usr/bin/naisdevice-systray" \
-    "packaging/linux/naisdevice.desktop=/usr/share/applications/" \
-    "packaging/linux/certs/NAV_Issuing_CA_ekstern.crt=/usr/share/ca-certificates/nav/" \
-    "packaging/linux/certs/NAV_Partner_Issuing_CA.crt=/usr/share/ca-certificates/nav/" \
-    "packaging/linux/certs/NAV_Partner_Sub_CA.crt=/usr/share/ca-certificates/nav/" \
-    "packaging/linux/certs/NAV_Root_CA.crt=/usr/share/ca-certificates/nav/" \
-    "packaging/linux/certs/NAV_Sub_CA.crt=/usr/share/ca-certificates/nav/" \
-    "packaging/linux/icons/=/usr/share/icons/hicolor/"
+	--verbose \
+	--output-type deb \
+	--input-type dir \
+	--name "naisdevice${SUFFIX}" \
+	--version "${1:-Unknown}" \
+	--vendor "NAV / nais team" \
+	--maintainer "NAV / nais team" \
+	--description "naisdevice is a mechanism enabling NAVs developers to connect to internal resources in a secure and friendly manner" \
+	--url https://doc.nais.io/operate/naisdevice/how-to/install \
+	--depends jq \
+	--depends sed \
+	--depends wireguard \
+	--depends libnss3-tools \
+	--depends openssl \
+	--after-remove packaging/linux/postrm \
+	--after-install packaging/linux/postinstall \
+	--after-upgrade packaging/linux/postinstall \
+	--deb-systemd packaging/linux/naisdevice-helper.service \
+	--deb-systemd-enable \
+	--deb-systemd-auto-start \
+	--deb-systemd-restart-after-upgrade \
+	"bin/linux-client/naisdevice-helper=/usr/sbin/naisdevice-helper" \
+	"bin/linux-client/naisdevice-agent=/usr/bin/naisdevice-agent" \
+	"bin/linux-client/naisdevice-systray=/usr/bin/naisdevice-systray" \
+	"packaging/linux/naisdevice.desktop=/usr/share/applications/" \
+	"packaging/linux/certs/NAV_Issuing_CA_ekstern.crt=/usr/share/ca-certificates/nav/" \
+	"packaging/linux/certs/NAV_Partner_Issuing_CA.crt=/usr/share/ca-certificates/nav/" \
+	"packaging/linux/certs/NAV_Partner_Sub_CA.crt=/usr/share/ca-certificates/nav/" \
+	"packaging/linux/certs/NAV_Root_CA.crt=/usr/share/ca-certificates/nav/" \
+	"packaging/linux/certs/NAV_Sub_CA.crt=/usr/share/ca-certificates/nav/" \
+	"packaging/linux/icons/=/usr/share/icons/hicolor/"

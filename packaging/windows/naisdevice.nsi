@@ -135,9 +135,9 @@ Section "Create shortcuts"
     GetKnownFolderPath $ProgramDataPath "${FOLDERID_ProgramData}"
     SetOutPath "$ProgramDataPath\NAV\naisdevice"
     CreateShortcut "$SMPROGRAMS\naisdevice.lnk" "$INSTDIR\naisdevice-systray.exe" "" "$INSTDIR\naisdevice.ico" \
-        "" "" "" "naisdevice is a mechanism enabling NAVs developers to connect to internal resources in a secure and friendly manner."
+        "" "" "" "naisdevice is a mechanism enabling NAVs developers to connect to internal resources in a secure and friendly manner"
     CreateShortcut "$SMSTARTUP\naisdevice.lnk" "$INSTDIR\naisdevice-systray.exe" "" "$INSTDIR\naisdevice.ico" \
-        "" "" "" "naisdevice is a mechanism enabling NAVs developers to connect to internal resources in a secure and friendly manner."
+        "" "" "" "naisdevice is a mechanism enabling NAVs developers to connect to internal resources in a secure and friendly manner"
 SectionEnd
 
 Section "Create helper service"

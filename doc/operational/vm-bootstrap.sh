@@ -13,7 +13,7 @@ role="gateways"
 # onprem settings
 if [[ $(hostname) =~ a30drvl ]]; then
 	if [[ ! -f "/root/sa.json" ]]; then
-		echo "You need to place appropriate sa json at /root/sa.json before running this script."
+		echo "You need to place appropriate sa json at /root/sa.json before running this script"
 		exit 1
 	fi
 
