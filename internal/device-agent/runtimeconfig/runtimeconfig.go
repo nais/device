@@ -74,7 +74,7 @@ type runtimeConfig struct {
 }
 
 func (rc *runtimeConfig) DialAPIServer(ctx context.Context) (*grpc.ClientConn, error) {
-	rc.log.WithField("address", rc.apiServerGRPCAddress()).Info("attempting gRPC connection to API server...")
+	rc.log.WithField("address", rc.apiServerGRPCAddress()).Info("setting up gRPC connection to apiserver")
 	return grpc.NewClient(
 		rc.apiServerGRPCAddress(),
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
@@ -101,7 +101,6 @@ func (rc *runtimeConfig) ConnectToAPIServer(ctx context.Context) (pb.APIServerCl
 		cancel()
 		return nil, func() {}, grpcstatus.Errorf(codes.Unavailable, err.Error())
 	}
-	rc.log.Info("connected to API server")
 
 	return pb.NewAPIServerClient(conn), func() {
 		cancel()

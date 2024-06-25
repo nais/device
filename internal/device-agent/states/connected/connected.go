@@ -295,7 +295,9 @@ func (c *Connected) syncSetup(ctx context.Context) (pb.APIServer_GetDeviceConfig
 	session, err = c.login(ctx, apiserverClient, session)
 	if err != nil {
 		cleanup()
-		return nil, nil, err
+		if grpcstatus.Code(err) == codes.Unavailable {
+			return nil, nil, fmt.Errorf("connect to apiserver(%w): %w", ErrUnavailable, err)
+		}
 	}
 
 	streamContext, cancel := context.WithDeadline(ctx, session.Expiry.AsTime())
@@ -306,7 +308,9 @@ func (c *Connected) syncSetup(ctx context.Context) (pb.APIServer_GetDeviceConfig
 	if err != nil {
 		cancel()
 		cleanup()
-		return nil, nil, err
+		if grpcstatus.Code(err) == codes.Unavailable {
+			return nil, nil, fmt.Errorf("get device config stream(%w): %w", ErrUnavailable, err)
+		}
 	}
 
 	c.connectedSince = timestamppb.Now()
