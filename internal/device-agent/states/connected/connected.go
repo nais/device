@@ -99,7 +99,7 @@ func (c *Connected) Enter(ctx context.Context) state.EventWithSpan {
 
 		switch e := err; {
 		case errors.Is(e, ErrUnavailable):
-			c.logger.WithError(err).Warn("synchronize config: not connected to API server")
+			c.logger.WithError(e).Warn("synchronize config: not connected to API server")
 			time.Sleep(apiServerRetryInterval * time.Duration(math.Pow(float64(attempt), 3)))
 			continue
 		case errors.Is(e, auth.ErrTermsNotAccepted):
@@ -108,25 +108,25 @@ func (c *Connected) Enter(ctx context.Context) state.EventWithSpan {
 		case errors.Is(e, &auth.ParseTokenError{}):
 			fallthrough
 		case errors.Is(e, ErrUnauthenticated):
-			c.notifier.Errorf("unauthenticated: %v", err)
+			c.notifier.Errorf("unauthenticated: %v", e)
 			c.rc.SetToken(nil)
 			return state.SpanEvent(ctx, state.EventDisconnect)
 		case errors.Is(e, io.EOF):
 			c.logger.Info("connection unexpectedly lost (EOF), reconnecting...")
 			attempt = 0
 		case errors.Is(e, ErrLostConnection):
-			c.logger.Info("lost connection, reconnecting...")
+			c.logger.WithError(e).Info("lost connection, reconnecting...")
 			attempt = 0
 		case errors.Is(e, context.DeadlineExceeded):
-			c.logger.WithError(err).Info("syncConfigLoop deadline exceeded")
+			c.logger.WithError(e).Info("syncConfigLoop deadline exceeded")
 			return state.SpanEvent(ctx, state.EventDisconnect)
 		case errors.Is(e, context.Canceled):
 			// in this case something from the outside canceled us, let them decide next state
-			c.logger.WithError(err).Info("syncConfigLoop canceled")
+			c.logger.WithError(e).Info("syncConfigLoop canceled")
 			return state.SpanEvent(ctx, state.EventWaitForExternalEvent)
 		case e != nil:
 			// Unhandled error: disconnect
-			c.logger.WithError(err).Error("error in syncConfigLoop")
+			c.logger.WithError(e).Error("error in syncConfigLoop")
 			c.notifier.Errorf("Unhandled error while updating config. Please send your logs to the NAIS team.")
 			return state.SpanEvent(ctx, state.EventDisconnect)
 		}
