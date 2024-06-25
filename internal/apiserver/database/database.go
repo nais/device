@@ -27,7 +27,7 @@ type database struct {
 var mux sync.Mutex
 
 func New(dbPath string, v4Allocator ip.Allocator, v6Allocator ip.Allocator, defaultDeviceHealth bool) (*database, error) {
-	connectionString := "file:" + dbPath + "?_foreign_keys=1&_cache_size=-100000"
+	connectionString := "file:" + dbPath + "?_foreign_keys=1&_cache_size=-100000&_busy_timeout=5000"
 	db, err := sql.Open("sqlite3", connectionString)
 	if err != nil {
 		return nil, fmt.Errorf("open database: %w", err)
