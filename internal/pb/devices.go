@@ -47,8 +47,13 @@ const (
 	lastSeenIssueTitle  = "Device has not been seen recently"
 )
 
-func (x *Device) AppendLastSeenIssue() {
-	lastSeenIssue := func(msg string, lastUpdated *timestamppb.Timestamp) *DeviceIssue {
+func (x *Device) UpdateLastSeenIssues() {
+	// no device, lol
+	if x == nil {
+		return
+	}
+
+	makeLastSeenIssue := func(msg string, lastUpdated *timestamppb.Timestamp) *DeviceIssue {
 		return &DeviceIssue{
 			Title:         lastSeenIssueTitle,
 			Message:       msg,
@@ -59,24 +64,19 @@ func (x *Device) AppendLastSeenIssue() {
 		}
 	}
 
-	// no device, lol
-	if x == nil {
-		return
-	}
-
-	// already has this issue
-	if slices.ContainsFunc(x.Issues, func(d *DeviceIssue) bool { return d.GetTitle() == lastSeenIssueTitle }) {
-		return
-	}
+	identifyLastSeenIssues := func(d *DeviceIssue) bool { return d.GetTitle() == lastSeenIssueTitle }
 
 	// never seen
 	if x.LastSeen == nil {
-		x.Issues = append(x.Issues, lastSeenIssue("This device has never been seen by Kolide. Enroll device by asking @Kolide for a new installer on Slack. `/msg @Kolide installers`", x.LastUpdated))
+		if !slices.ContainsFunc(x.Issues, identifyLastSeenIssues) {
+			x.Issues = append(x.Issues, makeLastSeenIssue("This device has never been seen by Kolide. Enroll device by asking @Kolide for a new installer on Slack. `/msg @Kolide installers`", x.LastUpdated))
+		}
+		return
 	}
 
 	// seen recently
-	lastSeenAfter := time.Now().Add(-lastSeenGracePeriod)
-	if x.LastSeen.AsTime().After(lastSeenAfter) {
+	if x.LastSeen.AsTime().After(time.Now().Add(-lastSeenGracePeriod)) {
+		x.Issues = slices.DeleteFunc(x.Issues, identifyLastSeenIssues)
 		return
 	}
 
@@ -93,5 +93,5 @@ func (x *Device) AppendLastSeenIssue() {
 This is a problem because we have no idea what state the device is in.
 To fix this make sure the Kolide launcher is running.
 If it's not and you don't know why - re-install the launcher by asking @Kolide for a new installer on Slack.`, lastSeen.Format(time.RFC3339))
-	x.Issues = append(x.Issues, lastSeenIssue(msg, x.LastUpdated))
+	x.Issues = append(x.Issues, makeLastSeenIssue(msg, x.LastUpdated))
 }
