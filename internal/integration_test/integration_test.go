@@ -41,6 +41,7 @@ func TestIntegration(t *testing.T) {
 				Serial:    "test-serial",
 				PublicKey: "publicKey",
 				Username:  "tester",
+				LastSeen:  timestamppb.Now(),
 				Platform:  "linux",
 				Issues: []*pb.DeviceIssue{
 					{
@@ -62,6 +63,7 @@ func TestIntegration(t *testing.T) {
 				PublicKey: "publicKey",
 				Username:  "tester",
 				Platform:  "linux",
+				LastSeen:  timestamppb.Now(),
 			},
 			endState: pb.AgentState_Connected,
 			expectedGateways: map[string]*pb.Gateway{
@@ -371,12 +373,19 @@ func tableTest(t *testing.T, log *logrus.Entry, testDevice *pb.Device, endState 
 func assertEqualIssueLists(t *testing.T, expected, actual []*pb.DeviceIssue) {
 	t.Helper()
 	equalIssues := func(a, b *pb.DeviceIssue) bool {
-		t.Logf("comparing issues (%v,%v,%v,%v,%v)", a.Title == b.Title, a.Message == b.Message, a.Severity == b.Severity, a.DetectedAt.AsTime().Equal(b.DetectedAt.AsTime()), a.LastUpdated.AsTime().Equal(b.LastUpdated.AsTime()))
+		t.Logf("comparing issues (%v,%v,%v,%v,%v,%v)",
+			a.Title == b.Title,
+			a.Message == b.Message,
+			a.Severity == b.Severity,
+			a.GetDetectedAt().AsTime().Equal(b.GetDetectedAt().AsTime()),
+			a.GetLastUpdated().AsTime().Equal(b.GetLastUpdated().AsTime()),
+			a.GetResolveBefore().AsTime().Equal(b.GetResolveBefore().AsTime()))
 		return a.Title == b.Title &&
 			a.Message == b.Message &&
 			a.Severity == b.Severity &&
-			a.DetectedAt.AsTime().Equal(b.DetectedAt.AsTime()) &&
-			a.LastUpdated.AsTime().Equal(b.LastUpdated.AsTime())
+			a.GetDetectedAt().AsTime().Equal(b.GetDetectedAt().AsTime()) &&
+			a.GetLastUpdated().AsTime().Equal(b.GetLastUpdated().AsTime()) &&
+			a.GetResolveBefore().AsTime().Equal(b.GetResolveBefore().AsTime())
 	}
 
 	for _, expectedIssue := range expected {

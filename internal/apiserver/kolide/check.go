@@ -66,8 +66,6 @@ func (failure *DeviceFailure) Relevant() bool {
 	return failure.Check.Severity() != pb.Severity_Info
 }
 
-const MaxTimeSinceKolideLastSeen = 25 * time.Hour
-
 func (f DeviceFailure) AsDeviceIssue() *pb.DeviceIssue {
 	graceTime := GraceTime(f.Check.Severity())
 	if graceTime == DurationUnknown {

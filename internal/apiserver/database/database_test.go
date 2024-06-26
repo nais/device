@@ -8,6 +8,7 @@ import (
 	"github.com/nais/device/internal/apiserver/testdatabase"
 	"github.com/nais/device/internal/pb"
 	"github.com/stretchr/testify/assert"
+	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 const timeout = time.Second * 5
@@ -101,7 +102,7 @@ func TestAddDevice(t *testing.T) {
 			Title: "integration test issue",
 		},
 	}
-	d := &pb.Device{Username: "username", PublicKey: "publickey", Serial: serial, Platform: "darwin"}
+	d := &pb.Device{Username: "username", PublicKey: "publickey", Serial: serial, Platform: "darwin", LastSeen: timestamppb.Now()}
 	err := db.AddDevice(ctx, d)
 	assert.NoError(t, err)
 
@@ -121,7 +122,7 @@ func TestAddDevice(t *testing.T) {
 	assert.NoError(t, err)
 
 	newUsername, newPublicKey := "newUsername", "newPublicKey"
-	dUpdated := &pb.Device{Username: newUsername, PublicKey: newPublicKey, Serial: serial, Platform: "darwin"}
+	dUpdated := &pb.Device{Username: newUsername, PublicKey: newPublicKey, Serial: serial, Platform: "darwin", LastSeen: timestamppb.Now()}
 	err = db.AddDevice(ctx, dUpdated)
 	assert.NoError(t, err)
 

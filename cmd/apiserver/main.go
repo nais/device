@@ -334,6 +334,11 @@ func run(log *logrus.Entry, cfg config.Config) error {
 		if err != nil {
 			return err
 		}
+
+		if issue := device.MaybeLstSeenIssue(); issue != nil {
+			device.Issues = append(device.GetIssues(), issue)
+		}
+
 		grpcHandler.SendDeviceConfiguration(device)
 		grpcHandler.SendAllGatewayConfigurations()
 		return nil
