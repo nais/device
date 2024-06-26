@@ -225,12 +225,9 @@ func (kc *client) FillKolideData(ctx context.Context, devices []*pb.Device) erro
 		}
 
 		device.ExternalID = fmt.Sprint(kolideDevice.ID)
+		device.Issues = issuesByExternalID[device.ExternalID]
 		if kolideDevice.LastSeenAt != nil {
-			lastSeenAt := *kolideDevice.LastSeenAt
-			device.LastSeen = timestamppb.New(lastSeenAt)
-		}
-		if issues, found := issuesByExternalID[device.ExternalID]; found {
-			device.Issues = issues
+			device.LastSeen = timestamppb.New(*kolideDevice.LastSeenAt)
 		}
 	}
 
