@@ -626,9 +626,7 @@ func sqlcDeviceToPbDevice(sqlcDevice sqlc.Device) (*pb.Device, error) {
 		pbDevice.LastSeen = timestamppb.New(stringToTime(sqlcDevice.LastSeen.String))
 	}
 
-	if issue := pbDevice.MaybeLstSeenIssue(); issue != nil {
-		pbDevice.Issues = append(pbDevice.Issues, issue)
-	}
+	pbDevice.AppendLastSeenIssue()
 
 	return pbDevice, nil
 }

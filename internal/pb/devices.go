@@ -42,21 +42,45 @@ func (x *Device) Healthy() bool {
 	return !slices.ContainsFunc(x.GetIssues(), AfterGracePeriod)
 }
 
-const lastSeenGracePeriod = time.Hour
+const (
+	lastSeenGracePeriod = time.Hour
+	lastSeenIssueTitle  = "Device has not been seen recently"
+)
 
-func (x *Device) MaybeLstSeenIssue() *DeviceIssue {
+func (x *Device) AppendLastSeenIssue() {
+	lastSeenIssue := func(msg string, lastUpdated *timestamppb.Timestamp) *DeviceIssue {
+		return &DeviceIssue{
+			Title:         lastSeenIssueTitle,
+			Message:       msg,
+			Severity:      Severity_Critical,
+			DetectedAt:    lastUpdated,
+			LastUpdated:   lastUpdated,
+			ResolveBefore: timestamppb.New(time.Now().Add(-lastSeenGracePeriod)),
+		}
+	}
+
+	// no device, lol
 	if x == nil {
-		return nil
+		return
 	}
 
+	// already has this issue
+	if slices.ContainsFunc(x.Issues, func(d *DeviceIssue) bool { return d.GetTitle() == lastSeenIssueTitle }) {
+		return
+	}
+
+	// never seen
 	if x.LastSeen == nil {
-		return lastSeenIssue("This device has never been seen by Kolide. Enroll device by asking @Kolide for a new installer on Slack. `/msg @Kolide installers`", x.LastUpdated)
+		x.Issues = append(x.Issues, lastSeenIssue("This device has never been seen by Kolide. Enroll device by asking @Kolide for a new installer on Slack. `/msg @Kolide installers`", x.LastUpdated))
 	}
 
+	// seen recently
 	lastSeenAfter := time.Now().Add(-lastSeenGracePeriod)
 	if x.LastSeen.AsTime().After(lastSeenAfter) {
-		return nil
+		return
 	}
+
+	// if we end up here, this device has not been seen recently
 
 	// best effort to convert time to Oslo timezone
 	lastSeen := x.LastSeen.AsTime()
@@ -69,16 +93,5 @@ func (x *Device) MaybeLstSeenIssue() *DeviceIssue {
 This is a problem because we have no idea what state the device is in.
 To fix this make sure the Kolide launcher is running.
 If it's not and you don't know why - re-install the launcher by asking @Kolide for a new installer on Slack.`, lastSeen.Format(time.RFC3339))
-	return lastSeenIssue(msg, x.LastSeen)
-}
-
-func lastSeenIssue(msg string, lastUpdated *timestamppb.Timestamp) *DeviceIssue {
-	return &DeviceIssue{
-		Title:         "Device has not been seen recently",
-		Message:       msg,
-		Severity:      Severity_Critical,
-		DetectedAt:    lastUpdated,
-		LastUpdated:   lastUpdated,
-		ResolveBefore: timestamppb.New(time.Now().Add(-lastSeenGracePeriod)),
-	}
+	x.Issues = append(x.Issues, lastSeenIssue(msg, x.LastUpdated))
 }
