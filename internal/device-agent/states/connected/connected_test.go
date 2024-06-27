@@ -221,7 +221,7 @@ func TestConnected_defaultSyncConfigLoop(t *testing.T) {
 		}
 
 		err := c.defaultSyncConfigLoop(ctx)
-		assert.Equal(t, expectedError, err)
+		assert.ErrorIs(t, err, expectedError)
 	})
 
 	t.Run("connect to apiserver: unavailable error", func(t *testing.T) {

@@ -186,28 +186,24 @@ func (c *Connected) defaultSyncConfigLoop(ctx context.Context) error {
 		return ctx.Err()
 	}
 
-	wrapGRPCError := func(prefix string, err error) error {
-		if err == nil {
-			return nil
-		}
-
-		switch e := err; {
-		case grpcstatus.Code(e) == codes.Canceled:
-			return fmt.Errorf("%v(%w): %w", prefix, context.Canceled, e)
-		case grpcstatus.Code(e) == codes.Unavailable:
-			return fmt.Errorf("%v(%w): %w", prefix, ErrLostConnection, e)
-		case grpcstatus.Code(e) == codes.Unauthenticated:
-			return fmt.Errorf("%v((%w): %w", prefix, ErrUnauthenticated, e)
-		case grpcstatus.Code(e) == codes.DeadlineExceeded:
-			return fmt.Errorf("%v(%w): %w", prefix, context.DeadlineExceeded, e)
+	toInternalError := func(err error) error {
+		switch grpcstatus.Code(err) {
+		case codes.Unavailable:
+			return ErrUnavailable
+		case codes.Unauthenticated:
+			return ErrUnauthenticated
+		case codes.Canceled:
+			return context.Canceled
+		case codes.DeadlineExceeded:
+			return context.DeadlineExceeded
 		default:
-			return fmt.Errorf("%v: %w", prefix, e)
+			return err
 		}
 	}
 
 	stream, cancel, err := c.syncSetup(ctx)
 	if err != nil {
-		return wrapGRPCError("setup gateway stream", err)
+		return fmt.Errorf("setup gateway stream(%w): %w", toInternalError(err), err)
 	}
 	defer cancel()
 
@@ -221,7 +217,12 @@ func (c *Connected) defaultSyncConfigLoop(ctx context.Context) error {
 			span.RecordError(err)
 
 			if err != nil {
-				return wrapGRPCError("recv", err)
+				internalErr := toInternalError(err)
+				if internalErr == ErrUnavailable {
+					// indicate that we had a working connection
+					internalErr = ErrLostConnection
+				}
+				return fmt.Errorf("recv(%w): %w", internalErr, err)
 			}
 
 			c.logger.Info("received gateway configuration from API server")
