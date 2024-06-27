@@ -186,12 +186,28 @@ func (c *Connected) defaultSyncConfigLoop(ctx context.Context) error {
 		return ctx.Err()
 	}
 
+	wrapGRPCError := func(prefix string, err error) error {
+		if err == nil {
+			return nil
+		}
+
+		switch e := err; {
+		case grpcstatus.Code(e) == codes.Canceled:
+			return fmt.Errorf("%v(%w): %w", prefix, context.Canceled, e)
+		case grpcstatus.Code(e) == codes.Unavailable:
+			return fmt.Errorf("%v(%w): %w", prefix, ErrLostConnection, e)
+		case grpcstatus.Code(e) == codes.Unauthenticated:
+			return fmt.Errorf("%v((%w): %w", prefix, ErrUnauthenticated, e)
+		case grpcstatus.Code(e) == codes.DeadlineExceeded:
+			return fmt.Errorf("%v(%w): %w", prefix, context.DeadlineExceeded, e)
+		default:
+			return fmt.Errorf("%v: %w", prefix, e)
+		}
+	}
+
 	stream, cancel, err := c.syncSetup(ctx)
 	if err != nil {
-		if grpcstatus.Code(err) == codes.Unavailable {
-			return fmt.Errorf("setup gateway stream(%w): %w", ErrUnavailable, err)
-		}
-		return err
+		return wrapGRPCError("setup gateway stream", err)
 	}
 	defer cancel()
 
@@ -204,17 +220,8 @@ func (c *Connected) defaultSyncConfigLoop(ctx context.Context) error {
 			defer span.End()
 			span.RecordError(err)
 
-			switch e := err; {
-			case grpcstatus.Code(e) == codes.Unavailable:
-				return fmt.Errorf("recv(%w): %w", ErrLostConnection, e)
-			case grpcstatus.Code(e) == codes.Unauthenticated:
-				return fmt.Errorf("recv(%w): %w", ErrUnauthenticated, e)
-			case grpcstatus.Code(e) == codes.Canceled:
-				return fmt.Errorf("recv(%w): %w", context.Canceled, e)
-			case grpcstatus.Code(e) == codes.DeadlineExceeded:
-				return fmt.Errorf("recv(%w): %w", context.DeadlineExceeded, e)
-			case e != nil:
-				return fmt.Errorf("recv: %w", e)
+			if err != nil {
+				return wrapGRPCError("recv", err)
 			}
 
 			c.logger.Info("received gateway configuration from API server")
@@ -259,7 +266,11 @@ func (c *Connected) defaultSyncConfigLoop(ctx context.Context) error {
 				)))
 				helperCancel()
 				if err != nil {
-					return fmt.Errorf("configure helper: %w", err)
+					if ctx.Err() != nil {
+						return err
+					}
+
+					return fmt.Errorf("configure helper(%w): %w", ErrUnavailable, err)
 				}
 
 				cfg.Gateways = pb.MergeGatewayHealth(c.cfg.GetGateways(), cfg.GetGateways())
