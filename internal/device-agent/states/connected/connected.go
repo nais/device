@@ -320,7 +320,12 @@ func (c *Connected) syncSetup(ctx context.Context) (pb.APIServer_GetDeviceConfig
 		return nil, nil, err
 	}
 
-	c.connectedSince = timestamppb.Now()
+	location, err := time.LoadLocation("Europe/Oslo")
+	if err == nil {
+		c.connectedSince = timestamppb.New(time.Now().In(location))
+	} else {
+		c.connectedSince = timestamppb.Now()
+	}
 	c.logger.Info("gateway configuration stream established")
 
 	return stream, func() {
