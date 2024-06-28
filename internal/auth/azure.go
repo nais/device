@@ -16,6 +16,7 @@ type Azure struct {
 	ClientID       string
 	Tenant         string
 	jwkAutoRefresh *jwk.AutoRefresh
+	ctx            context.Context
 }
 
 func (a Azure) JwksEndpoint() string {
@@ -26,9 +27,7 @@ func (a Azure) Issuer() string {
 	return fmt.Sprintf("https://login.microsoftonline.com/%s/v2.0", a.Tenant)
 }
 
-func (a *Azure) SetupJwkSetAutoRefresh() error {
-	ctx := context.Background()
-
+func (a *Azure) SetupJwkSetAutoRefresh(ctx context.Context) error {
 	ar := jwk.NewAutoRefresh(ctx)
 	ar.Configure(a.JwksEndpoint(), jwk.WithMinRefreshInterval(time.Hour))
 
@@ -38,12 +37,13 @@ func (a *Azure) SetupJwkSetAutoRefresh() error {
 		return fmt.Errorf("fetch jwks: %w", err)
 	}
 
+	a.ctx = ctx
 	a.jwkAutoRefresh = ar
 	return nil
 }
 
-func (a *Azure) KeySetFrom(t jwt.Token) (jwk.Set, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+func (a *Azure) KeySetFrom(_ jwt.Token) (jwk.Set, error) {
+	ctx, cancel := context.WithTimeout(a.ctx, 10*time.Second)
 	defer cancel()
 
 	return a.jwkAutoRefresh.Fetch(ctx, a.JwksEndpoint())

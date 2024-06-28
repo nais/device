@@ -129,5 +129,6 @@ func newMeterProvider(ctx context.Context, res *resource.Resource) (*metric.Mete
 				metric.WithInterval(1*time.Minute))),
 		metric.WithResource(res),
 	)
+
 	return meterProvider, nil
 }

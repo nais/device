@@ -15,6 +15,7 @@ type Google struct {
 	ClientID       string
 	AllowedDomains []string
 	jwkAutoRefresh *jwk.AutoRefresh
+	ctx            context.Context
 }
 
 const (
@@ -22,9 +23,7 @@ const (
 	googleIssuer       = "https://accounts.google.com"
 )
 
-func (g *Google) SetupJwkSetAutoRefresh() error {
-	ctx := context.Background()
-
+func (g *Google) SetupJwkSetAutoRefresh(ctx context.Context) error {
 	ar := jwk.NewAutoRefresh(ctx)
 	ar.Configure(googleJwksEndpoint, jwk.WithMinRefreshInterval(time.Hour))
 
@@ -34,12 +33,13 @@ func (g *Google) SetupJwkSetAutoRefresh() error {
 		return fmt.Errorf("fetch jwks: %w", err)
 	}
 
+	g.ctx = ctx
 	g.jwkAutoRefresh = ar
 	return nil
 }
 
 func (g *Google) KeySetFrom(t jwt.Token) (jwk.Set, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	ctx, cancel := context.WithTimeout(g.ctx, 10*time.Second)
 	defer cancel()
 
 	return g.jwkAutoRefresh.Fetch(ctx, googleJwksEndpoint)

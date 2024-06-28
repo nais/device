@@ -10,7 +10,7 @@ import (
 )
 
 func (s *grpcServer) addOrUpdateGateway(ctx context.Context, r *pb.ModifyGatewayRequest, callback func(context.Context, *pb.Gateway) error) (*pb.ModifyGatewayResponse, error) {
-	err := s.adminAuth.Authenticate(r.GetUsername(), r.GetPassword())
+	err := s.adminAuth.Authenticate(ctx, r.GetUsername(), r.GetPassword())
 	if err != nil {
 		return nil, status.Errorf(codes.Unauthenticated, err.Error())
 	}
@@ -44,7 +44,7 @@ func (s *grpcServer) UpdateGateway(ctx context.Context, r *pb.ModifyGatewayReque
 }
 
 func (s *grpcServer) GetGateway(ctx context.Context, r *pb.ModifyGatewayRequest) (*pb.Gateway, error) {
-	err := s.adminAuth.Authenticate(r.GetUsername(), r.GetPassword())
+	err := s.adminAuth.Authenticate(ctx, r.GetUsername(), r.GetPassword())
 	if err != nil {
 		return nil, status.Errorf(codes.Unauthenticated, err.Error())
 	}
@@ -53,7 +53,7 @@ func (s *grpcServer) GetGateway(ctx context.Context, r *pb.ModifyGatewayRequest)
 }
 
 func (s *grpcServer) ListGateways(request *pb.ListGatewayRequest, stream pb.APIServer_ListGatewaysServer) error {
-	err := authenticateAny(request.GetUsername(), request.GetPassword(), s.adminAuth, s.prometheusAuth)
+	err := authenticateAny(stream.Context(), request.GetUsername(), request.GetPassword(), s.adminAuth, s.prometheusAuth)
 	if err != nil {
 		return status.Error(codes.Unauthenticated, err.Error())
 	}
@@ -73,7 +73,7 @@ func (s *grpcServer) ListGateways(request *pb.ListGatewayRequest, stream pb.APIS
 }
 
 func (s *grpcServer) GetSessions(ctx context.Context, r *pb.GetSessionsRequest) (*pb.GetSessionsResponse, error) {
-	err := s.adminAuth.Authenticate(r.GetUsername(), r.GetPassword())
+	err := s.adminAuth.Authenticate(ctx, r.GetUsername(), r.GetPassword())
 	if err != nil {
 		return nil, status.Errorf(codes.Unauthenticated, err.Error())
 	}
@@ -84,7 +84,7 @@ func (s *grpcServer) GetSessions(ctx context.Context, r *pb.GetSessionsRequest) 
 }
 
 func (s *grpcServer) GetKolideCache(ctx context.Context, r *pb.GetKolideCacheRequest) (*pb.GetKolideCacheResponse, error) {
-	err := s.adminAuth.Authenticate(r.GetUsername(), r.GetPassword())
+	err := s.adminAuth.Authenticate(ctx, r.GetUsername(), r.GetPassword())
 	if err != nil {
 		return nil, status.Errorf(codes.Unauthenticated, err.Error())
 	}

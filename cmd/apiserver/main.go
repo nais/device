@@ -120,7 +120,7 @@ func run(log *logrus.Entry, cfg config.Config) error {
 	switch cfg.DeviceAuthenticationProvider {
 	case "azure":
 		log.Info("fetching Azure OIDC configuration...")
-		err = cfg.Azure.SetupJwkSetAutoRefresh()
+		err = cfg.Azure.SetupJwkSetAutoRefresh(ctx)
 		if err != nil {
 			return fmt.Errorf("fetch Azure jwks: %w", err)
 		}
@@ -129,7 +129,7 @@ func run(log *logrus.Entry, cfg config.Config) error {
 		log.Info("Azure OIDC authenticator configured to authenticate device sessions")
 	case "google":
 		log.Info("setting up Google OIDC configuration...")
-		err = cfg.Google.SetupJwkSetAutoRefresh()
+		err = cfg.Google.SetupJwkSetAutoRefresh(ctx)
 		if err != nil {
 			return fmt.Errorf("set up Google jwks: %w", err)
 		}
@@ -476,7 +476,7 @@ func SyncJitaContinuosly(ctx context.Context, log *logrus.Entry, j jita.Client) 
 		select {
 		case <-ticker.C:
 			log.Debug("updating jita privileged users")
-			err := j.UpdatePrivilegedUsers()
+			err := j.UpdatePrivilegedUsers(ctx)
 			if err != nil {
 				log.WithError(err).Error("updating jita privileged users")
 			}

@@ -19,8 +19,8 @@ func NewGatewayAuthenticator(db database.Database) UsernamePasswordAuthenticator
 	}
 }
 
-func (a *gatewayAuthenticator) Authenticate(username, password string) error {
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second*2)
+func (a *gatewayAuthenticator) Authenticate(ctx context.Context, username, password string) error {
+	ctx, cancel := context.WithTimeout(ctx, time.Second*2)
 	defer cancel()
 
 	gw, err := a.db.ReadGateway(ctx, username)

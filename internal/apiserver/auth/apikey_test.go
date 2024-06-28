@@ -1,6 +1,7 @@
 package auth_test
 
 import (
+	"context"
 	"testing"
 
 	"github.com/nais/device/internal/apiserver/auth"
@@ -14,15 +15,17 @@ func TestApikeyAuthenticator_Authenticate(t *testing.T) {
 	}
 	authenticator := auth.NewAPIKeyAuthenticator(users)
 
-	assert.NoError(t, authenticator.Authenticate("foo", "bar"))
-	assert.NoError(t, authenticator.Authenticate("bar", "baz"))
+	ctx := context.Background()
+
+	assert.NoError(t, authenticator.Authenticate(ctx, "foo", "bar"))
+	assert.NoError(t, authenticator.Authenticate(ctx, "bar", "baz"))
 
 	errMsg := "invalid username or password"
 
-	assert.Errorf(t, authenticator.Authenticate("foo", "bloat"), errMsg)
-	assert.Errorf(t, authenticator.Authenticate("foo", ""), errMsg)
-	assert.Errorf(t, authenticator.Authenticate("", ""), errMsg)
-	assert.Errorf(t, authenticator.Authenticate("", "bar"), errMsg)
-	assert.Errorf(t, authenticator.Authenticate("bar", "bar"), errMsg)
-	assert.Errorf(t, authenticator.Authenticate("baz", "bar"), errMsg)
+	assert.Errorf(t, authenticator.Authenticate(ctx, "foo", "bloat"), errMsg)
+	assert.Errorf(t, authenticator.Authenticate(ctx, "foo", ""), errMsg)
+	assert.Errorf(t, authenticator.Authenticate(ctx, "", ""), errMsg)
+	assert.Errorf(t, authenticator.Authenticate(ctx, "", "bar"), errMsg)
+	assert.Errorf(t, authenticator.Authenticate(ctx, "bar", "bar"), errMsg)
+	assert.Errorf(t, authenticator.Authenticate(ctx, "baz", "bar"), errMsg)
 }

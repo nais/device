@@ -1,6 +1,7 @@
 package jita_test
 
 import (
+	"context"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -11,6 +12,7 @@ import (
 )
 
 func TestJita(t *testing.T) {
+	ctx := context.Background()
 	log := logrus.StandardLogger().WithField("component", "test")
 	t.Run("response with data", func(t *testing.T) {
 		mux := http.NewServeMux()
@@ -45,7 +47,7 @@ func TestJita(t *testing.T) {
 		defer s.Close()
 
 		j := jita.New(log, "", "", s.URL)
-		err := j.UpdatePrivilegedUsers()
+		err := j.UpdatePrivilegedUsers(ctx)
 		assert.NoError(t, err)
 
 		usersOnprem := j.GetPrivilegedUsersForGateway("onprem-k8s-prod")
@@ -81,7 +83,7 @@ func TestJita(t *testing.T) {
 		defer s.Close()
 
 		j := jita.New(log, "", "", s.URL)
-		err := j.UpdatePrivilegedUsers()
+		err := j.UpdatePrivilegedUsers(ctx)
 		assert.NoError(t, err)
 
 		var expectedEmpty []jita.PrivilegedUser

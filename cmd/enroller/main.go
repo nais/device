@@ -66,7 +66,7 @@ func run(cfg Config, log *logrus.Entry) error {
 		return fmt.Errorf("error setting up worker: %v", err)
 	}
 
-	tokenValidator, err := makeTokenValidator(cfg, log.WithField("component", "tokenValidator"))
+	tokenValidator, err := makeTokenValidator(ctx, cfg, log.WithField("component", "tokenValidator"))
 	if err != nil {
 		return fmt.Errorf("error setting up token validator: %v", err)
 	}
@@ -114,16 +114,16 @@ func makeWorker(cfg Config, ctx context.Context, log *logrus.Entry) (pubsubenrol
 	}
 }
 
-func makeTokenValidator(cfg Config, log *logrus.Entry) (auth.TokenValidator, error) {
+func makeTokenValidator(ctx context.Context, cfg Config, log *logrus.Entry) (auth.TokenValidator, error) {
 	if cfg.AzureEnabled {
-		err := cfg.Azure.SetupJwkSetAutoRefresh()
+		err := cfg.Azure.SetupJwkSetAutoRefresh(ctx)
 		if err != nil {
 			return nil, fmt.Errorf("fetch Azure certs: %w", err)
 		}
 
 		return cfg.Azure.TokenValidatorMiddleware(), nil
 	} else if cfg.GoogleEnabled {
-		err := cfg.Google.SetupJwkSetAutoRefresh()
+		err := cfg.Google.SetupJwkSetAutoRefresh(ctx)
 		if err != nil {
 			return nil, fmt.Errorf("fetch Google certs: %w", err)
 		}

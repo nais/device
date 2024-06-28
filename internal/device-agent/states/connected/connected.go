@@ -12,7 +12,6 @@ import (
 
 	"github.com/sirupsen/logrus"
 	"go.opentelemetry.io/otel/trace"
-
 	"google.golang.org/grpc/codes"
 	grpcstatus "google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/timestamppb"
@@ -84,9 +83,10 @@ func (c *Connected) Enter(ctx context.Context) state.EventWithSpan {
 
 	// Teardown WireGuard interface when this state is finished
 	defer func() {
-		// need to base this context on background as `ctx` is usually already cancelled when we get to this point.
-		ctx, cancel := context.WithTimeout(context.Background(), helperTimeout)
-		_, err = c.deviceHelper.Teardown(ctx, &pb.TeardownRequest{})
+		// need to base this context on background as `teardownCtx` is usually already cancelled when we get to this point.
+		teardownCtx := trace.ContextWithSpan(context.Background(), trace.SpanFromContext(ctx))
+		teardownCtx, cancel := context.WithTimeout(teardownCtx, helperTimeout)
+		_, err = c.deviceHelper.Teardown(teardownCtx, &pb.TeardownRequest{})
 		cancel()
 		c.cfg = nil
 	}()
@@ -212,7 +212,7 @@ func (c *Connected) defaultSyncConfigLoop(ctx context.Context) error {
 		err := func() error {
 			cfg, err := stream.Recv()
 			healthCheckCancel()
-			ctx, span := otel.Start(ctx, "SyncConfigLoop/recv", trace.WithNewRoot())
+			ctx, span := otel.Start(ctx, "SyncConfigLoop/recv")
 			defer span.End()
 			span.RecordError(err)
 

@@ -52,9 +52,9 @@ func NewGRPCServer(ctx context.Context, log logrus.FieldLogger, db database.Data
 	}
 }
 
-func authenticateAny(username, password string, auths ...auth.UsernamePasswordAuthenticator) error {
+func authenticateAny(ctx context.Context, username, password string, auths ...auth.UsernamePasswordAuthenticator) error {
 	for _, a := range auths {
-		if a.Authenticate(username, password) == nil {
+		if a.Authenticate(ctx, username, password) == nil {
 			return nil
 		}
 	}

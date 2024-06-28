@@ -1,13 +1,14 @@
 package auth
 
 import (
+	"context"
 	"errors"
 )
 
 var ErrInvalidAuth = errors.New("invalid username or password")
 
 type UsernamePasswordAuthenticator interface {
-	Authenticate(username, password string) error
+	Authenticate(ctx context.Context, username, password string) error
 }
 
 type apikeyAuthenticator struct {
@@ -20,7 +21,7 @@ func NewAPIKeyAuthenticator(users map[string]string) UsernamePasswordAuthenticat
 	}
 }
 
-func (a *apikeyAuthenticator) Authenticate(username, password string) error {
+func (a *apikeyAuthenticator) Authenticate(_ context.Context, username, password string) error {
 	if len(username) > 0 && len(password) > 0 && a.users[username] == password {
 		return nil
 	}
