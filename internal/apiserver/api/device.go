@@ -56,9 +56,11 @@ func (s *grpcServer) GetDeviceConfiguration(request *pb.GetDeviceConfigurationRe
 		case <-trigger:
 		case <-updateDeviceTicker.C:
 		case <-stream.Context().Done():
+			metrics.IncDeviceStreamsEnded("context_done")
 			log.Debug("stream context done, tearing down")
 			return nil
 		case <-timeout:
+			metrics.IncDeviceStreamsEnded("timeout")
 			log.Debug("session timed out, tearing down")
 			return nil
 		}
