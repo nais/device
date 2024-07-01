@@ -9,6 +9,7 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials/insecure"
+	"google.golang.org/grpc/keepalive"
 	"google.golang.org/grpc/status"
 
 	gateway_agent "github.com/nais/device/internal/gateway-agent"
@@ -157,6 +158,11 @@ func run(log *logrus.Entry, cfg config.Config) error {
 	log.WithField("url", cfg.APIServerURL).Info("attempting gRPC connection to apiserver")
 	apiserver, err := grpc.NewClient(
 		cfg.APIServerURL,
+		grpc.WithKeepaliveParams(keepalive.ClientParameters{
+			Time:                10 * time.Second,
+			Timeout:             2 * time.Second,
+			PermitWithoutStream: false,
+		}),
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 	)
 	if err != nil {
