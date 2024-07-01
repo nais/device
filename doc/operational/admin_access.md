@@ -24,14 +24,7 @@ Disse er satt opp som onprem gateways, bare bruk denne bstionen i steden for aur
 ## SSH til onprem gateways
 
 1. Legg til ssh key under `admin_users` i [denne filen](/ansible/site.yml), push, vent til ansible har kjørt (cron hvert 5. minutt)
-1. SSH til aura boksen (`ssh a01apvl099.adeo.no`), deretter `ssh <hostname eller public ip>`
-
-## SSH til onprem gateways via naisdevice
-
-For at dette skal fungere må du være tilkoblet til gatewayen.
-
-1. IP til hver gateway kan man se [her](https://grafana.nais.io/d/XnwquxkGz/naisdevice?viewPanel=16)
-2. `ssh 10.255.24[0-9].*`
+1. SSH til aura boksen (`ssh a01apvl099.adeo.no`), deretter `ssh <hostname eller public ip>` (finnes som kommentarer i [denne filen](https://github.com/nais/naisdevice-terraform/blob/master/terraform.tfvars))
 
 ## xpanes
 
