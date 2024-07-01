@@ -18,7 +18,6 @@ func (s *grpcServer) GetGatewayConfiguration(request *pb.GetGatewayConfiguration
 	}
 
 	log := s.log.WithField("gateway", request.Gateway)
-	log.Info("incoming gateway connection")
 
 	trigger, err := s.gateways.Add(request.Gateway)
 	if err != nil {
@@ -26,7 +25,9 @@ func (s *grpcServer) GetGatewayConfiguration(request *pb.GetGatewayConfiguration
 	}
 	defer s.gateways.Remove(request.Gateway)
 
-	log.Info("gateway connected", request.Gateway)
+	log.Info("gateway connected")
+	defer log.Info("gateway disconnected")
+
 	metrics.SetGatewayConnected(request.Gateway, true)
 	defer metrics.SetGatewayConnected(request.Gateway, false)
 
@@ -49,7 +50,6 @@ func (s *grpcServer) GetGatewayConfiguration(request *pb.GetGatewayConfiguration
 		case <-trigger:
 		case <-updateGatewayTicker.C:
 		case <-stream.Context().Done():
-			log.Info("gateway disconnected")
 			return nil
 		}
 	}
