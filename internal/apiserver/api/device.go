@@ -47,8 +47,9 @@ func (s *grpcServer) GetDeviceConfiguration(request *pb.GetDeviceConfigurationRe
 		} else {
 			if err := stream.Send(cfg); err != nil {
 				log.WithError(err).Debug("stream send for device failed")
+			} else {
+				lastCfg = cfg
 			}
-			lastCfg = cfg
 		}
 
 		// block until trigger or done
