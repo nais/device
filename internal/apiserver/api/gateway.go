@@ -41,8 +41,9 @@ func (s *grpcServer) GetGatewayConfiguration(request *pb.GetGatewayConfiguration
 		} else {
 			if err := stream.Send(cfg); err != nil {
 				log.WithError(err).Error("send gateway config")
+			} else {
+				lastCfg = cfg
 			}
-			lastCfg = cfg
 		}
 
 		// block until trigger or done
