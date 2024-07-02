@@ -40,8 +40,6 @@ func TestGetDeviceConfiguration(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	lis := bufconn.Listen(bufSize)
-
 	accessGroups := []string{"auth"}
 
 	db := database.NewMockDatabase(t)
@@ -71,6 +69,7 @@ func TestGetDeviceConfiguration(t *testing.T) {
 
 	s := grpc.NewServer()
 	pb.RegisterAPIServerServer(s, server)
+	lis := bufconn.Listen(bufSize)
 	go func() {
 		err := s.Serve(lis)
 		assert.NoError(t, err)
@@ -100,8 +99,6 @@ func TestGatewayPasswordAuthentication(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	lis := bufconn.Listen(bufSize)
-
 	// hash generated with `controlplane-cli passhash --password hunter2`
 	gwResponse := &pb.Gateway{
 		Endpoint:     "1.2.3.4:56789",
@@ -125,7 +122,11 @@ func TestGatewayPasswordAuthentication(t *testing.T) {
 
 	s := grpc.NewServer()
 	pb.RegisterAPIServerServer(s, server)
-	go s.Serve(lis)
+	lis := bufconn.Listen(bufSize)
+	go func() {
+		err := s.Serve(lis)
+		assert.NoError(t, err)
+	}()
 
 	conn, err := grpc.NewClient(
 		"passthrough:///bufnet",
@@ -157,8 +158,6 @@ func TestGatewayPasswordAuthenticationFail(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	lis := bufconn.Listen(bufSize)
-
 	// hash generated with `controlplane-cli passhash --password hunter2`
 	gwResponse := &pb.Gateway{
 		Endpoint:     "1.2.3.4:56789",
@@ -180,7 +179,11 @@ func TestGatewayPasswordAuthenticationFail(t *testing.T) {
 
 	s := grpc.NewServer()
 	pb.RegisterAPIServerServer(s, server)
-	go s.Serve(lis)
+	lis := bufconn.Listen(bufSize)
+	go func() {
+		err := s.Serve(lis)
+		assert.NoError(t, err)
+	}()
 
 	conn, err := grpc.NewClient(
 		"passthrough:///bufnet",
