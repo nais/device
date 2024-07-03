@@ -54,7 +54,7 @@
               gotools
               imagemagick
               protobuf
-              sqlite
+              sqlite-interactive # -interactive gives readline / ncurses
             ])
             ++ [config.treefmt.build.wrapper];
         };
