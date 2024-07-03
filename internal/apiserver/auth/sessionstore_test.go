@@ -21,7 +21,8 @@ func TestSessionStore_SetAndGetFromCache(t *testing.T) {
 	store := auth.NewSessionStore(db)
 
 	session := &pb.Session{
-		Key: "abc",
+		Key:    "abc",
+		Device: &pb.Device{},
 	}
 
 	db.On("AddSessionInfo", mock.Anything, session).Return(nil).Once()
@@ -63,7 +64,8 @@ func TestSessionStore_Errors(t *testing.T) {
 	store := auth.NewSessionStore(db)
 
 	session := &pb.Session{
-		Key: "abc",
+		Key:    "abc",
+		Device: &pb.Device{},
 	}
 	dbError := errors.New("error from database")
 
