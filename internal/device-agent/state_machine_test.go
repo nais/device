@@ -42,8 +42,12 @@ func TestStateMachine(t *testing.T) {
 			} else {
 				recv.ReturnArguments = []any{
 					&pb.GetDeviceConfigurationResponse{
-						Status:   pb.DeviceConfigurationStatus_DeviceHealthy,
-						Gateways: []*pb.Gateway{},
+						Status: pb.DeviceConfigurationStatus_DeviceHealthy,
+						Gateways: []*pb.Gateway{
+							{
+								Name: "dummy-gateway",
+							},
+						},
 					}, nil,
 				}
 			}
@@ -73,12 +77,12 @@ func TestStateMachine(t *testing.T) {
 		sm := device_agent.NewStateMachine(ctx, rc, cfg, notifier, deviceHelper, statusChan, log)
 		go sm.Run(ctx)
 
-		isState := func(state pb.AgentState) func() bool {
+		isState := func(state pb.AgentState, numGateways int) func() bool {
 			return func() bool {
 				select {
 				case s := <-statusChan:
 					t.Logf("got state: %v", s)
-					return state == s.ConnectionState
+					return state == s.ConnectionState && len(s.Gateways) == numGateways
 				default:
 					return false
 				}
@@ -86,9 +90,9 @@ func TestStateMachine(t *testing.T) {
 		}
 
 		sm.SendEvent(state.SpanEvent(ctx, state.EventLogin))
-		assert.Eventually(t, isState(pb.AgentState_Connected), 2000*time.Millisecond, 5*time.Millisecond)
+		assert.Eventually(t, isState(pb.AgentState_Connected, 1), 2000*time.Millisecond, 5*time.Millisecond)
 
 		sm.SendEvent(state.SpanEvent(ctx, state.EventDisconnect))
-		assert.Eventually(t, isState(pb.AgentState_Disconnected), 3000*time.Millisecond, 5*time.Millisecond)
+		assert.Eventually(t, isState(pb.AgentState_Disconnected, 0), 3000*time.Millisecond, 5*time.Millisecond)
 	})
 }
