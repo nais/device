@@ -51,9 +51,25 @@ func (store *sessionStore) Get(ctx context.Context, key string) (*pb.Session, er
 	return session, nil
 }
 
+// Delete all sessions belonging to a specific device.
+// The cache store MUST be locked before calling this function.
+func (store *sessionStore) deleteSessionsForDeviceIDWithAssumedLock(deviceID int64) {
+	for key, session := range store.cache {
+		if session.GetDevice().GetId() == deviceID {
+			delete(store.cache, key)
+		}
+	}
+}
+
 func (store *sessionStore) Set(ctx context.Context, session *pb.Session) error {
+	if session.GetDevice() == nil {
+		return fmt.Errorf("store session in database: device info not given")
+	}
+
 	store.lock.Lock()
 	defer store.lock.Unlock()
+
+	store.deleteSessionsForDeviceIDWithAssumedLock(session.GetDevice().GetId())
 
 	err := store.db.AddSessionInfo(ctx, session)
 	if err != nil {

@@ -3,6 +3,7 @@ package auth_test
 import (
 	"context"
 	"errors"
+	"fmt"
 	"strconv"
 	"testing"
 	"time"
@@ -21,7 +22,8 @@ func TestSessionStore_SetAndGetFromCache(t *testing.T) {
 	store := auth.NewSessionStore(db)
 
 	session := &pb.Session{
-		Key: "abc",
+		Key:    "abc",
+		Device: &pb.Device{},
 	}
 
 	db.On("AddSessionInfo", mock.Anything, session).Return(nil).Once()
@@ -63,7 +65,8 @@ func TestSessionStore_Errors(t *testing.T) {
 	store := auth.NewSessionStore(db)
 
 	session := &pb.Session{
-		Key: "abc",
+		Key:    "abc",
+		Device: &pb.Device{},
 	}
 	dbError := errors.New("error from database")
 
@@ -152,4 +155,63 @@ func TestSessionStore_UpdateDevice(t *testing.T) {
 	sess, err = store.Get(ctx, "0")
 	assert.NoError(t, err)
 	assert.True(t, sess.GetDevice().GetLastSeen().AsTime().Equal(updatedDevice.GetLastSeen().AsTime()))
+}
+
+// Test that existing sessions with the same device id are removed.
+func TestSessionStore_ReplaceOnSet(t *testing.T) {
+	ctx := context.Background()
+	db := database.NewMockDatabase(t)
+	store := auth.NewSessionStore(db)
+
+	now := time.Now()
+
+	// Return from database layer
+	db.EXPECT().AddSessionInfo(mock.Anything, mock.Anything).Return(nil).Times(3)
+	db.EXPECT().ReadSessionInfo(mock.Anything, mock.Anything).Return(nil, fmt.Errorf("oops")).Once()
+
+	assert.NoError(t, store.Set(ctx, &pb.Session{
+		Key: "old_key_1",
+		Device: &pb.Device{
+			Id:       123,
+			LastSeen: timestamppb.New(now),
+			Serial:   "old",
+		},
+	}))
+
+	assert.NoError(t, store.Set(ctx, &pb.Session{
+		Key: "old_key_2",
+		Device: &pb.Device{
+			Id:       456,
+			LastSeen: timestamppb.New(now),
+			Serial:   "old",
+		},
+	}))
+
+	// Assert that the device is stored
+	session, _ := store.Get(ctx, "old_key_1")
+	assert.Equal(t, session.GetDevice().GetId(), int64(123))
+	assert.Equal(t, session.GetDevice().GetSerial(), "old")
+
+	assert.NoError(t, store.Set(ctx, &pb.Session{
+		Key: "new_key_1",
+		Device: &pb.Device{
+			Id:       123,
+			LastSeen: timestamppb.New(now),
+			Serial:   "new",
+		},
+	}))
+
+	// Assert that the old key is deleted and the new key refers to the correct device
+	_, err := store.Get(ctx, "old_key_1")
+	assert.Error(t, err)
+	session, err = store.Get(ctx, "new_key_1")
+	assert.NoError(t, err)
+	assert.Equal(t, session.GetDevice().GetId(), int64(123))
+	assert.Equal(t, session.GetDevice().GetSerial(), "new")
+
+	// Assert that the other device still exists in its original state
+	session, _ = store.Get(ctx, "old_key_2")
+	assert.Equal(t, session.GetDevice().GetId(), int64(456))
+	assert.Equal(t, session.GetDevice().GetSerial(), "old")
+
 }

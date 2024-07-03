@@ -16,7 +16,11 @@ LIMIT 1;
 
 -- name: AddSession :exec
 INSERT INTO sessions (key, expiry, device_id, object_id)
-VALUES (@key, @expiry, @device_id, @object_id);
+VALUES (@key, @expiry, @device_id, @object_id)
+ON CONFLICT (device_id) DO UPDATE
+SET key = excluded.key,
+    expiry = excluded.expiry,
+    object_id = excluded.object_id;
 
 -- name: AddSessionAccessGroupID :exec
 INSERT INTO session_access_group_ids (session_key, group_id)

@@ -358,23 +358,25 @@ func run(log *logrus.Entry, cfg config.Config) error {
 		cancel()
 	}()
 
-	untilContextDone := func(ctx context.Context, interval time.Duration, f func(context.Context) error) {
-		ticker := time.NewTicker(interval)
-		for {
-			if err := f(ctx); err != nil {
-				log.WithError(err).Error("run until program done wrapper")
-			}
+	if cfg.KolideIntegrationEnabled {
+		untilContextDone := func(ctx context.Context, interval time.Duration, f func(context.Context) error) {
+			ticker := time.NewTicker(interval)
+			for {
+				if err := f(ctx); err != nil {
+					log.WithError(err).Error("run until program done wrapper")
+				}
 
-			select {
-			case <-ticker.C:
-			case <-ctx.Done():
-				return
+				select {
+				case <-ticker.C:
+				case <-ctx.Done():
+					return
+				}
 			}
 		}
-	}
 
-	// sync all devices continuously
-	go untilContextDone(ctx, 1*time.Minute, grpcHandler.UpdateAllDevices)
+		// sync all devices continuously
+		go untilContextDone(ctx, 1*time.Minute, grpcHandler.UpdateAllDevices)
+	}
 
 	// initialize gateway metrics
 	gateways, err := db.ReadGateways(ctx)
