@@ -161,10 +161,8 @@ func run(log *logrus.Entry, cfg config.Config) error {
 			return fmt.Errorf("setup interface: %w", err)
 		}
 
-		go SyncLoop(ctx, log, db, netConf, cfg.StaticPeers())
-
+		go untilContextDone(ctx, WireGuardSyncInterval, syncWireGuardConfig(db, netConf, cfg.StaticPeers()), log.WithField("component", "wireguard"))
 		log.Info("WireGuard successfully configured")
-
 	} else {
 		log.Warn("WireGuard integration DISABLED! Do not run this configuration in production!")
 	}
@@ -198,31 +196,12 @@ func run(log *logrus.Entry, cfg config.Config) error {
 			return fmt.Errorf("kolide integration enabled but no kolide-api-token provided")
 		}
 
-		kolideClient = kolide.New(cfg.KolideApiToken, db, log.WithField("component", "kolide-client"))
-
+		log := log.WithField("component", "kolide-client")
+		kolideClient = kolide.New(cfg.KolideApiToken, db, log)
 		go func() {
-			log.Info("Kolide client configured, populating cache...")
-
-			err := kolideClient.RefreshCache(ctx)
-			if err != nil {
-				log.WithError(err).Error("initial kolide cache warmup")
-			}
-
 			kolideRefreshInterval := 1 * time.Minute
-			log.WithField("interval", kolideRefreshInterval).Info("Kolide cache populated, will auto refresh")
-			sleep := time.NewTicker(kolideRefreshInterval)
-			for {
-				select {
-				case <-ctx.Done():
-					log.Info("kolide cache updater done")
-					return
-				case <-sleep.C:
-					err := kolideClient.RefreshCache(ctx)
-					if err != nil {
-						log.WithError(err).Error("Kolide cache refresh")
-					}
-				}
-			}
+			log.WithField("interval", kolideRefreshInterval).Info("Kolide client configured")
+			untilContextDone(ctx, kolideRefreshInterval, kolideClient.RefreshCache, log)
 		}()
 	}
 
@@ -243,7 +222,7 @@ func run(log *logrus.Entry, cfg config.Config) error {
 
 	jitaClient := jita.New(log.WithField("component", "jita"), cfg.JitaUsername, cfg.JitaPassword, cfg.JitaUrl)
 	if cfg.JitaEnabled {
-		go SyncJitaContinuosly(ctx, log, jitaClient)
+		go untilContextDone(ctx, 10*time.Second, jitaClient.UpdatePrivilegedUsers, log.WithField("component", "jita"))
 	}
 
 	switch cfg.GatewayConfigurer {
@@ -359,23 +338,8 @@ func run(log *logrus.Entry, cfg config.Config) error {
 	}()
 
 	if cfg.KolideIntegrationEnabled {
-		untilContextDone := func(ctx context.Context, interval time.Duration, f func(context.Context) error) {
-			ticker := time.NewTicker(interval)
-			for {
-				if err := f(ctx); err != nil {
-					log.WithError(err).Error("run until program done wrapper")
-				}
-
-				select {
-				case <-ticker.C:
-				case <-ctx.Done():
-					return
-				}
-			}
-		}
-
 		// sync all devices continuously
-		go untilContextDone(ctx, 1*time.Minute, grpcHandler.UpdateAllDevices)
+		go untilContextDone(ctx, 1*time.Minute, grpcHandler.UpdateAllDevices, log.WithField("component", "kolide-device-sync"))
 	}
 
 	// initialize gateway metrics
@@ -435,10 +399,25 @@ func readd(ctx context.Context, db database.Database) error {
 	return nil
 }
 
-func SyncLoop(ctx context.Context, log *logrus.Entry, db database.Database, netConf wg.NetworkConfigurer, staticPeers []*pb.Gateway) {
-	log.Debug("starting config sync")
+func untilContextDone(ctx context.Context, interval time.Duration, f func(context.Context) error, log logrus.FieldLogger) {
+	ticker := time.NewTicker(interval)
+	for {
+		if err := f(ctx); err != nil {
+			log.WithError(err).Error("run until program done wrapper")
+		}
 
-	sync := func(ctx context.Context) error {
+		select {
+		case <-ticker.C:
+			log.Debug("tick")
+		case <-ctx.Done():
+			log.Info("context done; stopping")
+			return
+		}
+	}
+}
+
+func syncWireGuardConfig(db database.Database, netConf wg.NetworkConfigurer, staticPeers []*pb.Gateway) func(context.Context) error {
+	return func(ctx context.Context) error {
 		devices, err := db.ReadDevices(ctx)
 		if err != nil {
 			return fmt.Errorf("reading devices from database: %v", err)
@@ -459,33 +438,5 @@ func SyncLoop(ctx context.Context, log *logrus.Entry, db database.Database, netC
 		}
 
 		return nil
-	}
-
-	ticker := time.NewTicker(WireGuardSyncInterval)
-	for range ticker.C {
-		ctx, cancel := context.WithTimeout(ctx, WireGuardSyncInterval)
-		err := sync(ctx)
-		cancel()
-		if err != nil {
-			log.WithError(err).Error("syncing wg config")
-		}
-	}
-}
-
-func SyncJitaContinuosly(ctx context.Context, log *logrus.Entry, j jita.Client) {
-	ticker := time.NewTicker(10 * time.Second)
-	for {
-		select {
-		case <-ticker.C:
-			log.Debug("updating jita privileged users")
-			err := j.UpdatePrivilegedUsers(ctx)
-			if err != nil {
-				log.WithError(err).Error("updating jita privileged users")
-			}
-
-		case <-ctx.Done():
-			log.Info("stopped jita-sync")
-			return
-		}
 	}
 }
