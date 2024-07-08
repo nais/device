@@ -25,11 +25,11 @@ func Setup(t *testing.T) database.Database {
 		t.Fatalf("unable to setup test database: %v", err)
 	}
 	t.Logf("Created tmp database in: %v", tempFile.Name())
-	t.Cleanup(func() {
-		if cleanErr := os.Remove(tempFile.Name()); cleanErr != nil {
-			t.Logf("unable to clean up test database: %v", err)
-		}
-	})
+	// t.Cleanup(func() {
+	// 	if cleanErr := os.Remove(tempFile.Name()); cleanErr != nil {
+	// 		t.Logf("unable to clean up test database: %v", err)
+	// 	}
+	// })
 
 	ipAllocator := ip.NewV4Allocator(netip.MustParsePrefix(wireguardNetworkAddress), []string{apiserverWireGuardIP})
 	prefix := netip.MustParsePrefix("fd00::/64")
