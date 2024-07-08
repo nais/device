@@ -125,7 +125,7 @@ func run(log *logrus.Entry, cfg config.Config) error {
 			return fmt.Errorf("fetch Azure jwks: %w", err)
 		}
 
-		authenticator = auth.NewAuthenticator(cfg.Azure, db, sessions)
+		authenticator = auth.NewAuthenticator(cfg.Azure, db, sessions, log.WithField("component", "azure-authenticator"))
 		log.Info("Azure OIDC authenticator configured to authenticate device sessions")
 	case "google":
 		log.Info("setting up Google OIDC configuration...")

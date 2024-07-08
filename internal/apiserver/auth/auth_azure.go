@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/lestrrat-go/jwx/jwt"
+	"github.com/sirupsen/logrus"
 	"google.golang.org/protobuf/types/known/timestamppb"
 
 	"github.com/nais/device/internal/apiserver/database"
@@ -19,13 +20,15 @@ type azureAuth struct {
 	db    database.Database
 	store SessionStore
 	Azure *auth.Azure
+	log   logrus.FieldLogger
 }
 
-func NewAuthenticator(azureConfig *auth.Azure, db database.Database, store SessionStore) Authenticator {
+func NewAuthenticator(azureConfig *auth.Azure, db database.Database, store SessionStore, log logrus.FieldLogger) Authenticator {
 	return &azureAuth{
 		db:    db,
 		store: store,
 		Azure: azureConfig,
+		log:   log,
 	}
 }
 
@@ -70,7 +73,8 @@ func (s *azureAuth) Login(ctx context.Context, token, serial, platform string) (
 
 	err = s.store.Set(ctx, session)
 	if err != nil {
-		return nil, fmt.Errorf("persist session: %s", err)
+		s.log.WithError(err).WithField("device", device).WithField("session", session).Error("persist session")
+		return nil, fmt.Errorf("persist session: %w", err)
 	}
 
 	return session, nil
