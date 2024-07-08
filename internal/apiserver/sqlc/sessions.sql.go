@@ -10,12 +10,8 @@ import (
 )
 
 const addSession = `-- name: AddSession :exec
-INSERT INTO sessions (key, expiry, device_id, object_id)
+INSERT OR REPLACE INTO sessions (key, expiry, device_id, object_id)
 VALUES (?1, ?2, ?3, ?4)
-ON CONFLICT (device_id) DO UPDATE
-SET key = excluded.key,
-    expiry = excluded.expiry,
-    object_id = excluded.object_id
 `
 
 type AddSessionParams struct {
