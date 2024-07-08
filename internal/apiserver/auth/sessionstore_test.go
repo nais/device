@@ -48,6 +48,7 @@ func TestSessionStore_SetAndGetFromCache(t *testing.T) {
 	if err := db.AddDevice(ctx, device); err != nil {
 		t.Fatal(err)
 	}
+
 	err := store.Set(ctx, session)
 	assert.NoError(t, err)
 

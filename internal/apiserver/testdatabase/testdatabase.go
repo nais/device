@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/netip"
 	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 	"time"
@@ -20,16 +21,29 @@ const (
 )
 
 func Setup(t *testing.T) database.Database {
-	tempFile, err := os.CreateTemp(os.TempDir(), fmt.Sprintf("%s*.db", strings.ReplaceAll(t.Name(), "/", "_")))
+	testDir := filepath.Join(os.TempDir(), "naisdevice-tests")
+	err := os.MkdirAll(testDir, 0o755)
+	if err != nil {
+		t.Fatalf("unable to setup test dir for database tests: %v", err)
+	}
+	tempFile, err := os.CreateTemp(testDir, fmt.Sprintf("%s*.db", strings.ReplaceAll(t.Name(), "/", "_")))
 	if err != nil {
 		t.Fatalf("unable to setup test database: %v", err)
 	}
-	t.Logf("Created tmp database in: %v", tempFile.Name())
-	// t.Cleanup(func() {
-	// 	if cleanErr := os.Remove(tempFile.Name()); cleanErr != nil {
-	// 		t.Logf("unable to clean up test database: %v", err)
-	// 	}
-	// })
+	t.Logf("created database in: %v", tempFile.Name())
+	t.Cleanup(func() {
+		if t.Failed() {
+			t.Logf("test failed, leaving test database in: %v", tempFile.Name())
+		} else {
+			for _, ext := range []string{"", "-wal", "-shm"} {
+				if err := os.Remove(tempFile.Name() + ext); err != nil {
+					t.Logf("unable to clean up test database: %v: %v", tempFile.Name(), err)
+				} else {
+					t.Logf("cleaned up test database: %v", tempFile.Name())
+				}
+			}
+		}
+	})
 
 	ipAllocator := ip.NewV4Allocator(netip.MustParsePrefix(wireguardNetworkAddress), []string{apiserverWireGuardIP})
 	prefix := netip.MustParsePrefix("fd00::/64")
