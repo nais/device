@@ -494,7 +494,7 @@ func (db *database) AddSessionInfo(ctx context.Context, si *pb.Session) error {
 			ObjectID: si.ObjectID,
 		})
 		if err != nil {
-			return err
+			return fmt.Errorf("storing session: %w", err)
 		}
 
 		for _, groupID := range si.Groups {
@@ -503,7 +503,7 @@ func (db *database) AddSessionInfo(ctx context.Context, si *pb.Session) error {
 				GroupID:    groupID,
 			})
 			if err != nil {
-				return err
+				return fmt.Errorf("storing session group: %w", err)
 			}
 		}
 		return nil
