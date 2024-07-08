@@ -15,6 +15,7 @@ import (
 	"github.com/nais/device/internal/apiserver/ip"
 	"github.com/nais/device/internal/apiserver/sqlc"
 	"github.com/nais/device/internal/pb"
+	"github.com/sirupsen/logrus"
 )
 
 type database struct {
@@ -22,11 +23,12 @@ type database struct {
 	ipv4Allocator       ip.Allocator
 	ipv6Allocator       ip.Allocator
 	defaultDeviceHealth bool
+	log                 logrus.FieldLogger
 }
 
 var mux sync.Mutex
 
-func New(dbPath string, v4Allocator ip.Allocator, v6Allocator ip.Allocator, defaultDeviceHealth bool) (*database, error) {
+func New(dbPath string, v4Allocator ip.Allocator, v6Allocator ip.Allocator, defaultDeviceHealth bool, log logrus.FieldLogger) (*database, error) {
 	connectionString := "file:" + dbPath + "?_foreign_keys=1&_cache_size=-100000&_busy_timeout=5000&_journal_mode=WAL"
 	db, err := sql.Open("sqlite3", connectionString)
 	if err != nil {
@@ -38,6 +40,7 @@ func New(dbPath string, v4Allocator ip.Allocator, v6Allocator ip.Allocator, defa
 		ipv4Allocator:       v4Allocator,
 		ipv6Allocator:       v6Allocator,
 		defaultDeviceHealth: defaultDeviceHealth,
+		log:                 log,
 	}
 
 	if err = runMigrations(dbPath); err != nil {
@@ -494,6 +497,7 @@ func (db *database) AddSessionInfo(ctx context.Context, si *pb.Session) error {
 			ObjectID: si.ObjectID,
 		})
 		if err != nil {
+			db.log.WithError(err).WithField("device", si.GetDevice()).WithField("session", si).Error("storing session")
 			return fmt.Errorf("storing session: %w", err)
 		}
 
