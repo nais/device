@@ -158,7 +158,7 @@ func TestSessionStore_UpdateDevice(t *testing.T) {
 	assert.NoError(t, err)
 	assert.False(t, sess.GetDevice().GetLastSeen().AsTime().Equal(updatedDevice.GetLastSeen().AsTime()))
 
-	store.UpdateDevice(updatedDevice)
+	store.RefreshDevice(updatedDevice)
 
 	sess, err = store.Get(ctx, "session-for-device-2")
 	assert.NoError(t, err)

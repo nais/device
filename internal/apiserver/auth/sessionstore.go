@@ -26,6 +26,7 @@ type SessionStore interface {
 	Get(context.Context, string) (*pb.Session, error)
 	Set(context.Context, *pb.Session) error
 	All() []*pb.Session
+	RefreshDevice(*pb.Device)
 }
 
 func NewSessionStore(db database.Database) *sessionStore {
@@ -127,7 +128,7 @@ func (store *sessionStore) All() []*pb.Session {
 	return all
 }
 
-func (store *sessionStore) UpdateDevice(device *pb.Device) {
+func (store *sessionStore) RefreshDevice(device *pb.Device) {
 	store.lock.Lock()
 	defer store.lock.Unlock()
 

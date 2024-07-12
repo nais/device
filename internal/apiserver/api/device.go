@@ -203,6 +203,7 @@ func (s *grpcServer) UpdateAllDevices(ctx context.Context) error {
 	}
 
 	for _, device := range devices {
+		s.sessionStore.RefreshDevice(device)
 		s.SendDeviceConfiguration(device)
 	}
 

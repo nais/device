@@ -306,7 +306,7 @@ func run(log *logrus.Entry, cfg config.Config) error {
 			return err
 		}
 
-		sessions.UpdateDevice(device)
+		sessions.RefreshDevice(device)
 
 		now := time.Now()
 		err = db.UpdateSingleDevice(ctx, device.ExternalID, device.Serial, device.Platform, &now, failures)

@@ -128,6 +128,39 @@ func (_c *MockSessionStore_Get_Call) RunAndReturn(run func(context.Context, stri
 	return _c
 }
 
+// RefreshDevice provides a mock function with given fields: _a0
+func (_m *MockSessionStore) RefreshDevice(_a0 *pb.Device) {
+	_m.Called(_a0)
+}
+
+// MockSessionStore_RefreshDevice_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'RefreshDevice'
+type MockSessionStore_RefreshDevice_Call struct {
+	*mock.Call
+}
+
+// RefreshDevice is a helper method to define mock.On call
+//   - _a0 *pb.Device
+func (_e *MockSessionStore_Expecter) RefreshDevice(_a0 interface{}) *MockSessionStore_RefreshDevice_Call {
+	return &MockSessionStore_RefreshDevice_Call{Call: _e.mock.On("RefreshDevice", _a0)}
+}
+
+func (_c *MockSessionStore_RefreshDevice_Call) Run(run func(_a0 *pb.Device)) *MockSessionStore_RefreshDevice_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(*pb.Device))
+	})
+	return _c
+}
+
+func (_c *MockSessionStore_RefreshDevice_Call) Return() *MockSessionStore_RefreshDevice_Call {
+	_c.Call.Return()
+	return _c
+}
+
+func (_c *MockSessionStore_RefreshDevice_Call) RunAndReturn(run func(*pb.Device)) *MockSessionStore_RefreshDevice_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // Set provides a mock function with given fields: _a0, _a1
 func (_m *MockSessionStore) Set(_a0 context.Context, _a1 *pb.Session) error {
 	ret := _m.Called(_a0, _a1)
