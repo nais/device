@@ -116,9 +116,9 @@ func (store *sessionStore) All() []*pb.Session {
 	defer store.lock.Unlock()
 
 	all := make([]*pb.Session, 0)
-	for _, s := range store.byKey {
+	for id, s := range store.byDeviceID {
 		if s.Expired() {
-			store.deleteSessionsForDeviceIDWithAssumedLock(s.Device.Id)
+			store.deleteSessionsForDeviceIDWithAssumedLock(id)
 			continue
 		}
 
