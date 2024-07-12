@@ -14,9 +14,12 @@ var ErrNoSession = errors.New("no active session")
 
 // sessionStore provides a database-backed session storage, with an in-memory caching layer.
 type sessionStore struct {
-	db    database.Database
-	cache map[string]*pb.Session
-	lock  sync.Mutex
+	db database.Database
+
+	byKey      map[string]*pb.Session
+	byDeviceID map[int64]*pb.Session
+
+	lock sync.Mutex
 }
 
 type SessionStore interface {
@@ -27,8 +30,9 @@ type SessionStore interface {
 
 func NewSessionStore(db database.Database) *sessionStore {
 	return &sessionStore{
-		db:    db,
-		cache: make(map[string]*pb.Session),
+		db:         db,
+		byKey:      make(map[string]*pb.Session),
+		byDeviceID: make(map[int64]*pb.Session),
 	}
 }
 
@@ -36,7 +40,7 @@ func (store *sessionStore) Get(ctx context.Context, key string) (*pb.Session, er
 	store.lock.Lock()
 	defer store.lock.Unlock()
 
-	session, exists := store.cache[key]
+	session, exists := store.byKey[key]
 	if exists && session != nil {
 		return session, nil
 	}
@@ -46,7 +50,8 @@ func (store *sessionStore) Get(ctx context.Context, key string) (*pb.Session, er
 		return nil, fmt.Errorf("read session from database: %w", err)
 	}
 
-	store.cache[session.Key] = session
+	store.byKey[session.Key] = session
+	store.byDeviceID[session.Device.Id] = session
 
 	return session, nil
 }
@@ -54,11 +59,13 @@ func (store *sessionStore) Get(ctx context.Context, key string) (*pb.Session, er
 // Delete all sessions belonging to a specific device.
 // The cache store MUST be locked before calling this function.
 func (store *sessionStore) deleteSessionsForDeviceIDWithAssumedLock(deviceID int64) {
-	for key, session := range store.cache {
-		if session.GetDevice().GetId() == deviceID {
-			delete(store.cache, key)
-		}
+	session, exists := store.byDeviceID[deviceID]
+	if !exists {
+		return
 	}
+
+	delete(store.byKey, session.Key)
+	delete(store.byDeviceID, deviceID)
 }
 
 func (store *sessionStore) Set(ctx context.Context, session *pb.Session) error {
@@ -76,7 +83,8 @@ func (store *sessionStore) Set(ctx context.Context, session *pb.Session) error {
 		return fmt.Errorf("store session in database: %w", err)
 	}
 
-	store.cache[session.Key] = session
+	store.byDeviceID[session.Device.Id] = session
+	store.byKey[session.Key] = session
 	return nil
 }
 
@@ -95,7 +103,8 @@ func (store *sessionStore) Warmup(ctx context.Context) error {
 	defer store.lock.Unlock()
 
 	for _, session := range sessions {
-		store.cache[session.Key] = session
+		store.byKey[session.Key] = session
+		store.byDeviceID[session.Device.Id] = session
 	}
 
 	return nil
@@ -106,8 +115,9 @@ func (store *sessionStore) All() []*pb.Session {
 	defer store.lock.Unlock()
 
 	all := make([]*pb.Session, 0)
-	for _, s := range store.cache {
+	for _, s := range store.byKey {
 		if s.Expired() {
+			store.deleteSessionsForDeviceIDWithAssumedLock(s.Device.Id)
 			continue
 		}
 
@@ -121,9 +131,8 @@ func (store *sessionStore) UpdateDevice(device *pb.Device) {
 	store.lock.Lock()
 	defer store.lock.Unlock()
 
-	for _, s := range store.cache {
-		if s.GetDevice().GetId() == device.GetId() {
-			s.Device = device
-		}
+	d, exists := store.byDeviceID[device.Id]
+	if exists {
+		d.Device = device
 	}
 }
