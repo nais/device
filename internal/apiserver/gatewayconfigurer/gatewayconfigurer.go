@@ -21,12 +21,11 @@ type GatewayConfigurer struct {
 	log          *logrus.Entry
 }
 
-func NewGatewayConfigurer(log *logrus.Entry, db database.Database, bucket bucket.Client, syncInterval time.Duration) *GatewayConfigurer {
+func NewGatewayConfigurer(log *logrus.Entry, db database.Database, bucket bucket.Client) *GatewayConfigurer {
 	return &GatewayConfigurer{
-		db:           db,
-		bucket:       bucket,
-		syncInterval: syncInterval,
-		log:          log,
+		db:     db,
+		bucket: bucket,
+		log:    log,
 	}
 }
 
@@ -39,21 +38,6 @@ type GatewayConfig struct {
 	RoutesIPv6               []Route  `json:"routes_ipv6"`
 	AccessGroupIds           []string `json:"access_group_ids"`
 	RequiresPrivilegedAccess bool     `json:"requires_privileged_access"`
-}
-
-func (g *GatewayConfigurer) SyncContinuously(ctx context.Context) {
-	g.log.WithField("bucket", g.bucket).WithField("interval", g.syncInterval).Info("start syncing gateway-config from bucket")
-
-	for {
-		select {
-		case <-time.After(g.syncInterval):
-			if err := g.SyncConfig(ctx); err != nil {
-				g.log.WithError(err).Error("synchronizing gateway configuration")
-			}
-		case <-ctx.Done():
-			return
-		}
-	}
 }
 
 func (g *GatewayConfigurer) SyncConfig(ctx context.Context) error {

@@ -228,11 +228,13 @@ func run(log *logrus.Entry, cfg config.Config) error {
 	switch cfg.GatewayConfigurer {
 	case "bucket":
 		buck := bucket.NewClient(cfg.GatewayConfigBucketName, cfg.GatewayConfigBucketObjectName)
-		updater := gatewayconfigurer.NewGatewayConfigurer(log.WithField("component", "gatewayconfigurer"), db, buck, gatewayConfigSyncInterval)
-		go updater.SyncContinuously(ctx)
+		log := log.WithField("component", "gatewayconfigurer").WithField("source", buck)
+		updater := gatewayconfigurer.NewGatewayConfigurer(log, db, buck)
+		go untilContextDone(ctx, gatewayConfigSyncInterval, updater.SyncConfig, log)
 	case "metadata":
-		updater := gatewayconfigurer.NewGoogleMetadata(db, log.WithField("component", "gatewayconfigurer"))
-		go updater.SyncContinuously(ctx, gatewayConfigSyncInterval)
+		log := log.WithField("component", "gatewayconfigurer").WithField("source", "metadata")
+		updater := gatewayconfigurer.NewGoogleMetadata(db, log)
+		go untilContextDone(ctx, gatewayConfigSyncInterval, updater.SyncConfig, log)
 	default:
 		log.Warn("no valid gateway configurer set, gateways won't be updated")
 	}

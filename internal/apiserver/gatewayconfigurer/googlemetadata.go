@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"time"
 
 	"github.com/nais/device/internal/apiserver/database"
 	"github.com/sirupsen/logrus"
@@ -29,25 +28,7 @@ func NewGoogleMetadata(db database.Database, log *logrus.Entry) *GoogleMetadata 
 	}
 }
 
-func (g *GoogleMetadata) SyncContinuously(ctx context.Context, syncInterval time.Duration) {
-	g.log.WithField("interval", syncInterval).Info("start syncing gatway-config from google vm metadata")
-
-	ticker := time.NewTicker(syncInterval)
-	defer ticker.Stop()
-
-	for {
-		select {
-		case <-ticker.C:
-			if err := g.syncConfig(ctx); err != nil {
-				g.log.WithError(err).Error("synchronizing gateway configuration")
-			}
-		case <-ctx.Done():
-			return
-		}
-	}
-}
-
-func (g *GoogleMetadata) syncConfig(ctx context.Context) error {
+func (g *GoogleMetadata) SyncConfig(ctx context.Context) error {
 	gatewayRoutes, err := getGatewayMetadatas(ctx)
 	if err != nil {
 		return err
