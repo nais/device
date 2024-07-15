@@ -297,30 +297,6 @@ func run(log *logrus.Entry, cfg config.Config) error {
 		return fmt.Errorf("unable to set up gRPC server: %w", err)
 	}
 
-	updateDevice := func(event *kolidepb.DeviceEvent) error {
-		device, err := db.ReadDeviceByExternalID(ctx, event.GetExternalID())
-		if err != nil {
-			return fmt.Errorf("read device with external_id=%v: %w", event.GetExternalID(), err)
-		}
-
-		failures, err := kolideClient.GetDeviceFailures(ctx, device.ExternalID)
-		if err != nil {
-			return err
-		}
-
-		sessions.RefreshDevice(device)
-
-		now := time.Now()
-		err = db.UpdateSingleDevice(ctx, device.ExternalID, device.Serial, device.Platform, &now, failures)
-		if err != nil {
-			return err
-		}
-
-		grpcHandler.SendDeviceConfiguration(device)
-		grpcHandler.SendAllGatewayConfigurations()
-		return nil
-	}
-
 	go func() {
 		log.WithField("address", cfg.PrometheusAddr).Info("serving metrics")
 		err := metrics.Serve(cfg.PrometheusAddr)
@@ -356,6 +332,30 @@ func run(log *logrus.Entry, cfg config.Config) error {
 	defer grpcServer.Stop()
 
 	go func() {
+		updateDevice := func(event *kolidepb.DeviceEvent) error {
+			device, err := db.ReadDeviceByExternalID(ctx, event.GetExternalID())
+			if err != nil {
+				return fmt.Errorf("read device with external_id=%v: %w", event.GetExternalID(), err)
+			}
+
+			failures, err := kolideClient.GetDeviceFailures(ctx, device.ExternalID)
+			if err != nil {
+				return err
+			}
+
+			sessions.RefreshDevice(device)
+
+			now := time.Now()
+			err = db.UpdateSingleDevice(ctx, device.ExternalID, device.Serial, device.Platform, &now, failures)
+			if err != nil {
+				return err
+			}
+
+			grpcHandler.SendDeviceConfiguration(device)
+			grpcHandler.SendAllGatewayConfigurations()
+			return nil
+		}
+
 		for event := range deviceUpdates {
 			if err := updateDevice(event); err != nil {
 				if !errors.Is(err, sql.ErrNoRows) {
