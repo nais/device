@@ -37,7 +37,7 @@ func TestGatewayConfigurer_SyncConfig(t *testing.T) {
 		lastUpdated := time.Now()
 		reader := strings.NewReader(gatewayConfig(gatewayName, route, accessGroupId, requiresPrivilegedAccess))
 
-		gc := gatewayconfigurer.NewGatewayConfigurer(log, db, mockClient, 0)
+		gc := gatewayconfigurer.NewGatewayConfigurer(log, db, mockClient)
 
 		db.On("UpdateGatewayDynamicFields",
 			mock.Anything,
@@ -66,7 +66,7 @@ func TestGatewayConfigurer_SyncConfig(t *testing.T) {
 		db := database.NewMockDatabase(t)
 		mockClient := bucket.NewMockClient(t)
 
-		gc := gatewayconfigurer.NewGatewayConfigurer(log, db, mockClient, 0)
+		gc := gatewayconfigurer.NewGatewayConfigurer(log, db, mockClient)
 
 		mockClient.On("Open", mock.Anything).Return(nil, errExpected).Once()
 
@@ -82,7 +82,7 @@ func TestGatewayConfigurer_SyncConfig(t *testing.T) {
 		lastUpdated := time.Now()
 		reader := strings.NewReader(`this is not valid json`)
 
-		gc := gatewayconfigurer.NewGatewayConfigurer(log, db, mockClient, 0)
+		gc := gatewayconfigurer.NewGatewayConfigurer(log, db, mockClient)
 
 		mockClient.On("Open", mock.Anything).Return(mockObject, nil).Once()
 		mockObject.On("LastUpdated").Return(lastUpdated).Once()
@@ -101,7 +101,7 @@ func TestGatewayConfigurer_SyncConfig(t *testing.T) {
 		lastUpdated := time.Now()
 		reader := strings.NewReader(gatewayConfig(gatewayName, route, accessGroupId, requiresPrivilegedAccess))
 
-		gc := gatewayconfigurer.NewGatewayConfigurer(log, db, mockClient, 0)
+		gc := gatewayconfigurer.NewGatewayConfigurer(log, db, mockClient)
 
 		db.On("UpdateGatewayDynamicFields",
 			mock.Anything,
