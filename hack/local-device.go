@@ -39,7 +39,7 @@ func main() {
 	}
 	v4Allocator := ip.NewV4Allocator(wireguardPrefix, []string{cfg.WireGuardIPv4Prefix.Addr().String()})
 	v6Allocator := ip.NewV6Allocator(cfg.WireGuardIPv6Prefix)
-	db, err := database.New(cfg.DBPath, v4Allocator, v6Allocator, !cfg.KolideEventHandlerEnabled, logrus.New())
+	db, err := database.New(cfg.DBPath, v4Allocator, v6Allocator, cfg.KolideEventHandlerEnabled, logrus.New())
 	if err != nil {
 		panic(fmt.Sprint("initialize database:", err))
 	}

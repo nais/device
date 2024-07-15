@@ -14,7 +14,7 @@ import (
 const timeout = time.Second * 5
 
 func TestAddGateway(t *testing.T) {
-	db := testdatabase.Setup(t)
+	db := testdatabase.Setup(t, false)
 
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
@@ -91,7 +91,7 @@ func TestAddGateway(t *testing.T) {
 }
 
 func TestAddDevice(t *testing.T) {
-	db := testdatabase.Setup(t)
+	db := testdatabase.Setup(t, true)
 
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()

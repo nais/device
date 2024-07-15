@@ -8,5 +8,5 @@ import (
 )
 
 func NewDB(t *testing.T) database.Database {
-	return testdatabase.Setup(t)
+	return testdatabase.Setup(t, true)
 }

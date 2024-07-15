@@ -20,7 +20,7 @@ const (
 	apiserverWireGuardIP    = "10.255.240.1"
 )
 
-func Setup(t *testing.T) database.Database {
+func Setup(t *testing.T, kolideEnabled bool) database.Database {
 	testDir := filepath.Join(os.TempDir(), "naisdevice-tests")
 	err := os.MkdirAll(testDir, 0o755)
 	if err != nil {
@@ -48,7 +48,7 @@ func Setup(t *testing.T) database.Database {
 	ipAllocator := ip.NewV4Allocator(netip.MustParsePrefix(wireguardNetworkAddress), []string{apiserverWireGuardIP})
 	prefix := netip.MustParsePrefix("fd00::/64")
 	ip6Allocator := ip.NewV6Allocator(&prefix)
-	db, err := database.New(tempFile.Name(), ipAllocator, ip6Allocator, false, logrus.New())
+	db, err := database.New(tempFile.Name(), ipAllocator, ip6Allocator, kolideEnabled, logrus.New())
 	if err != nil {
 		t.Fatalf("Instantiating database: %v", err)
 	}

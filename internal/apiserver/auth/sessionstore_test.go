@@ -15,7 +15,7 @@ import (
 
 func TestSessionStore_SetAndGetFromCache(t *testing.T) {
 	ctx := context.Background()
-	db := testdatabase.Setup(t)
+	db := testdatabase.Setup(t, false)
 	store := auth.NewSessionStore(db)
 
 	session := &pb.Session{
@@ -62,7 +62,7 @@ func TestSessionStore_SetAndGetFromCache(t *testing.T) {
 
 func TestSessionStore_Errors(t *testing.T) {
 	ctx := context.Background()
-	db := testdatabase.Setup(t)
+	db := testdatabase.Setup(t, false)
 	store := auth.NewSessionStore(db)
 
 	session := &pb.Session{
@@ -81,7 +81,7 @@ func TestSessionStore_Errors(t *testing.T) {
 
 func TestSessionStore_Warmup(t *testing.T) {
 	ctx := context.Background()
-	db := testdatabase.Setup(t)
+	db := testdatabase.Setup(t, false)
 	store := auth.NewSessionStore(db)
 
 	for i := range 20 {
@@ -121,7 +121,7 @@ func TestSessionStore_Warmup(t *testing.T) {
 
 func TestSessionStore_UpdateDevice(t *testing.T) {
 	ctx := context.Background()
-	db := testdatabase.Setup(t)
+	db := testdatabase.Setup(t, false)
 	store := auth.NewSessionStore(db)
 
 	now := time.Now()
@@ -168,7 +168,7 @@ func TestSessionStore_UpdateDevice(t *testing.T) {
 // Test that existing sessions with the same device id are removed.
 func TestSessionStore_ReplaceOnSet(t *testing.T) {
 	ctx := context.Background()
-	db := testdatabase.Setup(t)
+	db := testdatabase.Setup(t, false)
 	store := auth.NewSessionStore(db)
 
 	now := time.Now()

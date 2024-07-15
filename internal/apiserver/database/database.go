@@ -19,16 +19,16 @@ import (
 )
 
 type database struct {
-	queries             Querier
-	ipv4Allocator       ip.Allocator
-	ipv6Allocator       ip.Allocator
-	defaultDeviceHealth bool
-	log                 logrus.FieldLogger
+	queries       Querier
+	ipv4Allocator ip.Allocator
+	ipv6Allocator ip.Allocator
+	kolideEnabled bool
+	log           logrus.FieldLogger
 }
 
 var mux sync.Mutex
 
-func New(dbPath string, v4Allocator ip.Allocator, v6Allocator ip.Allocator, defaultDeviceHealth bool, log logrus.FieldLogger) (*database, error) {
+func New(dbPath string, v4Allocator ip.Allocator, v6Allocator ip.Allocator, kolideEnabled bool, log logrus.FieldLogger) (*database, error) {
 	connectionString := "file:" + dbPath + "?_foreign_keys=1&_cache_size=-100000&_busy_timeout=5000&_journal_mode=WAL"
 	db, err := sql.Open("sqlite3", connectionString)
 	if err != nil {
@@ -36,11 +36,11 @@ func New(dbPath string, v4Allocator ip.Allocator, v6Allocator ip.Allocator, defa
 	}
 
 	apiServerDB := database{
-		queries:             NewQuerier(db),
-		ipv4Allocator:       v4Allocator,
-		ipv6Allocator:       v6Allocator,
-		defaultDeviceHealth: defaultDeviceHealth,
-		log:                 log,
+		queries:       NewQuerier(db),
+		ipv4Allocator: v4Allocator,
+		ipv6Allocator: v6Allocator,
+		kolideEnabled: kolideEnabled,
+		log:           log,
 	}
 
 	if err = runMigrations(dbPath); err != nil {
@@ -60,7 +60,7 @@ func (db *database) ReadDevices(ctx context.Context) ([]*pb.Device, error) {
 
 	devices := make([]*pb.Device, 0)
 	for _, row := range rows {
-		device, err := sqlcDeviceToPbDevice(*row)
+		device, err := db.sqlcDeviceToPbDevice(*row)
 		if err != nil {
 			return nil, fmt.Errorf("converting device %v: %w", row.ID, err)
 		}
@@ -362,13 +362,15 @@ func (db *database) AddDevice(ctx context.Context, device *pb.Device) error {
 		return fmt.Errorf("finding available ip: %w", err)
 	}
 
+	initialHealthy := !db.kolideEnabled
+
 	err = db.queries.AddDevice(ctx, sqlc.AddDeviceParams{
 		Serial:    device.Serial,
 		Username:  device.Username,
 		PublicKey: device.PublicKey,
 		Ipv4:      availableIpV4,
 		Ipv6:      availableIpV6,
-		Healthy:   db.defaultDeviceHealth,
+		Healthy:   initialHealthy,
 		Platform:  device.Platform,
 	})
 	if err != nil {
@@ -384,7 +386,7 @@ func (db *database) ReadDevice(ctx context.Context, publicKey string) (*pb.Devic
 		return nil, err
 	}
 
-	return sqlcDeviceToPbDevice(*device)
+	return db.sqlcDeviceToPbDevice(*device)
 }
 
 func (db *database) ReadDeviceById(ctx context.Context, deviceID int64) (*pb.Device, error) {
@@ -393,7 +395,7 @@ func (db *database) ReadDeviceById(ctx context.Context, deviceID int64) (*pb.Dev
 		return nil, err
 	}
 
-	return sqlcDeviceToPbDevice(*device)
+	return db.sqlcDeviceToPbDevice(*device)
 }
 
 func (db *database) ReadDeviceByExternalID(ctx context.Context, externalID string) (*pb.Device, error) {
@@ -406,7 +408,7 @@ func (db *database) ReadDeviceByExternalID(ctx context.Context, externalID strin
 		return nil, err
 	}
 
-	return sqlcDeviceToPbDevice(*device)
+	return db.sqlcDeviceToPbDevice(*device)
 }
 
 func (db *database) ReadGateways(ctx context.Context) ([]*pb.Gateway, error) {
@@ -485,7 +487,7 @@ func (db *database) ReadDeviceBySerialPlatform(ctx context.Context, serial, plat
 		return nil, err
 	}
 
-	return sqlcDeviceToPbDevice(*device)
+	return db.sqlcDeviceToPbDevice(*device)
 }
 
 func (db *database) AddSessionInfo(ctx context.Context, si *pb.Session) error {
@@ -530,7 +532,7 @@ func (db *database) ReadSessionInfo(ctx context.Context, key string) (*pb.Sessio
 		return nil, err
 	}
 
-	return sqlcSessionAndDeviceToPbSession(row.Session, row.Device, groupIDs)
+	return db.sqlcSessionAndDeviceToPbSession(row.Session, row.Device, groupIDs)
 }
 
 func (db *database) ReadSessionInfos(ctx context.Context) ([]*pb.Session, error) {
@@ -546,7 +548,7 @@ func (db *database) ReadSessionInfos(ctx context.Context) ([]*pb.Session, error)
 			return nil, err
 		}
 
-		session, err := sqlcSessionAndDeviceToPbSession(row.Session, row.Device, groupIDs)
+		session, err := db.sqlcSessionAndDeviceToPbSession(row.Session, row.Device, groupIDs)
 		if err != nil {
 			return nil, err
 		}
@@ -568,7 +570,7 @@ func (db *database) ReadMostRecentSessionInfo(ctx context.Context, deviceID int6
 		return nil, err
 	}
 
-	return sqlcSessionAndDeviceToPbSession(row.Session, row.Device, groupIDs)
+	return db.sqlcSessionAndDeviceToPbSession(row.Session, row.Device, groupIDs)
 }
 
 func (db *database) getNextAvailableIPv4(ctx context.Context) (string, error) {
@@ -604,7 +606,7 @@ func (db *database) RemoveExpiredSessions(ctx context.Context) error {
 	return db.queries.RemoveExpiredSessions(ctx)
 }
 
-func sqlcDeviceToPbDevice(sqlcDevice sqlc.Device) (*pb.Device, error) {
+func (db *database) sqlcDeviceToPbDevice(sqlcDevice sqlc.Device) (*pb.Device, error) {
 	pbDevice := &pb.Device{
 		Id:         int64(sqlcDevice.ID),
 		Serial:     sqlcDevice.Serial,
@@ -630,7 +632,11 @@ func sqlcDeviceToPbDevice(sqlcDevice sqlc.Device) (*pb.Device, error) {
 		pbDevice.LastSeen = timestamppb.New(stringToTime(sqlcDevice.LastSeen.String))
 	}
 
-	pbDevice.UpdateLastSeenIssues()
+	if db.kolideEnabled {
+		pbDevice.UpdateLastSeenIssues()
+	} else {
+		pbDevice.Issues = nil
+	}
 
 	return pbDevice, nil
 }
@@ -673,8 +679,8 @@ func sqlcGatewayToPbGateway(g sqlc.Gateway, groupIDs []string, routes []*sqlc.Ge
 	}
 }
 
-func sqlcSessionAndDeviceToPbSession(s sqlc.Session, d sqlc.Device, groupIDs []string) (*pb.Session, error) {
-	device, err := sqlcDeviceToPbDevice(d)
+func (db *database) sqlcSessionAndDeviceToPbSession(s sqlc.Session, d sqlc.Device, groupIDs []string) (*pb.Session, error) {
+	device, err := db.sqlcDeviceToPbDevice(d)
 	if err != nil {
 		return nil, fmt.Errorf("converting device: %w", err)
 	}
