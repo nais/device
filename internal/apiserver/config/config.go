@@ -11,8 +11,6 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-var MaxTenantId uint16 = (1 << 16) - 1
-
 type Config struct {
 	AutoEnrollEnabled                 bool
 	Azure                             *auth.Azure
