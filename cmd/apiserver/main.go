@@ -200,7 +200,7 @@ func run(log *logrus.Entry, cfg config.Config) error {
 		kolideClient = kolide.New(cfg.KolideApiToken, db, log)
 		go func() {
 			kolideRefreshInterval := 1 * time.Minute
-			log.WithField("interval", kolideRefreshInterval).Info("Kolide client configured")
+			log.WithField("interval", kolideRefreshInterval.String()).Info("Kolide client configured")
 			untilContextDone(ctx, kolideRefreshInterval, kolideClient.RefreshCache, log)
 		}()
 	}
@@ -402,6 +402,7 @@ func readd(ctx context.Context, db database.Database) error {
 }
 
 func untilContextDone(ctx context.Context, interval time.Duration, f func(context.Context) error, log logrus.FieldLogger) {
+	log.WithField("interval", interval.String()).Info("running until context done")
 	ticker := time.NewTicker(interval)
 	for {
 		if err := f(ctx); err != nil {
