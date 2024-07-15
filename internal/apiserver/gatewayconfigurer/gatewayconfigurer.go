@@ -14,11 +14,10 @@ import (
 )
 
 type GatewayConfigurer struct {
-	db           database.Database
-	bucket       bucket.Client
-	syncInterval time.Duration
-	lastUpdated  time.Time
-	log          *logrus.Entry
+	db          database.Database
+	bucket      bucket.Client
+	lastUpdated time.Time
+	log         *logrus.Entry
 }
 
 func NewGatewayConfigurer(log *logrus.Entry, db database.Database, bucket bucket.Client) *GatewayConfigurer {
