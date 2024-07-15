@@ -35,8 +35,11 @@ import (
 )
 
 const (
-	gatewayConfigSyncInterval = 1 * time.Minute
-	WireGuardSyncInterval     = 20 * time.Second
+	intervalWireGuardSync      = 20 * time.Second
+	intervalGatewayConfigSync  = 1 * time.Minute
+	intervalJITASync           = 10 * time.Second
+	intervalKolideCacheRefresh = 1 * time.Minute
+	intervalKolideFullSync     = 1 * time.Minute
 )
 
 func main() {
@@ -161,7 +164,8 @@ func run(log *logrus.Entry, cfg config.Config) error {
 			return fmt.Errorf("setup interface: %w", err)
 		}
 
-		go untilContextDone(ctx, WireGuardSyncInterval, syncWireGuardConfig(db, netConf, cfg.StaticPeers()), log.WithField("component", "wireguard"))
+		wgSync := syncWireGuardConfig(db, netConf, cfg.StaticPeers())
+		go untilContextDone(ctx, intervalWireGuardSync, wgSync, log.WithField("component", "wireguard"))
 		log.Info("WireGuard successfully configured")
 	} else {
 		log.Warn("WireGuard integration DISABLED! Do not run this configuration in production!")
@@ -198,11 +202,7 @@ func run(log *logrus.Entry, cfg config.Config) error {
 
 		log := log.WithField("component", "kolide-client")
 		kolideClient = kolide.New(cfg.KolideApiToken, db, log)
-		go func() {
-			kolideRefreshInterval := 1 * time.Minute
-			log.WithField("interval", kolideRefreshInterval.String()).Info("Kolide client configured")
-			untilContextDone(ctx, kolideRefreshInterval, kolideClient.RefreshCache, log)
-		}()
+		go untilContextDone(ctx, intervalKolideCacheRefresh, kolideClient.RefreshCache, log)
 	}
 
 	if cfg.AutoEnrollEnabled {
@@ -230,11 +230,11 @@ func run(log *logrus.Entry, cfg config.Config) error {
 		buck := bucket.NewClient(cfg.GatewayConfigBucketName, cfg.GatewayConfigBucketObjectName)
 		log := log.WithField("component", "gatewayconfigurer").WithField("source", buck)
 		updater := gatewayconfigurer.NewGatewayConfigurer(log, db, buck)
-		go untilContextDone(ctx, gatewayConfigSyncInterval, updater.SyncConfig, log)
+		go untilContextDone(ctx, intervalGatewayConfigSync, updater.SyncConfig, log)
 	case "metadata":
 		log := log.WithField("component", "gatewayconfigurer").WithField("source", "metadata")
 		updater := gatewayconfigurer.NewGoogleMetadata(db, log)
-		go untilContextDone(ctx, gatewayConfigSyncInterval, updater.SyncConfig, log)
+		go untilContextDone(ctx, intervalGatewayConfigSync, updater.SyncConfig, log)
 	default:
 		log.Warn("no valid gateway configurer set, gateways won't be updated")
 	}
@@ -317,7 +317,7 @@ func run(log *logrus.Entry, cfg config.Config) error {
 
 	if cfg.KolideIntegrationEnabled {
 		// sync all devices continuously
-		go untilContextDone(ctx, 1*time.Minute, grpcHandler.UpdateAllDevices, log.WithField("component", "kolide-device-sync"))
+		go untilContextDone(ctx, intervalKolideFullSync, grpcHandler.UpdateAllDevices, log.WithField("component", "kolide-device-sync"))
 	}
 
 	// initialize gateway metrics
