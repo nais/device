@@ -220,9 +220,11 @@ func run(log *logrus.Entry, cfg config.Config) error {
 		}()
 	}
 
-	jitaClient := jita.New(log.WithField("component", "jita"), cfg.JitaUsername, cfg.JitaPassword, cfg.JitaUrl)
+	var jitaClient jita.Client
 	if cfg.JitaEnabled {
-		go untilContextDone(ctx, 10*time.Second, jitaClient.UpdatePrivilegedUsers, log.WithField("component", "jita"))
+		log := log.WithField("component", "jita")
+		jitaClient = jita.New(log, cfg.JitaUsername, cfg.JitaPassword, cfg.JitaUrl)
+		go untilContextDone(ctx, intervalJITASync, jitaClient.UpdatePrivilegedUsers, log)
 	}
 
 	switch cfg.GatewayConfigurer {

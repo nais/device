@@ -11,6 +11,9 @@ func privileged(jita jita.Client, gateway *pb.Gateway, sessions []*pb.Session) [
 	if !gateway.RequiresPrivilegedAccess {
 		return sessions
 	}
+	if jita == nil {
+		return nil
+	}
 	privilegedUsers := jita.GetPrivilegedUsersForGateway(gateway.Name)
 
 	m, _ := metrics.PrivilegedUsersPerGateway.GetMetricWithLabelValues(gateway.Name)
