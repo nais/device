@@ -475,13 +475,13 @@ func (db *database) ReadGateway(ctx context.Context, name string) (*pb.Gateway, 
 func (db *database) readExistingIPs(ctx context.Context) ([]string, error) {
 	var ips []string
 
-	devices, err := db.ReadDevices(ctx)
+	devices, err := db.ReadPeers(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("reading devices: %w", err)
 	}
 
 	for _, device := range devices {
-		ips = append(ips, device.Ipv4)
+		ips = append(ips, device.ip)
 	}
 
 	gateways, err := db.ReadGateways(ctx)
