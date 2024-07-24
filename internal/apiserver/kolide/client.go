@@ -22,8 +22,6 @@ type client struct {
 	baseUrl string
 	client  *http.Client
 
-	checks *Cache[int64, Check]
-
 	log logrus.FieldLogger
 }
 
