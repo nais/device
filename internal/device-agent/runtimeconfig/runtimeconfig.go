@@ -210,6 +210,7 @@ func (r *runtimeConfig) enroll(ctx context.Context, serial, token string) error 
 	if err != nil {
 		return fmt.Errorf("sending request: %w", err)
 	}
+	defer hresp.Body.Close()
 
 	if hresp.StatusCode != http.StatusOK {
 		body, err := io.ReadAll(hresp.Body)
@@ -312,6 +313,7 @@ func (r *runtimeConfig) getEnrollURL(ctx context.Context) (string, error) {
 	if err != nil {
 		return "", err
 	}
+	defer resp.Body.Close()
 
 	b, err := io.ReadAll(resp.Body)
 	if err != nil {

@@ -64,6 +64,7 @@ func handleRedirectGoogle(state, redirectURI string, codeVerifier *codeverifier.
 			failAuth(err, w, authFlowChan)
 			return
 		}
+		defer res.Body.Close()
 
 		var exchangeResponse ExchangeResponse
 		err = json.NewDecoder(res.Body).Decode(&exchangeResponse)
