@@ -93,12 +93,5 @@ func (s *grpcServer) GetKolideCache(ctx context.Context, r *pb.GetKolideCacheReq
 		return nil, fmt.Errorf("kolide client not configured")
 	}
 
-	checks, err := s.kolideClient.DumpChecks()
-	if err != nil {
-		return nil, err
-	}
-
-	return &pb.GetKolideCacheResponse{
-		RawChecks: checks,
-	}, nil
+	return &pb.GetKolideCacheResponse{}, nil
 }

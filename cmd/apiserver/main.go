@@ -209,8 +209,7 @@ func run(log *logrus.Entry, cfg config.Config) error {
 		}
 
 		log := log.WithField("component", "kolide-client")
-		kolideClient = kolide.New(cfg.KolideApiToken, db, log)
-		go untilContextDone(ctx, intervalKolideCacheRefresh, kolideClient.RefreshCache, log)
+		kolideClient = kolide.New(cfg.KolideApiToken, log)
 	}
 
 	if cfg.AutoEnrollEnabled {
@@ -328,6 +327,7 @@ func run(log *logrus.Entry, cfg config.Config) error {
 	if cfg.KolideIntegrationEnabled {
 		// sync all devices continuously
 		go untilContextDone(ctx, intervalKolideFullSync, grpcHandler.UpdateAllDevices, log.WithField("component", "kolide-device-sync"))
+		go untilContextDone(ctx, intervalKolideCacheRefresh, grpcHandler.UpdateKolideChecks, log.WithField("component", "kolide-checks-sync"))
 	}
 
 	// initialize gateway metrics
@@ -348,7 +348,7 @@ func run(log *logrus.Entry, cfg config.Config) error {
 				return fmt.Errorf("read device with external_id=%v: %w", event.GetExternalID(), err)
 			}
 
-			failures, err := kolideClient.GetDeviceFailures(ctx, device.ExternalID)
+			failures, err := kolideClient.GetDeviceIssues(ctx, device.ExternalID)
 			if err != nil {
 				return err
 			}
@@ -356,7 +356,12 @@ func run(log *logrus.Entry, cfg config.Config) error {
 			sessions.RefreshDevice(device)
 
 			now := time.Now()
-			err = db.UpdateSingleDevice(ctx, device.ExternalID, device.Serial, device.Platform, &now, failures)
+			err = db.SetDeviceSeenByKolide(ctx, device.ExternalID, device.Serial, device.Platform, &now)
+			if err != nil {
+				return err
+			}
+
+			err = db.UpdateKolideIssuesForDevice(ctx, device.ExternalID, failures)
 			if err != nil {
 				return err
 			}

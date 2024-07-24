@@ -48,6 +48,9 @@ func Prepare(ctx context.Context, db DBTX) (*Queries, error) {
 	if q.deleteGatewayRoutesStmt, err = db.PrepareContext(ctx, deleteGatewayRoutes); err != nil {
 		return nil, fmt.Errorf("error preparing query DeleteGatewayRoutes: %w", err)
 	}
+	if q.deleteKolideIssuesForDeviceStmt, err = db.PrepareContext(ctx, deleteKolideIssuesForDevice); err != nil {
+		return nil, fmt.Errorf("error preparing query DeleteKolideIssuesForDevice: %w", err)
+	}
 	if q.getDeviceByExternalIDStmt, err = db.PrepareContext(ctx, getDeviceByExternalID); err != nil {
 		return nil, fmt.Errorf("error preparing query GetDeviceByExternalID: %w", err)
 	}
@@ -75,6 +78,18 @@ func Prepare(ctx context.Context, db DBTX) (*Queries, error) {
 	if q.getGatewaysStmt, err = db.PrepareContext(ctx, getGateways); err != nil {
 		return nil, fmt.Errorf("error preparing query GetGateways: %w", err)
 	}
+	if q.getKolideCheckStmt, err = db.PrepareContext(ctx, getKolideCheck); err != nil {
+		return nil, fmt.Errorf("error preparing query GetKolideCheck: %w", err)
+	}
+	if q.getKolideChecksStmt, err = db.PrepareContext(ctx, getKolideChecks); err != nil {
+		return nil, fmt.Errorf("error preparing query GetKolideChecks: %w", err)
+	}
+	if q.getKolideIssuesStmt, err = db.PrepareContext(ctx, getKolideIssues); err != nil {
+		return nil, fmt.Errorf("error preparing query GetKolideIssues: %w", err)
+	}
+	if q.getKolideIssuesForDeviceStmt, err = db.PrepareContext(ctx, getKolideIssuesForDevice); err != nil {
+		return nil, fmt.Errorf("error preparing query GetKolideIssuesForDevice: %w", err)
+	}
 	if q.getLastUsedIPV6Stmt, err = db.PrepareContext(ctx, getLastUsedIPV6); err != nil {
 		return nil, fmt.Errorf("error preparing query GetLastUsedIPV6: %w", err)
 	}
@@ -95,6 +110,15 @@ func Prepare(ctx context.Context, db DBTX) (*Queries, error) {
 	}
 	if q.removeExpiredSessionsStmt, err = db.PrepareContext(ctx, removeExpiredSessions); err != nil {
 		return nil, fmt.Errorf("error preparing query RemoveExpiredSessions: %w", err)
+	}
+	if q.setKolideCheckStmt, err = db.PrepareContext(ctx, setKolideCheck); err != nil {
+		return nil, fmt.Errorf("error preparing query SetKolideCheck: %w", err)
+	}
+	if q.setKolideIssueStmt, err = db.PrepareContext(ctx, setKolideIssue); err != nil {
+		return nil, fmt.Errorf("error preparing query SetKolideIssue: %w", err)
+	}
+	if q.truncateKolideIssuesStmt, err = db.PrepareContext(ctx, truncateKolideIssues); err != nil {
+		return nil, fmt.Errorf("error preparing query TruncateKolideIssues: %w", err)
 	}
 	if q.updateDeviceStmt, err = db.PrepareContext(ctx, updateDevice); err != nil {
 		return nil, fmt.Errorf("error preparing query UpdateDevice: %w", err)
@@ -150,6 +174,11 @@ func (q *Queries) Close() error {
 			err = fmt.Errorf("error closing deleteGatewayRoutesStmt: %w", cerr)
 		}
 	}
+	if q.deleteKolideIssuesForDeviceStmt != nil {
+		if cerr := q.deleteKolideIssuesForDeviceStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing deleteKolideIssuesForDeviceStmt: %w", cerr)
+		}
+	}
 	if q.getDeviceByExternalIDStmt != nil {
 		if cerr := q.getDeviceByExternalIDStmt.Close(); cerr != nil {
 			err = fmt.Errorf("error closing getDeviceByExternalIDStmt: %w", cerr)
@@ -195,6 +224,26 @@ func (q *Queries) Close() error {
 			err = fmt.Errorf("error closing getGatewaysStmt: %w", cerr)
 		}
 	}
+	if q.getKolideCheckStmt != nil {
+		if cerr := q.getKolideCheckStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing getKolideCheckStmt: %w", cerr)
+		}
+	}
+	if q.getKolideChecksStmt != nil {
+		if cerr := q.getKolideChecksStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing getKolideChecksStmt: %w", cerr)
+		}
+	}
+	if q.getKolideIssuesStmt != nil {
+		if cerr := q.getKolideIssuesStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing getKolideIssuesStmt: %w", cerr)
+		}
+	}
+	if q.getKolideIssuesForDeviceStmt != nil {
+		if cerr := q.getKolideIssuesForDeviceStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing getKolideIssuesForDeviceStmt: %w", cerr)
+		}
+	}
 	if q.getLastUsedIPV6Stmt != nil {
 		if cerr := q.getLastUsedIPV6Stmt.Close(); cerr != nil {
 			err = fmt.Errorf("error closing getLastUsedIPV6Stmt: %w", cerr)
@@ -228,6 +277,21 @@ func (q *Queries) Close() error {
 	if q.removeExpiredSessionsStmt != nil {
 		if cerr := q.removeExpiredSessionsStmt.Close(); cerr != nil {
 			err = fmt.Errorf("error closing removeExpiredSessionsStmt: %w", cerr)
+		}
+	}
+	if q.setKolideCheckStmt != nil {
+		if cerr := q.setKolideCheckStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing setKolideCheckStmt: %w", cerr)
+		}
+	}
+	if q.setKolideIssueStmt != nil {
+		if cerr := q.setKolideIssueStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing setKolideIssueStmt: %w", cerr)
+		}
+	}
+	if q.truncateKolideIssuesStmt != nil {
+		if cerr := q.truncateKolideIssuesStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing truncateKolideIssuesStmt: %w", cerr)
 		}
 	}
 	if q.updateDeviceStmt != nil {
@@ -292,6 +356,7 @@ type Queries struct {
 	addSessionAccessGroupIDStmt      *sql.Stmt
 	deleteGatewayAccessGroupIDsStmt  *sql.Stmt
 	deleteGatewayRoutesStmt          *sql.Stmt
+	deleteKolideIssuesForDeviceStmt  *sql.Stmt
 	getDeviceByExternalIDStmt        *sql.Stmt
 	getDeviceByIDStmt                *sql.Stmt
 	getDeviceByPublicKeyStmt         *sql.Stmt
@@ -301,6 +366,10 @@ type Queries struct {
 	getGatewayByNameStmt             *sql.Stmt
 	getGatewayRoutesStmt             *sql.Stmt
 	getGatewaysStmt                  *sql.Stmt
+	getKolideCheckStmt               *sql.Stmt
+	getKolideChecksStmt              *sql.Stmt
+	getKolideIssuesStmt              *sql.Stmt
+	getKolideIssuesForDeviceStmt     *sql.Stmt
 	getLastUsedIPV6Stmt              *sql.Stmt
 	getMostRecentDeviceSessionStmt   *sql.Stmt
 	getPeersStmt                     *sql.Stmt
@@ -308,6 +377,9 @@ type Queries struct {
 	getSessionGroupIDsStmt           *sql.Stmt
 	getSessionsStmt                  *sql.Stmt
 	removeExpiredSessionsStmt        *sql.Stmt
+	setKolideCheckStmt               *sql.Stmt
+	setKolideIssueStmt               *sql.Stmt
+	truncateKolideIssuesStmt         *sql.Stmt
 	updateDeviceStmt                 *sql.Stmt
 	updateGatewayStmt                *sql.Stmt
 	updateGatewayDynamicFieldsStmt   *sql.Stmt
@@ -325,6 +397,7 @@ func (q *Queries) WithTx(tx *sql.Tx) *Queries {
 		addSessionAccessGroupIDStmt:      q.addSessionAccessGroupIDStmt,
 		deleteGatewayAccessGroupIDsStmt:  q.deleteGatewayAccessGroupIDsStmt,
 		deleteGatewayRoutesStmt:          q.deleteGatewayRoutesStmt,
+		deleteKolideIssuesForDeviceStmt:  q.deleteKolideIssuesForDeviceStmt,
 		getDeviceByExternalIDStmt:        q.getDeviceByExternalIDStmt,
 		getDeviceByIDStmt:                q.getDeviceByIDStmt,
 		getDeviceByPublicKeyStmt:         q.getDeviceByPublicKeyStmt,
@@ -334,6 +407,10 @@ func (q *Queries) WithTx(tx *sql.Tx) *Queries {
 		getGatewayByNameStmt:             q.getGatewayByNameStmt,
 		getGatewayRoutesStmt:             q.getGatewayRoutesStmt,
 		getGatewaysStmt:                  q.getGatewaysStmt,
+		getKolideCheckStmt:               q.getKolideCheckStmt,
+		getKolideChecksStmt:              q.getKolideChecksStmt,
+		getKolideIssuesStmt:              q.getKolideIssuesStmt,
+		getKolideIssuesForDeviceStmt:     q.getKolideIssuesForDeviceStmt,
 		getLastUsedIPV6Stmt:              q.getLastUsedIPV6Stmt,
 		getMostRecentDeviceSessionStmt:   q.getMostRecentDeviceSessionStmt,
 		getPeersStmt:                     q.getPeersStmt,
@@ -341,6 +418,9 @@ func (q *Queries) WithTx(tx *sql.Tx) *Queries {
 		getSessionGroupIDsStmt:           q.getSessionGroupIDsStmt,
 		getSessionsStmt:                  q.getSessionsStmt,
 		removeExpiredSessionsStmt:        q.removeExpiredSessionsStmt,
+		setKolideCheckStmt:               q.setKolideCheckStmt,
+		setKolideIssueStmt:               q.setKolideIssueStmt,
+		truncateKolideIssuesStmt:         q.truncateKolideIssuesStmt,
 		updateDeviceStmt:                 q.updateDeviceStmt,
 		updateGatewayStmt:                q.updateGatewayStmt,
 		updateGatewayDynamicFieldsStmt:   q.updateGatewayDynamicFieldsStmt,

@@ -4,6 +4,8 @@ import (
 	"context"
 	"time"
 
+	"github.com/nais/device/internal/apiserver/kolide"
+	"github.com/nais/device/internal/apiserver/sqlc"
 	"github.com/nais/device/internal/pb"
 )
 
@@ -26,5 +28,9 @@ type Database interface {
 	ReadSessionInfos(ctx context.Context) ([]*pb.Session, error)
 	RemoveExpiredSessions(ctx context.Context) error
 	ReadMostRecentSessionInfo(ctx context.Context, deviceID int64) (*pb.Session, error)
-	UpdateSingleDevice(ctx context.Context, externalID, serial, platform string, lastSeen *time.Time, issues []*pb.DeviceIssue) error
+	SetDeviceSeenByKolide(ctx context.Context, externalID, serial, platform string, lastSeen *time.Time) error
+	UpdateKolideIssues(ctx context.Context, issues []*kolide.DeviceFailure) error
+	UpdateKolideIssuesForDevice(ctx context.Context, externalID string, issues []*kolide.DeviceFailure) error
+	UpdateKolideChecks(ctx context.Context, checks []*kolide.Check) error
+	ReadKolideChecks(ctx context.Context) (map[int64]*sqlc.KolideCheck, error)
 }

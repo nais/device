@@ -6,8 +6,8 @@ import (
 )
 
 type DeviceFailure struct {
-	ID          uint64                 `json:"id"`
-	CheckID     uint64                 `json:"check_id"`
+	ID          int64                  `json:"id"`
+	CheckID     int64                  `json:"check_id"`
 	Value       map[string]interface{} `json:"value"`
 	Title       string                 `json:"title"`
 	Timestamp   *time.Time             `json:"timestamp"`
@@ -15,11 +15,7 @@ type DeviceFailure struct {
 	LastUpdated time.Time              `json:"-"`
 	Ignored     bool                   `json:"ignored"`
 	Check       Check                  `json:"check"`
-}
-
-type DeviceFailureWithDevice struct {
-	DeviceFailure
-	Device Device `json:"device"`
+	Device      Device                 `json:"device"`
 }
 
 type DeviceOwner struct {
@@ -27,7 +23,7 @@ type DeviceOwner struct {
 }
 
 type Device struct {
-	ID              uint64          `json:"id"`
+	ID              int64           `json:"id"`
 	Name            string          `json:"name"`
 	OwnedBy         string          `json:"owned_by"`
 	Platform        string          `json:"platform"`
@@ -40,7 +36,7 @@ type Device struct {
 }
 
 type Check struct {
-	ID          uint64   `json:"id"`
+	ID          int64    `json:"id"`
 	Tags        []string `json:"tags"`
 	DisplayName string   `json:"display_name"`
 	Description string   `json:"description"`
@@ -57,24 +53,3 @@ type PaginatedResponse struct {
 	Data       []json.RawMessage `json:"data"`
 	Pagination Pagination        `json:"pagination"`
 }
-
-type Severity int
-
-const (
-	SeverityInfo Severity = iota
-	SeverityNotice
-	SeverityWarning
-	SeverityDanger
-	SeverityCritical
-)
-
-type SeverityDuration time.Duration
-
-// Devices are allowed to connect this long after a failed check is triggered.
-const (
-	DurationCritical = 0
-	DurationDanger   = time.Hour
-	DurationWarning  = time.Hour * 24 * 2
-	DurationNotice   = time.Hour * 24 * 7
-	DurationUnknown  = time.Hour * 24 * 30
-)

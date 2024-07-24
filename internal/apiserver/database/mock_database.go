@@ -5,8 +5,12 @@ package database
 import (
 	context "context"
 
-	pb "github.com/nais/device/internal/pb"
+	kolide "github.com/nais/device/internal/apiserver/kolide"
 	mock "github.com/stretchr/testify/mock"
+
+	pb "github.com/nais/device/internal/pb"
+
+	sqlc "github.com/nais/device/internal/apiserver/sqlc"
 
 	time "time"
 )
@@ -577,6 +581,64 @@ func (_c *MockDatabase_ReadGateways_Call) RunAndReturn(run func(context.Context)
 	return _c
 }
 
+// ReadKolideChecks provides a mock function with given fields: ctx
+func (_m *MockDatabase) ReadKolideChecks(ctx context.Context) (map[int64]*sqlc.KolideCheck, error) {
+	ret := _m.Called(ctx)
+
+	if len(ret) == 0 {
+		panic("no return value specified for ReadKolideChecks")
+	}
+
+	var r0 map[int64]*sqlc.KolideCheck
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context) (map[int64]*sqlc.KolideCheck, error)); ok {
+		return rf(ctx)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context) map[int64]*sqlc.KolideCheck); ok {
+		r0 = rf(ctx)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(map[int64]*sqlc.KolideCheck)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context) error); ok {
+		r1 = rf(ctx)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// MockDatabase_ReadKolideChecks_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'ReadKolideChecks'
+type MockDatabase_ReadKolideChecks_Call struct {
+	*mock.Call
+}
+
+// ReadKolideChecks is a helper method to define mock.On call
+//   - ctx context.Context
+func (_e *MockDatabase_Expecter) ReadKolideChecks(ctx interface{}) *MockDatabase_ReadKolideChecks_Call {
+	return &MockDatabase_ReadKolideChecks_Call{Call: _e.mock.On("ReadKolideChecks", ctx)}
+}
+
+func (_c *MockDatabase_ReadKolideChecks_Call) Run(run func(ctx context.Context)) *MockDatabase_ReadKolideChecks_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context))
+	})
+	return _c
+}
+
+func (_c *MockDatabase_ReadKolideChecks_Call) Return(_a0 map[int64]*sqlc.KolideCheck, _a1 error) *MockDatabase_ReadKolideChecks_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *MockDatabase_ReadKolideChecks_Call) RunAndReturn(run func(context.Context) (map[int64]*sqlc.KolideCheck, error)) *MockDatabase_ReadKolideChecks_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // ReadMostRecentSessionInfo provides a mock function with given fields: ctx, deviceID
 func (_m *MockDatabase) ReadMostRecentSessionInfo(ctx context.Context, deviceID int64) (*pb.Session, error) {
 	ret := _m.Called(ctx, deviceID)
@@ -857,6 +919,56 @@ func (_c *MockDatabase_RemoveExpiredSessions_Call) RunAndReturn(run func(context
 	return _c
 }
 
+// SetDeviceSeenByKolide provides a mock function with given fields: ctx, externalID, serial, platform, lastSeen
+func (_m *MockDatabase) SetDeviceSeenByKolide(ctx context.Context, externalID string, serial string, platform string, lastSeen *time.Time) error {
+	ret := _m.Called(ctx, externalID, serial, platform, lastSeen)
+
+	if len(ret) == 0 {
+		panic("no return value specified for SetDeviceSeenByKolide")
+	}
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(context.Context, string, string, string, *time.Time) error); ok {
+		r0 = rf(ctx, externalID, serial, platform, lastSeen)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
+// MockDatabase_SetDeviceSeenByKolide_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'SetDeviceSeenByKolide'
+type MockDatabase_SetDeviceSeenByKolide_Call struct {
+	*mock.Call
+}
+
+// SetDeviceSeenByKolide is a helper method to define mock.On call
+//   - ctx context.Context
+//   - externalID string
+//   - serial string
+//   - platform string
+//   - lastSeen *time.Time
+func (_e *MockDatabase_Expecter) SetDeviceSeenByKolide(ctx interface{}, externalID interface{}, serial interface{}, platform interface{}, lastSeen interface{}) *MockDatabase_SetDeviceSeenByKolide_Call {
+	return &MockDatabase_SetDeviceSeenByKolide_Call{Call: _e.mock.On("SetDeviceSeenByKolide", ctx, externalID, serial, platform, lastSeen)}
+}
+
+func (_c *MockDatabase_SetDeviceSeenByKolide_Call) Run(run func(ctx context.Context, externalID string, serial string, platform string, lastSeen *time.Time)) *MockDatabase_SetDeviceSeenByKolide_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(string), args[2].(string), args[3].(string), args[4].(*time.Time))
+	})
+	return _c
+}
+
+func (_c *MockDatabase_SetDeviceSeenByKolide_Call) Return(_a0 error) *MockDatabase_SetDeviceSeenByKolide_Call {
+	_c.Call.Return(_a0)
+	return _c
+}
+
+func (_c *MockDatabase_SetDeviceSeenByKolide_Call) RunAndReturn(run func(context.Context, string, string, string, *time.Time) error) *MockDatabase_SetDeviceSeenByKolide_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // UpdateDevices provides a mock function with given fields: ctx, devices
 func (_m *MockDatabase) UpdateDevices(ctx context.Context, devices []*pb.Device) error {
 	ret := _m.Called(ctx, devices)
@@ -998,17 +1110,17 @@ func (_c *MockDatabase_UpdateGatewayDynamicFields_Call) RunAndReturn(run func(co
 	return _c
 }
 
-// UpdateSingleDevice provides a mock function with given fields: ctx, externalID, serial, platform, lastSeen, issues
-func (_m *MockDatabase) UpdateSingleDevice(ctx context.Context, externalID string, serial string, platform string, lastSeen *time.Time, issues []*pb.DeviceIssue) error {
-	ret := _m.Called(ctx, externalID, serial, platform, lastSeen, issues)
+// UpdateKolideChecks provides a mock function with given fields: ctx, checks
+func (_m *MockDatabase) UpdateKolideChecks(ctx context.Context, checks []*kolide.Check) error {
+	ret := _m.Called(ctx, checks)
 
 	if len(ret) == 0 {
-		panic("no return value specified for UpdateSingleDevice")
+		panic("no return value specified for UpdateKolideChecks")
 	}
 
 	var r0 error
-	if rf, ok := ret.Get(0).(func(context.Context, string, string, string, *time.Time, []*pb.DeviceIssue) error); ok {
-		r0 = rf(ctx, externalID, serial, platform, lastSeen, issues)
+	if rf, ok := ret.Get(0).(func(context.Context, []*kolide.Check) error); ok {
+		r0 = rf(ctx, checks)
 	} else {
 		r0 = ret.Error(0)
 	}
@@ -1016,35 +1128,126 @@ func (_m *MockDatabase) UpdateSingleDevice(ctx context.Context, externalID strin
 	return r0
 }
 
-// MockDatabase_UpdateSingleDevice_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'UpdateSingleDevice'
-type MockDatabase_UpdateSingleDevice_Call struct {
+// MockDatabase_UpdateKolideChecks_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'UpdateKolideChecks'
+type MockDatabase_UpdateKolideChecks_Call struct {
 	*mock.Call
 }
 
-// UpdateSingleDevice is a helper method to define mock.On call
+// UpdateKolideChecks is a helper method to define mock.On call
 //   - ctx context.Context
-//   - externalID string
-//   - serial string
-//   - platform string
-//   - lastSeen *time.Time
-//   - issues []*pb.DeviceIssue
-func (_e *MockDatabase_Expecter) UpdateSingleDevice(ctx interface{}, externalID interface{}, serial interface{}, platform interface{}, lastSeen interface{}, issues interface{}) *MockDatabase_UpdateSingleDevice_Call {
-	return &MockDatabase_UpdateSingleDevice_Call{Call: _e.mock.On("UpdateSingleDevice", ctx, externalID, serial, platform, lastSeen, issues)}
+//   - checks []*kolide.Check
+func (_e *MockDatabase_Expecter) UpdateKolideChecks(ctx interface{}, checks interface{}) *MockDatabase_UpdateKolideChecks_Call {
+	return &MockDatabase_UpdateKolideChecks_Call{Call: _e.mock.On("UpdateKolideChecks", ctx, checks)}
 }
 
-func (_c *MockDatabase_UpdateSingleDevice_Call) Run(run func(ctx context.Context, externalID string, serial string, platform string, lastSeen *time.Time, issues []*pb.DeviceIssue)) *MockDatabase_UpdateSingleDevice_Call {
+func (_c *MockDatabase_UpdateKolideChecks_Call) Run(run func(ctx context.Context, checks []*kolide.Check)) *MockDatabase_UpdateKolideChecks_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(context.Context), args[1].(string), args[2].(string), args[3].(string), args[4].(*time.Time), args[5].([]*pb.DeviceIssue))
+		run(args[0].(context.Context), args[1].([]*kolide.Check))
 	})
 	return _c
 }
 
-func (_c *MockDatabase_UpdateSingleDevice_Call) Return(_a0 error) *MockDatabase_UpdateSingleDevice_Call {
+func (_c *MockDatabase_UpdateKolideChecks_Call) Return(_a0 error) *MockDatabase_UpdateKolideChecks_Call {
 	_c.Call.Return(_a0)
 	return _c
 }
 
-func (_c *MockDatabase_UpdateSingleDevice_Call) RunAndReturn(run func(context.Context, string, string, string, *time.Time, []*pb.DeviceIssue) error) *MockDatabase_UpdateSingleDevice_Call {
+func (_c *MockDatabase_UpdateKolideChecks_Call) RunAndReturn(run func(context.Context, []*kolide.Check) error) *MockDatabase_UpdateKolideChecks_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// UpdateKolideIssues provides a mock function with given fields: ctx, issues
+func (_m *MockDatabase) UpdateKolideIssues(ctx context.Context, issues []*kolide.DeviceFailure) error {
+	ret := _m.Called(ctx, issues)
+
+	if len(ret) == 0 {
+		panic("no return value specified for UpdateKolideIssues")
+	}
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(context.Context, []*kolide.DeviceFailure) error); ok {
+		r0 = rf(ctx, issues)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
+// MockDatabase_UpdateKolideIssues_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'UpdateKolideIssues'
+type MockDatabase_UpdateKolideIssues_Call struct {
+	*mock.Call
+}
+
+// UpdateKolideIssues is a helper method to define mock.On call
+//   - ctx context.Context
+//   - issues []*kolide.DeviceFailure
+func (_e *MockDatabase_Expecter) UpdateKolideIssues(ctx interface{}, issues interface{}) *MockDatabase_UpdateKolideIssues_Call {
+	return &MockDatabase_UpdateKolideIssues_Call{Call: _e.mock.On("UpdateKolideIssues", ctx, issues)}
+}
+
+func (_c *MockDatabase_UpdateKolideIssues_Call) Run(run func(ctx context.Context, issues []*kolide.DeviceFailure)) *MockDatabase_UpdateKolideIssues_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].([]*kolide.DeviceFailure))
+	})
+	return _c
+}
+
+func (_c *MockDatabase_UpdateKolideIssues_Call) Return(_a0 error) *MockDatabase_UpdateKolideIssues_Call {
+	_c.Call.Return(_a0)
+	return _c
+}
+
+func (_c *MockDatabase_UpdateKolideIssues_Call) RunAndReturn(run func(context.Context, []*kolide.DeviceFailure) error) *MockDatabase_UpdateKolideIssues_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// UpdateKolideIssuesForDevice provides a mock function with given fields: ctx, externalID, issues
+func (_m *MockDatabase) UpdateKolideIssuesForDevice(ctx context.Context, externalID string, issues []*kolide.DeviceFailure) error {
+	ret := _m.Called(ctx, externalID, issues)
+
+	if len(ret) == 0 {
+		panic("no return value specified for UpdateKolideIssuesForDevice")
+	}
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(context.Context, string, []*kolide.DeviceFailure) error); ok {
+		r0 = rf(ctx, externalID, issues)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
+// MockDatabase_UpdateKolideIssuesForDevice_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'UpdateKolideIssuesForDevice'
+type MockDatabase_UpdateKolideIssuesForDevice_Call struct {
+	*mock.Call
+}
+
+// UpdateKolideIssuesForDevice is a helper method to define mock.On call
+//   - ctx context.Context
+//   - externalID string
+//   - issues []*kolide.DeviceFailure
+func (_e *MockDatabase_Expecter) UpdateKolideIssuesForDevice(ctx interface{}, externalID interface{}, issues interface{}) *MockDatabase_UpdateKolideIssuesForDevice_Call {
+	return &MockDatabase_UpdateKolideIssuesForDevice_Call{Call: _e.mock.On("UpdateKolideIssuesForDevice", ctx, externalID, issues)}
+}
+
+func (_c *MockDatabase_UpdateKolideIssuesForDevice_Call) Run(run func(ctx context.Context, externalID string, issues []*kolide.DeviceFailure)) *MockDatabase_UpdateKolideIssuesForDevice_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(string), args[2].([]*kolide.DeviceFailure))
+	})
+	return _c
+}
+
+func (_c *MockDatabase_UpdateKolideIssuesForDevice_Call) Return(_a0 error) *MockDatabase_UpdateKolideIssuesForDevice_Call {
+	_c.Call.Return(_a0)
+	return _c
+}
+
+func (_c *MockDatabase_UpdateKolideIssuesForDevice_Call) RunAndReturn(run func(context.Context, string, []*kolide.DeviceFailure) error) *MockDatabase_UpdateKolideIssuesForDevice_Call {
 	_c.Call.Return(run)
 	return _c
 }

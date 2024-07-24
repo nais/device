@@ -1,8 +1,8 @@
 -- name: GetDevices :many
-SELECT * FROM devices ORDER BY id;
+SELECT * FROM devices ORDER BY devices.id;
 
 -- name: GetPeers :many
-SELECT username, public_key, ipv4 FROM devices ORDER BY id;
+SELECT username, public_key, ipv4 FROM devices ORDER BY devices.id;
 
 -- name: GetDeviceByPublicKey :one
 SELECT * FROM devices WHERE public_key = @public_key;
@@ -11,14 +11,14 @@ SELECT * FROM devices WHERE public_key = @public_key;
 SELECT * FROM devices WHERE external_id = @external_id;
 
 -- name: GetDeviceByID :one
-SELECT * FROM devices WHERE id = @id;
+SELECT * FROM devices WHERE devices.id = @id;
 
 -- name: GetDeviceBySerialAndPlatform :one
-SELECT * from devices WHERE serial = @serial AND platform = @platform;
+SELECT * FROM devices WHERE serial = @serial AND platform = @platform;
 
 -- name: UpdateDevice :exec
 UPDATE devices
-SET external_id = @external_id, healthy = @healthy, last_updated = @last_updated, last_seen = @last_seen, issues = @issues
+SET external_id = @external_id, healthy = @healthy, last_updated = @last_updated, last_seen = @last_seen
 WHERE serial = @serial AND platform = @platform;
 
 -- name: AddDevice :exec

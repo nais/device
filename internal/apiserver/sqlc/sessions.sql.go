@@ -47,7 +47,7 @@ func (q *Queries) AddSessionAccessGroupID(ctx context.Context, arg AddSessionAcc
 }
 
 const getMostRecentDeviceSession = `-- name: GetMostRecentDeviceSession :one
-SELECT s."key", s.expiry, s.device_id, s.object_id, d.id, d.username, d.serial, d.platform, d.healthy, d.last_updated, d.public_key, d.ipv4, d.ipv6, d.last_seen, d.issues, d.external_id FROM sessions s
+SELECT s."key", s.expiry, s.device_id, s.object_id, d.id, d.username, d.serial, d.platform, d.healthy, d.last_updated, d.public_key, d.ipv4, d.ipv6, d.last_seen, d.external_id FROM sessions s
 JOIN devices d ON d.id = s.device_id
 WHERE s.device_id = ?1
 ORDER BY s.expiry DESC
@@ -77,14 +77,13 @@ func (q *Queries) GetMostRecentDeviceSession(ctx context.Context, sessionDeviceI
 		&i.Device.Ipv4,
 		&i.Device.Ipv6,
 		&i.Device.LastSeen,
-		&i.Device.Issues,
 		&i.Device.ExternalID,
 	)
 	return &i, err
 }
 
 const getSessionByKey = `-- name: GetSessionByKey :one
-SELECT s."key", s.expiry, s.device_id, s.object_id, d.id, d.username, d.serial, d.platform, d.healthy, d.last_updated, d.public_key, d.ipv4, d.ipv6, d.last_seen, d.issues, d.external_id FROM sessions s
+SELECT s."key", s.expiry, s.device_id, s.object_id, d.id, d.username, d.serial, d.platform, d.healthy, d.last_updated, d.public_key, d.ipv4, d.ipv6, d.last_seen, d.external_id FROM sessions s
 JOIN devices d ON d.id = s.device_id WHERE s.key = ?1
 `
 
@@ -111,7 +110,6 @@ func (q *Queries) GetSessionByKey(ctx context.Context, sessionKey string) (*GetS
 		&i.Device.Ipv4,
 		&i.Device.Ipv6,
 		&i.Device.LastSeen,
-		&i.Device.Issues,
 		&i.Device.ExternalID,
 	)
 	return &i, err
@@ -145,7 +143,7 @@ func (q *Queries) GetSessionGroupIDs(ctx context.Context, sessionKey string) ([]
 }
 
 const getSessions = `-- name: GetSessions :many
-SELECT s."key", s.expiry, s.device_id, s.object_id, d.id, d.username, d.serial, d.platform, d.healthy, d.last_updated, d.public_key, d.ipv4, d.ipv6, d.last_seen, d.issues, d.external_id FROM sessions s
+SELECT s."key", s.expiry, s.device_id, s.object_id, d.id, d.username, d.serial, d.platform, d.healthy, d.last_updated, d.public_key, d.ipv4, d.ipv6, d.last_seen, d.external_id FROM sessions s
 JOIN devices d ON d.id = s.device_id
 ORDER BY s.expiry
 `
@@ -179,7 +177,6 @@ func (q *Queries) GetSessions(ctx context.Context) ([]*GetSessionsRow, error) {
 			&i.Device.Ipv4,
 			&i.Device.Ipv6,
 			&i.Device.LastSeen,
-			&i.Device.Issues,
 			&i.Device.ExternalID,
 		); err != nil {
 			return nil, err

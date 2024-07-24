@@ -11,6 +11,7 @@ import (
 	"github.com/nais/device/internal/pb"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 func (s *grpcServer) GetDeviceConfiguration(request *pb.GetDeviceConfigurationRequest, stream pb.APIServer_GetDeviceConfigurationServer) error {
@@ -193,15 +194,50 @@ func (s *grpcServer) UpdateAllDevices(ctx context.Context) error {
 	if err != nil {
 		return nil
 	}
+	/*
+		device.ExternalID = fmt.Sprint(kolideDevice.ID)
+		device.Issues = issuesByExternalID[device.ExternalID]
 
-	err = s.kolideClient.FillKolideData(ctx, devices)
+		if kolideDevice.LastSeenAt != nil {
+			device.LastSeen = timestamppb.New(*kolideDevice.LastSeenAt)
+		}
+	*/
+
+	kolideDevices, err := s.kolideClient.GetDevices(ctx)
 	if err != nil {
-		return err
+		return fmt.Errorf("getting kolide devices: %w", err)
+	}
+	for _, kolideDevice := range kolideDevices {
+		for _, device := range devices {
+			if kolideDevice.Serial == device.Serial && kolideDevice.Platform == device.Platform {
+				device.ExternalID = fmt.Sprint(kolideDevice.ID)
+				if kolideDevice.LastSeenAt != nil {
+					device.LastSeen = timestamppb.New(*kolideDevice.LastSeenAt)
+				}
+				break
+			}
+		}
+	}
+
+	issues, err := s.kolideClient.GetIssues(ctx)
+	if err != nil {
+		return fmt.Errorf("getting kolide issues: %w", err)
+	}
+
+	err = s.db.UpdateKolideIssues(ctx, issues)
+	if err != nil {
+		return fmt.Errorf("updating kolide issues: %w", err)
 	}
 
 	err = s.db.UpdateDevices(ctx, devices)
 	if err != nil && !errors.Is(err, sql.ErrNoRows) {
 		s.log.WithError(err).Error("storing device")
+	}
+
+	// get fresh devices from db
+	devices, err = s.db.ReadDevices(ctx)
+	if err != nil {
+		return fmt.Errorf("reading devices: %w", err)
 	}
 
 	for _, device := range devices {

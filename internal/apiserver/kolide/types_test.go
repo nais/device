@@ -57,7 +57,7 @@ func TestUnmarshalDevice(t *testing.T) {
 }`
 	device := kolide.Device{}
 	assert.NoError(t, json.Unmarshal([]byte(raw), &device))
-	assert.Equal(t, uint64(1), device.ID)
+	assert.Equal(t, int64(1), device.ID)
 	assert.Equal(t, "device-name", device.Name)
 	assert.Equal(t, "organization", device.OwnedBy)
 	assert.Equal(t, "nixos", device.Platform)

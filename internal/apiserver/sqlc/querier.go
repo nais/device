@@ -18,6 +18,7 @@ type Querier interface {
 	AddSessionAccessGroupID(ctx context.Context, arg AddSessionAccessGroupIDParams) error
 	DeleteGatewayAccessGroupIDs(ctx context.Context, gatewayName string) error
 	DeleteGatewayRoutes(ctx context.Context, gatewayName string) error
+	DeleteKolideIssuesForDevice(ctx context.Context, deviceID string) error
 	GetDeviceByExternalID(ctx context.Context, externalID sql.NullString) (*Device, error)
 	GetDeviceByID(ctx context.Context, id int64) (*Device, error)
 	GetDeviceByPublicKey(ctx context.Context, publicKey string) (*Device, error)
@@ -27,6 +28,10 @@ type Querier interface {
 	GetGatewayByName(ctx context.Context, name string) (*Gateway, error)
 	GetGatewayRoutes(ctx context.Context, gatewayName string) ([]*GetGatewayRoutesRow, error)
 	GetGateways(ctx context.Context) ([]*Gateway, error)
+	GetKolideCheck(ctx context.Context, id int64) (*KolideCheck, error)
+	GetKolideChecks(ctx context.Context) ([]*KolideCheck, error)
+	GetKolideIssues(ctx context.Context) ([]*GetKolideIssuesRow, error)
+	GetKolideIssuesForDevice(ctx context.Context, deviceID string) ([]*GetKolideIssuesForDeviceRow, error)
 	GetLastUsedIPV6(ctx context.Context) (string, error)
 	GetMostRecentDeviceSession(ctx context.Context, sessionDeviceID int64) (*GetMostRecentDeviceSessionRow, error)
 	GetPeers(ctx context.Context) ([]*GetPeersRow, error)
@@ -34,6 +39,9 @@ type Querier interface {
 	GetSessionGroupIDs(ctx context.Context, sessionKey string) ([]string, error)
 	GetSessions(ctx context.Context) ([]*GetSessionsRow, error)
 	RemoveExpiredSessions(ctx context.Context) error
+	SetKolideCheck(ctx context.Context, arg SetKolideCheckParams) error
+	SetKolideIssue(ctx context.Context, arg SetKolideIssueParams) error
+	TruncateKolideIssues(ctx context.Context) error
 	UpdateDevice(ctx context.Context, arg UpdateDeviceParams) error
 	UpdateGateway(ctx context.Context, arg UpdateGatewayParams) error
 	UpdateGatewayDynamicFields(ctx context.Context, arg UpdateGatewayDynamicFieldsParams) error

@@ -19,7 +19,6 @@ type Device struct {
 	Ipv4        string
 	Ipv6        string
 	LastSeen    sql.NullString
-	Issues      sql.NullString
 	ExternalID  sql.NullString
 }
 
@@ -42,6 +41,24 @@ type GatewayRoute struct {
 	GatewayName string
 	Route       string
 	Family      string
+}
+
+type KolideCheck struct {
+	ID          int64
+	Tags        string
+	DisplayName string
+	Description string
+}
+
+type KolideIssue struct {
+	ID          int64
+	DeviceID    string
+	CheckID     int64
+	Title       string
+	DetectedAt  string
+	ResolvedAt  sql.NullString
+	LastUpdated string
+	Ignored     bool
 }
 
 type Session struct {

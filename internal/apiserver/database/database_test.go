@@ -2,9 +2,12 @@ package database_test
 
 import (
 	"context"
+	"fmt"
+	"strconv"
 	"testing"
 	"time"
 
+	"github.com/nais/device/internal/apiserver/kolide"
 	"github.com/nais/device/internal/apiserver/testdatabase"
 	"github.com/nais/device/internal/pb"
 	"github.com/stretchr/testify/assert"
@@ -97,27 +100,55 @@ func TestAddDevice(t *testing.T) {
 	defer cancel()
 
 	serial := "serial"
-	issues := []*pb.DeviceIssue{
+	d := &pb.Device{Username: "username", PublicKey: "publickey", Serial: serial, Platform: "darwin", LastSeen: timestamppb.Now(), ExternalID: "1"}
+	checks := []*kolide.Check{
 		{
-			Title: "integration test issue",
+			ID:          1,
+			Tags:        []string{"critical"},
+			DisplayName: "check display name",
+			Description: "check description",
 		},
 	}
-	d := &pb.Device{Username: "username", PublicKey: "publickey", Serial: serial, Platform: "darwin", LastSeen: timestamppb.Now()}
-	err := db.AddDevice(ctx, d)
+	externalID, err := strconv.Atoi(d.ExternalID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	issues := []*kolide.DeviceFailure{
+		{
+			Title: "integration test issue",
+			Device: kolide.Device{
+				ID: int64(externalID),
+			},
+			CheckID:   checks[0].ID,
+			Timestamp: &time.Time{},
+		},
+	}
+	err = db.AddDevice(ctx, d)
+	assert.NoError(t, err)
+
+	err = db.UpdateKolideChecks(ctx, checks)
+	assert.NoError(t, err)
+
+	err = db.UpdateKolideIssuesForDevice(ctx, d.ExternalID, issues)
 	assert.NoError(t, err)
 
 	ls := d.LastSeen.AsTime()
-	err = db.UpdateSingleDevice(ctx, d.ExternalID, d.Serial, d.Platform, &ls, issues)
+	err = db.SetDeviceSeenByKolide(ctx, d.ExternalID, d.Serial, d.Platform, &ls)
 	assert.NoError(t, err)
 
 	device, err := db.ReadDevice(ctx, d.PublicKey)
 	assert.NoError(t, err)
+
 	assert.Equal(t, d.Username, device.Username)
 	assert.Equal(t, d.PublicKey, device.PublicKey)
 	assert.Equal(t, d.Serial, device.Serial)
 	assert.Equal(t, d.Platform, device.Platform)
-	assert.EqualValues(t, issues, device.Issues)
 
+	assert.Len(t, device.Issues, 1)
+	assert.Equal(t, issues[0].Title, device.Issues[0].Title)
+	assert.Equal(t, fmt.Sprint(issues[0].Device.ID), device.ExternalID)
+
+	// re-add also works
 	err = db.AddDevice(ctx, d)
 	assert.NoError(t, err)
 

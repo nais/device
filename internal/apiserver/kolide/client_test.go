@@ -6,13 +6,10 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
-	"time"
 
 	"github.com/nais/device/internal/apiserver/kolide"
-	"github.com/nais/device/internal/pb"
 	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
-	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 func TestClient(t *testing.T) {
@@ -34,12 +31,13 @@ func TestClient(t *testing.T) {
 			}
 		}))
 
-		client := kolide.New("token", nil, logrus.New(), kolide.WithBaseUrl(s.URL))
-		err := client.RefreshCache(ctx)
+		client := kolide.New("token", logrus.New(), kolide.WithBaseUrl(s.URL))
+		devices, err := client.GetDevices(ctx)
 		assert.NoError(t, err)
+		assert.Len(t, devices, 0)
 	})
 
-	t.Run("fill devices with kolide data", func(t *testing.T) {
+	t.Run("get all kolide data", func(t *testing.T) {
 		s := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			switch r.URL.Path {
 			case "/devices":
@@ -115,22 +113,15 @@ func TestClient(t *testing.T) {
 			}
 		}))
 
-		client := kolide.New("token", nil, logrus.New(), kolide.WithBaseUrl(s.URL))
-		devices := []*pb.Device{
-			{
-				Id:       99,
-				Serial:   "TEST-SERIAL",
-				Username: "test@example.com",
-				Platform: "linux",
-				LastSeen: timestamppb.New(time.Date(2023, 1, 1, 0, 0, 0, 0, time.UTC)),
-			},
-		}
-		err := client.FillKolideData(ctx, devices)
+		client := kolide.New("token", logrus.New(), kolide.WithBaseUrl(s.URL))
+
+		devices, err := client.GetDevices(ctx)
 		assert.NoError(t, err)
-		assert.Equal(t, 1, len(devices[0].Issues))
-		assert.Equal(t, "test failure title", devices[0].Issues[0].Title)
-		assert.Equal(t, "2024-01-01 00:00:00 +0000 UTC", devices[0].LastSeen.AsTime().String())
-		assert.Equal(t, "1", devices[0].ExternalID)
+		issues, err := client.GetIssues(ctx)
 		assert.NoError(t, err)
+		assert.Len(t, issues, 1)
+		assert.Equal(t, "test failure title", issues[0].Title)
+		assert.Equal(t, "2024-01-01 00:00:00 +0000 UTC", devices[0].LastSeenAt.String())
+		assert.Equal(t, int64(1), devices[0].ID)
 	})
 }

@@ -61,3 +61,12 @@ func authenticateAny(ctx context.Context, username, password string, auths ...au
 
 	return auth.ErrInvalidAuth
 }
+
+func (s *grpcServer) UpdateKolideChecks(ctx context.Context) error {
+	if checks, err := s.kolideClient.GetChecks(ctx); err != nil {
+		return err
+	} else if err = s.db.UpdateKolideChecks(ctx, checks); err != nil {
+		return err
+	}
+	return nil
+}

@@ -41,7 +41,7 @@ func (q *Queries) AddDevice(ctx context.Context, arg AddDeviceParams) error {
 }
 
 const getDeviceByExternalID = `-- name: GetDeviceByExternalID :one
-SELECT id, username, serial, platform, healthy, last_updated, public_key, ipv4, ipv6, last_seen, issues, external_id FROM devices WHERE external_id = ?1
+SELECT id, username, serial, platform, healthy, last_updated, public_key, ipv4, ipv6, last_seen, external_id FROM devices WHERE external_id = ?1
 `
 
 func (q *Queries) GetDeviceByExternalID(ctx context.Context, externalID sql.NullString) (*Device, error) {
@@ -58,14 +58,13 @@ func (q *Queries) GetDeviceByExternalID(ctx context.Context, externalID sql.Null
 		&i.Ipv4,
 		&i.Ipv6,
 		&i.LastSeen,
-		&i.Issues,
 		&i.ExternalID,
 	)
 	return &i, err
 }
 
 const getDeviceByID = `-- name: GetDeviceByID :one
-SELECT id, username, serial, platform, healthy, last_updated, public_key, ipv4, ipv6, last_seen, issues, external_id FROM devices WHERE id = ?1
+SELECT id, username, serial, platform, healthy, last_updated, public_key, ipv4, ipv6, last_seen, external_id FROM devices WHERE devices.id = ?1
 `
 
 func (q *Queries) GetDeviceByID(ctx context.Context, id int64) (*Device, error) {
@@ -82,14 +81,13 @@ func (q *Queries) GetDeviceByID(ctx context.Context, id int64) (*Device, error) 
 		&i.Ipv4,
 		&i.Ipv6,
 		&i.LastSeen,
-		&i.Issues,
 		&i.ExternalID,
 	)
 	return &i, err
 }
 
 const getDeviceByPublicKey = `-- name: GetDeviceByPublicKey :one
-SELECT id, username, serial, platform, healthy, last_updated, public_key, ipv4, ipv6, last_seen, issues, external_id FROM devices WHERE public_key = ?1
+SELECT id, username, serial, platform, healthy, last_updated, public_key, ipv4, ipv6, last_seen, external_id FROM devices WHERE public_key = ?1
 `
 
 func (q *Queries) GetDeviceByPublicKey(ctx context.Context, publicKey string) (*Device, error) {
@@ -106,14 +104,13 @@ func (q *Queries) GetDeviceByPublicKey(ctx context.Context, publicKey string) (*
 		&i.Ipv4,
 		&i.Ipv6,
 		&i.LastSeen,
-		&i.Issues,
 		&i.ExternalID,
 	)
 	return &i, err
 }
 
 const getDeviceBySerialAndPlatform = `-- name: GetDeviceBySerialAndPlatform :one
-SELECT id, username, serial, platform, healthy, last_updated, public_key, ipv4, ipv6, last_seen, issues, external_id from devices WHERE serial = ?1 AND platform = ?2
+SELECT id, username, serial, platform, healthy, last_updated, public_key, ipv4, ipv6, last_seen, external_id FROM devices WHERE serial = ?1 AND platform = ?2
 `
 
 type GetDeviceBySerialAndPlatformParams struct {
@@ -135,14 +132,13 @@ func (q *Queries) GetDeviceBySerialAndPlatform(ctx context.Context, arg GetDevic
 		&i.Ipv4,
 		&i.Ipv6,
 		&i.LastSeen,
-		&i.Issues,
 		&i.ExternalID,
 	)
 	return &i, err
 }
 
 const getDevices = `-- name: GetDevices :many
-SELECT id, username, serial, platform, healthy, last_updated, public_key, ipv4, ipv6, last_seen, issues, external_id FROM devices ORDER BY id
+SELECT id, username, serial, platform, healthy, last_updated, public_key, ipv4, ipv6, last_seen, external_id FROM devices ORDER BY devices.id
 `
 
 func (q *Queries) GetDevices(ctx context.Context) ([]*Device, error) {
@@ -165,7 +161,6 @@ func (q *Queries) GetDevices(ctx context.Context) ([]*Device, error) {
 			&i.Ipv4,
 			&i.Ipv6,
 			&i.LastSeen,
-			&i.Issues,
 			&i.ExternalID,
 		); err != nil {
 			return nil, err
@@ -182,7 +177,7 @@ func (q *Queries) GetDevices(ctx context.Context) ([]*Device, error) {
 }
 
 const getPeers = `-- name: GetPeers :many
-SELECT username, public_key, ipv4 FROM devices ORDER BY id
+SELECT username, public_key, ipv4 FROM devices ORDER BY devices.id
 `
 
 type GetPeersRow struct {
@@ -216,8 +211,8 @@ func (q *Queries) GetPeers(ctx context.Context) ([]*GetPeersRow, error) {
 
 const updateDevice = `-- name: UpdateDevice :exec
 UPDATE devices
-SET external_id = ?1, healthy = ?2, last_updated = ?3, last_seen = ?4, issues = ?5
-WHERE serial = ?6 AND platform = ?7
+SET external_id = ?1, healthy = ?2, last_updated = ?3, last_seen = ?4
+WHERE serial = ?5 AND platform = ?6
 `
 
 type UpdateDeviceParams struct {
@@ -225,7 +220,6 @@ type UpdateDeviceParams struct {
 	Healthy     bool
 	LastUpdated sql.NullString
 	LastSeen    sql.NullString
-	Issues      sql.NullString
 	Serial      string
 	Platform    string
 }
@@ -236,7 +230,6 @@ func (q *Queries) UpdateDevice(ctx context.Context, arg UpdateDeviceParams) erro
 		arg.Healthy,
 		arg.LastUpdated,
 		arg.LastSeen,
-		arg.Issues,
 		arg.Serial,
 		arg.Platform,
 	)
