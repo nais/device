@@ -413,7 +413,10 @@ func readd(ctx context.Context, db database.Database) error {
 
 func untilContextDone(ctx context.Context, interval time.Duration, f func(context.Context) error, log logrus.FieldLogger) {
 	log.WithField("interval", interval.String()).Info("running until context done")
+
 	ticker := time.NewTicker(interval)
+	defer ticker.Stop()
+
 	for {
 		if err := f(ctx); err != nil {
 			log.WithError(err).Error("run until program done wrapper")

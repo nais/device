@@ -38,6 +38,8 @@ func (s *grpcServer) GetDeviceConfiguration(request *pb.GetDeviceConfigurationRe
 
 	timeout := time.After(time.Until(session.GetExpiry().AsTime()))
 	updateDeviceTicker := time.NewTicker(1 * time.Minute)
+	defer updateDeviceTicker.Stop()
+
 	var lastCfg *pb.GetDeviceConfigurationResponse
 	for {
 		if cfg, err := s.makeDeviceConfiguration(stream.Context(), request.SessionKey); err != nil {

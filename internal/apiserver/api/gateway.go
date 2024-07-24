@@ -32,6 +32,8 @@ func (s *grpcServer) GetGatewayConfiguration(request *pb.GetGatewayConfiguration
 	defer metrics.SetGatewayConnected(request.Gateway, false)
 
 	updateGatewayTicker := time.NewTicker(10 * time.Second)
+	defer updateGatewayTicker.Stop()
+
 	var lastCfg *pb.GetGatewayConfigurationResponse
 	for {
 		if cfg, err := s.makeGatewayConfiguration(stream.Context(), request.Gateway); err != nil {
