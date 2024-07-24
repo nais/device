@@ -9,6 +9,7 @@ import (
 
 type Database interface {
 	ReadDevices(ctx context.Context) ([]*pb.Device, error)
+	ReadPeers(ctx context.Context) ([]*peer, error)
 	UpdateDevices(ctx context.Context, devices []*pb.Device) error
 	UpdateGateway(ctx context.Context, gateway *pb.Gateway) error
 	UpdateGatewayDynamicFields(ctx context.Context, gateway *pb.Gateway) error

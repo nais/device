@@ -1,6 +1,9 @@
 -- name: GetDevices :many
 SELECT * FROM devices ORDER BY id;
 
+-- name: GetPeers :many
+SELECT username, public_key, ipv4 FROM devices ORDER BY id;
+
 -- name: GetDeviceByPublicKey :one
 SELECT * FROM devices WHERE public_key = @public_key;
 

@@ -58,16 +58,34 @@ func (db *database) ReadDevices(ctx context.Context) ([]*pb.Device, error) {
 		return nil, err
 	}
 
-	devices := make([]*pb.Device, 0)
-	for _, row := range rows {
+	devices := make([]*pb.Device, len(rows))
+	for i, row := range rows {
 		device, err := db.sqlcDeviceToPbDevice(*row)
 		if err != nil {
 			return nil, fmt.Errorf("converting device %v: %w", row.ID, err)
 		}
-		devices = append(devices, device)
+		devices[i] = device
 	}
 
 	return devices, nil
+}
+
+func (db *database) ReadPeers(ctx context.Context) ([]*peer, error) {
+	rows, err := db.queries.GetPeers(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	peers := make([]*peer, len(rows))
+	for i, row := range rows {
+		peers[i] = &peer{
+			name:      row.Username,
+			publicKey: row.PublicKey,
+			ip:        row.Ipv4,
+		}
+	}
+
+	return peers, nil
 }
 
 func (db *database) UpdateSingleDevice(ctx context.Context, externalID, serial, platform string, lastSeen *time.Time, issues []*pb.DeviceIssue) error {

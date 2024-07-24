@@ -131,3 +131,46 @@ func TestAddDevice(t *testing.T) {
 	assert.Equal(t, dUpdated.Username, device.Username)
 	assert.Equal(t, dUpdated.PublicKey, device.PublicKey)
 }
+
+func TestReadPeers(t *testing.T) {
+	db := testdatabase.Setup(t, true)
+
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	defer cancel()
+
+	d1 := &pb.Device{
+		Username:  "user1@example.com",
+		PublicKey: "publickey1",
+		Serial:    "serial1",
+		Platform:  "darwin",
+		LastSeen:  timestamppb.Now(),
+	}
+	err := db.AddDevice(ctx, d1)
+	assert.NoError(t, err)
+
+	d2 := &pb.Device{
+		Username:  "user2@example.com",
+		PublicKey: "publickey2",
+		Serial:    "serial2",
+		Platform:  "darwin",
+		LastSeen:  timestamppb.Now(),
+	}
+	err = db.AddDevice(ctx, d2)
+	assert.NoError(t, err)
+
+	dbdevice1, err := db.ReadDeviceBySerialPlatform(ctx, d1.Serial, d1.Platform)
+	assert.NoError(t, err)
+	dbdevice2, err := db.ReadDeviceBySerialPlatform(ctx, d2.Serial, d2.Platform)
+	assert.NoError(t, err)
+
+	peers, err := db.ReadPeers(ctx)
+	assert.NoError(t, err)
+
+	assert.Equal(t, d1.Username, peers[0].GetName())
+	assert.Equal(t, dbdevice1.Ipv4+"/32", peers[0].GetAllowedIPs()[0])
+	assert.Equal(t, d1.PublicKey, peers[0].GetPublicKey())
+
+	assert.Equal(t, d2.Username, peers[1].GetName())
+	assert.Equal(t, dbdevice2.Ipv4+"/32", peers[1].GetAllowedIPs()[0])
+	assert.Equal(t, d2.PublicKey, peers[1].GetPublicKey())
+}

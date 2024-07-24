@@ -636,6 +636,64 @@ func (_c *MockDatabase_ReadMostRecentSessionInfo_Call) RunAndReturn(run func(con
 	return _c
 }
 
+// ReadPeers provides a mock function with given fields: ctx
+func (_m *MockDatabase) ReadPeers(ctx context.Context) ([]*peer, error) {
+	ret := _m.Called(ctx)
+
+	if len(ret) == 0 {
+		panic("no return value specified for ReadPeers")
+	}
+
+	var r0 []*peer
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context) ([]*peer, error)); ok {
+		return rf(ctx)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context) []*peer); ok {
+		r0 = rf(ctx)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]*peer)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context) error); ok {
+		r1 = rf(ctx)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// MockDatabase_ReadPeers_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'ReadPeers'
+type MockDatabase_ReadPeers_Call struct {
+	*mock.Call
+}
+
+// ReadPeers is a helper method to define mock.On call
+//   - ctx context.Context
+func (_e *MockDatabase_Expecter) ReadPeers(ctx interface{}) *MockDatabase_ReadPeers_Call {
+	return &MockDatabase_ReadPeers_Call{Call: _e.mock.On("ReadPeers", ctx)}
+}
+
+func (_c *MockDatabase_ReadPeers_Call) Run(run func(ctx context.Context)) *MockDatabase_ReadPeers_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context))
+	})
+	return _c
+}
+
+func (_c *MockDatabase_ReadPeers_Call) Return(_a0 []*peer, _a1 error) *MockDatabase_ReadPeers_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *MockDatabase_ReadPeers_Call) RunAndReturn(run func(context.Context) ([]*peer, error)) *MockDatabase_ReadPeers_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // ReadSessionInfo provides a mock function with given fields: ctx, key
 func (_m *MockDatabase) ReadSessionInfo(ctx context.Context, key string) (*pb.Session, error) {
 	ret := _m.Called(ctx, key)

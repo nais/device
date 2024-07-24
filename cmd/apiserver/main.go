@@ -413,7 +413,6 @@ func readd(ctx context.Context, db database.Database) error {
 
 func untilContextDone(ctx context.Context, interval time.Duration, f func(context.Context) error, log logrus.FieldLogger) {
 	log.WithField("interval", interval.String()).Info("running until context done")
-
 	ticker := time.NewTicker(interval)
 	defer ticker.Stop()
 
@@ -434,7 +433,7 @@ func untilContextDone(ctx context.Context, interval time.Duration, f func(contex
 
 func syncWireGuardConfig(db database.Database, netConf wg.NetworkConfigurer, staticPeers []*pb.Gateway) func(context.Context) error {
 	return func(ctx context.Context) error {
-		devices, err := db.ReadDevices(ctx)
+		devices, err := db.ReadPeers(ctx)
 		if err != nil {
 			return fmt.Errorf("reading devices from database: %v", err)
 		}
