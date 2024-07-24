@@ -6,9 +6,12 @@ import (
 	"errors"
 	"fmt"
 	"net"
+	"net/http"
 	"net/netip"
 	"os"
 	"time"
+
+	_ "net/http/pprof"
 
 	"github.com/kelseyhightower/envconfig"
 	"github.com/nais/device/internal/apiserver/api"
@@ -53,6 +56,11 @@ func main() {
 
 	// sets up default logger
 	log := logger.Setup(cfg.LogLevel).WithField("component", "main")
+
+	// serves pprof on localhost:6060/debug/pprof
+	go func() {
+		log.WithField("err", http.ListenAndServe("localhost:6060", nil)).Info("debug webserver done")
+	}()
 
 	err = cfg.Parse() // sets dynamic defaults for some config values
 	if err != nil {

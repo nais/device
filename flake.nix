@@ -52,6 +52,7 @@
               go-tools
               gopls
               gotools
+              graphviz
               imagemagick
               protobuf
               sqlite-interactive # -interactive gives readline / ncurses
