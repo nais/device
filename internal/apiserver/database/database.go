@@ -11,10 +11,11 @@ import (
 
 	"google.golang.org/protobuf/types/known/timestamppb"
 
+	"github.com/sirupsen/logrus"
+
 	"github.com/nais/device/internal/apiserver/ip"
 	"github.com/nais/device/internal/apiserver/sqlc"
 	"github.com/nais/device/internal/pb"
-	"github.com/sirupsen/logrus"
 )
 
 type database struct {
@@ -71,8 +72,8 @@ func (db *database) ReadDevices(ctx context.Context) ([]*pb.Device, error) {
 		return nil, err
 	}
 
-	devices := make([]*pb.Device, len(rows))
-	for i, row := range rows {
+	devices := make([]*pb.Device, 0)
+	for _, row := range rows {
 		if row.ExternalID.String == "" {
 			continue
 		}
@@ -86,7 +87,7 @@ func (db *database) ReadDevices(ctx context.Context) ([]*pb.Device, error) {
 		if err != nil {
 			return nil, fmt.Errorf("converting device %v: %w", row.ID, err)
 		}
-		devices[i] = device
+		devices = append(devices, device)
 	}
 
 	return devices, nil
