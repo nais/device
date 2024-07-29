@@ -74,10 +74,6 @@ func (db *database) ReadDevices(ctx context.Context) ([]*pb.Device, error) {
 
 	devices := make([]*pb.Device, 0)
 	for _, row := range rows {
-		if row.ExternalID.String == "" {
-			continue
-		}
-
 		issues, err := db.getDeviceIssues(ctx, row)
 		if err != nil {
 			continue
