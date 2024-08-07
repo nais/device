@@ -192,6 +192,7 @@ func (s *grpcServer) Login(ctx context.Context, r *pb.APIServerLoginRequest) (*p
 func (s *grpcServer) UpdateAllDevices(ctx context.Context) error {
 	devices, err := s.db.ReadDevices(ctx)
 	if err != nil {
+		s.log.WithError(err).Error("Error reading devices")
 		return nil
 	}
 	/*
