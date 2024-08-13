@@ -58,6 +58,13 @@ func TestGetDeviceConfiguration(t *testing.T) {
 			PasswordHash:   "hunter2",
 			AccessGroupIDs: accessGroups,
 		},
+		{
+			Endpoint:       "1.2.3.5:56789",
+			PublicKey:      "publicKey2",
+			Name:           "gateway2",
+			PasswordHash:   "hunter3",
+			AccessGroupIDs: []string{"not authorized"},
+		},
 	}, nil)
 
 	kolideClient := &kolide.FakeClient{}
@@ -92,7 +99,9 @@ func TestGetDeviceConfiguration(t *testing.T) {
 
 	gw := resp.Gateways[0]
 
+	assert.Len(t, resp.Gateways, 1)
 	assert.Equal(t, "", gw.PasswordHash)
+	assert.Equal(t, "gateway", gw.Name)
 }
 
 func TestGatewayPasswordAuthentication(t *testing.T) {

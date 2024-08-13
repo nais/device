@@ -135,10 +135,25 @@ func (s *grpcServer) makeDeviceConfiguration(ctx context.Context, sessionKey str
 		}, nil
 	}
 
-	gateways, err := s.UserGateways(ctx, session.GetGroups())
+	allGateways, err := s.db.ReadGateways(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("get user gateways: %w", err)
 	}
+
+	for i := range allGateways {
+		allGateways[i].PasswordHash = ""
+	}
+
+	filters := []func(*pb.Gateway) bool{
+		gatewayForUserGroups(session.GetGroups()),
+	}
+
+	// Hack to prevent windows users from connecting to the ms-login gateway
+	if device.Platform == "windows" {
+		filters = append(filters, not(gatewayHasName(GatewayMSLoginName)))
+	}
+
+	gateways := filterList(allGateways, filters...)
 
 	metrics.DeviceConfigsReturned.WithLabelValues(device.Serial, device.Username).Inc()
 
@@ -151,23 +166,6 @@ func (s *grpcServer) makeDeviceConfiguration(ctx context.Context, sessionKey str
 
 func (s *grpcServer) SendDeviceConfiguration(device *pb.Device) {
 	s.devices.Trigger(device.GetId())
-}
-
-func (s *grpcServer) UserGateways(ctx context.Context, userGroups []string) ([]*pb.Gateway, error) {
-	gateways, err := s.db.ReadGateways(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("reading gateways from db: %v", err)
-	}
-
-	var filtered []*pb.Gateway
-	for _, gw := range gateways {
-		if StringSliceHasIntersect(gw.AccessGroupIDs, userGroups) {
-			gw.PasswordHash = ""
-			filtered = append(filtered, gw)
-		}
-	}
-
-	return filtered, nil
 }
 
 func (s *grpcServer) Login(ctx context.Context, r *pb.APIServerLoginRequest) (*pb.APIServerLoginResponse, error) {

@@ -1,95 +1,89 @@
 package api
 
 import (
+	"slices"
+
 	"github.com/nais/device/internal/apiserver/jita"
-	"github.com/nais/device/internal/apiserver/metrics"
 	"github.com/nais/device/internal/pb"
 )
 
-// Return a list of user sessions that are authorized to access a gateway through JITA.
-func privileged(jita jita.Client, gateway *pb.Gateway, sessions []*pb.Session) []*pb.Session {
-	if !gateway.RequiresPrivilegedAccess {
-		return sessions
-	}
-	if jita == nil {
-		return nil
-	}
-	privilegedUsers := jita.GetPrivilegedUsersForGateway(gateway.Name)
+const GatewayMSLoginName = "nais-device-gw-ms-login"
 
-	m, _ := metrics.PrivilegedUsersPerGateway.GetMetricWithLabelValues(gateway.Name)
-	m.Set(float64(len(privilegedUsers)))
-
-	var sessionsToReturn []*pb.Session
-	for _, session := range sessions {
-		if userIsPrivileged(privilegedUsers, session.ObjectID) {
-			sessionsToReturn = append(sessionsToReturn, session)
+func filterList[T any](elements []T, filters ...func(T) bool) []T {
+	var filtered []T
+	for _, element := range elements {
+		if allFiltersMatch(element, filters) {
+			filtered = append(filtered, element)
 		}
 	}
-
-	return sessionsToReturn
+	return filtered
 }
 
-// Return all healthy devices in a set of devices.
-// Healthy means that Kolide has reported the device as "active recently enough"
-// and doesn't have any severe outstanding issues.
-func healthy(devices []*pb.Device) []*pb.Device {
-	var healthyDevices []*pb.Device
-
-	for _, device := range devices {
-		if device.Healthy() {
-			healthyDevices = append(healthyDevices, device)
+func allFiltersMatch[T any](element T, filters []func(T) bool) bool {
+	for _, filter := range filters {
+		if !filter(element) {
+			return false
 		}
 	}
-
-	return healthyDevices
+	return true
 }
 
-// Find all sessions that are authorized to access a gateway,
-// then return a list of all device configurations belonging to those sessions.
-func authorized(gatewayGroups []string, sessions []*pb.Session) []*pb.Device {
-	var authorizedDevices []*pb.Device
-
-	for _, session := range sessions {
-		if StringSliceHasIntersect(session.Groups, gatewayGroups) {
-			authorizedDevices = append(authorizedDevices, session.Device)
-		}
-	}
-
-	return authorizedDevices
-}
-
-// filter out duplicate devices (duplicate entries cause issues with the generated config on the gateway)
-func unique(devices []*pb.Device) []*pb.Device {
-	visited := make(map[int64]struct{})
-	var ret []*pb.Device
-	for _, d := range devices {
-		if _, exists := visited[d.GetId()]; exists {
-			continue
-		}
-
-		visited[d.GetId()] = struct{}{}
-		ret = append(ret, d)
-	}
-
-	return ret
-}
-
-func StringSliceHasIntersect(slice1 []string, slice2 []string) bool {
-	for _, a := range slice1 {
-		for _, b := range slice2 {
-			if a == b {
-				return true
-			}
-		}
-	}
-	return false
-}
-
-func userIsPrivileged(privilegedUsers []jita.PrivilegedUser, users string) bool {
-	for _, privilegedUser := range privilegedUsers {
-		if privilegedUser.UserId == users {
+func slicesHasIntersect[T comparable](sliceA []T, sliceB []T) bool {
+	for _, a := range sliceA {
+		if slices.Contains(sliceB, a) {
 			return true
 		}
 	}
 	return false
+}
+
+func not[T comparable](f func(T) bool) func(T) bool {
+	return func(v T) bool {
+		return !f(v)
+	}
+}
+
+// ---
+// Session filters
+// ---
+func sessionIsHealthy(session *pb.Session) bool {
+	return session.GetDevice().Healthy()
+}
+
+func sessionForGatewayGroups(gatewayGroups []string) func(*pb.Session) bool {
+	return func(session *pb.Session) bool {
+		return slicesHasIntersect(session.Groups, gatewayGroups)
+	}
+}
+
+func sessionIsPrivileged(privilegedUsers []jita.PrivilegedUser) func(*pb.Session) bool {
+	return func(session *pb.Session) bool {
+		for _, privilegedUser := range privilegedUsers {
+			if privilegedUser.UserId == session.ObjectID {
+				return true
+			}
+		}
+		return false
+	}
+}
+
+func sessionIsPlatform(platform string) func(*pb.Session) bool {
+	return func(session *pb.Session) bool {
+		return session.GetDevice().GetPlatform() == platform
+	}
+}
+
+// ---
+// Gateway filters
+// ---
+func gatewayHasName(name string) func(*pb.Gateway) bool {
+	return func(gateway *pb.Gateway) bool {
+		return gateway.Name == name
+	}
+}
+
+func gatewayForUserGroups(userGroups []string) func(*pb.Gateway) bool {
+	return func(gateway *pb.Gateway) bool {
+		return slicesHasIntersect(gateway.AccessGroupIDs, userGroups)
+	}
 }

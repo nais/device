@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/nais/device/internal/apiserver/jita"
 	"github.com/nais/device/internal/apiserver/metrics"
 	"github.com/nais/device/internal/pb"
 	"google.golang.org/grpc/codes"
@@ -58,6 +59,20 @@ func (s *grpcServer) GetGatewayConfiguration(request *pb.GetGatewayConfiguration
 	}
 }
 
+// Return a list of user sessions that are authorized to access a gateway through JITA.
+func (s grpcServer) privilegedUsersForGateway(gateway *pb.Gateway) []jita.PrivilegedUser {
+	if s.jita == nil {
+		return nil
+	}
+
+	privilegedUsers := s.jita.GetPrivilegedUsersForGateway(gateway.Name)
+
+	m, _ := metrics.PrivilegedUsersPerGateway.GetMetricWithLabelValues(gateway.Name)
+	m.Set(float64(len(privilegedUsers)))
+
+	return privilegedUsers
+}
+
 func equalGatewayConfigurations(a, b *pb.GetGatewayConfigurationResponse) bool {
 	if a == b {
 		return true
@@ -98,14 +113,30 @@ func (s *grpcServer) makeGatewayConfiguration(ctx context.Context, gatewayName s
 		return nil, fmt.Errorf("read gateway from database: %w", err)
 	}
 
-	allSessions := s.sessionStore.All()
-	privilegedDevices := privileged(s.jita, gateway, allSessions)
-	authorizedDevices := authorized(gateway.AccessGroupIDs, privilegedDevices)
-	healthyDevices := healthy(authorizedDevices)
-	uniqueDevices := unique(healthyDevices)
+	filters := []func(*pb.Session) bool{
+		sessionForGatewayGroups(gateway.AccessGroupIDs),
+		sessionIsHealthy,
+	}
+
+	if gateway.RequiresPrivilegedAccess {
+		privilegedUsers := s.privilegedUsersForGateway(gateway)
+		filters = append(filters, sessionIsPrivileged(privilegedUsers))
+	}
+
+	// Hack to prevent windows users from connecting to the ms-login gateway.
+	if gateway.Name == GatewayMSLoginName {
+		filters = append(filters, not(sessionIsPlatform("windows")))
+	}
+
+	sessions := filterList(s.sessionStore.All(), filters...)
+
+	devices := make([]*pb.Device, len(sessions))
+	for i, session := range sessions {
+		devices[i] = session.GetDevice()
+	}
 
 	gatewayConfig := &pb.GetGatewayConfigurationResponse{
-		Devices:    uniqueDevices,
+		Devices:    devices,
 		RoutesIPv4: gateway.GetRoutesIPv4(),
 		RoutesIPv6: gateway.GetRoutesIPv6(),
 	}
