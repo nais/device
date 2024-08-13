@@ -108,7 +108,7 @@ func (c *Connected) Enter(ctx context.Context) state.EventWithSpan {
 		case errors.Is(e, &auth.ParseTokenError{}):
 			fallthrough
 		case errors.Is(e, ErrUnauthenticated):
-			c.notifier.Errorf("unauthenticated: %v", e)
+			c.notifier.Errorf("unauthenticated, please log in again.")
 			c.rc.SetToken(nil)
 			return state.SpanEvent(ctx, state.EventDisconnect)
 		case errors.Is(e, io.EOF):
