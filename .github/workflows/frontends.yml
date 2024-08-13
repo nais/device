@@ -195,7 +195,7 @@ jobs:
         with:
           name: Release ${{ needs.set-version.outputs.version }}
           tag_name: ${{ needs.set-version.outputs.version }}
-          draft: true
+          draft: false
           prerelease: false
           generate_release_notes: true
           files: |
