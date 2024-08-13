@@ -63,7 +63,6 @@ jobs:
       - uses: actions/setup-go@v5
         with:
           go-version: ${{ steps.tool_versions.outputs.go }}
-
       - name: build binaries and installer
         env:
           MSI_SIGN_CERT: "${{ secrets.MSI_SIGN_CERT }}"
@@ -74,21 +73,12 @@ jobs:
           echo "${MSI_SIGN_CERT}" > packaging/windows/naisdevice.crt
           echo "${MSI_SIGN_KEY}" > packaging/windows/naisdevice.key
           make nsis GOTAGS=${{ matrix.gotags }} VERSION=${{ needs.set-version.outputs.version }}
-          md5sum bin/windows-client/*
-          md5sum packaging/windows/naisdevice.exe
-
-      - name: upload windows-client
-        uses: actions/upload-artifact@v3
-        with:
-          name: windows-client${{ matrix.output-suffix }}
-          path: bin/windows-client
-          if-no-files-found: error
-
+          mv packaging/windows/naisdevice.exe naisdevice${{ matrix.output-suffix }}.exe
       - name: upload windows-installer
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
-          name: windows-installer${{ matrix.output-suffix }}
-          path: packaging/windows/naisdevice.exe
+          name: installer-windows${{ matrix.output-suffix }}
+          path: naisdevice${{ matrix.output-suffix }}.exe
           if-no-files-found: error
 
   build-macos:
@@ -110,7 +100,7 @@ jobs:
         with:
           go-version: ${{ steps.tool_versions.outputs.go }}
       - name: Import Code-Signing Certificates
-        uses: Apple-Actions/import-codesign-certs@v2
+        uses: Apple-Actions/import-codesign-certs@v3
         with:
           p12-file-base64: ${{ secrets.CERTIFICATES_P12 }}
           p12-password: ${{ secrets.CERTIFICATES_P12_PASSWORD }}
@@ -122,13 +112,14 @@ jobs:
         run: |
           brew install imagemagick
           make pkg GOTAGS=${{ matrix.gotags }} VERSION=${{ needs.set-version.outputs.version }} RELEASE=${{ startsWith(github.ref, 'refs/tags/') && 'true' || 'false' }}
-          md5 bin/macos-client/*
-          md5 naisdevice.pkg
+          if [[ -n "${{ matrix.output-suffix }}" ]]; then
+            mv naisdevice.pkg naisdevice${{ matrix.output-suffix }}.pkg
+          fi
       - name: upload pkg
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
-          name: pkg${{ matrix.output-suffix }}
-          path: naisdevice.pkg
+          name: installer-macos${{ matrix.output-suffix }}
+          path: naisdevice${{ matrix.output-suffix }}.pkg
           if-no-files-found: error
 
   build-linux:
@@ -157,16 +148,15 @@ jobs:
           sudo apt-get install --yes build-essential ruby ruby-dev rubygems
           sudo gem install --no-document fpm -v 1.15.1
           make deb GOTAGS=${{ matrix.gotags }} VERSION=${{ needs.set-version.outputs.version }}
-          md5sum naisdevice*.deb
+          mv naisdevice*.deb "naisdevice${{ matrix.output-suffix }}.deb"
       - name: upload debian package
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
-          name: deb${{ matrix.output-suffix }}
-          path: naisdevice*.deb
+          name: installer-linux${{ matrix.output-suffix }}
+          path: naisdevice${{ matrix.output-suffix }}.deb
           if-no-files-found: error
 
-  new_release:
-    if: startsWith(github.ref, 'refs/tags/')
+  release:
     permissions:
       contents: write
     needs:
@@ -178,87 +168,35 @@ jobs:
     runs-on: ubuntu-22.04
     env:
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-    outputs:
-      upload_url: ${{ steps.create_release.outputs.upload_url }}
     steps:
+      - name: download artifacts
+        id: download-artifacts
+        uses: actions/download-artifact@v4
+      - name: explore [debug]
+        run: |
+          set -x
+
+          pwd
+          ls -R
+
+          echo GITHUB_WORKSPACE=$GITHUB_WORKSPACE
+          ls -R $GITHUB_WORKSPACE
+
+          echo downloaded artifacts
+          ls -R ${{ steps.download-artifacts.outputs.download-path }}
+      - name: sha256 sums
+        run: |
+          for file in ${{ steps.download-artifacts.outputs.download-path }}/*/*; do
+            sha256sum "$file" | awk {'print $1}' > "$file.sha256"
+          done
       - name: create release
-        id: create_release
-        uses: softprops/action-gh-release@v0.1.15
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
         with:
+          name: Release ${{ needs.set-version.outputs.version }}
           tag_name: ${{ needs.set-version.outputs.version }}
-          release_name: Release ${{ needs.set-version.outputs.version }}
-          draft: false
+          draft: true
           prerelease: false
           generate_release_notes: true
-
-  release:
-    if: startsWith(github.ref, 'refs/tags/')
-    strategy:
-      matrix:
-        output-suffix: ["", "-tenant"]
-    needs:
-      - set-version
-      - test
-      - build-macos
-      - build-windows
-      - build-linux
-      - new_release
-    runs-on: ubuntu-22.04
-    env:
-      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-    steps:
-      - name: download windows installer
-        uses: actions/download-artifact@v3
-        with:
-          name: windows-installer${{ matrix.output-suffix }}
-      - name: Calculate checksum
-        run: |
-          sha256sum naisdevice.exe | awk {'print $1}' > naisdevice.exe.sha256
-      - name: upload naisdevice.exe
-        uses: actions/upload-release-asset@v1
-        with:
-          upload_url: ${{ needs.new_release.outputs.upload_url }}
-          asset_path: ./naisdevice.exe
-          asset_name: naisdevice${{ matrix.output-suffix }}.exe
-          asset_content_type: application/octet-stream
-      - name: upload naisdevice.exe.sha256
-        uses: actions/upload-release-asset@v1
-        with:
-          upload_url: ${{ needs.new_release.outputs.upload_url }}
-          asset_path: ./naisdevice.exe.sha256
-          asset_name: naisdevice${{ matrix.output-suffix }}.exe.sha256
-          asset_content_type: text/plain
-
-      - name: download pkg
-        uses: actions/download-artifact@v3
-        with:
-          name: pkg${{ matrix.output-suffix }}
-      - name: Calculate checksum
-        run: |
-          sha256sum naisdevice.pkg | awk {'print $1}' > naisdevice.pkg.sha256
-      - name: upload macos pkg to release
-        uses: actions/upload-release-asset@v1
-        with:
-          upload_url: ${{ needs.new_release.outputs.upload_url }}
-          asset_path: ./naisdevice.pkg
-          asset_name: naisdevice${{ matrix.output-suffix }}.pkg
-          asset_content_type: application/octet-stream
-      - name: upload macos pkg checksum to release
-        uses: actions/upload-release-asset@v1
-        with:
-          upload_url: ${{ needs.new_release.outputs.upload_url }}
-          asset_path: ./naisdevice.pkg.sha256
-          asset_name: naisdevice${{ matrix.output-suffix }}.pkg.sha256
-          asset_content_type: text/plain
-
-      - name: download deb
-        uses: actions/download-artifact@v3
-        with:
-          name: deb${{ matrix.output-suffix }}
-      - name: upload debian package to release
-        uses: actions/upload-release-asset@v1
-        with:
-          upload_url: ${{ needs.new_release.outputs.upload_url }}
-          asset_path: ./naisdevice${{ matrix.output-suffix }}_${{ needs.set-version.outputs.version }}_amd64.deb
-          asset_name: naisdevice${{ matrix.output-suffix }}.deb
-          asset_content_type: application/octet-stream
+          files: |
+            ${{ steps.download-artifacts.outputs.download-path }}/*/*
