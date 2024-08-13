@@ -172,23 +172,13 @@ jobs:
       - name: download artifacts
         id: download-artifacts
         uses: actions/download-artifact@v4
-      - name: explore [debug]
-        run: |
-          set -x
-
-          pwd
-          ls -R
-
-          echo GITHUB_WORKSPACE=$GITHUB_WORKSPACE
-          ls -R $GITHUB_WORKSPACE
-
-          echo downloaded artifacts
-          ls -R ${{ steps.download-artifacts.outputs.download-path }}
       - name: sha256 sums
         run: |
           for file in ${{ steps.download-artifacts.outputs.download-path }}/*/*; do
             sha256sum "$file" | awk {'print $1}' > "$file.sha256"
           done
+      - name: print artifacts
+        run: ls -R ${{ steps.download-artifacts.outputs.download-path }}
       - name: create release
         if: startsWith(github.ref, 'refs/tags/')
         uses: softprops/action-gh-release@v2
