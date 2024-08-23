@@ -40,6 +40,7 @@
         };
         packages.default = config.packages.naisdevice;
         packages.naisdevice = pkgs.callPackage ./packaging/nix/naisdevice/package.nix {inherit self;};
+        packages.naisdevice-controlplane = pkgs.callPackage ./packaging/nix/naisdevice/controlplane.nix {inherit self;};
         checks.naisdevice = pkgs.callPackage ./packaging/nix/naisdevice/test.nix {
           inherit (config.packages) naisdevice;
         };
