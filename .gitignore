@@ -22,6 +22,7 @@ packaging/windows/naisdevice.crt
 packaging/windows/naisdevice.key
 .envrc
 *.db
+*.db-journal
 operational/scripts/data/
 .direnv
 result
