@@ -1,4 +1,5 @@
 {
+  subPackage,
   pkgs,
   self,
   ...
@@ -7,13 +8,8 @@
   rev = self.rev or "dirty";
 in
   pkgs.buildGoModule {
-    pname = "naisdevice-controlplane";
-    subPackages = [
-      "cmd/apiserver"
-      "cmd/gateway-agent"
-      "cmd/enroller"
-      "cmd/auth-server"
-    ];
+    pname = subPackage;
+    subPackages = ["cmd/${subPackage}"];
     inherit version;
     src = self;
     vendorHash = "sha256-2iJEbCSv0q6liCBWxruLC8aOavOoiFXVrAlbczRJbyA=";
@@ -25,7 +21,7 @@ in
     ];
 
     meta = with pkgs.lib; {
-      description = "naisdevice - next gen vpn";
+      description = "naisdevice ${subpackage}";
       homepage = "https://github.com/nais/device";
       license = licenses.mit;
     };

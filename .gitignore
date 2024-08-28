@@ -23,6 +23,8 @@ packaging/windows/naisdevice.key
 .envrc
 *.db
 *.db-journal
+*.db-shm
+*.db-wal
 operational/scripts/data/
 .direnv
 result
