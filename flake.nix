@@ -5,10 +5,7 @@
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
 
     flake-parts.url = "github:hercules-ci/flake-parts";
-    flake-parts.inputs.nixpkgs.follows = "nixpkgs";
-
     flake-root.url = "github:srid/flake-root";
-    flake-root.inputs.nixpkgs.follows = "nixpkgs";
 
     treefmt-nix.url = "github:numtide/treefmt-nix";
     treefmt-nix.inputs.nixpkgs.follows = "nixpkgs";
@@ -22,6 +19,7 @@
 
   outputs = inputs @ {
     self,
+    nixpkgs,
     flake-parts,
     nixos-generators,
     ...
@@ -44,7 +42,7 @@
         system,
         ...
       }: {
-        _module.args.pkgs = import inputs.nixpkgs {
+        _module.args.pkgs = import nixpkgs {
           inherit system;
           overlays = [
             (import ./packaging/nix/naisdevice/overlay.nix)
@@ -54,7 +52,7 @@
         packages.naisdevice = pkgs.callPackage ./packaging/nix/naisdevice/package.nix {inherit self;};
         packages.apiserver = pkgs.callPackage ./packaging/nix/controlplane/package.nix {
           inherit self;
-          subModule = "apiserver";
+          subPackage = "apiserver";
         };
         checks.naisdevice = pkgs.callPackage ./packaging/nix/naisdevice/test.nix {
           inherit (config.packages) naisdevice;
@@ -89,16 +87,19 @@
         };
       };
       flake = {
-        gce = nixos-generators.nixosGenerate {
+        gce = let
           system = "x86_64-linux";
-          modules = [
-            {
-              name = "naisdevice";
-              path = ./packaging/nix/controlplane/module.nix;
-            }
-          ];
-          format = "gce";
-        };
+        in
+          nixos-generators.nixosGenerate {
+            inherit system;
+            modules = [
+              ./packaging/nix/controlplane/module.nix
+            ];
+            specialArgs = {
+              package = self.packages.${system}.apiserver;
+            };
+            format = "gce";
+          };
         nixosModules = rec {
           default = naisdevice;
           naisdevice = {

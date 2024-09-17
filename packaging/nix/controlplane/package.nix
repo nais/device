@@ -21,7 +21,7 @@ in
     ];
 
     meta = with pkgs.lib; {
-      description = "naisdevice ${subpackage}";
+      description = "naisdevice ${subPackage}";
       homepage = "https://github.com/nais/device";
       license = licenses.mit;
     };
