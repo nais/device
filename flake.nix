@@ -63,9 +63,7 @@
               gcc # needed for sqlite3-go
               gnumake
               go
-              go-tools
               gopls
-              gotools
               graphviz
               imagemagick
               protobuf
