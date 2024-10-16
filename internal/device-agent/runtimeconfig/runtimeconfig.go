@@ -253,7 +253,7 @@ func (r *runtimeConfig) LoadEnrollConfig() error {
 		return nil
 	}
 
-	if r.getPartnerDomain() == "mock" {
+	if r.GetDomainFromToken() == "mock" {
 		r.enrollConfig = &bootstrap.Config{
 			DeviceIPv4:     "",
 			APIServerIP:    "127.0.0.1",
@@ -301,7 +301,7 @@ func findPeer(gateway []*pb.Gateway, s string) *pb.Gateway {
 }
 
 func (r *runtimeConfig) getEnrollURL(ctx context.Context) (string, error) {
-	domain := r.getPartnerDomain()
+	domain := r.GetDomainFromToken()
 
 	url := fmt.Sprintf("https://storage.googleapis.com/%s/%s", tenantDiscoveryBucket, domain)
 	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
@@ -323,7 +323,7 @@ func (r *runtimeConfig) getEnrollURL(ctx context.Context) (string, error) {
 	return string(b) + "/enroll", nil
 }
 
-func (r *runtimeConfig) getPartnerDomain() string {
+func (r *runtimeConfig) GetDomainFromToken() string {
 	if r.config.LocalAPIServer {
 		return "mock"
 	}
@@ -346,7 +346,7 @@ func (r *runtimeConfig) getPartnerDomain() string {
 }
 
 func (r *runtimeConfig) path() string {
-	domain := r.getPartnerDomain()
+	domain := r.GetDomainFromToken()
 	filename := fmt.Sprintf("enroll-%s.json", domain)
 	return filepath.Join(r.config.ConfigDir, filename)
 }
