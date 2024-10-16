@@ -44,9 +44,9 @@
       }: {
         _module.args.pkgs = import nixpkgs {
           inherit system;
-          overlays = [
-            (import ./packaging/nix/naisdevice/overlay.nix)
-          ];
+          # overlays = [
+          #   (import ./packaging/nix/naisdevice/overlay.nix)
+          # ];
         };
         packages.default = config.packages.naisdevice;
         packages.naisdevice = pkgs.callPackage ./packaging/nix/naisdevice/package.nix {inherit self;};
