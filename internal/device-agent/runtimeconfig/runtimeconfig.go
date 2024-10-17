@@ -55,6 +55,7 @@ type RuntimeConfig interface {
 
 	GetTenantSession() (*pb.Session, error)
 
+	GetDomainFromToken() string
 	GetToken(context.Context) (string, error)
 	SetToken(*auth.Tokens)
 	SetTenantSession(*pb.Session) error
