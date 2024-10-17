@@ -166,7 +166,7 @@ func run(ctx context.Context, log *logrus.Entry, cfg *config.Config, notifier no
 	pb.RegisterDeviceAgentServer(grpcServer, das)
 
 	newVersionChannel := make(chan bool, 1)
-	go versionChecker(ctx, newVersionChannel, notifier, log)
+	go versionChecker(ctx, newVersionChannel, notifier, log, rc)
 
 	go func() {
 		// This routine forwards status updates from the state machine to the device agent server
@@ -199,7 +199,7 @@ func run(ctx context.Context, log *logrus.Entry, cfg *config.Config, notifier no
 	return nil
 }
 
-func versionChecker(ctx context.Context, newVersionChannel chan<- bool, notifier notify.Notifier, log logrus.FieldLogger) {
+func versionChecker(ctx context.Context, newVersionChannel chan<- bool, notifier notify.Notifier, log logrus.FieldLogger, rc runtimeconfig.RuntimeConfig) {
 	versionCheckTimer := time.NewTimer(versionCheckInterval)
 	for ctx.Err() == nil {
 		select {
@@ -214,7 +214,12 @@ func versionChecker(ctx context.Context, newVersionChannel chan<- bool, notifier
 
 			newVersionChannel <- newVersionAvailable
 			if newVersionAvailable {
-				notifier.Infof("New version of device agent available: https://doc.nais.io/how-to-guides/naisdevice/update")
+				url := "https://docs.nais.io/how-to-guides/naisdevice/update"
+				domain := rc.GetDomainFromToken()
+				if domain != "" {
+					url = fmt.Sprintf("https://docs.%s.cloud.nais.io/how-to-guides/naisdevice/update", domain)
+				}
+				notifier.Infof("New version of device agent available: " + url)
 				versionCheckTimer.Stop()
 			} else {
 				versionCheckTimer.Reset(versionCheckInterval)
