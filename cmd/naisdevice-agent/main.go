@@ -216,7 +216,7 @@ func versionChecker(ctx context.Context, newVersionChannel chan<- bool, notifier
 			if newVersionAvailable {
 				url := "https://docs.nais.io/how-to-guides/naisdevice/update"
 				domain := rc.GetDomainFromToken()
-				if domain != "" {
+				if domain != "default" { // if parsing fail we get default
 					url = fmt.Sprintf("https://docs.%s.cloud.nais.io/how-to-guides/naisdevice/update", domain)
 				}
 				notifier.Infof("New version of device agent available: " + url)
