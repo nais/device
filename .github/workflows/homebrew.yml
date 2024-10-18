@@ -39,7 +39,6 @@ jobs:
         env:
           LATEST: ${{ steps.latest_version.outputs.latest_tag }}
           LATEST_DATE: ${{ steps.latest_version.outputs.latest_tag_published_at }}
-          HOMEBREW_TAP_KEY: ${{ secrets.HOMEBREW_TAP_KEY }}
         run: |
           echo "Version ${LATEST} was released at ${LATEST_DATE}"
 
