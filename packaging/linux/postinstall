@@ -18,8 +18,14 @@ ensure_line "nav/NAV_Sub_CA.crt" "/etc/ca-certificates.conf"
 
 update-ca-certificates
 
-# Assert just _one_ logged-in user
-user_accounts=$(loginctl list-users -j | jq '[.[] | select(.uid >= 1000)]')
+systemd_version="$(systemctl --version | head -n 1 | grep -o '[0-9]+' | head -n 1)"
+if [[ $systemd_version -gt 255 ]]; then
+	user_accounts=$(loginctl list-users -j | jq '[.[] | select(.uid >= 1000)]')
+else
+	user_accounts=$(loginctl list-users --output json | jq '[.[] | select(.uid >= 1000)]')
+fi
+echo $user_accounts
+
 if echo "$user_accounts" | jq -e 'length != 1' >/dev/null; then
 	printf "\nMore than 1 user account logged in! naisdevice only permits _one_ user account!\n"
 	exit 1
