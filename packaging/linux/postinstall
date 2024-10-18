@@ -24,7 +24,6 @@ if [[ $systemd_version -gt 255 ]]; then
 else
 	user_accounts=$(loginctl list-users --output json | jq '[.[] | select(.uid >= 1000)]')
 fi
-echo $user_accounts
 
 if echo "$user_accounts" | jq -e 'length != 1' >/dev/null; then
 	printf "\nMore than 1 user account logged in! naisdevice only permits _one_ user account!\n"
