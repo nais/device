@@ -18,8 +18,8 @@ ensure_line "nav/NAV_Sub_CA.crt" "/etc/ca-certificates.conf"
 
 update-ca-certificates
 
-systemd_version="$(systemctl --version | head -n 1 | grep -o '[0-9]+' | head -n 1)"
-if [[ $systemd_version -gt 255 ]]; then
+systemd_version="$(systemctl --version | head -n 1 | grep -oP '[0-9]+' | head -n 1)"
+if [ "$((systemd_version))" -gt "255" ]; then
 	user_accounts=$(loginctl list-users -j | jq '[.[] | select(.uid >= 1000)]')
 else
 	user_accounts=$(loginctl list-users --output json | jq '[.[] | select(.uid >= 1000)]')
