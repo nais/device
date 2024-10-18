@@ -22,6 +22,18 @@ jobs:
         with:
           owner: nais
           repo: device
+      - uses: navikt/github-app-token-generator@v1
+        id: get-brew-token
+        with:
+          private-key: ${{ secrets.NAIS_APP_PRIVATE_KEY }}
+          app-id: ${{ secrets.NAIS_APP_ID }}
+          repo: nais/homebrew-tap
+      - name: Checkout homebrew-tap
+        uses: actions/checkout@v4
+        with:
+          repository: nais/homebrew-tap
+          token: ${{ steps.get-brew-token.outputs.token }}
+          path: taprepo
       - name: Update version and checksum in cask
         id: update_cask
         env:
@@ -36,9 +48,6 @@ jobs:
             exit 1
           fi
 
-          eval "$(ssh-agent -s)"
-          ssh-add - <<< "${HOMEBREW_TAP_KEY}"
-          git clone git@github.com:nais/homebrew-tap.git taprepo
           cd taprepo
           git config user.email "aura@nav.no"
           git config user.name "naisdevice pipeline"
