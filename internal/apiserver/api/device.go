@@ -193,14 +193,6 @@ func (s *grpcServer) UpdateAllDevices(ctx context.Context) error {
 		s.log.WithError(err).Error("Error reading devices")
 		return nil
 	}
-	/*
-		device.ExternalID = fmt.Sprint(kolideDevice.ID)
-		device.Issues = issuesByExternalID[device.ExternalID]
-
-		if kolideDevice.LastSeenAt != nil {
-			device.LastSeen = timestamppb.New(*kolideDevice.LastSeenAt)
-		}
-	*/
 
 	kolideDevices, err := s.kolideClient.GetDevices(ctx)
 	if err != nil {
