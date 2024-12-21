@@ -11,8 +11,10 @@
 {% else %}
 -A FORWARD -i wg0 -o ens4 -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT
 -A FORWARD -i ens4 -o wg0 -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT
+{% if cluster_ip is defined %}
 -A FORWARD -i wg0 -o ens4 -p tcp -m tcp -d {{ cluster_ip }}/32 --dport 443 --tcp-flags FIN,SYN,RST,ACK SYN -m conntrack --ctstate NEW -j LOG --log-level 6 --log-prefix "naisdevice-fwd: "
 -A FORWARD -i wg0 -o ens4 -p tcp -m tcp -d {{ cluster_ip }}/32 --dport 443 --tcp-flags FIN,SYN,RST,ACK SYN -m conntrack --ctstate NEW -j ACCEPT
+{% endif %}
 {% endif %}
 COMMIT
 # Completed on Mon May  4 07:54:01 2020
@@ -22,7 +24,7 @@ COMMIT
 :INPUT ACCEPT [8:448]
 :OUTPUT ACCEPT [229:17447]
 :POSTROUTING ACCEPT [229:17447]
-{% if not onprem and tunnel_ip is defined %}
+{% if not onprem and tunnel_ip is defined and cluster_ip is defined %}
 -A PREROUTING -i wg0 -d {{ tunnel_ip }} -p tcp -m tcp --dport 443 -j DNAT --to-destination {{ cluster_ip }}
 -A POSTROUTING -d {{ cluster_ip }}/32 -o ens4 -p tcp -m tcp --dport 443 -j SNAT --to-source {{ ansible_default_ipv4.address }}
 {% endif %}
