@@ -71,7 +71,7 @@ func (db *database) getDeviceIssues(ctx context.Context, device *sqlc.Device) ([
 }
 
 const (
-	lastSeenGracePeriod = time.Hour
+	lastSeenGracePeriod = 48 * time.Hour
 	lastSeenIssueTitle  = "Device has not been seen recently"
 )
 
