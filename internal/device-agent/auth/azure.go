@@ -63,10 +63,8 @@ func handleRedirectAzure(state string, conf oauth2.Config, codeVerifier *codever
 			return
 		}
 
-		msg := `Successfully authenticated 👌 Close me pls
-		<p style="text-align: center"><a href="https://console.nav.cloud.nais.io">Go to NAIS Console</a></p>
-		`
-		successfulResponse(w, msg, r.Header.Get("user-agent"))
+		http.Redirect(w, r, "https://console.nav.cloud.nais.io/?naisdevice=1", http.StatusSeeOther)
+
 		authFlowChan <- &authFlowResponse{Tokens: &Tokens{Token: t}, err: nil}
 	}
 }
