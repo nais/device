@@ -100,7 +100,7 @@ func (rc *runtimeConfig) ConnectToAPIServer(ctx context.Context) (pb.APIServerCl
 	conn, err := rc.DialAPIServer(dialContext)
 	if err != nil {
 		cancel()
-		return nil, func() {}, grpcstatus.Errorf(codes.Unavailable, err.Error())
+		return nil, func() {}, grpcstatus.Errorf(codes.Unavailable, "dial: %v", err)
 	}
 
 	return pb.NewAPIServerClient(conn), func() {
