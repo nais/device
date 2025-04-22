@@ -8,15 +8,12 @@ require (
 	cloud.google.com/go/pubsub v1.45.1
 	cloud.google.com/go/storage v1.49.0
 	fyne.io/systray v1.11.0
-	github.com/akavel/rsrc v0.10.2
 	github.com/coreos/go-iptables v0.7.0
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc
 	github.com/gen2brain/beeep v0.0.0-20240516210008-9c006672e7f4
 	github.com/golang-migrate/migrate/v4 v4.16.2
-	github.com/golangci/golangci-lint v1.64.8
 	github.com/google/gopacket v1.1.20-0.20220810144506-32ee38206866
 	github.com/google/uuid v1.6.0
-	github.com/jackmordaunt/icns/v2 v2.2.7
 	github.com/kelseyhightower/envconfig v1.4.0
 	github.com/lestrrat-go/jwx v1.2.29
 	github.com/microsoft/wmi v0.25.2
@@ -25,10 +22,8 @@ require (
 	github.com/prometheus/client_golang v1.19.1
 	github.com/sirupsen/logrus v1.9.3
 	github.com/spf13/pflag v1.0.6
-	github.com/sqlc-dev/sqlc v1.29.0
 	github.com/stretchr/testify v1.10.0
 	github.com/urfave/cli/v2 v2.25.7
-	github.com/vektra/mockery/v2 v2.53.3
 	go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc v0.59.0
 	go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.59.0
 	go.opentelemetry.io/otel v1.34.0
@@ -43,14 +38,9 @@ require (
 	golang.org/x/oauth2 v0.26.0
 	golang.org/x/sync v0.13.0
 	golang.org/x/sys v0.32.0
-	golang.org/x/tools v0.32.0
-	golang.org/x/vuln v1.1.4
 	google.golang.org/api v0.223.0
 	google.golang.org/grpc v1.71.1
-	google.golang.org/grpc/cmd/protoc-gen-go-grpc v1.4.0
 	google.golang.org/protobuf v1.36.6
-	honnef.co/go/tools v0.6.1
-	mvdan.cc/gofumpt v0.8.0
 )
 
 require (
@@ -78,6 +68,7 @@ require (
 	github.com/GoogleCloudPlatform/opentelemetry-operations-go/internal/resourcemapping v0.48.1 // indirect
 	github.com/Masterminds/semver/v3 v3.3.0 // indirect
 	github.com/OpenPeeDeeP/depguard/v2 v2.2.1 // indirect
+	github.com/akavel/rsrc v0.10.2 // indirect
 	github.com/alecthomas/go-check-sumtype v0.3.1 // indirect
 	github.com/alexkohler/nakedret/v2 v2.0.5 // indirect
 	github.com/alexkohler/prealloc v1.0.0 // indirect
@@ -143,6 +134,7 @@ require (
 	github.com/golangci/dupl v0.0.0-20250308024227-f665c8d69b32 // indirect
 	github.com/golangci/go-printf-func-name v0.1.0 // indirect
 	github.com/golangci/gofmt v0.0.0-20250106114630-d62b90e6713d // indirect
+	github.com/golangci/golangci-lint v1.64.8 // indirect
 	github.com/golangci/misspell v0.6.0 // indirect
 	github.com/golangci/plugin-module-register v0.1.1 // indirect
 	github.com/golangci/revgrep v0.8.0 // indirect
@@ -171,6 +163,7 @@ require (
 	github.com/jackc/pgservicefile v0.0.0-20240606120523-5a60cdf6a761 // indirect
 	github.com/jackc/pgx/v5 v5.7.4 // indirect
 	github.com/jackc/puddle/v2 v2.2.2 // indirect
+	github.com/jackmordaunt/icns/v2 v2.2.7 // indirect
 	github.com/jgautheron/goconst v1.7.1 // indirect
 	github.com/jingyugao/rowserrcheck v1.1.1 // indirect
 	github.com/jinzhu/copier v0.4.0 // indirect
@@ -257,6 +250,7 @@ require (
 	github.com/spf13/cast v1.7.1 // indirect
 	github.com/spf13/cobra v1.9.1 // indirect
 	github.com/spf13/viper v1.20.0 // indirect
+	github.com/sqlc-dev/sqlc v1.29.0 // indirect
 	github.com/ssgreg/nlreturn/v2 v2.2.1 // indirect
 	github.com/stbenjam/no-sprintf-host-port v0.2.0 // indirect
 	github.com/stoewer/go-strcase v1.3.0 // indirect
@@ -274,6 +268,7 @@ require (
 	github.com/ultraware/whitespace v0.2.0 // indirect
 	github.com/uudashr/gocognit v1.2.0 // indirect
 	github.com/uudashr/iface v1.3.1 // indirect
+	github.com/vektra/mockery/v2 v2.53.3 // indirect
 	github.com/wasilibs/go-pgquery v0.0.0-20250409022910-10ac41983c07 // indirect
 	github.com/wasilibs/wazero-helpers v0.0.0-20240620070341-3dff1577cd52 // indirect
 	github.com/xen0n/gosmopolitan v1.2.2 // indirect
@@ -300,16 +295,20 @@ require (
 	golang.org/x/term v0.31.0 // indirect
 	golang.org/x/text v0.24.0 // indirect
 	golang.org/x/time v0.10.0 // indirect
+	golang.org/x/tools v0.32.0 // indirect
+	golang.org/x/vuln v1.1.4 // indirect
 	google.golang.org/genproto v0.0.0-20241118233622-e639e219e697 // indirect
 	google.golang.org/genproto/googleapis/api v0.0.0-20250106144421-5f5ef82da422 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20250219182151-9fdb1cabc7b2 // indirect
 	gopkg.in/natefinch/lumberjack.v2 v2.2.1 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
+	honnef.co/go/tools v0.6.1 // indirect
 	modernc.org/libc v1.62.1 // indirect
 	modernc.org/mathutil v1.7.1 // indirect
 	modernc.org/memory v1.9.1 // indirect
 	modernc.org/sqlite v1.37.0 // indirect
+	mvdan.cc/gofumpt v0.8.0 // indirect
 	mvdan.cc/unparam v0.0.0-20240528143540-8a5130ca722f // indirect
 )
 
