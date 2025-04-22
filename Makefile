@@ -18,8 +18,8 @@ proto: install-protobuf-go
 	PATH="${PATH}:$(shell go env GOPATH)/bin" ${PROTOC} --go-grpc_opt=paths=source_relative --go_opt=paths=source_relative --go_out=. --go-grpc_out=. internal/pb/protobuf-api.proto
 
 install-protobuf-go:
-	go install google.golang.org/protobuf/cmd/protoc-gen-go
-	go install google.golang.org/grpc/cmd/protoc-gen-go-grpc
+	go install google.golang.org/protobuf/cmd/protoc-gen-go@v1.36.6
+	go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@v1.5.1
 
 # Before building linux-client and debian package, these are needed
 linux-init:
