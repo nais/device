@@ -52,8 +52,8 @@ macos-client:
 windows-client:
 	mkdir -p ./bin/windows-client
 
-	go run github.com/akavel/rsrc -arch amd64 -manifest ./packaging/windows/admin_manifest.xml -ico assets/nais-logo-blue.ico -o ./cmd/naisdevice-helper/main_windows.syso
-	go run github.com/akavel/rsrc -ico assets/nais-logo-blue.ico -o ./cmd/naisdevice-agent/main_windows.syso
+	go tool github.com/akavel/rsrc -arch amd64 -manifest ./packaging/windows/admin_manifest.xml -ico assets/nais-logo-blue.ico -o ./cmd/naisdevice-helper/main_windows.syso
+	go tool github.com/akavel/rsrc -ico assets/nais-logo-blue.ico -o ./cmd/naisdevice-agent/main_windows.syso
 	GOOS=windows GOARCH=amd64 go build -o bin/windows-client/naisdevice-systray.exe --tags "$(GOTAGS)" -ldflags "-s $(LDFLAGS) -H=windowsgui" ./cmd/naisdevice-systray
 	./packaging/windows/sign-exe bin/windows-client/naisdevice-systray.exe ./packaging/windows/naisdevice.crt ./packaging/windows/naisdevice.key
 	GOOS=windows GOARCH=amd64 go build -o bin/windows-client/naisdevice-agent.exe --tags "$(GOTAGS)" -ldflags "-s $(LDFLAGS) -H=windowsgui" ./cmd/naisdevice-agent
@@ -88,7 +88,7 @@ macos-icon: packaging/macos/icons/naisdevice.icns
 packaging/macos/icons/naisdevice.icns:
 	mkdir -p packaging/macos/icons/
 	magick assets/svg/blue.svg -background transparent -resize 1024x1024 -gravity center -extent 1024x1024 packaging/macos/icons/naisdevice.png
-	go run github.com/jackmordaunt/icns/v2/cmd/icnsify -i packaging/macos/icons/naisdevice.png -o packaging/macos/icons/naisdevice.icns
+	go tool github.com/jackmordaunt/icns/v2/cmd/icnsify -i packaging/macos/icons/naisdevice.png -o packaging/macos/icons/naisdevice.icns
 
 wg: bin/macos-client/wg
 bin/macos-client/wg:
@@ -144,8 +144,8 @@ clean:
 	rm -rf ./packaging/*/assets
 
 mocks:
-	go run github.com/vektra/mockery/v2
-	find internal -type f -name "mock_*.go" -exec go run mvdan.cc/gofumpt -w {} \;
+	go tool github.com/vektra/mockery/v2
+	find internal -type f -name "mock_*.go" -exec go tool mvdan.cc/gofumpt -w {} \;
 
 # controlplane is autoreleased for every push
 release-frontend:
@@ -161,24 +161,24 @@ buildreleaseauthserver:
 	docker push europe-north1-docker.pkg.dev/nais-io/nais/images/naisdevice-auth-server:${VERSION}
 
 generate-sqlc:
-	go run github.com/sqlc-dev/sqlc/cmd/sqlc generate
-	go run mvdan.cc/gofumpt -w ./internal/apiserver/sqlc/
+	go tool github.com/sqlc-dev/sqlc/cmd/sqlc generate
+	go tool mvdan.cc/gofumpt -w ./internal/apiserver/sqlc/
 
 fmt:
-	go run mvdan.cc/gofumpt -w ./
+	go tool mvdan.cc/gofumpt -w ./
 
 lint:
-	go run github.com/golangci/golangci-lint/cmd/golangci-lint run
+	go tool github.com/golangci/golangci-lint/cmd/golangci-lint run
 
 staticcheck:
-	go run honnef.co/go/tools/cmd/staticcheck ./...
+	go tool honnef.co/go/tools/cmd/staticcheck ./...
 
 generate-guievent-strings:
-	go run golang.org/x/tools/cmd/stringer -type=GuiEvent ./internal/systray
+	go tool golang.org/x/tools/cmd/stringer -type=GuiEvent ./internal/systray
 
 generate: generate-guievent-strings mocks generate-sqlc proto
 
 govulncheck:
-	go run golang.org/x/vuln/cmd/govulncheck ./...
+	go tool golang.org/x/vuln/cmd/govulncheck ./...
 
 check: staticcheck govulncheck
