@@ -113,14 +113,16 @@ jobs:
 
       - name: Build and push enroller
         uses: docker/build-push-action@v6
+        env:
+          cache_ref: ${{ env.REGISTRY }}/naisdevice-enroller:master
         with:
           context: .
           file: cmd/enroller/Dockerfile
           push: true
           tags: ${{ steps.metadata.outputs.tags }}
           labels: ${{ steps.metadata.outputs.labels }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          cache-from: type=registry,ref=${{ env.cache_ref }}
+          cache-to: type=registry,ref=${{ env.cache_ref }},mode=max
 
   build_auth_server:
     name: Build auth-server
@@ -170,11 +172,13 @@ jobs:
 
       - name: Build and push auth-server
         uses: docker/build-push-action@v6
+        env:
+          cache_ref: ${{ env.REGISTRY }}/naisdevice-auth-server:master
         with:
           context: .
           file: cmd/auth-server/Dockerfile
           push: true
           tags: ${{ steps.metadata.outputs.tags }}
           labels: ${{ steps.metadata.outputs.labels }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          cache-from: type=registry,ref=${{ env.cache_ref }}
+          cache-to: type=gha,ref=${{ env.cache_ref }},mode=max
