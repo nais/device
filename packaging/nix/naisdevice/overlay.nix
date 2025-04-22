@@ -1,5 +1,5 @@
 let
-  goVersion = "1.23.2";
+  goVersion = "1.24.2";
   goSha256 = "sha256-NpMBYqk99BfZC9IsbhTa/0cFuqwrAkGO3aZxzfqc0H8=";
 in
   _final: prev: {
