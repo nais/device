@@ -28,15 +28,15 @@ Disse er satt opp som onprem gateways, bare bruk denne bstionen i steden for aur
 
 ## xpanes
 
-### NAV gcp gateways
+### Nav gcp gateways
 
-må kjøres fra `naisdevice-terraform` repoet, med `terraform init` kjørt for å ha tilgang på state.
+Må kjøres fra `naisdevice-terraform` repoet, med `terraform init` kjørt for å ha tilgang på state.
 
 ```
 terraform state pull | jq -r '.resources[] | select(.type=="google_compute_instance" and .name=="gateway") | .instances[] | "gcloud compute ssh --tunnel-through-iap --project " + .attributes.project  + " " +.attributes.name' | xpanes -c '{}'
 ```
 
-### NAV onprem gateways
+### Nav onprem gateways
 
 Krever ssh config, at du har bruker på VMen ([legges til her](../ansible/site.yml#L30)), og JITA til naisvakt aktivert.
 
@@ -66,6 +66,9 @@ for p in $(gcloud projects list | grep nais-management | cut -d ' ' -f 1); do
   echo gcloud compute ssh --tunnel-through-iap --project="$p" naisdevice-apiserver
 done | xpanes -c '{}'
 ```
+
+*Merk at Nav har sin Apiserver i et legacy prosjekt `nais-device`!*  
+TL;DR `gcloud compute ssh --zone "europe-north1-a" "apiserver" --project "nais-device" --tunnel-through-iap` for Nav.
 
 ### Tenant gateways
 
