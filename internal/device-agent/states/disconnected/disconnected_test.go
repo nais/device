@@ -9,7 +9,7 @@ import (
 	"github.com/nais/device/internal/device-agent/runtimeconfig"
 	statemachine "github.com/nais/device/internal/device-agent/statemachine/state"
 	"github.com/nais/device/internal/device-agent/states/disconnected"
-	"github.com/nais/device/internal/pb"
+	"github.com/nais/device/pkg/pb"
 	"github.com/stretchr/testify/assert"
 )
 

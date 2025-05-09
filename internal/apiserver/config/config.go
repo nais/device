@@ -6,7 +6,7 @@ import (
 	"strings"
 
 	"github.com/nais/device/internal/auth"
-	"github.com/nais/device/internal/pb"
+	"github.com/nais/device/pkg/pb"
 	"github.com/nais/device/internal/wireguard"
 	"github.com/sirupsen/logrus"
 )

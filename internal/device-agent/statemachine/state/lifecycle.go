@@ -4,7 +4,7 @@ import (
 	"context"
 	"sync"
 
-	"github.com/nais/device/internal/pb"
+	"github.com/nais/device/pkg/pb"
 )
 
 type Lifecycle struct {

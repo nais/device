@@ -8,7 +8,7 @@ import (
 	"os/exec"
 	"time"
 
-	"github.com/nais/device/internal/pb"
+	"github.com/nais/device/pkg/pb"
 )
 
 const wireGuardBinary = `c:\Program Files\WireGuard\wireguard.exe`

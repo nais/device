@@ -15,7 +15,7 @@ all: test
 clients: linux-client macos-client windows-client
 
 proto: install-protobuf-go
-	PATH="${PATH}:$(shell go env GOPATH)/bin" ${PROTOC} --go-grpc_opt=paths=source_relative --go_opt=paths=source_relative --go_out=. --go-grpc_out=. internal/pb/protobuf-api.proto
+	PATH="${PATH}:$(shell go env GOPATH)/bin" ${PROTOC} --go-grpc_opt=paths=source_relative --go_opt=paths=source_relative --go_out=. --go-grpc_out=. pkg/pb/protobuf-api.proto
 
 install-protobuf-go:
 	go install google.golang.org/protobuf/cmd/protoc-gen-go@v1.36.6

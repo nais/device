@@ -6,7 +6,7 @@ import (
 	"os/exec"
 	"strings"
 
-	"github.com/nais/device/internal/pb"
+	"github.com/nais/device/pkg/pb"
 )
 
 var wireguardBinary = ""

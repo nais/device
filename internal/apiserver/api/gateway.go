@@ -7,7 +7,7 @@ import (
 
 	"github.com/nais/device/internal/apiserver/jita"
 	"github.com/nais/device/internal/apiserver/metrics"
-	"github.com/nais/device/internal/pb"
+	"github.com/nais/device/pkg/pb"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )

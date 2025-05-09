@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	gateway_agent "github.com/nais/device/internal/gateway-agent"
-	"github.com/nais/device/internal/pb"
+	"github.com/nais/device/pkg/pb"
 	"github.com/nais/device/internal/wireguard"
 	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"

@@ -11,7 +11,7 @@ import (
 
 	"github.com/nais/device/internal/notify"
 	"github.com/nais/device/internal/otel"
-	"github.com/nais/device/internal/pb"
+	"github.com/nais/device/pkg/pb"
 )
 
 const ConfigFile = "systray-config.json"

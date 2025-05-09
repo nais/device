@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"net/netip"
 
-	"github.com/nais/device/internal/pb"
+	"github.com/nais/device/pkg/pb"
 	"github.com/nais/device/internal/wireguard"
 )
 

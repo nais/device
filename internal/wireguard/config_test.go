@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"testing"
 
-	"github.com/nais/device/internal/pb"
+	"github.com/nais/device/pkg/pb"
 	"github.com/nais/device/internal/wireguard"
 	"github.com/stretchr/testify/assert"
 )

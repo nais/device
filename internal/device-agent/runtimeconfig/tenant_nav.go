@@ -3,7 +3,7 @@
 
 package runtimeconfig
 
-import "github.com/nais/device/internal/pb"
+import "github.com/nais/device/pkg/pb"
 
 var defaultTenants = []*pb.Tenant{
 	{

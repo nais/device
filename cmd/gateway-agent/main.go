@@ -15,7 +15,7 @@ import (
 	gateway_agent "github.com/nais/device/internal/gateway-agent"
 	"github.com/nais/device/internal/gateway-agent/config"
 	"github.com/nais/device/internal/passwordhash"
-	"github.com/nais/device/internal/pb"
+	"github.com/nais/device/pkg/pb"
 	"github.com/nais/device/internal/program"
 	"github.com/nais/device/internal/pubsubenroll"
 	"github.com/nais/device/internal/wireguard"

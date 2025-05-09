@@ -1,7 +1,7 @@
 package bootstrap
 
 import (
-	"github.com/nais/device/internal/pb"
+	"github.com/nais/device/pkg/pb"
 )
 
 // Config is the information the device needs to bootstrap its connection to the APIServer

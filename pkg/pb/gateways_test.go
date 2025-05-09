@@ -3,7 +3,7 @@ package pb_test
 import (
 	"testing"
 
-	"github.com/nais/device/internal/pb"
+	"github.com/nais/device/pkg/pb"
 	"github.com/stretchr/testify/assert"
 )
 

@@ -4,7 +4,7 @@ import (
 	"context"
 
 	"github.com/nais/device/internal/otel"
-	"github.com/nais/device/internal/pb"
+	"github.com/nais/device/pkg/pb"
 	ototel "go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/metric"

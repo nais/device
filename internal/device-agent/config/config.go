@@ -9,13 +9,13 @@ import (
 	"google.golang.org/protobuf/encoding/protojson"
 
 	config2 "github.com/nais/device/internal/helper/config"
-	"github.com/nais/device/internal/pb"
+	"github.com/nais/device/pkg/pb"
 
 	"github.com/sirupsen/logrus"
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/endpoints"
 
-	"github.com/nais/device/internal/config"
+	"github.com/nais/device/pkg/config"
 )
 
 const File = "agent-config.json"

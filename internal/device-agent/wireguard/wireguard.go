@@ -13,7 +13,7 @@ import (
 	"golang.org/x/crypto/curve25519"
 
 	"github.com/nais/device/internal/device-agent/filesystem"
-	"github.com/nais/device/internal/pb"
+	"github.com/nais/device/pkg/pb"
 )
 
 func KeyToBase64(key []byte) []byte {

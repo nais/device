@@ -8,7 +8,7 @@ import (
 	kolide "github.com/nais/device/internal/apiserver/kolide"
 	mock "github.com/stretchr/testify/mock"
 
-	pb "github.com/nais/device/internal/pb"
+	pb "github.com/nais/device/pkg/pb"
 
 	sqlc "github.com/nais/device/internal/apiserver/sqlc"
 

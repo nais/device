@@ -8,7 +8,7 @@ import (
 
 	"github.com/nais/device/internal/apiserver/database"
 	"github.com/nais/device/internal/auth"
-	"github.com/nais/device/internal/pb"
+	"github.com/nais/device/pkg/pb"
 	"github.com/nais/device/internal/random"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )

@@ -1,6 +1,6 @@
 package pubsubenroll
 
-import "github.com/nais/device/internal/pb"
+import "github.com/nais/device/pkg/pb"
 
 type DeviceRequest struct {
 	Platform           string `json:"platform"`

@@ -4,7 +4,7 @@ import (
 	"slices"
 
 	"github.com/nais/device/internal/apiserver/jita"
-	"github.com/nais/device/internal/pb"
+	"github.com/nais/device/pkg/pb"
 )
 
 const GatewayMSLoginName = "nais-device-gw-ms-login"

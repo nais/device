@@ -11,7 +11,7 @@ import (
 	"github.com/nais/device/internal/apiserver/kolide"
 	"github.com/nais/device/internal/device-agent/runtimeconfig"
 	"github.com/nais/device/internal/helper"
-	"github.com/nais/device/internal/pb"
+	"github.com/nais/device/pkg/pb"
 	"github.com/nais/device/internal/wireguard"
 	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"

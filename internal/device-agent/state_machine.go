@@ -14,7 +14,7 @@ import (
 	"github.com/nais/device/internal/device-agent/states/connected"
 	"github.com/nais/device/internal/device-agent/states/disconnected"
 	"github.com/nais/device/internal/notify"
-	"github.com/nais/device/internal/pb"
+	"github.com/nais/device/pkg/pb"
 )
 
 func NewStateMachine(

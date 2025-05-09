@@ -7,7 +7,7 @@ import (
 	"sync"
 
 	"github.com/nais/device/internal/apiserver/database"
-	"github.com/nais/device/internal/pb"
+	"github.com/nais/device/pkg/pb"
 )
 
 var ErrNoSession = errors.New("no active session")

@@ -6,7 +6,7 @@ import (
 	"testing"
 
 	"github.com/nais/device/internal/helper"
-	"github.com/nais/device/internal/pb"
+	"github.com/nais/device/pkg/pb"
 	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/grpc"

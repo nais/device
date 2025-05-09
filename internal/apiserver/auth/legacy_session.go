@@ -3,7 +3,7 @@ package auth
 import (
 	"time"
 
-	"github.com/nais/device/internal/pb"
+	"github.com/nais/device/pkg/pb"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 

@@ -5,7 +5,7 @@ package helper
 import (
 	context "context"
 
-	pb "github.com/nais/device/internal/pb"
+	pb "github.com/nais/device/pkg/pb"
 	mock "github.com/stretchr/testify/mock"
 )
 

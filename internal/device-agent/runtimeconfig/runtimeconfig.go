@@ -21,7 +21,7 @@ import (
 	"github.com/nais/device/internal/device-agent/config"
 	"github.com/nais/device/internal/device-agent/wireguard"
 	"github.com/nais/device/internal/otel"
-	"github.com/nais/device/internal/pb"
+	"github.com/nais/device/pkg/pb"
 	"github.com/nais/device/internal/pubsubenroll"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/api/iterator"

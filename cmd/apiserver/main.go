@@ -27,7 +27,7 @@ import (
 	"github.com/nais/device/internal/apiserver/metrics"
 	"github.com/nais/device/internal/logger"
 	"github.com/nais/device/internal/otel"
-	"github.com/nais/device/internal/pb"
+	"github.com/nais/device/pkg/pb"
 	"github.com/nais/device/internal/program"
 	"github.com/nais/device/internal/version"
 	wg "github.com/nais/device/internal/wireguard"
