@@ -9,7 +9,7 @@ on:
 
 jobs:
   upload-gar:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     permissions:
       contents: read
       id-token: write
@@ -30,18 +30,18 @@ jobs:
           service_account: "gh-naisdevice@nais-io.iam.gserviceaccount.com"
           token_format: "access_token"
 
-      - name: 'Set up Cloud SDK'
-        uses: 'google-github-actions/setup-gcloud@v1'
+      - name: "Set up Cloud SDK"
+        uses: "google-github-actions/setup-gcloud@v1"
         with:
           install_components: beta
 
-      - name: 'Upload new deb file to Google repository'
+      - name: "Upload new deb file to Google repository"
         env:
           LATEST: ${{ steps.latest_version.outputs.latest_tag }}
           LATEST_DATE: ${{ steps.latest_version.outputs.latest_tag_published_at }}
         run: |
           echo "Version ${LATEST} was released at ${LATEST_DATE}"
-          
+
           if [[ "${LATEST}" == "null" ]]; then
             echo "Invalid version!"
             exit 1
@@ -50,7 +50,7 @@ jobs:
           # Fetch latest debs
           wget https://github.com/nais/device/releases/download/${LATEST}/naisdevice.deb -O naisdevice-${LATEST}.deb
           wget https://github.com/nais/device/releases/download/${LATEST}/naisdevice-tenant.deb -O naisdevice-tenant-${LATEST}.deb
-          
+
           # Upload to GAR
           gcloud --project nais-io beta artifacts apt upload nais-ppa --quiet --source naisdevice-${LATEST}.deb --location europe-north1
           gcloud --project nais-io beta artifacts apt upload nais-ppa --quiet --source naisdevice-tenant-${LATEST}.deb --location europe-north1

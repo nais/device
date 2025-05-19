@@ -16,7 +16,7 @@ env:
 jobs:
   test:
     name: Test
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v4
       - id: tool_versions
@@ -35,7 +35,7 @@ jobs:
     name: Build debs
     needs:
       - test
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     container:
       image: ghcr.io/nais/naisdevice-ci:v5
     steps:
@@ -71,7 +71,7 @@ jobs:
       contents: "read"
       id-token: "write"
       packages: read
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     container:
       image: ghcr.io/nais/naisdevice-ci:v5
     steps:
@@ -132,7 +132,7 @@ jobs:
       contents: "read"
       id-token: "write"
       packages: read
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v4
 
