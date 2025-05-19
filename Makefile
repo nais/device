@@ -34,9 +34,6 @@ controlplane:
 	GOOS=linux GOARCH=amd64 go build -o bin/controlplane/gateway-agent --tags "$(GOTAGS)" -ldflags "-s $(LDFLAGS)" ./cmd/gateway-agent
 	GOOS=linux GOARCH=amd64 go build -o bin/controlplane/prometheus-agent --tags "$(GOTAGS)" -ldflags "-s $(LDFLAGS)" ./cmd/prometheus-agent
 
-controlplane-docker:
-	docker build --build-arg COMPONENT=apiserver --build-arg GOTAGS="$(GOTAGS)" --build-arg LDFLAGS="$(LDFLAGS)" -t naisdevice-apiserver:latest -f ./packaging/controlplane/apiserver/Dockerfile .
-
 # Run by GitHub actions on linux
 linux-client:
 	mkdir -p ./bin/linux-client
