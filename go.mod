@@ -7,7 +7,7 @@ toolchain go1.24.2
 require (
 	cloud.google.com/go/pubsub v1.45.1
 	cloud.google.com/go/storage v1.49.0
-	fyne.io/systray v1.11.0
+	fyne.io/systray v1.11.1-0.20250317195939-bcf6eed85e7a
 	github.com/coreos/go-iptables v0.7.0
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc
 	github.com/gen2brain/beeep v0.0.0-20240516210008-9c006672e7f4
@@ -37,7 +37,7 @@ require (
 	golang.org/x/exp v0.0.0-20250305212735-054e65f0b394
 	golang.org/x/oauth2 v0.29.0
 	golang.org/x/sync v0.13.0
-	golang.org/x/sys v0.32.0
+	golang.org/x/sys v0.33.0
 	google.golang.org/api v0.223.0
 	google.golang.org/grpc v1.71.1
 	google.golang.org/protobuf v1.36.6
