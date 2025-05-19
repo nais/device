@@ -48,7 +48,7 @@ linux-client:
 macos-client:
 	mkdir -p ./bin/macos-client
 	GOOS=darwin GOARCH=amd64 go build -o bin/macos-client/naisdevice-agent --tags "$(GOTAGS)" -ldflags "-s $(LDFLAGS)" ./cmd/naisdevice-agent
-	GOOS=darwin GOARCH=amd64 go build -o bin/macos-client/naisdevice-systray --tags "$(GOTAGS)" -ldflags "-s $(LDFLAGS)" ./cmd/naisdevice-systray
+	GOOS=darwin GOARCH=amd64 CGO_ENABLED=1 go build -o bin/macos-client/naisdevice-systray --tags "$(GOTAGS)" -ldflags "-s $(LDFLAGS)" ./cmd/naisdevice-systray
 	GOOS=darwin GOARCH=amd64 go build -o bin/macos-client/naisdevice-helper --tags "$(GOTAGS)" -ldflags "-s $(LDFLAGS)" ./cmd/naisdevice-helper
 
 # Run by GitHub actions on linux
