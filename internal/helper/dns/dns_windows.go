@@ -3,6 +3,7 @@ package dns
 import (
 	"fmt"
 	"os/exec"
+	"strings"
 )
 
 func apply(zones []string) error {
@@ -17,6 +18,9 @@ func apply(zones []string) error {
 			fmt.Fprintf(stdin, "Get-DnsClientNrptRule | Where { $_.Namespace -match '%s' } | Remove-DnsClientNrptRule -force\n", zone)
 		}
 		for _, zone := range zones {
+			if !strings.HasPrefix(zone, ".") {
+				zone = "." + zone
+			}
 			fmt.Fprintf(stdin, "Get-DnsClientNrptRule | Where { $_.Namespace -match '%s' } | Remove-DnsClientNrptRule -force\n", zone)
 			fmt.Fprintf(stdin, "Add-DnsClientNrptRule -Namespace '%s' -NameServers @('8.8.8.8','8.8.4.4')\n", zone)
 		}
