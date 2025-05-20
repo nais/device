@@ -63,7 +63,7 @@ func handleRedirectAzure(state string, conf oauth2.Config, codeVerifier *codever
 			return
 		}
 
-		http.Redirect(w, r, "https://console.nav.cloud.nais.io/?naisdevice=1", http.StatusSeeOther)
+		http.Redirect(w, r, "https://console.nav.cloud.nais.io/?naisdevice=connected", http.StatusSeeOther)
 
 		authFlowChan <- &authFlowResponse{Tokens: &Tokens{Token: t}, err: nil}
 	}
