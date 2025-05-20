@@ -35,3 +35,5 @@ Guiden nedenfor bruker Nav som eksempel.
    ```shell
    update devices set username = 'ny.epost@nav.no' where username = 'forrige.epost@nav.no' limit 1;
    ```
+
+PS: E-post bruker ofte stor forbokstav. `ny.epost@nav.no` er ikke den samme som `Ny.Epost@nav.no`, og brukere logger inn med forskjellig bruk av store bokstaver.
