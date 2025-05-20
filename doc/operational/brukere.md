@@ -17,7 +17,7 @@ Guiden nedenfor bruker Nav som eksempel.
 
 1. Start med å SSH inn på riktig Apiserver
 
-   ```ssh
+   ```shell
    gcloud compute ssh --zone "europe-north1-a" "apiserver" --project "nais-device" --tunnel-through-iap
    ```
 3. Koble deg på SQLite-databasen
@@ -27,12 +27,12 @@ Guiden nedenfor bruker Nav som eksempel.
    ```
 4. List brukere med utdatert e-post
 
-   ```shell
+   ```sql
    select * from devices where username = 'forrige.epost@nav.no';
    ```
 5. Oppdater radene med ny e-post
 
-   ```shell
+   ```sql
    update devices set username = 'ny.epost@nav.no' where username = 'forrige.epost@nav.no' limit 1;
    ```
 
