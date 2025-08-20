@@ -22,7 +22,7 @@ func (_m *MockOSConfigurator) EXPECT() *MockOSConfigurator_Expecter {
 	return &MockOSConfigurator_Expecter{mock: &_m.Mock}
 }
 
-// Prerequisites provides a mock function with given fields:
+// Prerequisites provides a mock function with no fields
 func (_m *MockOSConfigurator) Prerequisites() error {
 	ret := _m.Called()
 

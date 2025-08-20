@@ -155,7 +155,7 @@ func (_c *MockNetworkConfigurer_ForwardRoutesV6_Call) RunAndReturn(run func([]st
 	return _c
 }
 
-// SetupIPTables provides a mock function with given fields:
+// SetupIPTables provides a mock function with no fields
 func (_m *MockNetworkConfigurer) SetupIPTables() error {
 	ret := _m.Called()
 
@@ -200,7 +200,7 @@ func (_c *MockNetworkConfigurer_SetupIPTables_Call) RunAndReturn(run func() erro
 	return _c
 }
 
-// SetupInterface provides a mock function with given fields:
+// SetupInterface provides a mock function with no fields
 func (_m *MockNetworkConfigurer) SetupInterface() error {
 	ret := _m.Called()
 

@@ -22,7 +22,7 @@ func (_m *MockObject) EXPECT() *MockObject_Expecter {
 	return &MockObject_Expecter{mock: &_m.Mock}
 }
 
-// Close provides a mock function with given fields:
+// Close provides a mock function with no fields
 func (_m *MockObject) Close() error {
 	ret := _m.Called()
 
@@ -67,7 +67,7 @@ func (_c *MockObject_Close_Call) RunAndReturn(run func() error) *MockObject_Clos
 	return _c
 }
 
-// LastUpdated provides a mock function with given fields:
+// LastUpdated provides a mock function with no fields
 func (_m *MockObject) LastUpdated() time.Time {
 	ret := _m.Called()
 
@@ -112,7 +112,7 @@ func (_c *MockObject_LastUpdated_Call) RunAndReturn(run func() time.Time) *MockO
 	return _c
 }
 
-// Reader provides a mock function with given fields:
+// Reader provides a mock function with no fields
 func (_m *MockObject) Reader() io.Reader {
 	ret := _m.Called()
 

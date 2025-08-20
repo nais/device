@@ -22,7 +22,7 @@ func (_m *MockSessionStore) EXPECT() *MockSessionStore_Expecter {
 	return &MockSessionStore_Expecter{mock: &_m.Mock}
 }
 
-// All provides a mock function with given fields:
+// All provides a mock function with no fields
 func (_m *MockSessionStore) All() []*pb.Session {
 	ret := _m.Called()
 
@@ -157,7 +157,7 @@ func (_c *MockSessionStore_RefreshDevice_Call) Return() *MockSessionStore_Refres
 }
 
 func (_c *MockSessionStore_RefreshDevice_Call) RunAndReturn(run func(*pb.Device)) *MockSessionStore_RefreshDevice_Call {
-	_c.Call.Return(run)
+	_c.Run(run)
 	return _c
 }
 

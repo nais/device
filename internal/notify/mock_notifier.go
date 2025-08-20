@@ -21,7 +21,7 @@ func (_m *MockNotifier) EXPECT() *MockNotifier_Expecter {
 }
 
 // Errorf provides a mock function with given fields: format, args
-func (_m *MockNotifier) Errorf(format string, args ...any) {
+func (_m *MockNotifier) Errorf(format string, args ...interface{}) {
 	var _ca []interface{}
 	_ca = append(_ca, format)
 	_ca = append(_ca, args...)
@@ -35,18 +35,18 @@ type MockNotifier_Errorf_Call struct {
 
 // Errorf is a helper method to define mock.On call
 //   - format string
-//   - args ...any
+//   - args ...interface{}
 func (_e *MockNotifier_Expecter) Errorf(format interface{}, args ...interface{}) *MockNotifier_Errorf_Call {
 	return &MockNotifier_Errorf_Call{Call: _e.mock.On("Errorf",
 		append([]interface{}{format}, args...)...)}
 }
 
-func (_c *MockNotifier_Errorf_Call) Run(run func(format string, args ...any)) *MockNotifier_Errorf_Call {
+func (_c *MockNotifier_Errorf_Call) Run(run func(format string, args ...interface{})) *MockNotifier_Errorf_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		variadicArgs := make([]any, len(args)-1)
+		variadicArgs := make([]interface{}, len(args)-1)
 		for i, a := range args[1:] {
 			if a != nil {
-				variadicArgs[i] = a.(any)
+				variadicArgs[i] = a.(interface{})
 			}
 		}
 		run(args[0].(string), variadicArgs...)
@@ -59,13 +59,13 @@ func (_c *MockNotifier_Errorf_Call) Return() *MockNotifier_Errorf_Call {
 	return _c
 }
 
-func (_c *MockNotifier_Errorf_Call) RunAndReturn(run func(string, ...any)) *MockNotifier_Errorf_Call {
-	_c.Call.Return(run)
+func (_c *MockNotifier_Errorf_Call) RunAndReturn(run func(string, ...interface{})) *MockNotifier_Errorf_Call {
+	_c.Run(run)
 	return _c
 }
 
 // Infof provides a mock function with given fields: format, args
-func (_m *MockNotifier) Infof(format string, args ...any) {
+func (_m *MockNotifier) Infof(format string, args ...interface{}) {
 	var _ca []interface{}
 	_ca = append(_ca, format)
 	_ca = append(_ca, args...)
@@ -79,18 +79,18 @@ type MockNotifier_Infof_Call struct {
 
 // Infof is a helper method to define mock.On call
 //   - format string
-//   - args ...any
+//   - args ...interface{}
 func (_e *MockNotifier_Expecter) Infof(format interface{}, args ...interface{}) *MockNotifier_Infof_Call {
 	return &MockNotifier_Infof_Call{Call: _e.mock.On("Infof",
 		append([]interface{}{format}, args...)...)}
 }
 
-func (_c *MockNotifier_Infof_Call) Run(run func(format string, args ...any)) *MockNotifier_Infof_Call {
+func (_c *MockNotifier_Infof_Call) Run(run func(format string, args ...interface{})) *MockNotifier_Infof_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		variadicArgs := make([]any, len(args)-1)
+		variadicArgs := make([]interface{}, len(args)-1)
 		for i, a := range args[1:] {
 			if a != nil {
-				variadicArgs[i] = a.(any)
+				variadicArgs[i] = a.(interface{})
 			}
 		}
 		run(args[0].(string), variadicArgs...)
@@ -103,8 +103,8 @@ func (_c *MockNotifier_Infof_Call) Return() *MockNotifier_Infof_Call {
 	return _c
 }
 
-func (_c *MockNotifier_Infof_Call) RunAndReturn(run func(string, ...any)) *MockNotifier_Infof_Call {
-	_c.Call.Return(run)
+func (_c *MockNotifier_Infof_Call) RunAndReturn(run func(string, ...interface{})) *MockNotifier_Infof_Call {
+	_c.Run(run)
 	return _c
 }
 
@@ -137,7 +137,7 @@ func (_c *MockNotifier_SetLogger_Call) Return() *MockNotifier_SetLogger_Call {
 }
 
 func (_c *MockNotifier_SetLogger_Call) RunAndReturn(run func(logrus.FieldLogger)) *MockNotifier_SetLogger_Call {
-	_c.Call.Return(run)
+	_c.Run(run)
 	return _c
 }
 

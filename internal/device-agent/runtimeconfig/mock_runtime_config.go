@@ -27,7 +27,7 @@ func (_m *MockRuntimeConfig) EXPECT() *MockRuntimeConfig_Expecter {
 	return &MockRuntimeConfig_Expecter{mock: &_m.Mock}
 }
 
-// APIServerPeer provides a mock function with given fields:
+// APIServerPeer provides a mock function with no fields
 func (_m *MockRuntimeConfig) APIServerPeer() *pb.Gateway {
 	ret := _m.Called()
 
@@ -294,7 +294,7 @@ func (_c *MockRuntimeConfig_EnsureEnrolled_Call) RunAndReturn(run func(context.C
 	return _c
 }
 
-// GetActiveTenant provides a mock function with given fields:
+// GetActiveTenant provides a mock function with no fields
 func (_m *MockRuntimeConfig) GetActiveTenant() *pb.Tenant {
 	ret := _m.Called()
 
@@ -341,7 +341,7 @@ func (_c *MockRuntimeConfig_GetActiveTenant_Call) RunAndReturn(run func() *pb.Te
 	return _c
 }
 
-// GetDomainFromToken provides a mock function with given fields:
+// GetDomainFromToken provides a mock function with no fields
 func (_m *MockRuntimeConfig) GetDomainFromToken() string {
 	ret := _m.Called()
 
@@ -386,7 +386,7 @@ func (_c *MockRuntimeConfig_GetDomainFromToken_Call) RunAndReturn(run func() str
 	return _c
 }
 
-// GetTenantSession provides a mock function with given fields:
+// GetTenantSession provides a mock function with no fields
 func (_m *MockRuntimeConfig) GetTenantSession() (*pb.Session, error) {
 	ret := _m.Called()
 
@@ -499,7 +499,7 @@ func (_c *MockRuntimeConfig_GetToken_Call) RunAndReturn(run func(context.Context
 	return _c
 }
 
-// LoadEnrollConfig provides a mock function with given fields:
+// LoadEnrollConfig provides a mock function with no fields
 func (_m *MockRuntimeConfig) LoadEnrollConfig() error {
 	ret := _m.Called()
 
@@ -590,7 +590,7 @@ func (_c *MockRuntimeConfig_PopulateTenants_Call) RunAndReturn(run func(context.
 	return _c
 }
 
-// ResetEnrollConfig provides a mock function with given fields:
+// ResetEnrollConfig provides a mock function with no fields
 func (_m *MockRuntimeConfig) ResetEnrollConfig() {
 	_m.Called()
 }
@@ -618,11 +618,11 @@ func (_c *MockRuntimeConfig_ResetEnrollConfig_Call) Return() *MockRuntimeConfig_
 }
 
 func (_c *MockRuntimeConfig_ResetEnrollConfig_Call) RunAndReturn(run func()) *MockRuntimeConfig_ResetEnrollConfig_Call {
-	_c.Call.Return(run)
+	_c.Run(run)
 	return _c
 }
 
-// SaveEnrollConfig provides a mock function with given fields:
+// SaveEnrollConfig provides a mock function with no fields
 func (_m *MockRuntimeConfig) SaveEnrollConfig() error {
 	ret := _m.Called()
 
@@ -788,11 +788,11 @@ func (_c *MockRuntimeConfig_SetToken_Call) Return() *MockRuntimeConfig_SetToken_
 }
 
 func (_c *MockRuntimeConfig_SetToken_Call) RunAndReturn(run func(*auth.Tokens)) *MockRuntimeConfig_SetToken_Call {
-	_c.Call.Return(run)
+	_c.Run(run)
 	return _c
 }
 
-// Tenants provides a mock function with given fields:
+// Tenants provides a mock function with no fields
 func (_m *MockRuntimeConfig) Tenants() []*pb.Tenant {
 	ret := _m.Called()
 
