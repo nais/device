@@ -1,8 +1,18 @@
 module github.com/nais/device
 
-go 1.24.0
+go 1.25.0
 
-toolchain go1.24.2
+tool (
+	github.com/akavel/rsrc
+	github.com/golangci/golangci-lint/cmd/golangci-lint
+	github.com/jackmordaunt/icns/v2/cmd/icnsify
+	github.com/sqlc-dev/sqlc/cmd/sqlc
+	github.com/vektra/mockery/v2
+	golang.org/x/tools/cmd/stringer
+	golang.org/x/vuln/cmd/govulncheck
+	honnef.co/go/tools/cmd/staticcheck
+	mvdan.cc/gofumpt
+)
 
 require (
 	cloud.google.com/go/pubsub v1.45.1
@@ -310,16 +320,4 @@ require (
 	modernc.org/sqlite v1.37.0 // indirect
 	mvdan.cc/gofumpt v0.8.0 // indirect
 	mvdan.cc/unparam v0.0.0-20240528143540-8a5130ca722f // indirect
-)
-
-tool (
-	github.com/akavel/rsrc
-	github.com/golangci/golangci-lint/cmd/golangci-lint
-	github.com/jackmordaunt/icns/v2/cmd/icnsify
-	github.com/sqlc-dev/sqlc/cmd/sqlc
-	github.com/vektra/mockery/v2
-	golang.org/x/tools/cmd/stringer
-	golang.org/x/vuln/cmd/govulncheck
-	honnef.co/go/tools/cmd/staticcheck
-	mvdan.cc/gofumpt
 )
