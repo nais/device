@@ -19,17 +19,13 @@ jobs:
     runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v4
-      - id: tool_versions
-        run: echo "go=$(grep golang .tool-versions | awk '{print $2}')" >> $GITHUB_OUTPUT
-      - uses: actions/setup-go@v5
-        with:
-          go-version: ${{ steps.tool_versions.outputs.go }}
+      - uses: jdx/mise-action@v2
       - name: run tests
         run: |
           sudo apt-get update
           sudo apt-get install --yes build-essential
-          make check
-          make test
+          mise run check
+          mise run test
 
   build_debs:
     name: Build debs
@@ -40,14 +36,10 @@ jobs:
       image: ghcr.io/nais/naisdevice-ci:v5
     steps:
       - uses: actions/checkout@v4
-      - id: tool_versions
-        run: echo "go=$(grep golang .tool-versions | awk '{print $2}')" >> $GITHUB_OUTPUT
-      - uses: actions/setup-go@v5
-        with:
-          go-version: ${{ steps.tool_versions.outputs.go }}
+      - uses: jdx/mise-action@v2
 
       - name: "Build controlplane"
-        run: make controlplane-debs
+        run: mise run controlplane-debs
 
       - name: "Auth with Google"
         uses: "google-github-actions/auth@v2"

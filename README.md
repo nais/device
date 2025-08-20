@@ -14,7 +14,7 @@ naisdevice is a mechanism enabling NAVs developers to connect to internal resour
 
 ### Deploying client changes
 
-Executing `make release-frontend` is required for deploy of new naisdevice client to be released and made available for download/install/update.
+Executing `mise run release-frontend` is required for deploy of new naisdevice client to be released and made available for download/install/update.
 
 ## Concept
 
