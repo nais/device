@@ -116,7 +116,7 @@ func makeWorker(cfg Config, ctx context.Context, log *logrus.Entry) (pubsubenrol
 
 func makeTokenValidator(ctx context.Context, cfg Config, log *logrus.Entry) (auth.TokenValidator, error) {
 	if cfg.AzureEnabled {
-		err := cfg.Azure.SetupJwkSetAutoRefresh(ctx)
+		err := cfg.Azure.SetupJwkCache(ctx)
 		if err != nil {
 			return nil, fmt.Errorf("fetch Azure certs: %w", err)
 		}

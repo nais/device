@@ -6,14 +6,13 @@ import (
 	"strings"
 	"time"
 
-	"github.com/lestrrat-go/jwx/jwt"
-	"github.com/sirupsen/logrus"
-	"google.golang.org/protobuf/types/known/timestamppb"
-
+	"github.com/lestrrat-go/jwx/v3/jwt"
 	"github.com/nais/device/internal/apiserver/database"
 	"github.com/nais/device/internal/auth"
-	"github.com/nais/device/pkg/pb"
 	"github.com/nais/device/internal/random"
+	"github.com/nais/device/pkg/pb"
+	"github.com/sirupsen/logrus"
+	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 type azureAuth struct {
@@ -38,21 +37,19 @@ func (s *azureAuth) Login(ctx context.Context, token, serial, platform string) (
 		return nil, &ParseTokenError{err}
 	}
 
-	claims, err := parsedToken.AsMap(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("convert claims to map: %s", err)
-	}
-
 	var groups []string
-	for _, group := range claims["groups"].([]any) {
-		groups = append(groups, group.(string))
+	if err := parsedToken.Get("groups", &groups); err != nil {
+		return nil, fmt.Errorf("get groups from claims: %s", err)
 	}
 
-	if !auth.UserInNaisdeviceApprovalGroup(claims) {
+	if !auth.UserInNaisdeviceApprovalGroup(groups) {
 		return nil, ErrTermsNotAccepted
 	}
 
-	username := claims["preferred_username"].(string)
+	username, err := auth.StringClaim("preferred_username", parsedToken)
+	if err != nil {
+		return nil, fmt.Errorf("missing claim: %w", err)
+	}
 
 	device, err := s.db.ReadDeviceBySerialPlatform(ctx, serial, platform)
 	if err != nil {
@@ -63,11 +60,16 @@ func (s *azureAuth) Login(ctx context.Context, token, serial, platform string) (
 		return nil, fmt.Errorf("username (%s) does not match device username (%s)", username, device.Username)
 	}
 
+	oid, err := auth.StringClaim("oid", parsedToken)
+	if err != nil {
+		return nil, fmt.Errorf("missing claim: %w", err)
+	}
+
 	session := &pb.Session{
 		Key:      random.RandomString(20, random.LettersAndNumbers),
 		Expiry:   timestamppb.New(time.Now().Add(SessionDuration)),
 		Groups:   groups,
-		ObjectID: claims["oid"].(string),
+		ObjectID: oid,
 		Device:   device,
 	}
 

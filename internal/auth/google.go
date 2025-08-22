@@ -7,14 +7,16 @@ import (
 	"strings"
 	"time"
 
-	"github.com/lestrrat-go/jwx/jwk"
-	"github.com/lestrrat-go/jwx/jwt"
+	"github.com/lestrrat-go/httprc/v3"
+	"github.com/lestrrat-go/jwx/v3/jwk"
+	"github.com/lestrrat-go/jwx/v3/jws"
+	"github.com/lestrrat-go/jwx/v3/jwt"
 )
 
 type Google struct {
 	ClientID       string
 	AllowedDomains []string
-	jwkAutoRefresh *jwk.AutoRefresh
+	jwks           jwk.CachedSet
 	ctx            context.Context
 }
 
@@ -24,34 +26,38 @@ const (
 )
 
 func (g *Google) SetupJwkSetAutoRefresh(ctx context.Context) error {
-	ar := jwk.NewAutoRefresh(ctx)
-	ar.Configure(googleJwksEndpoint, jwk.WithMinRefreshInterval(time.Hour))
-
-	// trigger initial token fetch
-	_, err := ar.Refresh(ctx, googleJwksEndpoint)
+	c, err := jwk.NewCache(
+		ctx,
+		httprc.NewClient(),
+	)
 	if err != nil {
-		return fmt.Errorf("fetch jwks: %w", err)
+		return fmt.Errorf("failed to create cache: %w", err)
 	}
 
-	g.ctx = ctx
-	g.jwkAutoRefresh = ar
+	if err := c.Register(
+		ctx,
+		googleJwksEndpoint,
+		jwk.WithMaxInterval(24*time.Hour*7),
+		jwk.WithMinInterval(15*time.Minute),
+	); err != nil {
+		return fmt.Errorf("failed to register google JWKS: %w", err)
+	}
+
+	cs, err := c.CachedSet(googleJwksEndpoint)
+	if err != nil {
+		return fmt.Errorf("failed to get cached keyset: %w", err)
+	}
+
+	g.jwks = cs
 	return nil
-}
-
-func (g *Google) KeySetFrom(t jwt.Token) (jwk.Set, error) {
-	ctx, cancel := context.WithTimeout(g.ctx, 10*time.Second)
-	defer cancel()
-
-	return g.jwkAutoRefresh.Fetch(ctx, googleJwksEndpoint)
 }
 
 func (g *Google) JwtOptions() []jwt.ParseOption {
 	return []jwt.ParseOption{
 		jwt.WithValidate(true),
-		jwt.InferAlgorithmFromKey(true),
+		jwt.WithKeySet(g.jwks, jws.WithInferAlgorithmFromKey(true)),
 		jwt.WithAcceptableSkew(5 * time.Second),
 		jwt.WithIssuer(googleIssuer),
-		jwt.WithKeySetProvider(g),
 		jwt.WithAudience(g.ClientID),
 		jwt.WithRequiredClaim("hd"),
 		jwt.WithRequiredClaim("email"),
@@ -85,20 +91,20 @@ func (g *Google) ParseAndValidateToken(token string) (*User, error) {
 		return nil, fmt.Errorf("parse token: %w", err)
 	}
 
-	emailClaim, _ := tok.Get("email")
-	email, _ := emailClaim.(string)
-	if email == "" {
-		return nil, fmt.Errorf("empty email claim in token")
+	email, err := StringClaim("email", tok)
+	if err != nil {
+		return nil, fmt.Errorf("missing email claim: %w", err)
 	}
 
-	subClaim, _ := tok.Get("sub")
-	sub, _ := subClaim.(string)
+	sub, _ := tok.Subject()
 	if sub == "" {
 		return nil, fmt.Errorf("empty sub claim in token")
 	}
 
-	hdClaim, _ := tok.Get("hd")
-	hd, _ := hdClaim.(string)
+	hd, err := StringClaim("hd", tok)
+	if err != nil {
+		return nil, fmt.Errorf("missing hd claim: %w", err)
+	}
 
 	found := false
 	for _, allowedDomain := range g.AllowedDomains {
@@ -109,7 +115,7 @@ func (g *Google) ParseAndValidateToken(token string) (*User, error) {
 	}
 
 	if !found {
-		return nil, fmt.Errorf("'%s' not in allowed domains: %v", hd, g.AllowedDomains)
+		return nil, fmt.Errorf("%q not in allowed domains: %v", hd, g.AllowedDomains)
 	}
 
 	return &User{

@@ -8,7 +8,8 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/lestrrat-go/jwx/jwt"
+	"github.com/lestrrat-go/jwx/v3/jwt"
+	"github.com/nais/device/internal/auth"
 	codeverifier "github.com/nirasan/go-oauth-pkce-code-verifier"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/oauth2"
@@ -94,10 +95,9 @@ func consoleURL(ctx context.Context, idToken, state string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	hd, _ := t.Get("hd")
-	domain, _ := hd.(string)
 
-	if domain == "" {
+	domain, err := auth.StringClaim("hd", t)
+	if err != nil {
 		return "", fmt.Errorf("could not find domain in id token")
 	}
 
