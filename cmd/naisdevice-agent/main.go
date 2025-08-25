@@ -48,6 +48,7 @@ func main() {
 	flag.StringVar(&cfg.DeviceAgentHelperAddress, "device-agent-helper-address", cfg.DeviceAgentHelperAddress, "device-agent-helper unix socket")
 	flag.StringVar(&cfg.GoogleAuthServerAddress, "google-auth-server-address", cfg.GoogleAuthServerAddress, "Google auth-server address")
 	flag.BoolVar(&cfg.LocalAPIServer, "local-apiserver", false, "Connect to a local apiserver on 127.0.0.1:8099 using mock authentication")
+	flag.StringVar(&cfg.CustomEnrollURL, "custom-enroll-url", "", "Connect to a custom enroller")
 	flag.Parse()
 
 	cfg.SetDefaults()

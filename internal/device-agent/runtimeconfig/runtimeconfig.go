@@ -21,8 +21,8 @@ import (
 	"github.com/nais/device/internal/device-agent/auth"
 	"github.com/nais/device/internal/device-agent/config"
 	"github.com/nais/device/internal/device-agent/wireguard"
+	"github.com/nais/device/internal/enroll"
 	"github.com/nais/device/internal/otel"
-	"github.com/nais/device/internal/pubsubenroll"
 	"github.com/nais/device/pkg/pb"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/api/iterator"
@@ -186,7 +186,7 @@ func (r *runtimeConfig) EnsureEnrolled(ctx context.Context, serial string) error
 }
 
 func (r *runtimeConfig) enroll(ctx context.Context, serial, token string) error {
-	req := &pubsubenroll.DeviceRequest{
+	req := &enroll.DeviceRequest{
 		Platform:           r.config.Platform,
 		Serial:             serial,
 		WireGuardPublicKey: wireguard.PublicKey(r.privateKey),
@@ -223,7 +223,7 @@ func (r *runtimeConfig) enroll(ctx context.Context, serial, token string) error 
 		return fmt.Errorf("got status code %d from device enrollment service: %v", hresp.StatusCode, string(body))
 	}
 
-	resp := &pubsubenroll.Response{}
+	resp := &enroll.Response{}
 	if err := json.NewDecoder(hresp.Body).Decode(resp); err != nil {
 		return fmt.Errorf("decoding response: %w", err)
 	}
@@ -303,6 +303,10 @@ func findPeer(gateway []*pb.Gateway, s string) *pb.Gateway {
 }
 
 func (r *runtimeConfig) getEnrollURL(ctx context.Context) (string, error) {
+	if r.config.CustomEnrollURL != "" {
+		return r.config.CustomEnrollURL, nil
+	}
+
 	domain := r.GetDomainFromToken()
 
 	url := fmt.Sprintf("https://storage.googleapis.com/%s/%s", tenantDiscoveryBucket, domain)

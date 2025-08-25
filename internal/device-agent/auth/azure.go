@@ -6,8 +6,6 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/lestrrat-go/jwx/v3/jwt"
-	"github.com/nais/device/internal/auth"
 	codeverifier "github.com/nirasan/go-oauth-pkce-code-verifier"
 	"golang.org/x/oauth2"
 )
@@ -34,24 +32,6 @@ func handleRedirectAzure(state string, conf oauth2.Config, codeVerifier *codever
 		t, err := conf.Exchange(ctx, code, codeVerifierParam)
 		if err != nil {
 			failAuth(fmt.Errorf("exchanging code for tokens: %w", err), w, authFlowChan)
-			return
-		}
-
-		parsedToken, err := jwt.Parse([]byte(t.AccessToken))
-		if err != nil {
-			failAuth(fmt.Errorf("parsing authFlowResponse: %v", err), w, authFlowChan)
-			return
-		}
-
-		groups, err := auth.GroupsClaim(parsedToken)
-		if err != nil {
-			failAuth(fmt.Errorf("no groups found in authFlowResponse"), w, authFlowChan)
-			return
-		}
-
-		if !auth.UserInNaisdeviceApprovalGroup(groups) {
-			http.Redirect(w, r, "https://naisdevice-approval.external.prod-gcp.nav.cloud.nais.io/", http.StatusSeeOther)
-			authFlowChan <- &authFlowResponse{Tokens: nil, err: fmt.Errorf("do's and don'ts not accepted, opening https://naisdevice-approval.external.prod-gcp.nav.cloud.nais.io/ in browser")}
 			return
 		}
 

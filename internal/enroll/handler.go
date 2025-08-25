@@ -1,4 +1,4 @@
-package pubsubenroll
+package enroll
 
 import (
 	"encoding/json"

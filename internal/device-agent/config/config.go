@@ -37,6 +37,7 @@ type Config struct {
 	EnrollProjectID          string
 	EnrollTopicName          string
 	LocalAPIServer           bool
+	CustomEnrollURL          string
 }
 
 func (c *Config) SetDefaults() {

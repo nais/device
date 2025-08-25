@@ -12,13 +12,13 @@ import (
 	"google.golang.org/grpc/keepalive"
 	"google.golang.org/grpc/status"
 
+	"github.com/nais/device/internal/enroll"
 	gateway_agent "github.com/nais/device/internal/gateway-agent"
 	"github.com/nais/device/internal/gateway-agent/config"
 	"github.com/nais/device/internal/passwordhash"
-	"github.com/nais/device/pkg/pb"
 	"github.com/nais/device/internal/program"
-	"github.com/nais/device/internal/pubsubenroll"
 	"github.com/nais/device/internal/wireguard"
+	"github.com/nais/device/pkg/pb"
 
 	"github.com/nais/device/internal/logger"
 
@@ -76,7 +76,7 @@ func run(log *logrus.Entry, cfg config.Config) error {
 			return fmt.Errorf("get private key: %w", err)
 		}
 
-		ecfg, err := pubsubenroll.NewGatewayClient(
+		ecfg, err := enroll.NewGatewayClient(
 			ctx,
 			privateKey.Public(),
 			hashedPassword,

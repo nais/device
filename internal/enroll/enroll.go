@@ -1,4 +1,4 @@
-package pubsubenroll
+package enroll
 
 import "github.com/nais/device/pkg/pb"
 

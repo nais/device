@@ -9,17 +9,17 @@ import (
 
 	"github.com/kelseyhightower/envconfig"
 	"github.com/nais/device/internal/auth"
+	"github.com/nais/device/internal/enroll"
 	"github.com/nais/device/internal/program"
-	"github.com/nais/device/internal/pubsubenroll"
 	"github.com/sirupsen/logrus"
 )
 
 type Config struct {
-	AzureEnabled  bool
-	Azure         *auth.Azure
-	GoogleEnabled bool
-	Google        *auth.Google
-	Production    bool
+	AzureEnabled    bool
+	Azure           *auth.Azure
+	GoogleEnabled   bool
+	Google          *auth.Google
+	LocalListenAddr string
 }
 
 func main() {
@@ -31,6 +31,7 @@ func main() {
 		Google: &auth.Google{
 			ClientID: "955023559628-g51n36t4icbd6lq7ils4r0ol9oo8kpk0.apps.googleusercontent.com",
 		},
+		LocalListenAddr: "",
 	}
 
 	log := logrus.New()
@@ -72,7 +73,7 @@ func run(cfg Config, log *logrus.Entry) error {
 	}
 
 	mux := http.NewServeMux()
-	mux.Handle("/enroll", pubsubenroll.NewHandler(worker, log.WithField("component", "enroller")))
+	mux.Handle("/enroll", enroll.NewHandler(worker, log.WithField("component", "enroller")))
 
 	server := http.Server{
 		Addr:              ":" + port,
@@ -105,13 +106,17 @@ func logErr(log *logrus.Entry, cancel context.CancelFunc, fn func() error) {
 	}
 }
 
-func makeWorker(cfg Config, ctx context.Context, log *logrus.Entry) (pubsubenroll.Worker, error) {
-	if cfg.AzureEnabled || cfg.GoogleEnabled {
-		return pubsubenroll.NewWorker(ctx, log)
-	} else {
-		log.Warn("AUTH DISABLED, this should NOT run in production")
-		return pubsubenroll.NewNoopWorker(context.Background(), log), nil
+func makeWorker(cfg Config, ctx context.Context, log *logrus.Entry) (enroll.Worker, error) {
+	if cfg.LocalListenAddr != "" {
+		log.Warn("LOCAL MODE, this should NOT run in production")
+		return enroll.NewLocal(ctx, cfg.LocalListenAddr, log)
 	}
+
+	if cfg.AzureEnabled || cfg.GoogleEnabled {
+		return enroll.NewPubSub(ctx, log)
+	}
+
+	return enroll.NewNoopWorker(context.Background(), log), nil
 }
 
 func makeTokenValidator(ctx context.Context, cfg Config, log *logrus.Entry) (auth.TokenValidator, error) {

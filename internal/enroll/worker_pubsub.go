@@ -1,4 +1,4 @@
-package pubsubenroll
+package enroll
 
 import (
 	"context"
@@ -12,11 +12,6 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-type Worker interface {
-	Run(ctx context.Context) error
-	Send(ctx context.Context, req *DeviceRequest) (*Response, error)
-}
-
 type worker struct {
 	log          *logrus.Entry
 	topic        *pubsub.Topic
@@ -26,7 +21,7 @@ type worker struct {
 	queue map[string]chan *Response
 }
 
-func NewWorker(ctx context.Context, log *logrus.Entry) (Worker, error) {
+func NewPubSub(ctx context.Context, log *logrus.Entry) (Worker, error) {
 	projectID := os.Getenv("GCP_PROJECT")
 	topicName := os.Getenv("PUBSUB_TOPIC")
 	subscriptionName := os.Getenv("PUBSUB_SUBSCRIPTION")

@@ -212,18 +212,31 @@ func run(log *logrus.Entry, cfg config.Config) error {
 	}
 
 	if cfg.AutoEnrollEnabled {
-		enrollPeers := append(cfg.StaticPeers(), cfg.APIServerPeer())
-		e, err := enroller.NewAutoEnroll(ctx, db, enrollPeers, cfg.GRPCBindAddress, log.WithField("component", "auto-enroller"))
-		if err != nil {
-			return err
-		}
-		go func() {
-			err := e.Run(ctx)
+		if cfg.AutoEnrollmentsURL != "" {
+			e := enroller.NewLocalEnroll(db, cfg.AutoEnrollmentsURL)
+			go func() {
+				err := e.Run(ctx)
+				if err != nil {
+					log.WithError(err).Error("run AutoEnroll failed")
+					cancel()
+				}
+			}()
+			log.Info("auto-enrollment enabled using local enroller")
+		} else {
+			log.Info("auto-enrollment enabled using peer-to-peer enroller")
+			enrollPeers := append(cfg.StaticPeers(), cfg.APIServerPeer())
+			e, err := enroller.NewAutoEnroll(ctx, db, enrollPeers, cfg.GRPCBindAddress, log.WithField("component", "auto-enroller"))
 			if err != nil {
-				log.WithError(err).Error("run AutoEnroll failed")
-				cancel()
+				return err
 			}
-		}()
+			go func() {
+				err := e.Run(ctx)
+				if err != nil {
+					log.WithError(err).Error("run AutoEnroll failed")
+					cancel()
+				}
+			}()
+		}
 	}
 
 	var jitaClient jita.Client
