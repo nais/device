@@ -17,7 +17,6 @@ type Google struct {
 	ClientID       string
 	AllowedDomains []string
 	jwks           jwk.CachedSet
-	ctx            context.Context
 }
 
 const (

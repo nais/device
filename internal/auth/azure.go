@@ -18,7 +18,6 @@ type Azure struct {
 	ClientID string
 	Tenant   string
 	jwks     jwk.CachedSet
-	ctx      context.Context
 }
 
 func (a Azure) JwksEndpoint() string {
