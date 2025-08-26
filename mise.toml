@@ -1,10 +1,6 @@
-# mise.toml
-
-[tasks.default]
-depends = ["test"]
-
 [tasks.test]
-run = 'go test ./... -race'
+description = "Run tests"
+run = "go test ./... -race"
 
 [tasks.controlplane]
 env = { GOOS = "linux", GOARCH = "amd64" , OTEL_COLLECTOR_ENDPOINT = "https://collector-internet.nav.cloud.nais.io", LDFLAGS = "-X github.com/nais/device/internal/version.Version=${VERSION:-local} -X github.com/nais/device/internal/otel.endpointURL=${OTEL_COLLECTOR_ENDPOINT}" }
@@ -16,6 +12,7 @@ run = """
 """
 
 [tasks.linux-client]
+description = "Build Linux client binaries"
 env = { GOOS = "linux", GOARCH = "amd64" , OTEL_COLLECTOR_ENDPOINT = "https://collector-internet.nav.cloud.nais.io", LDFLAGS = "-X github.com/nais/device/internal/version.Version=${VERSION:-local} -X github.com/nais/device/internal/otel.endpointURL=${OTEL_COLLECTOR_ENDPOINT}" }
 run = """
   mkdir -p ./bin/linux-client
@@ -25,6 +22,7 @@ run = """
 """
 
 [tasks.windows-client]
+description = "Build Windows client binaries"
 env = { GOOS = "windows", GOARCH = "amd64",OTEL_COLLECTOR_ENDPOINT = "https://collector-internet.nav.cloud.nais.io", LDFLAGS = "-X github.com/nais/device/internal/version.Version=${VERSION:-local} -X github.com/nais/device/internal/otel.endpointURL=${OTEL_COLLECTOR_ENDPOINT}" }
 run = """
   mkdir -p ./bin/windows-client
@@ -40,6 +38,7 @@ run = """
 """
 
 [tasks.macos-client]
+description = "Build macOS client binaries"
 env = { GOOS = "darwin", GOARCH = "amd64",OTEL_COLLECTOR_ENDPOINT = "https://collector-internet.nav.cloud.nais.io", LDFLAGS = "-X github.com/nais/device/internal/version.Version=${VERSION:-local} -X github.com/nais/device/internal/otel.endpointURL=${OTEL_COLLECTOR_ENDPOINT}" }
 run = """
   mkdir -p ./bin/macos-client
@@ -49,9 +48,11 @@ run = """
 """
 
 [tasks.build]
-run = 'go build ./cmd/...'
+description = "Build all commands"
+run = "go build ./cmd/..."
 
 [tasks.linux-icon]
+description = "Generate Linux icons"
 run = """
    for size in 16x16 32x32 64x64 128x128 256x256 512x512 ; do \
      mkdir -p "packaging/linux/icons/${size}/apps/" ; \
@@ -65,12 +66,14 @@ run = """
 """
 
 [tasks.windows-icon]
+description = "Generate Windows icons"
 run = """
   mkdir -p packaging/windows/assets/
   magick -background none assets/svg/blue.svg -resize 256x256 -gravity center -extent 256x256 -define icon:auto-resize=48,64,96,128,256 packaging/windows/assets/naisdevice.ico
 """
 
 [tasks.macos-icon]
+description = "Generate macOS icons"
 run = """
   mkdir -p packaging/macos/icons/
   magick -background transparent assets/svg/blue.svg -resize 1024x1024 -gravity center -extent 1024x1024 packaging/macos/icons/naisdevice.png
@@ -93,24 +96,23 @@ run = """
   rm -rf ./wireguard-go-*
 """
 
-# pkg: wg wireguard-go macos-icon macos-client
 [tasks.pkg]
 depends = ['wg', 'wireguard-go', 'macos-icon', 'macos-client']
-run = './packaging/macos/build-pkg $VERSION $RELEASE'
+run = "./packaging/macos/build-pkg $VERSION $RELEASE"
 
-# deb: linux-client linux-icon
 [tasks.deb]
 depends = ['linux-client', 'linux-icon']
-run = './packaging/linux/build-deb $VERSION'
+run = "./packaging/linux/build-deb $VERSION"
 
 [tasks.nsis]
 depends = ['windows-client', 'windows-icon']
-run = './packaging/windows/build-nsis $VERSION'
+run = "./packaging/windows/build-nsis $VERSION"
 
 [tasks.controlplane-debs]
-run = './packaging/controlplane/*/build-deb $VERSION'
+run = "./packaging/controlplane/*/build-deb $VERSION"
 
 [tasks.clean]
+description = "Clean up build artifacts"
 run = """
   rm -rf *.deb
   rm -rf wireguard-go-*
@@ -122,12 +124,6 @@ run = """
   rm -rf ./bin
   rm -rf ./packaging/*/icons
   rm -rf ./packaging/*/assets
-"""
-
-[tasks.mocks]
-run = """
-  go tool github.com/vektra/mockery/v3
-  find internal -type f -name "mock_*.go" -exec go tool mvdan.cc/gofumpt -w {} \\;
 """
 
 [tasks.buildreleaseenroller]
@@ -142,32 +138,51 @@ run = """
   docker push europe-north1-docker.pkg.dev/nais-io/nais/images/naisdevice-auth-server:${VERSION}
 """
 
+[tasks.fmt]
+description = "Format go files using gofumpt"
+run = "go tool mvdan.cc/gofumpt -w ./"
+
+[tasks.generate]
+description = "Run all code generation tools"
+depends = ["generate-guievent-strings", "mocks", "generate-sqlc"]
+
+[tasks.generate-guievent-strings]
+description = "Generate strings for the systray"
+run = "go tool golang.org/x/tools/cmd/stringer -type=GuiEvent ./internal/systray"
+
+[tasks.mocks]
+description = "Generate mocks using mockery"
+run = """
+  go tool github.com/vektra/mockery/v3
+  find internal -type f -name "mock_*.go" -exec go tool mvdan.cc/gofumpt -w {} \\;
+"""
+
 [tasks.generate-sqlc]
+description = "Generate sqlc code"
 run = """
   go tool github.com/sqlc-dev/sqlc/cmd/sqlc generate
   go tool mvdan.cc/gofumpt -w ./internal/apiserver/sqlc/
 """
 
-[tasks.fmt]
-run = 'go tool mvdan.cc/gofumpt -w ./'
-
-[tasks.lint]
-run = 'go tool github.com/golangci/golangci-lint/cmd/golangci-lint run'
+[tasks.check]
+description = "Run all static code analysis tools"
+depends = ["staticcheck", "vulncheck", "vet"]
 
 [tasks.staticcheck]
-run = 'go tool honnef.co/go/tools/cmd/staticcheck ./...'
+description = "Run staticcheck"
+run = "go tool honnef.co/go/tools/cmd/staticcheck ./..."
 
-[tasks.generate-guievent-strings]
-run = 'go tool golang.org/x/tools/cmd/stringer -type=GuiEvent ./internal/systray'
+[tasks.vulncheck]
+description = "Run govulncheck"
+run = "go tool golang.org/x/vuln/cmd/govulncheck ./..."
 
-[tasks.generate]
-depends = ["generate-guievent-strings", "mocks", "generate-sqlc"]
+[tasks.vet]
+description = "Run go vet"
+run = "go vet ./..."
 
-[tasks.govulncheck]
-run = 'go tool golang.org/x/vuln/cmd/govulncheck ./...'
-
-[tasks.check]
-depends =["staticcheck", "govulncheck"]
+[tasks.lint]
+description = "Run golangci-lint"
+run = "go tool github.com/golangci/golangci-lint/cmd/golangci-lint run"
 
 [tools]
 go = "1.25.0"
