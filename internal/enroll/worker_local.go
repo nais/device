@@ -45,6 +45,7 @@ func (w *localWorker) Run(ctx context.Context) error {
 			if w.response == nil {
 				http.Error(wr, "no response channel", http.StatusInternalServerError)
 				w.log.Error("no response channel")
+				return
 			}
 
 			enrollResponse := &Response{}
@@ -54,6 +55,7 @@ func (w *localWorker) Run(ctx context.Context) error {
 				http.Error(wr, "decode json", http.StatusInternalServerError)
 				return
 			}
+			w.log.Infof("received enrollment response: %v", enrollResponse)
 			w.response <- enrollResponse
 		}
 	})
@@ -76,8 +78,11 @@ func (w *localWorker) Send(ctx context.Context, req *DeviceRequest) (*Response, 
 	if err != nil {
 		return nil, err
 	}
+
+	w.lock.Lock()
 	w.data = append(w.data, b)
 	w.response = make(chan *Response)
+	w.lock.Unlock()
 
 	return <-w.response, nil
 }

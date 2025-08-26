@@ -173,7 +173,7 @@ func run(log *logrus.Entry, cfg config.Config) error {
 
 	apiserverClient := pb.NewAPIServerClient(apiserver)
 
-	for attempt := 0; attempt < maxReconnectAttempts; attempt++ {
+	for attempt := range maxReconnectAttempts {
 		err := gateway_agent.SyncFromStream(ctx, log, cfg.Name, cfg.APIServerPassword, staticPeers, apiserverClient, netConf)
 		if err != nil {
 			code := status.Code(err)

@@ -266,6 +266,10 @@ func (r *runtimeConfig) LoadEnrollConfig() error {
 		return nil
 	}
 
+	if r.config.CustomEnrollURL != "" {
+		return fmt.Errorf("cannot load enroll config when using custom enroll URL")
+	}
+
 	path := r.path()
 	b, err := os.ReadFile(path)
 	if err != nil {
@@ -306,7 +310,6 @@ func (r *runtimeConfig) getEnrollURL(ctx context.Context) (string, error) {
 	if r.config.CustomEnrollURL != "" {
 		return r.config.CustomEnrollURL, nil
 	}
-
 	domain := r.GetDomainFromToken()
 
 	url := fmt.Sprintf("https://storage.googleapis.com/%s/%s", tenantDiscoveryBucket, domain)
