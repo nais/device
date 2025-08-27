@@ -97,15 +97,15 @@ run = """
 """
 
 [tasks.pkg]
-depends = ['wg', 'wireguard-go', 'macos-icon', 'macos-client']
+depends = ["wg", "wireguard-go", "macos-icon", "macos-client"]
 run = "./packaging/macos/build-pkg $VERSION $RELEASE"
 
 [tasks.deb]
-depends = ['linux-client', 'linux-icon']
+depends = ["linux-client", "linux-icon"]
 run = "./packaging/linux/build-deb $VERSION"
 
 [tasks.nsis]
-depends = ['windows-client', 'windows-icon']
+depends = ["windows-client", "windows-icon"]
 run = "./packaging/windows/build-nsis $VERSION"
 
 [tasks.controlplane-debs]
