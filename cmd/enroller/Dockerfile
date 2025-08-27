@@ -13,6 +13,5 @@ FROM scratch
 WORKDIR /
 
 COPY --from=builder /workspace/enroller .
-USER 65532:65532
 
 ENTRYPOINT ["/enroller"]

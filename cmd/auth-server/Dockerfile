@@ -13,6 +13,5 @@ FROM scratch
 WORKDIR /
 
 COPY --from=builder /workspace/auth-server .
-USER 65532:65532
 
 ENTRYPOINT ["/auth-server"]
