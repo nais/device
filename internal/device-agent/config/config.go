@@ -38,7 +38,7 @@ type Config struct {
 	EnrollTopicName         string
 	LocalAPIServer          bool
 	CustomEnrollURL         string
-	DeviceHelperDisabled    bool
+	NoHelper                bool
 }
 
 func (c *Config) SetDefaults() {

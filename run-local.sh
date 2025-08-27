@@ -36,7 +36,7 @@ window_id="${session_id}:${window_name}"
 declare -A panes=(
 	[apiserver]="go run ./cmd/apiserver"
 	[enroller]="go run ./cmd/enroller"
-	[deviceagent]="go run ./cmd/naisdevice-agent --custom-enroll-url 'http://localhost:8080/enroll'"
+	[deviceagent]="go run ./cmd/naisdevice-agent --no-helper --custom-enroll-url 'http://localhost:8080/enroll'"
 )
 
 for pane in "${!panes[@]}"; do
