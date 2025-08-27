@@ -12,6 +12,7 @@ enrollments_url="http://localhost:${enrollments_port}/enrollments"
 
 env=(
 	"ENROLLER_LOCALLISTENADDR=\":${enrollments_port}\""
+	"ENROLLER_AZUREENABLED=\"true\""
 	"APISERVER_WIREGUARDIP=\"127.0.0.1/24\""
 	"APISERVER_WIREGUARDIPV6=\"::1/64\""
 	"APISERVER_AUTOENROLLENABLED=\"true\""
