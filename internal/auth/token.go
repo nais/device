@@ -26,9 +26,18 @@ func StringClaim(claimName string, token jwt.Token) (string, error) {
 // GroupsClaim returns the value of the "groups" claim from a JWT token.
 func GroupsClaim(token jwt.Token) ([]string, error) {
 	const claimName = "groups"
-	var groups []string
-	if err := token.Get(claimName, &groups); err != nil {
+	var raw []any
+	if err := token.Get(claimName, &raw); err != nil {
 		return nil, fmt.Errorf("unable to get claim %q, %w", claimName, err)
+	}
+
+	var groups []string
+	for _, g := range raw {
+		if gs, ok := g.(string); ok {
+			groups = append(groups, gs)
+		} else {
+			return nil, fmt.Errorf("invalid group claim type: %T", g)
+		}
 	}
 
 	return groups, nil

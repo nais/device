@@ -37,9 +37,9 @@ func (s *azureAuth) Login(ctx context.Context, token, serial, platform string) (
 		return nil, &ParseTokenError{err}
 	}
 
-	var groups []string
-	if err := parsedToken.Get("groups", &groups); err != nil {
-		return nil, fmt.Errorf("get groups from claims: %s", err)
+	groups, err := auth.GroupsClaim(parsedToken)
+	if err != nil {
+		return nil, fmt.Errorf("unable to get groups claim: %w", err)
 	}
 
 	if !auth.UserInNaisdeviceApprovalGroup(groups) {
@@ -68,7 +68,7 @@ func (s *azureAuth) Login(ctx context.Context, token, serial, platform string) (
 	session := &pb.Session{
 		Key:      random.RandomString(20, random.LettersAndNumbers),
 		Expiry:   timestamppb.New(time.Now().Add(SessionDuration)),
-		Groups:   groups,
+		Groups:   nil,
 		ObjectID: oid,
 		Device:   device,
 	}
