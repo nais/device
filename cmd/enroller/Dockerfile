@@ -1,4 +1,4 @@
-FROM golang:1.24-alpine as builder
+FROM golang:1.25-alpine AS builder
 
 WORKDIR /workspace
 COPY go.mod go.mod
@@ -7,10 +7,9 @@ RUN go mod download
 
 COPY . /workspace
 
-# Build
 RUN CGO_ENABLED=0 go build -o enroller ./cmd/enroller/
 
-FROM alpine:3.15
+FROM scratch
 WORKDIR /
 
 COPY --from=builder /workspace/enroller .
