@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+#MISE description="Run locally with each component in its own tmux pane"
 wait="bash -c 'read -p \"Press enter to continue\"'"
 if [[ -z "$(command -v tmux)" ]]; then
 	echo "tmux is required to run this script"
@@ -12,12 +13,12 @@ enrollments_url="http://localhost:${enrollments_port}/enrollments"
 
 env=(
 	"ENROLLER_LOCALLISTENADDR=\":${enrollments_port}\""
-	"ENROLLER_AZUREENABLED=\"true\""
+	"ENROLLER_GOOGLEENABLED=\"true\""
 	"APISERVER_WIREGUARDIP=\"127.0.0.1/24\""
 	"APISERVER_WIREGUARDIPV6=\"::1/64\""
 	"APISERVER_AUTOENROLLENABLED=\"true\""
 	"APISERVER_AUTOENROLLMENTSURL=\"${enrollments_url}\""
-	"APISERVER_DEVICEAUTHENTICATIONPROVIDER=\"azure\""
+	"APISERVER_DEVICEAUTHENTICATIONPROVIDER=\"google\""
 	"APISERVER_LOGLEVEL=\"debug\""
 )
 
