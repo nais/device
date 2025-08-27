@@ -92,10 +92,11 @@ func (l *localEnroller) enroll(ctx context.Context, enrollment enroll.DeviceRequ
 		Platform:  enrollment.Platform,
 		PublicKey: string(enrollment.WireGuardPublicKey),
 	}
+
 	if err := l.db.AddDevice(ctx, device); err != nil {
 		msg := "local enroller: error adding device to database"
 		l.log.WithError(err).Error(msg)
-		return fmt.Errorf("%s", msg)
+		l.log.Infof("continuing enroll, as this is normal for local enrollments: %v", err)
 	}
 	payload, err := json.Marshal(&enroll.Response{
 		APIServerGRPCAddress: "localhost:8099",
