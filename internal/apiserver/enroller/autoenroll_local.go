@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"time"
 
 	"github.com/nais/device/internal/apiserver/database"
 	"github.com/nais/device/internal/enroll"
@@ -39,8 +40,7 @@ func (l *localEnroller) Run(ctx context.Context) error {
 		case <-ctx.Done():
 			l.log.Info("local enroller: shutting down")
 			return nil
-		default:
-
+		case <-time.After(500 * time.Millisecond):
 			enrollments, err := l.getEnrollments(ctx)
 			if err != nil {
 				l.log.WithError(err).Error("local enroller: error getting enrollments")
