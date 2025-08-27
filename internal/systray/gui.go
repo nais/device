@@ -19,8 +19,8 @@ import (
 	"github.com/nais/device/assets"
 	"github.com/nais/device/internal/device-agent/open"
 	"github.com/nais/device/internal/notify"
-	"github.com/nais/device/pkg/pb"
 	"github.com/nais/device/internal/version"
+	"github.com/nais/device/pkg/pb"
 
 	"fyne.io/systray"
 	"github.com/sirupsen/logrus"

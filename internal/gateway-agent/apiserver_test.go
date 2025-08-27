@@ -8,8 +8,8 @@ import (
 
 	"github.com/nais/device/internal/gateway-agent"
 	"github.com/nais/device/internal/gateway-agent/config"
-	"github.com/nais/device/pkg/pb"
 	"github.com/nais/device/internal/wireguard"
+	"github.com/nais/device/pkg/pb"
 	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"

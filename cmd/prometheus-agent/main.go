@@ -8,8 +8,8 @@ import (
 	"time"
 
 	"github.com/kelseyhightower/envconfig"
-	"github.com/nais/device/pkg/pb"
 	"github.com/nais/device/internal/program"
+	"github.com/nais/device/pkg/pb"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/sirupsen/logrus"

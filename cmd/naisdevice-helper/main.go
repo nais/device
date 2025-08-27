@@ -14,10 +14,10 @@ import (
 	"github.com/nais/device/internal/helper/dns"
 	"github.com/nais/device/internal/logger"
 	"github.com/nais/device/internal/otel"
-	"github.com/nais/device/pkg/pb"
 	"github.com/nais/device/internal/program"
 	"github.com/nais/device/internal/unixsocket"
 	"github.com/nais/device/internal/version"
+	"github.com/nais/device/pkg/pb"
 )
 
 var cfg = helper.Config{

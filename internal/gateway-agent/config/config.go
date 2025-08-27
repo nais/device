@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"net/netip"
 
-	"github.com/nais/device/pkg/pb"
 	"github.com/nais/device/internal/wireguard"
+	"github.com/nais/device/pkg/pb"
 )
 
 type Config struct {
