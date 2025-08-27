@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #MISE description="Clean up build artifacts"
-rm -rf *.deb
+rm -rf ./*.deb
 rm -rf wireguard-go-*
 rm -rf wireguard-tools-*
 rm -rf naisdevice.app

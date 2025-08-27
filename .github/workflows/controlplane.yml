@@ -39,7 +39,7 @@ jobs:
       - uses: jdx/mise-action@v2
 
       - name: "Build controlplane"
-        run: mise run controlplane-debs
+        run: mise run package:controlplane-debs
 
       - name: "Auth with Google"
         uses: "google-github-actions/auth@v2"

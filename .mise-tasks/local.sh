@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-#MISE description="Run locally with each component in its own tmux pane"
+#MISE description="Run a subset of components, with each component in its own tmux pane"
 wait="bash -c 'read -p \"Press enter to continue\"'"
 if [[ -z "$(command -v tmux)" ]]; then
 	echo "tmux is required to run this script"

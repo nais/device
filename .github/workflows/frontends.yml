@@ -28,7 +28,6 @@ jobs:
           sudo apt-get install --yes build-essential
       - run: "mise run test"
       - run: "mise run check"
-      - run: "go vet ./..."
 
   set-version:
     runs-on: ubuntu-22.04
@@ -64,7 +63,7 @@ jobs:
           sudo apt-get install --yes nsis osslsigncode
           echo "${MSI_SIGN_CERT}" > packaging/windows/naisdevice.crt
           echo "${MSI_SIGN_KEY}" > packaging/windows/naisdevice.key
-          GOTAGS="${{ matrix.gotags }}" VERSION="${{ needs.set-version.outputs.version }}" mise run nsis 
+          GOTAGS="${{ matrix.gotags }}" VERSION="${{ needs.set-version.outputs.version }}" mise run package:exe
           mv packaging/windows/naisdevice.exe naisdevice${{ matrix.output-suffix }}.exe
       - name: upload windows-installer
         uses: actions/upload-artifact@v4
@@ -99,7 +98,7 @@ jobs:
           APPLE_NOTARIZE_I: "${{ secrets.APPLE_NOTARIZE_I }}"
         run: |
           brew install imagemagick || brew link --overwrite python@3.12
-          GOTAGS="${{ matrix.gotags }}" VERSION="${{ needs.set-version.outputs.version }}" RELEASE="${{ startsWith(github.ref, 'refs/tags/') && 'true' || 'false' }}" mise run pkg 
+          GOTAGS="${{ matrix.gotags }}" VERSION="${{ needs.set-version.outputs.version }}" RELEASE="${{ startsWith(github.ref, 'refs/tags/') && 'true' || 'false' }}" mise run package:pkg 
           if [[ -n "${{ matrix.output-suffix }}" ]]; then
             mv naisdevice.pkg naisdevice${{ matrix.output-suffix }}.pkg
           fi
@@ -131,7 +130,7 @@ jobs:
           sudo apt-get update
           sudo apt-get install --yes build-essential ruby ruby-dev rubygems
           sudo gem install --no-document fpm -v 1.15.1
-          GOTAGS="${{ matrix.gotags }}" VERSION="${{ needs.set-version.outputs.version }}" mise run deb 
+          GOTAGS="${{ matrix.gotags }}" VERSION="${{ needs.set-version.outputs.version }}" mise run package:deb 
           mv naisdevice*.deb "naisdevice${{ matrix.output-suffix }}.deb"
       - name: upload debian package
         uses: actions/upload-artifact@v4

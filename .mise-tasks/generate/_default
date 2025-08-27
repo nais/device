@@ -1,0 +1,3 @@
+#!/usr/bin/env bash
+#MISE description="Run all generators"
+#MISE depends=["generate:*"]

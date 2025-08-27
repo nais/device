@@ -6,7 +6,14 @@ jobs:
       fail-fast: false
       matrix:
         os: ["ubuntu-latest", "macos-latest"]
-        mise-task: ["test", "staticcheck", "vulncheck", "vet", "build"]
+        mise-task:
+          [
+            "test",
+            "check:staticcheck",
+            "check:govulncheck",
+            "check:govet",
+            "build",
+          ]
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v5
