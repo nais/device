@@ -1,4 +1,5 @@
 .idea/
+*.syso
 bin
 .env
 .DS_Store
