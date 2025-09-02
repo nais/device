@@ -1,0 +1,50 @@
+[bump]
+initial_tag = "v1.0.0"
+
+[remote.github]
+owner = "nais"
+repo = "device"
+
+[changelog]
+render_always = false
+header = ""
+body = """
+{% if version %}
+    ## {{ version }} - {{ timestamp | date(format="%Y-%m-%d") }}
+{% else %}
+    ## unreleased version
+{% endif %}
+{% if version and previous.version %}
+    Full Changelog: https://github.com/{{ remote.github.owner }}/{{ remote.github.repo }}/compare/{{ previous.version }}...{{ version }}
+{% endif %}
+{% for group, commits in commits | group_by(attribute="group") %}
+    ### {{ group | striptags | trim | upper_first }}
+    {% for commit in commits %}
+        - {% if commit.scope %}*({{ commit.scope }})* {% endif -%}
+        {% if commit.breaking %}:boom: **Breaking change:** {% endif -%}
+        {{ commit.message | upper_first }} \
+        {#
+            commit.remote.username is currently not set when on a branch / pull request. Can include this later if we
+            want to have this in the Changelog. If not, just remove the whole comment block.
+
+            {% if commit.remote.username -%}
+            by @{{ commit.remote.username }} \
+            {% endif -%}
+        -#}
+        ({{ commit.id }})
+    {%- endfor %}
+{% endfor %}
+"""
+footer = ""
+
+[git]
+conventional_commits = true
+filter_unconventional = true
+filter_commits = false
+commit_parsers = [
+    { message = "^feat", group = "<!-- 00 -->:rocket: Features"},
+    { message = "^fix", group = "<!-- 01 -->:bug: Bug Fixes"},
+    { message = "^style", group = "<!-- 02 -->:art: Styling"},
+    { message = ".*", group = "<!-- 99 -->:gear: Miscellaneous Changes"},
+]
+tag_pattern = "^v[0-9]+\\.[0-9]+\\.[0-9]+$"

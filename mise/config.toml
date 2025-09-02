@@ -1,4 +1,5 @@
 [tools]
+git-cliff = "2.10.0"
 go = "1.25.0"
 protoc = "29.4"
 protoc-gen-go = "1.36.6"
