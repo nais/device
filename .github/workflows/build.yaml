@@ -13,6 +13,7 @@ concurrency:
 
 jobs:
   release-info:
+    name: Generate release info
     runs-on: ubuntu-latest
     outputs:
       version: ${{ steps.generate.outputs.version }}
