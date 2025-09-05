@@ -1,12 +1,13 @@
-#!/bin/bash
+#!/usr/bin/env bash
+#MISE description="Sign exe"
 
 set -o errexit
 set -o pipefail
 set -o nounset
 
-TARGET_FILE=${1}
-CERT_FILE=${2}
-KEY_FILE=${3}
+TARGET_FILE="$1"
+CERT_FILE="$2"
+KEY_FILE="$3"
 
 SIGNED_FILE=$(mktemp --suffix .exe)
 

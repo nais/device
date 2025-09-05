@@ -1,0 +1,3 @@
+#!/usr/bin/env bash
+#MISE description="Generate all icons"
+#MISE depends=["icon:*"]

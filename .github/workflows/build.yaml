@@ -61,10 +61,13 @@ jobs:
         arch: [amd64, arm64]
         os:
           - goos: windows
+            task: package:windows
             runner: ubuntu-latest
           - goos: linux
+            task: package:linux
             runner: ubuntu-latest
           - goos: darwin
+            task: package:macos
             runner: macos-latest
     runs-on: matrix.os.runner
     steps:
@@ -73,35 +76,75 @@ jobs:
       - uses: jdx/mise-action@v3
         with:
           cache: false
-      - name: build
+
+      ###############
+      ### Windows ###
+      ###############
+      - name: Prepare for windows build
+        if: matrix.os.goos == 'windows'
+        env:
+          MSI_SIGN_CERT: "${{ secrets.MSI_SIGN_CERT }}"
+          MSI_SIGN_KEY: "${{ secrets.MSI_SIGN_KEY }}"
         run: |
-          ./script/completions.sh
+          sudo apt-get update
+          sudo apt-get install --yes nsis osslsigncode
+      - name: Build exe
+        if: matrix.os.goos == 'windows'
+        env:
+          VERSION: "${{ needs.release-info.outputs.version }}"
+          GOOS: "${{ matrix.os.goos }}"
+          GOARCH: "${{ matrix.arch }}"
+          GOTAGS: "${{ matrix.gotags }}"
+        run: mise run package:windows
 
-          export VERSION="${{ needs.release-info.outputs.version }}"
-          export GOOS="${{ matrix.os }}"
-          export GOARCH="${{ matrix.arch }}"
-          mise run build
+      #############
+      ### macOS ###
+      #############
+      - name: Prepare for macos build
+        if: matrix.os.goos == 'darwin'
+        uses: Apple-Actions/import-codesign-certs@v3
+        with:
+          p12-file-base64: ${{ secrets.CERTIFICATES_P12 }}
+          p12-password: ${{ secrets.CERTIFICATES_P12_PASSWORD }}
+      - name: build pkg
+        if: matrix.os.goos == 'darwin'
+        env:
+          APPLE_NOTARIZE_AUTH_KEY_P8_BASE64: "${{ secrets.APPLE_NOTARIZE_AUTH_KEY_P8_BASE64 }}"
+          APPLE_NOTARIZE_D: "${{ secrets.APPLE_NOTARIZE_D }}"
+          APPLE_NOTARIZE_I: "${{ secrets.APPLE_NOTARIZE_I }}"
+          GOOS: "${{ matrix.os.goos }}"
+          GOARCH: "${{ matrix.arch }}"
+          GOTAGS: "${{ matrix.gotags }}"
+          VERSION: "${{ needs.set-version.outputs.version }}"
+          RELEASE: "${{ startsWith(github.ref, 'refs/tags/') && 'true' || 'false' }}"
+        run: |
+          brew install imagemagick || brew link --overwrite python@3.12
 
-          binary="nais"
-          if [[ "${{ matrix.os }}" == "windows" ]]; then
-            binary="nais.exe"
-            mv "bin/nais" "bin/$binary"
-
-            if [[ "${{ github.ref }}" == "refs/heads/main" ]]; then
-              sudo apt-get update; sudo apt-get install --yes osslsigncode
-              echo "${{ secrets.SIGN_CERT }}" > nais.crt
-              echo "${{ secrets.SIGN_KEY }}" > nais.key
-              osslsigncode sign -certs nais.crt -key nais.key -n "nais-cli" -i "https://doc.nais.io/cli" -verbose -in "bin/$binary" -out "bin/nais-signed"
-              mv "bin/nais-signed" "bin/$binary"
-            fi
+          mise run package:macos
+          if [[ -n "${{ matrix.output-suffix }}" ]]; then
+            mv naisdevice.pkg naisdevice${{ matrix.output-suffix }}.pkg
           fi
 
-          tar -zcf "nais-cli_${{ needs.release-info.outputs.version }}_${{ matrix.os }}_${{ matrix.arch }}.tar.gz" ./completions -C bin/ "$binary"
+      #############
+      ### Linux ###
+      #############
+      - name: Build deb
+        if: matrix.os.goos == 'linux'
+        env:
+          VERSION: "${{ needs.release-info.outputs.version }}"
+          GOOS: "${{ matrix.os.goos }}"
+          GOARCH: "${{ matrix.arch }}"
+          GOTAGS: "${{ matrix.gotags }}"
+        run: mise run package:linux
+
+      ###########
+      ### All ###
+      ###########
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: archive-${{ matrix.os }}-${{ matrix.arch }}
-          path: nais-cli_${{ needs.release-info.outputs.version }}_${{ matrix.os }}_${{ matrix.arch }}.tar.gz
+          path: release_artifacts/*
 
   package-deb:
     needs:
@@ -185,8 +228,8 @@ jobs:
       - name: Upload hashes
         uses: actions/upload-artifact@v4
         with:
-          name: hashes-json
-          path: hashes.json
+          name: release_asset_vars-env
+          path: release_asset_vars.env
       - name: Create release
         uses: softprops/action-gh-release@v2
         with:
@@ -194,15 +237,8 @@ jobs:
           body: ${{ needs.release-info.outputs.changelog }}
           prerelease: false
           files: |
-            archive-linux-amd64/nais-cli_${{ needs.release-info.outputs.version }}_linux_amd64.tar.gz
-            archive-linux-arm64/nais-cli_${{ needs.release-info.outputs.version }}_linux_arm64.tar.gz
-            archive-darwin-amd64/nais-cli_${{ needs.release-info.outputs.version }}_darwin_amd64.tar.gz
-            archive-darwin-arm64/nais-cli_${{ needs.release-info.outputs.version }}_darwin_arm64.tar.gz
-            archive-windows-amd64/nais-cli_${{ needs.release-info.outputs.version }}_windows_amd64.tar.gz
-            archive-windows-arm64/nais-cli_${{ needs.release-info.outputs.version }}_windows_arm64.tar.gz
-            deb-amd64/nais-cli_${{ needs.release-info.outputs.version }}_amd64.deb
-            deb-arm64/nais-cli_${{ needs.release-info.outputs.version }}_arm64.deb
-            checksums.txt
+            ./release_artifacts/*
+
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - run: |
@@ -278,25 +314,14 @@ jobs:
       - name: Download hashes
         uses: actions/download-artifact@v5
         with:
-          name: hashes-json
+          name: release_asset_vars-env
       - name: "Generate manifest"
         run: |
           git clone "https://git:${{ steps.token.outputs.token }}@github.com/${{ matrix.target.repo }}" repo
           cd repo || exit 1
-          sed \
-            -e "s/__VERSION__/${{ needs.release-info.outputs.version }}/g" \
-            -e "s/__SHA_WINDOWS_AMD64__/$(jq -r '.windows.amd64.base16' ../hashes.json)/g" \
-            -e "s/__SHA_WINDOWS_ARM64__/$(jq -r '.windows.arm64.base16' ../hashes.json)/g" \
-            -e "s/__SHA_DARWIN_AMD64__/$(jq -r '.darwin.amd64.base16' ../hashes.json)/g" \
-            -e "s/__SHA_DARWIN_ARM64__/$(jq -r '.darwin.arm64.base16' ../hashes.json)/g" \
-            -e "s/__SHA_LINUX_AMD64__/$(jq -r '.linux.amd64.base16' ../hashes.json)/g" \
-            -e "s/__SHA_LINUX_ARM64__/$(jq -r '.linux.arm64.base16' ../hashes.json)/g" \
-            -e "s/__SHA_DARWIN_AMD64_BASE32__/$(jq -r '.darwin.amd64.base32' ../hashes.json)/g" \
-            -e "s/__SHA_DARWIN_ARM64_BASE32__/$(jq -r '.darwin.arm64.base32' ../hashes.json)/g" \
-            -e "s/__SHA_LINUX_AMD64_BASE32__/$(jq -r '.linux.amd64.base32' ../hashes.json)/g" \
-            -e "s/__SHA_LINUX_ARM64_BASE32__/$(jq -r '.linux.arm64.base32' ../hashes.json)/g" \
-            "../.github/workflows/templates/${{ matrix.target.template }}" \
-            > "${{ matrix.target.file }}"
+
+          env "$(xargs -0 <release_asset_vars.env) " \
+            envsubst "$(sed 's/^/$/' release_asset_vars.env)"
 
           git -c user.name='naisbot' -c user.email='bot@nais.io' commit -am "Bump nais-cli to ${{ needs.release-info.outputs.version }}"
           git push

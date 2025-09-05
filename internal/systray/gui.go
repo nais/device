@@ -16,7 +16,7 @@ import (
 	"github.com/nais/device/internal/logger"
 	"github.com/nais/device/internal/otel"
 
-	"github.com/nais/device/assets"
+	"github.com/nais/device/assets/icon/tray"
 	"github.com/nais/device/internal/device-agent/open"
 	"github.com/nais/device/internal/notify"
 	"github.com/nais/device/internal/version"
@@ -370,9 +370,9 @@ func (gui *Gui) setTemplateIcon(templateIcon, icon []byte) {
 
 func (gui *Gui) applyDisconnectedIcon() {
 	if gui.Config.BlackAndWhiteIcons {
-		gui.setTemplateIcon(assets.NaisLogoBwDisconnected, assets.NaisLogoBwDisconnected)
+		gui.setTemplateIcon(tray.NaisLogoBwDisconnected, tray.NaisLogoBwDisconnected)
 	} else {
-		gui.setIcon(assets.NaisLogoRed)
+		gui.setIcon(tray.NaisLogoRed)
 	}
 }
 
@@ -380,15 +380,15 @@ func (gui *Gui) updateIcons() {
 	switch gui.AgentStatus.GetConnectionState() {
 	case pb.AgentState_Connected:
 		if gui.Config.BlackAndWhiteIcons {
-			gui.setTemplateIcon(assets.NaisLogoBwConnected, assets.NaisLogoBwConnected)
+			gui.setTemplateIcon(tray.NaisLogoBwConnected, tray.NaisLogoBwConnected)
 		} else {
-			gui.setIcon(assets.NaisLogoGreen)
+			gui.setIcon(tray.NaisLogoGreen)
 		}
 	case pb.AgentState_Disconnected:
 		gui.applyDisconnectedIcon()
 	case pb.AgentState_Unhealthy:
-		if !bytes.Equal(gui.icon, assets.NaisLogoYellow) {
-			gui.setIcon(assets.NaisLogoYellow)
+		if !bytes.Equal(gui.icon, tray.NaisLogoYellow) {
+			gui.setIcon(tray.NaisLogoYellow)
 		}
 	}
 }

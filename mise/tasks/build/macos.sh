@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #MISE description="Build macos client"
-#MISE env={ GOOS = "darwin", GOARCH = "amd64" }
+#MISE env={ GOOS = "darwin" }
 set -e
 ldflags="-X github.com/nais/device/internal/version.Version=${VERSION:-local} -X github.com/nais/device/internal/otel.endpointURL=https://collector-internet.nav.cloud.nais.io"
 mkdir -p ./bin/macos-client

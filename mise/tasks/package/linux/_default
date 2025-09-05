@@ -1,10 +1,13 @@
-#!/bin/bash
+#!/usr/bin/env bash
+# vim:ft=bash
+#MISE description="Package deb"
+#MISE depends=["build:linux","icon:linux"]
 
 set -o errexit
 set -o pipefail
 set -o nounset
 
-rm -f ./naisdevice*.deb
+rm ./naisdevice*.deb
 
 fpm \
 	--verbose \
@@ -21,21 +24,17 @@ fpm \
 	--depends wireguard \
 	--depends libnss3-tools \
 	--depends openssl \
-	--after-remove packaging/linux/postrm \
-	--after-install packaging/linux/postinstall \
-	--after-upgrade packaging/linux/postinstall \
-	--deb-systemd packaging/linux/naisdevice-helper.service \
+	--after-remove assets/linux/postrm \
+	--after-install assets/linux/postinstall \
+	--after-upgrade assets/linux/postinstall \
+	--deb-systemd assets/linux/naisdevice-helper.service \
 	--deb-systemd-enable \
 	--deb-systemd-auto-start \
 	--deb-systemd-restart-after-upgrade \
 	"bin/linux-client/naisdevice-helper=/usr/sbin/naisdevice-helper" \
 	"bin/linux-client/naisdevice-agent=/usr/bin/naisdevice-agent" \
 	"bin/linux-client/naisdevice-systray=/usr/bin/naisdevice-systray" \
-	"packaging/linux/naisdevice.desktop=/usr/share/applications/" \
-	"packaging/linux/certs/NAV_Issuing_CA_ekstern.crt=/usr/share/ca-certificates/nav/" \
-	"packaging/linux/certs/NAV_Partner_Issuing_CA.crt=/usr/share/ca-certificates/nav/" \
-	"packaging/linux/certs/NAV_Partner_Sub_CA.crt=/usr/share/ca-certificates/nav/" \
-	"packaging/linux/certs/NAV_Root_CA.crt=/usr/share/ca-certificates/nav/" \
-	"packaging/linux/certs/NAV_Sub_CA.crt=/usr/share/ca-certificates/nav/" \
-	"packaging/linux/icons/=/usr/share/icons/hicolor/" \
-	"packaging/linux/apparmor-local-wg=/etc/apparmor.d/local/wg"
+	"assets/linux/naisdevice.desktop=/usr/share/applications/" \
+	"assets/certs/=/usr/share/ca-certificates/nav/" \
+	"assets/linux/icon/=/usr/share/icons/hicolor/" \
+	"assets/linux/apparmor-local-wg=/etc/apparmor.d/local/wg"

@@ -1,10 +1,11 @@
 #!/usr/bin/env bash
 #MISE description="Generate Windows icons"
-mkdir -p packaging/windows/assets/
+out="assets/windows/icon/naisdevice.ico"
+mkdir -p "$(dirname $out)"
 magick -background none \
-	assets/svg/blue.svg \
+	assets/icon/src/blue.svg \
 	-resize 256x256 \
 	-gravity center \
 	-extent 256x256 \
 	-define icon:auto-resize=48,64,96,128,256 \
-	packaging/windows/assets/naisdevice.ico
+	"$out"
