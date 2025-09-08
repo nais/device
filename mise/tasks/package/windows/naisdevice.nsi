@@ -1,7 +1,7 @@
 ; Additional includes and plugins
 
-!addincludedir "nsis\include"
-!addplugindir "nsis\plugins"
+!addincludedir "./mise/tasks/package/windows/nsis/include"
+!addplugindir "./mise/tasks/package/windows/nsis/plugins"
 
 ; Definitions
 
@@ -9,8 +9,8 @@
 
 !define APP_NAME "naisdevice"
 !define UNINSTALLER "uninstaller.exe"
-!define SOURCE "./bin/windows-client"
-!define WIREGUARD "wireguard-amd64-0.5.3.msi"
+!define BIN_DIR "./bin/windows-client"
+!define WIREGUARD "./assets/windows/wireguard-amd64-0.5.3.msi"
 !define REG_UNINSTALL "SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall"
 !define REG_ARP "${REG_UNINSTALL}\${APP_NAME}"
 !define SERVICE_NAME "NaisDeviceHelper"
@@ -40,7 +40,7 @@ SetCompressor /SOLID lzma
 
 ; Settings ---------------------------------
 Name "${APP_NAME}"
-OutFile "${APP_NAME}.exe"
+OutFile "${OUTFILE}"
 RequestExecutionLevel admin
 InstallDir "$PROGRAMFILES64\NAV\${APP_NAME}"
 AllowSkipFiles off
@@ -58,8 +58,8 @@ VIProductVersion "${VERSION}"
 
 ; Configure signing if certificates available
 !ifdef CERT_FILE & KEY_FILE
-!finalize './sign-exe "%1" "${CERT_FILE}" "${KEY_FILE}"' = 0
-!uninstfinalize './sign-exe "%1" "${CERT_FILE}" "${KEY_FILE}"' = 0
+!finalize 'mise run package:windows:sign-exe "%1" "${CERT_FILE}" "${KEY_FILE}"' = 0
+!uninstfinalize 'mise run package:windows:sign-exe "%1" "${CERT_FILE}" "${KEY_FILE}"' = 0
 !endif
 
 ; Global variables :scream:
@@ -113,8 +113,8 @@ SectionEnd
 Section "Install files"
     CreateDirectory $INSTDIR
     SetOutPath $INSTDIR
-    File ${SOURCE}\naisdevice-*.exe
-    File assets\naisdevice.ico
+    File ${BIN_DIR}/naisdevice-*.exe
+    File ./assets/windows/icon/naisdevice.ico
 SectionEnd
 
 Section "Create data folder"

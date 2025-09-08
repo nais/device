@@ -7,7 +7,9 @@ set -o errexit
 set -o pipefail
 set -o nounset
 
-version=$VERSION
+# Windows MSI requires X.X.X.X version format
+version="${VERSION}.0"
+outfile=$OUTFILE
 
 cert_file=$(mktemp --suffix .crt)
 key_file=$(mktemp --suffix .key)
@@ -25,4 +27,4 @@ for bin in bin/windows-client/*; do
 done
 
 sign_opts="-Dcert_file=$cert_file -Dkey_file=$key_file"
-makensis "-DVERSION=$version" "$sign_opts" mise/tasks/package/windows/naisdevice.nsi
+makensis -NOCD "-DOUTFILE=$outfile" "-DVERSION=$version" "$sign_opts" mise/tasks/package/windows/naisdevice.nsi

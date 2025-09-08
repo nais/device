@@ -1,5 +1,5 @@
 # Docs: https://nfpm.goreleaser.com/configuration/
-name: "naisdevice"
+name: "OUTFILE"
 arch: "${ARCH}"
 platform: "linux"
 version: "${VERSION}"

@@ -7,19 +7,21 @@ set -o errexit
 set -o pipefail
 set -o nounset
 
-version=$VERSION
-
-target="naisdevice.deb"
-if [[ "$TENANT" == "true" ]]; then
-	target="naisdevice-tenant.deb"
-	yq '.name = "naisdevice-tenant"' -i ./mise/tasks/package/linux/nfpm.yaml
+if [[ -z "$VERSION" ]]; then
+	echo "Missing VERSION"
+	exit 1
 fi
 
+outfile="$OUTFILE"
+target=$(filename "$outfile")
+target="${target%.deb}"
+yq ".name = \"$target\"" -i ./mise/tasks/package/linux/nfpm.yaml
+
 arch="$GOARCH"
-ARCH="$arch" GOARCH= go tool github.com/goreleaser/nfpm/v2/cmd/nfpm package \
- 	--packager deb \
- 	--config ./mise/tasks/package/linux/nfpm.yaml \
- 	--target "$target"
+ARCH="$arch" GOARCH="" go tool github.com/goreleaser/nfpm/v2/cmd/nfpm package \
+	--packager deb \
+	--config ./mise/tasks/package/linux/nfpm.yaml \
+	--target "$outfile"
 
 #fpm \
 	# --verbose \

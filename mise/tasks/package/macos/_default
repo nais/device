@@ -8,13 +8,13 @@ set -o pipefail
 set -o nounset
 
 version="$VERSION"
-tenant="$TENANT"
 release="$RELEASE"
+outfile="$OUTFILE"
 
 if [[ "$release" == "true" ]]; then
-  notarize_d="$APPLE_NOTARIZE_D"
-  notarize_i="$APPLE_NOTARIZE_I"
-  base64 -d >AuthKey.p8 <<<"$APPLE_NOTARIZE_AUTH_KEY_P8_BASE64"
+	notarize_d="$APPLE_NOTARIZE_D"
+	notarize_i="$APPLE_NOTARIZE_I"
+	base64 -d >AuthKey.p8 <<<"$APPLE_NOTARIZE_AUTH_KEY_P8_BASE64"
 fi
 
 build_dir="$(mktemp -d)"
@@ -24,12 +24,6 @@ build_plist="$build_dir/naisdevice.plist"
 app_cert='Developer ID Application: Arbeids- og velferdsetaten (GC9RAU27PY)'
 install_cert='Developer ID Installer: Arbeids- og velferdsetaten (GC9RAU27PY)'
 pkgid="io.nais.device"
-
-pkg_path="./naisdevice.pkg"
-
-if [[ "$tenant" == "true" ]]; then
-	pkg_path="./naisdevice-tenant.pkg"
-fi
 
 # Build and sign app
 mkdir -p "$app_dir/Contents/"{MacOS,Resources}
@@ -57,13 +51,13 @@ pkgbuild \
 	--version "$version" \
 	--sign "$install_cert" \
 	--ownership recommended \
-	"$pkg_path"
+	"$outfile"
 
 if [ "$release" == "true" ]; then
-  xcrun notarytool submit "$pkg_path" \
+	xcrun notarytool submit "$outfile" \
 		--key AuthKey.p8 \
 		--key-id "$notarize_d" \
 		--issuer "$notarize_i" \
 		--wait
-	xcrun stapler staple "$pkg_path"
+	xcrun stapler staple "$outfile"
 fi
