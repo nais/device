@@ -3,28 +3,29 @@
 #MISE description="Package deb"
 #MISE depends=["thirdparty/wireguard","thirdparty/wireguard-go","build:macos"]
 
-version="$1"
-isRelease="$2"
-if [ -z "$version" ]; then
-	echo "Usage: $0 <version> <isRelease>"
-	exit 1
-fi
-if [ -z "$isRelease" ]; then
-	echo "Usage: $0 <version> <isRelease>"
+if [ -z "$VERSION" ]; then
+	echo "VERSION not set."
 	exit 1
 fi
 
-if [ "$isRelease" == "true" ]; then
+if [ -z "$RELEASE" ]; then
+	echo "RELEASE not set."
+	exit 1
+fi
+
+if [ "$RELEASE" == "true" ]; then
 	if [ -z "$APPLE_NOTARIZE_AUTH_KEY_P8_BASE64" ]; then
-		echo "Please set APPLE_NOTARIZE_AUTH_KEY_P8_BASE64"
+		echo "APPLE_NOTARIZE_AUTH_KEY_P8_BASE64 not set."
 		exit 1
 	fi
+
 	if [ -z "$APPLE_NOTARIZE_D" ]; then
-		echo "Please set APPLE_NOTARIZE_D"
+		echo "APPLE_NOTARIZE_D not set."
 		exit 1
 	fi
+
 	if [ -z "$APPLE_NOTARIZE_I" ]; then
-		echo "Please set APPLE_NOTARIZE_I"
+		echo "APPLE_NOTARIZE_I not set."
 		exit 1
 	fi
 fi
@@ -46,7 +47,7 @@ mkdir -p "$app_dir/Contents/"{MacOS,Resources}
 cp ./bin/macos-client/* "$build_dir/naisdevice.app/Contents/MacOS/"
 cp ./assets/macos/icon/naisdevice.icns "$build_dir/naisdevice.app/Contents/Resources/"
 
-sed "s/VERSIONSTRING/$version/" ./assets/macos/Info.plist.tpl >"$build_dir/naisdevice.app/Contents/Info.plist"
+sed "s/VERSIONSTRING/$VERSION/" ./assets/macos/Info.plist.tpl >"$build_dir/naisdevice.app/Contents/Info.plist"
 
 codesign -s "$app_cert" -f -v --timestamp --deep --options runtime "$build_dir/naisdevice.app/Contents/MacOS/"*
 codesign -s "$app_cert" -f -v --timestamp --deep --options runtime "$build_dir/naisdevice.app/Contents/Info.plist"
@@ -64,12 +65,12 @@ pkgbuild \
 	--identifier "$pkgid" \
 	--install-location "/Applications" \
 	--scripts "$build_dir/scripts" \
-	--version "$version" \
+	--version "$VERSION" \
 	--sign "$install_cert" \
 	--ownership recommended \
 	"$pkg_path"
 
-if [ "$isRelease" == "true" ]; then
+if [ "$RELEASE" == "true" ]; then
 	xcrun notarytool submit "$pkg_path" \
 		-k AuthKey.p8 \
 		-d "$APPLE_NOTARIZE_D" \
