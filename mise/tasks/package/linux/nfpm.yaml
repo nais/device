@@ -40,6 +40,7 @@ contents:
       mode: 0644
   - src: "./assets/linux/icon/"
     dst: "/usr/share/icons/hicolor/"
+    type: tree
     file_info:
       mode: 0644
   - src: "./assets/linux/apparmor-local-wg"
