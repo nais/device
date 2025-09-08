@@ -126,7 +126,8 @@ jobs:
           VERSION: "${{ needs.set-version.outputs.version }}"
           RELEASE: "${{ startsWith(github.ref, 'refs/tags/') && 'true' || 'false' }}"
         run: |
-          brew install imagemagick || brew link --overwrite python@3.12
+          # TODO: Is this needed?
+          brew link --overwrite python@3.12
 
           mise run package:macos
           if [[ -n "${{ matrix.output-suffix }}" ]]; then
