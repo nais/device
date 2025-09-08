@@ -13,7 +13,7 @@ if [[ -z "$VERSION" ]]; then
 fi
 
 outfile="$OUTFILE"
-target=$(filename "$outfile")
+target=$(basename "$outfile")
 target="${target%.deb}"
 yq ".name = \"$target\"" -i ./mise/tasks/package/linux/nfpm.yaml
 
