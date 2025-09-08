@@ -8,7 +8,9 @@ set -o pipefail
 set -o nounset
 
 # Windows MSI requires X.X.X.X version format
+# shellcheck disable=SC2153
 version="${VERSION#"v"}.0"
+# shellcheck disable=SC2153
 outfile=$OUTFILE
 
 cert_file=$(mktemp --suffix .crt)

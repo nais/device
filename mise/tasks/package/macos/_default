@@ -7,8 +7,11 @@ set -o errexit
 set -o pipefail
 set -o nounset
 
+# shellcheck disable=SC2153
 version="$VERSION"
+# shellcheck disable=SC2153
 release="$RELEASE"
+# shellcheck disable=SC2153
 outfile="$OUTFILE"
 
 if [[ "$release" == "true" ]]; then

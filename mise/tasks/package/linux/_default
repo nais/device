@@ -12,6 +12,7 @@ if [[ -z "$VERSION" ]]; then
 	exit 1
 fi
 
+# shellcheck disable=SC2153
 outfile="$OUTFILE"
 target=$(basename "$outfile")
 target="${target%.deb}"
