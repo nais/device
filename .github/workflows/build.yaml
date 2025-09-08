@@ -86,7 +86,7 @@ jobs:
       GOOS: "${{ matrix.os.goos }}"
       GOARCH: "${{ matrix.arch }}"
       GOTAGS: "${{ matrix.gotags }}"
-      OUTFILE: "./release_artifacts/naisdevice${{ matrix.gotags == 'tenant' && '-tenant' }}.${{ matrix.os.ext }}"
+      OUTFILE: "./release_artifacts/naisdevice${{ matrix.gotags == 'tenant' && '-tenant' }}_${{ matrix.arch }}.${{ matrix.os.ext }}"
     steps:
       - name: Checkout repository
         uses: actions/checkout@v5
@@ -142,7 +142,7 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: archive-${{ matrix.os }}-${{ matrix.arch }}
+          name: archive-${{ matrix.os }}-${{ matrix.arch }}-${{ matrix.gotags || 'nav' }}
           path: release_artifacts/*
 
   # Used by GitHub to determine if all checks/builds have passed
