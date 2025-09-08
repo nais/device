@@ -7,7 +7,7 @@ set -o errexit
 set -o pipefail
 set -o nounset
 
-rm ./naisdevice*.deb
+rm -f ./naisdevice*.deb
 
 fpm \
 	--verbose \
