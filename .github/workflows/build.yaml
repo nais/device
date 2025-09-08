@@ -49,17 +49,14 @@ jobs:
       checks: write
       pull-requests: write
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v5
-      - name: Install tooling
-        uses: jdx/mise-action@v3
+      - uses: actions/checkout@v5
+      - uses: jdx/mise-action@v3
         with:
           cache: false
-      - name: mise run ${{ matrix.mise_task }}
-        run: mise run ${{ matrix.mise_task }}
+      - run: mise run ${{ matrix.mise_task }}
 
   builds:
-    name: Build for ${{ matrix.os.goos }} / ${{ matrix.arch }} / ${{ matrix.gotags || 'Nav' }}
+    name: build ${{ matrix.os.goos }} / ${{ matrix.arch }} / ${{ matrix.gotags || 'Nav' }}
     needs:
       - release-info
     strategy:
@@ -69,15 +66,15 @@ jobs:
         arch: [amd64, arm64]
         os:
           - goos: windows
-            task: package:windows
+            mise-task: windows
             runner: ubuntu-latest
             ext: "exe"
           - goos: linux
-            task: package:linux
+            mise-task: linux
             runner: ubuntu-latest
             ext: "deb"
           - goos: darwin
-            task: package:macos
+            mise-task: macos
             runner: macos-latest
             ext: "pkg"
     runs-on: ${{ matrix.os.runner }}
@@ -88,66 +85,33 @@ jobs:
       GOTAGS: "${{ matrix.gotags }}"
       OUTFILE: "./release_artifacts/naisdevice${{ matrix.gotags == 'tenant' && '-tenant' }}_${{ matrix.arch }}.${{ matrix.os.ext }}"
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v5
-      - name: Install tooling
-        uses: jdx/mise-action@v3
-        with:
-          cache: false
-      - run: mkdir -p ./release_artifacts
-
-      ###############
-      ### Windows ###
-      ###############
-      - name: Prepare for windows build
-        if: matrix.os.goos == 'windows'
-        run: |
-          sudo apt-get update
-          sudo apt-get install --yes nsis osslsigncode
-      - name: Build exe
-        if: matrix.os.goos == 'windows'
-        env:
-          MSI_SIGN_CERT: "${{ secrets.MSI_SIGN_CERT }}"
-          MSI_SIGN_KEY: "${{ secrets.MSI_SIGN_KEY }}"
-        run: mise run package:windows
-
-      #############
-      ### macOS ###
-      #############
-      - name: Prepare for macos build
-        if: matrix.os.goos == 'darwin'
+      - uses: actions/checkout@v5
+      - uses: jdx/mise-action@v3
+      - if: matrix.os.goos == 'windows'
+        run: sudo apt-get update && sudo apt-get install --yes  makensis osslsigncode
+      - if: matrix.os.goos == 'darwin'
         uses: Apple-Actions/import-codesign-certs@v3
         with:
           p12-file-base64: ${{ secrets.CERTIFICATES_P12 }}
           p12-password: ${{ secrets.CERTIFICATES_P12_PASSWORD }}
-      - name: Build pkg
-        if: matrix.os.goos == 'darwin'
-        env:
+      - env: # Vars for all matrix variants are mixed together here.
+          MSI_SIGN_CERT: "${{ secrets.MSI_SIGN_CERT }}"
+          MSI_SIGN_KEY: "${{ secrets.MSI_SIGN_KEY }}"
           APPLE_NOTARIZE_AUTH_KEY_P8_BASE64: "${{ secrets.APPLE_NOTARIZE_AUTH_KEY_P8_BASE64 }}"
           APPLE_NOTARIZE_D: "${{ secrets.APPLE_NOTARIZE_D }}"
           APPLE_NOTARIZE_I: "${{ secrets.APPLE_NOTARIZE_I }}"
           RELEASE: "${{ github.ref == 'refs/heads/main' && 'true' || 'false' }}"
-        run: mise run package:macos
-
-      #############
-      ### Linux ###
-      #############
-      - name: Build deb
-        if: matrix.os.goos == 'linux'
-        run: mise run package:linux
-
-      ###########
-      ### All ###
-      ###########
-      - name: Upload artifact
+        run: |
+          mkdir -p "$(dirname $OUTFILE)"
+          mise run "package:${{ matrix.os.mise-task }}"
+      - if: github.ref == 'refs/heads/main'
         uses: actions/upload-artifact@v4
         with:
           name: installer-${{ matrix.os.goos }}-${{ matrix.arch }}-${{ matrix.gotags || 'nav' }}
-          path: release_artifacts/*
+          path: ${{ env.OUTFILE }}
 
   # Used by GitHub to determine if all checks/builds have passed
   branch-protection-checkpoint:
-    name: Branch protection checkpoint
     needs:
       - checks
       - builds
