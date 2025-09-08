@@ -59,7 +59,7 @@ jobs:
         run: mise run ${{ matrix.mise_task }}
 
   builds:
-    name: Build binaries and packages
+    name: Build for ${{ matrix.os.goos }} / ${{ matrix.arch }} / ${{ matrix.gotags || 'Nav' }}
     needs:
       - release-info
     strategy:
