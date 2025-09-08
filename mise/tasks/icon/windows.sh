@@ -2,7 +2,7 @@
 #MISE description="Generate Windows icons"
 out="assets/windows/icon/naisdevice.ico"
 mkdir -p "$(dirname $out)"
-magick -background none \
+convert -background none \
 	assets/icon/src/blue.svg \
 	-resize 256x256 \
 	-gravity center \

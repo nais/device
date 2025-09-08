@@ -2,10 +2,11 @@
 #MISE description="Generate MacOS icons"
 
 tmp="$(mktemp --suffix .png)"
-out="assets/macos/icon/naisdevice.icns"
+trap 'echo "Removing tmp file $tmp" && rm -f "$tmp"' EXIT
+out="./assets/macos/icon/naisdevice.icns"
 mkdir -p "$(dirname $out)"
 
-magick -background none \
+convert -background none \
 	assets/icon/src/blue.svg \
 	-resize 1024x1024 \
 	-gravity center \
@@ -15,4 +16,3 @@ magick -background none \
 go tool github.com/jackmordaunt/icns/v2/cmd/icnsify \
 	-i "$tmp" \
 	-o "$out"
-rm "$tmp"
