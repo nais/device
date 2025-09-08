@@ -78,6 +78,12 @@ jobs:
             task: package:macos
             runner: macos-latest
     runs-on: ${{ matrix.os.runner }}
+    env:
+      VERSION: "${{ needs.release-info.outputs.version }}"
+      GOOS: "${{ matrix.os.goos }}"
+      GOARCH: "${{ matrix.arch }}"
+      GOTAGS: "${{ matrix.gotags }}"
+      TENANT: "${{ matrix.gotags == 'tenant' && 'true' || 'false' }}"
     steps:
       - name: Checkout repository
         uses: actions/checkout@v5
@@ -97,10 +103,6 @@ jobs:
       - name: Build exe
         if: matrix.os.goos == 'windows'
         env:
-          VERSION: "${{ needs.release-info.outputs.version }}"
-          GOOS: "${{ matrix.os.goos }}"
-          GOARCH: "${{ matrix.arch }}"
-          GOTAGS: "${{ matrix.gotags }}"
           MSI_SIGN_CERT: "${{ secrets.MSI_SIGN_CERT }}"
           MSI_SIGN_KEY: "${{ secrets.MSI_SIGN_KEY }}"
         run: mise run package:windows
@@ -120,30 +122,14 @@ jobs:
           APPLE_NOTARIZE_AUTH_KEY_P8_BASE64: "${{ secrets.APPLE_NOTARIZE_AUTH_KEY_P8_BASE64 }}"
           APPLE_NOTARIZE_D: "${{ secrets.APPLE_NOTARIZE_D }}"
           APPLE_NOTARIZE_I: "${{ secrets.APPLE_NOTARIZE_I }}"
-          GOOS: "${{ matrix.os.goos }}"
-          GOARCH: "${{ matrix.arch }}"
-          GOTAGS: "${{ matrix.gotags }}"
-          VERSION: "${{ needs.release-info.outputs.version }}"
           RELEASE: "${{ startsWith(github.ref, 'refs/tags/') && 'true' || 'false' }}"
-        run: |
-          # TODO: Looks like this is no longer needed with macos-latest
-          # brew link --overwrite python@3.12
-
-          mise run package:macos
-          if [[ -n "${{ matrix.output-suffix }}" ]]; then
-            mv naisdevice.pkg naisdevice${{ matrix.output-suffix }}.pkg
-          fi
+        run: mise run package:macos
 
       #############
       ### Linux ###
       #############
       - name: Build deb
         if: matrix.os.goos == 'linux'
-        env:
-          VERSION: "${{ needs.release-info.outputs.version }}"
-          GOOS: "${{ matrix.os.goos }}"
-          GOARCH: "${{ matrix.arch }}"
-          GOTAGS: "${{ matrix.gotags }}"
         run: mise run package:linux
 
       ###########

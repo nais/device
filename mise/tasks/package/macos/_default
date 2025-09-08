@@ -37,7 +37,12 @@ build_plist="$build_dir/naisdevice.plist"
 app_cert='Developer ID Application: Arbeids- og velferdsetaten (GC9RAU27PY)'
 install_cert='Developer ID Installer: Arbeids- og velferdsetaten (GC9RAU27PY)'
 pkgid="io.nais.device"
+
 pkg_path="./naisdevice.pkg"
+
+if [[ "$TENANT" == "true" ]]; then
+	pkg_path="./naisdevice-tenant.pkg"
+fi
 
 # Prepare notarization key
 base64 -d >AuthKey.p8 <<<"$APPLE_NOTARIZE_AUTH_KEY_P8_BASE64"

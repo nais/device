@@ -7,14 +7,24 @@ set -o errexit
 set -o pipefail
 set -o nounset
 
+if [ -z "$VERSION" ]; then
+	echo "VERSION not set."
+	exit 1
+fi
+
 rm -f ./naisdevice*.deb
+
+suffix=""
+if [[ "$TENANT" == "true" ]]; then
+	suffix="-tenant"
+fi
 
 fpm \
 	--verbose \
 	--output-type deb \
 	--input-type dir \
-	--name "naisdevice${SUFFIX}" \
-	--version "${1:-Unknown}" \
+	--name "naisdevice${suffix}" \
+	--version "$VERSION" \
 	--vendor "NAV / nais team" \
 	--maintainer "NAV / nais team" \
 	--description "naisdevice is a mechanism enabling NAVs developers to connect to internal resources in a secure and friendly manner" \
