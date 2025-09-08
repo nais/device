@@ -146,38 +146,38 @@ jobs:
           name: archive-${{ matrix.os }}-${{ matrix.arch }}
           path: release_artifacts/*
 
-  package-deb:
-    needs:
-      - release-info
-    strategy:
-      matrix:
-        arch: [amd64, arm64]
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout latest code
-        uses: actions/checkout@v5
-      - uses: jdx/mise-action@v3
-        with:
-          cache: false
-      - name: package deb
-        run: |
-          ./script/completions.sh
-
-          export VERSION="${{ needs.release-info.outputs.version }}"
-          export GOARCH="${{ matrix.arch }}"
-          mise run package-deb
-      - name: Upload deb
-        uses: actions/upload-artifact@v4
-        with:
-          name: deb-${{ matrix.arch }}
-          path: nais-cli_${{ needs.release-info.outputs.version }}_${{ matrix.arch }}.deb
+#  package-deb:
+#    needs:
+#      - release-info
+#    strategy:
+#      matrix:
+#        arch: [amd64, arm64]
+#    runs-on: ubuntu-latest
+#    steps:
+#      - name: Checkout latest code
+#        uses: actions/checkout@v5
+#      - uses: jdx/mise-action@v3
+#        with:
+#          cache: false
+#      - name: package deb
+#        run: |
+#          ./script/completions.sh
+#
+#          export VERSION="${{ needs.release-info.outputs.version }}"
+#          export GOARCH="${{ matrix.arch }}"
+#          mise run package-deb
+#      - name: Upload deb
+#        uses: actions/upload-artifact@v4
+#        with:
+#          name: deb-${{ matrix.arch }}
+#          path: nais-cli_${{ needs.release-info.outputs.version }}_${{ matrix.arch }}.deb
 
   # Used by GitHub to determine if all checks/builds have passed
   branch-protection-checkpoint:
     needs:
       - checks
       - builds
-      - package-deb
+      # - package-deb
     runs-on: ubuntu-latest
     steps:
       - run: echo Checks and builds passed
@@ -187,7 +187,7 @@ jobs:
     needs:
       - release-info
       - builds
-      - package-deb
+      # - package-deb
       - checks
     runs-on: ubuntu-latest
     steps:
