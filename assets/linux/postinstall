@@ -10,42 +10,96 @@ ensure_line() {
 	fi
 }
 
-ensure_line "nav/NAV_Issuing_CA_ekstern.crt" "/etc/ca-certificates.conf"
-ensure_line "nav/NAV_Partner_Issuing_CA.crt" "/etc/ca-certificates.conf"
-ensure_line "nav/NAV_Partner_Sub_CA.crt" "/etc/ca-certificates.conf"
-ensure_line "nav/NAV_Root_CA.crt" "/etc/ca-certificates.conf"
-ensure_line "nav/NAV_Sub_CA.crt" "/etc/ca-certificates.conf"
+ensure_certs() {
+	ensure_line "nav/NAV_Issuing_CA_ekstern.crt" "/etc/ca-certificates.conf"
+	ensure_line "nav/NAV_Partner_Issuing_CA.crt" "/etc/ca-certificates.conf"
+	ensure_line "nav/NAV_Partner_Sub_CA.crt" "/etc/ca-certificates.conf"
+	ensure_line "nav/NAV_Root_CA.crt" "/etc/ca-certificates.conf"
+	ensure_line "nav/NAV_Sub_CA.crt" "/etc/ca-certificates.conf"
 
-update-ca-certificates
+	update-ca-certificates
+}
 
-systemd_version="$(systemctl --version | head -n 1 | grep -oP '[0-9]+' | head -n 1)"
-if [ "$((systemd_version))" -gt "255" ]; then
-	user_accounts=$(loginctl list-users -j | jq '[.[] | select(.uid >= 1000)]')
-else
-	user_accounts=$(loginctl list-users --output json | jq '[.[] | select(.uid >= 1000)]')
+make_user_dirs() {
+	systemd_version="$(systemctl --version | head -n 1 | grep -oP '[0-9]+' | head -n 1)"
+	if [ "$((systemd_version))" -gt "255" ]; then
+		user_accounts=$(loginctl list-users -j | jq '[.[] | select(.uid >= 1000)]')
+	else
+		user_accounts=$(loginctl list-users --output json | jq '[.[] | select(.uid >= 1000)]')
+	fi
+
+	if echo "$user_accounts" | jq -e 'length != 1' >/dev/null; then
+		printf "\nMore than 1 user account logged in! naisdevice only permits _one_ user account!\n"
+		exit 1
+	fi
+
+	user=$(echo "$user_accounts" | jq -r ".[0].user")
+	home=$(getent passwd "${user}" | cut -d: -f 6)
+
+	config_dir="${home}/.config/naisdevice/"
+	log_dir="${config_dir}/logs"
+
+	for directory in "$config_dir" "$log_dir"; do
+		mkdir -p "$directory"
+		chmod 700 "$directory"
+	done
+
+	cp /sys/devices/virtual/dmi/id/product_serial "${config_dir}"
+
+	chown -R "${user}:" "${config_dir}"
+}
+
+cleanup() {
+	printf "\033[32m Cleanup\033[0m\n"
+}
+
+cleanInstall() {
+	printf "\033[32m Install: enable and (re)start naisdevice\033[0m\n"
+	ensure_certs
+	make_user_dirs
+	ln -sf /usr/bin/naisdevice-systray /usr/bin/naisdevice
+
+	systemctl daemon-reload || :
+	systemctl unmask naisdevice-helper.service || :
+	systemctl preset naisdevice-helper.service || :
+	systemctl enable naisdevice-helper.service || :
+	systemctl restart naisdevice-helper.service || :
+
+	# Kill dangling/zombied naisdevice processes, ignoring errors
+	set +e
+	killall -9 --older-than 1m --regexp "naisdevice.*" || :
+}
+
+upgrade() {
+	printf "\033[32m Upgrade: (re)start naisdevice\033[0m\n"
+	systemctl restart naisdevice-helper.service || :
+}
+
+# Step 2, check if this is a clean install or an upgrade
+action="$1"
+if [ "$1" = "configure" ] && [ -z "$2" ]; then
+	# Alpine linux does not pass args, and deb passes $1=configure
+	action="install"
+elif [ "$1" = "configure" ] && [ -n "$2" ]; then
+	# deb passes $1=configure $2=<current version>
+	action="upgrade"
 fi
 
-if echo "$user_accounts" | jq -e 'length != 1' >/dev/null; then
-	printf "\nMore than 1 user account logged in! naisdevice only permits _one_ user account!\n"
-	exit 1
-fi
+case "$action" in
+"1" | "install")
+	printf "\033[32m Install naisdevice [1]\033[0m\n"
+	cleanInstall
+	;;
+"2" | "upgrade")
+	printf "\033[32m Upgrade naisdevice [2]\033[0m\n"
+	upgrade
+	;;
+*)
+	# $1 == version being installed
+	printf "\033[32m Install naisdevice [*]\033[0m\n"
+	cleanInstall
+	;;
+esac
 
-ln -sf /usr/bin/naisdevice-systray /usr/bin/naisdevice
-
-user=$(echo "$user_accounts" | jq -r ".[0].user")
-home=$(getent passwd "${user}" | cut -d: -f 6)
-
-config_dir="${home}/.config/naisdevice/"
-log_dir="${config_dir}/logs"
-
-for directory in "$config_dir" "$log_dir"; do
-	mkdir -p "$directory"
-	chmod 700 "$directory"
-done
-
-cp /sys/devices/virtual/dmi/id/product_serial "${config_dir}"
-
-chown -R "${user}:" "${config_dir}"
-
-set +e
-killall -9 --older-than 1m --regexp "naisdevice.*" || true
+# Step 4, clean up unused files, yes you get a warning when you remove the package, but that is ok.
+cleanup

@@ -47,3 +47,7 @@ contents:
     dst: "/etc/apparmor.d/local/wg"
     file_info:
       mode: 0644
+  - src: "./assets/linux/naisdevice-helper.service"
+    dst: "/usr/lib/systemd/system/naisdevice-helper.service"
+    file_info:
+      mode: 0644

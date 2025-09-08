@@ -26,10 +26,3 @@ NAME="$target" ARCH="$arch" GOARCH="" go tool github.com/goreleaser/nfpm/v2/cmd/
 # --deb-systemd-enable \
 # --deb-systemd-auto-start \
 # --deb-systemd-restart-after-upgrade \
-# "bin/linux-client/naisdevice-helper=/usr/sbin/naisdevice-helper" \
-# "bin/linux-client/naisdevice-agent=/usr/bin/naisdevice-agent" \
-# "bin/linux-client/naisdevice-systray=/usr/bin/naisdevice-systray" \
-# "assets/linux/naisdevice.desktop=/usr/share/applications/" \
-# "assets/certs/=/usr/share/ca-certificates/nav/" \
-# "assets/linux/icon/=/usr/share/icons/hicolor/" \
-# "assets/linux/apparmor-local-wg=/etc/apparmor.d/local/wg"
