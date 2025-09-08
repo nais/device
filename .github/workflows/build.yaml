@@ -1,10 +1,10 @@
-name: Publish release
+name: Naisdevice workflow
 
 on:
   pull_request:
     types: [opened, reopened, synchronize]
   push:
-    branches: [master]
+    branches: [main]
     paths-ignore: ["**.md"]
 
 concurrency:
@@ -13,29 +13,22 @@ concurrency:
 
 jobs:
   release-info:
-    name: Generate release info
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v5
+      - uses: actions/checkout@v5
         with:
           fetch-depth: 0
-      - name: Install tooling
-        uses: jdx/mise-action@v3
+      - uses: jdx/mise-action@v3
         with:
           cache: false
-      - name: Generate release info
-        id: generate
-        run: |
-          mise run ci:release-info
+      - id: generate
+        run: mise run ci:release-info
     outputs:
       version: ${{ steps.generate.outputs.version }}
       changelog: ${{ steps.generate.outputs.changelog }}
 
   checks:
-    name: Run static code analysis and tests
-    needs:
-      - release-info
+    needs: [release-info]
     strategy:
       matrix:
         mise_task:
@@ -57,33 +50,32 @@ jobs:
 
   builds:
     name: build ${{ matrix.os.goos }} / ${{ matrix.arch }} / ${{ matrix.gotags || 'Nav' }}
-    needs:
-      - release-info
+    needs: [release-info]
     strategy:
       fail-fast: false
       matrix:
-        gotags: ["", "tenant"]
+        gotags: ["", tenant]
         arch: [amd64, arm64]
         os:
           - goos: windows
             mise-task: windows
             runner: ubuntu-latest
-            ext: "exe"
+            ext: exe
           - goos: linux
             mise-task: linux
             runner: ubuntu-latest
-            ext: "deb"
+            ext: deb
           - goos: darwin
             mise-task: macos
             runner: macos-latest
-            ext: "pkg"
+            ext: pkg
     runs-on: ${{ matrix.os.runner }}
     env:
-      VERSION: "${{ needs.release-info.outputs.version }}"
-      GOOS: "${{ matrix.os.goos }}"
-      GOARCH: "${{ matrix.arch }}"
-      GOTAGS: "${{ matrix.gotags }}"
-      OUTFILE: "./release_artifacts/naisdevice${{ matrix.gotags == 'tenant' && '-tenant' }}_${{ matrix.arch }}.${{ matrix.os.ext }}"
+      VERSION: ${{ needs.release-info.outputs.version }}
+      GOOS: ${{ matrix.os.goos }}
+      GOARCH: ${{ matrix.arch }}
+      GOTAGS: ${{ matrix.gotags }}
+      OUTFILE: ./release_artifacts/naisdevice${{ matrix.gotags == 'tenant' && '-tenant' }}_${{ matrix.arch }}.${{ matrix.os.ext }}
     steps:
       - uses: actions/checkout@v5
       - uses: jdx/mise-action@v3
@@ -95,12 +87,12 @@ jobs:
           p12-file-base64: ${{ secrets.CERTIFICATES_P12 }}
           p12-password: ${{ secrets.CERTIFICATES_P12_PASSWORD }}
       - env: # Vars for all matrix variants are mixed together here.
-          MSI_SIGN_CERT: "${{ secrets.MSI_SIGN_CERT }}"
-          MSI_SIGN_KEY: "${{ secrets.MSI_SIGN_KEY }}"
-          APPLE_NOTARIZE_AUTH_KEY_P8_BASE64: "${{ secrets.APPLE_NOTARIZE_AUTH_KEY_P8_BASE64 }}"
-          APPLE_NOTARIZE_D: "${{ secrets.APPLE_NOTARIZE_D }}"
-          APPLE_NOTARIZE_I: "${{ secrets.APPLE_NOTARIZE_I }}"
-          RELEASE: "${{ github.ref == 'refs/heads/main' && 'true' || 'false' }}"
+          MSI_SIGN_CERT: ${{ secrets.MSI_SIGN_CERT }}
+          MSI_SIGN_KEY: ${{ secrets.MSI_SIGN_KEY }}
+          APPLE_NOTARIZE_AUTH_KEY_P8_BASE64: ${{ secrets.APPLE_NOTARIZE_AUTH_KEY_P8_BASE64 }}
+          APPLE_NOTARIZE_D: ${{ secrets.APPLE_NOTARIZE_D }}
+          APPLE_NOTARIZE_I: ${{ secrets.APPLE_NOTARIZE_I }}
+          RELEASE: ${{ github.ref == 'refs/heads/main' && 'true' || 'false' }}
         run: |
           mkdir -p "$(dirname $OUTFILE)"
           mise run "package:${{ matrix.os.mise-task }}"
@@ -112,32 +104,23 @@ jobs:
 
   # Used by GitHub to determine if all checks/builds have passed
   branch-protection-checkpoint:
-    needs:
-      - checks
-      - builds
+    needs: [checks, builds]
     runs-on: ubuntu-latest
     steps:
       - run: echo Checks and builds passed
 
   release-github:
     if: github.ref == 'refs/heads/main' && needs.release-info.outputs.changelog != ''
-    needs:
-      - release-info
-      - builds
-      - checks
+    needs: [release-info, branch-protection-checkpoint]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
         with:
           fetch-depth: 0
       - uses: DeterminateSystems/nix-installer-action@v19
-      - name: Create tag
-        run: |
-          git tag ${{ needs.release-info.outputs.version }}
-      - name: Download artifacts
-        uses: actions/download-artifact@v5
-      - name: Generate hashes
-        id: hashes
+      - run: git tag ${{ needs.release-info.outputs.version }}
+      - uses: actions/download-artifact@v5
+      - id: hashes
         run: |
           echo '{}' > hashes.json
           version="${{ needs.release-info.outputs.version }}"
@@ -161,13 +144,11 @@ jobs:
             done
           done
 
-      - name: Upload hashes
-        uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v4
         with:
           name: release_asset_vars-env
           path: release_asset_vars.env
-      - name: Create release
-        uses: softprops/action-gh-release@v2
+      - uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ needs.release-info.outputs.version }}
           body: ${{ needs.release-info.outputs.changelog }}
@@ -183,39 +164,30 @@ jobs:
 
   release-gar:
     if: github.ref == 'refs/heads/main'
-    needs:
-      - release-info
-      - release-github
+    strategy:
+      matrix:
+        arch: [arm64, amd64]
+        suffix: [nav, tenant]
+    needs: [release-github]
     runs-on: ubuntu-latest
     permissions:
       contents: read
       id-token: write
     steps:
-      - name: Checkout latest code
-        uses: actions/checkout@v5
-      - id: "auth"
-        name: "Authenticate to Google Cloud"
-        uses: "google-github-actions/auth@v3"
+      - uses: actions/checkout@v5
+      - id: auth
+        uses: google-github-actions/auth@v3
         with:
           workload_identity_provider: ${{ secrets.NAIS_IO_WORKLOAD_IDENTITY_PROVIDER }}
-          service_account: "gh-cli@nais-io.iam.gserviceaccount.com"
-          token_format: "access_token"
-      - name: "Set up Cloud SDK"
-        uses: "google-github-actions/setup-gcloud@v3"
-      - name: "Download arm64 deb artifacts"
-        uses: actions/download-artifact@v5
+          service_account: gh-cli@nais-io.iam.gserviceaccount.com
+          token_format: access_token
+      - uses: google-github-actions/setup-gcloud@v3
+      - uses: actions/download-artifact@v5
         with:
-          name: deb-arm64
-      - name: "Download amd64 deb artifacts"
-        uses: actions/download-artifact@v5
-        with:
-          name: deb-amd64
-      - name: "Upload new deb file to Google repository"
-        env:
-          VERSION: ${{ needs.release-info.outputs.version }}
-        run: |
-          gcloud --project nais-io artifacts apt upload nais-ppa --quiet --source nais-cli_${VERSION}_arm64.deb --location europe-north1
-          gcloud --project nais-io artifacts apt upload nais-ppa --quiet --source nais-cli_${VERSION}_amd64.deb --location europe-north1
+          name: installer-linux-${{ matrix.arch }}-${{ matrix.suffix }}
+          path: ./downloaded-artifact/
+      - run: |
+          gcloud artifacts apt upload nais-ppa --project nais-io --quiet --location europe-north1 --source ./downloaded-artifact/*
 
   release-external-repos:
     if: github.ref == 'refs/heads/main'
@@ -239,19 +211,17 @@ jobs:
       contents: read
       id-token: write
     steps:
-      - name: Checkout latest code
-        uses: actions/checkout@v5
+      - uses: actions/checkout@v5
       - uses: navikt/github-app-token-generator@v1
         id: token
         with:
-          private-key: "${{ secrets.NAIS_APP_PRIVATE_KEY }}"
-          app-id: "${{ secrets.NAIS_APP_ID }}"
+          private-key: ${{ secrets.NAIS_APP_PRIVATE_KEY }}
+          app-id: ${{ secrets.NAIS_APP_ID }}
           repo: ${{ matrix.target.repo }}
-      - name: Download hashes
-        uses: actions/download-artifact@v5
+      - uses: actions/download-artifact@v5
         with:
           name: release_asset_vars-env
-      - name: "Generate manifest"
+      - name: update ${{ matrix.target.repo }}
         run: |
           git clone "https://git:${{ steps.token.outputs.token }}@github.com/${{ matrix.target.repo }}" repo
           cd repo || exit 1
