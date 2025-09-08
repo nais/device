@@ -34,7 +34,7 @@ contents:
     dst: "/usr/share/applications/"
     file_info:
       mode: 0755
-  - src: "./assets/certs/"
+  - src: "./assets/linux/certs/"
     dst: "/usr/share/ca-certificates/nav/"
     file_info:
       mode: 0644
