@@ -9,7 +9,7 @@
 
 !define APP_NAME "naisdevice"
 !define UNINSTALLER "uninstaller.exe"
-!define SOURCE "../../bin/windows-client"
+!define SOURCE "./bin/windows-client"
 !define WIREGUARD "wireguard-amd64-0.5.3.msi"
 !define REG_UNINSTALL "SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall"
 !define REG_ARP "${REG_UNINSTALL}\${APP_NAME}"
