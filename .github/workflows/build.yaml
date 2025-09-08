@@ -124,7 +124,7 @@ jobs:
           GOOS: "${{ matrix.os.goos }}"
           GOARCH: "${{ matrix.arch }}"
           GOTAGS: "${{ matrix.gotags }}"
-          VERSION: "${{ needs.set-version.outputs.version }}"
+          VERSION: "${{ needs.release-info.outputs.version }}"
           RELEASE: "${{ startsWith(github.ref, 'refs/tags/') && 'true' || 'false' }}"
         run: |
           # TODO: Looks like this is no longer needed with macos-latest
