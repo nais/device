@@ -69,7 +69,7 @@ jobs:
           - goos: darwin
             task: package:macos
             runner: macos-latest
-    runs-on: matrix.os.runner
+    runs-on: ${{ matrix.os.runner }}
     steps:
       - name: Checkout latest code
         uses: actions/checkout@v5
