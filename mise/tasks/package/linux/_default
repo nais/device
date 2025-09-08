@@ -7,44 +7,46 @@ set -o errexit
 set -o pipefail
 set -o nounset
 
-if [ -z "$VERSION" ]; then
-	echo "VERSION not set."
-	exit 1
-fi
+version=$VERSION
 
-rm -f ./naisdevice*.deb
-
-suffix=""
+target="naisdevice.deb"
 if [[ "$TENANT" == "true" ]]; then
-	suffix="-tenant"
+	target="naisdevice-tenant.deb"
+	yq '.name = "naisdevice-tenant"' -i ./mise/tasks/package/linux/nfpm.yaml
 fi
 
-fpm \
-	--verbose \
-	--output-type deb \
-	--input-type dir \
-	--name "naisdevice${suffix}" \
-	--version "$VERSION" \
-	--vendor "NAV / nais team" \
-	--maintainer "NAV / nais team" \
-	--description "naisdevice is a mechanism enabling NAVs developers to connect to internal resources in a secure and friendly manner" \
-	--url https://doc.nais.io/operate/naisdevice/how-to/install \
-	--depends jq \
-	--depends sed \
-	--depends wireguard \
-	--depends libnss3-tools \
-	--depends openssl \
-	--after-remove assets/linux/postrm \
-	--after-install assets/linux/postinstall \
-	--after-upgrade assets/linux/postinstall \
-	--deb-systemd assets/linux/naisdevice-helper.service \
-	--deb-systemd-enable \
-	--deb-systemd-auto-start \
-	--deb-systemd-restart-after-upgrade \
-	"bin/linux-client/naisdevice-helper=/usr/sbin/naisdevice-helper" \
-	"bin/linux-client/naisdevice-agent=/usr/bin/naisdevice-agent" \
-	"bin/linux-client/naisdevice-systray=/usr/bin/naisdevice-systray" \
-	"assets/linux/naisdevice.desktop=/usr/share/applications/" \
-	"assets/certs/=/usr/share/ca-certificates/nav/" \
-	"assets/linux/icon/=/usr/share/icons/hicolor/" \
-	"assets/linux/apparmor-local-wg=/etc/apparmor.d/local/wg"
+arch="$GOARCH"
+ARCH="$arch" GOARCH= go tool github.com/goreleaser/nfpm/v2/cmd/nfpm package \
+ 	--packager deb \
+ 	--config ./mise/tasks/package/linux/nfpm.yaml \
+ 	--target "$target"
+
+#fpm \
+	# --verbose \
+	# --output-type deb \
+	# --input-type dir \
+	# --name "naisdevice${suffix}" \
+	# --version "$version" \
+	# --vendor "NAV / nais team" \
+	# --maintainer "NAV / nais team" \
+	# --description "naisdevice is a mechanism enabling NAVs developers to connect to internal resources in a secure and friendly manner" \
+	# --url https://doc.nais.io/operate/naisdevice/how-to/install \
+	# --depends jq \
+	# --depends sed \
+	# --depends wireguard \
+	# --depends libnss3-tools \
+	# --depends openssl \
+	# --after-remove assets/linux/postrm \
+	# --after-install assets/linux/postinstall \
+	# --after-upgrade assets/linux/postinstall \
+	# --deb-systemd assets/linux/naisdevice-helper.service \
+	# --deb-systemd-enable \
+	# --deb-systemd-auto-start \
+	# --deb-systemd-restart-after-upgrade \
+	# "bin/linux-client/naisdevice-helper=/usr/sbin/naisdevice-helper" \
+	# "bin/linux-client/naisdevice-agent=/usr/bin/naisdevice-agent" \
+	# "bin/linux-client/naisdevice-systray=/usr/bin/naisdevice-systray" \
+	# "assets/linux/naisdevice.desktop=/usr/share/applications/" \
+	# "assets/certs/=/usr/share/ca-certificates/nav/" \
+	# "assets/linux/icon/=/usr/share/icons/hicolor/" \
+	# "assets/linux/apparmor-local-wg=/etc/apparmor.d/local/wg"

@@ -122,7 +122,7 @@ jobs:
           APPLE_NOTARIZE_AUTH_KEY_P8_BASE64: "${{ secrets.APPLE_NOTARIZE_AUTH_KEY_P8_BASE64 }}"
           APPLE_NOTARIZE_D: "${{ secrets.APPLE_NOTARIZE_D }}"
           APPLE_NOTARIZE_I: "${{ secrets.APPLE_NOTARIZE_I }}"
-          RELEASE: "${{ startsWith(github.ref, 'refs/tags/') && 'true' || 'false' }}"
+          RELEASE: "${{ github.ref == 'refs/heads/main' && 'true' || 'false' }}"
         run: mise run package:macos
 
       #############

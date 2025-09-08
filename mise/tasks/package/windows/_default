@@ -5,20 +5,13 @@
 
 set -o errexit
 set -o pipefail
+set -o nounset
 
-if [ -z "$MSI_SIGN_CERT" ]; then
-	echo "MSI_SIGN_CERT not set."
-	exit 1
-fi
-
-if [ -z "$MSI_SIGN_KEY" ]; then
-	echo "MSI_SIGN_KEY not set."
-	exit 1
-fi
+version=$VERSION
 
 cert_file=$(mktemp --suffix .crt)
 key_file=$(mktemp --suffix .key)
-trap 'rm -f "$key_file" "$cert_file"' INT TERM EXIT
+trap 'echo "Removing temporary files" && rm -f "$key_file" "$cert_file"' EXIT
 
 echo "$MSI_SIGN_CERT" >"$cert_file"
 echo "$MSI_SIGN_KEY" >"$key_file"
@@ -32,4 +25,4 @@ for bin in bin/windows-client/*; do
 done
 
 sign_opts="-Dcert_file=$cert_file -Dkey_file=$key_file"
-makensis "-DVERSION=$VERSION" "$sign_opts" mise/tasks/package/windows/naisdevice.nsi
+makensis "-DVERSION=$version" "$sign_opts" mise/tasks/package/windows/naisdevice.nsi
