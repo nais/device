@@ -91,9 +91,6 @@ jobs:
       ###############
       - name: Prepare for windows build
         if: matrix.os.goos == 'windows'
-        env:
-          MSI_SIGN_CERT: "${{ secrets.MSI_SIGN_CERT }}"
-          MSI_SIGN_KEY: "${{ secrets.MSI_SIGN_KEY }}"
         run: |
           sudo apt-get update
           sudo apt-get install --yes nsis osslsigncode
@@ -104,6 +101,8 @@ jobs:
           GOOS: "${{ matrix.os.goos }}"
           GOARCH: "${{ matrix.arch }}"
           GOTAGS: "${{ matrix.gotags }}"
+          MSI_SIGN_CERT: "${{ secrets.MSI_SIGN_CERT }}"
+          MSI_SIGN_KEY: "${{ secrets.MSI_SIGN_KEY }}"
         run: mise run package:windows
 
       #############
