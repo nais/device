@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # vim:ft=bash
 #MISE description="Package deb"
-#MISE depends=["build:linux","icon:linux"]
+#MISE depends=["build:linux"]
 
 set -o errexit
 set -o pipefail

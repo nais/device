@@ -13,12 +13,17 @@ concurrency:
 
 jobs:
   release-info:
+    name: Generate release info
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - name: Checkout repository
+        uses: actions/checkout@v5
         with:
           fetch-depth: 0
-      - uses: jdx/mise-action@v3
+      - name: Install tooling
+        uses: jdx/mise-action@v3
+        with:
+          cache: false
       - name: Generate release info
         id: generate
         run: |
@@ -28,11 +33,12 @@ jobs:
       changelog: ${{ steps.generate.outputs.changelog }}
 
   checks:
+    name: Run static code analysis and tests
     needs:
       - release-info
     strategy:
       matrix:
-        mise_target:
+        mise_task:
           - check:govulncheck
           - check:staticcheck
           - check:govet
@@ -43,16 +49,17 @@ jobs:
       checks: write
       pull-requests: write
     steps:
-      - name: Checkout latest code
+      - name: Checkout repository
         uses: actions/checkout@v5
-      - uses: jdx/mise-action@v3
+      - name: Install tooling
+        uses: jdx/mise-action@v3
         with:
           cache: false
-      - name: mise run ${{ matrix.mise_target }}
-        run: |
-          mise run ${{ matrix.mise_target }}
+      - name: mise run ${{ matrix.mise_task }}
+        run: mise run ${{ matrix.mise_task }}
 
   builds:
+    name: Build binaries and packages
     needs:
       - release-info
     strategy:
@@ -71,9 +78,10 @@ jobs:
             runner: macos-latest
     runs-on: ${{ matrix.os.runner }}
     steps:
-      - name: Checkout latest code
+      - name: Checkout repository
         uses: actions/checkout@v5
-      - uses: jdx/mise-action@v3
+      - name: Install tooling
+        uses: jdx/mise-action@v3
         with:
           cache: false
 
@@ -106,7 +114,7 @@ jobs:
         with:
           p12-file-base64: ${{ secrets.CERTIFICATES_P12 }}
           p12-password: ${{ secrets.CERTIFICATES_P12_PASSWORD }}
-      - name: build pkg
+      - name: Build pkg
         if: matrix.os.goos == 'darwin'
         env:
           APPLE_NOTARIZE_AUTH_KEY_P8_BASE64: "${{ secrets.APPLE_NOTARIZE_AUTH_KEY_P8_BASE64 }}"
@@ -146,38 +154,12 @@ jobs:
           name: archive-${{ matrix.os }}-${{ matrix.arch }}
           path: release_artifacts/*
 
-#  package-deb:
-#    needs:
-#      - release-info
-#    strategy:
-#      matrix:
-#        arch: [amd64, arm64]
-#    runs-on: ubuntu-latest
-#    steps:
-#      - name: Checkout latest code
-#        uses: actions/checkout@v5
-#      - uses: jdx/mise-action@v3
-#        with:
-#          cache: false
-#      - name: package deb
-#        run: |
-#          ./script/completions.sh
-#
-#          export VERSION="${{ needs.release-info.outputs.version }}"
-#          export GOARCH="${{ matrix.arch }}"
-#          mise run package-deb
-#      - name: Upload deb
-#        uses: actions/upload-artifact@v4
-#        with:
-#          name: deb-${{ matrix.arch }}
-#          path: nais-cli_${{ needs.release-info.outputs.version }}_${{ matrix.arch }}.deb
-
   # Used by GitHub to determine if all checks/builds have passed
   branch-protection-checkpoint:
+    name: Branch protection checkpoint
     needs:
       - checks
       - builds
-      # - package-deb
     runs-on: ubuntu-latest
     steps:
       - run: echo Checks and builds passed
@@ -187,7 +169,6 @@ jobs:
     needs:
       - release-info
       - builds
-      # - package-deb
       - checks
     runs-on: ubuntu-latest
     steps:
@@ -249,7 +230,7 @@ jobs:
     if: github.ref == 'refs/heads/main'
     needs:
       - release-info
-      - release-github # this also waits for package-deb for us
+      - release-github
     runs-on: ubuntu-latest
     permissions:
       contents: read
