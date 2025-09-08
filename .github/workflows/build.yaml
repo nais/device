@@ -142,7 +142,7 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: archive-${{ matrix.os.goos }}-${{ matrix.arch }}-${{ matrix.gotags || 'nav' }}
+          name: installer-${{ matrix.os.goos }}-${{ matrix.arch }}-${{ matrix.gotags || 'nav' }}
           path: release_artifacts/*
 
   # Used by GitHub to determine if all checks/builds have passed
