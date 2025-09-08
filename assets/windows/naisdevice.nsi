@@ -1,7 +1,7 @@
 ; Additional includes and plugins
 
-!addincludedir "./mise/tasks/package/windows/nsis/include"
-!addplugindir "./mise/tasks/package/windows/nsis/plugins"
+!addincludedir "./assets/windows/nsis/include"
+!addplugindir "./assets/windows/nsis/plugins"
 
 ; Definitions
 

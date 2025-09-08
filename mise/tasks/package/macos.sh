@@ -1,5 +1,4 @@
 #!/usr/bin/env bash
-# vim:ft=bash
 #MISE description="Package deb"
 #MISE depends=["thirdparty:wireguard","thirdparty:wireguard-go","build:macos"]
 

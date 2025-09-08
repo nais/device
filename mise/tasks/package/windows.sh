@@ -1,5 +1,4 @@
 #!/usr/bin/env bash
-# vim:ft=bash
 #MISE description="Package msi"
 #MISE depends=["build:windows"]
 
@@ -25,8 +24,8 @@ for bin in bin/windows-client/*; do
 		echo "Skipping non-exe file $bin"
 		continue
 	fi
-	mise run package:windows:sign-exe "$bin" "$cert_file" "$key_file"
+	# mise run package:windows:sign-exe "$bin" "$cert_file" "$key_file"
 done
 
 sign_opts="-Dcert_file=$cert_file -Dkey_file=$key_file"
-makensis -NOCD "-DOUTFILE=$outfile" "-DVERSION=$version" "$sign_opts" mise/tasks/package/windows/naisdevice.nsi
+makensis -NOCD "-DOUTFILE=$outfile" "-DVERSION=$version" "$sign_opts" ./assets/windows/naisdevice.nsi
