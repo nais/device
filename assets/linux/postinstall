@@ -77,18 +77,13 @@ elif [ "$1" = "configure" ] && [ -n "$2" ]; then
 fi
 
 case "$action" in
-# This is the case when the package does not exist on the system
 "1" | "install")
-	echo "clean install 2"
 	install
 	;;
-	# This is the case when the package exist on the system
 "2" | "upgrade")
 	upgrade
 	;;
 *)
-	# $1 == version being installed
-	echo "clean install"
 	install
 	;;
 esac
