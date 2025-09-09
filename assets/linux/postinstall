@@ -49,57 +49,46 @@ make_user_dirs() {
 	chown -R "${user}:" "${config_dir}"
 }
 
-cleanup() {
-	printf "\033[32m Cleanup\033[0m\n"
-}
-
-cleanInstall() {
-	printf "\033[32m Install: enable and (re)start naisdevice\033[0m\n"
+install() {
 	ensure_certs
 	make_user_dirs
 	ln -sf /usr/bin/naisdevice-systray /usr/bin/naisdevice
 
-	systemctl daemon-reload || :
-	systemctl unmask naisdevice-helper.service || :
-	systemctl preset naisdevice-helper.service || :
-	systemctl enable naisdevice-helper.service || :
-	systemctl restart naisdevice-helper.service || :
+	systemctl daemon-reload
+	systemctl unmask naisdevice-helper.service
+	systemctl preset naisdevice-helper.service
+	systemctl enable naisdevice-helper.service
+	systemctl restart naisdevice-helper.service
 
 	# Kill dangling/zombied naisdevice processes, ignoring errors
 	set +e
-	killall -9 --older-than 1m --regexp "naisdevice.*" || :
+	killall -9 --quiet --older-than 1m --regexp "naisdevice.*" || :
 }
 
 upgrade() {
-	printf "\033[32m Upgrade: (re)start naisdevice\033[0m\n"
-	systemctl restart naisdevice-helper.service || :
+	systemctl restart naisdevice-helper.service
 }
 
-# Step 2, check if this is a clean install or an upgrade
 action="$1"
 if [ "$1" = "configure" ] && [ -z "$2" ]; then
-	# Alpine linux does not pass args, and deb passes $1=configure
 	action="install"
 elif [ "$1" = "configure" ] && [ -n "$2" ]; then
-	# deb passes $1=configure $2=<current version>
 	action="upgrade"
 fi
 
 case "$action" in
+# This is the case when the package does not exist on the system
 "1" | "install")
-	printf "\033[32m Install naisdevice [1]\033[0m\n"
-	cleanInstall
+	echo "clean install 2"
+	install
 	;;
+	# This is the case when the package exist on the system
 "2" | "upgrade")
-	printf "\033[32m Upgrade naisdevice [2]\033[0m\n"
 	upgrade
 	;;
 *)
 	# $1 == version being installed
-	printf "\033[32m Install naisdevice [*]\033[0m\n"
-	cleanInstall
+	echo "clean install"
+	install
 	;;
 esac
-
-# Step 4, clean up unused files, yes you get a warning when you remove the package, but that is ok.
-cleanup
