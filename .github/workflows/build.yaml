@@ -86,7 +86,8 @@ jobs:
         with:
           p12-file-base64: ${{ secrets.CERTIFICATES_P12 }}
           p12-password: ${{ secrets.CERTIFICATES_P12_PASSWORD }}
-      - env: # Vars for all matrix variants are mixed together here.
+      - name: mise run package:${{ matrix.os.mise-task }}
+        env: # Vars for all matrix variants are mixed together here.
           MSI_SIGN_CERT: ${{ secrets.MSI_SIGN_CERT }}
           MSI_SIGN_KEY: ${{ secrets.MSI_SIGN_KEY }}
           APPLE_NOTARIZE_AUTH_KEY_P8_BASE64: ${{ secrets.APPLE_NOTARIZE_AUTH_KEY_P8_BASE64 }}
@@ -120,47 +121,22 @@ jobs:
       - uses: DeterminateSystems/nix-installer-action@v19
       - run: git tag ${{ needs.release-info.outputs.version }}
       - uses: actions/download-artifact@v5
-      - id: hashes
-        run: |
-          echo '{}' > hashes.json
-          version="${{ needs.release-info.outputs.version }}"
-
-          for arch in amd64 arm64; do
-            # Generate hashes for debs
-            file="nais-cli_${version}_${arch}.deb"
-            hash="$(nix-hash --type sha256 --flat "./deb-${arch}/${file}")"
-            echo "$hash  $file" >> checksums.txt
-
-            # Generate hashes for archives
-            for os in linux darwin windows; do
-              file="nais-cli_${version}_${os}_${arch}.tar.gz"
-              hash16="$(nix-hash --type sha256 --flat "./archive-${os}-${arch}/${file}")"
-              hash32="$(nix-hash --type sha256 --flat --base32 "./archive-${os}-${arch}/${file}")"
-              echo "$hash16  $file" >> checksums.txt
-
-              # This is used by the external release jobs (nur, homebrew, scoop)
-              jq --arg os "$os" --arg arch "$arch" --arg encoding "base16" --arg hash "$hash16" '.[$os][$arch][$encoding] = $hash' hashes.json > new_hashes.json; mv {new_,}hashes.json
-              jq --arg os "$os" --arg arch "$arch" --arg encoding "base32" --arg hash "$hash32" '.[$os][$arch][$encoding] = $hash' hashes.json > new_hashes.json; mv {new_,}hashes.json
-            done
-          done
-
-      - uses: actions/upload-artifact@v4
-        with:
-          name: release_asset_vars-env
-          path: release_asset_vars.env
+      - run: mise run ci:generate-hashes ./release_artifacts/ > ./release_artifacts/checksums.txt
       - uses: softprops/action-gh-release@v2
+        id: release
         with:
           tag_name: ${{ needs.release-info.outputs.version }}
           body: ${{ needs.release-info.outputs.changelog }}
           prerelease: false
           files: |
             ./release_artifacts/*
-
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - run: echo "${{ steps.release.outputs.assets }}" > assets.json
+      - run: mise run ci:prepare-template-vars ./release_artifacts/checksums.txt ./assets.json
       - run: |
           echo "## :rocket: Release ${{ needs.release-info.outputs.version }}" >> $GITHUB_STEP_SUMMARY
-          echo "A new release is available over at https://github.com/${{ github.repository }}/releases/tag/${{ needs.release-info.outputs.version }}." >> $GITHUB_STEP_SUMMARY
+          echo "A new release is available over at https://github.com/${{ github.repository }}/releases/tag/${{ needs.release-info.outputs.version }}." >> $GITHUB_STEP_SUMMAR
 
   release-gar:
     if: github.ref == 'refs/heads/main'

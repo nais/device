@@ -9,7 +9,6 @@
 }: let
   name = "$NAME";
   version = "$VERSION";
-  repo = "$REPO";
 
   shaMap = {
     x86_64-linux = "$SHA_LINUX_AMD64_BASE32";
@@ -19,10 +18,11 @@
   };
 
   urlMap = {
-    x86_64-linux = "https://github.com/${repo}/releases/download/${version}/${name}_linux_amd64_${version}.tar.gz";
-    aarch64-linux = "https://github.com/${repo}/releases/download/${version}/${name}_linux_arm64_${version}.tar.gz";
-    x86_64-darwin = "https://github.com/${repo}/releases/download/${version}/${name}_darwin_amd64_${version}.tar.gz";
-    aarch64-darwin = "https://github.com/${repo}/releases/download/${version}/${name}_darwin_arm64_${version}.tar.gz";
+    # naisdevice${{ matrix.gotags == 'tenant' && '-tenant' }}_${{ matrix.arch }}.${{ matrix.os.ext }}
+    x86_64-linux = "$NAISDEVICE_AMD64_DEB";
+    aarch64-linux = "";
+    x86_64-darwin = "";
+    aarch64-darwin = "";
   };
 in
   stdenvNoCC.mkDerivation {
