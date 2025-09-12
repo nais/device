@@ -126,7 +126,7 @@ jobs:
         with:
           tag_name: ${{ needs.release-info.outputs.version }}
           body: ${{ needs.release-info.outputs.changelog }}
-          prerelease: false
+          prerelease: true
           files: ./release_artifacts/*
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
