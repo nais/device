@@ -8,6 +8,8 @@ set -o pipefail
 checksums_txt="$1"
 assets_json="$2"
 
+echo "VERSION=$VERSION"
+
 while read -r hash file; do
 	if [[ "$file" = */checksums.txt ]]; then
 		continue

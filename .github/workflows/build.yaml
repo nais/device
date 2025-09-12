@@ -56,7 +56,7 @@ jobs:
       matrix:
         gotags: ["", tenant]
         arch: [amd64, arm64]
-        os:
+        platform:
           - goos: windows
             os: windows
             runner: ubuntu-latest
@@ -79,9 +79,9 @@ jobs:
     steps:
       - uses: actions/checkout@v5
       - uses: jdx/mise-action@v3
-      - if: matrix.platform.goos == 'windows'
+      - if: matrix.platform.os == 'windows'
         run: sudo apt-get update && sudo apt-get install --yes nsis osslsigncode
-      - if: matrix.platform.goos == 'darwin'
+      - if: matrix.platform.os == 'macos'
         uses: Apple-Actions/import-codesign-certs@v3
         with:
           p12-file-base64: ${{ secrets.CERTIFICATES_P12 }}
@@ -100,7 +100,7 @@ jobs:
       - if: github.ref == 'refs/heads/main'
         uses: actions/upload-artifact@v4
         with:
-          name: installer-${{ matrix.platform.goos }}-${{ matrix.arch }}-${{ matrix.gotags || 'nav' }}
+          name: installer-${{ matrix.platform.os }}-${{ matrix.arch }}-${{ matrix.gotags || 'nav' }}
           path: ${{ env.OUTFILE }}
 
   # Used by GitHub to determine if all checks/builds have passed
@@ -131,7 +131,13 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - run: echo "${{ steps.release.outputs.assets }}" > assets.json
-      - run: mise run ci:prepare-template-vars ./release_artifacts/checksums.txt ./assets.json > template.vars
+      - env:
+          VERSION: ${{ needs.release-info.outputs.version }}
+        run: mise run ci:prepare-template-vars ./release_artifacts/checksums.txt ./assets.json > template.vars
+      - uses: actions/upload-artifact@v4
+        with:
+          name: template-vars
+          path: ./template.vars
       - run: |
           echo "## :rocket: Release ${{ needs.release-info.outputs.version }}" >> $GITHUB_STEP_SUMMARY
           echo "A new release is available over at https://github.com/${{ github.repository }}/releases/tag/${{ needs.release-info.outputs.version }}." >> $GITHUB_STEP_SUMMAR
@@ -153,7 +159,7 @@ jobs:
         uses: google-github-actions/auth@v3
         with:
           workload_identity_provider: ${{ secrets.NAIS_IO_WORKLOAD_IDENTITY_PROVIDER }}
-          service_account: gh-cli@nais-io.iam.gserviceaccount.com
+          service_account: gh-naisdevice@nais-io.iam.gserviceaccount.com
           token_format: access_token
       - uses: google-github-actions/setup-gcloud@v3
       - uses: actions/download-artifact@v5
@@ -197,18 +203,18 @@ jobs:
           repo: ${{ matrix.target.repo }}
       - uses: actions/download-artifact@v5
         with:
-          name: release_asset_vars-env
+          name: template-vars
       - name: update ${{ matrix.target.repo }}
         run: |
           git clone "https://git:${{ steps.token.outputs.token }}@github.com/${{ matrix.target.repo }}" repo
           cd repo || exit 1
 
-          env "$(xargs -0 <release_asset_vars.env) " \
-            envsubst "$(sed 's/^/$/' release_asset_vars.env)"
+          env "$(xargs -0 <template.vars) " \
+            envsubst "$(sed 's/^/$/' template.vars)"
 
           git \
             -c user.name='naisbot' \
             -c user.email='bot@nais.io' \
             commit -am \
-            "Bump nais-cli to ${{ needs.release-info.outputs.version }}"
+            "Bump naisdevice to ${{ needs.release-info.outputs.version }}"
           git push
