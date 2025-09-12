@@ -2,8 +2,8 @@
   "version": "$VERSION",
   "architecture": {
     "64bit": {
-      "url": "$NAISDEVICE_WINDOWS_AMD64_URL",
-      "hash": "$NAISDEVICE_WINDOWS_AMD64_HASH_BASE16",
+      "url": "$NAISDEVICE_TENANT_WINDOWS_AMD64_URL",
+      "hash": "$NAISDEVICE_TENANT_WINDOWS_AMD64_HASH_BASE16",
       "installer": {
         "script": [
           "Write-Output \"Executing installer at $dir\\$fname\"",
@@ -15,8 +15,8 @@
       ]
     },
     "arm64": {
-      "url": "$NAISDEVICE_WINDOWS_ARM64_URL",
-      "hash": "$NAISDEVICE_WINDOWS_ARM64_HASH_BASE16",
+      "url": "$NAISDEVICE_TENANT_WINDOWS_ARM64_URL",
+      "hash": "$NAISDEVICE_TENANT_WINDOWS_ARM64_HASH_BASE16",
       "installer": {
         "script": [
           "Write-Output \"Executing installer at $dir\\$fname\"",

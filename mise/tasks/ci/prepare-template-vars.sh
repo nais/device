@@ -9,9 +9,13 @@ checksums_txt="$1"
 assets_json="$2"
 
 while read -r hash file; do
+	if [[ "$file" = */checksums.txt ]]; then
+		continue
+	fi
+
 	# strip directory + suffix
-	base=${file##*/} # basename
-	base=${base%.*}  # remove extension
+	basename=${file##*/} # basename
+	base=${basename%.*}  # remove extension
 
 	# normalize key: uppercase + replace non-alnum with _
 	key=${base^^}
@@ -22,7 +26,7 @@ while read -r hash file; do
 	hash32=$(basenc --base16 -d <<<"${hash16}" | basenc --base32)
 
 	# TODO
-	url=$(jq -r --arg file "$file" '.[] | select(.name == $file) | .browser_download_url' "$assets_json")
+	url=$(jq -r --arg file "$basename" '.[] | select(.name == $file) | .browser_download_url' "$assets_json")
 
 	echo "${key}_HASH_BASE16=${hash16}"
 	echo "${key}_HASH_BASE32=${hash32}"
