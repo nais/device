@@ -23,10 +23,10 @@ import (
 	"github.com/nais/device/internal/logger"
 	"github.com/nais/device/internal/notify"
 	"github.com/nais/device/internal/otel"
-	"github.com/nais/device/pkg/pb"
 	"github.com/nais/device/internal/program"
 	"github.com/nais/device/internal/unixsocket"
 	"github.com/nais/device/internal/version"
+	"github.com/nais/device/pkg/pb"
 )
 
 const (
@@ -253,20 +253,25 @@ func checkNewVersionAvailable(ctx context.Context) (bool, error) {
 	}
 	resp, err := otelhttp.DefaultClient.Do(req)
 	if err != nil {
+		span.RecordError(err)
 		return false, fmt.Errorf("retrieve current release version: %s", err)
 	}
 
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
+
+	if resp.StatusCode != http.StatusOK {
+		err := fmt.Errorf("unexpected status code from GitHub API when checking for new version: %d", resp.StatusCode)
+		span.RecordError(err)
+		return false, err
+	}
 
 	res := &response{}
-	decoder := json.NewDecoder(resp.Body)
-	err = decoder.Decode(res)
-	if err != nil {
+	if err := json.NewDecoder(resp.Body).Decode(res); err != nil {
 		span.RecordError(err)
 		return false, fmt.Errorf("unmarshal response: %s", err)
 	}
 
-	if version.Version != res.Tag {
+	if res.Tag != "" && version.Version != res.Tag {
 		return true, nil
 	}
 
