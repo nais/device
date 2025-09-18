@@ -141,7 +141,7 @@ jobs:
       - run: echo "${{ steps.release.outputs.assets }}" > assets.json
       - env:
           VERSION: ${{ needs.release-info.outputs.version }}
-        run: mise run ci:prepare-template-vars ./release_artifacts/checksums.txt ./assets.json > template.vars
+        run: mise run ci:prepare-template-vars ./release_artifacts/checksums.txt ./assets.json -v > template.vars
       - uses: actions/upload-artifact@v4
         with:
           name: template-vars

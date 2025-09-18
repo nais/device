@@ -7,9 +7,16 @@ set -o pipefail
 
 checksums_txt="$1"
 assets_json="$2"
+verbose="${3:-""}"
+
+if [[ $verbose == "-v" ]]; then
+	>&2 echo "checksums:"
+	>&2 cat "$checksums_txt"
+	>&2 echo "assets:"
+	>&2 cat "$assets_json"
+fi
 
 echo "VERSION=$VERSION"
-
 while read -r hash file; do
 	if [[ "$file" = */checksums.txt ]]; then
 		continue
