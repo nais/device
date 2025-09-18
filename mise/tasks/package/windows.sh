@@ -24,7 +24,8 @@ for bin in bin/windows-client/*; do
 		echo "Skipping non-exe file $bin"
 		continue
 	fi
-	# mise run package:windows:sign-exe "$bin" "$cert_file" "$key_file"
+
+	mise run package:windows:sign-exe "$bin" "$cert_file" "$key_file"
 done
 
 sign_opts="-Dcert_file=$cert_file -Dkey_file=$key_file"
