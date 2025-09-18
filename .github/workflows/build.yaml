@@ -193,12 +193,14 @@ jobs:
           - template: scoop-tenant.json
             repo: nais/scoop-bucket
             file: naisdevice-tenant.json
+            suffix: -tenant
           - template: homebrew.rb
             repo: nais/homebrew-tap
             file: Cask/naisdevice.rb
           - template: homebrew-tenant.rb
             repo: nais/homebrew-tap
             file: Cask/naisdevice-tenant.rb
+            suffix: -tenant
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -220,11 +222,13 @@ jobs:
           cd repo || exit 1
 
           env "$(xargs -0 <../template.vars) " \
-            envsubst "$(sed 's/^/$/' ../template.vars)"
+            envsubst "$(sed 's/^/$/' ../template.vars)" \
+            < "../.github/workflows/templates/${{ matrix.target.template }}" \
+            > "${{ matrix.target.file }}"
 
           git \
             -c user.name='naisbot' \
             -c user.email='bot@nais.io' \
             commit -am \
-            "Bump naisdevice to ${{ needs.release-info.outputs.version }}"
+            "Bump naisdevice${{ matrix.target.suffix || '' }} to ${{ needs.release-info.outputs.version }}"
           git push
