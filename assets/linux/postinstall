@@ -50,6 +50,14 @@ make_user_dirs() {
 }
 
 install() {
+	common
+}
+
+upgrade() {
+	common
+}
+
+common() {
 	ensure_certs
 	make_user_dirs
 	ln -sf /usr/bin/naisdevice-systray /usr/bin/naisdevice
@@ -59,14 +67,9 @@ install() {
 	systemctl preset naisdevice-helper.service
 	systemctl enable naisdevice-helper.service
 	systemctl restart naisdevice-helper.service
-
 	# Kill dangling/zombied naisdevice processes, ignoring errors
 	set +e
 	killall -9 --quiet --older-than 1m --regexp "naisdevice.*" || :
-}
-
-upgrade() {
-	systemctl restart naisdevice-helper.service
 }
 
 action="$1"
