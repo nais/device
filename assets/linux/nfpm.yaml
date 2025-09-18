@@ -2,7 +2,7 @@
 name: "${NAME}"
 arch: "${ARCH}"
 platform: "linux"
-version: "${VERSION}"
+version: "1:${VERSION}"
 section: "default"
 priority: "extra"
 maintainer: "Nais team <nais@nav.no>"
