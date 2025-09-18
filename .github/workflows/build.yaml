@@ -122,6 +122,9 @@ jobs:
           fetch-depth: 0
       - run: git tag ${{ needs.release-info.outputs.version }}
       - uses: actions/download-artifact@v5
+        with:
+          merge-multiple: true
+          path: release_artifacts
       - run: mise run ci:generate-checksums ./release_artifacts/ > ./release_artifacts/checksums.txt
       - uses: softprops/action-gh-release@v2
         id: release
