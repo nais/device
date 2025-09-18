@@ -153,6 +153,7 @@ jobs:
   release-gar:
     if: github.ref == 'refs/heads/main'
     strategy:
+      fail-fast: false
       matrix:
         arch: [arm64, amd64]
         suffix: [nav, tenant]
@@ -183,6 +184,7 @@ jobs:
       - release-info
       - release-github
     strategy:
+      fail-fast: false
       matrix:
         target:
           - template: scoop.json

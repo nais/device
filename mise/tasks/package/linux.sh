@@ -13,16 +13,10 @@ fi
 
 # shellcheck disable=SC2153
 outfile="$OUTFILE"
-target=$(basename "$outfile")
-target="${target%.deb}"
+name=$(basename "$outfile" | cut -d '_' -f 1)
 
 arch="$GOARCH"
-NAME="$target" ARCH="$arch" GOARCH="" go tool github.com/goreleaser/nfpm/v2/cmd/nfpm package \
+NAME="$name" ARCH="$arch" GOARCH="" go tool github.com/goreleaser/nfpm/v2/cmd/nfpm package \
 	--packager deb \
 	--config "./assets/linux/nfpm.yaml" \
 	--target "$outfile"
-
-# --deb-systemd assets/linux/naisdevice-helper.service \
-# --deb-systemd-enable \
-# --deb-systemd-auto-start \
-# --deb-systemd-restart-after-upgrade \
