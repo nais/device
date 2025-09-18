@@ -219,8 +219,8 @@ jobs:
           git clone "https://git:${{ steps.token.outputs.token }}@github.com/${{ matrix.target.repo }}" repo
           cd repo || exit 1
 
-          env "$(xargs -0 <template.vars) " \
-            envsubst "$(sed 's/^/$/' template.vars)"
+          env "$(xargs -0 <../template.vars) " \
+            envsubst "$(sed 's/^/$/' ../template.vars)"
 
           git \
             -c user.name='naisbot' \
