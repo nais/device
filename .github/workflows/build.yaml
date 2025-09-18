@@ -196,10 +196,10 @@ jobs:
             suffix: -tenant
           - template: homebrew.rb
             repo: nais/homebrew-tap
-            file: Cask/naisdevice.rb
+            file: Casks/naisdevice.rb
           - template: homebrew-tenant.rb
             repo: nais/homebrew-tap
-            file: Cask/naisdevice-tenant.rb
+            file: Casks/naisdevice-tenant.rb
             suffix: -tenant
     runs-on: ubuntu-latest
     permissions:
