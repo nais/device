@@ -16,7 +16,7 @@ outfile="$OUTFILE"
 name=$(basename "$outfile" | cut -d '_' -f 1)
 
 arch="$GOARCH"
-NAME="$name" ARCH="$arch" GOARCH="" go tool github.com/goreleaser/nfpm/v2/cmd/nfpm package \
+VERSION="1:${VERSION#v}" NAME="$name" ARCH="$arch" GOARCH="" go tool github.com/goreleaser/nfpm/v2/cmd/nfpm package \
 	--packager deb \
 	--config "./assets/linux/nfpm.yaml" \
 	--target "$outfile"
