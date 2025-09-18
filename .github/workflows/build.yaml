@@ -77,7 +77,7 @@ jobs:
       GOOS: ${{ matrix.platform.goos }}
       GOARCH: ${{ matrix.arch }}
       GOTAGS: ${{ matrix.gotags }}
-      OUTFILE: ./release_artifacts/naisdevice${{ matrix.gotags == 'tenant' && '-tenant' }}_${{ matrix.platform.os }}_${{ matrix.arch }}.${{ matrix.platform.ext }}
+      OUTFILE: ./release_artifacts/naisdevice${{ matrix.gotags == 'tenant' && '-tenant' || '' }}_${{ matrix.platform.os }}_${{ matrix.arch }}.${{ matrix.platform.ext }}
     steps:
       - uses: actions/checkout@v5
       - uses: jdx/mise-action@v3
