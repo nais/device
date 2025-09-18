@@ -1,0 +1,3 @@
+#!/usr/bin/env bash
+#MISE description="Run go vet"
+go vet ./...

@@ -1,0 +1,3 @@
+#!/usr/bin/env bash
+#MISE description="Run vulncheck"
+go tool golang.org/x/vuln/cmd/govulncheck ./...

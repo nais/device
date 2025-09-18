@@ -21,22 +21,24 @@ import (
 const File = "agent-config.json"
 
 type Config struct {
-	AgentConfiguration       *pb.AgentConfiguration
-	ConfigDir                string
-	DeviceAgentHelperAddress string
-	GoogleAuthServerAddress  string
-	GrpcAddress              string
-	Interface                string
-	LogFilePath              string
-	LogLevel                 string
-	AzureOAuth2Config        oauth2.Config
-	GoogleOAuth2Config       oauth2.Config
-	Platform                 string
-	PrivateKeyPath           string
-	WireGuardConfigPath      string
-	EnrollProjectID          string
-	EnrollTopicName          string
-	LocalAPIServer           bool
+	AgentConfiguration      *pb.AgentConfiguration
+	ConfigDir               string
+	DeviceHelperAddress     string
+	GoogleAuthServerAddress string
+	GrpcAddress             string
+	Interface               string // TODO(sechmann): remove, let helper decide
+	LogFilePath             string
+	LogLevel                string
+	AzureOAuth2Config       oauth2.Config
+	GoogleOAuth2Config      oauth2.Config
+	Platform                string
+	PrivateKeyPath          string
+	WireGuardConfigPath     string // TODO(sechmann):remove this as well
+	EnrollProjectID         string
+	EnrollTopicName         string
+	LocalAPIServer          bool
+	CustomEnrollURL         string
+	NoHelper                bool
 }
 
 func (c *Config) SetDefaults() {
@@ -53,11 +55,11 @@ func DefaultConfig() (*Config, error) {
 	}
 
 	return &Config{
-		ConfigDir:                userConfigDir,
-		LogLevel:                 "info",
-		GrpcAddress:              filepath.Join(userConfigDir, "agent.sock"),
-		DeviceAgentHelperAddress: filepath.Join(config2.RuntimeDir, "helper.sock"),
-		GoogleAuthServerAddress:  "https://naisdevice-auth-server-h2pjqrstja-lz.a.run.app",
+		ConfigDir:               userConfigDir,
+		LogLevel:                "info",
+		GrpcAddress:             filepath.Join(userConfigDir, "agent.sock"),
+		DeviceHelperAddress:     filepath.Join(config2.RuntimeDir, "helper.sock"),
+		GoogleAuthServerAddress: "https://naisdevice-auth-server-h2pjqrstja-lz.a.run.app",
 		AzureOAuth2Config: oauth2.Config{
 			ClientID: "8086d321-c6d3-4398-87da-0d54e3d93967",
 			Scopes: []string{

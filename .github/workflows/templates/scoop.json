@@ -1,0 +1,35 @@
+{
+  "version": "$VERSION",
+  "architecture": {
+    "64bit": {
+      "url": "$NAISDEVICE_WINDOWS_AMD64_URL",
+      "hash": "$NAISDEVICE_WINDOWS_AMD64_HASH_BASE16",
+      "installer": {
+        "script": [
+          "Write-Output \"Executing installer at $dir\\$fname\"",
+          "Invoke-ExternalCommand \"$dir\\$fname\" -RunAs | Out-Null"
+        ]
+      },
+      "post_uninstall": [
+        "if ($cmd -eq \"uninstall\") { Invoke-ExternalCommand \"$env:ProgramW6432\\NAV\\naisdevice\\uninstaller.exe\" -RunAs | Out-Null }"
+      ]
+    },
+    "arm64": {
+      "url": "$NAISDEVICE_WINDOWS_ARM64_URL",
+      "hash": "$NAISDEVICE_WINDOWS_ARM64_HASH_BASE16",
+      "installer": {
+        "script": [
+          "Write-Output \"Executing installer at $dir\\$fname\"",
+          "Invoke-ExternalCommand \"$dir\\$fname\" -RunAs | Out-Null"
+        ]
+      },
+      "post_uninstall": [
+        "if ($cmd -eq \"uninstall\") { Invoke-ExternalCommand \"$env:ProgramW6432\\NAV\\naisdevice\\uninstaller.exe\" -RunAs | Out-Null }"
+      ]
+    }
+  },
+  "homepage": "https://docs.nais.io/operate/naisdevice/how-to/install/",
+  "checkver": "github",
+  "license": "MIT",
+  "description": "naisdevice is a mechanism enabling developers to connect to internal resources in a secure and friendly manner."
+}

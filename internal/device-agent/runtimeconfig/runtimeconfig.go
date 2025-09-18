@@ -15,14 +15,15 @@ import (
 	"time"
 
 	"cloud.google.com/go/storage"
-	"github.com/lestrrat-go/jwx/jwt"
+	"github.com/lestrrat-go/jwx/v3/jwt"
+	authhelper "github.com/nais/device/internal/auth"
 	"github.com/nais/device/internal/bootstrap"
 	"github.com/nais/device/internal/device-agent/auth"
 	"github.com/nais/device/internal/device-agent/config"
 	"github.com/nais/device/internal/device-agent/wireguard"
+	"github.com/nais/device/internal/enroll"
 	"github.com/nais/device/internal/otel"
 	"github.com/nais/device/pkg/pb"
-	"github.com/nais/device/internal/pubsubenroll"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/api/iterator"
 	"google.golang.org/api/option"
@@ -185,7 +186,7 @@ func (r *runtimeConfig) EnsureEnrolled(ctx context.Context, serial string) error
 }
 
 func (r *runtimeConfig) enroll(ctx context.Context, serial, token string) error {
-	req := &pubsubenroll.DeviceRequest{
+	req := &enroll.DeviceRequest{
 		Platform:           r.config.Platform,
 		Serial:             serial,
 		WireGuardPublicKey: wireguard.PublicKey(r.privateKey),
@@ -222,7 +223,7 @@ func (r *runtimeConfig) enroll(ctx context.Context, serial, token string) error 
 		return fmt.Errorf("got status code %d from device enrollment service: %v", hresp.StatusCode, string(body))
 	}
 
-	resp := &pubsubenroll.Response{}
+	resp := &enroll.Response{}
 	if err := json.NewDecoder(hresp.Body).Decode(resp); err != nil {
 		return fmt.Errorf("decoding response: %w", err)
 	}
@@ -265,6 +266,10 @@ func (r *runtimeConfig) LoadEnrollConfig() error {
 		return nil
 	}
 
+	if r.config.CustomEnrollURL != "" {
+		return fmt.Errorf("cannot load enroll config when using custom enroll URL")
+	}
+
 	path := r.path()
 	b, err := os.ReadFile(path)
 	if err != nil {
@@ -302,6 +307,9 @@ func findPeer(gateway []*pb.Gateway, s string) *pb.Gateway {
 }
 
 func (r *runtimeConfig) getEnrollURL(ctx context.Context) (string, error) {
+	if r.config.CustomEnrollURL != "" {
+		return r.config.CustomEnrollURL, nil
+	}
 	domain := r.GetDomainFromToken()
 
 	url := fmt.Sprintf("https://storage.googleapis.com/%s/%s", tenantDiscoveryBucket, domain)
@@ -336,8 +344,8 @@ func (r *runtimeConfig) GetDomainFromToken() string {
 	if r.tokens != nil && r.tokens.IDToken != "" {
 		t, err := jwt.ParseString(r.tokens.IDToken)
 		if err == nil {
-			hd, _ := t.Get("hd")
-			return hd.(string)
+			hd, _ := authhelper.StringClaim("hd", t)
+			return hd
 		} else {
 			r.log.WithError(err).Warn("parse id token")
 		}

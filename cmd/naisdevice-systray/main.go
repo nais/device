@@ -12,13 +12,13 @@ import (
 	"github.com/sirupsen/logrus"
 	flag "github.com/spf13/pflag"
 
-	"github.com/nais/device/pkg/config"
 	"github.com/nais/device/internal/logger"
 	"github.com/nais/device/internal/notify"
 	"github.com/nais/device/internal/otel"
 	"github.com/nais/device/internal/program"
 	"github.com/nais/device/internal/systray"
 	"github.com/nais/device/internal/version"
+	"github.com/nais/device/pkg/config"
 )
 
 var log logrus.FieldLogger = logrus.StandardLogger().WithField("component", "main")

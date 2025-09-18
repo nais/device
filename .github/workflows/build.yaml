@@ -1,0 +1,220 @@
+name: Naisdevice workflow
+
+on:
+  pull_request:
+    types: [opened, reopened, synchronize]
+  push:
+    branches: [main]
+    paths-ignore: ["**.md"]
+
+concurrency:
+  group: ${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  release-info:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+      - uses: jdx/mise-action@v3
+        with:
+          cache: false
+      - id: generate
+        run: mise run ci:release-info
+    outputs:
+      version: ${{ steps.generate.outputs.version }}
+      changelog: ${{ steps.generate.outputs.changelog }}
+
+  checks:
+    needs: [release-info]
+    strategy:
+      matrix:
+        mise_task:
+          - check:govulncheck
+          - check:staticcheck
+          - check:govet
+          - ci:fmt
+          - test
+    runs-on: ubuntu-latest
+    permissions:
+      checks: write
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v5
+      - uses: jdx/mise-action@v3
+        with:
+          cache: false
+      - run: mise run ${{ matrix.mise_task }}
+
+  builds:
+    name: build ${{ matrix.platform.goos }} / ${{ matrix.arch }} / ${{ matrix.gotags || 'Nav' }}
+    needs: [release-info]
+    strategy:
+      fail-fast: false
+      matrix:
+        gotags: ["", tenant]
+        arch: [amd64, arm64]
+        platform:
+          - goos: windows
+            os: windows
+            runner: ubuntu-latest
+            ext: exe
+          - goos: linux
+            os: linux
+            runner: ubuntu-latest
+            ext: deb
+          - goos: darwin
+            os: macos
+            runner: macos-latest
+            ext: pkg
+    runs-on: ${{ matrix.platform.runner }}
+    env:
+      VERSION: ${{ needs.release-info.outputs.version }}
+      GOOS: ${{ matrix.platform.goos }}
+      GOARCH: ${{ matrix.arch }}
+      GOTAGS: ${{ matrix.gotags }}
+      OUTFILE: ./release_artifacts/naisdevice${{ matrix.gotags == 'tenant' && '-tenant' }}_${{ matrix.platform.os }}_${{ matrix.arch }}.${{ matrix.platform.ext }}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: jdx/mise-action@v3
+      - if: matrix.platform.os == 'windows'
+        run: sudo apt-get update && sudo apt-get install --yes nsis osslsigncode
+      - if: matrix.platform.os == 'macos'
+        uses: Apple-Actions/import-codesign-certs@v3
+        with:
+          p12-file-base64: ${{ secrets.CERTIFICATES_P12 }}
+          p12-password: ${{ secrets.CERTIFICATES_P12_PASSWORD }}
+      - name: mise run package:${{ matrix.platform.os }}
+        env: # Vars for all matrix variants are mixed together here.
+          MSI_SIGN_CERT: ${{ secrets.MSI_SIGN_CERT }}
+          MSI_SIGN_KEY: ${{ secrets.MSI_SIGN_KEY }}
+          APPLE_NOTARIZE_AUTH_KEY_P8_BASE64: ${{ secrets.APPLE_NOTARIZE_AUTH_KEY_P8_BASE64 }}
+          APPLE_NOTARIZE_D: ${{ secrets.APPLE_NOTARIZE_D }}
+          APPLE_NOTARIZE_I: ${{ secrets.APPLE_NOTARIZE_I }}
+          RELEASE: ${{ github.ref == 'refs/heads/main' && 'true' || 'false' }}
+        run: |
+          mkdir -p "$(dirname $OUTFILE)"
+          mise run "package:${{ matrix.platform.os }}"
+      - if: github.ref == 'refs/heads/main'
+        uses: actions/upload-artifact@v4
+        with:
+          name: installer-${{ matrix.platform.os }}-${{ matrix.arch }}-${{ matrix.gotags || 'nav' }}
+          path: ${{ env.OUTFILE }}
+
+  # Used by GitHub to determine if all checks/builds have passed
+  branch-protection-checkpoint:
+    needs: [checks, builds]
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo Checks and builds passed
+
+  release-github:
+    if: github.ref == 'refs/heads/main' && needs.release-info.outputs.changelog != ''
+    needs: [release-info, branch-protection-checkpoint]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+      - run: git tag ${{ needs.release-info.outputs.version }}
+      - uses: actions/download-artifact@v5
+      - run: mise run ci:generate-checksums ./release_artifacts/ > ./release_artifacts/checksums.txt
+      - uses: softprops/action-gh-release@v2
+        id: release
+        with:
+          tag_name: ${{ needs.release-info.outputs.version }}
+          body: ${{ needs.release-info.outputs.changelog }}
+          prerelease: true
+          files: ./release_artifacts/*
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - run: echo "${{ steps.release.outputs.assets }}" > assets.json
+      - env:
+          VERSION: ${{ needs.release-info.outputs.version }}
+        run: mise run ci:prepare-template-vars ./release_artifacts/checksums.txt ./assets.json > template.vars
+      - uses: actions/upload-artifact@v4
+        with:
+          name: template-vars
+          path: ./template.vars
+      - run: |
+          echo "## :rocket: Release ${{ needs.release-info.outputs.version }}" >> $GITHUB_STEP_SUMMARY
+          echo "A new release is available over at https://github.com/${{ github.repository }}/releases/tag/${{ needs.release-info.outputs.version }}." >> $GITHUB_STEP_SUMMAR
+
+  release-gar:
+    if: github.ref == 'refs/heads/main'
+    strategy:
+      matrix:
+        arch: [arm64, amd64]
+        suffix: [nav, tenant]
+    needs: [release-github]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v5
+      - id: auth
+        uses: google-github-actions/auth@v3
+        with:
+          workload_identity_provider: ${{ secrets.NAIS_IO_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: gh-naisdevice@nais-io.iam.gserviceaccount.com
+          token_format: access_token
+      - uses: google-github-actions/setup-gcloud@v3
+      - uses: actions/download-artifact@v5
+        with:
+          name: installer-linux-${{ matrix.arch }}-${{ matrix.suffix }}
+          path: ./downloaded-artifact/
+      - run: |
+          gcloud artifacts apt upload nais-ppa --project nais-io --quiet --location europe-north1 --source ./downloaded-artifact/*
+
+  release-external-repos:
+    if: github.ref == 'refs/heads/main'
+    needs:
+      - release-info
+      - release-github
+    strategy:
+      matrix:
+        target:
+          - template: scoop.json
+            repo: nais/scoop-bucket
+            file: naisdevice.json
+          - template: scoop-tenant.json
+            repo: nais/scoop-bucket
+            file: naisdevice-tenant.json
+          - template: homebrew.rb
+            repo: nais/homebrew-tap
+            file: Cask/naisdevice.rb
+          - template: homebrew-tenant.rb
+            repo: nais/homebrew-tap
+            file: Cask/naisdevice-tenant.rb
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v5
+      - uses: navikt/github-app-token-generator@v1
+        id: token
+        with:
+          private-key: ${{ secrets.NAIS_APP_PRIVATE_KEY }}
+          app-id: ${{ secrets.NAIS_APP_ID }}
+          repo: ${{ matrix.target.repo }}
+      - uses: actions/download-artifact@v5
+        with:
+          name: template-vars
+      - name: update ${{ matrix.target.repo }}
+        run: |
+          git clone "https://git:${{ steps.token.outputs.token }}@github.com/${{ matrix.target.repo }}" repo
+          cd repo || exit 1
+
+          env "$(xargs -0 <template.vars) " \
+            envsubst "$(sed 's/^/$/' template.vars)"
+
+          git \
+            -c user.name='naisbot' \
+            -c user.email='bot@nais.io' \
+            commit -am \
+            "Bump naisdevice to ${{ needs.release-info.outputs.version }}"
+          git push

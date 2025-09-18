@@ -7,11 +7,10 @@ import (
 	"fmt"
 	"net"
 	"net/http"
+	_ "net/http/pprof"
 	"net/netip"
 	"os"
 	"time"
-
-	_ "net/http/pprof"
 
 	"github.com/kelseyhightower/envconfig"
 	"github.com/nais/device/internal/apiserver/api"
@@ -27,10 +26,10 @@ import (
 	"github.com/nais/device/internal/apiserver/metrics"
 	"github.com/nais/device/internal/logger"
 	"github.com/nais/device/internal/otel"
-	"github.com/nais/device/pkg/pb"
 	"github.com/nais/device/internal/program"
 	"github.com/nais/device/internal/version"
 	wg "github.com/nais/device/internal/wireguard"
+	"github.com/nais/device/pkg/pb"
 	kolidepb "github.com/nais/kolide-event-handler/pkg/pb"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
@@ -131,7 +130,7 @@ func run(log *logrus.Entry, cfg config.Config) error {
 	switch cfg.DeviceAuthenticationProvider {
 	case "azure":
 		log.Info("fetching Azure OIDC configuration...")
-		err = cfg.Azure.SetupJwkSetAutoRefresh(ctx)
+		err = cfg.Azure.SetupJwkCache(ctx)
 		if err != nil {
 			return fmt.Errorf("fetch Azure jwks: %w", err)
 		}
@@ -213,18 +212,31 @@ func run(log *logrus.Entry, cfg config.Config) error {
 	}
 
 	if cfg.AutoEnrollEnabled {
-		enrollPeers := append(cfg.StaticPeers(), cfg.APIServerPeer())
-		e, err := enroller.NewAutoEnroll(ctx, db, enrollPeers, cfg.GRPCBindAddress, log.WithField("component", "auto-enroller"))
-		if err != nil {
-			return err
-		}
-		go func() {
-			err := e.Run(ctx)
+		if cfg.AutoEnrollmentsURL != "" {
+			e := enroller.NewLocalEnroll(db, cfg.AutoEnrollmentsURL)
+			go func() {
+				err := e.Run(ctx)
+				if err != nil {
+					log.WithError(err).Error("run AutoEnroll failed")
+					cancel()
+				}
+			}()
+			log.Info("auto-enrollment enabled using local enroller")
+		} else {
+			log.Info("auto-enrollment enabled using peer-to-peer enroller")
+			enrollPeers := append(cfg.StaticPeers(), cfg.APIServerPeer())
+			e, err := enroller.NewAutoEnroll(ctx, db, enrollPeers, cfg.GRPCBindAddress, log.WithField("component", "auto-enroller"))
 			if err != nil {
-				log.WithError(err).Error("run AutoEnroll failed")
-				cancel()
+				return err
 			}
-		}()
+			go func() {
+				err := e.Run(ctx)
+				if err != nil {
+					log.WithError(err).Error("run AutoEnroll failed")
+					cancel()
+				}
+			}()
+		}
 	}
 
 	var jitaClient jita.Client

@@ -1,10 +1,10 @@
 .idea/
+*.syso
 bin
 .env
 .DS_Store
 *.pkg
 *.app
-*.icns
 wireguard-go-*
 wireguard-tools-*
 cmd/device-agent/main_windows.syso

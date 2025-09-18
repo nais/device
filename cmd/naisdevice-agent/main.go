@@ -45,9 +45,10 @@ func main() {
 	flag.StringVar(&cfg.Interface, "interface", cfg.Interface, "name of tunnel interface")
 	flag.StringVar(&cfg.LogLevel, "log-level", cfg.LogLevel, "which log level to output")
 	flag.StringVar(&cfg.GrpcAddress, "grpc-address", cfg.GrpcAddress, "unix socket for gRPC server")
-	flag.StringVar(&cfg.DeviceAgentHelperAddress, "device-agent-helper-address", cfg.DeviceAgentHelperAddress, "device-agent-helper unix socket")
+	flag.BoolVar(&cfg.NoHelper, "no-helper", false, "stop the agent from configuring the machine through the helper")
 	flag.StringVar(&cfg.GoogleAuthServerAddress, "google-auth-server-address", cfg.GoogleAuthServerAddress, "Google auth-server address")
 	flag.BoolVar(&cfg.LocalAPIServer, "local-apiserver", false, "Connect to a local apiserver on 127.0.0.1:8099 using mock authentication")
+	flag.StringVar(&cfg.CustomEnrollURL, "custom-enroll-url", "", "Connect to a custom enroller")
 	flag.Parse()
 
 	cfg.SetDefaults()
@@ -107,14 +108,14 @@ func run(ctx context.Context, log *logrus.Entry, cfg *config.Config, notifier no
 		}
 	}
 
-	log.WithField("helper_address", cfg.DeviceAgentHelperAddress).Info("naisdevice-helper connection")
+	log.WithField("helper_address", cfg.DeviceHelperAddress).Info("naisdevice-helper connection")
 
 	var client pb.DeviceHelperClient
-	if cfg.LocalAPIServer {
+	if cfg.LocalAPIServer || cfg.NoHelper {
 		client = pb.NewMockHelperClient(log)
 	} else {
 		connection, err := grpc.NewClient(
-			"unix:"+cfg.DeviceAgentHelperAddress,
+			"unix:"+cfg.DeviceHelperAddress,
 			grpc.WithTransportCredentials(insecure.NewCredentials()),
 			grpc.WithIdleTimeout(10*time.Hour),
 			grpc.WithStatsHandler(otel.NewGRPCClientHandler(pb.DeviceHelper_Ping_FullMethodName)),

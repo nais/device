@@ -5,8 +5,8 @@ import (
 	"testing"
 
 	gateway_agent "github.com/nais/device/internal/gateway-agent"
-	"github.com/nais/device/pkg/pb"
 	"github.com/nais/device/internal/wireguard"
+	"github.com/nais/device/pkg/pb"
 	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/grpc/test/bufconn"

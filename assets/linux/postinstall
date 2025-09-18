@@ -1,0 +1,89 @@
+#!/bin/sh
+set -o errexit
+
+ensure_line() {
+	line="$1"
+	file="$2"
+
+	if ! grep -q "$1" "$2"; then
+		sed -i -e '$a'"$line" "$file"
+	fi
+}
+
+ensure_certs() {
+	ensure_line "nav/NAV_Issuing_CA_ekstern.crt" "/etc/ca-certificates.conf"
+	ensure_line "nav/NAV_Partner_Issuing_CA.crt" "/etc/ca-certificates.conf"
+	ensure_line "nav/NAV_Partner_Sub_CA.crt" "/etc/ca-certificates.conf"
+	ensure_line "nav/NAV_Root_CA.crt" "/etc/ca-certificates.conf"
+	ensure_line "nav/NAV_Sub_CA.crt" "/etc/ca-certificates.conf"
+
+	update-ca-certificates
+}
+
+make_user_dirs() {
+	systemd_version="$(systemctl --version | head -n 1 | grep -oP '[0-9]+' | head -n 1)"
+	if [ "$((systemd_version))" -gt "255" ]; then
+		user_accounts=$(loginctl list-users -j | jq '[.[] | select(.uid >= 1000)]')
+	else
+		user_accounts=$(loginctl list-users --output json | jq '[.[] | select(.uid >= 1000)]')
+	fi
+
+	if echo "$user_accounts" | jq -e 'length != 1' >/dev/null; then
+		printf "\nMore than 1 user account logged in! naisdevice only permits _one_ user account!\n"
+		exit 1
+	fi
+
+	user=$(echo "$user_accounts" | jq -r ".[0].user")
+	home=$(getent passwd "${user}" | cut -d: -f 6)
+
+	config_dir="${home}/.config/naisdevice/"
+	log_dir="${config_dir}/logs"
+
+	for directory in "$config_dir" "$log_dir"; do
+		mkdir -p "$directory"
+		chmod 700 "$directory"
+	done
+
+	cp /sys/devices/virtual/dmi/id/product_serial "${config_dir}"
+
+	chown -R "${user}:" "${config_dir}"
+}
+
+install() {
+	ensure_certs
+	make_user_dirs
+	ln -sf /usr/bin/naisdevice-systray /usr/bin/naisdevice
+
+	systemctl daemon-reload
+	systemctl unmask naisdevice-helper.service
+	systemctl preset naisdevice-helper.service
+	systemctl enable naisdevice-helper.service
+	systemctl restart naisdevice-helper.service
+
+	# Kill dangling/zombied naisdevice processes, ignoring errors
+	set +e
+	killall -9 --quiet --older-than 1m --regexp "naisdevice.*" || :
+}
+
+upgrade() {
+	systemctl restart naisdevice-helper.service
+}
+
+action="$1"
+if [ "$1" = "configure" ] && [ -z "$2" ]; then
+	action="install"
+elif [ "$1" = "configure" ] && [ -n "$2" ]; then
+	action="upgrade"
+fi
+
+case "$action" in
+"1" | "install")
+	install
+	;;
+"2" | "upgrade")
+	upgrade
+	;;
+*)
+	install
+	;;
+esac

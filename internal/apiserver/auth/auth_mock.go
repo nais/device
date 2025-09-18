@@ -7,8 +7,8 @@ import (
 
 	"google.golang.org/protobuf/types/known/timestamppb"
 
-	"github.com/nais/device/pkg/pb"
 	"github.com/nais/device/internal/random"
+	"github.com/nais/device/pkg/pb"
 )
 
 func MockDevice() *pb.Device {

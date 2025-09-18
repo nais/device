@@ -6,13 +6,14 @@ import (
 	"strings"
 
 	"github.com/nais/device/internal/auth"
-	"github.com/nais/device/pkg/pb"
 	"github.com/nais/device/internal/wireguard"
+	"github.com/nais/device/pkg/pb"
 	"github.com/sirupsen/logrus"
 )
 
 type Config struct {
 	AutoEnrollEnabled                 bool
+	AutoEnrollmentsURL                string
 	Azure                             *auth.Azure
 	BindAddress                       string
 	ControlPlaneAuthenticationEnabled bool

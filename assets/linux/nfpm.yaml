@@ -1,0 +1,53 @@
+# Docs: https://nfpm.goreleaser.com/configuration/
+name: "${NAME}"
+arch: "${ARCH}"
+platform: "linux"
+version: "${VERSION}"
+section: "default"
+priority: "extra"
+maintainer: "Nais team <nais@nav.no>"
+description: "naisdevice is a mechanism enabling developers to connect to internal resources in a secure and friendly manner."
+vendor: "Nav / Nais team"
+homepage: "https://docs.nais.io/operate/naisdevice/how-to/install/"
+license: "MIT"
+depends:
+  - "jq"
+  - "sed"
+  - "wireguard"
+scripts:
+  postinstall: "./assets/linux/postinstall"
+  postremove: "./assets/linux/postrm"
+contents:
+  - src: "./bin/linux-client/naisdevice-helper"
+    dst: "/usr/sbin/naisdevice-helper"
+    file_info:
+      mode: 0755
+  - src: "./bin/linux-client/naisdevice-agent"
+    dst: "/usr/bin/naisdevice-agent"
+    file_info:
+      mode: 0755
+  - src: "./bin/linux-client/naisdevice-systray"
+    dst: "/usr/bin/naisdevice-systray"
+    file_info:
+      mode: 0755
+  - src: "./assets/linux/naisdevice.desktop"
+    dst: "/usr/share/applications/"
+    file_info:
+      mode: 0644
+  - src: "./assets/linux/certs/"
+    dst: "/usr/share/ca-certificates/nav/"
+    file_info:
+      mode: 0644
+  - src: "./assets/linux/icon/"
+    dst: "/usr/share/icons/hicolor/"
+    type: tree
+    file_info:
+      mode: 0644
+  - src: "./assets/linux/apparmor-local-wg"
+    dst: "/etc/apparmor.d/local/wg"
+    file_info:
+      mode: 0644
+  - src: "./assets/linux/naisdevice-helper.service"
+    dst: "/usr/lib/systemd/system/naisdevice-helper.service"
+    file_info:
+      mode: 0644

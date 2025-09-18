@@ -22,8 +22,8 @@ import (
 	"github.com/nais/device/internal/device-agent/statemachine/state"
 	"github.com/nais/device/internal/notify"
 	"github.com/nais/device/internal/otel"
-	"github.com/nais/device/pkg/pb"
 	"github.com/nais/device/internal/version"
+	"github.com/nais/device/pkg/pb"
 )
 
 const (
@@ -109,6 +109,7 @@ func (c *Connected) Enter(ctx context.Context) state.EventWithSpan {
 			fallthrough
 		case errors.Is(e, ErrUnauthenticated):
 			c.notifier.Errorf("unauthenticated, please log in again.")
+			c.logger.WithError(e).Info("unauthenticated, clearing token")
 			c.rc.SetToken(nil)
 			return state.SpanEvent(ctx, state.EventDisconnect)
 		case errors.Is(e, io.EOF):
