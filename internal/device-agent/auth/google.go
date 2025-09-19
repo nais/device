@@ -91,7 +91,7 @@ func handleRedirectGoogle(state, redirectURI string, codeVerifier *codeverifier.
 
 func consoleURL(ctx context.Context, idToken, state string) (string, error) {
 	// Parse id token to get domain
-	t, err := jwt.ParseString(idToken)
+	t, err := jwt.ParseString(idToken, jwt.WithValidate(false))
 	if err != nil {
 		return "", err
 	}

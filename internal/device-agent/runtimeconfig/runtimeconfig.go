@@ -342,7 +342,7 @@ func (r *runtimeConfig) GetDomainFromToken() string {
 	}
 
 	if r.tokens != nil && r.tokens.IDToken != "" {
-		t, err := jwt.ParseString(r.tokens.IDToken)
+		t, err := jwt.ParseString(r.tokens.IDToken, jwt.WithValidate(false))
 		if err == nil {
 			hd, _ := authhelper.StringClaim("hd", t)
 			return hd
