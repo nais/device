@@ -14,17 +14,21 @@ env:
 
 jobs:
   test:
-    name: Test
-    runs-on: ubuntu-22.04
+    strategy:
+      matrix:
+        mise_task:
+          - check:govulncheck
+          - check:staticcheck
+          - check:govet
+          - ci:fmt
+          - test
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
       - uses: jdx/mise-action@v3
-      - name: run tests
-        run: |
-          sudo apt-get update
-          sudo apt-get install --yes build-essential
-          mise run check
-          mise run test
+        with:
+          cache: false
+      - run: mise run ${{ matrix.mise_task }}
 
   build_debs:
     name: Build debs
