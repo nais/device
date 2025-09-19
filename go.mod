@@ -5,6 +5,7 @@ go 1.25.0
 tool (
 	github.com/akavel/rsrc
 	github.com/golangci/golangci-lint/cmd/golangci-lint
+	github.com/goreleaser/nfpm/v2/cmd/nfpm
 	github.com/jackmordaunt/icns/v2/cmd/icnsify
 	github.com/sqlc-dev/sqlc/cmd/sqlc
 	github.com/vektra/mockery/v3
