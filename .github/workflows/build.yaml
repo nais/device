@@ -237,4 +237,6 @@ jobs:
         env:
           VERSION: ${{ needs.release-info.outputs.version }}
           REPO_TOKEN: ${{ steps.token.outputs.token }}
-        run: mise run ci:create-package-manager-pr "${{ matrix.target.repo }}" "${{ matrix.target.file }}"
+        run: |
+          GITHUB_TOKEN="" \
+            mise run ci:create-package-manager-pr "${{ matrix.target.repo }}" "${{ matrix.target.file }}"
