@@ -18,15 +18,18 @@ name="${basename%.*}"  # remove extension
 
 # setup git
 echo "$token" | gh auth login --with-token
+echo "login done"
 gh auth setup-git
 
 user="$(gh api user)"
 git config set user.name="$(jq '.login' <<<"$user")"
 git config set user.email="$(jq '.email' <<<"$user")"
+echo "config set"
 
 # clone repo
 repo_dir="$(mktemp -d)"
 gh repo clone "$repo" "$repo_dir" -- --depth=1
+echo "repo cloned"
 cd "$repo_dir" || exit 1
 
 # generate file from template
@@ -40,3 +43,4 @@ env $(xargs -0 <"$workspace/template.vars") \
 git switch -c "${name//-/_}_${version}"
 git commit -am "$name $version"
 gh pr create --fill
+echo "pr created"
