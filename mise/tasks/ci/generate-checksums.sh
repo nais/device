@@ -1,6 +1,10 @@
 #!/usr/bin/env bash
 #MISE description="Generate checksums"
 
+set -o errexit
+set -o nounset
+set -o pipefail
+
 release_artifacts="$1"
 
 if [[ ! -d "$release_artifacts" ]]; then

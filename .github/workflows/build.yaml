@@ -187,20 +187,14 @@ jobs:
       fail-fast: false
       matrix:
         target:
-          - template: scoop.json
-            repo: nais/scoop-bucket
-            file: naisdevice.json
-          - template: scoop-tenant.json
-            repo: nais/scoop-bucket
+          - repo: nais/scoop-bucket
             file: naisdevice-tenant.json
-            suffix: -tenant
-          - template: homebrew.rb
-            repo: nais/homebrew-tap
+          - repo: nais/scoop-bucket
+            file: naisdevice-tenant.json
+          - repo: nais/homebrew-tap
             file: Casks/naisdevice.rb
-          - template: homebrew-tenant.rb
-            repo: nais/homebrew-tap
+          - repo: nais/homebrew-tap
             file: Casks/naisdevice-tenant.rb
-            suffix: -tenant
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -213,22 +207,14 @@ jobs:
           private-key: ${{ secrets.NAIS_APP_PRIVATE_KEY }}
           app-id: ${{ secrets.NAIS_APP_ID }}
           repo: ${{ matrix.target.repo }}
+      - uses: jdx/mise-action@v3
+        with:
+          cache: false
       - uses: actions/download-artifact@v5
         with:
           name: template-vars
       - name: update ${{ matrix.target.repo }}
-        run: |
-          git clone "https://git:${{ steps.token.outputs.token }}@github.com/${{ matrix.target.repo }}" repo
-          cd repo || exit 1
-
-          env $(xargs -0 <../template.vars) \
-            envsubst "$(sed 's/^/$/' ../template.vars)" \
-            < "../.github/workflows/templates/${{ matrix.target.template }}" \
-            > "${{ matrix.target.file }}"
-
-          git \
-            -c user.name='naisbot' \
-            -c user.email='bot@nais.io' \
-            commit -am \
-            "Bump naisdevice${{ matrix.target.suffix || '' }} to ${{ needs.release-info.outputs.version }}"
-          git push
+        env:
+          VERSION: ${{ needs.release-info.outputs.version }}
+          REPO_TOKEN: ::add_mask::${{ steps.token.outputs.token }}
+        run: mise run ci:create-package-manager-pr "$repo" "$file"
