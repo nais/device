@@ -51,12 +51,9 @@ jobs:
 
       - name: "Upload controlplane deb files to repository"
         run: |
-          for component in \
-            "apiserver" \
-            "gateway-agent" \
-            "prometheus-agent"; do
-            gcloud beta artifacts apt upload controlplane --quiet --source "$component"*.deb --location europe-north1
-          done
+          gcloud artifacts apt upload controlplane -source apiserver.deb --location europe-north1 --quiet
+          gcloud artifacts apt upload controlplane -source gateway-agent.deb --location europe-north1 --quiet
+          gcloud artifacts apt upload controlplane -source prometheus-agent.deb --location europe-north1 --quiet
 
   build_enroller:
     name: Build enroller
