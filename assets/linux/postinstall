@@ -62,6 +62,7 @@ common() {
 	make_user_dirs
 	ln -sf /usr/bin/naisdevice-systray /usr/bin/naisdevice
 
+	sleep 1
 	systemctl daemon-reload
 	systemctl unmask naisdevice-helper.service
 	systemctl preset naisdevice-helper.service
