@@ -1,7 +1,11 @@
 #!/usr/bin/env bash
 #MISE description="Build linux client"
 #MISE env={ GOOS = "linux" }
-set -e
+
+set -o errexit
+set -o pipefail
+set -o nounset
+
 ldflags="-X github.com/nais/device/internal/version.Version=${VERSION:-local} -X github.com/nais/device/internal/otel.endpointURL=https://collector-internet.nav.cloud.nais.io"
 mkdir -p ./bin/linux-client
 

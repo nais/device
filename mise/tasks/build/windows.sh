@@ -1,7 +1,11 @@
 #!/usr/bin/env bash
 #MISE description="Build windows client"
 #MISE env={ GOOS = "windows" }
-set -e
+
+set -o errexit
+set -o pipefail
+set -o nounset
+
 ldflags="-X github.com/nais/device/internal/version.Version=${VERSION:-local} -X github.com/nais/device/internal/otel.endpointURL=https://collector-internet.nav.cloud.nais.io"
 mkdir -p ./bin/windows-client
 
