@@ -5,7 +5,28 @@ on:
     types: [opened, reopened, synchronize]
   push:
     branches: [main]
-    paths-ignore: ["**.md"]
+    paths:
+      - "go.*"
+      - "cmd/naisdevice-*"
+      - "internal/device-agent"
+      - "internal/enroll"
+      - "internal/systray"
+      - "internal/helper"
+      - "internal/otel"
+      - "internal/bootstrap"
+      - "internal/ioconvenience"
+      - "internal/logger"
+      - "internal/program"
+      - "internal/notify"
+      - "internal/random"
+      - "internal/unixsocket"
+      - "internal/version"
+      - "internal/wireguard"
+      - ".github/workflows/build.yaml"
+      - "mise/config.toml"
+      - "mise/tasks/**"
+    paths-ignore:
+      - "mise/tasks/**/*controlplane*"
 
 concurrency:
   group: ${{ github.ref }}
