@@ -6,13 +6,14 @@ import (
 	"strings"
 	"time"
 
-	"github.com/lestrrat-go/jwx/v3/jwt"
-	"github.com/nais/device/internal/apiserver/database"
-	"github.com/nais/device/internal/auth"
-	"github.com/nais/device/internal/random"
-	"github.com/nais/device/pkg/pb"
+	"github.com/lestrrat-go/jwx/jwt"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/protobuf/types/known/timestamppb"
+
+	"github.com/nais/device/internal/apiserver/database"
+	"github.com/nais/device/internal/auth"
+	"github.com/nais/device/pkg/pb"
+	"github.com/nais/device/internal/random"
 )
 
 type azureAuth struct {
@@ -37,19 +38,21 @@ func (s *azureAuth) Login(ctx context.Context, token, serial, platform string) (
 		return nil, &ParseTokenError{err}
 	}
 
-	groups, err := auth.GroupsClaim(parsedToken)
+	claims, err := parsedToken.AsMap(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("unable to get groups claim: %w", err)
+		return nil, fmt.Errorf("convert claims to map: %s", err)
 	}
 
-	if !auth.UserInNaisdeviceApprovalGroup(groups) {
+	var groups []string
+	for _, group := range claims["groups"].([]any) {
+		groups = append(groups, group.(string))
+	}
+
+	if !auth.UserInNaisdeviceApprovalGroup(claims) {
 		return nil, ErrTermsNotAccepted
 	}
 
-	username, err := auth.StringClaim("preferred_username", parsedToken)
-	if err != nil {
-		return nil, fmt.Errorf("missing claim: %w", err)
-	}
+	username := claims["preferred_username"].(string)
 
 	device, err := s.db.ReadDeviceBySerialPlatform(ctx, serial, platform)
 	if err != nil {
@@ -60,16 +63,11 @@ func (s *azureAuth) Login(ctx context.Context, token, serial, platform string) (
 		return nil, fmt.Errorf("username (%s) does not match device username (%s)", username, device.Username)
 	}
 
-	oid, err := auth.StringClaim("oid", parsedToken)
-	if err != nil {
-		return nil, fmt.Errorf("missing claim: %w", err)
-	}
-
 	session := &pb.Session{
 		Key:      random.RandomString(20, random.LettersAndNumbers),
 		Expiry:   timestamppb.New(time.Now().Add(SessionDuration)),
-		Groups:   nil,
-		ObjectID: oid,
+		Groups:   groups,
+		ObjectID: claims["oid"].(string),
 		Device:   device,
 	}
 

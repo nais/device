@@ -15,8 +15,7 @@ import (
 	"time"
 
 	"cloud.google.com/go/storage"
-	"github.com/lestrrat-go/jwx/v3/jwt"
-	authhelper "github.com/nais/device/internal/auth"
+	"github.com/lestrrat-go/jwx/jwt"
 	"github.com/nais/device/internal/bootstrap"
 	"github.com/nais/device/internal/device-agent/auth"
 	"github.com/nais/device/internal/device-agent/config"
@@ -344,8 +343,8 @@ func (r *runtimeConfig) GetDomainFromToken() string {
 	if r.tokens != nil && r.tokens.IDToken != "" {
 		t, err := jwt.ParseString(r.tokens.IDToken, jwt.WithValidate(false))
 		if err == nil {
-			hd, _ := authhelper.StringClaim("hd", t)
-			return hd
+			hd, _ := t.Get("hd")
+			return hd.(string)
 		} else {
 			r.log.WithError(err).Warn("parse id token")
 		}

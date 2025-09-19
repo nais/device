@@ -7,10 +7,11 @@ import (
 	"fmt"
 	"net"
 	"net/http"
-	_ "net/http/pprof"
 	"net/netip"
 	"os"
 	"time"
+
+	_ "net/http/pprof"
 
 	"github.com/kelseyhightower/envconfig"
 	"github.com/nais/device/internal/apiserver/api"
@@ -26,10 +27,10 @@ import (
 	"github.com/nais/device/internal/apiserver/metrics"
 	"github.com/nais/device/internal/logger"
 	"github.com/nais/device/internal/otel"
+	"github.com/nais/device/pkg/pb"
 	"github.com/nais/device/internal/program"
 	"github.com/nais/device/internal/version"
 	wg "github.com/nais/device/internal/wireguard"
-	"github.com/nais/device/pkg/pb"
 	kolidepb "github.com/nais/kolide-event-handler/pkg/pb"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
@@ -130,7 +131,7 @@ func run(log *logrus.Entry, cfg config.Config) error {
 	switch cfg.DeviceAuthenticationProvider {
 	case "azure":
 		log.Info("fetching Azure OIDC configuration...")
-		err = cfg.Azure.SetupJwkCache(ctx)
+		err = cfg.Azure.SetupJwkSetAutoRefresh(ctx)
 		if err != nil {
 			return fmt.Errorf("fetch Azure jwks: %w", err)
 		}
