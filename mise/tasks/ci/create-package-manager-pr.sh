@@ -21,8 +21,8 @@ gh auth login --with-token "$token"
 gh auth setup-git
 
 user="$(gh api user)"
-git config set user.name="$(jq '.login' <<<"$user")"
-git config set user.email="$(jq '.email' <<<"$user")"
+git config set user.name "$(jq '.login' <<<"$user")"
+git config set user.email "$(jq '.email' <<<"$user")"
 
 # clone repo
 repo_dir="$(mktemp -d)"
