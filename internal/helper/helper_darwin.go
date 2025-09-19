@@ -3,19 +3,17 @@ package helper
 import (
 	"context"
 	"fmt"
+	"os"
 	"os/exec"
 	"strings"
 
 	"github.com/nais/device/pkg/pb"
 )
 
-const (
-	wireGuardBinary   = "/Applications/naisdevice.app/Contents/MacOS/wg"
-	wireGuardGoBinary = "/Applications/naisdevice.app/Contents/MacOS/wireguard-go"
-)
-
 type DarwinConfigurator struct {
-	helperConfig Config
+	helperConfig      Config
+	wireGuardBinary   string
+	wireGuardGoBinary string
 }
 
 var _ OSConfigurator = &DarwinConfigurator{}
@@ -26,26 +24,38 @@ func New(helperConfig Config) *DarwinConfigurator {
 	}
 }
 
-func filesExist(files ...string) error {
-	for _, file := range files {
-		if err := RegularFileExists(file); err != nil {
-			return err
+func pathWithFallBacks(binary string, possiblePaths ...string) (string, error) {
+	if p, err := exec.LookPath(binary); err == nil {
+		return p, nil
+	}
+
+	for _, p := range possiblePaths {
+		if s, err := os.Stat(p); err == nil && !s.IsDir() {
+			return p, nil
 		}
 	}
 
-	return nil
+	return "", fmt.Errorf("%q not found in PATH or any of %+v", binary, possiblePaths)
 }
 
 func (c *DarwinConfigurator) Prerequisites() error {
-	if err := filesExist(wireGuardBinary, wireGuardGoBinary); err != nil {
-		return fmt.Errorf("verifying if file exists: %w", err)
+	var err error
+
+	c.wireGuardBinary, err = pathWithFallBacks("wg", "/usr/local/bin/wg", "/opt/homebrew/bin/wg", "/usr/bin/wg")
+	if err != nil {
+		return fmt.Errorf("look for wg: %w", err)
+	}
+
+	c.wireGuardGoBinary, err = pathWithFallBacks("wireguard-go", "/usr/local/bin/wireguard-go", "/opt/homebrew/bin/wireguard-go", "/usr/bin/wireguard-go")
+	if err != nil {
+		return fmt.Errorf("look for wireguard-go: %w", err)
 	}
 
 	return nil
 }
 
 func (c *DarwinConfigurator) SyncConf(ctx context.Context, cfg *pb.Configuration) error {
-	cmd := exec.CommandContext(ctx, wireGuardBinary, "syncconf", c.helperConfig.Interface, c.helperConfig.WireGuardConfigPath)
+	cmd := exec.CommandContext(ctx, c.wireGuardBinary, "syncconf", c.helperConfig.Interface, c.helperConfig.WireGuardConfigPath)
 	if b, err := cmd.CombinedOutput(); err != nil {
 		return fmt.Errorf("running syncconf: %w: %v", err, string(b))
 	}
@@ -96,7 +106,7 @@ func (c *DarwinConfigurator) SetupInterface(ctx context.Context, cfg *pb.Configu
 	}
 
 	commands := [][]string{
-		{wireGuardGoBinary, c.helperConfig.Interface},
+		{c.wireGuardGoBinary, c.helperConfig.Interface},
 		{"ifconfig", c.helperConfig.Interface, "inet", cfg.GetDeviceIPv4() + "/21", cfg.GetDeviceIPv4(), "alias"},
 		{"ifconfig", c.helperConfig.Interface, "inet6", cfg.GetDeviceIPv6() + "/64", "alias"},
 		{"ifconfig", c.helperConfig.Interface, "mtu", "1360"},
@@ -112,7 +122,7 @@ func (c *DarwinConfigurator) TeardownInterface(ctx context.Context) error {
 		return nil
 	}
 
-	cmd := exec.CommandContext(ctx, "pkill", "-f", fmt.Sprintf("%s %s", wireGuardGoBinary, c.helperConfig.Interface))
+	cmd := exec.CommandContext(ctx, "pkill", "-f", fmt.Sprintf("%s %s", c.wireGuardGoBinary, c.helperConfig.Interface))
 	out, err := cmd.CombinedOutput()
 	if err != nil {
 		return fmt.Errorf("teardown failed: %w, stderr: %s", err, string(out))
@@ -122,6 +132,6 @@ func (c *DarwinConfigurator) TeardownInterface(ctx context.Context) error {
 }
 
 func (c *DarwinConfigurator) interfaceExists(ctx context.Context) bool {
-	cmd := exec.CommandContext(ctx, "pgrep", "-f", fmt.Sprintf("%s %s", wireGuardGoBinary, c.helperConfig.Interface))
+	cmd := exec.CommandContext(ctx, "pgrep", "-f", fmt.Sprintf("%s %s", c.wireGuardGoBinary, c.helperConfig.Interface))
 	return cmd.Run() == nil
 }

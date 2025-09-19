@@ -5,6 +5,11 @@ cask "naisdevice" do
   desc "naisdevice is a mechanism enabling developers to connect to internal resources in a secure and friendly manner."
   homepage "https://docs.nais.io/operate/naisdevice/how-to/install/"
 
+  depends_on formula: [
+    "wireguard-go",
+    "wireguard-tools",
+  ]
+
   if Hardware::CPU.intel?
     url "$NAISDEVICE_MACOS_AMD64_URL"
     sha256 "$NAISDEVICE_MACOS_AMD64_HASH_BASE16"
