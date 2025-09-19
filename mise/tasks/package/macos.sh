@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #MISE description="Package deb"
-#MISE depends=["thirdparty:wireguard","thirdparty:wireguard-go","build:macos"]
+#MISE depends=["build:macos"]
 
 set -o errexit
 set -o pipefail
