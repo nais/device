@@ -25,8 +25,7 @@ on:
       - ".github/workflows/build.yaml"
       - "mise/config.toml"
       - "mise/tasks/**"
-    paths-ignore:
-      - "mise/tasks/**/*controlplane*"
+      - "!mise/tasks/**/*controlplane*"
 
 concurrency:
   group: ${{ github.ref }}
