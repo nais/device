@@ -1,0 +1,22 @@
+name: "prometheus-agent"
+arch: "amd64"
+platform: "linux"
+version: "${VERSION}"
+maintainer: "Nais team <nais@nav.no>"
+description: "prometheus-agent connects to a naisdevice-apiserver for WireGuard config and connects to entire controlplane to scrape metrics. Also generates prometheus scrape config"
+vendor: "Nav / Nais team"
+homepage: "https://github.com/nais/device/"
+license: "MIT"
+depends:
+  - "wireguard"
+scripts:
+  postinstall: "./packaging/controlplane/prometheus-agent/postinstall"
+contents:
+  - src: "./bin/controlplane/prometheus-agent"
+    dst: "/usr/bin/prometheus-agent"
+    file_info:
+      mode: 0755
+  - src: "./packaging/controlplane/prometheus-agent/prometheus-agent.service"
+    dst: "/usr/lib/systemd/system/prometheus-agent.service"
+    file_info:
+      mode: 0644

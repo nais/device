@@ -1,0 +1,26 @@
+name: "gateway-agent"
+arch: "amd64"
+platform: "linux"
+version: "${VERSION}"
+maintainer: "Nais team <nais@nav.no>"
+description: "gateway-agent connects to the apiserver for WireGuard config and forwards traffic for deices."
+vendor: "Nav / Nais team"
+homepage: "https://github.com/nais/device/"
+license: "MIT"
+depends:
+  - "wireguard"
+scripts:
+  postinstall: "./packaging/controlplane/gateway-agent/postinstall"
+contents:
+  - src: "./bin/controlplane/gateway-agent"
+    dst: "/usr/bin/gateway-agent"
+    file_info:
+      mode: 0755
+  - src: "./packaging/controlplane/gateway-agent/gateway-agent.service"
+    dst: "/usr/lib/systemd/system/gateway-agent.service"
+    file_info:
+      mode: 0644
+  - src: "./packaging/controlplane/gateway-agent/gateway-agent"
+    dst: "/etc/default/gateway-agent"
+    file_info:
+      mode: 0640

@@ -1,0 +1,22 @@
+name: "apiserver"
+arch: "amd64"
+platform: "linux"
+version: "${VERSION}"
+maintainer: "Nais team <nais@nav.no>"
+description: "naisdevice apiserver handles gateways and devices and distributes wireguard configurations for them."
+vendor: "Nav / Nais team"
+homepage: "https://github.com/nais/device/"
+license: "MIT"
+depends:
+  - "wireguard"
+scripts:
+  postinstall: "./packaging/controlplane/apiserver/postinstall"
+contents:
+  - src: "./bin/controlplane/apiserver"
+    dst: "/usr/bin/apiserver"
+    file_info:
+      mode: 0755
+  - src: "./packaging/controlplane/apiserver/apiserver.service"
+    dst: "/usr/lib/systemd/system/apiserver.service"
+    file_info:
+      mode: 0644

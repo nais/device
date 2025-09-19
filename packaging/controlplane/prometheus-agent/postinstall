@@ -1,0 +1,29 @@
+#!/bin/sh
+set -o errexit
+
+setup_service() {
+	systemctl daemon-reload
+	systemctl unmask prometheus-agent.service
+	systemctl preset prometheus-agent.service
+	systemctl enable prometheus-agent.service
+	systemctl restart prometheus-agent.service
+}
+
+action="$1"
+if [ "$1" = "configure" ] && [ -z "$2" ]; then
+	action="install"
+elif [ "$1" = "configure" ] && [ -n "$2" ]; then
+	action="upgrade"
+fi
+
+case "$action" in
+"1" | "install")
+	setup_service
+	;;
+"2" | "upgrade")
+	setup_service
+	;;
+*)
+	setup_service
+	;;
+esac
