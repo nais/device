@@ -40,7 +40,9 @@ jobs:
       - uses: jdx/mise-action@v3
 
       - name: "Build controlplane"
-        run: mise run package:controlplane-debs
+        run: |
+          export VERSION="$(date "+%Y-%m-%d-%H%M%S")"
+          mise run package:controlplane-debs
 
       - uses: google-github-actions/setup-gcloud@v3
 

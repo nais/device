@@ -2,6 +2,7 @@ name: "apiserver"
 arch: "amd64"
 platform: "linux"
 version: "${VERSION}"
+version_schema: none
 maintainer: "Nais team <nais@nav.no>"
 description: "naisdevice apiserver handles gateways and devices and distributes wireguard configurations for them."
 vendor: "Nav / Nais team"

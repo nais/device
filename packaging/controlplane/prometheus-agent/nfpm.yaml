@@ -2,6 +2,7 @@ name: "prometheus-agent"
 arch: "amd64"
 platform: "linux"
 version: "${VERSION}"
+version_schema: none
 maintainer: "Nais team <nais@nav.no>"
 description: "prometheus-agent connects to a naisdevice-apiserver for WireGuard config and connects to entire controlplane to scrape metrics. Also generates prometheus scrape config"
 vendor: "Nav / Nais team"

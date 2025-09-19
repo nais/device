@@ -2,6 +2,7 @@ name: "gateway-agent"
 arch: "amd64"
 platform: "linux"
 version: "${VERSION}"
+version_schema: none
 maintainer: "Nais team <nais@nav.no>"
 description: "gateway-agent connects to the apiserver for WireGuard config and forwards traffic for deices."
 vendor: "Nav / Nais team"
