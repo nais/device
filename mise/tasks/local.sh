@@ -11,7 +11,7 @@ window_name="naisdevice-$(date +"%H%M%S")"
 enrollments_port=8081
 enrollments_url="http://localhost:${enrollments_port}/enrollments"
 
-auth="google"
+auth="${1:-google}" # google or azure
 
 env=(
 	"ENROLLER_LOCALLISTENADDR=\":${enrollments_port}\""
@@ -30,12 +30,15 @@ if [[ $auth == "google" ]]; then
 		"APISERVER_DEVICEAUTHENTICATIONPROVIDER=\"google\""
 	)
 	tags="-tags tenant"
-else
+elif [[ $auth == "azure" ]]; then
 	env+=(
 		"ENROLLER_AZUREENABLED=\"true\""
 		"APISERVER_DEVICEAUTHENTICATIONPROVIDER=\"azure\""
 	)
 	tags=""
+else
+  echo "Unknown auth provider: $auth"
+  exit 1
 fi
 
 # shellcheck disable=SC2116
