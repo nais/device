@@ -34,6 +34,7 @@ version=$(grep -m 1 -oP '^VERSION=.+$' "$vars" | cut -d '=' -f 2)
 branch="${name//-/_}_${version}"
 git config user.name "NAIS team app"
 git config user.email "devnull@nais.io"
+gh auth setup-git
 git switch -c "$branch"
 git commit -am "$name $version"
 git push --set-upstream origin "$branch"
