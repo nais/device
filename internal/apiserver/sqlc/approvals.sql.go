@@ -29,6 +29,33 @@ func (q *Queries) GetApproval(ctx context.Context, userID string) (*Approval, er
 	return &i, err
 }
 
+const getApprovals = `-- name: GetApprovals :many
+SELECT user_id, approved_at FROM approvals
+`
+
+func (q *Queries) GetApprovals(ctx context.Context) ([]*Approval, error) {
+	rows, err := q.query(ctx, q.getApprovalsStmt, getApprovals)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []*Approval
+	for rows.Next() {
+		var i Approval
+		if err := rows.Scan(&i.UserID, &i.ApprovedAt); err != nil {
+			return nil, err
+		}
+		items = append(items, &i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const revokeApproval = `-- name: RevokeApproval :exec
 DELETE FROM approvals WHERE user_id = ?1
 `

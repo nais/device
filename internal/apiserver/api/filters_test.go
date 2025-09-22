@@ -30,3 +30,36 @@ func TestRemoveMSGateway(t *testing.T) {
 
 	assert.Len(t, removeNonExistant, 2)
 }
+
+func Test_sessionUserHasApproved(t *testing.T) {
+	tests := []struct {
+		name          string
+		approvedUsers map[string]struct{}
+		session       *pb.Session
+		result        bool
+	}{
+		{
+			name:          "has approved",
+			approvedUsers: map[string]struct{}{"approvedUser": {}},
+			session:       &pb.Session{ObjectID: "approvedUser"},
+			result:        true,
+		},
+		{
+			name:          "has not approved",
+			approvedUsers: map[string]struct{}{"anotherUser": {}},
+			session:       &pb.Session{ObjectID: "approvedUser"},
+			result:        false,
+		},
+		{
+			name:          "empty approved users",
+			approvedUsers: nil,
+			session:       &pb.Session{ObjectID: "approvedUser"},
+			result:        false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			assert.Equal(t, tt.result, sessionUserHasApproved(tt.approvedUsers)(tt.session))
+		})
+	}
+}

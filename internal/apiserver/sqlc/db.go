@@ -57,6 +57,9 @@ func Prepare(ctx context.Context, db DBTX) (*Queries, error) {
 	if q.getApprovalStmt, err = db.PrepareContext(ctx, getApproval); err != nil {
 		return nil, fmt.Errorf("error preparing query GetApproval: %w", err)
 	}
+	if q.getApprovalsStmt, err = db.PrepareContext(ctx, getApprovals); err != nil {
+		return nil, fmt.Errorf("error preparing query GetApprovals: %w", err)
+	}
 	if q.getDeviceByExternalIDStmt, err = db.PrepareContext(ctx, getDeviceByExternalID); err != nil {
 		return nil, fmt.Errorf("error preparing query GetDeviceByExternalID: %w", err)
 	}
@@ -196,6 +199,11 @@ func (q *Queries) Close() error {
 	if q.getApprovalStmt != nil {
 		if cerr := q.getApprovalStmt.Close(); cerr != nil {
 			err = fmt.Errorf("error closing getApprovalStmt: %w", cerr)
+		}
+	}
+	if q.getApprovalsStmt != nil {
+		if cerr := q.getApprovalsStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing getApprovalsStmt: %w", cerr)
 		}
 	}
 	if q.getDeviceByExternalIDStmt != nil {
@@ -383,6 +391,7 @@ type Queries struct {
 	deleteGatewayRoutesStmt          *sql.Stmt
 	deleteKolideIssuesForDeviceStmt  *sql.Stmt
 	getApprovalStmt                  *sql.Stmt
+	getApprovalsStmt                 *sql.Stmt
 	getDeviceByExternalIDStmt        *sql.Stmt
 	getDeviceByIDStmt                *sql.Stmt
 	getDeviceByPublicKeyStmt         *sql.Stmt
@@ -427,6 +436,7 @@ func (q *Queries) WithTx(tx *sql.Tx) *Queries {
 		deleteGatewayRoutesStmt:          q.deleteGatewayRoutesStmt,
 		deleteKolideIssuesForDeviceStmt:  q.deleteKolideIssuesForDeviceStmt,
 		getApprovalStmt:                  q.getApprovalStmt,
+		getApprovalsStmt:                 q.getApprovalsStmt,
 		getDeviceByExternalIDStmt:        q.getDeviceByExternalIDStmt,
 		getDeviceByIDStmt:                q.getDeviceByIDStmt,
 		getDeviceByPublicKeyStmt:         q.getDeviceByPublicKeyStmt,

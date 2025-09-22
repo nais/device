@@ -21,6 +21,7 @@ type Querier interface {
 	DeleteGatewayRoutes(ctx context.Context, gatewayName string) error
 	DeleteKolideIssuesForDevice(ctx context.Context, deviceID string) error
 	GetApproval(ctx context.Context, userID string) (*Approval, error)
+	GetApprovals(ctx context.Context) ([]*Approval, error)
 	GetDeviceByExternalID(ctx context.Context, externalID sql.NullString) (*Device, error)
 	GetDeviceByID(ctx context.Context, id int64) (*Device, error)
 	GetDeviceByPublicKey(ctx context.Context, publicKey string) (*Device, error)
