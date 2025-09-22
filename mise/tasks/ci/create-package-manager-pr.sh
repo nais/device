@@ -8,7 +8,6 @@ set -o pipefail
 # shellcheck disable=SC2153
 version="$VERSION"
 workspace="$MISE_PROJECT_ROOT"
-token="$REPO_TOKEN"
 
 repo="$1"
 file="$2"
@@ -17,8 +16,6 @@ basename="${file##*/}" # basename
 name="${basename%.*}"  # remove extension
 
 # setup git
-# echo "$token" | gh auth login --with-token
-# echo "login done"
 gh auth setup-git
 
 user="$(gh api user)"
