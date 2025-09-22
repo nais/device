@@ -16,8 +16,7 @@ import (
 func NewMockAPIServerClient(t interface {
 	mock.TestingT
 	Cleanup(func())
-},
-) *MockAPIServerClient {
+}) *MockAPIServerClient {
 	mock := &MockAPIServerClient{}
 	mock.Mock.Test(t)
 

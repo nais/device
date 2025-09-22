@@ -16,8 +16,7 @@ import (
 func NewMockAPIServer_GetGatewayConfigurationClient(t interface {
 	mock.TestingT
 	Cleanup(func())
-},
-) *MockAPIServer_GetGatewayConfigurationClient {
+}) *MockAPIServer_GetGatewayConfigurationClient {
 	mock := &MockAPIServer_GetGatewayConfigurationClient{}
 	mock.Mock.Test(t)
 

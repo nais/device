@@ -16,8 +16,7 @@ import (
 func NewMockDeviceHelperClient(t interface {
 	mock.TestingT
 	Cleanup(func())
-},
-) *MockDeviceHelperClient {
+}) *MockDeviceHelperClient {
 	mock := &MockDeviceHelperClient{}
 	mock.Mock.Test(t)
 
