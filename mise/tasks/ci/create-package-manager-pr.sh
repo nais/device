@@ -17,8 +17,8 @@ basename="${file##*/}" # basename
 name="${basename%.*}"  # remove extension
 
 # setup git
-echo "$token" | gh auth login --with-token
-echo "login done"
+# echo "$token" | gh auth login --with-token
+# echo "login done"
 gh auth setup-git
 
 user="$(gh api user)"
