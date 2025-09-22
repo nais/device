@@ -15,9 +15,6 @@ file="$2"
 basename="${file##*/}" # basename
 name="${basename%.*}"  # remove extension
 
-git config set user.name "NAIS team app"
-git config set user.email "devnull@nais.io"
-
 # clone repo
 repo_dir="$(mktemp -d)"
 gh repo clone "$repo" "$repo_dir" -- --depth=1
@@ -32,6 +29,8 @@ env $(xargs -0 <"$workspace/template.vars") \
 	>"${file}"
 
 # create pr
+git config user.name "NAIS team app"
+git config user.email "devnull@nais.io"
 git switch -c "${name//-/_}_${version}"
 git commit -am "$name $version"
 gh pr create --fill
