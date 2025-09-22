@@ -132,7 +132,7 @@ jobs:
       - run: echo Checks and builds passed
 
   release-github:
-    if: github.ref == 'refs/heads/main' && needs.release-info.outputs.changelog != ''
+    if: github.ref == 'refs/heads/main' && needs.release-info.outputs.changelog != '' && needs.release-info.outputs.version != ''
     needs: [release-info, branch-protection-checkpoint]
     runs-on: ubuntu-latest
     steps:
