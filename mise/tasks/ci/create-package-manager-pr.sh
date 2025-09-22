@@ -31,10 +31,11 @@ env $(xargs -0 <"$vars") \
 version=$(grep -m 1 -oP '^VERSION=.+$' "$vars" | cut -d '=' -f 2)
 
 # create pr
+branch="${name//-/_}_${version}"
 git config user.name "NAIS team app"
 git config user.email "devnull@nais.io"
-git switch -c "${name//-/_}_${version}"
+git switch -c "$branch"
 git commit -am "$name $version"
-git push
+git push --set-upstream origin "$branch"
 gh pr create --fill
 echo "pr created"
