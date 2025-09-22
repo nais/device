@@ -194,7 +194,6 @@ jobs:
   release-external-repos:
     if: github.ref == 'refs/heads/main'
     needs:
-      - release-info
       - release-github
     strategy:
       fail-fast: false
@@ -226,7 +225,6 @@ jobs:
           name: template-vars
       - name: update ${{ matrix.target.repo }}
         env:
-          VERSION: ${{ needs.release-info.outputs.version }}
           GH_TOKEN: ${{ steps.token.outputs.token }}
         run: |
           mise run ci:create-package-manager-pr "${{ matrix.target.repo }}" "${{ matrix.target.file }}"
