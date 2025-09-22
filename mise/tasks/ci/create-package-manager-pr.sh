@@ -39,4 +39,5 @@ git switch -c "$branch"
 git commit -am "$name $version"
 git push --set-upstream origin "$branch"
 until gh pr create --fill --base main --head "$branch"; do echo "Retrying..."; sleep 1; done
+gh pr merge --auto --rebase
 echo "pr created"
