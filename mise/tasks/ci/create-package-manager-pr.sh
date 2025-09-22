@@ -31,6 +31,10 @@ env $(xargs -0 <"$vars") \
 version=$(grep -m 1 -oP '^VERSION=.+$' "$vars" | cut -d '=' -f 2)
 
 # create pr
+
+# debug: list remotes
+git remote -v
+
 branch="${name//-/_}_${version}"
 git config user.name "NAIS team app"
 git config user.email "devnull@nais.io"
