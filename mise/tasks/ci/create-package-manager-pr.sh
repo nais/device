@@ -16,7 +16,6 @@ name="${basename%.*}"  # remove extension
 # clone repo
 repo_dir="$(mktemp -d)"
 gh repo clone "$repo" "$repo_dir" -- --depth=1
-echo "repo cloned"
 cd "$repo_dir" || exit 1
 
 vars="$workspace/template.vars"
@@ -38,6 +37,5 @@ gh auth setup-git
 git switch -c "$branch"
 git commit -am "$name $version"
 git push --set-upstream origin "$branch"
-until gh pr create --fill --base main --head "$branch"; do echo "Retrying..."; sleep 1; done
-gh pr merge --auto --rebase
-echo "pr created"
+until gh pr create --fill --base main --head "$branch"; do echo "Retrying gh pr create..."; sleep 1; done
+until gh pr merge --auto --rebase; do echo "Retrying gh pr merge..."; sleep 1; done
