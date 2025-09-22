@@ -33,4 +33,5 @@ type Database interface {
 	UpdateKolideIssuesForDevice(ctx context.Context, externalID string, issues []*kolide.DeviceFailure) error
 	UpdateKolideChecks(ctx context.Context, checks []*kolide.Check) error
 	ReadKolideChecks(ctx context.Context) (map[int64]*sqlc.KolideCheck, error)
+	GetApprovals(ctx context.Context) (map[string]struct{}, error)
 }

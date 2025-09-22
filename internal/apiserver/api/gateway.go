@@ -113,7 +113,13 @@ func (s *grpcServer) makeGatewayConfiguration(ctx context.Context, gatewayName s
 		return nil, fmt.Errorf("read gateway from database: %w", err)
 	}
 
+	approvedUsers, err := s.db.GetApprovals(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("get approved users: %w", err)
+	}
+
 	filters := []func(*pb.Session) bool{
+		sessionUserHasApproved(approvedUsers),
 		sessionForGatewayGroups(gateway.AccessGroupIDs),
 		sessionIsHealthy,
 	}

@@ -76,13 +76,6 @@ func (a *Azure) TokenValidatorMiddleware() TokenValidator {
 			}
 
 			username := claims["preferred_username"].(string)
-
-			if !UserInNaisdeviceApprovalGroup(claims) {
-				w.WriteHeader(http.StatusSeeOther)
-				http.Redirect(w, r, "https://naisdevice-approval.external.prod-gcp.nav.cloud.nais.io/", http.StatusSeeOther)
-				return
-			}
-
 			r = r.WithContext(WithEmail(r.Context(), username))
 
 			next.ServeHTTP(w, r)
@@ -90,14 +83,4 @@ func (a *Azure) TokenValidatorMiddleware() TokenValidator {
 
 		return http.HandlerFunc(fn)
 	}
-}
-
-func UserInNaisdeviceApprovalGroup(claims map[string]any) bool {
-	for _, group := range claims["groups"].([]any) {
-		if group.(string) == NaisDeviceApprovalGroup {
-			return true
-		}
-	}
-
-	return false
 }

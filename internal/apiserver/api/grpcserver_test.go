@@ -120,6 +120,7 @@ func TestGatewayPasswordAuthentication(t *testing.T) {
 	}
 	db := database.NewMockDatabase(t)
 	db.On("ReadGateway", mock.Anything, "gateway").Return(gwResponse, nil).Times(2)
+	db.On("GetApprovals", mock.Anything).Return(map[string]struct{}{}, nil).Once()
 
 	sessionStore := auth.NewMockSessionStore(t)
 	sessionStore.On("All", mock.Anything).Return([]*pb.Session{}, nil)

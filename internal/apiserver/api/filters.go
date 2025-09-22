@@ -46,6 +46,13 @@ func not[T comparable](f func(T) bool) func(T) bool {
 // ---
 // Session filters
 // ---
+func sessionUserHasApproved(approvedUsers map[string]struct{}) func(session *pb.Session) bool {
+	return func(session *pb.Session) bool {
+		_, approved := approvedUsers[session.ObjectID]
+		return approved
+	}
+}
+
 func sessionIsHealthy(session *pb.Session) bool {
 	return session.GetDevice().Healthy()
 }

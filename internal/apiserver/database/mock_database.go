@@ -213,6 +213,68 @@ func (_c *MockDatabase_AddSessionInfo_Call) RunAndReturn(run func(ctx context.Co
 	return _c
 }
 
+// GetApprovals provides a mock function for the type MockDatabase
+func (_mock *MockDatabase) GetApprovals(ctx context.Context) (map[string]struct{}, error) {
+	ret := _mock.Called(ctx)
+
+	if len(ret) == 0 {
+		panic("no return value specified for GetApprovals")
+	}
+
+	var r0 map[string]struct{}
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context) (map[string]struct{}, error)); ok {
+		return returnFunc(ctx)
+	}
+	if returnFunc, ok := ret.Get(0).(func(context.Context) map[string]struct{}); ok {
+		r0 = returnFunc(ctx)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(map[string]struct{})
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func(context.Context) error); ok {
+		r1 = returnFunc(ctx)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// MockDatabase_GetApprovals_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetApprovals'
+type MockDatabase_GetApprovals_Call struct {
+	*mock.Call
+}
+
+// GetApprovals is a helper method to define mock.On call
+//   - ctx context.Context
+func (_e *MockDatabase_Expecter) GetApprovals(ctx interface{}) *MockDatabase_GetApprovals_Call {
+	return &MockDatabase_GetApprovals_Call{Call: _e.mock.On("GetApprovals", ctx)}
+}
+
+func (_c *MockDatabase_GetApprovals_Call) Run(run func(ctx context.Context)) *MockDatabase_GetApprovals_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		run(
+			arg0,
+		)
+	})
+	return _c
+}
+
+func (_c *MockDatabase_GetApprovals_Call) Return(stringToVal map[string]struct{}, err error) *MockDatabase_GetApprovals_Call {
+	_c.Call.Return(stringToVal, err)
+	return _c
+}
+
+func (_c *MockDatabase_GetApprovals_Call) RunAndReturn(run func(ctx context.Context) (map[string]struct{}, error)) *MockDatabase_GetApprovals_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // ReadDevice provides a mock function for the type MockDatabase
 func (_mock *MockDatabase) ReadDevice(ctx context.Context, publicKey string) (*pb.Device, error) {
 	ret := _mock.Called(ctx, publicKey)

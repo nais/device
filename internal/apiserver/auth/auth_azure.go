@@ -48,10 +48,6 @@ func (s *azureAuth) Login(ctx context.Context, token, serial, platform string) (
 		groups = append(groups, group.(string))
 	}
 
-	if !auth.UserInNaisdeviceApprovalGroup(claims) {
-		return nil, ErrTermsNotAccepted
-	}
-
 	username := claims["preferred_username"].(string)
 
 	device, err := s.db.ReadDeviceBySerialPlatform(ctx, serial, platform)
