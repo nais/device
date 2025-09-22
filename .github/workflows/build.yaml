@@ -92,7 +92,7 @@ jobs:
             ext: pkg
     runs-on: ${{ matrix.platform.runner }}
     env:
-      VERSION: ${{ needs.release-info.outputs.version }}
+      VERSION: ${{ needs.release-info.outputs.version || 'none' }} # Allow builds to continue with no version, it won't release.
       GOOS: ${{ matrix.platform.goos }}
       GOARCH: ${{ matrix.arch }}
       GOTAGS: ${{ matrix.gotags }}

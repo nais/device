@@ -45,7 +45,7 @@ main() {
 	version="$(grep -m 1 -oP '(?<=^##\s)v\d+\.\d+\.\d+(?=\s-\s)' <<<"$changelog")"
 	if [[ -z "$version" ]]; then
 		echo "Unable to read version from changelog, abort"
-		exit 1
+		return
 	fi
 
 	output "changelog" "$changelog"
