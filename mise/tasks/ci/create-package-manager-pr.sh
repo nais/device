@@ -38,5 +38,5 @@ gh auth setup-git
 git switch -c "$branch"
 git commit -am "$name $version"
 git push --set-upstream origin "$branch"
-gh pr create --fill
+gh pr create --fill --head "origin:$branch"
 echo "pr created"
