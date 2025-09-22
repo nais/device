@@ -50,7 +50,6 @@ jobs:
       changelog: ${{ steps.generate.outputs.changelog }}
 
   checks:
-    needs: [release-info]
     strategy:
       matrix:
         mise_task:
