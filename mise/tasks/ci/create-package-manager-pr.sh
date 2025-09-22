@@ -35,5 +35,6 @@ git config user.name "NAIS team app"
 git config user.email "devnull@nais.io"
 git switch -c "${name//-/_}_${version}"
 git commit -am "$name $version"
+git push
 gh pr create --fill
 echo "pr created"
