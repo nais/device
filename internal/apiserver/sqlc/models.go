@@ -8,6 +8,11 @@ import (
 	"database/sql"
 )
 
+type Approval struct {
+	UserID     string
+	ApprovedAt string
+}
+
 type Device struct {
 	ID          int64
 	Username    string
