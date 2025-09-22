@@ -200,7 +200,7 @@ jobs:
       matrix:
         target:
           - repo: nais/scoop-bucket
-            file: naisdevice-tenant.json
+            file: naisdevice.json
           - repo: nais/scoop-bucket
             file: naisdevice-tenant.json
           - repo: nais/homebrew-tap
@@ -224,6 +224,7 @@ jobs:
         with:
           name: template-vars
       - name: update ${{ matrix.target.repo }}
+        timeout-minutes: 1
         env:
           GH_TOKEN: ${{ steps.token.outputs.token }}
         run: |
