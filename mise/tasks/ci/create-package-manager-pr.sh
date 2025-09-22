@@ -15,14 +15,8 @@ file="$2"
 basename="${file##*/}" # basename
 name="${basename%.*}"  # remove extension
 
-# setup git
-#gh auth setup-git
-# echo "setup git"
-
-user="$(gh api user)"
-git config set user.name="$(jq '.login' <<<"$user")"
-git config set user.email="$(jq '.email' <<<"$user")"
-echo "config set"
+git config set user.name="NAIS team app"
+git config set user.email="devnull@nais.io"
 
 # clone repo
 repo_dir="$(mktemp -d)"
