@@ -23,6 +23,7 @@ on:
       - "internal/version"
       - "internal/wireguard"
       - ".github/workflows/build.yaml"
+      - ".github/workflows/templates/*"
       - "mise/config.toml"
       - "mise/tasks/**"
       - "!mise/tasks/**/*controlplane*"
@@ -147,7 +148,7 @@ jobs:
         with:
           tag_name: ${{ needs.release-info.outputs.version }}
           body: ${{ needs.release-info.outputs.changelog }}
-          prerelease: true
+          prerelease: false
           files: ./release_artifacts/*
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
