@@ -16,7 +16,8 @@ basename="${file##*/}" # basename
 name="${basename%.*}"  # remove extension
 
 # setup git
-gh auth setup-git
+#gh auth setup-git
+# echo "setup git"
 
 user="$(gh api user)"
 git config set user.name="$(jq '.login' <<<"$user")"
