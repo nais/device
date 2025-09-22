@@ -7,9 +7,6 @@
     flake-parts.url = "github:hercules-ci/flake-parts";
     flake-root.url = "github:srid/flake-root";
 
-    treefmt-nix.url = "github:numtide/treefmt-nix";
-    treefmt-nix.inputs.nixpkgs.follows = "nixpkgs";
-
     devshell.url = "github:numtide/devshell";
     devshell.inputs.nixpkgs.follows = "nixpkgs";
 
@@ -27,7 +24,6 @@
     flake-parts.lib.mkFlake {inherit inputs;} {
       imports = [
         inputs.flake-root.flakeModule
-        inputs.treefmt-nix.flakeModule
         inputs.devshell.flakeModule
       ];
       systems = [
@@ -69,19 +65,6 @@
               protobuf
               sqlite-interactive # -interactive gives readline / ncurses
             ])
-            ++ [config.treefmt.build.wrapper];
-        };
-        treefmt.config = {
-          inherit (config.flake-root) projectRootFile;
-          package = pkgs.treefmt;
-
-          programs = {
-            alejandra.enable = true;
-            deadnix.enable = true;
-            gofumpt.enable = true;
-            prettier.enable = true;
-            statix.enable = true;
-          };
         };
       };
       flake = {
