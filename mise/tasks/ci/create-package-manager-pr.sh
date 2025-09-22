@@ -15,8 +15,8 @@ file="$2"
 basename="${file##*/}" # basename
 name="${basename%.*}"  # remove extension
 
-git config set user.name="NAIS team app"
-git config set user.email="devnull@nais.io"
+git config set user.name "NAIS team app"
+git config set user.email "devnull@nais.io"
 
 # clone repo
 repo_dir="$(mktemp -d)"
