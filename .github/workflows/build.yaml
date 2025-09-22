@@ -41,8 +41,6 @@ jobs:
         with:
           fetch-depth: 0
       - uses: jdx/mise-action@v3
-        with:
-          cache: false
       - id: generate
         run: mise run ci:release-info
     outputs:
@@ -65,8 +63,6 @@ jobs:
     steps:
       - uses: actions/checkout@v5
       - uses: jdx/mise-action@v3
-        with:
-          cache: false
       - run: mise run ${{ matrix.mise_task }}
 
   builds:
@@ -140,8 +136,6 @@ jobs:
         with:
           fetch-depth: 0
       - uses: jdx/mise-action@v3
-        with:
-          cache: false
       - run: git tag ${{ needs.release-info.outputs.version }}
       - uses: actions/download-artifact@v5
         with:
@@ -227,8 +221,6 @@ jobs:
           app-id: ${{ secrets.NAIS_APP_ID }}
           repo: ${{ matrix.target.repo }}
       - uses: jdx/mise-action@v3
-        with:
-          cache: false
       - uses: actions/download-artifact@v5
         with:
           name: template-vars
