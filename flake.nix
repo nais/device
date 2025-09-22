@@ -54,17 +54,16 @@
           inherit (config.packages) naisdevice;
         };
         devshells.default = {
-          packages =
-            (with pkgs; [
-              gcc # needed for sqlite3-go
-              gnumake
-              go
-              gopls
-              graphviz
-              imagemagick
-              protobuf
-              sqlite-interactive # -interactive gives readline / ncurses
-            ])
+          packages = with pkgs; [
+            gcc # needed for sqlite3-go
+            gnumake
+            go
+            gopls
+            graphviz
+            imagemagick
+            protobuf
+            sqlite-interactive # -interactive gives readline / ncurses
+          ];
         };
       };
       flake = {
