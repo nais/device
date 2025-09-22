@@ -67,7 +67,7 @@ for p in $(gcloud projects list | grep nais-management | cut -d ' ' -f 1); do
 done | xpanes -c '{}'
 ```
 
-*Merk at Nav har sin Apiserver i et legacy prosjekt `nais-device`!*  
+_Merk at Nav har sin Apiserver i et legacy prosjekt `nais-device`!_  
 TL;DR `gcloud compute ssh --zone "europe-north1-a" "apiserver" --project "nais-device" --tunnel-through-iap` for Nav.
 
 ### Tenant gateways

@@ -16,7 +16,8 @@ import (
 func NewMockAPIServer_GetDeviceConfigurationClient(t interface {
 	mock.TestingT
 	Cleanup(func())
-}) *MockAPIServer_GetDeviceConfigurationClient {
+},
+) *MockAPIServer_GetDeviceConfigurationClient {
 	mock := &MockAPIServer_GetDeviceConfigurationClient{}
 	mock.Mock.Test(t)
 

@@ -4,7 +4,7 @@
 
 Av og til bytter folk navn, og da får de ny e-post, men de er fortsatt samme person.
 Da må vi inn i tenants sin Apiserver og oppdatere `devices`-radene som har den gamle e-posten.
-Hvis man velger å slette brukeren fra Apiserveren må de huske å slette sin lokale Naisdevice config: 
+Hvis man velger å slette brukeren fra Apiserveren må de huske å slette sin lokale Naisdevice config:
 
 ```shell
 # Mac
@@ -20,17 +20,20 @@ Guiden nedenfor bruker Nav som eksempel.
    ```shell
    gcloud compute ssh --zone "europe-north1-a" "apiserver" --project "nais-device" --tunnel-through-iap
    ```
-3. Koble deg på SQLite-databasen
+
+2. Koble deg på SQLite-databasen
 
    ```shell
    sudo sqlite3 /var/lib/naisdevice/apiserver.db
    ```
-4. List brukere med utdatert e-post
+
+3. List brukere med utdatert e-post
 
    ```sql
    select * from devices where username = 'forrige.epost@nav.no';
    ```
-5. Oppdater radene med ny e-post
+
+4. Oppdater radene med ny e-post
 
    ```sql
    update devices set username = 'ny.epost@nav.no' where username = 'forrige.epost@nav.no' limit 1;

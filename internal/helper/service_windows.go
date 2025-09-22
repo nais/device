@@ -69,5 +69,5 @@ loop:
 		}
 	}
 	changes <- svc.Status{State: svc.StopPending}
-	return
+	return ssec, errno
 }
