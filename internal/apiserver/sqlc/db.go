@@ -42,6 +42,9 @@ func Prepare(ctx context.Context, db DBTX) (*Queries, error) {
 	if q.addSessionAccessGroupIDStmt, err = db.PrepareContext(ctx, addSessionAccessGroupID); err != nil {
 		return nil, fmt.Errorf("error preparing query AddSessionAccessGroupID: %w", err)
 	}
+	if q.approveStmt, err = db.PrepareContext(ctx, approve); err != nil {
+		return nil, fmt.Errorf("error preparing query Approve: %w", err)
+	}
 	if q.deleteGatewayAccessGroupIDsStmt, err = db.PrepareContext(ctx, deleteGatewayAccessGroupIDs); err != nil {
 		return nil, fmt.Errorf("error preparing query DeleteGatewayAccessGroupIDs: %w", err)
 	}
@@ -50,6 +53,9 @@ func Prepare(ctx context.Context, db DBTX) (*Queries, error) {
 	}
 	if q.deleteKolideIssuesForDeviceStmt, err = db.PrepareContext(ctx, deleteKolideIssuesForDevice); err != nil {
 		return nil, fmt.Errorf("error preparing query DeleteKolideIssuesForDevice: %w", err)
+	}
+	if q.getApprovalStmt, err = db.PrepareContext(ctx, getApproval); err != nil {
+		return nil, fmt.Errorf("error preparing query GetApproval: %w", err)
 	}
 	if q.getDeviceByExternalIDStmt, err = db.PrepareContext(ctx, getDeviceByExternalID); err != nil {
 		return nil, fmt.Errorf("error preparing query GetDeviceByExternalID: %w", err)
@@ -111,6 +117,9 @@ func Prepare(ctx context.Context, db DBTX) (*Queries, error) {
 	if q.removeExpiredSessionsStmt, err = db.PrepareContext(ctx, removeExpiredSessions); err != nil {
 		return nil, fmt.Errorf("error preparing query RemoveExpiredSessions: %w", err)
 	}
+	if q.revokeApprovalStmt, err = db.PrepareContext(ctx, revokeApproval); err != nil {
+		return nil, fmt.Errorf("error preparing query RevokeApproval: %w", err)
+	}
 	if q.setKolideCheckStmt, err = db.PrepareContext(ctx, setKolideCheck); err != nil {
 		return nil, fmt.Errorf("error preparing query SetKolideCheck: %w", err)
 	}
@@ -164,6 +173,11 @@ func (q *Queries) Close() error {
 			err = fmt.Errorf("error closing addSessionAccessGroupIDStmt: %w", cerr)
 		}
 	}
+	if q.approveStmt != nil {
+		if cerr := q.approveStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing approveStmt: %w", cerr)
+		}
+	}
 	if q.deleteGatewayAccessGroupIDsStmt != nil {
 		if cerr := q.deleteGatewayAccessGroupIDsStmt.Close(); cerr != nil {
 			err = fmt.Errorf("error closing deleteGatewayAccessGroupIDsStmt: %w", cerr)
@@ -177,6 +191,11 @@ func (q *Queries) Close() error {
 	if q.deleteKolideIssuesForDeviceStmt != nil {
 		if cerr := q.deleteKolideIssuesForDeviceStmt.Close(); cerr != nil {
 			err = fmt.Errorf("error closing deleteKolideIssuesForDeviceStmt: %w", cerr)
+		}
+	}
+	if q.getApprovalStmt != nil {
+		if cerr := q.getApprovalStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing getApprovalStmt: %w", cerr)
 		}
 	}
 	if q.getDeviceByExternalIDStmt != nil {
@@ -279,6 +298,11 @@ func (q *Queries) Close() error {
 			err = fmt.Errorf("error closing removeExpiredSessionsStmt: %w", cerr)
 		}
 	}
+	if q.revokeApprovalStmt != nil {
+		if cerr := q.revokeApprovalStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing revokeApprovalStmt: %w", cerr)
+		}
+	}
 	if q.setKolideCheckStmt != nil {
 		if cerr := q.setKolideCheckStmt.Close(); cerr != nil {
 			err = fmt.Errorf("error closing setKolideCheckStmt: %w", cerr)
@@ -354,9 +378,11 @@ type Queries struct {
 	addGatewayRouteStmt              *sql.Stmt
 	addSessionStmt                   *sql.Stmt
 	addSessionAccessGroupIDStmt      *sql.Stmt
+	approveStmt                      *sql.Stmt
 	deleteGatewayAccessGroupIDsStmt  *sql.Stmt
 	deleteGatewayRoutesStmt          *sql.Stmt
 	deleteKolideIssuesForDeviceStmt  *sql.Stmt
+	getApprovalStmt                  *sql.Stmt
 	getDeviceByExternalIDStmt        *sql.Stmt
 	getDeviceByIDStmt                *sql.Stmt
 	getDeviceByPublicKeyStmt         *sql.Stmt
@@ -377,6 +403,7 @@ type Queries struct {
 	getSessionGroupIDsStmt           *sql.Stmt
 	getSessionsStmt                  *sql.Stmt
 	removeExpiredSessionsStmt        *sql.Stmt
+	revokeApprovalStmt               *sql.Stmt
 	setKolideCheckStmt               *sql.Stmt
 	setKolideIssueStmt               *sql.Stmt
 	truncateKolideIssuesStmt         *sql.Stmt
@@ -395,9 +422,11 @@ func (q *Queries) WithTx(tx *sql.Tx) *Queries {
 		addGatewayRouteStmt:              q.addGatewayRouteStmt,
 		addSessionStmt:                   q.addSessionStmt,
 		addSessionAccessGroupIDStmt:      q.addSessionAccessGroupIDStmt,
+		approveStmt:                      q.approveStmt,
 		deleteGatewayAccessGroupIDsStmt:  q.deleteGatewayAccessGroupIDsStmt,
 		deleteGatewayRoutesStmt:          q.deleteGatewayRoutesStmt,
 		deleteKolideIssuesForDeviceStmt:  q.deleteKolideIssuesForDeviceStmt,
+		getApprovalStmt:                  q.getApprovalStmt,
 		getDeviceByExternalIDStmt:        q.getDeviceByExternalIDStmt,
 		getDeviceByIDStmt:                q.getDeviceByIDStmt,
 		getDeviceByPublicKeyStmt:         q.getDeviceByPublicKeyStmt,
@@ -418,6 +447,7 @@ func (q *Queries) WithTx(tx *sql.Tx) *Queries {
 		getSessionGroupIDsStmt:           q.getSessionGroupIDsStmt,
 		getSessionsStmt:                  q.getSessionsStmt,
 		removeExpiredSessionsStmt:        q.removeExpiredSessionsStmt,
+		revokeApprovalStmt:               q.revokeApprovalStmt,
 		setKolideCheckStmt:               q.setKolideCheckStmt,
 		setKolideIssueStmt:               q.setKolideIssueStmt,
 		truncateKolideIssuesStmt:         q.truncateKolideIssuesStmt,

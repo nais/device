@@ -16,9 +16,11 @@ type Querier interface {
 	AddGatewayRoute(ctx context.Context, arg AddGatewayRouteParams) error
 	AddSession(ctx context.Context, arg AddSessionParams) error
 	AddSessionAccessGroupID(ctx context.Context, arg AddSessionAccessGroupIDParams) error
+	Approve(ctx context.Context, userID string) error
 	DeleteGatewayAccessGroupIDs(ctx context.Context, gatewayName string) error
 	DeleteGatewayRoutes(ctx context.Context, gatewayName string) error
 	DeleteKolideIssuesForDevice(ctx context.Context, deviceID string) error
+	GetApproval(ctx context.Context, userID string) (*Approval, error)
 	GetDeviceByExternalID(ctx context.Context, externalID sql.NullString) (*Device, error)
 	GetDeviceByID(ctx context.Context, id int64) (*Device, error)
 	GetDeviceByPublicKey(ctx context.Context, publicKey string) (*Device, error)
@@ -39,6 +41,7 @@ type Querier interface {
 	GetSessionGroupIDs(ctx context.Context, sessionKey string) ([]string, error)
 	GetSessions(ctx context.Context) ([]*GetSessionsRow, error)
 	RemoveExpiredSessions(ctx context.Context) error
+	RevokeApproval(ctx context.Context, userID string) error
 	SetKolideCheck(ctx context.Context, arg SetKolideCheckParams) error
 	SetKolideIssue(ctx context.Context, arg SetKolideIssueParams) error
 	TruncateKolideIssues(ctx context.Context) error
