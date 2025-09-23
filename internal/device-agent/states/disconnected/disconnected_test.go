@@ -19,6 +19,7 @@ func TestDisconnected(t *testing.T) {
 		var token *auth.Tokens
 		rc.EXPECT().SetToken(token)
 		rc.EXPECT().ResetEnrollConfig()
+		rc.EXPECT().SetAPIServerInfo(nil, "").Return()
 
 		cfg := config.Config{
 			AgentConfiguration: &pb.AgentConfiguration{
@@ -38,6 +39,7 @@ func TestDisconnected(t *testing.T) {
 		var token *auth.Tokens
 		rc.EXPECT().SetToken(token)
 		rc.EXPECT().ResetEnrollConfig()
+		rc.EXPECT().SetAPIServerInfo(nil, "").Return()
 
 		cfg := config.Config{
 			AgentConfiguration: &pb.AgentConfiguration{
