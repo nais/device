@@ -128,10 +128,25 @@ func (s *grpcServer) makeDeviceConfiguration(ctx context.Context, sessionKey str
 		return nil, err
 	}
 
-	if !device.Healthy() {
+	var sessionIssues []*pb.DeviceIssue
+	if approval, err := s.db.GetApproval(ctx, session.ObjectID); err != nil {
+		return nil, err
+	} else if approval == nil {
+		now := timestamppb.Now()
+		sessionIssues = append(sessionIssues, &pb.DeviceIssue{
+			Title:         "Do's and don'ts not accepted",
+			Message:       "In order to use naisdevice you have to accept our Do's and don'ts. Click on naisdevice and then the Acceptable use policy menu item to approve.",
+			Severity:      pb.Severity_Critical,
+			DetectedAt:    now,
+			LastUpdated:   now,
+			ResolveBefore: now,
+		})
+	}
+
+	if !device.Healthy() || len(sessionIssues) > 0 {
 		return &pb.GetDeviceConfigurationResponse{
 			Status: pb.DeviceConfigurationStatus_DeviceUnhealthy,
-			Issues: device.Issues,
+			Issues: append(device.Issues, sessionIssues...),
 		}, nil
 	}
 

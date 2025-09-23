@@ -157,6 +157,7 @@ func tableTest(t *testing.T, log *logrus.Entry, testDevice *pb.Device, endState 
 		ObjectID: "test-object-id",
 	}
 	assert.NoError(t, db.AddSessionInfo(ctx, session))
+	assert.NoError(t, db.Approve(ctx, session.ObjectID))
 
 	sessions, err := db.ReadSessionInfos(ctx)
 	assert.NoError(t, err)
