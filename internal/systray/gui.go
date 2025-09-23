@@ -472,7 +472,11 @@ func (gui *Gui) handleGuiEvent(ctx context.Context, guiEvent GuiEvent) {
 		open.Open(logger.LatestFilepath(logDirPath, logger.Systray))
 
 	case AcceptableUseClicked:
-		open.Open("https://naisdevice-approval.external.prod-gcp.nav.cloud.nais.io/")
+		_, err := gui.DeviceAgentClient.ShowAcceptableUse(ctx, &pb.ShowAcceptableUseRequest{})
+		if err != nil {
+			gui.log.WithError(err).Error("while showing acceptable use policy")
+		}
+
 	case QuitClicked:
 		_, err := gui.DeviceAgentClient.Logout(ctx, &pb.LogoutRequest{})
 		if err != nil {
