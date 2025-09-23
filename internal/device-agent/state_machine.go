@@ -24,13 +24,12 @@ func NewStateMachine(
 	notifier notify.Notifier,
 	deviceHelper pb.DeviceHelperClient,
 	statusUpdates chan<- *pb.AgentStatus,
-	onConnected chan<- *runtimeconfig.ApiServerInfo,
 	logger logrus.FieldLogger,
 ) *statemachine.StateMachine {
 	stateDisconnected := disconnected.New(rc, cfg)
 	stateAuthenticating := authenticating.New(rc, cfg, logger, notifier)
 	stateBootstrapping := bootstrapping.New(rc, logger, notifier, deviceHelper)
-	stateConnected := connected.New(rc, logger, notifier, deviceHelper, statusUpdates, onConnected)
+	stateConnected := connected.New(rc, logger, notifier, deviceHelper, statusUpdates)
 
 	transitions := map[state.EventType]statemachine.Transitions{
 		state.EventLogin: {

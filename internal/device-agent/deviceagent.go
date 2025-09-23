@@ -1,3 +1,4 @@
+// Package device_agent handles the gRPC server that ties the helper, systray/cli and apiserver together. It is the main driver on the device side.
 package device_agent
 
 import (
@@ -36,8 +37,6 @@ type DeviceAgentServer struct {
 
 	AgentStatus     *pb.AgentStatus
 	agentStatusLock sync.RWMutex
-
-	apiServer *runtimeconfig.ApiServerInfo
 }
 
 func (das *DeviceAgentServer) Login(ctx context.Context, request *pb.LoginRequest) (*pb.LoginResponse, error) {
@@ -134,54 +133,48 @@ func (das *DeviceAgentServer) SetActiveTenant(ctx context.Context, req *pb.SetAc
 }
 
 func (das *DeviceAgentServer) ShowAcceptableUse(ctx context.Context, _ *pb.ShowAcceptableUseRequest) (*pb.ShowAcceptableUseResponse, error) {
-	if das.apiServer == nil {
-		return nil, status.Errorf(codes.FailedPrecondition, "not connected to API server")
-	}
-
-	listener, err := net.Listen("tcp", "127.0.0.1:0")
-	if err != nil {
-		return nil, status.Errorf(codes.FailedPrecondition, "while creating acceptable use listener: %v", err)
-	}
-	url := "http://" + listener.Addr().String()
-	das.log.WithField("url", url).Debug("acceptable use server listening")
-
-	// TODO: fetch from apiserver
-	hasApproved := false
-
-	toggleApproval := make(chan struct{})
-	keepAlive := make(chan struct{})
-
-	srv := acceptableuse.NewServer(hasApproved, toggleApproval, keepAlive)
-	go func() {
-		if err := srv.Serve(listener); err != nil && !errors.Is(err, http.ErrServerClosed) {
-			das.log.WithError(err).Error("while serving acceptable use")
+	return nil, das.rc.WithAPIServer(func(apiserver pb.APIServerClient, key string) error {
+		listener, err := net.Listen("tcp", "127.0.0.1:0")
+		if err != nil {
+			return status.Errorf(codes.FailedPrecondition, "while creating acceptable use listener: %v", err)
 		}
-	}()
+		url := "http://" + listener.Addr().String()
+		das.log.WithField("url", url).Debug("acceptable use server listening")
 
-	defer func() { _ = srv.Close() }()
+		// TODO: fetch from apiserver
+		hasApproved := false
 
-	open.Open(url)
+		toggleApproval := make(chan struct{})
+		keepAlive := make(chan struct{})
 
-	for {
-		select {
-		case <-toggleApproval:
-			// TODO: call apiserver to toggle approval
+		srv := acceptableuse.NewServer(hasApproved, toggleApproval, keepAlive)
+		go func() {
+			if err := srv.Serve(listener); err != nil && !errors.Is(err, http.ErrServerClosed) {
+				das.log.WithError(err).Error("while serving acceptable use")
+			}
+		}()
 
-			das.log.Info("closing acceptable use server")
-			return nil, nil
-		case <-keepAlive:
-			das.log.Info("keeping acceptable use server alive")
-		case <-time.After(10 * time.Second):
-			das.log.Info("closing acceptable use server")
-			return nil, nil
-		case <-ctx.Done():
-			return nil, nil
+		defer func() { _ = srv.Close() }()
+
+		open.Open(url)
+
+		for {
+			select {
+			case <-toggleApproval:
+				// TODO: call apiserver to toggle approval
+
+				das.log.Info("closing acceptable use server")
+				return nil
+			case <-keepAlive:
+				das.log.Info("keeping acceptable use server alive")
+			case <-time.After(10 * time.Second):
+				das.log.Info("closing acceptable use server")
+				return nil
+			case <-ctx.Done():
+				return nil
+			}
 		}
-	}
-}
-
-func (das *DeviceAgentServer) SetApiServerInfo(info *runtimeconfig.ApiServerInfo) {
-	das.apiServer = info
+	})
 }
 
 func NewServer(ctx context.Context,

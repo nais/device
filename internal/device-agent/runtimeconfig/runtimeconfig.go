@@ -12,6 +12,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 	"time"
 
 	"cloud.google.com/go/storage"
@@ -61,6 +62,9 @@ type RuntimeConfig interface {
 	SetTenantSession(*pb.Session) error
 
 	BuildHelperConfiguration(peers []*pb.Gateway) *pb.Configuration
+
+	WithAPIServer(func(pb.APIServerClient, string) error) error
+	SetAPIServerInfo(pb.APIServerClient, string)
 }
 
 var _ RuntimeConfig = &runtimeConfig{}
@@ -72,6 +76,25 @@ type runtimeConfig struct {
 	tokens       *auth.Tokens
 	tenants      []*pb.Tenant
 	log          *logrus.Entry
+
+	apiserverClient pb.APIServerClient
+	apiserverKey    string
+	apiserverLock   sync.RWMutex
+}
+
+func (rc *runtimeConfig) SetAPIServerInfo(apiServerClient pb.APIServerClient, key string) {
+	rc.apiserverLock.Lock()
+	defer rc.apiserverLock.Unlock()
+
+	rc.apiserverClient = apiServerClient
+	rc.apiserverKey = key
+}
+
+func (rc *runtimeConfig) WithAPIServer(f func(pb.APIServerClient, string) error) error {
+	rc.apiserverLock.RLock()
+	defer rc.apiserverLock.RUnlock()
+
+	return f(rc.apiserverClient, rc.apiserverKey)
 }
 
 func (rc *runtimeConfig) DialAPIServer(ctx context.Context) (*grpc.ClientConn, error) {

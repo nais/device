@@ -252,6 +252,7 @@ func tableTest(t *testing.T, log *logrus.Entry, testDevice *pb.Device, endState 
 	rc.EXPECT().GetTenantSession().Return(session, nil)
 	rc.EXPECT().LoadEnrollConfig().Return(nil)
 	rc.EXPECT().APIServerPeer().Return(apiserverPeer)
+	rc.EXPECT().SetAPIServerInfo(mock.Anything, mock.Anything).Return()
 
 	initialHelperConfig := &pb.Configuration{
 		Gateways:   mapValues(initialPeers),

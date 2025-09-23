@@ -706,6 +706,52 @@ func (_c *MockRuntimeConfig_SaveEnrollConfig_Call) RunAndReturn(run func() error
 	return _c
 }
 
+// SetAPIServerInfo provides a mock function for the type MockRuntimeConfig
+func (_mock *MockRuntimeConfig) SetAPIServerInfo(aPIServerClient pb.APIServerClient, s string) {
+	_mock.Called(aPIServerClient, s)
+	return
+}
+
+// MockRuntimeConfig_SetAPIServerInfo_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'SetAPIServerInfo'
+type MockRuntimeConfig_SetAPIServerInfo_Call struct {
+	*mock.Call
+}
+
+// SetAPIServerInfo is a helper method to define mock.On call
+//   - aPIServerClient pb.APIServerClient
+//   - s string
+func (_e *MockRuntimeConfig_Expecter) SetAPIServerInfo(aPIServerClient interface{}, s interface{}) *MockRuntimeConfig_SetAPIServerInfo_Call {
+	return &MockRuntimeConfig_SetAPIServerInfo_Call{Call: _e.mock.On("SetAPIServerInfo", aPIServerClient, s)}
+}
+
+func (_c *MockRuntimeConfig_SetAPIServerInfo_Call) Run(run func(aPIServerClient pb.APIServerClient, s string)) *MockRuntimeConfig_SetAPIServerInfo_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 pb.APIServerClient
+		if args[0] != nil {
+			arg0 = args[0].(pb.APIServerClient)
+		}
+		var arg1 string
+		if args[1] != nil {
+			arg1 = args[1].(string)
+		}
+		run(
+			arg0,
+			arg1,
+		)
+	})
+	return _c
+}
+
+func (_c *MockRuntimeConfig_SetAPIServerInfo_Call) Return() *MockRuntimeConfig_SetAPIServerInfo_Call {
+	_c.Call.Return()
+	return _c
+}
+
+func (_c *MockRuntimeConfig_SetAPIServerInfo_Call) RunAndReturn(run func(aPIServerClient pb.APIServerClient, s string)) *MockRuntimeConfig_SetAPIServerInfo_Call {
+	_c.Run(run)
+	return _c
+}
+
 // SetActiveTenant provides a mock function for the type MockRuntimeConfig
 func (_mock *MockRuntimeConfig) SetActiveTenant(s string) error {
 	ret := _mock.Called(s)
@@ -890,6 +936,57 @@ func (_c *MockRuntimeConfig_Tenants_Call) Return(tenants []*pb.Tenant) *MockRunt
 }
 
 func (_c *MockRuntimeConfig_Tenants_Call) RunAndReturn(run func() []*pb.Tenant) *MockRuntimeConfig_Tenants_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// WithAPIServer provides a mock function for the type MockRuntimeConfig
+func (_mock *MockRuntimeConfig) WithAPIServer(fn func(pb.APIServerClient, string) error) error {
+	ret := _mock.Called(fn)
+
+	if len(ret) == 0 {
+		panic("no return value specified for WithAPIServer")
+	}
+
+	var r0 error
+	if returnFunc, ok := ret.Get(0).(func(func(pb.APIServerClient, string) error) error); ok {
+		r0 = returnFunc(fn)
+	} else {
+		r0 = ret.Error(0)
+	}
+	return r0
+}
+
+// MockRuntimeConfig_WithAPIServer_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'WithAPIServer'
+type MockRuntimeConfig_WithAPIServer_Call struct {
+	*mock.Call
+}
+
+// WithAPIServer is a helper method to define mock.On call
+//   - fn func(pb.APIServerClient, string) error
+func (_e *MockRuntimeConfig_Expecter) WithAPIServer(fn interface{}) *MockRuntimeConfig_WithAPIServer_Call {
+	return &MockRuntimeConfig_WithAPIServer_Call{Call: _e.mock.On("WithAPIServer", fn)}
+}
+
+func (_c *MockRuntimeConfig_WithAPIServer_Call) Run(run func(fn func(pb.APIServerClient, string) error)) *MockRuntimeConfig_WithAPIServer_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 func(pb.APIServerClient, string) error
+		if args[0] != nil {
+			arg0 = args[0].(func(pb.APIServerClient, string) error)
+		}
+		run(
+			arg0,
+		)
+	})
+	return _c
+}
+
+func (_c *MockRuntimeConfig_WithAPIServer_Call) Return(err error) *MockRuntimeConfig_WithAPIServer_Call {
+	_c.Call.Return(err)
+	return _c
+}
+
+func (_c *MockRuntimeConfig_WithAPIServer_Call) RunAndReturn(run func(fn func(pb.APIServerClient, string) error) error) *MockRuntimeConfig_WithAPIServer_Call {
 	_c.Call.Return(run)
 	return _c
 }
