@@ -256,6 +256,7 @@ func TestConnected_defaultSyncConfigLoop(t *testing.T) {
 			rc := runtimeconfig.NewMockRuntimeConfig(t)
 			rc.EXPECT().GetTenantSession().Return(session, nil)
 			rc.EXPECT().ConnectToAPIServer(mock.Anything).Return(apiServerClient, func() {}, nil)
+			rc.EXPECT().SetAPIServerInfo(mock.Anything, mock.Anything).Return()
 
 			deviceHelper := pb.NewMockDeviceHelperClient(t)
 			return rc, deviceHelper, getDeviceConfigClient

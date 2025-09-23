@@ -31,6 +31,7 @@ func TestStateMachine(t *testing.T) {
 		}, nil)
 		rc.EXPECT().LoadEnrollConfig().Return(nil)
 		rc.EXPECT().APIServerPeer().Return(&pb.Gateway{})
+		rc.EXPECT().SetAPIServerInfo(mock.Anything, mock.Anything).Return()
 		rc.EXPECT().BuildHelperConfiguration(mock.Anything).Return(&pb.Configuration{})
 
 		mockGetDeviceConfigclient := pb.NewMockAPIServer_GetDeviceConfigurationClient(t)
