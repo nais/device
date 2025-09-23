@@ -10,6 +10,7 @@ import (
 	"github.com/nais/device/internal/apiserver/auth"
 	"github.com/nais/device/internal/apiserver/database"
 	"github.com/nais/device/internal/apiserver/kolide"
+	"github.com/nais/device/internal/apiserver/sqlc"
 	"github.com/nais/device/pkg/pb"
 	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
@@ -49,6 +50,7 @@ func TestGetDeviceConfiguration(t *testing.T) {
 			Expiry: timestamppb.New(time.Now().Add(10 * time.Second)),
 			Device: testDevice,
 		}, nil)
+	db.On("GetApproval", mock.Anything, mock.Anything).Return(&sqlc.Approval{}, nil)
 	db.On("ReadDeviceById", mock.Anything, mock.Anything).Return(testDevice, nil)
 	db.On("ReadGateways", mock.Anything).Return([]*pb.Gateway{
 		{
