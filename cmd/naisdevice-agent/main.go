@@ -157,8 +157,9 @@ func run(ctx context.Context, log *logrus.Entry, cfg *config.Config, notifier no
 	}
 	log.WithField("grpc_address", cfg.GrpcAddress).Info("accepting network connections on unix socket")
 
+	onConnected := make(chan *runtimeconfig.ApiServerInfo)
 	statusChannel := make(chan *pb.AgentStatus, 32)
-	stateMachine := deviceagent.NewStateMachine(ctx, rc, *cfg, notifier, client, statusChannel, log.WithField("component", "statemachine"))
+	stateMachine := deviceagent.NewStateMachine(ctx, rc, *cfg, notifier, client, statusChannel, onConnected, log.WithField("component", "statemachine"))
 
 	grpcServer := grpc.NewServer(
 		grpc.StatsHandler(otelgrpc.NewServerHandler()),
@@ -188,6 +189,17 @@ func run(ctx context.Context, log *logrus.Entry, cfg *config.Config, notifier no
 		stateMachine.Run(ctx)
 		// after state machine is done, stop the grpcServer
 		grpcServer.Stop()
+	}()
+
+	go func() {
+		for ctx.Err() == nil {
+			select {
+			case <-ctx.Done():
+				return
+			case info := <-onConnected:
+				das.SetApiServerInfo(info)
+			}
+		}
 	}()
 
 	err = grpcServer.Serve(listener)

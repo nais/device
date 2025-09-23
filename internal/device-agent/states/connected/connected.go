@@ -43,21 +43,17 @@ type Connected struct {
 	connectedSince *timestamppb.Timestamp
 
 	syncConfigLoop func(ctx context.Context) error
+	onConnected    chan<- *runtimeconfig.ApiServerInfo
 }
 
-func New(
-	rc runtimeconfig.RuntimeConfig,
-	logger logrus.FieldLogger,
-	notifier notify.Notifier,
-	deviceHelper pb.DeviceHelperClient,
-	statusUpdates chan<- *pb.AgentStatus,
-) state.State {
+func New(rc runtimeconfig.RuntimeConfig, logger logrus.FieldLogger, notifier notify.Notifier, deviceHelper pb.DeviceHelperClient, statusUpdates chan<- *pb.AgentStatus, onConnected chan<- *runtimeconfig.ApiServerInfo) state.State {
 	c := &Connected{
 		rc:            rc,
 		logger:        logger,
 		notifier:      notifier,
 		deviceHelper:  deviceHelper,
 		statusUpdates: statusUpdates,
+		onConnected:   onConnected,
 	}
 	c.syncConfigLoop = c.defaultSyncConfigLoop
 	return c
@@ -309,6 +305,13 @@ func (c *Connected) syncSetup(ctx context.Context) (pb.APIServer_GetDeviceConfig
 	if err != nil {
 		cleanup()
 		return nil, nil, err
+	}
+
+	if c.onConnected != nil {
+		c.onConnected <- &runtimeconfig.ApiServerInfo{
+			Client:     apiserverClient,
+			SessionKey: session.Key,
+		}
 	}
 
 	streamContext, cancel := context.WithDeadline(ctx, session.Expiry.AsTime())

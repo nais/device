@@ -2,9 +2,15 @@ package device_agent
 
 import (
 	"context"
+	"errors"
+	"net"
+	"net/http"
 	"sync"
+	"time"
 
 	"github.com/google/uuid"
+	"github.com/nais/device/internal/device-agent/acceptableuse"
+	"github.com/nais/device/internal/device-agent/open"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -30,6 +36,8 @@ type DeviceAgentServer struct {
 
 	AgentStatus     *pb.AgentStatus
 	agentStatusLock sync.RWMutex
+
+	apiServer *runtimeconfig.ApiServerInfo
 }
 
 func (das *DeviceAgentServer) Login(ctx context.Context, request *pb.LoginRequest) (*pb.LoginResponse, error) {
@@ -123,6 +131,57 @@ func (das *DeviceAgentServer) SetActiveTenant(ctx context.Context, req *pb.SetAc
 	das.sendEvent(state.SpanEvent(ctx, state.EventDisconnect))
 	das.log.WithField("name", req.Name).Info("activated tenant")
 	return &pb.SetActiveTenantResponse{}, nil
+}
+
+func (das *DeviceAgentServer) ShowAcceptableUse(ctx context.Context, _ *pb.ShowAcceptableUseRequest) (*pb.ShowAcceptableUseResponse, error) {
+	if das.apiServer == nil {
+		return nil, status.Errorf(codes.FailedPrecondition, "not connected to API server")
+	}
+
+	listener, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		return nil, status.Errorf(codes.FailedPrecondition, "while creating acceptable use listener: %v", err)
+	}
+	url := "http://" + listener.Addr().String()
+	das.log.WithField("url", url).Debug("acceptable use server listening")
+
+	// TODO: fetch from apiserver
+	hasApproved := false
+
+	toggleApproval := make(chan struct{})
+	keepAlive := make(chan struct{})
+
+	srv := acceptableuse.NewServer(hasApproved, toggleApproval, keepAlive)
+	go func() {
+		if err := srv.Serve(listener); err != nil && !errors.Is(err, http.ErrServerClosed) {
+			das.log.WithError(err).Error("while serving acceptable use")
+		}
+	}()
+
+	defer func() { _ = srv.Close() }()
+
+	open.Open(url)
+
+	for {
+		select {
+		case <-toggleApproval:
+			// TODO: call apiserver to toggle approval
+
+			das.log.Info("closing acceptable use server")
+			return nil, nil
+		case <-keepAlive:
+			das.log.Info("keeping acceptable use server alive")
+		case <-time.After(10 * time.Second):
+			das.log.Info("closing acceptable use server")
+			return nil, nil
+		case <-ctx.Done():
+			return nil, nil
+		}
+	}
+}
+
+func (das *DeviceAgentServer) SetApiServerInfo(info *runtimeconfig.ApiServerInfo) {
+	das.apiServer = info
 }
 
 func NewServer(ctx context.Context,

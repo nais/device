@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <title>naisdevice - Do's and don'ts</title>
+</head>
+
+<body>
+<h1>Do's and don'ts</h1>
+<h2>Hi!</h2>
+<p>naisdevice removes the need for full-blown management of your device. This means that there are some do's and don'ts. You <strong>must</strong> actually read it and <strong>have to</strong> agree to the following set of guidelines to be admitted to the "program". If and when the Do's & Don'ts are updated a reapproval will be required.</p>
+<h3>Do</h3>
+<ul>
+    <li>join <a href="https://app.slack.com/client/T5LNAMWNA/C013XV66XHB">#naisdevice</a> on Slack as soon as possible.</li>
+    <li>make sure that you have activated your screen lock, especially if running on Linux. And beware of apps that override i.e. Caffeine/Amphetamine etc.</li>
+    <li>your best to secure your device.</li>
+    <li>report any security shortcomings you discover.</li>
+    <li>ask the naisdevice team if in doubt.</li>
+</ul>
+
+<h3>Don't</h3>
+<ul>
+    <li>enroll devices that are privately owned.</li>
+    <li>enroll more than one device.</li>
+    <li>share your device with others. A naisdevice is a personal device.</li>
+    <li>turn on sshd or similar services on your device.</li>
+    <li>set up your device as a proxy. For anything!</li>
+    <li>share network interfaces with virtual machines, meaning set them up as separate nodes on the network. This does not apply to containers.</li>
+    <li>take shortcuts.</li>
+    <li>move credentials off your device and transport them elsewhere. This does not mean that password managers are disallowed.</li>
+    <li>take your naisdevice abroad without reading <a target="_blank" href="https://navno.sharepoint.com/sites/intranett-sikkerhet/SitePages/Bruk-av-NAV-eid-utstyr-i-utlandet.aspx">this document</a>.</li>
+</ul>
+
+<p>NB. If you are enrolling a consultancy owned machine contact the naisdevice team on Slack so the machine can be registered.</p>
+
+<p>And otherwise: Just be nais.</p>
+
+<p>Changelog of the "do's and don'ts" can be inspected <a href="https://github.com/nais/device/blob/main/internal/device-agent/acceptableuse/templates/index.html">here</a>.</p>
+
+<p>Once you have accepted the guidelines you should check out the <a href="https://docs.nais.io/explanation/naisdevice/">documentation for naisdevice</a>.</p>
+
+<form method="POST" action="/toggle">
+    <input type="submit" id="toggle" value="{{ if .HasApproved }}Reject{{ else }}Accept{{ end }}"/>
+</form>
+
+<script>
+    setInterval(() => fetch('/ping'), 1000);
+</script>
+</body>
+</html>
