@@ -7,13 +7,12 @@
 package pb
 
 import (
-	reflect "reflect"
-	sync "sync"
-	unsafe "unsafe"
-
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	timestamppb "google.golang.org/protobuf/types/known/timestamppb"
+	reflect "reflect"
+	sync "sync"
+	unsafe "unsafe"
 )
 
 const (
@@ -840,6 +839,78 @@ func (*GetAgentConfigurationRequest) Descriptor() ([]byte, []int) {
 	return file_pkg_pb_protobuf_api_proto_rawDescGZIP(), []int{15}
 }
 
+type ShowAcceptableUseRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ShowAcceptableUseRequest) Reset() {
+	*x = ShowAcceptableUseRequest{}
+	mi := &file_pkg_pb_protobuf_api_proto_msgTypes[16]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ShowAcceptableUseRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ShowAcceptableUseRequest) ProtoMessage() {}
+
+func (x *ShowAcceptableUseRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_pkg_pb_protobuf_api_proto_msgTypes[16]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ShowAcceptableUseRequest.ProtoReflect.Descriptor instead.
+func (*ShowAcceptableUseRequest) Descriptor() ([]byte, []int) {
+	return file_pkg_pb_protobuf_api_proto_rawDescGZIP(), []int{16}
+}
+
+type ShowAcceptableUseResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ShowAcceptableUseResponse) Reset() {
+	*x = ShowAcceptableUseResponse{}
+	mi := &file_pkg_pb_protobuf_api_proto_msgTypes[17]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ShowAcceptableUseResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ShowAcceptableUseResponse) ProtoMessage() {}
+
+func (x *ShowAcceptableUseResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_pkg_pb_protobuf_api_proto_msgTypes[17]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ShowAcceptableUseResponse.ProtoReflect.Descriptor instead.
+func (*ShowAcceptableUseResponse) Descriptor() ([]byte, []int) {
+	return file_pkg_pb_protobuf_api_proto_rawDescGZIP(), []int{17}
+}
+
 type GetAgentConfigurationResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Config        *AgentConfiguration    `protobuf:"bytes,1,opt,name=config,proto3" json:"config,omitempty"`
@@ -849,7 +920,7 @@ type GetAgentConfigurationResponse struct {
 
 func (x *GetAgentConfigurationResponse) Reset() {
 	*x = GetAgentConfigurationResponse{}
-	mi := &file_pkg_pb_protobuf_api_proto_msgTypes[16]
+	mi := &file_pkg_pb_protobuf_api_proto_msgTypes[18]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -861,7 +932,7 @@ func (x *GetAgentConfigurationResponse) String() string {
 func (*GetAgentConfigurationResponse) ProtoMessage() {}
 
 func (x *GetAgentConfigurationResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_pb_protobuf_api_proto_msgTypes[16]
+	mi := &file_pkg_pb_protobuf_api_proto_msgTypes[18]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -874,7 +945,7 @@ func (x *GetAgentConfigurationResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetAgentConfigurationResponse.ProtoReflect.Descriptor instead.
 func (*GetAgentConfigurationResponse) Descriptor() ([]byte, []int) {
-	return file_pkg_pb_protobuf_api_proto_rawDescGZIP(), []int{16}
+	return file_pkg_pb_protobuf_api_proto_rawDescGZIP(), []int{18}
 }
 
 func (x *GetAgentConfigurationResponse) GetConfig() *AgentConfiguration {
@@ -893,7 +964,7 @@ type AgentStatusRequest struct {
 
 func (x *AgentStatusRequest) Reset() {
 	*x = AgentStatusRequest{}
-	mi := &file_pkg_pb_protobuf_api_proto_msgTypes[17]
+	mi := &file_pkg_pb_protobuf_api_proto_msgTypes[19]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -905,7 +976,7 @@ func (x *AgentStatusRequest) String() string {
 func (*AgentStatusRequest) ProtoMessage() {}
 
 func (x *AgentStatusRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_pb_protobuf_api_proto_msgTypes[17]
+	mi := &file_pkg_pb_protobuf_api_proto_msgTypes[19]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -918,7 +989,7 @@ func (x *AgentStatusRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AgentStatusRequest.ProtoReflect.Descriptor instead.
 func (*AgentStatusRequest) Descriptor() ([]byte, []int) {
-	return file_pkg_pb_protobuf_api_proto_rawDescGZIP(), []int{17}
+	return file_pkg_pb_protobuf_api_proto_rawDescGZIP(), []int{19}
 }
 
 func (x *AgentStatusRequest) GetKeepConnectionOnComplete() bool {
@@ -942,7 +1013,7 @@ type AgentStatus struct {
 
 func (x *AgentStatus) Reset() {
 	*x = AgentStatus{}
-	mi := &file_pkg_pb_protobuf_api_proto_msgTypes[18]
+	mi := &file_pkg_pb_protobuf_api_proto_msgTypes[20]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -954,7 +1025,7 @@ func (x *AgentStatus) String() string {
 func (*AgentStatus) ProtoMessage() {}
 
 func (x *AgentStatus) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_pb_protobuf_api_proto_msgTypes[18]
+	mi := &file_pkg_pb_protobuf_api_proto_msgTypes[20]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -967,7 +1038,7 @@ func (x *AgentStatus) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AgentStatus.ProtoReflect.Descriptor instead.
 func (*AgentStatus) Descriptor() ([]byte, []int) {
-	return file_pkg_pb_protobuf_api_proto_rawDescGZIP(), []int{18}
+	return file_pkg_pb_protobuf_api_proto_rawDescGZIP(), []int{20}
 }
 
 func (x *AgentStatus) GetConnectionState() AgentState {
@@ -1024,7 +1095,7 @@ type Configuration struct {
 
 func (x *Configuration) Reset() {
 	*x = Configuration{}
-	mi := &file_pkg_pb_protobuf_api_proto_msgTypes[19]
+	mi := &file_pkg_pb_protobuf_api_proto_msgTypes[21]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1036,7 +1107,7 @@ func (x *Configuration) String() string {
 func (*Configuration) ProtoMessage() {}
 
 func (x *Configuration) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_pb_protobuf_api_proto_msgTypes[19]
+	mi := &file_pkg_pb_protobuf_api_proto_msgTypes[21]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1049,7 +1120,7 @@ func (x *Configuration) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Configuration.ProtoReflect.Descriptor instead.
 func (*Configuration) Descriptor() ([]byte, []int) {
-	return file_pkg_pb_protobuf_api_proto_rawDescGZIP(), []int{19}
+	return file_pkg_pb_protobuf_api_proto_rawDescGZIP(), []int{21}
 }
 
 func (x *Configuration) GetPrivateKey() string {
@@ -1091,7 +1162,7 @@ type ModifyGatewayRequest struct {
 
 func (x *ModifyGatewayRequest) Reset() {
 	*x = ModifyGatewayRequest{}
-	mi := &file_pkg_pb_protobuf_api_proto_msgTypes[20]
+	mi := &file_pkg_pb_protobuf_api_proto_msgTypes[22]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1103,7 +1174,7 @@ func (x *ModifyGatewayRequest) String() string {
 func (*ModifyGatewayRequest) ProtoMessage() {}
 
 func (x *ModifyGatewayRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_pb_protobuf_api_proto_msgTypes[20]
+	mi := &file_pkg_pb_protobuf_api_proto_msgTypes[22]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1116,7 +1187,7 @@ func (x *ModifyGatewayRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ModifyGatewayRequest.ProtoReflect.Descriptor instead.
 func (*ModifyGatewayRequest) Descriptor() ([]byte, []int) {
-	return file_pkg_pb_protobuf_api_proto_rawDescGZIP(), []int{20}
+	return file_pkg_pb_protobuf_api_proto_rawDescGZIP(), []int{22}
 }
 
 func (x *ModifyGatewayRequest) GetPassword() string {
@@ -1149,7 +1220,7 @@ type ModifyGatewayResponse struct {
 
 func (x *ModifyGatewayResponse) Reset() {
 	*x = ModifyGatewayResponse{}
-	mi := &file_pkg_pb_protobuf_api_proto_msgTypes[21]
+	mi := &file_pkg_pb_protobuf_api_proto_msgTypes[23]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1161,7 +1232,7 @@ func (x *ModifyGatewayResponse) String() string {
 func (*ModifyGatewayResponse) ProtoMessage() {}
 
 func (x *ModifyGatewayResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_pb_protobuf_api_proto_msgTypes[21]
+	mi := &file_pkg_pb_protobuf_api_proto_msgTypes[23]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1174,7 +1245,7 @@ func (x *ModifyGatewayResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ModifyGatewayResponse.ProtoReflect.Descriptor instead.
 func (*ModifyGatewayResponse) Descriptor() ([]byte, []int) {
-	return file_pkg_pb_protobuf_api_proto_rawDescGZIP(), []int{21}
+	return file_pkg_pb_protobuf_api_proto_rawDescGZIP(), []int{23}
 }
 
 func (x *ModifyGatewayResponse) GetGateway() *Gateway {
@@ -1203,7 +1274,7 @@ type Gateway struct {
 
 func (x *Gateway) Reset() {
 	*x = Gateway{}
-	mi := &file_pkg_pb_protobuf_api_proto_msgTypes[22]
+	mi := &file_pkg_pb_protobuf_api_proto_msgTypes[24]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1215,7 +1286,7 @@ func (x *Gateway) String() string {
 func (*Gateway) ProtoMessage() {}
 
 func (x *Gateway) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_pb_protobuf_api_proto_msgTypes[22]
+	mi := &file_pkg_pb_protobuf_api_proto_msgTypes[24]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1228,7 +1299,7 @@ func (x *Gateway) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Gateway.ProtoReflect.Descriptor instead.
 func (*Gateway) Descriptor() ([]byte, []int) {
-	return file_pkg_pb_protobuf_api_proto_rawDescGZIP(), []int{22}
+	return file_pkg_pb_protobuf_api_proto_rawDescGZIP(), []int{24}
 }
 
 func (x *Gateway) GetName() string {
@@ -1317,7 +1388,7 @@ type Error struct {
 
 func (x *Error) Reset() {
 	*x = Error{}
-	mi := &file_pkg_pb_protobuf_api_proto_msgTypes[23]
+	mi := &file_pkg_pb_protobuf_api_proto_msgTypes[25]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1329,7 +1400,7 @@ func (x *Error) String() string {
 func (*Error) ProtoMessage() {}
 
 func (x *Error) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_pb_protobuf_api_proto_msgTypes[23]
+	mi := &file_pkg_pb_protobuf_api_proto_msgTypes[25]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1342,7 +1413,7 @@ func (x *Error) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Error.ProtoReflect.Descriptor instead.
 func (*Error) Descriptor() ([]byte, []int) {
-	return file_pkg_pb_protobuf_api_proto_rawDescGZIP(), []int{23}
+	return file_pkg_pb_protobuf_api_proto_rawDescGZIP(), []int{25}
 }
 
 func (x *Error) GetMessage() string {
@@ -1361,7 +1432,7 @@ type SetActiveTenantRequest struct {
 
 func (x *SetActiveTenantRequest) Reset() {
 	*x = SetActiveTenantRequest{}
-	mi := &file_pkg_pb_protobuf_api_proto_msgTypes[24]
+	mi := &file_pkg_pb_protobuf_api_proto_msgTypes[26]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1373,7 +1444,7 @@ func (x *SetActiveTenantRequest) String() string {
 func (*SetActiveTenantRequest) ProtoMessage() {}
 
 func (x *SetActiveTenantRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_pb_protobuf_api_proto_msgTypes[24]
+	mi := &file_pkg_pb_protobuf_api_proto_msgTypes[26]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1386,7 +1457,7 @@ func (x *SetActiveTenantRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SetActiveTenantRequest.ProtoReflect.Descriptor instead.
 func (*SetActiveTenantRequest) Descriptor() ([]byte, []int) {
-	return file_pkg_pb_protobuf_api_proto_rawDescGZIP(), []int{24}
+	return file_pkg_pb_protobuf_api_proto_rawDescGZIP(), []int{26}
 }
 
 func (x *SetActiveTenantRequest) GetName() string {
@@ -1404,7 +1475,7 @@ type SetActiveTenantResponse struct {
 
 func (x *SetActiveTenantResponse) Reset() {
 	*x = SetActiveTenantResponse{}
-	mi := &file_pkg_pb_protobuf_api_proto_msgTypes[25]
+	mi := &file_pkg_pb_protobuf_api_proto_msgTypes[27]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1416,7 +1487,7 @@ func (x *SetActiveTenantResponse) String() string {
 func (*SetActiveTenantResponse) ProtoMessage() {}
 
 func (x *SetActiveTenantResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_pb_protobuf_api_proto_msgTypes[25]
+	mi := &file_pkg_pb_protobuf_api_proto_msgTypes[27]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1429,7 +1500,7 @@ func (x *SetActiveTenantResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SetActiveTenantResponse.ProtoReflect.Descriptor instead.
 func (*SetActiveTenantResponse) Descriptor() ([]byte, []int) {
-	return file_pkg_pb_protobuf_api_proto_rawDescGZIP(), []int{25}
+	return file_pkg_pb_protobuf_api_proto_rawDescGZIP(), []int{27}
 }
 
 type Tenant struct {
@@ -1445,7 +1516,7 @@ type Tenant struct {
 
 func (x *Tenant) Reset() {
 	*x = Tenant{}
-	mi := &file_pkg_pb_protobuf_api_proto_msgTypes[26]
+	mi := &file_pkg_pb_protobuf_api_proto_msgTypes[28]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1457,7 +1528,7 @@ func (x *Tenant) String() string {
 func (*Tenant) ProtoMessage() {}
 
 func (x *Tenant) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_pb_protobuf_api_proto_msgTypes[26]
+	mi := &file_pkg_pb_protobuf_api_proto_msgTypes[28]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1470,7 +1541,7 @@ func (x *Tenant) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Tenant.ProtoReflect.Descriptor instead.
 func (*Tenant) Descriptor() ([]byte, []int) {
-	return file_pkg_pb_protobuf_api_proto_rawDescGZIP(), []int{26}
+	return file_pkg_pb_protobuf_api_proto_rawDescGZIP(), []int{28}
 }
 
 func (x *Tenant) GetName() string {
@@ -1518,7 +1589,7 @@ type AgentConfiguration struct {
 
 func (x *AgentConfiguration) Reset() {
 	*x = AgentConfiguration{}
-	mi := &file_pkg_pb_protobuf_api_proto_msgTypes[27]
+	mi := &file_pkg_pb_protobuf_api_proto_msgTypes[29]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1530,7 +1601,7 @@ func (x *AgentConfiguration) String() string {
 func (*AgentConfiguration) ProtoMessage() {}
 
 func (x *AgentConfiguration) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_pb_protobuf_api_proto_msgTypes[27]
+	mi := &file_pkg_pb_protobuf_api_proto_msgTypes[29]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1543,7 +1614,7 @@ func (x *AgentConfiguration) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AgentConfiguration.ProtoReflect.Descriptor instead.
 func (*AgentConfiguration) Descriptor() ([]byte, []int) {
-	return file_pkg_pb_protobuf_api_proto_rawDescGZIP(), []int{27}
+	return file_pkg_pb_protobuf_api_proto_rawDescGZIP(), []int{29}
 }
 
 func (x *AgentConfiguration) GetAutoConnect() bool {
@@ -1570,7 +1641,7 @@ type GetGatewayConfigurationRequest struct {
 
 func (x *GetGatewayConfigurationRequest) Reset() {
 	*x = GetGatewayConfigurationRequest{}
-	mi := &file_pkg_pb_protobuf_api_proto_msgTypes[28]
+	mi := &file_pkg_pb_protobuf_api_proto_msgTypes[30]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1582,7 +1653,7 @@ func (x *GetGatewayConfigurationRequest) String() string {
 func (*GetGatewayConfigurationRequest) ProtoMessage() {}
 
 func (x *GetGatewayConfigurationRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_pb_protobuf_api_proto_msgTypes[28]
+	mi := &file_pkg_pb_protobuf_api_proto_msgTypes[30]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1595,7 +1666,7 @@ func (x *GetGatewayConfigurationRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetGatewayConfigurationRequest.ProtoReflect.Descriptor instead.
 func (*GetGatewayConfigurationRequest) Descriptor() ([]byte, []int) {
-	return file_pkg_pb_protobuf_api_proto_rawDescGZIP(), []int{28}
+	return file_pkg_pb_protobuf_api_proto_rawDescGZIP(), []int{30}
 }
 
 func (x *GetGatewayConfigurationRequest) GetGateway() string {
@@ -1623,7 +1694,7 @@ type GetGatewayConfigurationResponse struct {
 
 func (x *GetGatewayConfigurationResponse) Reset() {
 	*x = GetGatewayConfigurationResponse{}
-	mi := &file_pkg_pb_protobuf_api_proto_msgTypes[29]
+	mi := &file_pkg_pb_protobuf_api_proto_msgTypes[31]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1635,7 +1706,7 @@ func (x *GetGatewayConfigurationResponse) String() string {
 func (*GetGatewayConfigurationResponse) ProtoMessage() {}
 
 func (x *GetGatewayConfigurationResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_pb_protobuf_api_proto_msgTypes[29]
+	mi := &file_pkg_pb_protobuf_api_proto_msgTypes[31]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1648,7 +1719,7 @@ func (x *GetGatewayConfigurationResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetGatewayConfigurationResponse.ProtoReflect.Descriptor instead.
 func (*GetGatewayConfigurationResponse) Descriptor() ([]byte, []int) {
-	return file_pkg_pb_protobuf_api_proto_rawDescGZIP(), []int{29}
+	return file_pkg_pb_protobuf_api_proto_rawDescGZIP(), []int{31}
 }
 
 func (x *GetGatewayConfigurationResponse) GetDevices() []*Device {
@@ -1681,7 +1752,7 @@ type GetDeviceConfigurationRequest struct {
 
 func (x *GetDeviceConfigurationRequest) Reset() {
 	*x = GetDeviceConfigurationRequest{}
-	mi := &file_pkg_pb_protobuf_api_proto_msgTypes[30]
+	mi := &file_pkg_pb_protobuf_api_proto_msgTypes[32]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1693,7 +1764,7 @@ func (x *GetDeviceConfigurationRequest) String() string {
 func (*GetDeviceConfigurationRequest) ProtoMessage() {}
 
 func (x *GetDeviceConfigurationRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_pb_protobuf_api_proto_msgTypes[30]
+	mi := &file_pkg_pb_protobuf_api_proto_msgTypes[32]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1706,7 +1777,7 @@ func (x *GetDeviceConfigurationRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetDeviceConfigurationRequest.ProtoReflect.Descriptor instead.
 func (*GetDeviceConfigurationRequest) Descriptor() ([]byte, []int) {
-	return file_pkg_pb_protobuf_api_proto_rawDescGZIP(), []int{30}
+	return file_pkg_pb_protobuf_api_proto_rawDescGZIP(), []int{32}
 }
 
 func (x *GetDeviceConfigurationRequest) GetSessionKey() string {
@@ -1728,7 +1799,7 @@ type APIServerLoginRequest struct {
 
 func (x *APIServerLoginRequest) Reset() {
 	*x = APIServerLoginRequest{}
-	mi := &file_pkg_pb_protobuf_api_proto_msgTypes[31]
+	mi := &file_pkg_pb_protobuf_api_proto_msgTypes[33]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1740,7 +1811,7 @@ func (x *APIServerLoginRequest) String() string {
 func (*APIServerLoginRequest) ProtoMessage() {}
 
 func (x *APIServerLoginRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_pb_protobuf_api_proto_msgTypes[31]
+	mi := &file_pkg_pb_protobuf_api_proto_msgTypes[33]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1753,7 +1824,7 @@ func (x *APIServerLoginRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use APIServerLoginRequest.ProtoReflect.Descriptor instead.
 func (*APIServerLoginRequest) Descriptor() ([]byte, []int) {
-	return file_pkg_pb_protobuf_api_proto_rawDescGZIP(), []int{31}
+	return file_pkg_pb_protobuf_api_proto_rawDescGZIP(), []int{33}
 }
 
 func (x *APIServerLoginRequest) GetToken() string {
@@ -1793,7 +1864,7 @@ type APIServerLoginResponse struct {
 
 func (x *APIServerLoginResponse) Reset() {
 	*x = APIServerLoginResponse{}
-	mi := &file_pkg_pb_protobuf_api_proto_msgTypes[32]
+	mi := &file_pkg_pb_protobuf_api_proto_msgTypes[34]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1805,7 +1876,7 @@ func (x *APIServerLoginResponse) String() string {
 func (*APIServerLoginResponse) ProtoMessage() {}
 
 func (x *APIServerLoginResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_pb_protobuf_api_proto_msgTypes[32]
+	mi := &file_pkg_pb_protobuf_api_proto_msgTypes[34]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1818,7 +1889,7 @@ func (x *APIServerLoginResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use APIServerLoginResponse.ProtoReflect.Descriptor instead.
 func (*APIServerLoginResponse) Descriptor() ([]byte, []int) {
-	return file_pkg_pb_protobuf_api_proto_rawDescGZIP(), []int{32}
+	return file_pkg_pb_protobuf_api_proto_rawDescGZIP(), []int{34}
 }
 
 func (x *APIServerLoginResponse) GetSession() *Session {
@@ -1839,7 +1910,7 @@ type GetDeviceConfigurationResponse struct {
 
 func (x *GetDeviceConfigurationResponse) Reset() {
 	*x = GetDeviceConfigurationResponse{}
-	mi := &file_pkg_pb_protobuf_api_proto_msgTypes[33]
+	mi := &file_pkg_pb_protobuf_api_proto_msgTypes[35]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1851,7 +1922,7 @@ func (x *GetDeviceConfigurationResponse) String() string {
 func (*GetDeviceConfigurationResponse) ProtoMessage() {}
 
 func (x *GetDeviceConfigurationResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_pb_protobuf_api_proto_msgTypes[33]
+	mi := &file_pkg_pb_protobuf_api_proto_msgTypes[35]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1864,7 +1935,7 @@ func (x *GetDeviceConfigurationResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetDeviceConfigurationResponse.ProtoReflect.Descriptor instead.
 func (*GetDeviceConfigurationResponse) Descriptor() ([]byte, []int) {
-	return file_pkg_pb_protobuf_api_proto_rawDescGZIP(), []int{33}
+	return file_pkg_pb_protobuf_api_proto_rawDescGZIP(), []int{35}
 }
 
 func (x *GetDeviceConfigurationResponse) GetStatus() DeviceConfigurationStatus {
@@ -1902,7 +1973,7 @@ type DeviceIssue struct {
 
 func (x *DeviceIssue) Reset() {
 	*x = DeviceIssue{}
-	mi := &file_pkg_pb_protobuf_api_proto_msgTypes[34]
+	mi := &file_pkg_pb_protobuf_api_proto_msgTypes[36]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1914,7 +1985,7 @@ func (x *DeviceIssue) String() string {
 func (*DeviceIssue) ProtoMessage() {}
 
 func (x *DeviceIssue) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_pb_protobuf_api_proto_msgTypes[34]
+	mi := &file_pkg_pb_protobuf_api_proto_msgTypes[36]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1927,7 +1998,7 @@ func (x *DeviceIssue) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeviceIssue.ProtoReflect.Descriptor instead.
 func (*DeviceIssue) Descriptor() ([]byte, []int) {
-	return file_pkg_pb_protobuf_api_proto_rawDescGZIP(), []int{34}
+	return file_pkg_pb_protobuf_api_proto_rawDescGZIP(), []int{36}
 }
 
 func (x *DeviceIssue) GetTitle() string {
@@ -1982,7 +2053,7 @@ type ListGatewayRequest struct {
 
 func (x *ListGatewayRequest) Reset() {
 	*x = ListGatewayRequest{}
-	mi := &file_pkg_pb_protobuf_api_proto_msgTypes[35]
+	mi := &file_pkg_pb_protobuf_api_proto_msgTypes[37]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1994,7 +2065,7 @@ func (x *ListGatewayRequest) String() string {
 func (*ListGatewayRequest) ProtoMessage() {}
 
 func (x *ListGatewayRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_pb_protobuf_api_proto_msgTypes[35]
+	mi := &file_pkg_pb_protobuf_api_proto_msgTypes[37]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2007,7 +2078,7 @@ func (x *ListGatewayRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListGatewayRequest.ProtoReflect.Descriptor instead.
 func (*ListGatewayRequest) Descriptor() ([]byte, []int) {
-	return file_pkg_pb_protobuf_api_proto_rawDescGZIP(), []int{35}
+	return file_pkg_pb_protobuf_api_proto_rawDescGZIP(), []int{37}
 }
 
 func (x *ListGatewayRequest) GetPassword() string {
@@ -2043,7 +2114,7 @@ type Device struct {
 
 func (x *Device) Reset() {
 	*x = Device{}
-	mi := &file_pkg_pb_protobuf_api_proto_msgTypes[36]
+	mi := &file_pkg_pb_protobuf_api_proto_msgTypes[38]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2055,7 +2126,7 @@ func (x *Device) String() string {
 func (*Device) ProtoMessage() {}
 
 func (x *Device) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_pb_protobuf_api_proto_msgTypes[36]
+	mi := &file_pkg_pb_protobuf_api_proto_msgTypes[38]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2068,7 +2139,7 @@ func (x *Device) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Device.ProtoReflect.Descriptor instead.
 func (*Device) Descriptor() ([]byte, []int) {
-	return file_pkg_pb_protobuf_api_proto_rawDescGZIP(), []int{36}
+	return file_pkg_pb_protobuf_api_proto_rawDescGZIP(), []int{38}
 }
 
 func (x *Device) GetId() int64 {
@@ -2161,7 +2232,7 @@ type Session struct {
 
 func (x *Session) Reset() {
 	*x = Session{}
-	mi := &file_pkg_pb_protobuf_api_proto_msgTypes[37]
+	mi := &file_pkg_pb_protobuf_api_proto_msgTypes[39]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2173,7 +2244,7 @@ func (x *Session) String() string {
 func (*Session) ProtoMessage() {}
 
 func (x *Session) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_pb_protobuf_api_proto_msgTypes[37]
+	mi := &file_pkg_pb_protobuf_api_proto_msgTypes[39]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2186,7 +2257,7 @@ func (x *Session) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Session.ProtoReflect.Descriptor instead.
 func (*Session) Descriptor() ([]byte, []int) {
-	return file_pkg_pb_protobuf_api_proto_rawDescGZIP(), []int{37}
+	return file_pkg_pb_protobuf_api_proto_rawDescGZIP(), []int{39}
 }
 
 func (x *Session) GetKey() string {
@@ -2234,7 +2305,7 @@ type GetSessionsRequest struct {
 
 func (x *GetSessionsRequest) Reset() {
 	*x = GetSessionsRequest{}
-	mi := &file_pkg_pb_protobuf_api_proto_msgTypes[38]
+	mi := &file_pkg_pb_protobuf_api_proto_msgTypes[40]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2246,7 +2317,7 @@ func (x *GetSessionsRequest) String() string {
 func (*GetSessionsRequest) ProtoMessage() {}
 
 func (x *GetSessionsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_pb_protobuf_api_proto_msgTypes[38]
+	mi := &file_pkg_pb_protobuf_api_proto_msgTypes[40]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2259,7 +2330,7 @@ func (x *GetSessionsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetSessionsRequest.ProtoReflect.Descriptor instead.
 func (*GetSessionsRequest) Descriptor() ([]byte, []int) {
-	return file_pkg_pb_protobuf_api_proto_rawDescGZIP(), []int{38}
+	return file_pkg_pb_protobuf_api_proto_rawDescGZIP(), []int{40}
 }
 
 func (x *GetSessionsRequest) GetPassword() string {
@@ -2285,7 +2356,7 @@ type GetSessionsResponse struct {
 
 func (x *GetSessionsResponse) Reset() {
 	*x = GetSessionsResponse{}
-	mi := &file_pkg_pb_protobuf_api_proto_msgTypes[39]
+	mi := &file_pkg_pb_protobuf_api_proto_msgTypes[41]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2297,7 +2368,7 @@ func (x *GetSessionsResponse) String() string {
 func (*GetSessionsResponse) ProtoMessage() {}
 
 func (x *GetSessionsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_pb_protobuf_api_proto_msgTypes[39]
+	mi := &file_pkg_pb_protobuf_api_proto_msgTypes[41]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2310,7 +2381,7 @@ func (x *GetSessionsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetSessionsResponse.ProtoReflect.Descriptor instead.
 func (*GetSessionsResponse) Descriptor() ([]byte, []int) {
-	return file_pkg_pb_protobuf_api_proto_rawDescGZIP(), []int{39}
+	return file_pkg_pb_protobuf_api_proto_rawDescGZIP(), []int{41}
 }
 
 func (x *GetSessionsResponse) GetSessions() []*Session {
@@ -2328,7 +2399,7 @@ type PingRequest struct {
 
 func (x *PingRequest) Reset() {
 	*x = PingRequest{}
-	mi := &file_pkg_pb_protobuf_api_proto_msgTypes[40]
+	mi := &file_pkg_pb_protobuf_api_proto_msgTypes[42]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2340,7 +2411,7 @@ func (x *PingRequest) String() string {
 func (*PingRequest) ProtoMessage() {}
 
 func (x *PingRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_pb_protobuf_api_proto_msgTypes[40]
+	mi := &file_pkg_pb_protobuf_api_proto_msgTypes[42]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2353,7 +2424,7 @@ func (x *PingRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PingRequest.ProtoReflect.Descriptor instead.
 func (*PingRequest) Descriptor() ([]byte, []int) {
-	return file_pkg_pb_protobuf_api_proto_rawDescGZIP(), []int{40}
+	return file_pkg_pb_protobuf_api_proto_rawDescGZIP(), []int{42}
 }
 
 type PingResponse struct {
@@ -2364,7 +2435,7 @@ type PingResponse struct {
 
 func (x *PingResponse) Reset() {
 	*x = PingResponse{}
-	mi := &file_pkg_pb_protobuf_api_proto_msgTypes[41]
+	mi := &file_pkg_pb_protobuf_api_proto_msgTypes[43]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2376,7 +2447,7 @@ func (x *PingResponse) String() string {
 func (*PingResponse) ProtoMessage() {}
 
 func (x *PingResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_pb_protobuf_api_proto_msgTypes[41]
+	mi := &file_pkg_pb_protobuf_api_proto_msgTypes[43]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2389,7 +2460,7 @@ func (x *PingResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PingResponse.ProtoReflect.Descriptor instead.
 func (*PingResponse) Descriptor() ([]byte, []int) {
-	return file_pkg_pb_protobuf_api_proto_rawDescGZIP(), []int{41}
+	return file_pkg_pb_protobuf_api_proto_rawDescGZIP(), []int{43}
 }
 
 type GetKolideCacheRequest struct {
@@ -2402,7 +2473,7 @@ type GetKolideCacheRequest struct {
 
 func (x *GetKolideCacheRequest) Reset() {
 	*x = GetKolideCacheRequest{}
-	mi := &file_pkg_pb_protobuf_api_proto_msgTypes[42]
+	mi := &file_pkg_pb_protobuf_api_proto_msgTypes[44]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2414,7 +2485,7 @@ func (x *GetKolideCacheRequest) String() string {
 func (*GetKolideCacheRequest) ProtoMessage() {}
 
 func (x *GetKolideCacheRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_pb_protobuf_api_proto_msgTypes[42]
+	mi := &file_pkg_pb_protobuf_api_proto_msgTypes[44]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2427,7 +2498,7 @@ func (x *GetKolideCacheRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetKolideCacheRequest.ProtoReflect.Descriptor instead.
 func (*GetKolideCacheRequest) Descriptor() ([]byte, []int) {
-	return file_pkg_pb_protobuf_api_proto_rawDescGZIP(), []int{42}
+	return file_pkg_pb_protobuf_api_proto_rawDescGZIP(), []int{44}
 }
 
 func (x *GetKolideCacheRequest) GetPassword() string {
@@ -2453,7 +2524,7 @@ type GetKolideCacheResponse struct {
 
 func (x *GetKolideCacheResponse) Reset() {
 	*x = GetKolideCacheResponse{}
-	mi := &file_pkg_pb_protobuf_api_proto_msgTypes[43]
+	mi := &file_pkg_pb_protobuf_api_proto_msgTypes[45]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2465,7 +2536,7 @@ func (x *GetKolideCacheResponse) String() string {
 func (*GetKolideCacheResponse) ProtoMessage() {}
 
 func (x *GetKolideCacheResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_pb_protobuf_api_proto_msgTypes[43]
+	mi := &file_pkg_pb_protobuf_api_proto_msgTypes[45]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2478,7 +2549,7 @@ func (x *GetKolideCacheResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetKolideCacheResponse.ProtoReflect.Descriptor instead.
 func (*GetKolideCacheResponse) Descriptor() ([]byte, []int) {
-	return file_pkg_pb_protobuf_api_proto_rawDescGZIP(), []int{43}
+	return file_pkg_pb_protobuf_api_proto_rawDescGZIP(), []int{45}
 }
 
 func (x *GetKolideCacheResponse) GetRawChecks() []byte {
@@ -2512,7 +2583,9 @@ const file_pkg_pb_protobuf_api_proto_rawDesc = "" +
 	"\x1cSetAgentConfigurationRequest\x126\n" +
 	"\x06config\x18\x01 \x01(\v2\x1e.naisdevice.AgentConfigurationR\x06config\"\x1f\n" +
 	"\x1dSetAgentConfigurationResponse\"\x1e\n" +
-	"\x1cGetAgentConfigurationRequest\"W\n" +
+	"\x1cGetAgentConfigurationRequest\"\x1a\n" +
+	"\x18ShowAcceptableUseRequest\"\x1b\n" +
+	"\x19ShowAcceptableUseResponse\"W\n" +
 	"\x1dGetAgentConfigurationResponse\x126\n" +
 	"\x06config\x18\x01 \x01(\v2\x1e.naisdevice.AgentConfigurationR\x06config\"P\n" +
 	"\x12AgentStatusRequest\x12:\n" +
@@ -2677,7 +2750,7 @@ const file_pkg_pb_protobuf_api_proto_rawDesc = "" +
 	"\bTeardown\x12\x1b.naisdevice.TeardownRequest\x1a\x1c.naisdevice.TeardownResponse\"\x00\x12D\n" +
 	"\aUpgrade\x12\x1a.naisdevice.UpgradeRequest\x1a\x1b.naisdevice.UpgradeResponse\"\x00\x12J\n" +
 	"\tGetSerial\x12\x1c.naisdevice.GetSerialRequest\x1a\x1d.naisdevice.GetSerialResponse\"\x00\x12;\n" +
-	"\x04Ping\x12\x17.naisdevice.PingRequest\x1a\x18.naisdevice.PingResponse\"\x002\xed\x04\n" +
+	"\x04Ping\x12\x17.naisdevice.PingRequest\x1a\x18.naisdevice.PingResponse\"\x002\xd1\x05\n" +
 	"\vDeviceAgent\x12E\n" +
 	"\x06Status\x12\x1e.naisdevice.AgentStatusRequest\x1a\x17.naisdevice.AgentStatus\"\x000\x01\x12V\n" +
 	"\rConfigureJITA\x12 .naisdevice.ConfigureJITARequest\x1a!.naisdevice.ConfigureJITAResponse\"\x00\x12>\n" +
@@ -2685,7 +2758,8 @@ const file_pkg_pb_protobuf_api_proto_rawDesc = "" +
 	"\x06Logout\x12\x19.naisdevice.LogoutRequest\x1a\x1a.naisdevice.LogoutResponse\"\x00\x12\\\n" +
 	"\x0fSetActiveTenant\x12\".naisdevice.SetActiveTenantRequest\x1a#.naisdevice.SetActiveTenantResponse\"\x00\x12n\n" +
 	"\x15SetAgentConfiguration\x12(.naisdevice.SetAgentConfigurationRequest\x1a).naisdevice.SetAgentConfigurationResponse\"\x00\x12n\n" +
-	"\x15GetAgentConfiguration\x12(.naisdevice.GetAgentConfigurationRequest\x1a).naisdevice.GetAgentConfigurationResponse\"\x002\xb7\x06\n" +
+	"\x15GetAgentConfiguration\x12(.naisdevice.GetAgentConfigurationRequest\x1a).naisdevice.GetAgentConfigurationResponse\"\x00\x12b\n" +
+	"\x11ShowAcceptableUse\x12$.naisdevice.ShowAcceptableUseRequest\x1a%.naisdevice.ShowAcceptableUseResponse\"\x002\xb7\x06\n" +
 	"\tAPIServer\x12P\n" +
 	"\x05Login\x12!.naisdevice.APIServerLoginRequest\x1a\".naisdevice.APIServerLoginResponse\"\x00\x12s\n" +
 	"\x16GetDeviceConfiguration\x12).naisdevice.GetDeviceConfigurationRequest\x1a*.naisdevice.GetDeviceConfigurationResponse\"\x000\x01\x12v\n" +
@@ -2710,135 +2784,136 @@ func file_pkg_pb_protobuf_api_proto_rawDescGZIP() []byte {
 	return file_pkg_pb_protobuf_api_proto_rawDescData
 }
 
-var (
-	file_pkg_pb_protobuf_api_proto_enumTypes = make([]protoimpl.EnumInfo, 4)
-	file_pkg_pb_protobuf_api_proto_msgTypes  = make([]protoimpl.MessageInfo, 44)
-	file_pkg_pb_protobuf_api_proto_goTypes   = []any{
-		(AgentState)(0),                         // 0: naisdevice.AgentState
-		(DeviceConfigurationStatus)(0),          // 1: naisdevice.DeviceConfigurationStatus
-		(AuthProvider)(0),                       // 2: naisdevice.AuthProvider
-		(Severity)(0),                           // 3: naisdevice.Severity
-		(*TeardownRequest)(nil),                 // 4: naisdevice.TeardownRequest
-		(*TeardownResponse)(nil),                // 5: naisdevice.TeardownResponse
-		(*ConfigureResponse)(nil),               // 6: naisdevice.ConfigureResponse
-		(*ConfigureJITAResponse)(nil),           // 7: naisdevice.ConfigureJITAResponse
-		(*LoginResponse)(nil),                   // 8: naisdevice.LoginResponse
-		(*LogoutResponse)(nil),                  // 9: naisdevice.LogoutResponse
-		(*UpgradeRequest)(nil),                  // 10: naisdevice.UpgradeRequest
-		(*UpgradeResponse)(nil),                 // 11: naisdevice.UpgradeResponse
-		(*GetSerialRequest)(nil),                // 12: naisdevice.GetSerialRequest
-		(*GetSerialResponse)(nil),               // 13: naisdevice.GetSerialResponse
-		(*ConfigureJITARequest)(nil),            // 14: naisdevice.ConfigureJITARequest
-		(*LoginRequest)(nil),                    // 15: naisdevice.LoginRequest
-		(*LogoutRequest)(nil),                   // 16: naisdevice.LogoutRequest
-		(*SetAgentConfigurationRequest)(nil),    // 17: naisdevice.SetAgentConfigurationRequest
-		(*SetAgentConfigurationResponse)(nil),   // 18: naisdevice.SetAgentConfigurationResponse
-		(*GetAgentConfigurationRequest)(nil),    // 19: naisdevice.GetAgentConfigurationRequest
-		(*GetAgentConfigurationResponse)(nil),   // 20: naisdevice.GetAgentConfigurationResponse
-		(*AgentStatusRequest)(nil),              // 21: naisdevice.AgentStatusRequest
-		(*AgentStatus)(nil),                     // 22: naisdevice.AgentStatus
-		(*Configuration)(nil),                   // 23: naisdevice.Configuration
-		(*ModifyGatewayRequest)(nil),            // 24: naisdevice.ModifyGatewayRequest
-		(*ModifyGatewayResponse)(nil),           // 25: naisdevice.ModifyGatewayResponse
-		(*Gateway)(nil),                         // 26: naisdevice.Gateway
-		(*Error)(nil),                           // 27: naisdevice.Error
-		(*SetActiveTenantRequest)(nil),          // 28: naisdevice.SetActiveTenantRequest
-		(*SetActiveTenantResponse)(nil),         // 29: naisdevice.SetActiveTenantResponse
-		(*Tenant)(nil),                          // 30: naisdevice.Tenant
-		(*AgentConfiguration)(nil),              // 31: naisdevice.AgentConfiguration
-		(*GetGatewayConfigurationRequest)(nil),  // 32: naisdevice.GetGatewayConfigurationRequest
-		(*GetGatewayConfigurationResponse)(nil), // 33: naisdevice.GetGatewayConfigurationResponse
-		(*GetDeviceConfigurationRequest)(nil),   // 34: naisdevice.GetDeviceConfigurationRequest
-		(*APIServerLoginRequest)(nil),           // 35: naisdevice.APIServerLoginRequest
-		(*APIServerLoginResponse)(nil),          // 36: naisdevice.APIServerLoginResponse
-		(*GetDeviceConfigurationResponse)(nil),  // 37: naisdevice.GetDeviceConfigurationResponse
-		(*DeviceIssue)(nil),                     // 38: naisdevice.DeviceIssue
-		(*ListGatewayRequest)(nil),              // 39: naisdevice.ListGatewayRequest
-		(*Device)(nil),                          // 40: naisdevice.Device
-		(*Session)(nil),                         // 41: naisdevice.Session
-		(*GetSessionsRequest)(nil),              // 42: naisdevice.GetSessionsRequest
-		(*GetSessionsResponse)(nil),             // 43: naisdevice.GetSessionsResponse
-		(*PingRequest)(nil),                     // 44: naisdevice.PingRequest
-		(*PingResponse)(nil),                    // 45: naisdevice.PingResponse
-		(*GetKolideCacheRequest)(nil),           // 46: naisdevice.GetKolideCacheRequest
-		(*GetKolideCacheResponse)(nil),          // 47: naisdevice.GetKolideCacheResponse
-		(*timestamppb.Timestamp)(nil),           // 48: google.protobuf.Timestamp
-	}
-)
-
+var file_pkg_pb_protobuf_api_proto_enumTypes = make([]protoimpl.EnumInfo, 4)
+var file_pkg_pb_protobuf_api_proto_msgTypes = make([]protoimpl.MessageInfo, 46)
+var file_pkg_pb_protobuf_api_proto_goTypes = []any{
+	(AgentState)(0),                         // 0: naisdevice.AgentState
+	(DeviceConfigurationStatus)(0),          // 1: naisdevice.DeviceConfigurationStatus
+	(AuthProvider)(0),                       // 2: naisdevice.AuthProvider
+	(Severity)(0),                           // 3: naisdevice.Severity
+	(*TeardownRequest)(nil),                 // 4: naisdevice.TeardownRequest
+	(*TeardownResponse)(nil),                // 5: naisdevice.TeardownResponse
+	(*ConfigureResponse)(nil),               // 6: naisdevice.ConfigureResponse
+	(*ConfigureJITAResponse)(nil),           // 7: naisdevice.ConfigureJITAResponse
+	(*LoginResponse)(nil),                   // 8: naisdevice.LoginResponse
+	(*LogoutResponse)(nil),                  // 9: naisdevice.LogoutResponse
+	(*UpgradeRequest)(nil),                  // 10: naisdevice.UpgradeRequest
+	(*UpgradeResponse)(nil),                 // 11: naisdevice.UpgradeResponse
+	(*GetSerialRequest)(nil),                // 12: naisdevice.GetSerialRequest
+	(*GetSerialResponse)(nil),               // 13: naisdevice.GetSerialResponse
+	(*ConfigureJITARequest)(nil),            // 14: naisdevice.ConfigureJITARequest
+	(*LoginRequest)(nil),                    // 15: naisdevice.LoginRequest
+	(*LogoutRequest)(nil),                   // 16: naisdevice.LogoutRequest
+	(*SetAgentConfigurationRequest)(nil),    // 17: naisdevice.SetAgentConfigurationRequest
+	(*SetAgentConfigurationResponse)(nil),   // 18: naisdevice.SetAgentConfigurationResponse
+	(*GetAgentConfigurationRequest)(nil),    // 19: naisdevice.GetAgentConfigurationRequest
+	(*ShowAcceptableUseRequest)(nil),        // 20: naisdevice.ShowAcceptableUseRequest
+	(*ShowAcceptableUseResponse)(nil),       // 21: naisdevice.ShowAcceptableUseResponse
+	(*GetAgentConfigurationResponse)(nil),   // 22: naisdevice.GetAgentConfigurationResponse
+	(*AgentStatusRequest)(nil),              // 23: naisdevice.AgentStatusRequest
+	(*AgentStatus)(nil),                     // 24: naisdevice.AgentStatus
+	(*Configuration)(nil),                   // 25: naisdevice.Configuration
+	(*ModifyGatewayRequest)(nil),            // 26: naisdevice.ModifyGatewayRequest
+	(*ModifyGatewayResponse)(nil),           // 27: naisdevice.ModifyGatewayResponse
+	(*Gateway)(nil),                         // 28: naisdevice.Gateway
+	(*Error)(nil),                           // 29: naisdevice.Error
+	(*SetActiveTenantRequest)(nil),          // 30: naisdevice.SetActiveTenantRequest
+	(*SetActiveTenantResponse)(nil),         // 31: naisdevice.SetActiveTenantResponse
+	(*Tenant)(nil),                          // 32: naisdevice.Tenant
+	(*AgentConfiguration)(nil),              // 33: naisdevice.AgentConfiguration
+	(*GetGatewayConfigurationRequest)(nil),  // 34: naisdevice.GetGatewayConfigurationRequest
+	(*GetGatewayConfigurationResponse)(nil), // 35: naisdevice.GetGatewayConfigurationResponse
+	(*GetDeviceConfigurationRequest)(nil),   // 36: naisdevice.GetDeviceConfigurationRequest
+	(*APIServerLoginRequest)(nil),           // 37: naisdevice.APIServerLoginRequest
+	(*APIServerLoginResponse)(nil),          // 38: naisdevice.APIServerLoginResponse
+	(*GetDeviceConfigurationResponse)(nil),  // 39: naisdevice.GetDeviceConfigurationResponse
+	(*DeviceIssue)(nil),                     // 40: naisdevice.DeviceIssue
+	(*ListGatewayRequest)(nil),              // 41: naisdevice.ListGatewayRequest
+	(*Device)(nil),                          // 42: naisdevice.Device
+	(*Session)(nil),                         // 43: naisdevice.Session
+	(*GetSessionsRequest)(nil),              // 44: naisdevice.GetSessionsRequest
+	(*GetSessionsResponse)(nil),             // 45: naisdevice.GetSessionsResponse
+	(*PingRequest)(nil),                     // 46: naisdevice.PingRequest
+	(*PingResponse)(nil),                    // 47: naisdevice.PingResponse
+	(*GetKolideCacheRequest)(nil),           // 48: naisdevice.GetKolideCacheRequest
+	(*GetKolideCacheResponse)(nil),          // 49: naisdevice.GetKolideCacheResponse
+	(*timestamppb.Timestamp)(nil),           // 50: google.protobuf.Timestamp
+}
 var file_pkg_pb_protobuf_api_proto_depIdxs = []int32{
-	26, // 0: naisdevice.ConfigureJITARequest.gateway:type_name -> naisdevice.Gateway
-	31, // 1: naisdevice.SetAgentConfigurationRequest.config:type_name -> naisdevice.AgentConfiguration
-	31, // 2: naisdevice.GetAgentConfigurationResponse.config:type_name -> naisdevice.AgentConfiguration
+	28, // 0: naisdevice.ConfigureJITARequest.gateway:type_name -> naisdevice.Gateway
+	33, // 1: naisdevice.SetAgentConfigurationRequest.config:type_name -> naisdevice.AgentConfiguration
+	33, // 2: naisdevice.GetAgentConfigurationResponse.config:type_name -> naisdevice.AgentConfiguration
 	0,  // 3: naisdevice.AgentStatus.connectionState:type_name -> naisdevice.AgentState
-	48, // 4: naisdevice.AgentStatus.connectedSince:type_name -> google.protobuf.Timestamp
-	26, // 5: naisdevice.AgentStatus.Gateways:type_name -> naisdevice.Gateway
-	30, // 6: naisdevice.AgentStatus.Tenants:type_name -> naisdevice.Tenant
-	38, // 7: naisdevice.AgentStatus.Issues:type_name -> naisdevice.DeviceIssue
-	26, // 8: naisdevice.Configuration.Gateways:type_name -> naisdevice.Gateway
-	26, // 9: naisdevice.ModifyGatewayRequest.gateway:type_name -> naisdevice.Gateway
-	26, // 10: naisdevice.ModifyGatewayResponse.gateway:type_name -> naisdevice.Gateway
+	50, // 4: naisdevice.AgentStatus.connectedSince:type_name -> google.protobuf.Timestamp
+	28, // 5: naisdevice.AgentStatus.Gateways:type_name -> naisdevice.Gateway
+	32, // 6: naisdevice.AgentStatus.Tenants:type_name -> naisdevice.Tenant
+	40, // 7: naisdevice.AgentStatus.Issues:type_name -> naisdevice.DeviceIssue
+	28, // 8: naisdevice.Configuration.Gateways:type_name -> naisdevice.Gateway
+	28, // 9: naisdevice.ModifyGatewayRequest.gateway:type_name -> naisdevice.Gateway
+	28, // 10: naisdevice.ModifyGatewayResponse.gateway:type_name -> naisdevice.Gateway
 	2,  // 11: naisdevice.Tenant.authProvider:type_name -> naisdevice.AuthProvider
-	41, // 12: naisdevice.Tenant.session:type_name -> naisdevice.Session
-	40, // 13: naisdevice.GetGatewayConfigurationResponse.devices:type_name -> naisdevice.Device
-	41, // 14: naisdevice.APIServerLoginResponse.session:type_name -> naisdevice.Session
+	43, // 12: naisdevice.Tenant.session:type_name -> naisdevice.Session
+	42, // 13: naisdevice.GetGatewayConfigurationResponse.devices:type_name -> naisdevice.Device
+	43, // 14: naisdevice.APIServerLoginResponse.session:type_name -> naisdevice.Session
 	1,  // 15: naisdevice.GetDeviceConfigurationResponse.status:type_name -> naisdevice.DeviceConfigurationStatus
-	26, // 16: naisdevice.GetDeviceConfigurationResponse.Gateways:type_name -> naisdevice.Gateway
-	38, // 17: naisdevice.GetDeviceConfigurationResponse.issues:type_name -> naisdevice.DeviceIssue
+	28, // 16: naisdevice.GetDeviceConfigurationResponse.Gateways:type_name -> naisdevice.Gateway
+	40, // 17: naisdevice.GetDeviceConfigurationResponse.issues:type_name -> naisdevice.DeviceIssue
 	3,  // 18: naisdevice.DeviceIssue.severity:type_name -> naisdevice.Severity
-	48, // 19: naisdevice.DeviceIssue.detectedAt:type_name -> google.protobuf.Timestamp
-	48, // 20: naisdevice.DeviceIssue.lastUpdated:type_name -> google.protobuf.Timestamp
-	48, // 21: naisdevice.DeviceIssue.resolveBefore:type_name -> google.protobuf.Timestamp
-	48, // 22: naisdevice.Device.lastUpdated:type_name -> google.protobuf.Timestamp
-	38, // 23: naisdevice.Device.issues:type_name -> naisdevice.DeviceIssue
-	48, // 24: naisdevice.Device.lastSeen:type_name -> google.protobuf.Timestamp
-	48, // 25: naisdevice.Session.expiry:type_name -> google.protobuf.Timestamp
-	40, // 26: naisdevice.Session.device:type_name -> naisdevice.Device
-	41, // 27: naisdevice.GetSessionsResponse.sessions:type_name -> naisdevice.Session
-	23, // 28: naisdevice.DeviceHelper.Configure:input_type -> naisdevice.Configuration
+	50, // 19: naisdevice.DeviceIssue.detectedAt:type_name -> google.protobuf.Timestamp
+	50, // 20: naisdevice.DeviceIssue.lastUpdated:type_name -> google.protobuf.Timestamp
+	50, // 21: naisdevice.DeviceIssue.resolveBefore:type_name -> google.protobuf.Timestamp
+	50, // 22: naisdevice.Device.lastUpdated:type_name -> google.protobuf.Timestamp
+	40, // 23: naisdevice.Device.issues:type_name -> naisdevice.DeviceIssue
+	50, // 24: naisdevice.Device.lastSeen:type_name -> google.protobuf.Timestamp
+	50, // 25: naisdevice.Session.expiry:type_name -> google.protobuf.Timestamp
+	42, // 26: naisdevice.Session.device:type_name -> naisdevice.Device
+	43, // 27: naisdevice.GetSessionsResponse.sessions:type_name -> naisdevice.Session
+	25, // 28: naisdevice.DeviceHelper.Configure:input_type -> naisdevice.Configuration
 	4,  // 29: naisdevice.DeviceHelper.Teardown:input_type -> naisdevice.TeardownRequest
 	10, // 30: naisdevice.DeviceHelper.Upgrade:input_type -> naisdevice.UpgradeRequest
 	12, // 31: naisdevice.DeviceHelper.GetSerial:input_type -> naisdevice.GetSerialRequest
-	44, // 32: naisdevice.DeviceHelper.Ping:input_type -> naisdevice.PingRequest
-	21, // 33: naisdevice.DeviceAgent.Status:input_type -> naisdevice.AgentStatusRequest
+	46, // 32: naisdevice.DeviceHelper.Ping:input_type -> naisdevice.PingRequest
+	23, // 33: naisdevice.DeviceAgent.Status:input_type -> naisdevice.AgentStatusRequest
 	14, // 34: naisdevice.DeviceAgent.ConfigureJITA:input_type -> naisdevice.ConfigureJITARequest
 	15, // 35: naisdevice.DeviceAgent.Login:input_type -> naisdevice.LoginRequest
 	16, // 36: naisdevice.DeviceAgent.Logout:input_type -> naisdevice.LogoutRequest
-	28, // 37: naisdevice.DeviceAgent.SetActiveTenant:input_type -> naisdevice.SetActiveTenantRequest
+	30, // 37: naisdevice.DeviceAgent.SetActiveTenant:input_type -> naisdevice.SetActiveTenantRequest
 	17, // 38: naisdevice.DeviceAgent.SetAgentConfiguration:input_type -> naisdevice.SetAgentConfigurationRequest
 	19, // 39: naisdevice.DeviceAgent.GetAgentConfiguration:input_type -> naisdevice.GetAgentConfigurationRequest
-	35, // 40: naisdevice.APIServer.Login:input_type -> naisdevice.APIServerLoginRequest
-	34, // 41: naisdevice.APIServer.GetDeviceConfiguration:input_type -> naisdevice.GetDeviceConfigurationRequest
-	32, // 42: naisdevice.APIServer.GetGatewayConfiguration:input_type -> naisdevice.GetGatewayConfigurationRequest
-	24, // 43: naisdevice.APIServer.GetGateway:input_type -> naisdevice.ModifyGatewayRequest
-	39, // 44: naisdevice.APIServer.ListGateways:input_type -> naisdevice.ListGatewayRequest
-	24, // 45: naisdevice.APIServer.EnrollGateway:input_type -> naisdevice.ModifyGatewayRequest
-	24, // 46: naisdevice.APIServer.UpdateGateway:input_type -> naisdevice.ModifyGatewayRequest
-	42, // 47: naisdevice.APIServer.GetSessions:input_type -> naisdevice.GetSessionsRequest
-	46, // 48: naisdevice.APIServer.GetKolideCache:input_type -> naisdevice.GetKolideCacheRequest
-	6,  // 49: naisdevice.DeviceHelper.Configure:output_type -> naisdevice.ConfigureResponse
-	5,  // 50: naisdevice.DeviceHelper.Teardown:output_type -> naisdevice.TeardownResponse
-	11, // 51: naisdevice.DeviceHelper.Upgrade:output_type -> naisdevice.UpgradeResponse
-	13, // 52: naisdevice.DeviceHelper.GetSerial:output_type -> naisdevice.GetSerialResponse
-	45, // 53: naisdevice.DeviceHelper.Ping:output_type -> naisdevice.PingResponse
-	22, // 54: naisdevice.DeviceAgent.Status:output_type -> naisdevice.AgentStatus
-	7,  // 55: naisdevice.DeviceAgent.ConfigureJITA:output_type -> naisdevice.ConfigureJITAResponse
-	8,  // 56: naisdevice.DeviceAgent.Login:output_type -> naisdevice.LoginResponse
-	9,  // 57: naisdevice.DeviceAgent.Logout:output_type -> naisdevice.LogoutResponse
-	29, // 58: naisdevice.DeviceAgent.SetActiveTenant:output_type -> naisdevice.SetActiveTenantResponse
-	18, // 59: naisdevice.DeviceAgent.SetAgentConfiguration:output_type -> naisdevice.SetAgentConfigurationResponse
-	20, // 60: naisdevice.DeviceAgent.GetAgentConfiguration:output_type -> naisdevice.GetAgentConfigurationResponse
-	36, // 61: naisdevice.APIServer.Login:output_type -> naisdevice.APIServerLoginResponse
-	37, // 62: naisdevice.APIServer.GetDeviceConfiguration:output_type -> naisdevice.GetDeviceConfigurationResponse
-	33, // 63: naisdevice.APIServer.GetGatewayConfiguration:output_type -> naisdevice.GetGatewayConfigurationResponse
-	26, // 64: naisdevice.APIServer.GetGateway:output_type -> naisdevice.Gateway
-	26, // 65: naisdevice.APIServer.ListGateways:output_type -> naisdevice.Gateway
-	25, // 66: naisdevice.APIServer.EnrollGateway:output_type -> naisdevice.ModifyGatewayResponse
-	25, // 67: naisdevice.APIServer.UpdateGateway:output_type -> naisdevice.ModifyGatewayResponse
-	43, // 68: naisdevice.APIServer.GetSessions:output_type -> naisdevice.GetSessionsResponse
-	47, // 69: naisdevice.APIServer.GetKolideCache:output_type -> naisdevice.GetKolideCacheResponse
-	49, // [49:70] is the sub-list for method output_type
-	28, // [28:49] is the sub-list for method input_type
+	20, // 40: naisdevice.DeviceAgent.ShowAcceptableUse:input_type -> naisdevice.ShowAcceptableUseRequest
+	37, // 41: naisdevice.APIServer.Login:input_type -> naisdevice.APIServerLoginRequest
+	36, // 42: naisdevice.APIServer.GetDeviceConfiguration:input_type -> naisdevice.GetDeviceConfigurationRequest
+	34, // 43: naisdevice.APIServer.GetGatewayConfiguration:input_type -> naisdevice.GetGatewayConfigurationRequest
+	26, // 44: naisdevice.APIServer.GetGateway:input_type -> naisdevice.ModifyGatewayRequest
+	41, // 45: naisdevice.APIServer.ListGateways:input_type -> naisdevice.ListGatewayRequest
+	26, // 46: naisdevice.APIServer.EnrollGateway:input_type -> naisdevice.ModifyGatewayRequest
+	26, // 47: naisdevice.APIServer.UpdateGateway:input_type -> naisdevice.ModifyGatewayRequest
+	44, // 48: naisdevice.APIServer.GetSessions:input_type -> naisdevice.GetSessionsRequest
+	48, // 49: naisdevice.APIServer.GetKolideCache:input_type -> naisdevice.GetKolideCacheRequest
+	6,  // 50: naisdevice.DeviceHelper.Configure:output_type -> naisdevice.ConfigureResponse
+	5,  // 51: naisdevice.DeviceHelper.Teardown:output_type -> naisdevice.TeardownResponse
+	11, // 52: naisdevice.DeviceHelper.Upgrade:output_type -> naisdevice.UpgradeResponse
+	13, // 53: naisdevice.DeviceHelper.GetSerial:output_type -> naisdevice.GetSerialResponse
+	47, // 54: naisdevice.DeviceHelper.Ping:output_type -> naisdevice.PingResponse
+	24, // 55: naisdevice.DeviceAgent.Status:output_type -> naisdevice.AgentStatus
+	7,  // 56: naisdevice.DeviceAgent.ConfigureJITA:output_type -> naisdevice.ConfigureJITAResponse
+	8,  // 57: naisdevice.DeviceAgent.Login:output_type -> naisdevice.LoginResponse
+	9,  // 58: naisdevice.DeviceAgent.Logout:output_type -> naisdevice.LogoutResponse
+	31, // 59: naisdevice.DeviceAgent.SetActiveTenant:output_type -> naisdevice.SetActiveTenantResponse
+	18, // 60: naisdevice.DeviceAgent.SetAgentConfiguration:output_type -> naisdevice.SetAgentConfigurationResponse
+	22, // 61: naisdevice.DeviceAgent.GetAgentConfiguration:output_type -> naisdevice.GetAgentConfigurationResponse
+	21, // 62: naisdevice.DeviceAgent.ShowAcceptableUse:output_type -> naisdevice.ShowAcceptableUseResponse
+	38, // 63: naisdevice.APIServer.Login:output_type -> naisdevice.APIServerLoginResponse
+	39, // 64: naisdevice.APIServer.GetDeviceConfiguration:output_type -> naisdevice.GetDeviceConfigurationResponse
+	35, // 65: naisdevice.APIServer.GetGatewayConfiguration:output_type -> naisdevice.GetGatewayConfigurationResponse
+	28, // 66: naisdevice.APIServer.GetGateway:output_type -> naisdevice.Gateway
+	28, // 67: naisdevice.APIServer.ListGateways:output_type -> naisdevice.Gateway
+	27, // 68: naisdevice.APIServer.EnrollGateway:output_type -> naisdevice.ModifyGatewayResponse
+	27, // 69: naisdevice.APIServer.UpdateGateway:output_type -> naisdevice.ModifyGatewayResponse
+	45, // 70: naisdevice.APIServer.GetSessions:output_type -> naisdevice.GetSessionsResponse
+	49, // 71: naisdevice.APIServer.GetKolideCache:output_type -> naisdevice.GetKolideCacheResponse
+	50, // [50:72] is the sub-list for method output_type
+	28, // [28:50] is the sub-list for method input_type
 	28, // [28:28] is the sub-list for extension type_name
 	28, // [28:28] is the sub-list for extension extendee
 	0,  // [0:28] is the sub-list for field type_name
@@ -2855,7 +2930,7 @@ func file_pkg_pb_protobuf_api_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_pkg_pb_protobuf_api_proto_rawDesc), len(file_pkg_pb_protobuf_api_proto_rawDesc)),
 			NumEnums:      4,
-			NumMessages:   44,
+			NumMessages:   46,
 			NumExtensions: 0,
 			NumServices:   3,
 		},

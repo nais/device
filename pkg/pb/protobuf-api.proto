@@ -55,6 +55,10 @@ service DeviceAgent {
   // Get the current configuration for the device agent
   rpc GetAgentConfiguration (GetAgentConfigurationRequest) returns (GetAgentConfigurationResponse) {
   }
+
+  // Show the acceptable use policy
+  rpc ShowAcceptableUse (ShowAcceptableUseRequest) returns (ShowAcceptableUseResponse) {
+  }
 }
 
 service APIServer {
@@ -179,6 +183,12 @@ message SetAgentConfigurationResponse {
 }
 
 message GetAgentConfigurationRequest {
+}
+
+message ShowAcceptableUseRequest {
+}
+
+message ShowAcceptableUseResponse {
 }
 
 message GetAgentConfigurationResponse {
