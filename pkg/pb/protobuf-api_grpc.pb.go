@@ -8,7 +8,6 @@ package pb
 
 import (
 	context "context"
-
 	grpc "google.golang.org/grpc"
 	codes "google.golang.org/grpc/codes"
 	status "google.golang.org/grpc/status"
@@ -124,19 +123,15 @@ type UnimplementedDeviceHelperServer struct{}
 func (UnimplementedDeviceHelperServer) Configure(context.Context, *Configuration) (*ConfigureResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Configure not implemented")
 }
-
 func (UnimplementedDeviceHelperServer) Teardown(context.Context, *TeardownRequest) (*TeardownResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Teardown not implemented")
 }
-
 func (UnimplementedDeviceHelperServer) Upgrade(context.Context, *UpgradeRequest) (*UpgradeResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Upgrade not implemented")
 }
-
 func (UnimplementedDeviceHelperServer) GetSerial(context.Context, *GetSerialRequest) (*GetSerialResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetSerial not implemented")
 }
-
 func (UnimplementedDeviceHelperServer) Ping(context.Context, *PingRequest) (*PingResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Ping not implemented")
 }
@@ -291,6 +286,7 @@ const (
 	DeviceAgent_SetActiveTenant_FullMethodName       = "/naisdevice.DeviceAgent/SetActiveTenant"
 	DeviceAgent_SetAgentConfiguration_FullMethodName = "/naisdevice.DeviceAgent/SetAgentConfiguration"
 	DeviceAgent_GetAgentConfiguration_FullMethodName = "/naisdevice.DeviceAgent/GetAgentConfiguration"
+	DeviceAgent_ShowAcceptableUse_FullMethodName     = "/naisdevice.DeviceAgent/ShowAcceptableUse"
 )
 
 // DeviceAgentClient is the client API for DeviceAgent service.
@@ -312,6 +308,8 @@ type DeviceAgentClient interface {
 	SetAgentConfiguration(ctx context.Context, in *SetAgentConfigurationRequest, opts ...grpc.CallOption) (*SetAgentConfigurationResponse, error)
 	// Get the current configuration for the device agent
 	GetAgentConfiguration(ctx context.Context, in *GetAgentConfigurationRequest, opts ...grpc.CallOption) (*GetAgentConfigurationResponse, error)
+	// Show the acceptable use policy
+	ShowAcceptableUse(ctx context.Context, in *ShowAcceptableUseRequest, opts ...grpc.CallOption) (*ShowAcceptableUseResponse, error)
 }
 
 type deviceAgentClient struct {
@@ -401,6 +399,16 @@ func (c *deviceAgentClient) GetAgentConfiguration(ctx context.Context, in *GetAg
 	return out, nil
 }
 
+func (c *deviceAgentClient) ShowAcceptableUse(ctx context.Context, in *ShowAcceptableUseRequest, opts ...grpc.CallOption) (*ShowAcceptableUseResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ShowAcceptableUseResponse)
+	err := c.cc.Invoke(ctx, DeviceAgent_ShowAcceptableUse_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // DeviceAgentServer is the server API for DeviceAgent service.
 // All implementations must embed UnimplementedDeviceAgentServer
 // for forward compatibility.
@@ -420,6 +428,8 @@ type DeviceAgentServer interface {
 	SetAgentConfiguration(context.Context, *SetAgentConfigurationRequest) (*SetAgentConfigurationResponse, error)
 	// Get the current configuration for the device agent
 	GetAgentConfiguration(context.Context, *GetAgentConfigurationRequest) (*GetAgentConfigurationResponse, error)
+	// Show the acceptable use policy
+	ShowAcceptableUse(context.Context, *ShowAcceptableUseRequest) (*ShowAcceptableUseResponse, error)
 	mustEmbedUnimplementedDeviceAgentServer()
 }
 
@@ -433,29 +443,26 @@ type UnimplementedDeviceAgentServer struct{}
 func (UnimplementedDeviceAgentServer) Status(*AgentStatusRequest, grpc.ServerStreamingServer[AgentStatus]) error {
 	return status.Errorf(codes.Unimplemented, "method Status not implemented")
 }
-
 func (UnimplementedDeviceAgentServer) ConfigureJITA(context.Context, *ConfigureJITARequest) (*ConfigureJITAResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method ConfigureJITA not implemented")
 }
-
 func (UnimplementedDeviceAgentServer) Login(context.Context, *LoginRequest) (*LoginResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Login not implemented")
 }
-
 func (UnimplementedDeviceAgentServer) Logout(context.Context, *LogoutRequest) (*LogoutResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Logout not implemented")
 }
-
 func (UnimplementedDeviceAgentServer) SetActiveTenant(context.Context, *SetActiveTenantRequest) (*SetActiveTenantResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method SetActiveTenant not implemented")
 }
-
 func (UnimplementedDeviceAgentServer) SetAgentConfiguration(context.Context, *SetAgentConfigurationRequest) (*SetAgentConfigurationResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method SetAgentConfiguration not implemented")
 }
-
 func (UnimplementedDeviceAgentServer) GetAgentConfiguration(context.Context, *GetAgentConfigurationRequest) (*GetAgentConfigurationResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetAgentConfiguration not implemented")
+}
+func (UnimplementedDeviceAgentServer) ShowAcceptableUse(context.Context, *ShowAcceptableUseRequest) (*ShowAcceptableUseResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ShowAcceptableUse not implemented")
 }
 func (UnimplementedDeviceAgentServer) mustEmbedUnimplementedDeviceAgentServer() {}
 func (UnimplementedDeviceAgentServer) testEmbeddedByValue()                     {}
@@ -597,6 +604,24 @@ func _DeviceAgent_GetAgentConfiguration_Handler(srv interface{}, ctx context.Con
 	return interceptor(ctx, in, info, handler)
 }
 
+func _DeviceAgent_ShowAcceptableUse_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ShowAcceptableUseRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(DeviceAgentServer).ShowAcceptableUse(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: DeviceAgent_ShowAcceptableUse_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(DeviceAgentServer).ShowAcceptableUse(ctx, req.(*ShowAcceptableUseRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // DeviceAgent_ServiceDesc is the grpc.ServiceDesc for DeviceAgent service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -627,6 +652,10 @@ var DeviceAgent_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GetAgentConfiguration",
 			Handler:    _DeviceAgent_GetAgentConfiguration_Handler,
+		},
+		{
+			MethodName: "ShowAcceptableUse",
+			Handler:    _DeviceAgent_ShowAcceptableUse_Handler,
 		},
 	},
 	Streams: []grpc.StreamDesc{
@@ -835,35 +864,27 @@ type UnimplementedAPIServerServer struct{}
 func (UnimplementedAPIServerServer) Login(context.Context, *APIServerLoginRequest) (*APIServerLoginResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Login not implemented")
 }
-
 func (UnimplementedAPIServerServer) GetDeviceConfiguration(*GetDeviceConfigurationRequest, grpc.ServerStreamingServer[GetDeviceConfigurationResponse]) error {
 	return status.Errorf(codes.Unimplemented, "method GetDeviceConfiguration not implemented")
 }
-
 func (UnimplementedAPIServerServer) GetGatewayConfiguration(*GetGatewayConfigurationRequest, grpc.ServerStreamingServer[GetGatewayConfigurationResponse]) error {
 	return status.Errorf(codes.Unimplemented, "method GetGatewayConfiguration not implemented")
 }
-
 func (UnimplementedAPIServerServer) GetGateway(context.Context, *ModifyGatewayRequest) (*Gateway, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetGateway not implemented")
 }
-
 func (UnimplementedAPIServerServer) ListGateways(*ListGatewayRequest, grpc.ServerStreamingServer[Gateway]) error {
 	return status.Errorf(codes.Unimplemented, "method ListGateways not implemented")
 }
-
 func (UnimplementedAPIServerServer) EnrollGateway(context.Context, *ModifyGatewayRequest) (*ModifyGatewayResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method EnrollGateway not implemented")
 }
-
 func (UnimplementedAPIServerServer) UpdateGateway(context.Context, *ModifyGatewayRequest) (*ModifyGatewayResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method UpdateGateway not implemented")
 }
-
 func (UnimplementedAPIServerServer) GetSessions(context.Context, *GetSessionsRequest) (*GetSessionsResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetSessions not implemented")
 }
-
 func (UnimplementedAPIServerServer) GetKolideCache(context.Context, *GetKolideCacheRequest) (*GetKolideCacheResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetKolideCache not implemented")
 }
