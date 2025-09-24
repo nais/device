@@ -1,41 +1,4 @@
-<!doctype html>
-<html lang="en">
-
-<head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-    <title>naisdevice - Do's and don'ts</title>
-    <style>
-        body {
-            background-color: #FFFFFF;
-            color: #23262A;
-            font-size: 1.2rem;
-        }
-
-        a, a:visited {
-            color: #0067C5;
-            &:hover {
-                color: #0056B4;
-            }
-        }
-
-        @media (prefers-color-scheme: dark) {
-            body {
-                background-color: #23262A;
-                color: #FFFFFF;
-            }
-
-            a, a:visited {
-                color: #E6F0FF;
-                &:hover {
-                    color: #CCE1FF;
-                }
-            }
-        }
-    </style>
-</head>
-
-<body>
+{{ define "content" }}
 <h1>Do's and don'ts</h1>
 <h2>Hi!</h2>
 <p>naisdevice removes the need for full-blown management of your device. This means that there are some do's and don'ts. You <strong>must</strong> actually read it and <strong>have to</strong> agree to the following set of guidelines to be admitted to the "program". If and when the Do's & Don'ts are updated a re-acceptance will be required.</p>
@@ -86,9 +49,8 @@
             }
         }).catch(() => {
             clearInterval(ping);
-            document.body.innerHTML = 'You may now close this window.';
+            document.body.innerHTML = '<p>You may now close this window.</p>';
         });
     }, 1000);
 </script>
-</body>
-</html>
+{{ end }}
