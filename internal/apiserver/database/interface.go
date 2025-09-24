@@ -7,6 +7,7 @@ import (
 	"github.com/nais/device/internal/apiserver/kolide"
 	"github.com/nais/device/internal/apiserver/sqlc"
 	"github.com/nais/device/pkg/pb"
+	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 type Database interface {
@@ -33,7 +34,8 @@ type Database interface {
 	UpdateKolideIssuesForDevice(ctx context.Context, externalID string, issues []*kolide.DeviceFailure) error
 	UpdateKolideChecks(ctx context.Context, checks []*kolide.Check) error
 	ReadKolideChecks(ctx context.Context) (map[int64]*sqlc.KolideCheck, error)
-	Approve(ctx context.Context, userID string) error
-	GetApprovals(ctx context.Context) (map[string]struct{}, error)
-	GetApproval(ctx context.Context, userID string) (*sqlc.Approval, error)
+	AcceptAcceptableUse(ctx context.Context, userID string) error
+	RejectAcceptableUse(ctx context.Context, userID string) error
+	GetAcceptances(ctx context.Context) (map[string]struct{}, error)
+	GetAcceptedAt(ctx context.Context, userID string) (*timestamppb.Timestamp, error)
 }

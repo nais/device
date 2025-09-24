@@ -129,13 +129,13 @@ func (s *grpcServer) makeDeviceConfiguration(ctx context.Context, sessionKey str
 	}
 
 	var sessionIssues []*pb.DeviceIssue
-	if approval, err := s.db.GetApproval(ctx, session.ObjectID); err != nil {
+	if acceptedAt, err := s.db.GetAcceptedAt(ctx, session.ObjectID); err != nil {
 		return nil, err
-	} else if approval == nil {
+	} else if acceptedAt == nil {
 		now := timestamppb.Now()
 		sessionIssues = append(sessionIssues, &pb.DeviceIssue{
 			Title:         "Do's and don'ts not accepted",
-			Message:       "In order to use naisdevice you have to accept our Do's and don'ts. Click on naisdevice and then the Acceptable use policy menu item to approve.",
+			Message:       "In order to use naisdevice you have to accept our Do's and don'ts. Click on naisdevice and then the Acceptable use policy menu item to accept.",
 			Severity:      pb.Severity_Critical,
 			DetectedAt:    now,
 			LastUpdated:   now,
@@ -252,4 +252,38 @@ func (s *grpcServer) UpdateAllDevices(ctx context.Context) error {
 	}
 
 	return err
+}
+
+func (s *grpcServer) GetAcceptableUseAcceptedAt(ctx context.Context, req *pb.GetAcceptableUseAcceptedAtRequest) (*pb.GetAcceptableUseAcceptedAtResponse, error) {
+	session, err := s.sessionStore.Get(ctx, req.GetSessionKey())
+	if err != nil {
+		return nil, status.Error(codes.Unauthenticated, "unknown session")
+	}
+
+	if session.Expired() {
+		return nil, status.Error(codes.Unauthenticated, "session expired")
+	}
+
+	if acceptedAt, err := s.db.GetAcceptedAt(ctx, session.GetObjectID()); err != nil {
+		return nil, status.Errorf(codes.Internal, "unable to get acceptance: %v", err)
+	} else {
+		return &pb.GetAcceptableUseAcceptedAtResponse{AcceptedAt: acceptedAt}, nil
+	}
+}
+
+func (s *grpcServer) SetAcceptableUseAccepted(ctx context.Context, req *pb.SetAcceptableUseAcceptedRequest) (*pb.SetAcceptableUseAcceptedResponse, error) {
+	session, err := s.sessionStore.Get(ctx, req.GetSessionKey())
+	if err != nil {
+		return nil, status.Error(codes.Unauthenticated, "unknown session")
+	}
+
+	if session.Expired() {
+		return nil, status.Error(codes.Unauthenticated, "session expired")
+	}
+
+	if req.Accepted {
+		return &pb.SetAcceptableUseAcceptedResponse{}, s.db.AcceptAcceptableUse(ctx, session.GetObjectID())
+	}
+
+	return &pb.SetAcceptableUseAcceptedResponse{}, s.db.RejectAcceptableUse(ctx, session.GetObjectID())
 }

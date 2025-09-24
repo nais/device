@@ -35,7 +35,7 @@ func Test_MakeGatewayConfiguration(t *testing.T) {
 	}
 	db := database.NewMockDatabase(t)
 	db.On("ReadGateway", mock.Anything, "gateway").Return(mockGateway, nil).Times(2)
-	db.On("GetApprovals", mock.Anything).Return(map[string]struct{}{"sessionUserId": {}}, nil).Once()
+	db.EXPECT().GetAcceptances(mock.Anything).Return(map[string]struct{}{"sessionUserId": {}}, nil).Once()
 
 	sessionStore := auth.NewMockSessionStore(t)
 	sessionStore.On("All", mock.Anything).Return([]*pb.Session{{

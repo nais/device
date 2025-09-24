@@ -59,7 +59,7 @@ func Test_sessionUserHasApproved(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			assert.Equal(t, tt.result, sessionUserHasApproved(tt.approvedUsers)(tt.session))
+			assert.Equal(t, tt.result, sessionUserHasAccepted(tt.approvedUsers)(tt.session))
 		})
 	}
 }

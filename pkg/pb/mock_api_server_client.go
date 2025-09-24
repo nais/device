@@ -125,6 +125,93 @@ func (_c *MockAPIServerClient_EnrollGateway_Call) RunAndReturn(run func(ctx cont
 	return _c
 }
 
+// GetAcceptableUseAcceptedAt provides a mock function for the type MockAPIServerClient
+func (_mock *MockAPIServerClient) GetAcceptableUseAcceptedAt(ctx context.Context, in *GetAcceptableUseAcceptedAtRequest, opts ...grpc.CallOption) (*GetAcceptableUseAcceptedAtResponse, error) {
+	// grpc.CallOption
+	_va := make([]interface{}, len(opts))
+	for _i := range opts {
+		_va[_i] = opts[_i]
+	}
+	var _ca []interface{}
+	_ca = append(_ca, ctx, in)
+	_ca = append(_ca, _va...)
+	ret := _mock.Called(_ca...)
+
+	if len(ret) == 0 {
+		panic("no return value specified for GetAcceptableUseAcceptedAt")
+	}
+
+	var r0 *GetAcceptableUseAcceptedAtResponse
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, *GetAcceptableUseAcceptedAtRequest, ...grpc.CallOption) (*GetAcceptableUseAcceptedAtResponse, error)); ok {
+		return returnFunc(ctx, in, opts...)
+	}
+	if returnFunc, ok := ret.Get(0).(func(context.Context, *GetAcceptableUseAcceptedAtRequest, ...grpc.CallOption) *GetAcceptableUseAcceptedAtResponse); ok {
+		r0 = returnFunc(ctx, in, opts...)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*GetAcceptableUseAcceptedAtResponse)
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func(context.Context, *GetAcceptableUseAcceptedAtRequest, ...grpc.CallOption) error); ok {
+		r1 = returnFunc(ctx, in, opts...)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// MockAPIServerClient_GetAcceptableUseAcceptedAt_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetAcceptableUseAcceptedAt'
+type MockAPIServerClient_GetAcceptableUseAcceptedAt_Call struct {
+	*mock.Call
+}
+
+// GetAcceptableUseAcceptedAt is a helper method to define mock.On call
+//   - ctx context.Context
+//   - in *GetAcceptableUseAcceptedAtRequest
+//   - opts ...grpc.CallOption
+func (_e *MockAPIServerClient_Expecter) GetAcceptableUseAcceptedAt(ctx interface{}, in interface{}, opts ...interface{}) *MockAPIServerClient_GetAcceptableUseAcceptedAt_Call {
+	return &MockAPIServerClient_GetAcceptableUseAcceptedAt_Call{Call: _e.mock.On("GetAcceptableUseAcceptedAt",
+		append([]interface{}{ctx, in}, opts...)...)}
+}
+
+func (_c *MockAPIServerClient_GetAcceptableUseAcceptedAt_Call) Run(run func(ctx context.Context, in *GetAcceptableUseAcceptedAtRequest, opts ...grpc.CallOption)) *MockAPIServerClient_GetAcceptableUseAcceptedAt_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 *GetAcceptableUseAcceptedAtRequest
+		if args[1] != nil {
+			arg1 = args[1].(*GetAcceptableUseAcceptedAtRequest)
+		}
+		var arg2 []grpc.CallOption
+		variadicArgs := make([]grpc.CallOption, len(args)-2)
+		for i, a := range args[2:] {
+			if a != nil {
+				variadicArgs[i] = a.(grpc.CallOption)
+			}
+		}
+		arg2 = variadicArgs
+		run(
+			arg0,
+			arg1,
+			arg2...,
+		)
+	})
+	return _c
+}
+
+func (_c *MockAPIServerClient_GetAcceptableUseAcceptedAt_Call) Return(getAcceptableUseAcceptedAtResponse *GetAcceptableUseAcceptedAtResponse, err error) *MockAPIServerClient_GetAcceptableUseAcceptedAt_Call {
+	_c.Call.Return(getAcceptableUseAcceptedAtResponse, err)
+	return _c
+}
+
+func (_c *MockAPIServerClient_GetAcceptableUseAcceptedAt_Call) RunAndReturn(run func(ctx context.Context, in *GetAcceptableUseAcceptedAtRequest, opts ...grpc.CallOption) (*GetAcceptableUseAcceptedAtResponse, error)) *MockAPIServerClient_GetAcceptableUseAcceptedAt_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // GetDeviceConfiguration provides a mock function for the type MockAPIServerClient
 func (_mock *MockAPIServerClient) GetDeviceConfiguration(ctx context.Context, in *GetDeviceConfigurationRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[GetDeviceConfigurationResponse], error) {
 	// grpc.CallOption
@@ -730,6 +817,93 @@ func (_c *MockAPIServerClient_Login_Call) Return(aPIServerLoginResponse *APIServ
 }
 
 func (_c *MockAPIServerClient_Login_Call) RunAndReturn(run func(ctx context.Context, in *APIServerLoginRequest, opts ...grpc.CallOption) (*APIServerLoginResponse, error)) *MockAPIServerClient_Login_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// SetAcceptableUseAccepted provides a mock function for the type MockAPIServerClient
+func (_mock *MockAPIServerClient) SetAcceptableUseAccepted(ctx context.Context, in *SetAcceptableUseAcceptedRequest, opts ...grpc.CallOption) (*SetAcceptableUseAcceptedResponse, error) {
+	// grpc.CallOption
+	_va := make([]interface{}, len(opts))
+	for _i := range opts {
+		_va[_i] = opts[_i]
+	}
+	var _ca []interface{}
+	_ca = append(_ca, ctx, in)
+	_ca = append(_ca, _va...)
+	ret := _mock.Called(_ca...)
+
+	if len(ret) == 0 {
+		panic("no return value specified for SetAcceptableUseAccepted")
+	}
+
+	var r0 *SetAcceptableUseAcceptedResponse
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, *SetAcceptableUseAcceptedRequest, ...grpc.CallOption) (*SetAcceptableUseAcceptedResponse, error)); ok {
+		return returnFunc(ctx, in, opts...)
+	}
+	if returnFunc, ok := ret.Get(0).(func(context.Context, *SetAcceptableUseAcceptedRequest, ...grpc.CallOption) *SetAcceptableUseAcceptedResponse); ok {
+		r0 = returnFunc(ctx, in, opts...)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*SetAcceptableUseAcceptedResponse)
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func(context.Context, *SetAcceptableUseAcceptedRequest, ...grpc.CallOption) error); ok {
+		r1 = returnFunc(ctx, in, opts...)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// MockAPIServerClient_SetAcceptableUseAccepted_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'SetAcceptableUseAccepted'
+type MockAPIServerClient_SetAcceptableUseAccepted_Call struct {
+	*mock.Call
+}
+
+// SetAcceptableUseAccepted is a helper method to define mock.On call
+//   - ctx context.Context
+//   - in *SetAcceptableUseAcceptedRequest
+//   - opts ...grpc.CallOption
+func (_e *MockAPIServerClient_Expecter) SetAcceptableUseAccepted(ctx interface{}, in interface{}, opts ...interface{}) *MockAPIServerClient_SetAcceptableUseAccepted_Call {
+	return &MockAPIServerClient_SetAcceptableUseAccepted_Call{Call: _e.mock.On("SetAcceptableUseAccepted",
+		append([]interface{}{ctx, in}, opts...)...)}
+}
+
+func (_c *MockAPIServerClient_SetAcceptableUseAccepted_Call) Run(run func(ctx context.Context, in *SetAcceptableUseAcceptedRequest, opts ...grpc.CallOption)) *MockAPIServerClient_SetAcceptableUseAccepted_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 *SetAcceptableUseAcceptedRequest
+		if args[1] != nil {
+			arg1 = args[1].(*SetAcceptableUseAcceptedRequest)
+		}
+		var arg2 []grpc.CallOption
+		variadicArgs := make([]grpc.CallOption, len(args)-2)
+		for i, a := range args[2:] {
+			if a != nil {
+				variadicArgs[i] = a.(grpc.CallOption)
+			}
+		}
+		arg2 = variadicArgs
+		run(
+			arg0,
+			arg1,
+			arg2...,
+		)
+	})
+	return _c
+}
+
+func (_c *MockAPIServerClient_SetAcceptableUseAccepted_Call) Return(setAcceptableUseAcceptedResponse *SetAcceptableUseAcceptedResponse, err error) *MockAPIServerClient_SetAcceptableUseAccepted_Call {
+	_c.Call.Return(setAcceptableUseAcceptedResponse, err)
+	return _c
+}
+
+func (_c *MockAPIServerClient_SetAcceptableUseAccepted_Call) RunAndReturn(run func(ctx context.Context, in *SetAcceptableUseAcceptedRequest, opts ...grpc.CallOption) (*SetAcceptableUseAcceptedResponse, error)) *MockAPIServerClient_SetAcceptableUseAccepted_Call {
 	_c.Call.Return(run)
 	return _c
 }

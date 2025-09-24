@@ -3,19 +3,41 @@ package acceptableuse
 import (
 	"html/template"
 	"net/http"
+	"strconv"
 	"time"
 )
 
-func NewServer(hasApproved bool, toggleApproval chan<- struct{}, keepAlive chan<- struct{}) *http.Server {
+func auth(secret string, next http.HandlerFunc) http.HandlerFunc {
+	return func(w http.ResponseWriter, req *http.Request) {
+		if req.URL.Query().Get("s") != secret {
+			http.Error(w, http.StatusText(http.StatusUnauthorized), http.StatusUnauthorized)
+			return
+		}
+
+		next(w, req)
+	}
+}
+
+func NewServer(secret string, acceptedAt time.Time, setAccepted func(accepted bool) error, keepAlive chan<- struct{}) *http.Server {
 	handler := http.NewServeMux()
-	handler.HandleFunc("GET /", indexHandler(hasApproved))
-	handler.HandleFunc("POST /toggle", func(http.ResponseWriter, *http.Request) {
-		// TODO: provide some feedback to the user
-		toggleApproval <- struct{}{}
-	})
-	handler.HandleFunc("GET /ping", func(http.ResponseWriter, *http.Request) {
+	handler.HandleFunc("GET /", auth(secret, indexHandler(acceptedAt)))
+	handler.HandleFunc("POST /setAccepted", auth(secret, func(w http.ResponseWriter, req *http.Request) {
+		accepted, err := strconv.ParseBool(req.FormValue("accepted"))
+		if err != nil {
+			http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
+			return
+		}
+
+		if err := setAccepted(accepted); err != nil {
+			http.Error(w, "Failed to set acceptance status.", http.StatusInternalServerError)
+			return
+		}
+
+		_, _ = w.Write([]byte("You may now close this window."))
+	}))
+	handler.HandleFunc("GET /ping", auth(secret, func(http.ResponseWriter, *http.Request) {
 		keepAlive <- struct{}{}
-	})
+	}))
 
 	return &http.Server{
 		Handler:           handler,
@@ -23,12 +45,14 @@ func NewServer(hasApproved bool, toggleApproval chan<- struct{}, keepAlive chan<
 	}
 }
 
-func indexHandler(hasApproved bool) func(http.ResponseWriter, *http.Request) {
+func indexHandler(acceptedAt time.Time) func(http.ResponseWriter, *http.Request) {
 	return func(w http.ResponseWriter, _ *http.Request) {
 		data := struct {
-			HasApproved bool
+			HasAccepted bool
+			AcceptedAt  string
 		}{
-			HasApproved: hasApproved,
+			HasAccepted: !acceptedAt.IsZero(),
+			AcceptedAt:  acceptedAt.String(),
 		}
 
 		t, err := template.ParseFS(templates, "templates/index.html")

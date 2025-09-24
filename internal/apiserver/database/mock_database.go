@@ -12,6 +12,7 @@ import (
 	"github.com/nais/device/internal/apiserver/sqlc"
 	"github.com/nais/device/pkg/pb"
 	mock "github.com/stretchr/testify/mock"
+	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 // NewMockDatabase creates a new instance of MockDatabase. It also registers a testing interface on the mock and a cleanup function to assert the mocks expectations.
@@ -40,6 +41,63 @@ type MockDatabase_Expecter struct {
 
 func (_m *MockDatabase) EXPECT() *MockDatabase_Expecter {
 	return &MockDatabase_Expecter{mock: &_m.Mock}
+}
+
+// AcceptAcceptableUse provides a mock function for the type MockDatabase
+func (_mock *MockDatabase) AcceptAcceptableUse(ctx context.Context, userID string) error {
+	ret := _mock.Called(ctx, userID)
+
+	if len(ret) == 0 {
+		panic("no return value specified for AcceptAcceptableUse")
+	}
+
+	var r0 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string) error); ok {
+		r0 = returnFunc(ctx, userID)
+	} else {
+		r0 = ret.Error(0)
+	}
+	return r0
+}
+
+// MockDatabase_AcceptAcceptableUse_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'AcceptAcceptableUse'
+type MockDatabase_AcceptAcceptableUse_Call struct {
+	*mock.Call
+}
+
+// AcceptAcceptableUse is a helper method to define mock.On call
+//   - ctx context.Context
+//   - userID string
+func (_e *MockDatabase_Expecter) AcceptAcceptableUse(ctx interface{}, userID interface{}) *MockDatabase_AcceptAcceptableUse_Call {
+	return &MockDatabase_AcceptAcceptableUse_Call{Call: _e.mock.On("AcceptAcceptableUse", ctx, userID)}
+}
+
+func (_c *MockDatabase_AcceptAcceptableUse_Call) Run(run func(ctx context.Context, userID string)) *MockDatabase_AcceptAcceptableUse_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 string
+		if args[1] != nil {
+			arg1 = args[1].(string)
+		}
+		run(
+			arg0,
+			arg1,
+		)
+	})
+	return _c
+}
+
+func (_c *MockDatabase_AcceptAcceptableUse_Call) Return(err error) *MockDatabase_AcceptAcceptableUse_Call {
+	_c.Call.Return(err)
+	return _c
+}
+
+func (_c *MockDatabase_AcceptAcceptableUse_Call) RunAndReturn(run func(ctx context.Context, userID string) error) *MockDatabase_AcceptAcceptableUse_Call {
+	_c.Call.Return(run)
+	return _c
 }
 
 // AddDevice provides a mock function for the type MockDatabase
@@ -213,137 +271,12 @@ func (_c *MockDatabase_AddSessionInfo_Call) RunAndReturn(run func(ctx context.Co
 	return _c
 }
 
-// Approve provides a mock function for the type MockDatabase
-func (_mock *MockDatabase) Approve(ctx context.Context, userID string) error {
-	ret := _mock.Called(ctx, userID)
-
-	if len(ret) == 0 {
-		panic("no return value specified for Approve")
-	}
-
-	var r0 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, string) error); ok {
-		r0 = returnFunc(ctx, userID)
-	} else {
-		r0 = ret.Error(0)
-	}
-	return r0
-}
-
-// MockDatabase_Approve_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'Approve'
-type MockDatabase_Approve_Call struct {
-	*mock.Call
-}
-
-// Approve is a helper method to define mock.On call
-//   - ctx context.Context
-//   - userID string
-func (_e *MockDatabase_Expecter) Approve(ctx interface{}, userID interface{}) *MockDatabase_Approve_Call {
-	return &MockDatabase_Approve_Call{Call: _e.mock.On("Approve", ctx, userID)}
-}
-
-func (_c *MockDatabase_Approve_Call) Run(run func(ctx context.Context, userID string)) *MockDatabase_Approve_Call {
-	_c.Call.Run(func(args mock.Arguments) {
-		var arg0 context.Context
-		if args[0] != nil {
-			arg0 = args[0].(context.Context)
-		}
-		var arg1 string
-		if args[1] != nil {
-			arg1 = args[1].(string)
-		}
-		run(
-			arg0,
-			arg1,
-		)
-	})
-	return _c
-}
-
-func (_c *MockDatabase_Approve_Call) Return(err error) *MockDatabase_Approve_Call {
-	_c.Call.Return(err)
-	return _c
-}
-
-func (_c *MockDatabase_Approve_Call) RunAndReturn(run func(ctx context.Context, userID string) error) *MockDatabase_Approve_Call {
-	_c.Call.Return(run)
-	return _c
-}
-
-// GetApproval provides a mock function for the type MockDatabase
-func (_mock *MockDatabase) GetApproval(ctx context.Context, userID string) (*sqlc.Approval, error) {
-	ret := _mock.Called(ctx, userID)
-
-	if len(ret) == 0 {
-		panic("no return value specified for GetApproval")
-	}
-
-	var r0 *sqlc.Approval
-	var r1 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, string) (*sqlc.Approval, error)); ok {
-		return returnFunc(ctx, userID)
-	}
-	if returnFunc, ok := ret.Get(0).(func(context.Context, string) *sqlc.Approval); ok {
-		r0 = returnFunc(ctx, userID)
-	} else {
-		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(*sqlc.Approval)
-		}
-	}
-	if returnFunc, ok := ret.Get(1).(func(context.Context, string) error); ok {
-		r1 = returnFunc(ctx, userID)
-	} else {
-		r1 = ret.Error(1)
-	}
-	return r0, r1
-}
-
-// MockDatabase_GetApproval_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetApproval'
-type MockDatabase_GetApproval_Call struct {
-	*mock.Call
-}
-
-// GetApproval is a helper method to define mock.On call
-//   - ctx context.Context
-//   - userID string
-func (_e *MockDatabase_Expecter) GetApproval(ctx interface{}, userID interface{}) *MockDatabase_GetApproval_Call {
-	return &MockDatabase_GetApproval_Call{Call: _e.mock.On("GetApproval", ctx, userID)}
-}
-
-func (_c *MockDatabase_GetApproval_Call) Run(run func(ctx context.Context, userID string)) *MockDatabase_GetApproval_Call {
-	_c.Call.Run(func(args mock.Arguments) {
-		var arg0 context.Context
-		if args[0] != nil {
-			arg0 = args[0].(context.Context)
-		}
-		var arg1 string
-		if args[1] != nil {
-			arg1 = args[1].(string)
-		}
-		run(
-			arg0,
-			arg1,
-		)
-	})
-	return _c
-}
-
-func (_c *MockDatabase_GetApproval_Call) Return(approval *sqlc.Approval, err error) *MockDatabase_GetApproval_Call {
-	_c.Call.Return(approval, err)
-	return _c
-}
-
-func (_c *MockDatabase_GetApproval_Call) RunAndReturn(run func(ctx context.Context, userID string) (*sqlc.Approval, error)) *MockDatabase_GetApproval_Call {
-	_c.Call.Return(run)
-	return _c
-}
-
-// GetApprovals provides a mock function for the type MockDatabase
-func (_mock *MockDatabase) GetApprovals(ctx context.Context) (map[string]struct{}, error) {
+// GetAcceptances provides a mock function for the type MockDatabase
+func (_mock *MockDatabase) GetAcceptances(ctx context.Context) (map[string]struct{}, error) {
 	ret := _mock.Called(ctx)
 
 	if len(ret) == 0 {
-		panic("no return value specified for GetApprovals")
+		panic("no return value specified for GetAcceptances")
 	}
 
 	var r0 map[string]struct{}
@@ -366,18 +299,18 @@ func (_mock *MockDatabase) GetApprovals(ctx context.Context) (map[string]struct{
 	return r0, r1
 }
 
-// MockDatabase_GetApprovals_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetApprovals'
-type MockDatabase_GetApprovals_Call struct {
+// MockDatabase_GetAcceptances_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetAcceptances'
+type MockDatabase_GetAcceptances_Call struct {
 	*mock.Call
 }
 
-// GetApprovals is a helper method to define mock.On call
+// GetAcceptances is a helper method to define mock.On call
 //   - ctx context.Context
-func (_e *MockDatabase_Expecter) GetApprovals(ctx interface{}) *MockDatabase_GetApprovals_Call {
-	return &MockDatabase_GetApprovals_Call{Call: _e.mock.On("GetApprovals", ctx)}
+func (_e *MockDatabase_Expecter) GetAcceptances(ctx interface{}) *MockDatabase_GetAcceptances_Call {
+	return &MockDatabase_GetAcceptances_Call{Call: _e.mock.On("GetAcceptances", ctx)}
 }
 
-func (_c *MockDatabase_GetApprovals_Call) Run(run func(ctx context.Context)) *MockDatabase_GetApprovals_Call {
+func (_c *MockDatabase_GetAcceptances_Call) Run(run func(ctx context.Context)) *MockDatabase_GetAcceptances_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		var arg0 context.Context
 		if args[0] != nil {
@@ -390,12 +323,80 @@ func (_c *MockDatabase_GetApprovals_Call) Run(run func(ctx context.Context)) *Mo
 	return _c
 }
 
-func (_c *MockDatabase_GetApprovals_Call) Return(stringToVal map[string]struct{}, err error) *MockDatabase_GetApprovals_Call {
+func (_c *MockDatabase_GetAcceptances_Call) Return(stringToVal map[string]struct{}, err error) *MockDatabase_GetAcceptances_Call {
 	_c.Call.Return(stringToVal, err)
 	return _c
 }
 
-func (_c *MockDatabase_GetApprovals_Call) RunAndReturn(run func(ctx context.Context) (map[string]struct{}, error)) *MockDatabase_GetApprovals_Call {
+func (_c *MockDatabase_GetAcceptances_Call) RunAndReturn(run func(ctx context.Context) (map[string]struct{}, error)) *MockDatabase_GetAcceptances_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// GetAcceptedAt provides a mock function for the type MockDatabase
+func (_mock *MockDatabase) GetAcceptedAt(ctx context.Context, userID string) (*timestamppb.Timestamp, error) {
+	ret := _mock.Called(ctx, userID)
+
+	if len(ret) == 0 {
+		panic("no return value specified for GetAcceptedAt")
+	}
+
+	var r0 *timestamppb.Timestamp
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string) (*timestamppb.Timestamp, error)); ok {
+		return returnFunc(ctx, userID)
+	}
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string) *timestamppb.Timestamp); ok {
+		r0 = returnFunc(ctx, userID)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*timestamppb.Timestamp)
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func(context.Context, string) error); ok {
+		r1 = returnFunc(ctx, userID)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// MockDatabase_GetAcceptedAt_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetAcceptedAt'
+type MockDatabase_GetAcceptedAt_Call struct {
+	*mock.Call
+}
+
+// GetAcceptedAt is a helper method to define mock.On call
+//   - ctx context.Context
+//   - userID string
+func (_e *MockDatabase_Expecter) GetAcceptedAt(ctx interface{}, userID interface{}) *MockDatabase_GetAcceptedAt_Call {
+	return &MockDatabase_GetAcceptedAt_Call{Call: _e.mock.On("GetAcceptedAt", ctx, userID)}
+}
+
+func (_c *MockDatabase_GetAcceptedAt_Call) Run(run func(ctx context.Context, userID string)) *MockDatabase_GetAcceptedAt_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 string
+		if args[1] != nil {
+			arg1 = args[1].(string)
+		}
+		run(
+			arg0,
+			arg1,
+		)
+	})
+	return _c
+}
+
+func (_c *MockDatabase_GetAcceptedAt_Call) Return(timestamp *timestamppb.Timestamp, err error) *MockDatabase_GetAcceptedAt_Call {
+	_c.Call.Return(timestamp, err)
+	return _c
+}
+
+func (_c *MockDatabase_GetAcceptedAt_Call) RunAndReturn(run func(ctx context.Context, userID string) (*timestamppb.Timestamp, error)) *MockDatabase_GetAcceptedAt_Call {
 	_c.Call.Return(run)
 	return _c
 }
@@ -1188,6 +1189,63 @@ func (_c *MockDatabase_ReadSessionInfos_Call) Return(sessions []*pb.Session, err
 }
 
 func (_c *MockDatabase_ReadSessionInfos_Call) RunAndReturn(run func(ctx context.Context) ([]*pb.Session, error)) *MockDatabase_ReadSessionInfos_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// RejectAcceptableUse provides a mock function for the type MockDatabase
+func (_mock *MockDatabase) RejectAcceptableUse(ctx context.Context, userID string) error {
+	ret := _mock.Called(ctx, userID)
+
+	if len(ret) == 0 {
+		panic("no return value specified for RejectAcceptableUse")
+	}
+
+	var r0 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string) error); ok {
+		r0 = returnFunc(ctx, userID)
+	} else {
+		r0 = ret.Error(0)
+	}
+	return r0
+}
+
+// MockDatabase_RejectAcceptableUse_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'RejectAcceptableUse'
+type MockDatabase_RejectAcceptableUse_Call struct {
+	*mock.Call
+}
+
+// RejectAcceptableUse is a helper method to define mock.On call
+//   - ctx context.Context
+//   - userID string
+func (_e *MockDatabase_Expecter) RejectAcceptableUse(ctx interface{}, userID interface{}) *MockDatabase_RejectAcceptableUse_Call {
+	return &MockDatabase_RejectAcceptableUse_Call{Call: _e.mock.On("RejectAcceptableUse", ctx, userID)}
+}
+
+func (_c *MockDatabase_RejectAcceptableUse_Call) Run(run func(ctx context.Context, userID string)) *MockDatabase_RejectAcceptableUse_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 string
+		if args[1] != nil {
+			arg1 = args[1].(string)
+		}
+		run(
+			arg0,
+			arg1,
+		)
+	})
+	return _c
+}
+
+func (_c *MockDatabase_RejectAcceptableUse_Call) Return(err error) *MockDatabase_RejectAcceptableUse_Call {
+	_c.Call.Return(err)
+	return _c
+}
+
+func (_c *MockDatabase_RejectAcceptableUse_Call) RunAndReturn(run func(ctx context.Context, userID string) error) *MockDatabase_RejectAcceptableUse_Call {
 	_c.Call.Return(run)
 	return _c
 }
