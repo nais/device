@@ -42,7 +42,7 @@ func Test_GetDeviceConfiguration(t *testing.T) {
 	sessionStore.On("Get", mock.Anything, mock.Anything).Return(mockSession, nil).Times(2)
 
 	log := logrus.StandardLogger().WithField("component", "test")
-	server := api.NewGRPCServer(ctx, log, db, nil, nil, nil, nil, nil, sessionStore, nil)
+	server := api.NewGRPCServer(ctx, log, db, nil, nil, nil, nil, nil, sessionStore, nil, true)
 
 	s := grpc.NewServer()
 	pb.RegisterAPIServerServer(s, server)

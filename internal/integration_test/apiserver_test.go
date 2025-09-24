@@ -21,7 +21,7 @@ func NewAPIServer(t *testing.T, ctx context.Context, log *logrus.Entry, db datab
 
 	j := jita.New(log, "user", "pass", "url")
 
-	impl := api.NewGRPCServer(ctx, log, db, deviceAuth, nil, gatewayAuth, nil, j, sessions, kolideClient)
+	impl := api.NewGRPCServer(ctx, log, db, deviceAuth, nil, gatewayAuth, nil, j, sessions, kolideClient, true)
 	server := grpc.NewServer()
 	pb.RegisterAPIServerServer(server, impl)
 

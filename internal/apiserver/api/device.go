@@ -129,18 +129,20 @@ func (s *grpcServer) makeDeviceConfiguration(ctx context.Context, sessionKey str
 	}
 
 	var sessionIssues []*pb.DeviceIssue
-	if acceptedAt, err := s.db.GetAcceptedAt(ctx, session.ObjectID); err != nil {
-		return nil, err
-	} else if acceptedAt == nil {
-		now := timestamppb.Now()
-		sessionIssues = append(sessionIssues, &pb.DeviceIssue{
-			Title:         "Do's and don'ts not accepted",
-			Message:       "In order to use naisdevice you have to accept our Do's and don'ts. Click on naisdevice and then the Acceptable use policy menu item to accept.",
-			Severity:      pb.Severity_Critical,
-			DetectedAt:    now,
-			LastUpdated:   now,
-			ResolveBefore: now,
-		})
+	if s.kolideEnabled {
+		if acceptedAt, err := s.db.GetAcceptedAt(ctx, session.ObjectID); err != nil {
+			return nil, err
+		} else if acceptedAt == nil {
+			now := timestamppb.Now()
+			sessionIssues = append(sessionIssues, &pb.DeviceIssue{
+				Title:         "Do's and don'ts not accepted",
+				Message:       "In order to use naisdevice you have to accept our Do's and don'ts. Click on naisdevice and then the Acceptable use policy menu item to accept.",
+				Severity:      pb.Severity_Critical,
+				DetectedAt:    now,
+				LastUpdated:   now,
+				ResolveBefore: now,
+			})
+		}
 	}
 
 	if !device.Healthy() || len(sessionIssues) > 0 {
