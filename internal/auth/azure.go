@@ -10,8 +10,6 @@ import (
 	"github.com/lestrrat-go/jwx/jwt"
 )
 
-const NaisDeviceApprovalGroup = "ffd89425-c75c-4618-b5ab-67149ddbbc2d"
-
 type Azure struct {
 	ClientID       string
 	Tenant         string

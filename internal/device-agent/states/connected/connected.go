@@ -96,9 +96,6 @@ func (c *Connected) Enter(ctx context.Context) state.EventWithSpan {
 			c.logger.WithError(e).Warn("synchronize config: not connected to API server")
 			time.Sleep(apiServerRetryInterval * time.Duration(math.Pow(float64(attempt), 3)))
 			continue
-		case errors.Is(e, auth.ErrTermsNotAccepted):
-			c.notifier.Errorf("%v", e)
-			return state.SpanEvent(ctx, state.EventDisconnect)
 		case errors.Is(e, &auth.ParseTokenError{}):
 			fallthrough
 		case errors.Is(e, ErrUnauthenticated):
