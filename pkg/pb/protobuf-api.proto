@@ -97,6 +97,12 @@ service APIServer {
   // Admin endpoint for reading kolide cache
   rpc GetKolideCache (GetKolideCacheRequest) returns (GetKolideCacheResponse) {
   }
+
+  rpc GetAcceptableUseAcceptedAt (GetAcceptableUseAcceptedAtRequest) returns (GetAcceptableUseAcceptedAtResponse) {
+  }
+
+  rpc SetAcceptableUseAccepted (SetAcceptableUseAcceptedRequest) returns (SetAcceptableUseAcceptedResponse) {
+  }
 }
 
 enum AgentState {
@@ -375,4 +381,20 @@ message GetKolideCacheRequest {
 
 message GetKolideCacheResponse {
 	bytes rawChecks = 99;
+}
+
+message GetAcceptableUseAcceptedAtRequest {
+  string sessionKey = 1;
+}
+
+message GetAcceptableUseAcceptedAtResponse {
+  google.protobuf.Timestamp acceptedAt = 1;
+}
+
+message SetAcceptableUseAcceptedRequest {
+  string sessionKey = 1;
+  bool accepted = 2;
+}
+
+message SetAcceptableUseAcceptedResponse {
 }

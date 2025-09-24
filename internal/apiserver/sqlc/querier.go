@@ -10,18 +10,18 @@ import (
 )
 
 type Querier interface {
+	AcceptAcceptableUse(ctx context.Context, arg AcceptAcceptableUseParams) error
 	AddDevice(ctx context.Context, arg AddDeviceParams) error
 	AddGateway(ctx context.Context, arg AddGatewayParams) error
 	AddGatewayAccessGroupID(ctx context.Context, arg AddGatewayAccessGroupIDParams) error
 	AddGatewayRoute(ctx context.Context, arg AddGatewayRouteParams) error
 	AddSession(ctx context.Context, arg AddSessionParams) error
 	AddSessionAccessGroupID(ctx context.Context, arg AddSessionAccessGroupIDParams) error
-	Approve(ctx context.Context, userID string) error
 	DeleteGatewayAccessGroupIDs(ctx context.Context, gatewayName string) error
 	DeleteGatewayRoutes(ctx context.Context, gatewayName string) error
 	DeleteKolideIssuesForDevice(ctx context.Context, deviceID string) error
-	GetApproval(ctx context.Context, userID string) (*Approval, error)
-	GetApprovals(ctx context.Context) ([]*Approval, error)
+	GetAcceptance(ctx context.Context, userID string) (*Acceptance, error)
+	GetAcceptances(ctx context.Context) ([]*Acceptance, error)
 	GetDeviceByExternalID(ctx context.Context, externalID sql.NullString) (*Device, error)
 	GetDeviceByID(ctx context.Context, id int64) (*Device, error)
 	GetDeviceByPublicKey(ctx context.Context, publicKey string) (*Device, error)
@@ -41,8 +41,8 @@ type Querier interface {
 	GetSessionByKey(ctx context.Context, sessionKey string) (*GetSessionByKeyRow, error)
 	GetSessionGroupIDs(ctx context.Context, sessionKey string) ([]string, error)
 	GetSessions(ctx context.Context) ([]*GetSessionsRow, error)
+	RejectAcceptableUse(ctx context.Context, userID string) error
 	RemoveExpiredSessions(ctx context.Context) error
-	RevokeApproval(ctx context.Context, userID string) error
 	SetKolideCheck(ctx context.Context, arg SetKolideCheckParams) error
 	SetKolideIssue(ctx context.Context, arg SetKolideIssueParams) error
 	TruncateKolideIssues(ctx context.Context) error

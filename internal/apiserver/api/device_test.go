@@ -36,7 +36,7 @@ func Test_GetDeviceConfiguration(t *testing.T) {
 	}
 	db := database.NewMockDatabase(t)
 	db.On("ReadDeviceById", mock.Anything, int64(123)).Return(mockDevice, nil).Once()
-	db.On("GetApproval", mock.Anything, "sessionUserId").Return(nil, nil).Once()
+	db.EXPECT().GetAcceptedAt(mock.Anything, "sessionUserId").Return(nil, nil).Once()
 
 	sessionStore := auth.NewMockSessionStore(t)
 	sessionStore.On("Get", mock.Anything, mock.Anything).Return(mockSession, nil).Times(2)

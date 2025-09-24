@@ -669,15 +669,17 @@ var DeviceAgent_ServiceDesc = grpc.ServiceDesc{
 }
 
 const (
-	APIServer_Login_FullMethodName                   = "/naisdevice.APIServer/Login"
-	APIServer_GetDeviceConfiguration_FullMethodName  = "/naisdevice.APIServer/GetDeviceConfiguration"
-	APIServer_GetGatewayConfiguration_FullMethodName = "/naisdevice.APIServer/GetGatewayConfiguration"
-	APIServer_GetGateway_FullMethodName              = "/naisdevice.APIServer/GetGateway"
-	APIServer_ListGateways_FullMethodName            = "/naisdevice.APIServer/ListGateways"
-	APIServer_EnrollGateway_FullMethodName           = "/naisdevice.APIServer/EnrollGateway"
-	APIServer_UpdateGateway_FullMethodName           = "/naisdevice.APIServer/UpdateGateway"
-	APIServer_GetSessions_FullMethodName             = "/naisdevice.APIServer/GetSessions"
-	APIServer_GetKolideCache_FullMethodName          = "/naisdevice.APIServer/GetKolideCache"
+	APIServer_Login_FullMethodName                      = "/naisdevice.APIServer/Login"
+	APIServer_GetDeviceConfiguration_FullMethodName     = "/naisdevice.APIServer/GetDeviceConfiguration"
+	APIServer_GetGatewayConfiguration_FullMethodName    = "/naisdevice.APIServer/GetGatewayConfiguration"
+	APIServer_GetGateway_FullMethodName                 = "/naisdevice.APIServer/GetGateway"
+	APIServer_ListGateways_FullMethodName               = "/naisdevice.APIServer/ListGateways"
+	APIServer_EnrollGateway_FullMethodName              = "/naisdevice.APIServer/EnrollGateway"
+	APIServer_UpdateGateway_FullMethodName              = "/naisdevice.APIServer/UpdateGateway"
+	APIServer_GetSessions_FullMethodName                = "/naisdevice.APIServer/GetSessions"
+	APIServer_GetKolideCache_FullMethodName             = "/naisdevice.APIServer/GetKolideCache"
+	APIServer_GetAcceptableUseAcceptedAt_FullMethodName = "/naisdevice.APIServer/GetAcceptableUseAcceptedAt"
+	APIServer_SetAcceptableUseAccepted_FullMethodName   = "/naisdevice.APIServer/SetAcceptableUseAccepted"
 )
 
 // APIServerClient is the client API for APIServer service.
@@ -702,6 +704,8 @@ type APIServerClient interface {
 	GetSessions(ctx context.Context, in *GetSessionsRequest, opts ...grpc.CallOption) (*GetSessionsResponse, error)
 	// Admin endpoint for reading kolide cache
 	GetKolideCache(ctx context.Context, in *GetKolideCacheRequest, opts ...grpc.CallOption) (*GetKolideCacheResponse, error)
+	GetAcceptableUseAcceptedAt(ctx context.Context, in *GetAcceptableUseAcceptedAtRequest, opts ...grpc.CallOption) (*GetAcceptableUseAcceptedAtResponse, error)
+	SetAcceptableUseAccepted(ctx context.Context, in *SetAcceptableUseAcceptedRequest, opts ...grpc.CallOption) (*SetAcceptableUseAcceptedResponse, error)
 }
 
 type aPIServerClient struct {
@@ -829,6 +833,26 @@ func (c *aPIServerClient) GetKolideCache(ctx context.Context, in *GetKolideCache
 	return out, nil
 }
 
+func (c *aPIServerClient) GetAcceptableUseAcceptedAt(ctx context.Context, in *GetAcceptableUseAcceptedAtRequest, opts ...grpc.CallOption) (*GetAcceptableUseAcceptedAtResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetAcceptableUseAcceptedAtResponse)
+	err := c.cc.Invoke(ctx, APIServer_GetAcceptableUseAcceptedAt_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *aPIServerClient) SetAcceptableUseAccepted(ctx context.Context, in *SetAcceptableUseAcceptedRequest, opts ...grpc.CallOption) (*SetAcceptableUseAcceptedResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(SetAcceptableUseAcceptedResponse)
+	err := c.cc.Invoke(ctx, APIServer_SetAcceptableUseAccepted_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // APIServerServer is the server API for APIServer service.
 // All implementations must embed UnimplementedAPIServerServer
 // for forward compatibility.
@@ -851,6 +875,8 @@ type APIServerServer interface {
 	GetSessions(context.Context, *GetSessionsRequest) (*GetSessionsResponse, error)
 	// Admin endpoint for reading kolide cache
 	GetKolideCache(context.Context, *GetKolideCacheRequest) (*GetKolideCacheResponse, error)
+	GetAcceptableUseAcceptedAt(context.Context, *GetAcceptableUseAcceptedAtRequest) (*GetAcceptableUseAcceptedAtResponse, error)
+	SetAcceptableUseAccepted(context.Context, *SetAcceptableUseAcceptedRequest) (*SetAcceptableUseAcceptedResponse, error)
 	mustEmbedUnimplementedAPIServerServer()
 }
 
@@ -887,6 +913,12 @@ func (UnimplementedAPIServerServer) GetSessions(context.Context, *GetSessionsReq
 }
 func (UnimplementedAPIServerServer) GetKolideCache(context.Context, *GetKolideCacheRequest) (*GetKolideCacheResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetKolideCache not implemented")
+}
+func (UnimplementedAPIServerServer) GetAcceptableUseAcceptedAt(context.Context, *GetAcceptableUseAcceptedAtRequest) (*GetAcceptableUseAcceptedAtResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetAcceptableUseAcceptedAt not implemented")
+}
+func (UnimplementedAPIServerServer) SetAcceptableUseAccepted(context.Context, *SetAcceptableUseAcceptedRequest) (*SetAcceptableUseAcceptedResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method SetAcceptableUseAccepted not implemented")
 }
 func (UnimplementedAPIServerServer) mustEmbedUnimplementedAPIServerServer() {}
 func (UnimplementedAPIServerServer) testEmbeddedByValue()                   {}
@@ -1050,6 +1082,42 @@ func _APIServer_GetKolideCache_Handler(srv interface{}, ctx context.Context, dec
 	return interceptor(ctx, in, info, handler)
 }
 
+func _APIServer_GetAcceptableUseAcceptedAt_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetAcceptableUseAcceptedAtRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(APIServerServer).GetAcceptableUseAcceptedAt(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: APIServer_GetAcceptableUseAcceptedAt_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(APIServerServer).GetAcceptableUseAcceptedAt(ctx, req.(*GetAcceptableUseAcceptedAtRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _APIServer_SetAcceptableUseAccepted_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(SetAcceptableUseAcceptedRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(APIServerServer).SetAcceptableUseAccepted(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: APIServer_SetAcceptableUseAccepted_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(APIServerServer).SetAcceptableUseAccepted(ctx, req.(*SetAcceptableUseAcceptedRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // APIServer_ServiceDesc is the grpc.ServiceDesc for APIServer service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -1080,6 +1148,14 @@ var APIServer_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GetKolideCache",
 			Handler:    _APIServer_GetKolideCache_Handler,
+		},
+		{
+			MethodName: "GetAcceptableUseAcceptedAt",
+			Handler:    _APIServer_GetAcceptableUseAcceptedAt_Handler,
+		},
+		{
+			MethodName: "SetAcceptableUseAccepted",
+			Handler:    _APIServer_SetAcceptableUseAccepted_Handler,
 		},
 	},
 	Streams: []grpc.StreamDesc{

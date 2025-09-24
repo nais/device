@@ -3,9 +3,12 @@ package device_agent
 
 import (
 	"context"
+	"crypto/rand"
+	"encoding/base64"
 	"errors"
 	"net"
 	"net/http"
+	"net/url"
 	"sync"
 	"time"
 
@@ -138,16 +141,39 @@ func (das *DeviceAgentServer) ShowAcceptableUse(ctx context.Context, _ *pb.ShowA
 		if err != nil {
 			return status.Errorf(codes.FailedPrecondition, "while creating acceptable use listener: %v", err)
 		}
-		url := "http://" + listener.Addr().String()
-		das.log.WithField("url", url).Debug("acceptable use server listening")
 
-		// TODO: fetch from apiserver
-		hasApproved := false
+		u, err := url.Parse("http://" + listener.Addr().String())
+		if err != nil {
+			return status.Errorf(codes.FailedPrecondition, "while creating URL: %v", err)
+		}
 
-		toggleApproval := make(chan struct{})
+		das.log.WithField("url", u.String()).Debug("acceptable use server listening")
+
+		resp, err := apiserver.GetAcceptableUseAcceptedAt(ctx, &pb.GetAcceptableUseAcceptedAtRequest{SessionKey: key})
+		if err != nil {
+			return status.Errorf(codes.FailedPrecondition, "while checking acceptable use approval: %v", err)
+		}
+
+		setAccepted := func(accepted bool) error {
+			_, err := apiserver.SetAcceptableUseAccepted(ctx, &pb.SetAcceptableUseAcceptedRequest{
+				SessionKey: key,
+				Accepted:   accepted,
+			})
+
+			return err
+		}
 		keepAlive := make(chan struct{})
 
-		srv := acceptableuse.NewServer(hasApproved, toggleApproval, keepAlive)
+		secret, err := random(32)
+		if err != nil {
+			return status.Errorf(codes.FailedPrecondition, "while creating random token: %v", err)
+		}
+
+		var acceptedAt time.Time
+		if resp.AcceptedAt != nil {
+			acceptedAt = resp.AcceptedAt.AsTime()
+		}
+		srv := acceptableuse.NewServer(secret, acceptedAt, setAccepted, keepAlive)
 		go func() {
 			if err := srv.Serve(listener); err != nil && !errors.Is(err, http.ErrServerClosed) {
 				das.log.WithError(err).Error("while serving acceptable use")
@@ -156,15 +182,14 @@ func (das *DeviceAgentServer) ShowAcceptableUse(ctx context.Context, _ *pb.ShowA
 
 		defer func() { _ = srv.Close() }()
 
-		open.Open(url)
+		q := u.Query()
+		q.Set("s", secret)
+		u.RawQuery = q.Encode()
+
+		open.Open(u.String())
 
 		for {
 			select {
-			case <-toggleApproval:
-				// TODO: call apiserver to toggle approval
-
-				das.log.Info("closing acceptable use server")
-				return nil
 			case <-keepAlive:
 				das.log.Info("keeping acceptable use server alive")
 			case <-time.After(10 * time.Second):
@@ -175,6 +200,14 @@ func (das *DeviceAgentServer) ShowAcceptableUse(ctx context.Context, _ *pb.ShowA
 			}
 		}
 	})
+}
+
+func random(n int) (string, error) {
+	b := make([]byte, n)
+	if _, err := rand.Read(b); err != nil {
+		return "", err
+	}
+	return base64.RawURLEncoding.EncodeToString(b), nil
 }
 
 func NewServer(ctx context.Context,

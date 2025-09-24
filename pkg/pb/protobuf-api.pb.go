@@ -2559,6 +2559,182 @@ func (x *GetKolideCacheResponse) GetRawChecks() []byte {
 	return nil
 }
 
+type GetAcceptableUseAcceptedAtRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	SessionKey    string                 `protobuf:"bytes,1,opt,name=sessionKey,proto3" json:"sessionKey,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetAcceptableUseAcceptedAtRequest) Reset() {
+	*x = GetAcceptableUseAcceptedAtRequest{}
+	mi := &file_pkg_pb_protobuf_api_proto_msgTypes[46]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetAcceptableUseAcceptedAtRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetAcceptableUseAcceptedAtRequest) ProtoMessage() {}
+
+func (x *GetAcceptableUseAcceptedAtRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_pkg_pb_protobuf_api_proto_msgTypes[46]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetAcceptableUseAcceptedAtRequest.ProtoReflect.Descriptor instead.
+func (*GetAcceptableUseAcceptedAtRequest) Descriptor() ([]byte, []int) {
+	return file_pkg_pb_protobuf_api_proto_rawDescGZIP(), []int{46}
+}
+
+func (x *GetAcceptableUseAcceptedAtRequest) GetSessionKey() string {
+	if x != nil {
+		return x.SessionKey
+	}
+	return ""
+}
+
+type GetAcceptableUseAcceptedAtResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	AcceptedAt    *timestamppb.Timestamp `protobuf:"bytes,1,opt,name=acceptedAt,proto3" json:"acceptedAt,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetAcceptableUseAcceptedAtResponse) Reset() {
+	*x = GetAcceptableUseAcceptedAtResponse{}
+	mi := &file_pkg_pb_protobuf_api_proto_msgTypes[47]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetAcceptableUseAcceptedAtResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetAcceptableUseAcceptedAtResponse) ProtoMessage() {}
+
+func (x *GetAcceptableUseAcceptedAtResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_pkg_pb_protobuf_api_proto_msgTypes[47]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetAcceptableUseAcceptedAtResponse.ProtoReflect.Descriptor instead.
+func (*GetAcceptableUseAcceptedAtResponse) Descriptor() ([]byte, []int) {
+	return file_pkg_pb_protobuf_api_proto_rawDescGZIP(), []int{47}
+}
+
+func (x *GetAcceptableUseAcceptedAtResponse) GetAcceptedAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.AcceptedAt
+	}
+	return nil
+}
+
+type SetAcceptableUseAcceptedRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	SessionKey    string                 `protobuf:"bytes,1,opt,name=sessionKey,proto3" json:"sessionKey,omitempty"`
+	Accepted      bool                   `protobuf:"varint,2,opt,name=accepted,proto3" json:"accepted,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *SetAcceptableUseAcceptedRequest) Reset() {
+	*x = SetAcceptableUseAcceptedRequest{}
+	mi := &file_pkg_pb_protobuf_api_proto_msgTypes[48]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SetAcceptableUseAcceptedRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SetAcceptableUseAcceptedRequest) ProtoMessage() {}
+
+func (x *SetAcceptableUseAcceptedRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_pkg_pb_protobuf_api_proto_msgTypes[48]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SetAcceptableUseAcceptedRequest.ProtoReflect.Descriptor instead.
+func (*SetAcceptableUseAcceptedRequest) Descriptor() ([]byte, []int) {
+	return file_pkg_pb_protobuf_api_proto_rawDescGZIP(), []int{48}
+}
+
+func (x *SetAcceptableUseAcceptedRequest) GetSessionKey() string {
+	if x != nil {
+		return x.SessionKey
+	}
+	return ""
+}
+
+func (x *SetAcceptableUseAcceptedRequest) GetAccepted() bool {
+	if x != nil {
+		return x.Accepted
+	}
+	return false
+}
+
+type SetAcceptableUseAcceptedResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *SetAcceptableUseAcceptedResponse) Reset() {
+	*x = SetAcceptableUseAcceptedResponse{}
+	mi := &file_pkg_pb_protobuf_api_proto_msgTypes[49]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SetAcceptableUseAcceptedResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SetAcceptableUseAcceptedResponse) ProtoMessage() {}
+
+func (x *SetAcceptableUseAcceptedResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_pkg_pb_protobuf_api_proto_msgTypes[49]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SetAcceptableUseAcceptedResponse.ProtoReflect.Descriptor instead.
+func (*SetAcceptableUseAcceptedResponse) Descriptor() ([]byte, []int) {
+	return file_pkg_pb_protobuf_api_proto_rawDescGZIP(), []int{49}
+}
+
 var File_pkg_pb_protobuf_api_proto protoreflect.FileDescriptor
 
 const file_pkg_pb_protobuf_api_proto_rawDesc = "" +
@@ -2715,7 +2891,21 @@ const file_pkg_pb_protobuf_api_proto_rawDesc = "" +
 	"\bpassword\x18\x01 \x01(\tR\bpassword\x12\x1a\n" +
 	"\busername\x18\x02 \x01(\tR\busername\"6\n" +
 	"\x16GetKolideCacheResponse\x12\x1c\n" +
-	"\trawChecks\x18c \x01(\fR\trawChecks*\xf2\x01\n" +
+	"\trawChecks\x18c \x01(\fR\trawChecks\"C\n" +
+	"!GetAcceptableUseAcceptedAtRequest\x12\x1e\n" +
+	"\n" +
+	"sessionKey\x18\x01 \x01(\tR\n" +
+	"sessionKey\"`\n" +
+	"\"GetAcceptableUseAcceptedAtResponse\x12:\n" +
+	"\n" +
+	"acceptedAt\x18\x01 \x01(\v2\x1a.google.protobuf.TimestampR\n" +
+	"acceptedAt\"]\n" +
+	"\x1fSetAcceptableUseAcceptedRequest\x12\x1e\n" +
+	"\n" +
+	"sessionKey\x18\x01 \x01(\tR\n" +
+	"sessionKey\x12\x1a\n" +
+	"\baccepted\x18\x02 \x01(\bR\baccepted\"\"\n" +
+	" SetAcceptableUseAcceptedResponse*\xf2\x01\n" +
 	"\n" +
 	"AgentState\x12\x10\n" +
 	"\fDisconnected\x10\x00\x12\x11\n" +
@@ -2759,7 +2949,7 @@ const file_pkg_pb_protobuf_api_proto_rawDesc = "" +
 	"\x0fSetActiveTenant\x12\".naisdevice.SetActiveTenantRequest\x1a#.naisdevice.SetActiveTenantResponse\"\x00\x12n\n" +
 	"\x15SetAgentConfiguration\x12(.naisdevice.SetAgentConfigurationRequest\x1a).naisdevice.SetAgentConfigurationResponse\"\x00\x12n\n" +
 	"\x15GetAgentConfiguration\x12(.naisdevice.GetAgentConfigurationRequest\x1a).naisdevice.GetAgentConfigurationResponse\"\x00\x12b\n" +
-	"\x11ShowAcceptableUse\x12$.naisdevice.ShowAcceptableUseRequest\x1a%.naisdevice.ShowAcceptableUseResponse\"\x002\xb7\x06\n" +
+	"\x11ShowAcceptableUse\x12$.naisdevice.ShowAcceptableUseRequest\x1a%.naisdevice.ShowAcceptableUseResponse\"\x002\xaf\b\n" +
 	"\tAPIServer\x12P\n" +
 	"\x05Login\x12!.naisdevice.APIServerLoginRequest\x1a\".naisdevice.APIServerLoginResponse\"\x00\x12s\n" +
 	"\x16GetDeviceConfiguration\x12).naisdevice.GetDeviceConfigurationRequest\x1a*.naisdevice.GetDeviceConfigurationResponse\"\x000\x01\x12v\n" +
@@ -2770,7 +2960,9 @@ const file_pkg_pb_protobuf_api_proto_rawDesc = "" +
 	"\rEnrollGateway\x12 .naisdevice.ModifyGatewayRequest\x1a!.naisdevice.ModifyGatewayResponse\"\x00\x12V\n" +
 	"\rUpdateGateway\x12 .naisdevice.ModifyGatewayRequest\x1a!.naisdevice.ModifyGatewayResponse\"\x00\x12P\n" +
 	"\vGetSessions\x12\x1e.naisdevice.GetSessionsRequest\x1a\x1f.naisdevice.GetSessionsResponse\"\x00\x12Y\n" +
-	"\x0eGetKolideCache\x12!.naisdevice.GetKolideCacheRequest\x1a\".naisdevice.GetKolideCacheResponse\"\x00B\x1fZ\x1dgithub.com/nais/device/pkg/pbb\x06proto3"
+	"\x0eGetKolideCache\x12!.naisdevice.GetKolideCacheRequest\x1a\".naisdevice.GetKolideCacheResponse\"\x00\x12}\n" +
+	"\x1aGetAcceptableUseAcceptedAt\x12-.naisdevice.GetAcceptableUseAcceptedAtRequest\x1a..naisdevice.GetAcceptableUseAcceptedAtResponse\"\x00\x12w\n" +
+	"\x18SetAcceptableUseAccepted\x12+.naisdevice.SetAcceptableUseAcceptedRequest\x1a,.naisdevice.SetAcceptableUseAcceptedResponse\"\x00B\x1fZ\x1dgithub.com/nais/device/pkg/pbb\x06proto3"
 
 var (
 	file_pkg_pb_protobuf_api_proto_rawDescOnce sync.Once
@@ -2785,66 +2977,70 @@ func file_pkg_pb_protobuf_api_proto_rawDescGZIP() []byte {
 }
 
 var file_pkg_pb_protobuf_api_proto_enumTypes = make([]protoimpl.EnumInfo, 4)
-var file_pkg_pb_protobuf_api_proto_msgTypes = make([]protoimpl.MessageInfo, 46)
+var file_pkg_pb_protobuf_api_proto_msgTypes = make([]protoimpl.MessageInfo, 50)
 var file_pkg_pb_protobuf_api_proto_goTypes = []any{
-	(AgentState)(0),                         // 0: naisdevice.AgentState
-	(DeviceConfigurationStatus)(0),          // 1: naisdevice.DeviceConfigurationStatus
-	(AuthProvider)(0),                       // 2: naisdevice.AuthProvider
-	(Severity)(0),                           // 3: naisdevice.Severity
-	(*TeardownRequest)(nil),                 // 4: naisdevice.TeardownRequest
-	(*TeardownResponse)(nil),                // 5: naisdevice.TeardownResponse
-	(*ConfigureResponse)(nil),               // 6: naisdevice.ConfigureResponse
-	(*ConfigureJITAResponse)(nil),           // 7: naisdevice.ConfigureJITAResponse
-	(*LoginResponse)(nil),                   // 8: naisdevice.LoginResponse
-	(*LogoutResponse)(nil),                  // 9: naisdevice.LogoutResponse
-	(*UpgradeRequest)(nil),                  // 10: naisdevice.UpgradeRequest
-	(*UpgradeResponse)(nil),                 // 11: naisdevice.UpgradeResponse
-	(*GetSerialRequest)(nil),                // 12: naisdevice.GetSerialRequest
-	(*GetSerialResponse)(nil),               // 13: naisdevice.GetSerialResponse
-	(*ConfigureJITARequest)(nil),            // 14: naisdevice.ConfigureJITARequest
-	(*LoginRequest)(nil),                    // 15: naisdevice.LoginRequest
-	(*LogoutRequest)(nil),                   // 16: naisdevice.LogoutRequest
-	(*SetAgentConfigurationRequest)(nil),    // 17: naisdevice.SetAgentConfigurationRequest
-	(*SetAgentConfigurationResponse)(nil),   // 18: naisdevice.SetAgentConfigurationResponse
-	(*GetAgentConfigurationRequest)(nil),    // 19: naisdevice.GetAgentConfigurationRequest
-	(*ShowAcceptableUseRequest)(nil),        // 20: naisdevice.ShowAcceptableUseRequest
-	(*ShowAcceptableUseResponse)(nil),       // 21: naisdevice.ShowAcceptableUseResponse
-	(*GetAgentConfigurationResponse)(nil),   // 22: naisdevice.GetAgentConfigurationResponse
-	(*AgentStatusRequest)(nil),              // 23: naisdevice.AgentStatusRequest
-	(*AgentStatus)(nil),                     // 24: naisdevice.AgentStatus
-	(*Configuration)(nil),                   // 25: naisdevice.Configuration
-	(*ModifyGatewayRequest)(nil),            // 26: naisdevice.ModifyGatewayRequest
-	(*ModifyGatewayResponse)(nil),           // 27: naisdevice.ModifyGatewayResponse
-	(*Gateway)(nil),                         // 28: naisdevice.Gateway
-	(*Error)(nil),                           // 29: naisdevice.Error
-	(*SetActiveTenantRequest)(nil),          // 30: naisdevice.SetActiveTenantRequest
-	(*SetActiveTenantResponse)(nil),         // 31: naisdevice.SetActiveTenantResponse
-	(*Tenant)(nil),                          // 32: naisdevice.Tenant
-	(*AgentConfiguration)(nil),              // 33: naisdevice.AgentConfiguration
-	(*GetGatewayConfigurationRequest)(nil),  // 34: naisdevice.GetGatewayConfigurationRequest
-	(*GetGatewayConfigurationResponse)(nil), // 35: naisdevice.GetGatewayConfigurationResponse
-	(*GetDeviceConfigurationRequest)(nil),   // 36: naisdevice.GetDeviceConfigurationRequest
-	(*APIServerLoginRequest)(nil),           // 37: naisdevice.APIServerLoginRequest
-	(*APIServerLoginResponse)(nil),          // 38: naisdevice.APIServerLoginResponse
-	(*GetDeviceConfigurationResponse)(nil),  // 39: naisdevice.GetDeviceConfigurationResponse
-	(*DeviceIssue)(nil),                     // 40: naisdevice.DeviceIssue
-	(*ListGatewayRequest)(nil),              // 41: naisdevice.ListGatewayRequest
-	(*Device)(nil),                          // 42: naisdevice.Device
-	(*Session)(nil),                         // 43: naisdevice.Session
-	(*GetSessionsRequest)(nil),              // 44: naisdevice.GetSessionsRequest
-	(*GetSessionsResponse)(nil),             // 45: naisdevice.GetSessionsResponse
-	(*PingRequest)(nil),                     // 46: naisdevice.PingRequest
-	(*PingResponse)(nil),                    // 47: naisdevice.PingResponse
-	(*GetKolideCacheRequest)(nil),           // 48: naisdevice.GetKolideCacheRequest
-	(*GetKolideCacheResponse)(nil),          // 49: naisdevice.GetKolideCacheResponse
-	(*timestamppb.Timestamp)(nil),           // 50: google.protobuf.Timestamp
+	(AgentState)(0),                            // 0: naisdevice.AgentState
+	(DeviceConfigurationStatus)(0),             // 1: naisdevice.DeviceConfigurationStatus
+	(AuthProvider)(0),                          // 2: naisdevice.AuthProvider
+	(Severity)(0),                              // 3: naisdevice.Severity
+	(*TeardownRequest)(nil),                    // 4: naisdevice.TeardownRequest
+	(*TeardownResponse)(nil),                   // 5: naisdevice.TeardownResponse
+	(*ConfigureResponse)(nil),                  // 6: naisdevice.ConfigureResponse
+	(*ConfigureJITAResponse)(nil),              // 7: naisdevice.ConfigureJITAResponse
+	(*LoginResponse)(nil),                      // 8: naisdevice.LoginResponse
+	(*LogoutResponse)(nil),                     // 9: naisdevice.LogoutResponse
+	(*UpgradeRequest)(nil),                     // 10: naisdevice.UpgradeRequest
+	(*UpgradeResponse)(nil),                    // 11: naisdevice.UpgradeResponse
+	(*GetSerialRequest)(nil),                   // 12: naisdevice.GetSerialRequest
+	(*GetSerialResponse)(nil),                  // 13: naisdevice.GetSerialResponse
+	(*ConfigureJITARequest)(nil),               // 14: naisdevice.ConfigureJITARequest
+	(*LoginRequest)(nil),                       // 15: naisdevice.LoginRequest
+	(*LogoutRequest)(nil),                      // 16: naisdevice.LogoutRequest
+	(*SetAgentConfigurationRequest)(nil),       // 17: naisdevice.SetAgentConfigurationRequest
+	(*SetAgentConfigurationResponse)(nil),      // 18: naisdevice.SetAgentConfigurationResponse
+	(*GetAgentConfigurationRequest)(nil),       // 19: naisdevice.GetAgentConfigurationRequest
+	(*ShowAcceptableUseRequest)(nil),           // 20: naisdevice.ShowAcceptableUseRequest
+	(*ShowAcceptableUseResponse)(nil),          // 21: naisdevice.ShowAcceptableUseResponse
+	(*GetAgentConfigurationResponse)(nil),      // 22: naisdevice.GetAgentConfigurationResponse
+	(*AgentStatusRequest)(nil),                 // 23: naisdevice.AgentStatusRequest
+	(*AgentStatus)(nil),                        // 24: naisdevice.AgentStatus
+	(*Configuration)(nil),                      // 25: naisdevice.Configuration
+	(*ModifyGatewayRequest)(nil),               // 26: naisdevice.ModifyGatewayRequest
+	(*ModifyGatewayResponse)(nil),              // 27: naisdevice.ModifyGatewayResponse
+	(*Gateway)(nil),                            // 28: naisdevice.Gateway
+	(*Error)(nil),                              // 29: naisdevice.Error
+	(*SetActiveTenantRequest)(nil),             // 30: naisdevice.SetActiveTenantRequest
+	(*SetActiveTenantResponse)(nil),            // 31: naisdevice.SetActiveTenantResponse
+	(*Tenant)(nil),                             // 32: naisdevice.Tenant
+	(*AgentConfiguration)(nil),                 // 33: naisdevice.AgentConfiguration
+	(*GetGatewayConfigurationRequest)(nil),     // 34: naisdevice.GetGatewayConfigurationRequest
+	(*GetGatewayConfigurationResponse)(nil),    // 35: naisdevice.GetGatewayConfigurationResponse
+	(*GetDeviceConfigurationRequest)(nil),      // 36: naisdevice.GetDeviceConfigurationRequest
+	(*APIServerLoginRequest)(nil),              // 37: naisdevice.APIServerLoginRequest
+	(*APIServerLoginResponse)(nil),             // 38: naisdevice.APIServerLoginResponse
+	(*GetDeviceConfigurationResponse)(nil),     // 39: naisdevice.GetDeviceConfigurationResponse
+	(*DeviceIssue)(nil),                        // 40: naisdevice.DeviceIssue
+	(*ListGatewayRequest)(nil),                 // 41: naisdevice.ListGatewayRequest
+	(*Device)(nil),                             // 42: naisdevice.Device
+	(*Session)(nil),                            // 43: naisdevice.Session
+	(*GetSessionsRequest)(nil),                 // 44: naisdevice.GetSessionsRequest
+	(*GetSessionsResponse)(nil),                // 45: naisdevice.GetSessionsResponse
+	(*PingRequest)(nil),                        // 46: naisdevice.PingRequest
+	(*PingResponse)(nil),                       // 47: naisdevice.PingResponse
+	(*GetKolideCacheRequest)(nil),              // 48: naisdevice.GetKolideCacheRequest
+	(*GetKolideCacheResponse)(nil),             // 49: naisdevice.GetKolideCacheResponse
+	(*GetAcceptableUseAcceptedAtRequest)(nil),  // 50: naisdevice.GetAcceptableUseAcceptedAtRequest
+	(*GetAcceptableUseAcceptedAtResponse)(nil), // 51: naisdevice.GetAcceptableUseAcceptedAtResponse
+	(*SetAcceptableUseAcceptedRequest)(nil),    // 52: naisdevice.SetAcceptableUseAcceptedRequest
+	(*SetAcceptableUseAcceptedResponse)(nil),   // 53: naisdevice.SetAcceptableUseAcceptedResponse
+	(*timestamppb.Timestamp)(nil),              // 54: google.protobuf.Timestamp
 }
 var file_pkg_pb_protobuf_api_proto_depIdxs = []int32{
 	28, // 0: naisdevice.ConfigureJITARequest.gateway:type_name -> naisdevice.Gateway
 	33, // 1: naisdevice.SetAgentConfigurationRequest.config:type_name -> naisdevice.AgentConfiguration
 	33, // 2: naisdevice.GetAgentConfigurationResponse.config:type_name -> naisdevice.AgentConfiguration
 	0,  // 3: naisdevice.AgentStatus.connectionState:type_name -> naisdevice.AgentState
-	50, // 4: naisdevice.AgentStatus.connectedSince:type_name -> google.protobuf.Timestamp
+	54, // 4: naisdevice.AgentStatus.connectedSince:type_name -> google.protobuf.Timestamp
 	28, // 5: naisdevice.AgentStatus.Gateways:type_name -> naisdevice.Gateway
 	32, // 6: naisdevice.AgentStatus.Tenants:type_name -> naisdevice.Tenant
 	40, // 7: naisdevice.AgentStatus.Issues:type_name -> naisdevice.DeviceIssue
@@ -2859,64 +3055,69 @@ var file_pkg_pb_protobuf_api_proto_depIdxs = []int32{
 	28, // 16: naisdevice.GetDeviceConfigurationResponse.Gateways:type_name -> naisdevice.Gateway
 	40, // 17: naisdevice.GetDeviceConfigurationResponse.issues:type_name -> naisdevice.DeviceIssue
 	3,  // 18: naisdevice.DeviceIssue.severity:type_name -> naisdevice.Severity
-	50, // 19: naisdevice.DeviceIssue.detectedAt:type_name -> google.protobuf.Timestamp
-	50, // 20: naisdevice.DeviceIssue.lastUpdated:type_name -> google.protobuf.Timestamp
-	50, // 21: naisdevice.DeviceIssue.resolveBefore:type_name -> google.protobuf.Timestamp
-	50, // 22: naisdevice.Device.lastUpdated:type_name -> google.protobuf.Timestamp
+	54, // 19: naisdevice.DeviceIssue.detectedAt:type_name -> google.protobuf.Timestamp
+	54, // 20: naisdevice.DeviceIssue.lastUpdated:type_name -> google.protobuf.Timestamp
+	54, // 21: naisdevice.DeviceIssue.resolveBefore:type_name -> google.protobuf.Timestamp
+	54, // 22: naisdevice.Device.lastUpdated:type_name -> google.protobuf.Timestamp
 	40, // 23: naisdevice.Device.issues:type_name -> naisdevice.DeviceIssue
-	50, // 24: naisdevice.Device.lastSeen:type_name -> google.protobuf.Timestamp
-	50, // 25: naisdevice.Session.expiry:type_name -> google.protobuf.Timestamp
+	54, // 24: naisdevice.Device.lastSeen:type_name -> google.protobuf.Timestamp
+	54, // 25: naisdevice.Session.expiry:type_name -> google.protobuf.Timestamp
 	42, // 26: naisdevice.Session.device:type_name -> naisdevice.Device
 	43, // 27: naisdevice.GetSessionsResponse.sessions:type_name -> naisdevice.Session
-	25, // 28: naisdevice.DeviceHelper.Configure:input_type -> naisdevice.Configuration
-	4,  // 29: naisdevice.DeviceHelper.Teardown:input_type -> naisdevice.TeardownRequest
-	10, // 30: naisdevice.DeviceHelper.Upgrade:input_type -> naisdevice.UpgradeRequest
-	12, // 31: naisdevice.DeviceHelper.GetSerial:input_type -> naisdevice.GetSerialRequest
-	46, // 32: naisdevice.DeviceHelper.Ping:input_type -> naisdevice.PingRequest
-	23, // 33: naisdevice.DeviceAgent.Status:input_type -> naisdevice.AgentStatusRequest
-	14, // 34: naisdevice.DeviceAgent.ConfigureJITA:input_type -> naisdevice.ConfigureJITARequest
-	15, // 35: naisdevice.DeviceAgent.Login:input_type -> naisdevice.LoginRequest
-	16, // 36: naisdevice.DeviceAgent.Logout:input_type -> naisdevice.LogoutRequest
-	30, // 37: naisdevice.DeviceAgent.SetActiveTenant:input_type -> naisdevice.SetActiveTenantRequest
-	17, // 38: naisdevice.DeviceAgent.SetAgentConfiguration:input_type -> naisdevice.SetAgentConfigurationRequest
-	19, // 39: naisdevice.DeviceAgent.GetAgentConfiguration:input_type -> naisdevice.GetAgentConfigurationRequest
-	20, // 40: naisdevice.DeviceAgent.ShowAcceptableUse:input_type -> naisdevice.ShowAcceptableUseRequest
-	37, // 41: naisdevice.APIServer.Login:input_type -> naisdevice.APIServerLoginRequest
-	36, // 42: naisdevice.APIServer.GetDeviceConfiguration:input_type -> naisdevice.GetDeviceConfigurationRequest
-	34, // 43: naisdevice.APIServer.GetGatewayConfiguration:input_type -> naisdevice.GetGatewayConfigurationRequest
-	26, // 44: naisdevice.APIServer.GetGateway:input_type -> naisdevice.ModifyGatewayRequest
-	41, // 45: naisdevice.APIServer.ListGateways:input_type -> naisdevice.ListGatewayRequest
-	26, // 46: naisdevice.APIServer.EnrollGateway:input_type -> naisdevice.ModifyGatewayRequest
-	26, // 47: naisdevice.APIServer.UpdateGateway:input_type -> naisdevice.ModifyGatewayRequest
-	44, // 48: naisdevice.APIServer.GetSessions:input_type -> naisdevice.GetSessionsRequest
-	48, // 49: naisdevice.APIServer.GetKolideCache:input_type -> naisdevice.GetKolideCacheRequest
-	6,  // 50: naisdevice.DeviceHelper.Configure:output_type -> naisdevice.ConfigureResponse
-	5,  // 51: naisdevice.DeviceHelper.Teardown:output_type -> naisdevice.TeardownResponse
-	11, // 52: naisdevice.DeviceHelper.Upgrade:output_type -> naisdevice.UpgradeResponse
-	13, // 53: naisdevice.DeviceHelper.GetSerial:output_type -> naisdevice.GetSerialResponse
-	47, // 54: naisdevice.DeviceHelper.Ping:output_type -> naisdevice.PingResponse
-	24, // 55: naisdevice.DeviceAgent.Status:output_type -> naisdevice.AgentStatus
-	7,  // 56: naisdevice.DeviceAgent.ConfigureJITA:output_type -> naisdevice.ConfigureJITAResponse
-	8,  // 57: naisdevice.DeviceAgent.Login:output_type -> naisdevice.LoginResponse
-	9,  // 58: naisdevice.DeviceAgent.Logout:output_type -> naisdevice.LogoutResponse
-	31, // 59: naisdevice.DeviceAgent.SetActiveTenant:output_type -> naisdevice.SetActiveTenantResponse
-	18, // 60: naisdevice.DeviceAgent.SetAgentConfiguration:output_type -> naisdevice.SetAgentConfigurationResponse
-	22, // 61: naisdevice.DeviceAgent.GetAgentConfiguration:output_type -> naisdevice.GetAgentConfigurationResponse
-	21, // 62: naisdevice.DeviceAgent.ShowAcceptableUse:output_type -> naisdevice.ShowAcceptableUseResponse
-	38, // 63: naisdevice.APIServer.Login:output_type -> naisdevice.APIServerLoginResponse
-	39, // 64: naisdevice.APIServer.GetDeviceConfiguration:output_type -> naisdevice.GetDeviceConfigurationResponse
-	35, // 65: naisdevice.APIServer.GetGatewayConfiguration:output_type -> naisdevice.GetGatewayConfigurationResponse
-	28, // 66: naisdevice.APIServer.GetGateway:output_type -> naisdevice.Gateway
-	28, // 67: naisdevice.APIServer.ListGateways:output_type -> naisdevice.Gateway
-	27, // 68: naisdevice.APIServer.EnrollGateway:output_type -> naisdevice.ModifyGatewayResponse
-	27, // 69: naisdevice.APIServer.UpdateGateway:output_type -> naisdevice.ModifyGatewayResponse
-	45, // 70: naisdevice.APIServer.GetSessions:output_type -> naisdevice.GetSessionsResponse
-	49, // 71: naisdevice.APIServer.GetKolideCache:output_type -> naisdevice.GetKolideCacheResponse
-	50, // [50:72] is the sub-list for method output_type
-	28, // [28:50] is the sub-list for method input_type
-	28, // [28:28] is the sub-list for extension type_name
-	28, // [28:28] is the sub-list for extension extendee
-	0,  // [0:28] is the sub-list for field type_name
+	54, // 28: naisdevice.GetAcceptableUseAcceptedAtResponse.acceptedAt:type_name -> google.protobuf.Timestamp
+	25, // 29: naisdevice.DeviceHelper.Configure:input_type -> naisdevice.Configuration
+	4,  // 30: naisdevice.DeviceHelper.Teardown:input_type -> naisdevice.TeardownRequest
+	10, // 31: naisdevice.DeviceHelper.Upgrade:input_type -> naisdevice.UpgradeRequest
+	12, // 32: naisdevice.DeviceHelper.GetSerial:input_type -> naisdevice.GetSerialRequest
+	46, // 33: naisdevice.DeviceHelper.Ping:input_type -> naisdevice.PingRequest
+	23, // 34: naisdevice.DeviceAgent.Status:input_type -> naisdevice.AgentStatusRequest
+	14, // 35: naisdevice.DeviceAgent.ConfigureJITA:input_type -> naisdevice.ConfigureJITARequest
+	15, // 36: naisdevice.DeviceAgent.Login:input_type -> naisdevice.LoginRequest
+	16, // 37: naisdevice.DeviceAgent.Logout:input_type -> naisdevice.LogoutRequest
+	30, // 38: naisdevice.DeviceAgent.SetActiveTenant:input_type -> naisdevice.SetActiveTenantRequest
+	17, // 39: naisdevice.DeviceAgent.SetAgentConfiguration:input_type -> naisdevice.SetAgentConfigurationRequest
+	19, // 40: naisdevice.DeviceAgent.GetAgentConfiguration:input_type -> naisdevice.GetAgentConfigurationRequest
+	20, // 41: naisdevice.DeviceAgent.ShowAcceptableUse:input_type -> naisdevice.ShowAcceptableUseRequest
+	37, // 42: naisdevice.APIServer.Login:input_type -> naisdevice.APIServerLoginRequest
+	36, // 43: naisdevice.APIServer.GetDeviceConfiguration:input_type -> naisdevice.GetDeviceConfigurationRequest
+	34, // 44: naisdevice.APIServer.GetGatewayConfiguration:input_type -> naisdevice.GetGatewayConfigurationRequest
+	26, // 45: naisdevice.APIServer.GetGateway:input_type -> naisdevice.ModifyGatewayRequest
+	41, // 46: naisdevice.APIServer.ListGateways:input_type -> naisdevice.ListGatewayRequest
+	26, // 47: naisdevice.APIServer.EnrollGateway:input_type -> naisdevice.ModifyGatewayRequest
+	26, // 48: naisdevice.APIServer.UpdateGateway:input_type -> naisdevice.ModifyGatewayRequest
+	44, // 49: naisdevice.APIServer.GetSessions:input_type -> naisdevice.GetSessionsRequest
+	48, // 50: naisdevice.APIServer.GetKolideCache:input_type -> naisdevice.GetKolideCacheRequest
+	50, // 51: naisdevice.APIServer.GetAcceptableUseAcceptedAt:input_type -> naisdevice.GetAcceptableUseAcceptedAtRequest
+	52, // 52: naisdevice.APIServer.SetAcceptableUseAccepted:input_type -> naisdevice.SetAcceptableUseAcceptedRequest
+	6,  // 53: naisdevice.DeviceHelper.Configure:output_type -> naisdevice.ConfigureResponse
+	5,  // 54: naisdevice.DeviceHelper.Teardown:output_type -> naisdevice.TeardownResponse
+	11, // 55: naisdevice.DeviceHelper.Upgrade:output_type -> naisdevice.UpgradeResponse
+	13, // 56: naisdevice.DeviceHelper.GetSerial:output_type -> naisdevice.GetSerialResponse
+	47, // 57: naisdevice.DeviceHelper.Ping:output_type -> naisdevice.PingResponse
+	24, // 58: naisdevice.DeviceAgent.Status:output_type -> naisdevice.AgentStatus
+	7,  // 59: naisdevice.DeviceAgent.ConfigureJITA:output_type -> naisdevice.ConfigureJITAResponse
+	8,  // 60: naisdevice.DeviceAgent.Login:output_type -> naisdevice.LoginResponse
+	9,  // 61: naisdevice.DeviceAgent.Logout:output_type -> naisdevice.LogoutResponse
+	31, // 62: naisdevice.DeviceAgent.SetActiveTenant:output_type -> naisdevice.SetActiveTenantResponse
+	18, // 63: naisdevice.DeviceAgent.SetAgentConfiguration:output_type -> naisdevice.SetAgentConfigurationResponse
+	22, // 64: naisdevice.DeviceAgent.GetAgentConfiguration:output_type -> naisdevice.GetAgentConfigurationResponse
+	21, // 65: naisdevice.DeviceAgent.ShowAcceptableUse:output_type -> naisdevice.ShowAcceptableUseResponse
+	38, // 66: naisdevice.APIServer.Login:output_type -> naisdevice.APIServerLoginResponse
+	39, // 67: naisdevice.APIServer.GetDeviceConfiguration:output_type -> naisdevice.GetDeviceConfigurationResponse
+	35, // 68: naisdevice.APIServer.GetGatewayConfiguration:output_type -> naisdevice.GetGatewayConfigurationResponse
+	28, // 69: naisdevice.APIServer.GetGateway:output_type -> naisdevice.Gateway
+	28, // 70: naisdevice.APIServer.ListGateways:output_type -> naisdevice.Gateway
+	27, // 71: naisdevice.APIServer.EnrollGateway:output_type -> naisdevice.ModifyGatewayResponse
+	27, // 72: naisdevice.APIServer.UpdateGateway:output_type -> naisdevice.ModifyGatewayResponse
+	45, // 73: naisdevice.APIServer.GetSessions:output_type -> naisdevice.GetSessionsResponse
+	49, // 74: naisdevice.APIServer.GetKolideCache:output_type -> naisdevice.GetKolideCacheResponse
+	51, // 75: naisdevice.APIServer.GetAcceptableUseAcceptedAt:output_type -> naisdevice.GetAcceptableUseAcceptedAtResponse
+	53, // 76: naisdevice.APIServer.SetAcceptableUseAccepted:output_type -> naisdevice.SetAcceptableUseAcceptedResponse
+	53, // [53:77] is the sub-list for method output_type
+	29, // [29:53] is the sub-list for method input_type
+	29, // [29:29] is the sub-list for extension type_name
+	29, // [29:29] is the sub-list for extension extendee
+	0,  // [0:29] is the sub-list for field type_name
 }
 
 func init() { file_pkg_pb_protobuf_api_proto_init() }
@@ -2930,7 +3131,7 @@ func file_pkg_pb_protobuf_api_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_pkg_pb_protobuf_api_proto_rawDesc), len(file_pkg_pb_protobuf_api_proto_rawDesc)),
 			NumEnums:      4,
-			NumMessages:   46,
+			NumMessages:   50,
 			NumExtensions: 0,
 			NumServices:   3,
 		},

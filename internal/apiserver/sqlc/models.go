@@ -8,9 +8,9 @@ import (
 	"database/sql"
 )
 
-type Approval struct {
+type Acceptance struct {
 	UserID     string
-	ApprovedAt string
+	AcceptedAt string
 }
 
 type Device struct {

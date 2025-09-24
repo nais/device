@@ -10,7 +10,6 @@ import (
 	"github.com/nais/device/internal/apiserver/auth"
 	"github.com/nais/device/internal/apiserver/database"
 	"github.com/nais/device/internal/apiserver/kolide"
-	"github.com/nais/device/internal/apiserver/sqlc"
 	"github.com/nais/device/pkg/pb"
 	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
@@ -50,7 +49,7 @@ func TestGetDeviceConfiguration(t *testing.T) {
 			Expiry: timestamppb.New(time.Now().Add(10 * time.Second)),
 			Device: testDevice,
 		}, nil)
-	db.On("GetApproval", mock.Anything, mock.Anything).Return(&sqlc.Approval{}, nil)
+	db.EXPECT().GetAcceptedAt(mock.Anything, mock.Anything).Return(timestamppb.Now(), nil)
 	db.On("ReadDeviceById", mock.Anything, mock.Anything).Return(testDevice, nil)
 	db.On("ReadGateways", mock.Anything).Return([]*pb.Gateway{
 		{
@@ -98,6 +97,7 @@ func TestGetDeviceConfiguration(t *testing.T) {
 
 	resp, err := configClient.Recv()
 	assert.NoError(t, err)
+	assert.NotEmpty(t, resp.Gateways)
 
 	gw := resp.Gateways[0]
 
@@ -122,7 +122,7 @@ func TestGatewayPasswordAuthentication(t *testing.T) {
 	}
 	db := database.NewMockDatabase(t)
 	db.On("ReadGateway", mock.Anything, "gateway").Return(gwResponse, nil).Times(2)
-	db.On("GetApprovals", mock.Anything).Return(map[string]struct{}{}, nil).Once()
+	db.EXPECT().GetAcceptances(mock.Anything).Return(map[string]struct{}{}, nil).Once()
 
 	sessionStore := auth.NewMockSessionStore(t)
 	sessionStore.On("All", mock.Anything).Return([]*pb.Session{}, nil)

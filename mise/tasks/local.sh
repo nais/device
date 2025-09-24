@@ -58,15 +58,17 @@ declare -A panes=(
 	[apiserver]="go run ./cmd/apiserver"
 	[enroller]="go run ./cmd/enroller"
 	[deviceagent]="go run $tags ./cmd/naisdevice-agent --no-helper --custom-enroll-url 'http://localhost:8080/enroll'"
+	[systray]="go run $tags ./cmd/naisdevice-systray --autostart-agent=false"
 )
 
 for pane in "${!panes[@]}"; do
 	cmd="${panes[$pane]}"
 	tmux split-window -t "${window_id}" -v "$env_joined $cmd; $wait"
+	tmux select-layout -t "$window_id" even-vertical
 	tmux select-pane -T "$cmd"
 done
 
-tmux select-layout -t "$window_id" even-vertical
+
 
 tmux set -w -t "$window_id" pane-border-status top
 tmux set -w -t "$window_id" pane-border-format "#{pane_index} #{pane_title}"
