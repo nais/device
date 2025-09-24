@@ -151,7 +151,7 @@ func (das *DeviceAgentServer) ShowAcceptableUse(ctx context.Context, _ *pb.ShowA
 
 		resp, err := apiserver.GetAcceptableUseAcceptedAt(ctx, &pb.GetAcceptableUseAcceptedAtRequest{SessionKey: key})
 		if err != nil {
-			return status.Errorf(codes.FailedPrecondition, "while checking acceptable use approval: %v", err)
+			return status.Errorf(codes.FailedPrecondition, "while checking acceptable use acceptance: %v", err)
 		}
 
 		setAccepted := func(accepted bool) error {

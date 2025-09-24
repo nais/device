@@ -21,7 +21,7 @@ Executing `mise run release-frontend` is required for deploy of new naisdevice c
 Each resource is _protected_ by a gateway, and the developer is only granted access to the gateway if all of the following requirements are met:
 
 - Has a valid account
-- Has accepted naisdevice [terms and conditions](https://naisdevice-approval.external.prod-gcp.nav.cloud.nais.io/)
+- Has accepted naisdevice terms and conditions (from within the app)
 - Device is [healthy](#what-is-a-healthy-device)
 - Is member of the AAD access group for the gateway (e.g. to connect to team A's DB (via gateway), you must be member of team A's AAD-group)
 
