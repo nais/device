@@ -52,7 +52,7 @@ func indexHandler(acceptedAt time.Time) func(http.ResponseWriter, *http.Request)
 			AcceptedAt  string
 		}{
 			HasAccepted: !acceptedAt.IsZero(),
-			AcceptedAt:  acceptedAt.String(),
+			AcceptedAt:  acceptedAt.Local().Format(time.RFC822),
 		}
 
 		t, err := template.ParseFS(templates, "templates/index.html")
