@@ -17,7 +17,7 @@ func (x *AgentStatus) ConnectionStateString() string {
 	case AgentState_AuthenticateBackoff:
 		return "Authentication failed; waiting to retry..."
 	case AgentState_Connected:
-		return "Connected since " + x.ConnectedSince.AsTime().Format(timeFormat)
+		return "Connected since " + x.ConnectedSince.AsTime().Local().Format(timeFormat)
 	default:
 		return x.ConnectionState.String()
 	}
