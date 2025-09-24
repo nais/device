@@ -21,6 +21,7 @@ type grpcServer struct {
 	prometheusAuth auth.UsernamePasswordAuthenticator
 	jita           jita.Client
 	kolideClient   kolide.Client
+	kolideEnabled  bool
 
 	devices  *triggers.StreamTriggers[int64]
 	gateways *triggers.StreamTriggers[string]
@@ -35,7 +36,7 @@ type grpcServer struct {
 
 var _ pb.APIServerServer = &grpcServer{}
 
-func NewGRPCServer(ctx context.Context, log logrus.FieldLogger, db database.Database, authenticator auth.Authenticator, adminAuth, gatewayAuth, prometheusAuth auth.UsernamePasswordAuthenticator, jita jita.Client, sessionStore auth.SessionStore, kolideClient kolide.Client) *grpcServer {
+func NewGRPCServer(ctx context.Context, log logrus.FieldLogger, db database.Database, authenticator auth.Authenticator, adminAuth, gatewayAuth, prometheusAuth auth.UsernamePasswordAuthenticator, jita jita.Client, sessionStore auth.SessionStore, kolideClient kolide.Client, kolideEnabled bool) *grpcServer {
 	return &grpcServer{
 		devices:        triggers.New[int64](),
 		gateways:       triggers.New[string](),
@@ -49,6 +50,7 @@ func NewGRPCServer(ctx context.Context, log logrus.FieldLogger, db database.Data
 		sessionStore:   sessionStore,
 		programContext: ctx,
 		log:            log,
+		kolideEnabled:  kolideEnabled,
 	}
 }
 

@@ -73,7 +73,7 @@ func TestGetDeviceConfiguration(t *testing.T) {
 	gatewayAuthenticator := auth.NewGatewayAuthenticator(db)
 
 	log := logrus.StandardLogger().WithField("component", "test")
-	server := api.NewGRPCServer(ctx, log, db, nil, nil, gatewayAuthenticator, nil, nil, auth.NewSessionStore(db), kolideClient)
+	server := api.NewGRPCServer(ctx, log, db, nil, nil, gatewayAuthenticator, nil, nil, auth.NewSessionStore(db), kolideClient, true)
 
 	s := grpc.NewServer()
 	pb.RegisterAPIServerServer(s, server)
@@ -130,7 +130,7 @@ func TestGatewayPasswordAuthentication(t *testing.T) {
 	gatewayAuthenticator := auth.NewGatewayAuthenticator(db)
 
 	log := logrus.StandardLogger().WithField("component", "test")
-	server := api.NewGRPCServer(ctx, log, db, nil, nil, gatewayAuthenticator, nil, nil, sessionStore, nil)
+	server := api.NewGRPCServer(ctx, log, db, nil, nil, gatewayAuthenticator, nil, nil, sessionStore, nil, false)
 
 	s := grpc.NewServer()
 	pb.RegisterAPIServerServer(s, server)
@@ -187,7 +187,7 @@ func TestGatewayPasswordAuthenticationFail(t *testing.T) {
 	gatewayAuthenticator := auth.NewGatewayAuthenticator(db)
 
 	log := logrus.StandardLogger().WithField("component", "test")
-	server := api.NewGRPCServer(ctx, log, db, nil, nil, gatewayAuthenticator, nil, nil, nil, nil)
+	server := api.NewGRPCServer(ctx, log, db, nil, nil, gatewayAuthenticator, nil, nil, nil, nil, false)
 
 	s := grpc.NewServer()
 	pb.RegisterAPIServerServer(s, server)

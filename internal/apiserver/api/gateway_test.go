@@ -48,7 +48,7 @@ func Test_MakeGatewayConfiguration(t *testing.T) {
 	gatewayAuthenticator := auth.NewGatewayAuthenticator(db)
 
 	log := logrus.StandardLogger().WithField("component", "test")
-	server := api.NewGRPCServer(ctx, log, db, nil, nil, gatewayAuthenticator, nil, nil, sessionStore, nil)
+	server := api.NewGRPCServer(ctx, log, db, nil, nil, gatewayAuthenticator, nil, nil, sessionStore, nil, true)
 
 	s := grpc.NewServer()
 	pb.RegisterAPIServerServer(s, server)

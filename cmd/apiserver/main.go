@@ -304,6 +304,7 @@ func run(log *logrus.Entry, cfg config.Config) error {
 		jitaClient,
 		sessions,
 		kolideClient,
+		cfg.KolideEventHandlerEnabled,
 	)
 
 	opts := []grpc.ServerOption{

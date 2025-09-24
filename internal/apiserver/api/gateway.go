@@ -118,11 +118,15 @@ func (s *grpcServer) makeGatewayConfiguration(ctx context.Context, gatewayName s
 		return nil, fmt.Errorf("get approved users: %w", err)
 	}
 
-	filters := []func(*pb.Session) bool{
-		sessionUserHasAccepted(acceptances),
+	var filters []func(*pb.Session) bool
+	if s.kolideEnabled {
+		filters = append(filters, sessionUserHasAccepted(acceptances))
+	}
+
+	filters = append(filters,
 		sessionForGatewayGroups(gateway.AccessGroupIDs),
 		sessionIsHealthy,
-	}
+	)
 
 	if gateway.RequiresPrivilegedAccess {
 		privilegedUsers := s.privilegedUsersForGateway(gateway)
