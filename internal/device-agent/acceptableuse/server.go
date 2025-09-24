@@ -33,7 +33,16 @@ func NewServer(secret string, acceptedAt time.Time, setAccepted func(accepted bo
 			return
 		}
 
-		_, _ = w.Write([]byte("You may now close this window."))
+		t, err := template.ParseFS(templates, "templates/site.html", "templates/message.html")
+		if err != nil {
+			http.Error(w, "Failed to parse templates.", http.StatusInternalServerError)
+			return
+		}
+
+		if err := t.ExecuteTemplate(w, "site.html", nil); err != nil {
+			http.Error(w, "Failed to render index page.", http.StatusInternalServerError)
+			return
+		}
 	}))
 	handler.HandleFunc("GET /ping", auth(secret, func(http.ResponseWriter, *http.Request) {
 		keepAlive <- struct{}{}
@@ -55,13 +64,13 @@ func indexHandler(acceptedAt time.Time) func(http.ResponseWriter, *http.Request)
 			AcceptedAt:  acceptedAt.Local().Format(time.RFC822),
 		}
 
-		t, err := template.ParseFS(templates, "templates/index.html")
+		t, err := template.ParseFS(templates, "templates/site.html", "templates/index.html")
 		if err != nil {
 			http.Error(w, "Failed to parse templates.", http.StatusInternalServerError)
 			return
 		}
 
-		if err := t.ExecuteTemplate(w, "index.html", data); err != nil {
+		if err := t.ExecuteTemplate(w, "site.html", data); err != nil {
 			http.Error(w, "Failed to render index page.", http.StatusInternalServerError)
 			return
 		}
