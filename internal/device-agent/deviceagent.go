@@ -154,11 +154,14 @@ func (das *DeviceAgentServer) ShowAcceptableUse(ctx context.Context, _ *pb.ShowA
 			return status.Errorf(codes.FailedPrecondition, "while checking acceptable use acceptance: %v", err)
 		}
 
+		ctx, cancel := context.WithCancel(ctx)
+		defer cancel()
 		setAccepted := func(accepted bool) error {
 			_, err := apiserver.SetAcceptableUseAccepted(ctx, &pb.SetAcceptableUseAcceptedRequest{
 				SessionKey: key,
 				Accepted:   accepted,
 			})
+			cancel()
 
 			return err
 		}
@@ -191,9 +194,9 @@ func (das *DeviceAgentServer) ShowAcceptableUse(ctx context.Context, _ *pb.ShowA
 		for {
 			select {
 			case <-keepAlive:
-				das.log.Info("keeping acceptable use server alive")
+				das.log.Trace("keeping acceptable use server alive")
 			case <-time.After(10 * time.Second):
-				das.log.Info("closing acceptable use server")
+				das.log.Debug("closing acceptable use server")
 				return nil
 			case <-ctx.Done():
 				return nil
