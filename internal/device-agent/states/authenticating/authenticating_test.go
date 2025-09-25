@@ -13,7 +13,6 @@ import (
 	"github.com/nais/device/pkg/pb"
 	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/mock"
 	"golang.org/x/oauth2"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
@@ -74,7 +73,7 @@ func TestAuthenticating(t *testing.T) {
 		rc.EXPECT().GetActiveTenant().Return(&pb.Tenant{AuthProvider: pb.AuthProvider_Google})
 
 		notifier := notify.NewMockNotifier(t)
-		notifier.EXPECT().Errorf(mock.Anything, expectedError)
+		notifier.EXPECT().ShowError(expectedError)
 
 		authState := &Authenticating{
 			getToken: func(ctx context.Context, fl logrus.FieldLogger, c oauth2.Config, s string) (*auth.Tokens, error) {
