@@ -62,7 +62,8 @@ func (a *Authenticating) Enter(ctx context.Context) state.EventWithSpan {
 	cancel()
 	if err != nil {
 		span.RecordError(err)
-		a.notifier.Errorf("Get token: %v", err)
+		a.notifier.ShowError(err)
+
 		return state.SpanEvent(ctx, state.EventDisconnect)
 	}
 

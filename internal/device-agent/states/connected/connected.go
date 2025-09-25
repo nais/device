@@ -71,7 +71,7 @@ func (c *Connected) Enter(ctx context.Context) state.EventWithSpan {
 	}))
 	cancel()
 	if err != nil {
-		c.notifier.Errorf(err.Error())
+		c.notifier.ShowError(err)
 		return state.SpanEvent(ctx, state.EventDisconnect)
 	}
 

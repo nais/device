@@ -184,3 +184,43 @@ func (_c *MockNotifier_SetLogger_Call) RunAndReturn(run func(log logrus.FieldLog
 	_c.Run(run)
 	return _c
 }
+
+// ShowError provides a mock function for the type MockNotifier
+func (_mock *MockNotifier) ShowError(err error) {
+	_mock.Called(err)
+	return
+}
+
+// MockNotifier_ShowError_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'ShowError'
+type MockNotifier_ShowError_Call struct {
+	*mock.Call
+}
+
+// ShowError is a helper method to define mock.On call
+//   - err error
+func (_e *MockNotifier_Expecter) ShowError(err interface{}) *MockNotifier_ShowError_Call {
+	return &MockNotifier_ShowError_Call{Call: _e.mock.On("ShowError", err)}
+}
+
+func (_c *MockNotifier_ShowError_Call) Run(run func(err error)) *MockNotifier_ShowError_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 error
+		if args[0] != nil {
+			arg0 = args[0].(error)
+		}
+		run(
+			arg0,
+		)
+	})
+	return _c
+}
+
+func (_c *MockNotifier_ShowError_Call) Return() *MockNotifier_ShowError_Call {
+	_c.Call.Return()
+	return _c
+}
+
+func (_c *MockNotifier_ShowError_Call) RunAndReturn(run func(err error)) *MockNotifier_ShowError_Call {
+	_c.Run(run)
+	return _c
+}

@@ -2,6 +2,7 @@ package auth
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net"
 	"net/http"
@@ -10,6 +11,7 @@ import (
 
 	"github.com/nais/device/internal/apiserver/kekw"
 	"github.com/nais/device/internal/device-agent/open"
+	"github.com/nais/device/internal/humanerror"
 	"github.com/nais/device/internal/random"
 	codeverifier "github.com/nirasan/go-oauth-pkce-code-verifier"
 	"github.com/sirupsen/logrus"
@@ -63,6 +65,11 @@ func GetDeviceAgentToken(ctx context.Context, log logrus.FieldLogger, conf oauth
 
 	select {
 	case <-ctx.Done():
+		if errors.Is(ctx.Err(), context.DeadlineExceeded) {
+			return nil, humanerror.Wrap(ctx.Err(), "Login process timed out, please restart by connecting again.")
+		} else if errors.Is(ctx.Err(), context.Canceled) {
+			return nil, humanerror.Wrap(ctx.Err(), "Login process was cancelled, please restart by connecting again.")
+		}
 		return nil, fmt.Errorf("authFlow: %w", ctx.Err())
 	case authFlowResponse := <-authFlowChan:
 		if authFlowResponse.err != nil {

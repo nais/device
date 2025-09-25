@@ -67,7 +67,7 @@ func main() {
 	notifier := notify.New(log)
 	err = run(ctx, log, cfg, notifier)
 	if err != nil {
-		notifier.Errorf(err.Error())
+		notifier.ShowError(err)
 		log.WithError(err).Error("naisdevice-agent terminated")
 		os.Exit(1)
 	}
