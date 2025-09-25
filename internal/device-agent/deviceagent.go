@@ -3,17 +3,13 @@ package device_agent
 
 import (
 	"context"
-	"crypto/rand"
-	"encoding/base64"
-	"errors"
-	"net"
-	"net/http"
-	"net/url"
+	"fmt"
 	"sync"
 	"time"
 
 	"github.com/google/uuid"
 	"github.com/nais/device/internal/device-agent/acceptableuse"
+	"github.com/nais/device/internal/device-agent/agenthttp"
 	"github.com/nais/device/internal/device-agent/open"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc/codes"
@@ -40,6 +36,9 @@ type DeviceAgentServer struct {
 
 	AgentStatus     *pb.AgentStatus
 	agentStatusLock sync.RWMutex
+
+	acceptaleUseHandler *acceptableuse.Handler
+	setAcceptance       <-chan bool
 }
 
 func (das *DeviceAgentServer) Login(ctx context.Context, request *pb.LoginRequest) (*pb.LoginResponse, error) {
@@ -137,18 +136,6 @@ func (das *DeviceAgentServer) SetActiveTenant(ctx context.Context, req *pb.SetAc
 
 func (das *DeviceAgentServer) ShowAcceptableUse(ctx context.Context, _ *pb.ShowAcceptableUseRequest) (*pb.ShowAcceptableUseResponse, error) {
 	return nil, das.rc.WithAPIServer(func(apiserver pb.APIServerClient, key string) error {
-		listener, err := net.Listen("tcp", "127.0.0.1:0")
-		if err != nil {
-			return status.Errorf(codes.FailedPrecondition, "while creating acceptable use listener: %v", err)
-		}
-
-		u, err := url.Parse("http://" + listener.Addr().String())
-		if err != nil {
-			return status.Errorf(codes.FailedPrecondition, "while creating URL: %v", err)
-		}
-
-		das.log.WithField("url", u.String()).Debug("acceptable use server listening")
-
 		resp, err := apiserver.GetAcceptableUseAcceptedAt(ctx, &pb.GetAcceptableUseAcceptedAtRequest{SessionKey: key})
 		if err != nil {
 			return status.Errorf(codes.FailedPrecondition, "while checking acceptable use acceptance: %v", err)
@@ -156,61 +143,26 @@ func (das *DeviceAgentServer) ShowAcceptableUse(ctx context.Context, _ *pb.ShowA
 
 		ctx, cancel := context.WithCancel(ctx)
 		defer cancel()
-		setAccepted := func(accepted bool) error {
-			_, err := apiserver.SetAcceptableUseAccepted(ctx, &pb.SetAcceptableUseAcceptedRequest{
-				SessionKey: key,
-				Accepted:   accepted,
-			})
-			cancel()
-
-			return err
-		}
-		keepAlive := make(chan struct{})
-
-		secret, err := random(32)
-		if err != nil {
-			return status.Errorf(codes.FailedPrecondition, "while creating random token: %v", err)
-		}
 
 		var acceptedAt time.Time
 		if resp.AcceptedAt != nil {
 			acceptedAt = resp.AcceptedAt.AsTime()
 		}
-		srv := acceptableuse.NewServer(secret, acceptedAt, setAccepted, keepAlive)
-		go func() {
-			if err := srv.Serve(listener); err != nil && !errors.Is(err, http.ErrServerClosed) {
-				das.log.WithError(err).Error("while serving acceptable use")
-			}
-		}()
 
-		defer func() { _ = srv.Close() }()
+		das.acceptaleUseHandler.SetAcceptedAt(acceptedAt)
 
-		q := u.Query()
-		q.Set("s", secret)
-		u.RawQuery = q.Encode()
+		url := fmt.Sprintf("http://%s/acceptableUse/?s=%s", agenthttp.Addr(), agenthttp.Secret())
 
-		open.Open(u.String())
+		open.Open(url)
 
-		for {
-			select {
-			case <-keepAlive:
-				das.log.Trace("keeping acceptable use server alive")
-			case <-time.After(10 * time.Second):
-				das.log.Debug("closing acceptable use server")
-				return nil
-			case <-ctx.Done():
-				return nil
-			}
-		}
+		newAccepted := <-das.setAcceptance
+		_, err = apiserver.SetAcceptableUseAccepted(ctx, &pb.SetAcceptableUseAcceptedRequest{
+			SessionKey: key,
+			Accepted:   newAccepted,
+		})
+
+		return err
 	})
-}
-
-func random(n int) (string, error) {
-	b := make([]byte, n)
-	if _, err := rand.Read(b); err != nil {
-		return "", err
-	}
-	return base64.RawURLEncoding.EncodeToString(b), nil
 }
 
 func NewServer(ctx context.Context,
@@ -219,14 +171,18 @@ func NewServer(ctx context.Context,
 	rc runtimeconfig.RuntimeConfig,
 	notifier notify.Notifier,
 	sendEvent func(state.EventWithSpan),
+	acceptableUse *acceptableuse.Handler,
+	setAcceptance <-chan bool,
 ) *DeviceAgentServer {
 	return &DeviceAgentServer{
-		log:            log,
-		AgentStatus:    &pb.AgentStatus{ConnectionState: pb.AgentState_Disconnected},
-		statusChannels: make(map[uuid.UUID]chan *pb.AgentStatus),
-		Config:         cfg,
-		rc:             rc,
-		notifier:       notifier,
-		sendEvent:      sendEvent,
+		log:                 log,
+		AgentStatus:         &pb.AgentStatus{ConnectionState: pb.AgentState_Disconnected},
+		statusChannels:      make(map[uuid.UUID]chan *pb.AgentStatus),
+		Config:              cfg,
+		rc:                  rc,
+		notifier:            notifier,
+		sendEvent:           sendEvent,
+		acceptaleUseHandler: acceptableUse,
+		setAcceptance:       setAcceptance,
 	}
 }
