@@ -200,6 +200,7 @@ func (c *Connected) defaultSyncConfigLoop(ctx context.Context) error {
 	defer cancel()
 
 	var healthCheckCancel context.CancelFunc = func() {}
+	var previousStatus pb.DeviceConfigurationStatus
 	for ctx.Err() == nil {
 		err := func() error {
 			cfg, err := stream.Recv()
@@ -217,6 +218,7 @@ func (c *Connected) defaultSyncConfigLoop(ctx context.Context) error {
 				return fmt.Errorf("recv(%w): %w", internalErr, err)
 			}
 
+			defer func() { previousStatus = cfg.Status }()
 			c.logger.Info("received gateway configuration from API server")
 
 			switch cfg.Status {
@@ -230,15 +232,18 @@ func (c *Connected) defaultSyncConfigLoop(ctx context.Context) error {
 				for _, issue := range cfg.Issues {
 					c.logger.WithField("issue", issue).Error("issue detected")
 				}
-				if len(cfg.Issues) == 1 {
-					c.notifier.Errorf("%v. Run '/msg @Kolide status' on Slack and fix the errors", cfg.Issues[0].Title)
-				} else {
-					// Make sure we do not report `Found 0 issues`
-					count := ""
-					if len(cfg.Issues) > 0 {
-						count = fmt.Sprintf(" %v", len(cfg.Issues))
+				// notify unless we've already notified about this.
+				if cfg.Status != previousStatus {
+					if len(cfg.Issues) == 1 {
+						c.notifier.Errorf("%v. Run '/msg @Kolide status' on Slack and fix the errors", cfg.Issues[0].Title)
+					} else {
+						// Make sure we do not report `Found 0 issues`
+						count := ""
+						if len(cfg.Issues) > 0 {
+							count = fmt.Sprintf(" %v", len(cfg.Issues))
+						}
+						c.notifier.Errorf("Found %v issues on your device. Run '/msg @Kolide status' on Slack and fix the errors", count)
 					}
-					c.notifier.Errorf("Found%v issues on your device. Run '/msg @Kolide status' on Slack and fix the errors", count)
 				}
 
 				c.cfg = cfg
