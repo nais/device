@@ -4,12 +4,11 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"net"
 	"net/http"
-	"strconv"
 	"strings"
 
 	"github.com/nais/device/internal/apiserver/kekw"
+	"github.com/nais/device/internal/device-agent/agenthttp"
 	"github.com/nais/device/internal/device-agent/open"
 	"github.com/nais/device/internal/humanerror"
 	"github.com/nais/device/internal/random"
@@ -37,22 +36,12 @@ func GetDeviceAgentToken(ctx context.Context, log logrus.FieldLogger, conf oauth
 	authFlowChan := make(chan *authFlowResponse)
 	state := random.RandomString(16, random.LettersAndNumbers)
 
-	listener, err := net.Listen("tcp", "127.0.0.1:0")
-	if err != nil {
-		return nil, fmt.Errorf("creating listener: %w", err)
-	}
+	redirectURL := strings.Replace(agenthttp.Addr(), "127.0.0.1", "localhost", 1)
+	conf.RedirectURL = strings.Replace(conf.RedirectURL, "ADDR", redirectURL, 1)
 
-	port := strconv.Itoa(listener.Addr().(*net.TCPAddr).Port)
-	conf.RedirectURL = strings.Replace(conf.RedirectURL, "PORT", port, 1)
-
-	handler := http.NewServeMux()
 	// define a handler that will get the authorization code, call the authFlowResponse endpoint, and close the HTTP server
-	handler.HandleFunc("GET /", handleRedirectAzure(state, conf, codeVerifier, authFlowChan))
-	handler.HandleFunc("GET /google", handleRedirectGoogle(state, conf.RedirectURL, codeVerifier, authFlowChan, authServer))
-
-	server := &http.Server{Handler: handler}
-	go server.Serve(listener)
-	defer server.Close()
+	agenthttp.HandleFunc("GET /", handleRedirectAzure(state, conf, codeVerifier, authFlowChan))
+	agenthttp.HandleFunc("GET /auth/google", handleRedirectGoogle(state, conf.RedirectURL, codeVerifier, authFlowChan, authServer))
 
 	url := conf.AuthCodeURL(
 		state,

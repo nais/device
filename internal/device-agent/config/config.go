@@ -68,13 +68,13 @@ func DefaultConfig() (*Config, error) {
 				"offline_access",
 			},
 			Endpoint:    endpoints.AzureAD("62366534-1ec3-4962-8869-9b5535279d0b"),
-			RedirectURL: "http://localhost:PORT/",
+			RedirectURL: "http://ADDR/",
 		},
 		GoogleOAuth2Config: oauth2.Config{
 			ClientID:    "955023559628-g51n36t4icbd6lq7ils4r0ol9oo8kpk0.apps.googleusercontent.com",
 			Scopes:      []string{"https://www.googleapis.com/auth/userinfo.email"},
 			Endpoint:    endpoints.Google,
-			RedirectURL: "http://localhost:PORT/google",
+			RedirectURL: "http://ADDR/google",
 		},
 	}, nil
 }

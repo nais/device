@@ -19,6 +19,8 @@ import (
 	"google.golang.org/grpc/credentials/insecure"
 
 	deviceagent "github.com/nais/device/internal/device-agent"
+	"github.com/nais/device/internal/device-agent/acceptableuse"
+	"github.com/nais/device/internal/device-agent/agenthttp"
 	"github.com/nais/device/internal/device-agent/config"
 	"github.com/nais/device/internal/device-agent/filesystem"
 	"github.com/nais/device/internal/device-agent/runtimeconfig"
@@ -165,7 +167,12 @@ func run(ctx context.Context, log *logrus.Entry, cfg *config.Config, notifier no
 	grpcServer := grpc.NewServer(
 		grpc.StatsHandler(otelgrpc.NewServerHandler()),
 	)
-	das := deviceagent.NewServer(ctx, log.WithField("component", "device-agent-server"), cfg, rc, notifier, stateMachine.SendEvent)
+
+	acceptableUseChannel := make(chan bool)
+	acceptableUseHandler := acceptableuse.New(acceptableUseChannel)
+	acceptableUseHandler.Register(agenthttp.HandleFunc)
+
+	das := deviceagent.NewServer(ctx, log.WithField("component", "device-agent-server"), cfg, rc, notifier, stateMachine.SendEvent, acceptableUseHandler, acceptableUseChannel)
 	pb.RegisterDeviceAgentServer(grpcServer, das)
 
 	newVersionChannel := make(chan bool, 1)
@@ -192,15 +199,9 @@ func run(ctx context.Context, log *logrus.Entry, cfg *config.Config, notifier no
 	}
 
 	log.WithField("addr", httpListener.Addr().String()).Info("local HTTP server")
-
 	go func() {
-		http.HandleFunc("/", func(w http.ResponseWriter, _ *http.Request) {
-			_, _ = fmt.Fprintf(w, "This server hosts the naisdevice local pages. It is not meant to be accessed directly, but rather through the naisdevice systray application or the Nais CLI.")
-		})
-
-		if err := http.Serve(httpListener, nil); err != nil && !errors.Is(err, http.ErrServerClosed) {
+		if err := agenthttp.Serve(httpListener); err != nil && !errors.Is(err, http.ErrServerClosed) {
 			log.WithError(err).Error("HTTP server")
-			cancel()
 		}
 	}()
 
