@@ -1,9 +1,11 @@
 package notify
 
 import (
+	"errors"
 	"fmt"
 
 	"github.com/gen2brain/beeep"
+	"github.com/nais/device/internal/humanerror"
 	"github.com/sirupsen/logrus"
 )
 
@@ -12,6 +14,7 @@ type logFunc func(string, ...any)
 type Notifier interface {
 	Infof(format string, args ...any)
 	Errorf(format string, args ...any)
+	ShowError(err error)
 	SetLogger(log logrus.FieldLogger)
 }
 
@@ -31,6 +34,15 @@ func (n *notifier) Infof(format string, args ...any) {
 
 func (n *notifier) Errorf(format string, args ...any) {
 	n.printf(logrus.ErrorLevel, format, args...)
+}
+
+func (n *notifier) ShowError(err error) {
+	var he *humanerror.HumanError
+	if ok := errors.As(err, &he); ok {
+		n.Errorf("%v", he.Message)
+	} else {
+		n.Errorf("%v", err)
+	}
 }
 
 func (n *notifier) SetLogger(log logrus.FieldLogger) {

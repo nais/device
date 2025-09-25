@@ -30,7 +30,7 @@ func main() {
 	notifier := notify.New(log)
 	err := run(ctx, notifier)
 	if err != nil {
-		notifier.Errorf(err.Error())
+		notifier.ShowError(err)
 		log.WithError(err).Error("run error")
 		os.Exit(1)
 	}

@@ -39,7 +39,7 @@ func TestConnected_Enter(t *testing.T) {
 		deviceHelper.EXPECT().Configure(mock.Anything, configuration).Return(nil, fmt.Errorf("unable to configure"))
 
 		notifier := notify.NewMockNotifier(t)
-		notifier.EXPECT().Errorf(mock.Anything, mock.Anything)
+		notifier.EXPECT().ShowError(mock.Anything)
 
 		c := &Connected{
 			rc:           rc,
