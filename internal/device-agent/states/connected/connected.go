@@ -397,7 +397,7 @@ func (c *Connected) launchHealthCheck(ctx context.Context) context.CancelFunc {
 }
 
 func ping(log logrus.FieldLogger, addr string) error {
-	c, err := net.DialTimeout("tcp", fmt.Sprintf("%s:%s", addr, "3000"), 2*time.Second)
+	c, err := net.DialTimeout("tcp", net.JoinHostPort(addr, "3000"), 2*time.Second)
 	if err != nil {
 		return err
 	}
