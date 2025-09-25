@@ -16,7 +16,7 @@ import (
 )
 
 const (
-	authFlowTimeout = 1 * time.Minute // total timeout for authenticating user (AAD login in browser, redirect to localhost, exchange code for token)
+	authFlowTimeout = 2 * time.Minute // total timeout for authenticating user (AAD login in browser, redirect to localhost, exchange code for token)
 )
 
 type Authenticating struct {
