@@ -3,7 +3,9 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
+	"net"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -181,6 +183,24 @@ func run(ctx context.Context, log *logrus.Entry, cfg *config.Config, notifier no
 				das.UpdateAgentStatus(s)
 			case <-ctx.Done():
 			}
+		}
+	}()
+
+	httpListener, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		return fmt.Errorf("creating listener: %w", err)
+	}
+
+	log.WithField("addr", httpListener.Addr().String()).Info("local HTTP server")
+
+	go func() {
+		http.HandleFunc("/", func(w http.ResponseWriter, _ *http.Request) {
+			_, _ = fmt.Fprintf(w, "This server hosts the naisdevice local pages. It is not meant to be accessed directly, but rather through the naisdevice systray application or the Nais CLI.")
+		})
+
+		if err := http.Serve(httpListener, nil); err != nil && !errors.Is(err, http.ErrServerClosed) {
+			log.WithError(err).Error("HTTP server")
+			cancel()
 		}
 	}()
 
