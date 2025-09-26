@@ -7,21 +7,40 @@ import (
 	"time"
 
 	"github.com/nais/device/internal/device-agent/agenthttp"
+	"github.com/nais/device/internal/device-agent/runtimeconfig"
+	"github.com/nais/device/pkg/pb"
+	"github.com/sirupsen/logrus"
 )
 
 type Handler struct {
-	setAcceptance chan<- bool
-	acceptedAt    time.Time
+	log logrus.FieldLogger
+	rc  runtimeconfig.RuntimeConfig
 }
 
 func (h *Handler) index(w http.ResponseWriter, req *http.Request) {
+	var acceptedAt time.Time
+	if err := h.rc.WithAPIServer(func(apiserver pb.APIServerClient, key string) error {
+		if resp, err := apiserver.GetAcceptableUseAcceptedAt(req.Context(), &pb.GetAcceptableUseAcceptedAtRequest{
+			SessionKey: key,
+		}); err != nil {
+			return err
+		} else if resp.AcceptedAt != nil {
+			acceptedAt = resp.AcceptedAt.AsTime()
+		}
+		return nil
+	}); err != nil {
+		h.log.Errorf("while getting acceptable use acceptance: %s", err)
+		http.Error(w, "Failed to get acceptable use acceptance.", http.StatusInternalServerError)
+		return
+	}
+
 	data := struct {
 		HasAccepted bool
 		AcceptedAt  string
 		FormAction  string
 	}{
-		HasAccepted: !h.acceptedAt.IsZero(),
-		AcceptedAt:  h.acceptedAt.Local().Format(time.RFC822),
+		HasAccepted: !acceptedAt.IsZero(),
+		AcceptedAt:  acceptedAt.Local().Format(time.RFC822),
 		FormAction:  "/acceptableUse/set?s=" + agenthttp.Secret(),
 	}
 
@@ -44,35 +63,32 @@ func (h *Handler) set(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	// TODO select with timeout and handle if the channel is blocked
-	h.setAcceptance <- accepted
-
-	t, err := template.ParseFS(templates, "templates/site.html", "templates/message.html")
-	if err != nil {
-		http.Error(w, "Failed to parse templates.", http.StatusInternalServerError)
+	if err := h.rc.WithAPIServer(func(apiserver pb.APIServerClient, key string) error {
+		_, err := apiserver.SetAcceptableUseAccepted(req.Context(), &pb.SetAcceptableUseAcceptedRequest{
+			SessionKey: key,
+			Accepted:   accepted,
+		})
+		return err
+	}); err != nil {
+		h.log.Errorf("while setting acceptable use acceptance: %s", err)
+		http.Error(w, "Failed to set acceptable use acceptance.", http.StatusInternalServerError)
 		return
 	}
 
-	if err := t.ExecuteTemplate(w, "site.html", nil); err != nil {
-		http.Error(w, "Failed to render index page.", http.StatusInternalServerError)
-		return
-	}
+	http.Redirect(w, req, "/acceptableUse/?s="+agenthttp.Secret(), http.StatusSeeOther)
 }
 
-func New(setAcceptance chan<- bool) *Handler {
+func New(rc runtimeconfig.RuntimeConfig, log logrus.FieldLogger) *Handler {
 	handler := &Handler{
-		setAcceptance: setAcceptance,
+		rc:  rc,
+		log: log,
 	}
 
 	return handler
 }
 
-func (h *Handler) SetAcceptedAt(acceptedAt time.Time) {
-	h.acceptedAt = acceptedAt
-}
-
 // Register registers the acceptable use handler routes using the provided registerFunc.
 func (h *Handler) Register(registerFunc func(pattern string, handler http.HandlerFunc)) {
-	registerFunc("GET /acceptableUse", h.index)
-	registerFunc("POST /acceptableUse/set", h.set)
+	registerFunc("GET /acceptableUse/", h.index)
+	registerFunc("POST /acceptableUse/", h.set)
 }

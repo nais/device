@@ -16,9 +16,9 @@ var mux = &localMux{
 var addr = ""
 
 func init() {
-	mux.mux.HandleFunc("/", func(w http.ResponseWriter, _ *http.Request) {
-		_, _ = fmt.Fprintf(w, "This server hosts the naisdevice local pages. It is not meant to be accessed directly, but rather through the naisdevice systray application or the Nais CLI.")
-	})
+	// mux.mux.HandleFunc("GET /", func(w http.ResponseWriter, _ *http.Request) {
+	// 	_, _ = fmt.Fprintf(w, "This server hosts the naisdevice local pages. It is not meant to be accessed directly, but rather through the naisdevice systray application or the Nais CLI.")
+	// })
 }
 
 type localMux struct {
@@ -47,6 +47,10 @@ func Serve(listener net.Listener) error {
 	server := &http.Server{Handler: mux}
 	addr = listener.Addr().String()
 	return server.Serve(listener)
+}
+
+func URL(path string) string {
+	return fmt.Sprintf("http://%s/%s?s=%s", addr, path, mux.secret)
 }
 
 func Secret() string {

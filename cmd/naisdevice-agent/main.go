@@ -171,11 +171,10 @@ func run(ctx context.Context, log *logrus.Entry, cfg *config.Config, notifier no
 		grpc.StatsHandler(otelgrpc.NewServerHandler()),
 	)
 
-	acceptableUseChannel := make(chan bool)
-	acceptableUseHandler := acceptableuse.New(acceptableUseChannel)
+	acceptableUseHandler := acceptableuse.New(rc, log.WithField("component", "acceptable-use"))
 	acceptableUseHandler.Register(agenthttp.HandleFunc)
 
-	das := deviceagent.NewServer(ctx, log.WithField("component", "device-agent-server"), cfg, rc, notifier, stateMachine.SendEvent, acceptableUseHandler, acceptableUseChannel)
+	das := deviceagent.NewServer(ctx, log.WithField("component", "device-agent-server"), cfg, rc, notifier, stateMachine.SendEvent, acceptableUseHandler)
 	pb.RegisterDeviceAgentServer(grpcServer, das)
 
 	newVersionChannel := make(chan bool, 1)
