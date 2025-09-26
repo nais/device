@@ -3,7 +3,6 @@ package device_agent
 
 import (
 	"context"
-	"fmt"
 	"sync"
 
 	"github.com/google/uuid"
@@ -134,8 +133,7 @@ func (das *DeviceAgentServer) SetActiveTenant(ctx context.Context, req *pb.SetAc
 }
 
 func (das *DeviceAgentServer) ShowAcceptableUse(ctx context.Context, _ *pb.ShowAcceptableUseRequest) (*pb.ShowAcceptableUseResponse, error) {
-	url := fmt.Sprintf("http://%s/acceptableUse/?s=%s", agenthttp.Addr(), agenthttp.Secret())
-	open.Open(url)
+	open.Open(agenthttp.Path("/acceptableUse", true))
 	return &pb.ShowAcceptableUseResponse{}, nil
 }
 

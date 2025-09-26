@@ -15,6 +15,7 @@ import (
 	codeverifier "github.com/nirasan/go-oauth-pkce-code-verifier"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/oauth2"
+	"golang.org/x/oauth2/endpoints"
 )
 
 type Handler interface {
@@ -51,8 +52,8 @@ func New(authServer string) *handler {
 	}
 
 	// define a handler that will get the authorization code, call the authFlowResponse endpoint, and close the HTTP server
-	agenthttp.HandleFunc("GET /", h.handleRedirectAzure)
-	agenthttp.HandleFunc("GET /google", h.handleRedirectGoogle)
+	agenthttp.HandleFunc("GET /auth/azure", h.handleRedirectAzure)
+	agenthttp.HandleFunc("GET /auth/google", h.handleRedirectGoogle)
 
 	return h
 }
@@ -73,8 +74,11 @@ func (h *handler) GetDeviceAgentToken(ctx context.Context, log logrus.FieldLogge
 	h.state = random.RandomString(16, random.LettersAndNumbers)
 	h.oauthConfig = oauthConfig
 
-	redirectURL := strings.Replace(agenthttp.Addr(), "127.0.0.1", "localhost", 1)
-	h.oauthConfig.RedirectURL = strings.Replace(h.oauthConfig.RedirectURL, "ADDR", redirectURL, 1)
+	if h.oauthConfig.Endpoint == endpoints.AzureAD("62366534-1ec3-4962-8869-9b5535279d0b") {
+		h.oauthConfig.RedirectURL = agenthttp.Path("/auth/azure", false)
+	} else if h.oauthConfig.Endpoint == endpoints.Google {
+		h.oauthConfig.RedirectURL = agenthttp.Path("/auth/google", false)
+	}
 
 	url := h.oauthConfig.AuthCodeURL(
 		h.state,
