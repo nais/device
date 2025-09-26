@@ -5,20 +5,21 @@ import (
 	"fmt"
 	"net"
 	"net/http"
+	"strings"
 
 	"github.com/nais/device/internal/random"
 )
 
 var mux = &localMux{
 	mux:    http.NewServeMux(),
-	secret: random.RandomString(32, random.LettersAndNumbers),
+	secret: random.RandomString(16, random.LettersAndNumbers),
 }
 var addr = ""
 
 func init() {
-	// mux.mux.HandleFunc("GET /", func(w http.ResponseWriter, _ *http.Request) {
-	// 	_, _ = fmt.Fprintf(w, "This server hosts the naisdevice local pages. It is not meant to be accessed directly, but rather through the naisdevice systray application or the Nais CLI.")
-	// })
+	mux.mux.HandleFunc("GET /", func(w http.ResponseWriter, _ *http.Request) {
+		_, _ = fmt.Fprintf(w, "This server hosts the naisdevice local pages. It is not meant to be accessed directly, but rather through the naisdevice systray application or the Nais CLI.")
+	})
 }
 
 type localMux struct {
@@ -28,9 +29,9 @@ type localMux struct {
 
 func (m *localMux) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	fmt.Println("Received request for", req.URL.Path)
+
 	// Disable auth for auth redirect uri's - maybe?
-	if req.Method == http.MethodGet && (req.URL.Path == "/" || req.URL.Path == "/google") {
-		fmt.Println("Serving unprotected path", req.URL.Path)
+	if req.Method == http.MethodGet && (req.URL.Path == "/" || strings.HasPrefix(req.URL.Path, "/auth")) {
 		m.mux.ServeHTTP(w, req)
 		return
 	}
@@ -49,16 +50,12 @@ func Serve(listener net.Listener) error {
 	return server.Serve(listener)
 }
 
-func URL(path string) string {
-	return fmt.Sprintf("http://%s/%s?s=%s", addr, path, mux.secret)
-}
-
-func Secret() string {
-	return mux.secret
-}
-
-func Addr() string {
-	return addr
+func Path(path string, withSecret bool) string {
+	url := fmt.Sprintf("http://%s%s", addr, path)
+	if withSecret {
+		url += "?s=" + mux.secret
+	}
+	return url
 }
 
 func HandleFunc(pattern string, handler http.HandlerFunc) {

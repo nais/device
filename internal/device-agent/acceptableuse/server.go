@@ -41,7 +41,7 @@ func (h *Handler) index(w http.ResponseWriter, req *http.Request) {
 	}{
 		HasAccepted: !acceptedAt.IsZero(),
 		AcceptedAt:  acceptedAt.Local().Format(time.RFC822),
-		FormAction:  "/acceptableUse/set?s=" + agenthttp.Secret(),
+		FormAction:  agenthttp.Path("/acceptableUse", true),
 	}
 
 	t, err := template.ParseFS(templates, "templates/site.html", "templates/index.html")
@@ -75,7 +75,7 @@ func (h *Handler) set(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	http.Redirect(w, req, "/acceptableUse/?s="+agenthttp.Secret(), http.StatusSeeOther)
+	http.Redirect(w, req, agenthttp.Path("/acceptableUse", true), http.StatusSeeOther)
 }
 
 func New(rc runtimeconfig.RuntimeConfig, log logrus.FieldLogger) *Handler {
@@ -89,6 +89,6 @@ func New(rc runtimeconfig.RuntimeConfig, log logrus.FieldLogger) *Handler {
 
 // Register registers the acceptable use handler routes using the provided registerFunc.
 func (h *Handler) Register(registerFunc func(pattern string, handler http.HandlerFunc)) {
-	registerFunc("GET /acceptableUse/", h.index)
-	registerFunc("POST /acceptableUse/", h.set)
+	registerFunc("GET /acceptableUse", h.index)
+	registerFunc("POST /acceptableUse", h.set)
 }

@@ -67,14 +67,12 @@ func DefaultConfig() (*Config, error) {
 				"6e45010d-2637-4a40-b91d-d4cbb451fb57/.default",
 				"offline_access",
 			},
-			Endpoint:    endpoints.AzureAD("62366534-1ec3-4962-8869-9b5535279d0b"),
-			RedirectURL: "http://ADDR/",
+			Endpoint: endpoints.AzureAD("62366534-1ec3-4962-8869-9b5535279d0b"),
 		},
 		GoogleOAuth2Config: oauth2.Config{
-			ClientID:    "955023559628-g51n36t4icbd6lq7ils4r0ol9oo8kpk0.apps.googleusercontent.com",
-			Scopes:      []string{"https://www.googleapis.com/auth/userinfo.email"},
-			Endpoint:    endpoints.Google,
-			RedirectURL: "http://ADDR/google",
+			ClientID: "955023559628-g51n36t4icbd6lq7ils4r0ol9oo8kpk0.apps.googleusercontent.com",
+			Scopes:   []string{"https://www.googleapis.com/auth/userinfo.email"},
+			Endpoint: endpoints.Google,
 		},
 	}, nil
 }
