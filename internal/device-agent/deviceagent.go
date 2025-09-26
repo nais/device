@@ -5,7 +5,6 @@ import (
 	"context"
 	"fmt"
 	"sync"
-	"time"
 
 	"github.com/google/uuid"
 	"github.com/nais/device/internal/device-agent/acceptableuse"
@@ -135,34 +134,9 @@ func (das *DeviceAgentServer) SetActiveTenant(ctx context.Context, req *pb.SetAc
 }
 
 func (das *DeviceAgentServer) ShowAcceptableUse(ctx context.Context, _ *pb.ShowAcceptableUseRequest) (*pb.ShowAcceptableUseResponse, error) {
-	return nil, das.rc.WithAPIServer(func(apiserver pb.APIServerClient, key string) error {
-		resp, err := apiserver.GetAcceptableUseAcceptedAt(ctx, &pb.GetAcceptableUseAcceptedAtRequest{SessionKey: key})
-		if err != nil {
-			return status.Errorf(codes.FailedPrecondition, "while checking acceptable use acceptance: %v", err)
-		}
-
-		ctx, cancel := context.WithCancel(ctx)
-		defer cancel()
-
-		var acceptedAt time.Time
-		if resp.AcceptedAt != nil {
-			acceptedAt = resp.AcceptedAt.AsTime()
-		}
-
-		das.acceptaleUseHandler.SetAcceptedAt(acceptedAt)
-
-		url := fmt.Sprintf("http://%s/acceptableUse/?s=%s", agenthttp.Addr(), agenthttp.Secret())
-
-		open.Open(url)
-
-		newAccepted := <-das.setAcceptance
-		_, err = apiserver.SetAcceptableUseAccepted(ctx, &pb.SetAcceptableUseAcceptedRequest{
-			SessionKey: key,
-			Accepted:   newAccepted,
-		})
-
-		return err
-	})
+	url := fmt.Sprintf("http://%s/acceptableUse/?s=%s", agenthttp.Addr(), agenthttp.Secret())
+	open.Open(url)
+	return &pb.ShowAcceptableUseResponse{}, nil
 }
 
 func NewServer(ctx context.Context,
@@ -172,7 +146,6 @@ func NewServer(ctx context.Context,
 	notifier notify.Notifier,
 	sendEvent func(state.EventWithSpan),
 	acceptableUse *acceptableuse.Handler,
-	setAcceptance <-chan bool,
 ) *DeviceAgentServer {
 	return &DeviceAgentServer{
 		log:                 log,
@@ -183,6 +156,5 @@ func NewServer(ctx context.Context,
 		notifier:            notifier,
 		sendEvent:           sendEvent,
 		acceptaleUseHandler: acceptableUse,
-		setAcceptance:       setAcceptance,
 	}
 }
