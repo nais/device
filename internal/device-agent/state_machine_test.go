@@ -6,6 +6,7 @@ import (
 	"time"
 
 	device_agent "github.com/nais/device/internal/device-agent"
+	"github.com/nais/device/internal/device-agent/auth"
 	"github.com/nais/device/internal/device-agent/config"
 	"github.com/nais/device/internal/device-agent/runtimeconfig"
 	"github.com/nais/device/internal/device-agent/statemachine/state"
@@ -74,8 +75,10 @@ func TestStateMachine(t *testing.T) {
 		deviceHelper.EXPECT().Configure(mock.Anything, mock.Anything).Return(&pb.ConfigureResponse{}, nil)
 		deviceHelper.EXPECT().Teardown(mock.Anything, mock.Anything).Return(&pb.TeardownResponse{}, nil)
 
+		mockAuth := auth.NewMockHandler(t)
+
 		statusChan := make(chan *pb.AgentStatus, 10)
-		sm := device_agent.NewStateMachine(ctx, rc, cfg, notifier, deviceHelper, statusChan, log)
+		sm := device_agent.NewStateMachine(ctx, rc, cfg, notifier, deviceHelper, statusChan, mockAuth, log)
 		go sm.Run(ctx)
 
 		isState := func(state pb.AgentState, numGateways int) func() bool {

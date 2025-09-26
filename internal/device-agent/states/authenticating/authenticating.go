@@ -20,21 +20,20 @@ const (
 )
 
 type Authenticating struct {
-	rc       runtimeconfig.RuntimeConfig
-	cfg      config.Config
-	notifier notify.Notifier
-	getToken auth.GetTokenFunc
-	logger   logrus.FieldLogger
+	rc          runtimeconfig.RuntimeConfig
+	cfg         config.Config
+	notifier    notify.Notifier
+	authHandler auth.Handler
+	logger      logrus.FieldLogger
 }
 
-func New(rc runtimeconfig.RuntimeConfig, cfg config.Config, logger logrus.FieldLogger, notifier notify.Notifier) state.State {
+func New(rc runtimeconfig.RuntimeConfig, cfg config.Config, authHandler auth.Handler, logger logrus.FieldLogger, notifier notify.Notifier) state.State {
 	return &Authenticating{
-		rc:       rc,
-		cfg:      cfg,
-		logger:   logger,
-		notifier: notifier,
-
-		getToken: auth.GetDeviceAgentToken,
+		rc:          rc,
+		cfg:         cfg,
+		logger:      logger,
+		notifier:    notifier,
+		authHandler: authHandler,
 	}
 }
 
@@ -58,7 +57,7 @@ func (a *Authenticating) Enter(ctx context.Context) state.EventWithSpan {
 
 	ctx, cancel := context.WithTimeout(ctx, authFlowTimeout)
 	oauth2Config := a.cfg.OAuth2Config(a.rc.GetActiveTenant().AuthProvider)
-	token, err := a.getToken(ctx, a.logger, oauth2Config, a.cfg.GoogleAuthServerAddress)
+	token, err := a.authHandler.GetDeviceAgentToken(ctx, a.logger, oauth2Config)
 	cancel()
 	if err != nil {
 		span.RecordError(err)

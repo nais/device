@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	device_agent "github.com/nais/device/internal/device-agent"
+	"github.com/nais/device/internal/device-agent/auth"
 	"github.com/nais/device/internal/device-agent/config"
 	"github.com/nais/device/internal/device-agent/runtimeconfig"
 	"github.com/nais/device/internal/notify"
@@ -33,8 +34,10 @@ func NewDeviceAgent(t *testing.T, wg *sync.WaitGroup, ctx context.Context, log *
 	notifier.EXPECT().Errorf(mock.Anything, mock.Anything).Maybe()
 	notifier.EXPECT().Infof(mock.Anything, mock.Anything).Maybe()
 
+	mockAuth := auth.NewMockHandler(t)
+
 	statusChannel := make(chan *pb.AgentStatus, 32)
-	stateMachine := device_agent.NewStateMachine(ctx, rc, *cfg, notifier, helperClient, statusChannel, log)
+	stateMachine := device_agent.NewStateMachine(ctx, rc, *cfg, notifier, helperClient, statusChannel, mockAuth, log)
 
 	impl := device_agent.NewServer(ctx, log, cfg, rc, notifier, stateMachine.SendEvent, nil, nil)
 	server := grpc.NewServer()

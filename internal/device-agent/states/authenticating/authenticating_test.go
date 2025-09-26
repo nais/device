@@ -11,9 +11,8 @@ import (
 	"github.com/nais/device/internal/device-agent/statemachine/state"
 	"github.com/nais/device/internal/notify"
 	"github.com/nais/device/pkg/pb"
-	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
-	"golang.org/x/oauth2"
+	"github.com/stretchr/testify/mock"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
@@ -49,11 +48,12 @@ func TestAuthenticating(t *testing.T) {
 		rc.EXPECT().GetActiveTenant().Return(&pb.Tenant{AuthProvider: pb.AuthProvider_Google})
 		rc.EXPECT().SetToken(tokens)
 
+		mockAuth := auth.NewMockHandler(t)
+		mockAuth.EXPECT().GetDeviceAgentToken(mock.Anything, mock.Anything, mock.Anything).Return(tokens, nil)
+
 		authState := &Authenticating{
-			getToken: func(ctx context.Context, fl logrus.FieldLogger, c oauth2.Config, s string) (*auth.Tokens, error) {
-				return tokens, nil
-			},
-			rc: rc,
+			authHandler: mockAuth,
+			rc:          rc,
 		}
 
 		assert.Equal(t, state.EventAuthenticated, authState.Enter(ctx).Event)
@@ -75,12 +75,13 @@ func TestAuthenticating(t *testing.T) {
 		notifier := notify.NewMockNotifier(t)
 		notifier.EXPECT().ShowError(expectedError)
 
+		mockAuth := auth.NewMockHandler(t)
+		mockAuth.EXPECT().GetDeviceAgentToken(mock.Anything, mock.Anything, mock.Anything).Return(nil, expectedError)
+
 		authState := &Authenticating{
-			getToken: func(ctx context.Context, fl logrus.FieldLogger, c oauth2.Config, s string) (*auth.Tokens, error) {
-				return nil, expectedError
-			},
-			rc:       rc,
-			notifier: notifier,
+			authHandler: mockAuth,
+			rc:          rc,
+			notifier:    notifier,
 		}
 
 		assert.Equal(t, state.EventDisconnect, authState.Enter(ctx).Event)
