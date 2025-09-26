@@ -29,6 +29,9 @@ packages:
   github.com/nais/device/internal/device-agent/runtimeconfig:
     interfaces:
       RuntimeConfig:
+  github.com/nais/device/internal/device-agent/auth:
+    interfaces:
+      Handler:
   github.com/nais/device/internal/helper:
     interfaces:
       OSConfigurator:

@@ -28,6 +28,7 @@ type localMux struct {
 
 func (m *localMux) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	fmt.Println("Received request for", req.URL.Path)
+	// Disable auth for auth redirect uri's - maybe?
 	if req.Method == http.MethodGet && (req.URL.Path == "/" || req.URL.Path == "/google") {
 		fmt.Println("Serving unprotected path", req.URL.Path)
 		m.mux.ServeHTTP(w, req)

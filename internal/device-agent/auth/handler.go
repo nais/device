@@ -17,7 +17,45 @@ import (
 	"golang.org/x/oauth2"
 )
 
-type GetTokenFunc func(context.Context, logrus.FieldLogger, oauth2.Config, string) (*Tokens, error)
+type Handler interface {
+	GetDeviceAgentToken(ctx context.Context, log logrus.FieldLogger, oauthConfig oauth2.Config) (*Tokens, error)
+}
+
+type handler struct {
+	authChannel chan *authFlowResponse
+	authServer  string
+
+	// Needs to be set before every autg flow
+	state        string
+	oauthConfig  oauth2.Config
+	codeVerifier *codeverifier.CodeVerifier
+}
+
+func (h *handler) valid() error {
+	if h.oauthConfig.ClientID == "" || h.oauthConfig.RedirectURL == "" || h.oauthConfig.Endpoint.AuthURL == "" || h.oauthConfig.Endpoint.TokenURL == "" {
+		return fmt.Errorf("oauth2 config is missing required fields")
+	}
+	if h.codeVerifier == nil {
+		return fmt.Errorf("code verifier is not set")
+	}
+	if h.state == "" {
+		return fmt.Errorf("state is not set")
+	}
+	return nil
+}
+
+func New(authServer string) *handler {
+	h := &handler{
+		authChannel: make(chan *authFlowResponse),
+		authServer:  authServer,
+	}
+
+	// define a handler that will get the authorization code, call the authFlowResponse endpoint, and close the HTTP server
+	agenthttp.HandleFunc("GET /", h.handleRedirectAzure)
+	agenthttp.HandleFunc("GET /google", h.handleRedirectGoogle)
+
+	return h
+}
 
 type authFlowResponse struct {
 	Tokens *Tokens
@@ -29,25 +67,20 @@ type Tokens struct {
 	IDToken string
 }
 
-func GetDeviceAgentToken(ctx context.Context, log logrus.FieldLogger, conf oauth2.Config, authServer string) (*Tokens, error) {
+func (h *handler) GetDeviceAgentToken(ctx context.Context, log logrus.FieldLogger, oauthConfig oauth2.Config) (*Tokens, error) {
 	// Ignoring impossible error
-	codeVerifier, _ := codeverifier.CreateCodeVerifier()
-
-	authFlowChan := make(chan *authFlowResponse)
-	state := random.RandomString(16, random.LettersAndNumbers)
+	h.codeVerifier, _ = codeverifier.CreateCodeVerifier()
+	h.state = random.RandomString(16, random.LettersAndNumbers)
+	h.oauthConfig = oauthConfig
 
 	redirectURL := strings.Replace(agenthttp.Addr(), "127.0.0.1", "localhost", 1)
-	conf.RedirectURL = strings.Replace(conf.RedirectURL, "ADDR", redirectURL, 1)
+	h.oauthConfig.RedirectURL = strings.Replace(h.oauthConfig.RedirectURL, "ADDR", redirectURL, 1)
 
-	// define a handler that will get the authorization code, call the authFlowResponse endpoint, and close the HTTP server
-	agenthttp.HandleFunc("GET /", handleRedirectAzure(state, conf, codeVerifier, authFlowChan))
-	agenthttp.HandleFunc("GET /auth/google", handleRedirectGoogle(state, conf.RedirectURL, codeVerifier, authFlowChan, authServer))
-
-	url := conf.AuthCodeURL(
-		state,
+	url := h.oauthConfig.AuthCodeURL(
+		h.state,
 		oauth2.AccessTypeOffline,
 		oauth2.SetAuthURLParam("code_challenge_method", "S256"),
-		oauth2.SetAuthURLParam("code_challenge", codeVerifier.CodeChallengeS256()))
+		oauth2.SetAuthURLParam("code_challenge", h.codeVerifier.CodeChallengeS256()))
 
 	open.Open(url)
 	log.WithField("url", url).Info("if the browser didn't open, visit url to sign in")
@@ -60,7 +93,7 @@ func GetDeviceAgentToken(ctx context.Context, log logrus.FieldLogger, conf oauth
 			return nil, humanerror.Wrap(ctx.Err(), "Login process was cancelled, please restart by connecting again.")
 		}
 		return nil, fmt.Errorf("authFlow: %w", ctx.Err())
-	case authFlowResponse := <-authFlowChan:
+	case authFlowResponse := <-h.authChannel:
 		if authFlowResponse.err != nil {
 			return nil, fmt.Errorf("authFlow: %w", authFlowResponse.err)
 		}

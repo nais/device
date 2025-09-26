@@ -21,6 +21,7 @@ import (
 	deviceagent "github.com/nais/device/internal/device-agent"
 	"github.com/nais/device/internal/device-agent/acceptableuse"
 	"github.com/nais/device/internal/device-agent/agenthttp"
+	"github.com/nais/device/internal/device-agent/auth"
 	"github.com/nais/device/internal/device-agent/config"
 	"github.com/nais/device/internal/device-agent/filesystem"
 	"github.com/nais/device/internal/device-agent/runtimeconfig"
@@ -155,6 +156,8 @@ func run(ctx context.Context, log *logrus.Entry, cfg *config.Config, notifier no
 		}
 	}()
 
+	authHandler := auth.New(cfg.GoogleAuthServerAddress)
+
 	listener, err := unixsocket.ListenWithFileMode(cfg.GrpcAddress, 0o666)
 	if err != nil {
 		return err
@@ -162,7 +165,7 @@ func run(ctx context.Context, log *logrus.Entry, cfg *config.Config, notifier no
 	log.WithField("grpc_address", cfg.GrpcAddress).Info("accepting network connections on unix socket")
 
 	statusChannel := make(chan *pb.AgentStatus, 32)
-	stateMachine := deviceagent.NewStateMachine(ctx, rc, *cfg, notifier, client, statusChannel, log.WithField("component", "statemachine"))
+	stateMachine := deviceagent.NewStateMachine(ctx, rc, *cfg, notifier, client, statusChannel, authHandler, log.WithField("component", "statemachine"))
 
 	grpcServer := grpc.NewServer(
 		grpc.StatsHandler(otelgrpc.NewServerHandler()),
