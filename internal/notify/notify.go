@@ -25,6 +25,7 @@ type notifier struct {
 }
 
 func New(log logrus.FieldLogger) Notifier {
+	beeep.AppName = "naisdevice"
 	return &notifier{log: log}
 }
 
