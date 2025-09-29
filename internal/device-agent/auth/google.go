@@ -103,7 +103,6 @@ func consoleURL(ctx context.Context, idToken, state string) (string, error) {
 	}
 
 	url := fmt.Sprintf("https://storage.googleapis.com/nais-tenant-data/%s.json", domain)
-	fmt.Println("Fetching console URL from ", url)
 	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
 	if err != nil {
 		return "", err
