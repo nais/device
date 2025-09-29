@@ -36,7 +36,6 @@ type DeviceAgentServer struct {
 	agentStatusLock sync.RWMutex
 
 	acceptaleUseHandler *acceptableuse.Handler
-	setAcceptance       <-chan bool
 }
 
 func (das *DeviceAgentServer) Login(ctx context.Context, request *pb.LoginRequest) (*pb.LoginResponse, error) {
