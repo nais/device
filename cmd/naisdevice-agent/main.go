@@ -100,6 +100,18 @@ func run(ctx context.Context, log *logrus.Entry, cfg *config.Config, notifier no
 		return fmt.Errorf("missing prerequisites: %s", err)
 	}
 
+	httpListener, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		return fmt.Errorf("creating listener: %w", err)
+	}
+
+	log.WithField("addr", httpListener.Addr().String()).Info("local HTTP server")
+	go func() {
+		if err := agenthttp.Serve(httpListener); err != nil && !errors.Is(err, http.ErrServerClosed) {
+			log.WithError(err).Error("HTTP server")
+		}
+	}()
+
 	rc, err := runtimeconfig.New(log.WithField("component", "runtimeconfig"), cfg)
 	if err != nil {
 		log.WithError(err).Error("instantiate runtime config")
@@ -192,18 +204,6 @@ func run(ctx context.Context, log *logrus.Entry, cfg *config.Config, notifier no
 				das.UpdateAgentStatus(s)
 			case <-ctx.Done():
 			}
-		}
-	}()
-
-	httpListener, err := net.Listen("tcp", "127.0.0.1:0")
-	if err != nil {
-		return fmt.Errorf("creating listener: %w", err)
-	}
-
-	log.WithField("addr", httpListener.Addr().String()).Info("local HTTP server")
-	go func() {
-		if err := agenthttp.Serve(httpListener); err != nil && !errors.Is(err, http.ErrServerClosed) {
-			log.WithError(err).Error("HTTP server")
 		}
 	}()
 
