@@ -59,6 +59,8 @@ func (s *azureAuth) Login(ctx context.Context, token, serial, platform string) (
 		return nil, fmt.Errorf("username (%s) does not match device username (%s)", username, device.Username)
 	}
 
+	groups = append(groups, "allUsers")
+
 	session := &pb.Session{
 		Key:      random.RandomString(20, random.LettersAndNumbers),
 		Expiry:   timestamppb.New(time.Now().Add(SessionDuration)),
