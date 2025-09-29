@@ -1,5 +1,5 @@
 [tools]
-git-cliff = "2.10.0"
+git-cliff = "2.10.1"
 go = "1.25.1"
 jq = "1.8.1"
 protoc = "29.4"
