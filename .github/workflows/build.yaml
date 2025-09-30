@@ -59,8 +59,7 @@ jobs:
           - test
     runs-on: ubuntu-latest
     permissions:
-      checks: write
-      pull-requests: write
+      contents: read
     steps:
       - uses: actions/checkout@v5
       - uses: jdx/mise-action@v3
