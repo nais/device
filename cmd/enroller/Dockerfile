@@ -12,6 +12,7 @@ RUN CGO_ENABLED=0 go build -o enroller ./cmd/enroller/
 FROM scratch
 WORKDIR /
 
+ADD https://curl.haxx.se/ca/cacert.pem /etc/ssl/certs/ca-certificates.crt
 COPY --from=builder /workspace/enroller .
 
 ENTRYPOINT ["/enroller"]
