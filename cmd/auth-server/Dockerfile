@@ -12,6 +12,7 @@ RUN CGO_ENABLED=0 go build -o auth-server ./cmd/auth-server
 FROM scratch
 WORKDIR /
 
+ADD https://curl.haxx.se/ca/cacert.pem /etc/ssl/certs/ca-certificates.crt
 COPY --from=builder /workspace/auth-server .
 
 ENTRYPOINT ["/auth-server"]
