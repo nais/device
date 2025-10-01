@@ -2,6 +2,9 @@ package bootstrapping
 
 import (
 	"context"
+	"errors"
+	"fmt"
+	"os"
 	"time"
 
 	"github.com/nais/device/internal/device-agent/runtimeconfig"
@@ -35,9 +38,8 @@ func (b *Bootstrapping) Enter(ctx context.Context) state.EventWithSpan {
 	if err := b.rc.LoadEnrollConfig(); err == nil {
 		span.AddEvent("enroll.loaded")
 		b.logger.Info("loaded enroll")
-	} else {
+	} else if errors.Is(err, os.ErrNotExist) {
 		span.AddEvent("enroll.new")
-		b.logger.WithError(err).Info("unable to load enroll config")
 		b.logger.Info("enrolling device")
 		enrollCtx, cancel := context.WithTimeout(ctx, 1*time.Minute)
 		defer cancel()
@@ -56,6 +58,9 @@ func (b *Bootstrapping) Enter(ctx context.Context) state.EventWithSpan {
 			b.notifier.Errorf("Bootstrap: %v", err)
 			return state.SpanEvent(ctx, state.EventDisconnect)
 		}
+	} else {
+		b.logger.WithError(err).Errorf("unable to load enroll config")
+		return state.SpanEvent(ctx, state.EventDisconnect)
 	}
 
 	return state.SpanEvent(ctx, state.EventBootstrapped)
