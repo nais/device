@@ -3,6 +3,7 @@ package bootstrapping
 import (
 	"context"
 	"fmt"
+	"os"
 	"testing"
 	"time"
 
@@ -43,7 +44,7 @@ func TestBootstrapping_Enter(t *testing.T) {
 		defer cancel()
 
 		rc := runtimeconfig.NewMockRuntimeConfig(t)
-		rc.EXPECT().LoadEnrollConfig().Return(fmt.Errorf("no enroll config"))
+		rc.EXPECT().LoadEnrollConfig().Return(fmt.Errorf("no enroll config: %w", os.ErrNotExist))
 
 		notifier := notify.NewMockNotifier(t)
 		notifier.EXPECT().Errorf(mock.Anything, mock.Anything)
@@ -66,7 +67,7 @@ func TestBootstrapping_Enter(t *testing.T) {
 		defer cancel()
 
 		rc := runtimeconfig.NewMockRuntimeConfig(t)
-		rc.EXPECT().LoadEnrollConfig().Return(fmt.Errorf("no enroll config"))
+		rc.EXPECT().LoadEnrollConfig().Return(fmt.Errorf("no enroll config: %w", os.ErrNotExist))
 		rc.EXPECT().EnsureEnrolled(mock.Anything, "serial").Return(fmt.Errorf("unable to enroll"))
 
 		notifier := notify.NewMockNotifier(t)
@@ -90,7 +91,7 @@ func TestBootstrapping_Enter(t *testing.T) {
 		defer cancel()
 
 		rc := runtimeconfig.NewMockRuntimeConfig(t)
-		rc.EXPECT().LoadEnrollConfig().Return(fmt.Errorf("no enroll config"))
+		rc.EXPECT().LoadEnrollConfig().Return(fmt.Errorf("no enroll config: %w", os.ErrNotExist))
 		rc.EXPECT().EnsureEnrolled(mock.Anything, "serial").Return(nil)
 
 		notifier := notify.NewMockNotifier(t)
