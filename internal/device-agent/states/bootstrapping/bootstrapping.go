@@ -3,7 +3,6 @@ package bootstrapping
 import (
 	"context"
 	"errors"
-	"fmt"
 	"os"
 	"time"
 
