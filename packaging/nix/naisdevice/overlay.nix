@@ -1,13 +1,17 @@
+final: prev:
 let
-  goVersion = "1.24.2";
-  goSha256 = "sha256-NpMBYqk99BfZC9IsbhTa/0cFuqwrAkGO3aZxzfqc0H8=";
+  goVersion = "1.25.1";
+  newerGoVersion = prev.go.overrideAttrs (old: {
+    inherit goVersion;
+    src = prev.fetchurl {
+      url = "https://go.dev/dl/go${goVersion}.src.tar.gz";
+      hash = "sha256-0BDBCc7pTYDv5oHqtGvepJGskGv0ZYPDLp8NuwvRpZQ=";
+    };
+  });
+  nixpkgsVersion = prev.go.version;
+  newVersionNotInNixpkgs = -1 == builtins.compareVersions nixpkgsVersion goVersion;
 in
-  _final: prev: {
-    go = prev.go.overrideAttrs (_old: {
-      version = goVersion;
-      src = prev.fetchurl {
-        url = "https://go.dev/dl/go${goVersion}.src.tar.gz";
-        hash = goSha256;
-      };
-    });
-  }
+{
+  go = if newVersionNotInNixpkgs then newerGoVersion else prev.go;
+  buildGoModule = prev.buildGoModule.override { go = final.go; };
+}
