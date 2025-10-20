@@ -215,7 +215,9 @@ func (gui *Gui) handleButtonClicks(ctx context.Context) {
 		case <-gui.MenuItems.ZipLog.ClickedCh:
 			gui.Events <- ZipLogsClicked
 		case name := <-gui.PrivilegedGatewayClicked:
-			accessPrivilegedGateway(name)
+			if _, err := gui.DeviceAgentClient.ShowJita(ctx, &pb.ShowJitaRequest{Gateway: name}); err != nil {
+				gui.log.WithError(err).Error("while showing jita")
+			}
 		case name := <-gui.TenantItemClicked:
 			gui.activateTenant(ctx, name)
 		case <-gui.MenuItems.AcceptableUse.ClickedCh:
@@ -542,10 +544,6 @@ func (gui *Gui) aggregateTenantButtonClicks() {
 			}
 		}(tenantItem)
 	}
-}
-
-func accessPrivilegedGateway(gatewayName string) {
-	open.Open(fmt.Sprintf("https://naisdevice-jita.external.prod-gcp.nav.cloud.nais.io/?gateway=%s", gatewayName))
 }
 
 func (gui *Gui) activateTenant(ctx context.Context, name string) {

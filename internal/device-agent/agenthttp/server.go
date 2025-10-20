@@ -53,7 +53,12 @@ func Serve(listener net.Listener) error {
 func Path(path string, withSecret bool) string {
 	url := fmt.Sprintf("http://%s%s", addr, path)
 	if withSecret {
-		url += "?s=" + mux.secret
+		sep := "?"
+		if strings.Contains(path, sep) {
+			sep = "&"
+		}
+
+		url += sep + "s=" + mux.secret
 	}
 	return url
 }
