@@ -913,6 +913,7 @@ func (*ShowAcceptableUseResponse) Descriptor() ([]byte, []int) {
 
 type ShowJitaRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
+	Gateway       string                 `protobuf:"bytes,1,opt,name=Gateway,proto3" json:"Gateway,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -945,6 +946,13 @@ func (x *ShowJitaRequest) ProtoReflect() protoreflect.Message {
 // Deprecated: Use ShowJitaRequest.ProtoReflect.Descriptor instead.
 func (*ShowJitaRequest) Descriptor() ([]byte, []int) {
 	return file_pkg_pb_protobuf_api_proto_rawDescGZIP(), []int{18}
+}
+
+func (x *ShowJitaRequest) GetGateway() string {
+	if x != nil {
+		return x.Gateway
+	}
+	return ""
 }
 
 type ShowJitaResponse struct {
@@ -2833,8 +2841,9 @@ const file_pkg_pb_protobuf_api_proto_rawDesc = "" +
 	"\x1dSetAgentConfigurationResponse\"\x1e\n" +
 	"\x1cGetAgentConfigurationRequest\"\x1a\n" +
 	"\x18ShowAcceptableUseRequest\"\x1b\n" +
-	"\x19ShowAcceptableUseResponse\"\x11\n" +
-	"\x0fShowJitaRequest\"\x12\n" +
+	"\x19ShowAcceptableUseResponse\"+\n" +
+	"\x0fShowJitaRequest\x12\x18\n" +
+	"\aGateway\x18\x01 \x01(\tR\aGateway\"\x12\n" +
 	"\x10ShowJitaResponse\"W\n" +
 	"\x1dGetAgentConfigurationResponse\x126\n" +
 	"\x06config\x18\x01 \x01(\v2\x1e.naisdevice.AgentConfigurationR\x06config\"P\n" +

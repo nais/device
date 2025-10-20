@@ -138,8 +138,9 @@ func (das *DeviceAgentServer) ShowAcceptableUse(ctx context.Context, _ *pb.ShowA
 	return &pb.ShowAcceptableUseResponse{}, nil
 }
 
-func (das *DeviceAgentServer) ShowJita(ctx context.Context, _ *pb.ShowJitaRequest) (*pb.ShowJitaResponse, error) {
-	open.Open(agenthttp.Path("/jita", true))
+func (das *DeviceAgentServer) ShowJita(_ context.Context, req *pb.ShowJitaRequest) (*pb.ShowJitaResponse, error) {
+	gateway := req.Gateway
+	open.Open(agenthttp.Path("/jita?gateway="+gateway, true))
 	return &pb.ShowJitaResponse{}, nil
 }
 
