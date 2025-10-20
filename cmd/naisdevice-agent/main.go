@@ -11,19 +11,13 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/sirupsen/logrus"
-	flag "github.com/spf13/pflag"
-	"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
-	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/credentials/insecure"
-
 	deviceagent "github.com/nais/device/internal/device-agent"
 	"github.com/nais/device/internal/device-agent/acceptableuse"
 	"github.com/nais/device/internal/device-agent/agenthttp"
 	"github.com/nais/device/internal/device-agent/auth"
 	"github.com/nais/device/internal/device-agent/config"
 	"github.com/nais/device/internal/device-agent/filesystem"
+	"github.com/nais/device/internal/device-agent/jita"
 	"github.com/nais/device/internal/device-agent/runtimeconfig"
 	"github.com/nais/device/internal/logger"
 	"github.com/nais/device/internal/notify"
@@ -32,6 +26,12 @@ import (
 	"github.com/nais/device/internal/unixsocket"
 	"github.com/nais/device/internal/version"
 	"github.com/nais/device/pkg/pb"
+	"github.com/sirupsen/logrus"
+	flag "github.com/spf13/pflag"
+	"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
+	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 )
 
 const (
@@ -186,7 +186,10 @@ func run(ctx context.Context, log *logrus.Entry, cfg *config.Config, notifier no
 	acceptableUseHandler := acceptableuse.New(rc, log.WithField("component", "acceptable-use"))
 	acceptableUseHandler.Register(agenthttp.HandleFunc)
 
-	das := deviceagent.NewServer(ctx, log.WithField("component", "device-agent-server"), cfg, rc, notifier, stateMachine.SendEvent, acceptableUseHandler)
+	jitaHandler := jita.New(rc, log.WithField("component", "jita"))
+	jitaHandler.Register(agenthttp.HandleFunc)
+
+	das := deviceagent.NewServer(ctx, log.WithField("component", "device-agent-server"), cfg, rc, notifier, stateMachine.SendEvent, acceptableUseHandler, jitaHandler)
 	pb.RegisterDeviceAgentServer(grpcServer, das)
 
 	newVersionChannel := make(chan bool, 1)

@@ -8,6 +8,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/nais/device/internal/device-agent/acceptableuse"
 	"github.com/nais/device/internal/device-agent/agenthttp"
+	"github.com/nais/device/internal/device-agent/jita"
 	"github.com/nais/device/internal/device-agent/open"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc/codes"
@@ -36,6 +37,7 @@ type DeviceAgentServer struct {
 	agentStatusLock sync.RWMutex
 
 	acceptaleUseHandler *acceptableuse.Handler
+	jitaHandler         *jita.Handler
 }
 
 func (das *DeviceAgentServer) Login(ctx context.Context, request *pb.LoginRequest) (*pb.LoginResponse, error) {
@@ -136,6 +138,11 @@ func (das *DeviceAgentServer) ShowAcceptableUse(ctx context.Context, _ *pb.ShowA
 	return &pb.ShowAcceptableUseResponse{}, nil
 }
 
+func (das *DeviceAgentServer) ShowJita(ctx context.Context, _ *pb.ShowJitaRequest) (*pb.ShowJitaResponse, error) {
+	open.Open(agenthttp.Path("/jita", true))
+	return &pb.ShowJitaResponse{}, nil
+}
+
 func NewServer(ctx context.Context,
 	log *logrus.Entry,
 	cfg *config.Config,
@@ -143,6 +150,7 @@ func NewServer(ctx context.Context,
 	notifier notify.Notifier,
 	sendEvent func(state.EventWithSpan),
 	acceptableUse *acceptableuse.Handler,
+	jita *jita.Handler,
 ) *DeviceAgentServer {
 	return &DeviceAgentServer{
 		log:                 log,
@@ -153,5 +161,6 @@ func NewServer(ctx context.Context,
 		notifier:            notifier,
 		sendEvent:           sendEvent,
 		acceptaleUseHandler: acceptableUse,
+		jitaHandler:         jita,
 	}
 }

@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <title>naisdevice - Jita</title>
+    <style>
+        body {
+            background-color: #FFFFFF;
+            color: #23262A;
+            font-size: 1.2rem;
+        }
+
+        a, a:visited {
+            color: #0067C5;
+            &:hover {
+                color: #0056B4;
+            }
+        }
+
+        @media (prefers-color-scheme: dark) {
+            body {
+                background-color: #23262A;
+                color: #FFFFFF;
+            }
+
+            a, a:visited {
+                color: #E6F0FF;
+                &:hover {
+                    color: #CCE1FF;
+                }
+            }
+        }
+    </style>
+</head>
+
+<body>
+{{ block "content" . }}{{ end }}
+</body>
+</html>
