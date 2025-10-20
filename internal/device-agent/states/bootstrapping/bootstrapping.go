@@ -2,8 +2,6 @@ package bootstrapping
 
 import (
 	"context"
-	"errors"
-	"os"
 	"time"
 
 	"github.com/nais/device/internal/device-agent/runtimeconfig"
@@ -37,28 +35,26 @@ func (b *Bootstrapping) Enter(ctx context.Context) state.EventWithSpan {
 	if err := b.rc.LoadEnrollConfig(); err == nil {
 		span.AddEvent("enroll.loaded")
 		b.logger.Info("loaded enroll")
-	} else if errors.Is(err, os.ErrNotExist) {
-		span.AddEvent("enroll.new")
-		b.logger.Info("enrolling device")
-		enrollCtx, cancel := context.WithTimeout(ctx, 1*time.Minute)
-		defer cancel()
-		serial, err := b.deviceHelper.GetSerial(enrollCtx, &pb.GetSerialRequest{})
-		if err != nil {
-			span.RecordError(err)
-			b.notifier.Errorf("Unable to get serial number: %v", err)
-			return state.SpanEvent(ctx, state.EventDisconnect)
-		}
+		return state.SpanEvent(ctx, state.EventBootstrapped)
+	}
 
-		err = b.rc.EnsureEnrolled(enrollCtx, serial.GetSerial())
+	span.AddEvent("enroll.new")
+	b.logger.Info("enrolling device")
+	enrollCtx, cancel := context.WithTimeout(ctx, 1*time.Minute)
+	defer cancel()
+	serial, err := b.deviceHelper.GetSerial(enrollCtx, &pb.GetSerialRequest{})
+	if err != nil {
+		span.RecordError(err)
+		b.notifier.Errorf("Unable to get serial number: %v", err)
+		return state.SpanEvent(ctx, state.EventDisconnect)
+	}
 
-		cancel()
-		if err != nil {
-			span.RecordError(err)
-			b.notifier.Errorf("Bootstrap: %v", err)
-			return state.SpanEvent(ctx, state.EventDisconnect)
-		}
-	} else {
-		b.logger.WithError(err).Errorf("unable to load enroll config")
+	err = b.rc.EnsureEnrolled(enrollCtx, serial.GetSerial())
+
+	cancel()
+	if err != nil {
+		span.RecordError(err)
+		b.notifier.Errorf("Bootstrap: %v", err)
 		return state.SpanEvent(ctx, state.EventDisconnect)
 	}
 
