@@ -287,6 +287,7 @@ const (
 	DeviceAgent_SetAgentConfiguration_FullMethodName = "/naisdevice.DeviceAgent/SetAgentConfiguration"
 	DeviceAgent_GetAgentConfiguration_FullMethodName = "/naisdevice.DeviceAgent/GetAgentConfiguration"
 	DeviceAgent_ShowAcceptableUse_FullMethodName     = "/naisdevice.DeviceAgent/ShowAcceptableUse"
+	DeviceAgent_ShowJita_FullMethodName              = "/naisdevice.DeviceAgent/ShowJita"
 )
 
 // DeviceAgentClient is the client API for DeviceAgent service.
@@ -310,6 +311,8 @@ type DeviceAgentClient interface {
 	GetAgentConfiguration(ctx context.Context, in *GetAgentConfigurationRequest, opts ...grpc.CallOption) (*GetAgentConfigurationResponse, error)
 	// Show the acceptable use policy
 	ShowAcceptableUse(ctx context.Context, in *ShowAcceptableUseRequest, opts ...grpc.CallOption) (*ShowAcceptableUseResponse, error)
+	// Show the jita page
+	ShowJita(ctx context.Context, in *ShowJitaRequest, opts ...grpc.CallOption) (*ShowJitaResponse, error)
 }
 
 type deviceAgentClient struct {
@@ -409,6 +412,16 @@ func (c *deviceAgentClient) ShowAcceptableUse(ctx context.Context, in *ShowAccep
 	return out, nil
 }
 
+func (c *deviceAgentClient) ShowJita(ctx context.Context, in *ShowJitaRequest, opts ...grpc.CallOption) (*ShowJitaResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ShowJitaResponse)
+	err := c.cc.Invoke(ctx, DeviceAgent_ShowJita_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // DeviceAgentServer is the server API for DeviceAgent service.
 // All implementations must embed UnimplementedDeviceAgentServer
 // for forward compatibility.
@@ -430,6 +443,8 @@ type DeviceAgentServer interface {
 	GetAgentConfiguration(context.Context, *GetAgentConfigurationRequest) (*GetAgentConfigurationResponse, error)
 	// Show the acceptable use policy
 	ShowAcceptableUse(context.Context, *ShowAcceptableUseRequest) (*ShowAcceptableUseResponse, error)
+	// Show the jita page
+	ShowJita(context.Context, *ShowJitaRequest) (*ShowJitaResponse, error)
 	mustEmbedUnimplementedDeviceAgentServer()
 }
 
@@ -463,6 +478,9 @@ func (UnimplementedDeviceAgentServer) GetAgentConfiguration(context.Context, *Ge
 }
 func (UnimplementedDeviceAgentServer) ShowAcceptableUse(context.Context, *ShowAcceptableUseRequest) (*ShowAcceptableUseResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method ShowAcceptableUse not implemented")
+}
+func (UnimplementedDeviceAgentServer) ShowJita(context.Context, *ShowJitaRequest) (*ShowJitaResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ShowJita not implemented")
 }
 func (UnimplementedDeviceAgentServer) mustEmbedUnimplementedDeviceAgentServer() {}
 func (UnimplementedDeviceAgentServer) testEmbeddedByValue()                     {}
@@ -622,6 +640,24 @@ func _DeviceAgent_ShowAcceptableUse_Handler(srv interface{}, ctx context.Context
 	return interceptor(ctx, in, info, handler)
 }
 
+func _DeviceAgent_ShowJita_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ShowJitaRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(DeviceAgentServer).ShowJita(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: DeviceAgent_ShowJita_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(DeviceAgentServer).ShowJita(ctx, req.(*ShowJitaRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // DeviceAgent_ServiceDesc is the grpc.ServiceDesc for DeviceAgent service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -656,6 +692,10 @@ var DeviceAgent_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "ShowAcceptableUse",
 			Handler:    _DeviceAgent_ShowAcceptableUse_Handler,
+		},
+		{
+			MethodName: "ShowJita",
+			Handler:    _DeviceAgent_ShowJita_Handler,
 		},
 	},
 	Streams: []grpc.StreamDesc{

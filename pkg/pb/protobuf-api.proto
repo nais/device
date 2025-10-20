@@ -59,6 +59,10 @@ service DeviceAgent {
   // Show the acceptable use policy
   rpc ShowAcceptableUse (ShowAcceptableUseRequest) returns (ShowAcceptableUseResponse) {
   }
+
+  // Show the jita page
+  rpc ShowJita (ShowJitaRequest) returns (ShowJitaResponse) {
+  }
 }
 
 service APIServer {
@@ -195,6 +199,12 @@ message ShowAcceptableUseRequest {
 }
 
 message ShowAcceptableUseResponse {
+}
+
+message ShowJitaRequest {
+}
+
+message ShowJitaResponse {
 }
 
 message GetAgentConfigurationResponse {
