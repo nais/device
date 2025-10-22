@@ -33,17 +33,42 @@ func Test_MakeGatewayConfiguration(t *testing.T) {
 		},
 		AccessGroupIDs: []string{"groupId"},
 	}
+	mockPrivilegedGateway := &pb.Gateway{
+		RequiresPrivilegedAccess: true,
+		Endpoint:                 "1.2.3.5:56789",
+		PublicKey:                "publicKey1",
+		Name:                     "privilegedGateway",
+		PasswordHash:             "$1$5QY7q+KaDZ8EZ+zNaOm2Ag==$BCamA+wMQCcv+QkgJY6H/5Zml5CNq61HkON8tnhUwpj9bq2MkpfPcKLworcMaoVzOfkpEOhf57Btm807pxRAhw==",
+		RoutesIPv4: []string{
+			"mockroute",
+		},
+		AccessGroupIDs: []string{"groupId"},
+	}
+
 	db := database.NewMockDatabase(t)
-	db.On("ReadGateway", mock.Anything, "gateway").Return(mockGateway, nil).Times(2)
-	db.EXPECT().GetAcceptances(mock.Anything).Return(map[string]struct{}{"sessionUserId": {}}, nil).Once()
+	db.EXPECT().ReadGateway(mock.Anything, "gateway").Return(mockGateway, nil).Times(2)
+	db.EXPECT().ReadGateway(mock.Anything, "privilegedGateway").Return(mockPrivilegedGateway, nil).Times(2)
+	db.EXPECT().GetAcceptances(mock.Anything).Return(map[string]struct{}{
+		"sessionUserId":               {},
+		"sessionUserIdWithPrivileged": {},
+	}, nil).Times(2)
+	db.EXPECT().UsersWithAccessToPrivilegedGateway(mock.Anything, "privilegedGateway").Return([]string{"sessionUserIdWithPrivileged"}, nil).Once()
 
 	sessionStore := auth.NewMockSessionStore(t)
-	sessionStore.On("All", mock.Anything).Return([]*pb.Session{{
-		Device:   &pb.Device{PublicKey: "devicePublicKey"},
-		ObjectID: "sessionUserId",
-		Expiry:   timestamppb.New(time.Now().Add(24 * time.Hour)),
-		Groups:   []string{"groupId"},
-	}}, nil)
+	sessionStore.EXPECT().All().Return([]*pb.Session{
+		{
+			Device:   &pb.Device{PublicKey: "devicePublicKey1"},
+			ObjectID: "sessionUserId",
+			Expiry:   timestamppb.New(time.Now().Add(24 * time.Hour)),
+			Groups:   []string{"groupId"},
+		},
+		{
+			Device:   &pb.Device{PublicKey: "devicePublicKey2"},
+			ObjectID: "sessionUserIdWithPrivileged",
+			Expiry:   timestamppb.New(time.Now().Add(24 * time.Hour)),
+			Groups:   []string{"groupId"},
+		},
+	})
 
 	gatewayAuthenticator := auth.NewGatewayAuthenticator(db)
 
@@ -64,7 +89,7 @@ func Test_MakeGatewayConfiguration(t *testing.T) {
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 	)
 	assert.NoError(t, err)
-	defer conn.Close()
+	defer func() { _ = conn.Close() }()
 
 	client := pb.NewAPIServerClient(conn)
 
@@ -83,6 +108,24 @@ func Test_MakeGatewayConfiguration(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, mockGateway.GetRoutesIPv4(), resp.GetRoutesIPv4())
 
+	assert.Len(t, resp.GetDevices(), 2)
+	assert.Equal(t, "devicePublicKey1", resp.GetDevices()[0].PublicKey)
+	assert.Equal(t, "devicePublicKey2", resp.GetDevices()[1].PublicKey)
+
+	stream, err = client.GetGatewayConfiguration(
+		ctx,
+		&pb.GetGatewayConfigurationRequest{
+			Gateway:  "privilegedGateway",
+			Password: "hunter2",
+		},
+	)
+	assert.NoError(t, err)
+	assert.NotNil(t, stream)
+
+	resp, err = stream.Recv()
+	assert.NoError(t, err)
+	assert.Equal(t, mockGateway.GetRoutesIPv4(), resp.GetRoutesIPv4())
+
 	assert.Len(t, resp.GetDevices(), 1)
-	assert.Equal(t, "devicePublicKey", resp.GetDevices()[0].PublicKey)
+	assert.Equal(t, "devicePublicKey2", resp.GetDevices()[0].PublicKey)
 }
