@@ -79,9 +79,9 @@ func (cfg *Config) MarshalINI(w io.Writer) error {
 	return err
 }
 
-func fprintNonEmpty(w io.Writer, format string, value string) (int, error) {
+func fprintNonEmpty(w io.Writer, format string, value string) {
 	if len(value) == 0 {
-		return 0, nil
+		return
 	}
-	return fmt.Fprintf(w, format, value)
+	_, _ = fmt.Fprintf(w, format, value)
 }

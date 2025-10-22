@@ -22,6 +22,7 @@ import (
 	"github.com/nais/device/internal/device-agent/config"
 	"github.com/nais/device/internal/device-agent/wireguard"
 	"github.com/nais/device/internal/enroll"
+	"github.com/nais/device/internal/ioconvenience"
 	"github.com/nais/device/internal/otel"
 	"github.com/nais/device/pkg/pb"
 	"github.com/sirupsen/logrus"
@@ -128,7 +129,7 @@ func (rc *runtimeConfig) ConnectToAPIServer(ctx context.Context) (pb.APIServerCl
 
 	return pb.NewAPIServerClient(conn), func() {
 		cancel()
-		conn.Close()
+		_ = conn.Close()
 	}, nil
 }
 
@@ -174,7 +175,7 @@ func (rc *runtimeConfig) apiServerGRPCAddress() string {
 	return net.JoinHostPort(rc.enrollConfig.APIServerIP, "8099")
 }
 
-func New(log *logrus.Entry, cfg *config.Config) (*runtimeConfig, error) {
+func New(log *logrus.Entry, cfg *config.Config) (RuntimeConfig, error) {
 	rc := &runtimeConfig{
 		config:  cfg,
 		tenants: defaultTenants,
@@ -234,7 +235,7 @@ func (r *runtimeConfig) enroll(ctx context.Context, serial, token string) error 
 	if err != nil {
 		return fmt.Errorf("sending request: %w", err)
 	}
-	defer hresp.Body.Close()
+	defer func() { _ = hresp.Body.Close() }()
 
 	if hresp.StatusCode != http.StatusOK {
 		body, err := io.ReadAll(hresp.Body)
@@ -251,6 +252,9 @@ func (r *runtimeConfig) enroll(ctx context.Context, serial, token string) error 
 	}
 
 	apiserverPeer := findPeer(resp.Peers, "apiserver")
+	if apiserverPeer == nil {
+		return fmt.Errorf("enrollment peer not found")
+	}
 
 	r.enrollConfig = &bootstrap.Config{
 		DeviceIPv4:     resp.WireGuardIPv4,
@@ -263,11 +267,15 @@ func (r *runtimeConfig) enroll(ctx context.Context, serial, token string) error 
 }
 
 func (r *runtimeConfig) SaveEnrollConfig() error {
+	if r.GetDomainFromToken() == "mock" || r.config.CustomEnrollURL != "" {
+		return nil
+	}
+
 	f, err := os.OpenFile(r.path(), os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0o600)
 	if err != nil {
 		return err
 	}
-	defer f.Close()
+	defer ioconvenience.CloseWithLog(r.log, f)
 
 	return json.NewEncoder(f).Encode(r.enrollConfig)
 }
@@ -289,7 +297,7 @@ func (r *runtimeConfig) LoadEnrollConfig() error {
 	}
 
 	if r.config.CustomEnrollURL != "" {
-		return fmt.Errorf("cannot load enroll config when using custom enroll URL")
+		return nil
 	}
 
 	path := r.path()
@@ -344,7 +352,7 @@ func (r *runtimeConfig) getEnrollURL(ctx context.Context) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	b, err := io.ReadAll(resp.Body)
 	if err != nil {
