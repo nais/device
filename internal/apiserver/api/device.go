@@ -349,6 +349,8 @@ func (s *grpcServer) GrantPrivilegedGatewayAccess(ctx context.Context, req *pb.G
 		return nil, status.Errorf(codes.Internal, "unable to grant privileged gateway access: %v", err)
 	}
 
+	s.gateways.Trigger(req.NewPrivilegedGatewayAccess.Gateway)
+
 	return &pb.GrantPrivilegedGatewayAccessResponse{}, nil
 }
 
@@ -365,6 +367,8 @@ func (s *grpcServer) RevokePrivilegedGatewayAccess(ctx context.Context, req *pb.
 	if err := s.db.RevokePrivilegedGatewayAccess(ctx, session.GetObjectID(), req.Gateway); err != nil {
 		return nil, status.Errorf(codes.Internal, "unable to revoke privileged gateway access: %v", err)
 	}
+
+	s.gateways.Trigger(req.Gateway)
 
 	return &pb.RevokePrivilegedGatewayAccessResponse{}, nil
 }
