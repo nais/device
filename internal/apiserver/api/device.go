@@ -289,3 +289,82 @@ func (s *grpcServer) SetAcceptableUseAccepted(ctx context.Context, req *pb.SetAc
 
 	return &pb.SetAcceptableUseAcceptedResponse{}, s.db.RejectAcceptableUse(ctx, session.GetObjectID())
 }
+
+func (s *grpcServer) GetGatewayJitaGrantsForUser(ctx context.Context, req *pb.GetGatewayJitaGrantsForUserRequest) (*pb.GetGatewayJitaGrantsForUserResponse, error) {
+	session, err := s.sessionStore.Get(ctx, req.GetSessionKey())
+	if err != nil {
+		return nil, status.Error(codes.Unauthenticated, "unknown session")
+	}
+
+	if session.Expired() {
+		return nil, status.Error(codes.Unauthenticated, "session expired")
+	}
+
+	grants, err := s.db.GetGatewayJitaGrantsForUser(ctx, session.GetObjectID())
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "unable to get gateway jita grants: %v", err)
+	}
+
+	return &pb.GetGatewayJitaGrantsForUserResponse{
+		GatewayJitaGrants: grants,
+	}, nil
+}
+
+func (s *grpcServer) UserHasAccessToPrivilegedGateway(ctx context.Context, req *pb.UserHasAccessToPrivilegedGatewayRequest) (*pb.UserHasAccessToPrivilegedGatewayResponse, error) {
+	session, err := s.sessionStore.Get(ctx, req.GetSessionKey())
+	if err != nil {
+		return nil, status.Error(codes.Unauthenticated, "unknown session")
+	}
+
+	if session.Expired() {
+		return nil, status.Error(codes.Unauthenticated, "session expired")
+	}
+
+	hasAccess, err := s.db.UserHasAccessToPrivilegedGateway(ctx, session.GetObjectID(), req.Gateway)
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "unable to query database: %v", err)
+	}
+
+	return &pb.UserHasAccessToPrivilegedGatewayResponse{
+		HasAccess: hasAccess,
+	}, nil
+}
+
+func (s *grpcServer) GrantPrivilegedGatewayAccess(ctx context.Context, req *pb.GrantPrivilegedGatewayAccessRequest) (*pb.GrantPrivilegedGatewayAccessResponse, error) {
+	session, err := s.sessionStore.Get(ctx, req.GetSessionKey())
+	if err != nil {
+		return nil, status.Error(codes.Unauthenticated, "unknown session")
+	}
+
+	if session.Expired() {
+		return nil, status.Error(codes.Unauthenticated, "session expired")
+	}
+
+	n := req.GetNewPrivilegedGatewayAccess()
+	if n == nil {
+		return nil, status.Error(codes.InvalidArgument, "no new privileged gateway access")
+	}
+
+	if err := s.db.GrantPrivilegedGatewayAccess(ctx, session.GetObjectID(), n.Gateway, n.Expires.AsTime(), n.Reason); err != nil {
+		return nil, status.Errorf(codes.Internal, "unable to grant privileged gateway access: %v", err)
+	}
+
+	return &pb.GrantPrivilegedGatewayAccessResponse{}, nil
+}
+
+func (s *grpcServer) RevokePrivilegedGatewayAccess(ctx context.Context, req *pb.RevokePrivilegedGatewayAccessRequest) (*pb.RevokePrivilegedGatewayAccessResponse, error) {
+	session, err := s.sessionStore.Get(ctx, req.GetSessionKey())
+	if err != nil {
+		return nil, status.Error(codes.Unauthenticated, "unknown session")
+	}
+
+	if session.Expired() {
+		return nil, status.Error(codes.Unauthenticated, "session expired")
+	}
+
+	if err := s.db.RevokePrivilegedGatewayAccess(ctx, session.GetObjectID(), req.Gateway); err != nil {
+		return nil, status.Errorf(codes.Internal, "unable to revoke privileged gateway access: %v", err)
+	}
+
+	return &pb.RevokePrivilegedGatewayAccessResponse{}, nil
+}

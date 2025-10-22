@@ -401,6 +401,149 @@ func (_c *MockDatabase_GetAcceptedAt_Call) RunAndReturn(run func(ctx context.Con
 	return _c
 }
 
+// GetGatewayJitaGrantsForUser provides a mock function for the type MockDatabase
+func (_mock *MockDatabase) GetGatewayJitaGrantsForUser(ctx context.Context, userID string) ([]*pb.GatewayJitaGrant, error) {
+	ret := _mock.Called(ctx, userID)
+
+	if len(ret) == 0 {
+		panic("no return value specified for GetGatewayJitaGrantsForUser")
+	}
+
+	var r0 []*pb.GatewayJitaGrant
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string) ([]*pb.GatewayJitaGrant, error)); ok {
+		return returnFunc(ctx, userID)
+	}
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string) []*pb.GatewayJitaGrant); ok {
+		r0 = returnFunc(ctx, userID)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]*pb.GatewayJitaGrant)
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func(context.Context, string) error); ok {
+		r1 = returnFunc(ctx, userID)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// MockDatabase_GetGatewayJitaGrantsForUser_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetGatewayJitaGrantsForUser'
+type MockDatabase_GetGatewayJitaGrantsForUser_Call struct {
+	*mock.Call
+}
+
+// GetGatewayJitaGrantsForUser is a helper method to define mock.On call
+//   - ctx context.Context
+//   - userID string
+func (_e *MockDatabase_Expecter) GetGatewayJitaGrantsForUser(ctx interface{}, userID interface{}) *MockDatabase_GetGatewayJitaGrantsForUser_Call {
+	return &MockDatabase_GetGatewayJitaGrantsForUser_Call{Call: _e.mock.On("GetGatewayJitaGrantsForUser", ctx, userID)}
+}
+
+func (_c *MockDatabase_GetGatewayJitaGrantsForUser_Call) Run(run func(ctx context.Context, userID string)) *MockDatabase_GetGatewayJitaGrantsForUser_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 string
+		if args[1] != nil {
+			arg1 = args[1].(string)
+		}
+		run(
+			arg0,
+			arg1,
+		)
+	})
+	return _c
+}
+
+func (_c *MockDatabase_GetGatewayJitaGrantsForUser_Call) Return(gatewayJitaGrants []*pb.GatewayJitaGrant, err error) *MockDatabase_GetGatewayJitaGrantsForUser_Call {
+	_c.Call.Return(gatewayJitaGrants, err)
+	return _c
+}
+
+func (_c *MockDatabase_GetGatewayJitaGrantsForUser_Call) RunAndReturn(run func(ctx context.Context, userID string) ([]*pb.GatewayJitaGrant, error)) *MockDatabase_GetGatewayJitaGrantsForUser_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// GrantPrivilegedGatewayAccess provides a mock function for the type MockDatabase
+func (_mock *MockDatabase) GrantPrivilegedGatewayAccess(ctx context.Context, userID string, gatewayName string, expires time.Time, reason string) error {
+	ret := _mock.Called(ctx, userID, gatewayName, expires, reason)
+
+	if len(ret) == 0 {
+		panic("no return value specified for GrantPrivilegedGatewayAccess")
+	}
+
+	var r0 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, string, time.Time, string) error); ok {
+		r0 = returnFunc(ctx, userID, gatewayName, expires, reason)
+	} else {
+		r0 = ret.Error(0)
+	}
+	return r0
+}
+
+// MockDatabase_GrantPrivilegedGatewayAccess_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GrantPrivilegedGatewayAccess'
+type MockDatabase_GrantPrivilegedGatewayAccess_Call struct {
+	*mock.Call
+}
+
+// GrantPrivilegedGatewayAccess is a helper method to define mock.On call
+//   - ctx context.Context
+//   - userID string
+//   - gatewayName string
+//   - expires time.Time
+//   - reason string
+func (_e *MockDatabase_Expecter) GrantPrivilegedGatewayAccess(ctx interface{}, userID interface{}, gatewayName interface{}, expires interface{}, reason interface{}) *MockDatabase_GrantPrivilegedGatewayAccess_Call {
+	return &MockDatabase_GrantPrivilegedGatewayAccess_Call{Call: _e.mock.On("GrantPrivilegedGatewayAccess", ctx, userID, gatewayName, expires, reason)}
+}
+
+func (_c *MockDatabase_GrantPrivilegedGatewayAccess_Call) Run(run func(ctx context.Context, userID string, gatewayName string, expires time.Time, reason string)) *MockDatabase_GrantPrivilegedGatewayAccess_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 string
+		if args[1] != nil {
+			arg1 = args[1].(string)
+		}
+		var arg2 string
+		if args[2] != nil {
+			arg2 = args[2].(string)
+		}
+		var arg3 time.Time
+		if args[3] != nil {
+			arg3 = args[3].(time.Time)
+		}
+		var arg4 string
+		if args[4] != nil {
+			arg4 = args[4].(string)
+		}
+		run(
+			arg0,
+			arg1,
+			arg2,
+			arg3,
+			arg4,
+		)
+	})
+	return _c
+}
+
+func (_c *MockDatabase_GrantPrivilegedGatewayAccess_Call) Return(err error) *MockDatabase_GrantPrivilegedGatewayAccess_Call {
+	_c.Call.Return(err)
+	return _c
+}
+
+func (_c *MockDatabase_GrantPrivilegedGatewayAccess_Call) RunAndReturn(run func(ctx context.Context, userID string, gatewayName string, expires time.Time, reason string) error) *MockDatabase_GrantPrivilegedGatewayAccess_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // ReadDevice provides a mock function for the type MockDatabase
 func (_mock *MockDatabase) ReadDevice(ctx context.Context, publicKey string) (*pb.Device, error) {
 	ret := _mock.Called(ctx, publicKey)
@@ -1301,6 +1444,69 @@ func (_c *MockDatabase_RemoveExpiredSessions_Call) RunAndReturn(run func(ctx con
 	return _c
 }
 
+// RevokePrivilegedGatewayAccess provides a mock function for the type MockDatabase
+func (_mock *MockDatabase) RevokePrivilegedGatewayAccess(ctx context.Context, userID string, gatewayName string) error {
+	ret := _mock.Called(ctx, userID, gatewayName)
+
+	if len(ret) == 0 {
+		panic("no return value specified for RevokePrivilegedGatewayAccess")
+	}
+
+	var r0 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, string) error); ok {
+		r0 = returnFunc(ctx, userID, gatewayName)
+	} else {
+		r0 = ret.Error(0)
+	}
+	return r0
+}
+
+// MockDatabase_RevokePrivilegedGatewayAccess_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'RevokePrivilegedGatewayAccess'
+type MockDatabase_RevokePrivilegedGatewayAccess_Call struct {
+	*mock.Call
+}
+
+// RevokePrivilegedGatewayAccess is a helper method to define mock.On call
+//   - ctx context.Context
+//   - userID string
+//   - gatewayName string
+func (_e *MockDatabase_Expecter) RevokePrivilegedGatewayAccess(ctx interface{}, userID interface{}, gatewayName interface{}) *MockDatabase_RevokePrivilegedGatewayAccess_Call {
+	return &MockDatabase_RevokePrivilegedGatewayAccess_Call{Call: _e.mock.On("RevokePrivilegedGatewayAccess", ctx, userID, gatewayName)}
+}
+
+func (_c *MockDatabase_RevokePrivilegedGatewayAccess_Call) Run(run func(ctx context.Context, userID string, gatewayName string)) *MockDatabase_RevokePrivilegedGatewayAccess_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 string
+		if args[1] != nil {
+			arg1 = args[1].(string)
+		}
+		var arg2 string
+		if args[2] != nil {
+			arg2 = args[2].(string)
+		}
+		run(
+			arg0,
+			arg1,
+			arg2,
+		)
+	})
+	return _c
+}
+
+func (_c *MockDatabase_RevokePrivilegedGatewayAccess_Call) Return(err error) *MockDatabase_RevokePrivilegedGatewayAccess_Call {
+	_c.Call.Return(err)
+	return _c
+}
+
+func (_c *MockDatabase_RevokePrivilegedGatewayAccess_Call) RunAndReturn(run func(ctx context.Context, userID string, gatewayName string) error) *MockDatabase_RevokePrivilegedGatewayAccess_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // SetDeviceSeenByKolide provides a mock function for the type MockDatabase
 func (_mock *MockDatabase) SetDeviceSeenByKolide(ctx context.Context, externalID string, serial string, platform string, lastSeen *time.Time) error {
 	ret := _mock.Called(ctx, externalID, serial, platform, lastSeen)
@@ -1720,6 +1926,78 @@ func (_c *MockDatabase_UpdateKolideIssuesForDevice_Call) Return(err error) *Mock
 }
 
 func (_c *MockDatabase_UpdateKolideIssuesForDevice_Call) RunAndReturn(run func(ctx context.Context, externalID string, issues []*kolide.DeviceFailure) error) *MockDatabase_UpdateKolideIssuesForDevice_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// UserHasAccessToPrivilegedGateway provides a mock function for the type MockDatabase
+func (_mock *MockDatabase) UserHasAccessToPrivilegedGateway(ctx context.Context, userID string, gatewayName string) (bool, error) {
+	ret := _mock.Called(ctx, userID, gatewayName)
+
+	if len(ret) == 0 {
+		panic("no return value specified for UserHasAccessToPrivilegedGateway")
+	}
+
+	var r0 bool
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, string) (bool, error)); ok {
+		return returnFunc(ctx, userID, gatewayName)
+	}
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, string) bool); ok {
+		r0 = returnFunc(ctx, userID, gatewayName)
+	} else {
+		r0 = ret.Get(0).(bool)
+	}
+	if returnFunc, ok := ret.Get(1).(func(context.Context, string, string) error); ok {
+		r1 = returnFunc(ctx, userID, gatewayName)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// MockDatabase_UserHasAccessToPrivilegedGateway_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'UserHasAccessToPrivilegedGateway'
+type MockDatabase_UserHasAccessToPrivilegedGateway_Call struct {
+	*mock.Call
+}
+
+// UserHasAccessToPrivilegedGateway is a helper method to define mock.On call
+//   - ctx context.Context
+//   - userID string
+//   - gatewayName string
+func (_e *MockDatabase_Expecter) UserHasAccessToPrivilegedGateway(ctx interface{}, userID interface{}, gatewayName interface{}) *MockDatabase_UserHasAccessToPrivilegedGateway_Call {
+	return &MockDatabase_UserHasAccessToPrivilegedGateway_Call{Call: _e.mock.On("UserHasAccessToPrivilegedGateway", ctx, userID, gatewayName)}
+}
+
+func (_c *MockDatabase_UserHasAccessToPrivilegedGateway_Call) Run(run func(ctx context.Context, userID string, gatewayName string)) *MockDatabase_UserHasAccessToPrivilegedGateway_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 string
+		if args[1] != nil {
+			arg1 = args[1].(string)
+		}
+		var arg2 string
+		if args[2] != nil {
+			arg2 = args[2].(string)
+		}
+		run(
+			arg0,
+			arg1,
+			arg2,
+		)
+	})
+	return _c
+}
+
+func (_c *MockDatabase_UserHasAccessToPrivilegedGateway_Call) Return(b bool, err error) *MockDatabase_UserHasAccessToPrivilegedGateway_Call {
+	_c.Call.Return(b, err)
+	return _c
+}
+
+func (_c *MockDatabase_UserHasAccessToPrivilegedGateway_Call) RunAndReturn(run func(ctx context.Context, userID string, gatewayName string) (bool, error)) *MockDatabase_UserHasAccessToPrivilegedGateway_Call {
 	_c.Call.Return(run)
 	return _c
 }

@@ -709,17 +709,21 @@ var DeviceAgent_ServiceDesc = grpc.ServiceDesc{
 }
 
 const (
-	APIServer_Login_FullMethodName                      = "/naisdevice.APIServer/Login"
-	APIServer_GetDeviceConfiguration_FullMethodName     = "/naisdevice.APIServer/GetDeviceConfiguration"
-	APIServer_GetGatewayConfiguration_FullMethodName    = "/naisdevice.APIServer/GetGatewayConfiguration"
-	APIServer_GetGateway_FullMethodName                 = "/naisdevice.APIServer/GetGateway"
-	APIServer_ListGateways_FullMethodName               = "/naisdevice.APIServer/ListGateways"
-	APIServer_EnrollGateway_FullMethodName              = "/naisdevice.APIServer/EnrollGateway"
-	APIServer_UpdateGateway_FullMethodName              = "/naisdevice.APIServer/UpdateGateway"
-	APIServer_GetSessions_FullMethodName                = "/naisdevice.APIServer/GetSessions"
-	APIServer_GetKolideCache_FullMethodName             = "/naisdevice.APIServer/GetKolideCache"
-	APIServer_GetAcceptableUseAcceptedAt_FullMethodName = "/naisdevice.APIServer/GetAcceptableUseAcceptedAt"
-	APIServer_SetAcceptableUseAccepted_FullMethodName   = "/naisdevice.APIServer/SetAcceptableUseAccepted"
+	APIServer_Login_FullMethodName                            = "/naisdevice.APIServer/Login"
+	APIServer_GetDeviceConfiguration_FullMethodName           = "/naisdevice.APIServer/GetDeviceConfiguration"
+	APIServer_GetGatewayConfiguration_FullMethodName          = "/naisdevice.APIServer/GetGatewayConfiguration"
+	APIServer_GetGateway_FullMethodName                       = "/naisdevice.APIServer/GetGateway"
+	APIServer_ListGateways_FullMethodName                     = "/naisdevice.APIServer/ListGateways"
+	APIServer_EnrollGateway_FullMethodName                    = "/naisdevice.APIServer/EnrollGateway"
+	APIServer_UpdateGateway_FullMethodName                    = "/naisdevice.APIServer/UpdateGateway"
+	APIServer_GetSessions_FullMethodName                      = "/naisdevice.APIServer/GetSessions"
+	APIServer_GetKolideCache_FullMethodName                   = "/naisdevice.APIServer/GetKolideCache"
+	APIServer_GetAcceptableUseAcceptedAt_FullMethodName       = "/naisdevice.APIServer/GetAcceptableUseAcceptedAt"
+	APIServer_SetAcceptableUseAccepted_FullMethodName         = "/naisdevice.APIServer/SetAcceptableUseAccepted"
+	APIServer_GetGatewayJitaGrantsForUser_FullMethodName      = "/naisdevice.APIServer/GetGatewayJitaGrantsForUser"
+	APIServer_UserHasAccessToPrivilegedGateway_FullMethodName = "/naisdevice.APIServer/UserHasAccessToPrivilegedGateway"
+	APIServer_GrantPrivilegedGatewayAccess_FullMethodName     = "/naisdevice.APIServer/GrantPrivilegedGatewayAccess"
+	APIServer_RevokePrivilegedGatewayAccess_FullMethodName    = "/naisdevice.APIServer/RevokePrivilegedGatewayAccess"
 )
 
 // APIServerClient is the client API for APIServer service.
@@ -746,6 +750,10 @@ type APIServerClient interface {
 	GetKolideCache(ctx context.Context, in *GetKolideCacheRequest, opts ...grpc.CallOption) (*GetKolideCacheResponse, error)
 	GetAcceptableUseAcceptedAt(ctx context.Context, in *GetAcceptableUseAcceptedAtRequest, opts ...grpc.CallOption) (*GetAcceptableUseAcceptedAtResponse, error)
 	SetAcceptableUseAccepted(ctx context.Context, in *SetAcceptableUseAcceptedRequest, opts ...grpc.CallOption) (*SetAcceptableUseAcceptedResponse, error)
+	GetGatewayJitaGrantsForUser(ctx context.Context, in *GetGatewayJitaGrantsForUserRequest, opts ...grpc.CallOption) (*GetGatewayJitaGrantsForUserResponse, error)
+	UserHasAccessToPrivilegedGateway(ctx context.Context, in *UserHasAccessToPrivilegedGatewayRequest, opts ...grpc.CallOption) (*UserHasAccessToPrivilegedGatewayResponse, error)
+	GrantPrivilegedGatewayAccess(ctx context.Context, in *GrantPrivilegedGatewayAccessRequest, opts ...grpc.CallOption) (*GrantPrivilegedGatewayAccessResponse, error)
+	RevokePrivilegedGatewayAccess(ctx context.Context, in *RevokePrivilegedGatewayAccessRequest, opts ...grpc.CallOption) (*RevokePrivilegedGatewayAccessResponse, error)
 }
 
 type aPIServerClient struct {
@@ -893,6 +901,46 @@ func (c *aPIServerClient) SetAcceptableUseAccepted(ctx context.Context, in *SetA
 	return out, nil
 }
 
+func (c *aPIServerClient) GetGatewayJitaGrantsForUser(ctx context.Context, in *GetGatewayJitaGrantsForUserRequest, opts ...grpc.CallOption) (*GetGatewayJitaGrantsForUserResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetGatewayJitaGrantsForUserResponse)
+	err := c.cc.Invoke(ctx, APIServer_GetGatewayJitaGrantsForUser_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *aPIServerClient) UserHasAccessToPrivilegedGateway(ctx context.Context, in *UserHasAccessToPrivilegedGatewayRequest, opts ...grpc.CallOption) (*UserHasAccessToPrivilegedGatewayResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(UserHasAccessToPrivilegedGatewayResponse)
+	err := c.cc.Invoke(ctx, APIServer_UserHasAccessToPrivilegedGateway_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *aPIServerClient) GrantPrivilegedGatewayAccess(ctx context.Context, in *GrantPrivilegedGatewayAccessRequest, opts ...grpc.CallOption) (*GrantPrivilegedGatewayAccessResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GrantPrivilegedGatewayAccessResponse)
+	err := c.cc.Invoke(ctx, APIServer_GrantPrivilegedGatewayAccess_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *aPIServerClient) RevokePrivilegedGatewayAccess(ctx context.Context, in *RevokePrivilegedGatewayAccessRequest, opts ...grpc.CallOption) (*RevokePrivilegedGatewayAccessResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(RevokePrivilegedGatewayAccessResponse)
+	err := c.cc.Invoke(ctx, APIServer_RevokePrivilegedGatewayAccess_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // APIServerServer is the server API for APIServer service.
 // All implementations must embed UnimplementedAPIServerServer
 // for forward compatibility.
@@ -917,6 +965,10 @@ type APIServerServer interface {
 	GetKolideCache(context.Context, *GetKolideCacheRequest) (*GetKolideCacheResponse, error)
 	GetAcceptableUseAcceptedAt(context.Context, *GetAcceptableUseAcceptedAtRequest) (*GetAcceptableUseAcceptedAtResponse, error)
 	SetAcceptableUseAccepted(context.Context, *SetAcceptableUseAcceptedRequest) (*SetAcceptableUseAcceptedResponse, error)
+	GetGatewayJitaGrantsForUser(context.Context, *GetGatewayJitaGrantsForUserRequest) (*GetGatewayJitaGrantsForUserResponse, error)
+	UserHasAccessToPrivilegedGateway(context.Context, *UserHasAccessToPrivilegedGatewayRequest) (*UserHasAccessToPrivilegedGatewayResponse, error)
+	GrantPrivilegedGatewayAccess(context.Context, *GrantPrivilegedGatewayAccessRequest) (*GrantPrivilegedGatewayAccessResponse, error)
+	RevokePrivilegedGatewayAccess(context.Context, *RevokePrivilegedGatewayAccessRequest) (*RevokePrivilegedGatewayAccessResponse, error)
 	mustEmbedUnimplementedAPIServerServer()
 }
 
@@ -959,6 +1011,18 @@ func (UnimplementedAPIServerServer) GetAcceptableUseAcceptedAt(context.Context, 
 }
 func (UnimplementedAPIServerServer) SetAcceptableUseAccepted(context.Context, *SetAcceptableUseAcceptedRequest) (*SetAcceptableUseAcceptedResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method SetAcceptableUseAccepted not implemented")
+}
+func (UnimplementedAPIServerServer) GetGatewayJitaGrantsForUser(context.Context, *GetGatewayJitaGrantsForUserRequest) (*GetGatewayJitaGrantsForUserResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetGatewayJitaGrantsForUser not implemented")
+}
+func (UnimplementedAPIServerServer) UserHasAccessToPrivilegedGateway(context.Context, *UserHasAccessToPrivilegedGatewayRequest) (*UserHasAccessToPrivilegedGatewayResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method UserHasAccessToPrivilegedGateway not implemented")
+}
+func (UnimplementedAPIServerServer) GrantPrivilegedGatewayAccess(context.Context, *GrantPrivilegedGatewayAccessRequest) (*GrantPrivilegedGatewayAccessResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GrantPrivilegedGatewayAccess not implemented")
+}
+func (UnimplementedAPIServerServer) RevokePrivilegedGatewayAccess(context.Context, *RevokePrivilegedGatewayAccessRequest) (*RevokePrivilegedGatewayAccessResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method RevokePrivilegedGatewayAccess not implemented")
 }
 func (UnimplementedAPIServerServer) mustEmbedUnimplementedAPIServerServer() {}
 func (UnimplementedAPIServerServer) testEmbeddedByValue()                   {}
@@ -1158,6 +1222,78 @@ func _APIServer_SetAcceptableUseAccepted_Handler(srv interface{}, ctx context.Co
 	return interceptor(ctx, in, info, handler)
 }
 
+func _APIServer_GetGatewayJitaGrantsForUser_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetGatewayJitaGrantsForUserRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(APIServerServer).GetGatewayJitaGrantsForUser(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: APIServer_GetGatewayJitaGrantsForUser_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(APIServerServer).GetGatewayJitaGrantsForUser(ctx, req.(*GetGatewayJitaGrantsForUserRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _APIServer_UserHasAccessToPrivilegedGateway_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UserHasAccessToPrivilegedGatewayRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(APIServerServer).UserHasAccessToPrivilegedGateway(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: APIServer_UserHasAccessToPrivilegedGateway_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(APIServerServer).UserHasAccessToPrivilegedGateway(ctx, req.(*UserHasAccessToPrivilegedGatewayRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _APIServer_GrantPrivilegedGatewayAccess_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GrantPrivilegedGatewayAccessRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(APIServerServer).GrantPrivilegedGatewayAccess(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: APIServer_GrantPrivilegedGatewayAccess_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(APIServerServer).GrantPrivilegedGatewayAccess(ctx, req.(*GrantPrivilegedGatewayAccessRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _APIServer_RevokePrivilegedGatewayAccess_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(RevokePrivilegedGatewayAccessRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(APIServerServer).RevokePrivilegedGatewayAccess(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: APIServer_RevokePrivilegedGatewayAccess_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(APIServerServer).RevokePrivilegedGatewayAccess(ctx, req.(*RevokePrivilegedGatewayAccessRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // APIServer_ServiceDesc is the grpc.ServiceDesc for APIServer service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -1196,6 +1332,22 @@ var APIServer_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "SetAcceptableUseAccepted",
 			Handler:    _APIServer_SetAcceptableUseAccepted_Handler,
+		},
+		{
+			MethodName: "GetGatewayJitaGrantsForUser",
+			Handler:    _APIServer_GetGatewayJitaGrantsForUser_Handler,
+		},
+		{
+			MethodName: "UserHasAccessToPrivilegedGateway",
+			Handler:    _APIServer_UserHasAccessToPrivilegedGateway_Handler,
+		},
+		{
+			MethodName: "GrantPrivilegedGatewayAccess",
+			Handler:    _APIServer_GrantPrivilegedGatewayAccess_Handler,
+		},
+		{
+			MethodName: "RevokePrivilegedGatewayAccess",
+			Handler:    _APIServer_RevokePrivilegedGatewayAccess_Handler,
 		},
 	},
 	Streams: []grpc.StreamDesc{
