@@ -7,11 +7,10 @@ import (
 	"fmt"
 	"net"
 	"net/http"
+	_ "net/http/pprof"
 	"net/netip"
 	"os"
 	"time"
-
-	_ "net/http/pprof"
 
 	"github.com/kelseyhightower/envconfig"
 	"github.com/nais/device/internal/apiserver/api"
@@ -22,7 +21,6 @@ import (
 	"github.com/nais/device/internal/apiserver/enroller"
 	"github.com/nais/device/internal/apiserver/gatewayconfigurer"
 	"github.com/nais/device/internal/apiserver/ip"
-	"github.com/nais/device/internal/apiserver/jita"
 	"github.com/nais/device/internal/apiserver/kolide"
 	"github.com/nais/device/internal/apiserver/metrics"
 	"github.com/nais/device/internal/logger"
@@ -40,7 +38,6 @@ import (
 const (
 	intervalWireGuardSync      = 20 * time.Second
 	intervalGatewayConfigSync  = 1 * time.Minute
-	intervalJITASync           = 10 * time.Second
 	intervalKolideCacheRefresh = 1 * time.Minute
 	intervalKolideFullSync     = 1 * time.Minute
 )
@@ -240,13 +237,6 @@ func run(log *logrus.Entry, cfg config.Config) error {
 		}
 	}
 
-	var jitaClient jita.Client
-	if cfg.JitaEnabled {
-		log := log.WithField("component", "jita")
-		jitaClient = jita.New(log, cfg.JitaUsername, cfg.JitaPassword, cfg.JitaUrl)
-		go untilContextDone(ctx, intervalJITASync, jitaClient.UpdatePrivilegedUsers, log)
-	}
-
 	switch cfg.GatewayConfigurer {
 	case "bucket":
 		buck := bucket.NewClient(cfg.GatewayConfigBucketName, cfg.GatewayConfigBucketObjectName)
@@ -301,7 +291,6 @@ func run(log *logrus.Entry, cfg config.Config) error {
 		adminAuthenticator,
 		gatewayAuthenticator,
 		prometheusAuthenticator,
-		jitaClient,
 		sessions,
 		kolideClient,
 		cfg.KolideEventHandlerEnabled,

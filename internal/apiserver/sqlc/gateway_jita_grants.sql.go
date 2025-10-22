@@ -126,3 +126,34 @@ func (q *Queries) UserHasAccessToPrivilegedGateway(ctx context.Context, arg User
 	err := row.Scan(&has_access)
 	return has_access, err
 }
+
+const usersWithAccessToPrivilegedGateway = `-- name: UsersWithAccessToPrivilegedGateway :many
+SELECT user_id FROM gateway_jita_grants
+WHERE
+    gateway_name = ?1
+    AND DATETIME(expires) > DATETIME('now')
+    AND revoked IS NULL
+`
+
+func (q *Queries) UsersWithAccessToPrivilegedGateway(ctx context.Context, gatewayName string) ([]string, error) {
+	rows, err := q.query(ctx, q.usersWithAccessToPrivilegedGatewayStmt, usersWithAccessToPrivilegedGateway, gatewayName)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []string
+	for rows.Next() {
+		var user_id string
+		if err := rows.Scan(&user_id); err != nil {
+			return nil, err
+		}
+		items = append(items, user_id)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}

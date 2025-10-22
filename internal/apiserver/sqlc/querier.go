@@ -53,6 +53,7 @@ type Querier interface {
 	UpdateGateway(ctx context.Context, arg UpdateGatewayParams) error
 	UpdateGatewayDynamicFields(ctx context.Context, arg UpdateGatewayDynamicFieldsParams) error
 	UserHasAccessToPrivilegedGateway(ctx context.Context, arg UserHasAccessToPrivilegedGatewayParams) (int64, error)
+	UsersWithAccessToPrivilegedGateway(ctx context.Context, gatewayName string) ([]string, error)
 }
 
 var _ Querier = (*Queries)(nil)

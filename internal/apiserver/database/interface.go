@@ -42,4 +42,5 @@ type Database interface {
 	UserHasAccessToPrivilegedGateway(ctx context.Context, userID, gatewayName string) (bool, error)
 	GrantPrivilegedGatewayAccess(ctx context.Context, userID, gatewayName string, expires time.Time, reason string) error
 	RevokePrivilegedGatewayAccess(ctx context.Context, userID, gatewayName string) error
+	UsersWithAccessToPrivilegedGateway(ctx context.Context, gatewayName string) ([]string, error)
 }

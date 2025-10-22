@@ -164,7 +164,7 @@ func Test_GetDeviceConfiguration(t *testing.T) {
 			db.EXPECT().ReadGateways(mock.Anything).Return([]*pb.Gateway{mockGateway}, nil).Maybe()
 
 			log := logrus.StandardLogger().WithField("component", "test")
-			server := api.NewGRPCServer(ctx, log, db, nil, nil, nil, nil, nil, sessionStore, nil, tt.in.kolideEnabled)
+			server := api.NewGRPCServer(ctx, log, db, nil, nil, nil, nil, sessionStore, nil, tt.in.kolideEnabled)
 
 			s := grpc.NewServer()
 			pb.RegisterAPIServerServer(s, server)

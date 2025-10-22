@@ -3,7 +3,6 @@ package api
 import (
 	"slices"
 
-	"github.com/nais/device/internal/apiserver/jita"
 	"github.com/nais/device/pkg/pb"
 )
 
@@ -63,10 +62,10 @@ func sessionForGatewayGroups(gatewayGroups []string) func(*pb.Session) bool {
 	}
 }
 
-func sessionIsPrivileged(privilegedUsers []jita.PrivilegedUser) func(*pb.Session) bool {
+func sessionIsPrivileged(privilegedUsers []string) func(*pb.Session) bool {
 	return func(session *pb.Session) bool {
 		for _, privilegedUser := range privilegedUsers {
-			if privilegedUser.UserId == session.ObjectID {
+			if privilegedUser == session.ObjectID {
 				return true
 			}
 		}

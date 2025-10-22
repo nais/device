@@ -14,6 +14,13 @@ SELECT EXISTS(
         AND revoked IS NULL
 ) AS has_access;
 
+-- name: UsersWithAccessToPrivilegedGateway :many
+SELECT user_id FROM gateway_jita_grants
+WHERE
+    gateway_name = @gateway_name
+    AND DATETIME(expires) > DATETIME('now')
+    AND revoked IS NULL;
+
 -- name: GrantPrivilegedGatewayAccess :exec
 INSERT INTO gateway_jita_grants (
     user_id,
