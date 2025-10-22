@@ -68,6 +68,11 @@ common() {
 	systemctl preset naisdevice-helper.service
 	systemctl enable naisdevice-helper.service
 	systemctl restart naisdevice-helper.service
+
+	if [ -f "/etc/apparmor.d/wg" ]; then
+		apparmor_parser -r /etc/apparmor.d/wg
+	fi
+
 	# Kill dangling/zombied naisdevice processes, ignoring errors
 	set +e
 	killall -9 --quiet --older-than 1m --regexp "naisdevice.*" || :
