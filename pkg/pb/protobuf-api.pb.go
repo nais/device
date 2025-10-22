@@ -2815,6 +2815,510 @@ func (*SetAcceptableUseAcceptedResponse) Descriptor() ([]byte, []int) {
 	return file_pkg_pb_protobuf_api_proto_rawDescGZIP(), []int{51}
 }
 
+type GatewayJitaGrant struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Id            int64                  `protobuf:"varint,1,opt,name=id,proto3" json:"id,omitempty"`
+	Gateway       string                 `protobuf:"bytes,2,opt,name=gateway,proto3" json:"gateway,omitempty"`
+	Created       *timestamppb.Timestamp `protobuf:"bytes,3,opt,name=created,proto3" json:"created,omitempty"`
+	Expires       *timestamppb.Timestamp `protobuf:"bytes,4,opt,name=expires,proto3" json:"expires,omitempty"`
+	Revoked       *timestamppb.Timestamp `protobuf:"bytes,5,opt,name=revoked,proto3" json:"revoked,omitempty"`
+	Reason        string                 `protobuf:"bytes,6,opt,name=reason,proto3" json:"reason,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GatewayJitaGrant) Reset() {
+	*x = GatewayJitaGrant{}
+	mi := &file_pkg_pb_protobuf_api_proto_msgTypes[52]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GatewayJitaGrant) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GatewayJitaGrant) ProtoMessage() {}
+
+func (x *GatewayJitaGrant) ProtoReflect() protoreflect.Message {
+	mi := &file_pkg_pb_protobuf_api_proto_msgTypes[52]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GatewayJitaGrant.ProtoReflect.Descriptor instead.
+func (*GatewayJitaGrant) Descriptor() ([]byte, []int) {
+	return file_pkg_pb_protobuf_api_proto_rawDescGZIP(), []int{52}
+}
+
+func (x *GatewayJitaGrant) GetId() int64 {
+	if x != nil {
+		return x.Id
+	}
+	return 0
+}
+
+func (x *GatewayJitaGrant) GetGateway() string {
+	if x != nil {
+		return x.Gateway
+	}
+	return ""
+}
+
+func (x *GatewayJitaGrant) GetCreated() *timestamppb.Timestamp {
+	if x != nil {
+		return x.Created
+	}
+	return nil
+}
+
+func (x *GatewayJitaGrant) GetExpires() *timestamppb.Timestamp {
+	if x != nil {
+		return x.Expires
+	}
+	return nil
+}
+
+func (x *GatewayJitaGrant) GetRevoked() *timestamppb.Timestamp {
+	if x != nil {
+		return x.Revoked
+	}
+	return nil
+}
+
+func (x *GatewayJitaGrant) GetReason() string {
+	if x != nil {
+		return x.Reason
+	}
+	return ""
+}
+
+type GetGatewayJitaGrantsForUserRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	SessionKey    string                 `protobuf:"bytes,1,opt,name=sessionKey,proto3" json:"sessionKey,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetGatewayJitaGrantsForUserRequest) Reset() {
+	*x = GetGatewayJitaGrantsForUserRequest{}
+	mi := &file_pkg_pb_protobuf_api_proto_msgTypes[53]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetGatewayJitaGrantsForUserRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetGatewayJitaGrantsForUserRequest) ProtoMessage() {}
+
+func (x *GetGatewayJitaGrantsForUserRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_pkg_pb_protobuf_api_proto_msgTypes[53]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetGatewayJitaGrantsForUserRequest.ProtoReflect.Descriptor instead.
+func (*GetGatewayJitaGrantsForUserRequest) Descriptor() ([]byte, []int) {
+	return file_pkg_pb_protobuf_api_proto_rawDescGZIP(), []int{53}
+}
+
+func (x *GetGatewayJitaGrantsForUserRequest) GetSessionKey() string {
+	if x != nil {
+		return x.SessionKey
+	}
+	return ""
+}
+
+type GetGatewayJitaGrantsForUserResponse struct {
+	state             protoimpl.MessageState `protogen:"open.v1"`
+	GatewayJitaGrants []*GatewayJitaGrant    `protobuf:"bytes,1,rep,name=gatewayJitaGrants,proto3" json:"gatewayJitaGrants,omitempty"`
+	unknownFields     protoimpl.UnknownFields
+	sizeCache         protoimpl.SizeCache
+}
+
+func (x *GetGatewayJitaGrantsForUserResponse) Reset() {
+	*x = GetGatewayJitaGrantsForUserResponse{}
+	mi := &file_pkg_pb_protobuf_api_proto_msgTypes[54]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetGatewayJitaGrantsForUserResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetGatewayJitaGrantsForUserResponse) ProtoMessage() {}
+
+func (x *GetGatewayJitaGrantsForUserResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_pkg_pb_protobuf_api_proto_msgTypes[54]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetGatewayJitaGrantsForUserResponse.ProtoReflect.Descriptor instead.
+func (*GetGatewayJitaGrantsForUserResponse) Descriptor() ([]byte, []int) {
+	return file_pkg_pb_protobuf_api_proto_rawDescGZIP(), []int{54}
+}
+
+func (x *GetGatewayJitaGrantsForUserResponse) GetGatewayJitaGrants() []*GatewayJitaGrant {
+	if x != nil {
+		return x.GatewayJitaGrants
+	}
+	return nil
+}
+
+type UserHasAccessToPrivilegedGatewayRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	SessionKey    string                 `protobuf:"bytes,1,opt,name=sessionKey,proto3" json:"sessionKey,omitempty"`
+	Gateway       string                 `protobuf:"bytes,2,opt,name=gateway,proto3" json:"gateway,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *UserHasAccessToPrivilegedGatewayRequest) Reset() {
+	*x = UserHasAccessToPrivilegedGatewayRequest{}
+	mi := &file_pkg_pb_protobuf_api_proto_msgTypes[55]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *UserHasAccessToPrivilegedGatewayRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UserHasAccessToPrivilegedGatewayRequest) ProtoMessage() {}
+
+func (x *UserHasAccessToPrivilegedGatewayRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_pkg_pb_protobuf_api_proto_msgTypes[55]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UserHasAccessToPrivilegedGatewayRequest.ProtoReflect.Descriptor instead.
+func (*UserHasAccessToPrivilegedGatewayRequest) Descriptor() ([]byte, []int) {
+	return file_pkg_pb_protobuf_api_proto_rawDescGZIP(), []int{55}
+}
+
+func (x *UserHasAccessToPrivilegedGatewayRequest) GetSessionKey() string {
+	if x != nil {
+		return x.SessionKey
+	}
+	return ""
+}
+
+func (x *UserHasAccessToPrivilegedGatewayRequest) GetGateway() string {
+	if x != nil {
+		return x.Gateway
+	}
+	return ""
+}
+
+type UserHasAccessToPrivilegedGatewayResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	HasAccess     bool                   `protobuf:"varint,1,opt,name=hasAccess,proto3" json:"hasAccess,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *UserHasAccessToPrivilegedGatewayResponse) Reset() {
+	*x = UserHasAccessToPrivilegedGatewayResponse{}
+	mi := &file_pkg_pb_protobuf_api_proto_msgTypes[56]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *UserHasAccessToPrivilegedGatewayResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UserHasAccessToPrivilegedGatewayResponse) ProtoMessage() {}
+
+func (x *UserHasAccessToPrivilegedGatewayResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_pkg_pb_protobuf_api_proto_msgTypes[56]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UserHasAccessToPrivilegedGatewayResponse.ProtoReflect.Descriptor instead.
+func (*UserHasAccessToPrivilegedGatewayResponse) Descriptor() ([]byte, []int) {
+	return file_pkg_pb_protobuf_api_proto_rawDescGZIP(), []int{56}
+}
+
+func (x *UserHasAccessToPrivilegedGatewayResponse) GetHasAccess() bool {
+	if x != nil {
+		return x.HasAccess
+	}
+	return false
+}
+
+type NewPrivilegedGatewayAccess struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Gateway       string                 `protobuf:"bytes,1,opt,name=gateway,proto3" json:"gateway,omitempty"`
+	Expires       *timestamppb.Timestamp `protobuf:"bytes,2,opt,name=expires,proto3" json:"expires,omitempty"`
+	Reason        string                 `protobuf:"bytes,3,opt,name=reason,proto3" json:"reason,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *NewPrivilegedGatewayAccess) Reset() {
+	*x = NewPrivilegedGatewayAccess{}
+	mi := &file_pkg_pb_protobuf_api_proto_msgTypes[57]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *NewPrivilegedGatewayAccess) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*NewPrivilegedGatewayAccess) ProtoMessage() {}
+
+func (x *NewPrivilegedGatewayAccess) ProtoReflect() protoreflect.Message {
+	mi := &file_pkg_pb_protobuf_api_proto_msgTypes[57]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use NewPrivilegedGatewayAccess.ProtoReflect.Descriptor instead.
+func (*NewPrivilegedGatewayAccess) Descriptor() ([]byte, []int) {
+	return file_pkg_pb_protobuf_api_proto_rawDescGZIP(), []int{57}
+}
+
+func (x *NewPrivilegedGatewayAccess) GetGateway() string {
+	if x != nil {
+		return x.Gateway
+	}
+	return ""
+}
+
+func (x *NewPrivilegedGatewayAccess) GetExpires() *timestamppb.Timestamp {
+	if x != nil {
+		return x.Expires
+	}
+	return nil
+}
+
+func (x *NewPrivilegedGatewayAccess) GetReason() string {
+	if x != nil {
+		return x.Reason
+	}
+	return ""
+}
+
+type GrantPrivilegedGatewayAccessRequest struct {
+	state                      protoimpl.MessageState      `protogen:"open.v1"`
+	SessionKey                 string                      `protobuf:"bytes,1,opt,name=sessionKey,proto3" json:"sessionKey,omitempty"`
+	NewPrivilegedGatewayAccess *NewPrivilegedGatewayAccess `protobuf:"bytes,2,opt,name=newPrivilegedGatewayAccess,proto3" json:"newPrivilegedGatewayAccess,omitempty"`
+	unknownFields              protoimpl.UnknownFields
+	sizeCache                  protoimpl.SizeCache
+}
+
+func (x *GrantPrivilegedGatewayAccessRequest) Reset() {
+	*x = GrantPrivilegedGatewayAccessRequest{}
+	mi := &file_pkg_pb_protobuf_api_proto_msgTypes[58]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GrantPrivilegedGatewayAccessRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GrantPrivilegedGatewayAccessRequest) ProtoMessage() {}
+
+func (x *GrantPrivilegedGatewayAccessRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_pkg_pb_protobuf_api_proto_msgTypes[58]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GrantPrivilegedGatewayAccessRequest.ProtoReflect.Descriptor instead.
+func (*GrantPrivilegedGatewayAccessRequest) Descriptor() ([]byte, []int) {
+	return file_pkg_pb_protobuf_api_proto_rawDescGZIP(), []int{58}
+}
+
+func (x *GrantPrivilegedGatewayAccessRequest) GetSessionKey() string {
+	if x != nil {
+		return x.SessionKey
+	}
+	return ""
+}
+
+func (x *GrantPrivilegedGatewayAccessRequest) GetNewPrivilegedGatewayAccess() *NewPrivilegedGatewayAccess {
+	if x != nil {
+		return x.NewPrivilegedGatewayAccess
+	}
+	return nil
+}
+
+type GrantPrivilegedGatewayAccessResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GrantPrivilegedGatewayAccessResponse) Reset() {
+	*x = GrantPrivilegedGatewayAccessResponse{}
+	mi := &file_pkg_pb_protobuf_api_proto_msgTypes[59]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GrantPrivilegedGatewayAccessResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GrantPrivilegedGatewayAccessResponse) ProtoMessage() {}
+
+func (x *GrantPrivilegedGatewayAccessResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_pkg_pb_protobuf_api_proto_msgTypes[59]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GrantPrivilegedGatewayAccessResponse.ProtoReflect.Descriptor instead.
+func (*GrantPrivilegedGatewayAccessResponse) Descriptor() ([]byte, []int) {
+	return file_pkg_pb_protobuf_api_proto_rawDescGZIP(), []int{59}
+}
+
+type RevokePrivilegedGatewayAccessRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	SessionKey    string                 `protobuf:"bytes,1,opt,name=sessionKey,proto3" json:"sessionKey,omitempty"`
+	Gateway       string                 `protobuf:"bytes,2,opt,name=gateway,proto3" json:"gateway,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *RevokePrivilegedGatewayAccessRequest) Reset() {
+	*x = RevokePrivilegedGatewayAccessRequest{}
+	mi := &file_pkg_pb_protobuf_api_proto_msgTypes[60]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RevokePrivilegedGatewayAccessRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RevokePrivilegedGatewayAccessRequest) ProtoMessage() {}
+
+func (x *RevokePrivilegedGatewayAccessRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_pkg_pb_protobuf_api_proto_msgTypes[60]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RevokePrivilegedGatewayAccessRequest.ProtoReflect.Descriptor instead.
+func (*RevokePrivilegedGatewayAccessRequest) Descriptor() ([]byte, []int) {
+	return file_pkg_pb_protobuf_api_proto_rawDescGZIP(), []int{60}
+}
+
+func (x *RevokePrivilegedGatewayAccessRequest) GetSessionKey() string {
+	if x != nil {
+		return x.SessionKey
+	}
+	return ""
+}
+
+func (x *RevokePrivilegedGatewayAccessRequest) GetGateway() string {
+	if x != nil {
+		return x.Gateway
+	}
+	return ""
+}
+
+type RevokePrivilegedGatewayAccessResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *RevokePrivilegedGatewayAccessResponse) Reset() {
+	*x = RevokePrivilegedGatewayAccessResponse{}
+	mi := &file_pkg_pb_protobuf_api_proto_msgTypes[61]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RevokePrivilegedGatewayAccessResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RevokePrivilegedGatewayAccessResponse) ProtoMessage() {}
+
+func (x *RevokePrivilegedGatewayAccessResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_pkg_pb_protobuf_api_proto_msgTypes[61]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RevokePrivilegedGatewayAccessResponse.ProtoReflect.Descriptor instead.
+func (*RevokePrivilegedGatewayAccessResponse) Descriptor() ([]byte, []int) {
+	return file_pkg_pb_protobuf_api_proto_rawDescGZIP(), []int{61}
+}
+
 var File_pkg_pb_protobuf_api_proto protoreflect.FileDescriptor
 
 const file_pkg_pb_protobuf_api_proto_rawDesc = "" +
@@ -2988,7 +3492,43 @@ const file_pkg_pb_protobuf_api_proto_rawDesc = "" +
 	"sessionKey\x18\x01 \x01(\tR\n" +
 	"sessionKey\x12\x1a\n" +
 	"\baccepted\x18\x02 \x01(\bR\baccepted\"\"\n" +
-	" SetAcceptableUseAcceptedResponse*\xf2\x01\n" +
+	" SetAcceptableUseAcceptedResponse\"\xf6\x01\n" +
+	"\x10GatewayJitaGrant\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\x03R\x02id\x12\x18\n" +
+	"\agateway\x18\x02 \x01(\tR\agateway\x124\n" +
+	"\acreated\x18\x03 \x01(\v2\x1a.google.protobuf.TimestampR\acreated\x124\n" +
+	"\aexpires\x18\x04 \x01(\v2\x1a.google.protobuf.TimestampR\aexpires\x124\n" +
+	"\arevoked\x18\x05 \x01(\v2\x1a.google.protobuf.TimestampR\arevoked\x12\x16\n" +
+	"\x06reason\x18\x06 \x01(\tR\x06reason\"D\n" +
+	"\"GetGatewayJitaGrantsForUserRequest\x12\x1e\n" +
+	"\n" +
+	"sessionKey\x18\x01 \x01(\tR\n" +
+	"sessionKey\"q\n" +
+	"#GetGatewayJitaGrantsForUserResponse\x12J\n" +
+	"\x11gatewayJitaGrants\x18\x01 \x03(\v2\x1c.naisdevice.GatewayJitaGrantR\x11gatewayJitaGrants\"c\n" +
+	"'UserHasAccessToPrivilegedGatewayRequest\x12\x1e\n" +
+	"\n" +
+	"sessionKey\x18\x01 \x01(\tR\n" +
+	"sessionKey\x12\x18\n" +
+	"\agateway\x18\x02 \x01(\tR\agateway\"H\n" +
+	"(UserHasAccessToPrivilegedGatewayResponse\x12\x1c\n" +
+	"\thasAccess\x18\x01 \x01(\bR\thasAccess\"\x84\x01\n" +
+	"\x1aNewPrivilegedGatewayAccess\x12\x18\n" +
+	"\agateway\x18\x01 \x01(\tR\agateway\x124\n" +
+	"\aexpires\x18\x02 \x01(\v2\x1a.google.protobuf.TimestampR\aexpires\x12\x16\n" +
+	"\x06reason\x18\x03 \x01(\tR\x06reason\"\xad\x01\n" +
+	"#GrantPrivilegedGatewayAccessRequest\x12\x1e\n" +
+	"\n" +
+	"sessionKey\x18\x01 \x01(\tR\n" +
+	"sessionKey\x12f\n" +
+	"\x1anewPrivilegedGatewayAccess\x18\x02 \x01(\v2&.naisdevice.NewPrivilegedGatewayAccessR\x1anewPrivilegedGatewayAccess\"&\n" +
+	"$GrantPrivilegedGatewayAccessResponse\"`\n" +
+	"$RevokePrivilegedGatewayAccessRequest\x12\x1e\n" +
+	"\n" +
+	"sessionKey\x18\x01 \x01(\tR\n" +
+	"sessionKey\x12\x18\n" +
+	"\agateway\x18\x02 \x01(\tR\agateway\"'\n" +
+	"%RevokePrivilegedGatewayAccessResponse*\xf2\x01\n" +
 	"\n" +
 	"AgentState\x12\x10\n" +
 	"\fDisconnected\x10\x00\x12\x11\n" +
@@ -3033,7 +3573,7 @@ const file_pkg_pb_protobuf_api_proto_rawDesc = "" +
 	"\x15SetAgentConfiguration\x12(.naisdevice.SetAgentConfigurationRequest\x1a).naisdevice.SetAgentConfigurationResponse\"\x00\x12n\n" +
 	"\x15GetAgentConfiguration\x12(.naisdevice.GetAgentConfigurationRequest\x1a).naisdevice.GetAgentConfigurationResponse\"\x00\x12b\n" +
 	"\x11ShowAcceptableUse\x12$.naisdevice.ShowAcceptableUseRequest\x1a%.naisdevice.ShowAcceptableUseResponse\"\x00\x12G\n" +
-	"\bShowJita\x12\x1b.naisdevice.ShowJitaRequest\x1a\x1c.naisdevice.ShowJitaResponse\"\x002\xaf\b\n" +
+	"\bShowJita\x12\x1b.naisdevice.ShowJitaRequest\x1a\x1c.naisdevice.ShowJitaResponse\"\x002\xd3\f\n" +
 	"\tAPIServer\x12P\n" +
 	"\x05Login\x12!.naisdevice.APIServerLoginRequest\x1a\".naisdevice.APIServerLoginResponse\"\x00\x12s\n" +
 	"\x16GetDeviceConfiguration\x12).naisdevice.GetDeviceConfigurationRequest\x1a*.naisdevice.GetDeviceConfigurationResponse\"\x000\x01\x12v\n" +
@@ -3046,7 +3586,11 @@ const file_pkg_pb_protobuf_api_proto_rawDesc = "" +
 	"\vGetSessions\x12\x1e.naisdevice.GetSessionsRequest\x1a\x1f.naisdevice.GetSessionsResponse\"\x00\x12Y\n" +
 	"\x0eGetKolideCache\x12!.naisdevice.GetKolideCacheRequest\x1a\".naisdevice.GetKolideCacheResponse\"\x00\x12}\n" +
 	"\x1aGetAcceptableUseAcceptedAt\x12-.naisdevice.GetAcceptableUseAcceptedAtRequest\x1a..naisdevice.GetAcceptableUseAcceptedAtResponse\"\x00\x12w\n" +
-	"\x18SetAcceptableUseAccepted\x12+.naisdevice.SetAcceptableUseAcceptedRequest\x1a,.naisdevice.SetAcceptableUseAcceptedResponse\"\x00B\x1fZ\x1dgithub.com/nais/device/pkg/pbb\x06proto3"
+	"\x18SetAcceptableUseAccepted\x12+.naisdevice.SetAcceptableUseAcceptedRequest\x1a,.naisdevice.SetAcceptableUseAcceptedResponse\"\x00\x12\x80\x01\n" +
+	"\x1bGetGatewayJitaGrantsForUser\x12..naisdevice.GetGatewayJitaGrantsForUserRequest\x1a/.naisdevice.GetGatewayJitaGrantsForUserResponse\"\x00\x12\x8f\x01\n" +
+	" UserHasAccessToPrivilegedGateway\x123.naisdevice.UserHasAccessToPrivilegedGatewayRequest\x1a4.naisdevice.UserHasAccessToPrivilegedGatewayResponse\"\x00\x12\x83\x01\n" +
+	"\x1cGrantPrivilegedGatewayAccess\x12/.naisdevice.GrantPrivilegedGatewayAccessRequest\x1a0.naisdevice.GrantPrivilegedGatewayAccessResponse\"\x00\x12\x86\x01\n" +
+	"\x1dRevokePrivilegedGatewayAccess\x120.naisdevice.RevokePrivilegedGatewayAccessRequest\x1a1.naisdevice.RevokePrivilegedGatewayAccessResponse\"\x00B\x1fZ\x1dgithub.com/nais/device/pkg/pbb\x06proto3"
 
 var (
 	file_pkg_pb_protobuf_api_proto_rawDescOnce sync.Once
@@ -3061,72 +3605,82 @@ func file_pkg_pb_protobuf_api_proto_rawDescGZIP() []byte {
 }
 
 var file_pkg_pb_protobuf_api_proto_enumTypes = make([]protoimpl.EnumInfo, 4)
-var file_pkg_pb_protobuf_api_proto_msgTypes = make([]protoimpl.MessageInfo, 52)
+var file_pkg_pb_protobuf_api_proto_msgTypes = make([]protoimpl.MessageInfo, 62)
 var file_pkg_pb_protobuf_api_proto_goTypes = []any{
-	(AgentState)(0),                            // 0: naisdevice.AgentState
-	(DeviceConfigurationStatus)(0),             // 1: naisdevice.DeviceConfigurationStatus
-	(AuthProvider)(0),                          // 2: naisdevice.AuthProvider
-	(Severity)(0),                              // 3: naisdevice.Severity
-	(*TeardownRequest)(nil),                    // 4: naisdevice.TeardownRequest
-	(*TeardownResponse)(nil),                   // 5: naisdevice.TeardownResponse
-	(*ConfigureResponse)(nil),                  // 6: naisdevice.ConfigureResponse
-	(*ConfigureJITAResponse)(nil),              // 7: naisdevice.ConfigureJITAResponse
-	(*LoginResponse)(nil),                      // 8: naisdevice.LoginResponse
-	(*LogoutResponse)(nil),                     // 9: naisdevice.LogoutResponse
-	(*UpgradeRequest)(nil),                     // 10: naisdevice.UpgradeRequest
-	(*UpgradeResponse)(nil),                    // 11: naisdevice.UpgradeResponse
-	(*GetSerialRequest)(nil),                   // 12: naisdevice.GetSerialRequest
-	(*GetSerialResponse)(nil),                  // 13: naisdevice.GetSerialResponse
-	(*ConfigureJITARequest)(nil),               // 14: naisdevice.ConfigureJITARequest
-	(*LoginRequest)(nil),                       // 15: naisdevice.LoginRequest
-	(*LogoutRequest)(nil),                      // 16: naisdevice.LogoutRequest
-	(*SetAgentConfigurationRequest)(nil),       // 17: naisdevice.SetAgentConfigurationRequest
-	(*SetAgentConfigurationResponse)(nil),      // 18: naisdevice.SetAgentConfigurationResponse
-	(*GetAgentConfigurationRequest)(nil),       // 19: naisdevice.GetAgentConfigurationRequest
-	(*ShowAcceptableUseRequest)(nil),           // 20: naisdevice.ShowAcceptableUseRequest
-	(*ShowAcceptableUseResponse)(nil),          // 21: naisdevice.ShowAcceptableUseResponse
-	(*ShowJitaRequest)(nil),                    // 22: naisdevice.ShowJitaRequest
-	(*ShowJitaResponse)(nil),                   // 23: naisdevice.ShowJitaResponse
-	(*GetAgentConfigurationResponse)(nil),      // 24: naisdevice.GetAgentConfigurationResponse
-	(*AgentStatusRequest)(nil),                 // 25: naisdevice.AgentStatusRequest
-	(*AgentStatus)(nil),                        // 26: naisdevice.AgentStatus
-	(*Configuration)(nil),                      // 27: naisdevice.Configuration
-	(*ModifyGatewayRequest)(nil),               // 28: naisdevice.ModifyGatewayRequest
-	(*ModifyGatewayResponse)(nil),              // 29: naisdevice.ModifyGatewayResponse
-	(*Gateway)(nil),                            // 30: naisdevice.Gateway
-	(*Error)(nil),                              // 31: naisdevice.Error
-	(*SetActiveTenantRequest)(nil),             // 32: naisdevice.SetActiveTenantRequest
-	(*SetActiveTenantResponse)(nil),            // 33: naisdevice.SetActiveTenantResponse
-	(*Tenant)(nil),                             // 34: naisdevice.Tenant
-	(*AgentConfiguration)(nil),                 // 35: naisdevice.AgentConfiguration
-	(*GetGatewayConfigurationRequest)(nil),     // 36: naisdevice.GetGatewayConfigurationRequest
-	(*GetGatewayConfigurationResponse)(nil),    // 37: naisdevice.GetGatewayConfigurationResponse
-	(*GetDeviceConfigurationRequest)(nil),      // 38: naisdevice.GetDeviceConfigurationRequest
-	(*APIServerLoginRequest)(nil),              // 39: naisdevice.APIServerLoginRequest
-	(*APIServerLoginResponse)(nil),             // 40: naisdevice.APIServerLoginResponse
-	(*GetDeviceConfigurationResponse)(nil),     // 41: naisdevice.GetDeviceConfigurationResponse
-	(*DeviceIssue)(nil),                        // 42: naisdevice.DeviceIssue
-	(*ListGatewayRequest)(nil),                 // 43: naisdevice.ListGatewayRequest
-	(*Device)(nil),                             // 44: naisdevice.Device
-	(*Session)(nil),                            // 45: naisdevice.Session
-	(*GetSessionsRequest)(nil),                 // 46: naisdevice.GetSessionsRequest
-	(*GetSessionsResponse)(nil),                // 47: naisdevice.GetSessionsResponse
-	(*PingRequest)(nil),                        // 48: naisdevice.PingRequest
-	(*PingResponse)(nil),                       // 49: naisdevice.PingResponse
-	(*GetKolideCacheRequest)(nil),              // 50: naisdevice.GetKolideCacheRequest
-	(*GetKolideCacheResponse)(nil),             // 51: naisdevice.GetKolideCacheResponse
-	(*GetAcceptableUseAcceptedAtRequest)(nil),  // 52: naisdevice.GetAcceptableUseAcceptedAtRequest
-	(*GetAcceptableUseAcceptedAtResponse)(nil), // 53: naisdevice.GetAcceptableUseAcceptedAtResponse
-	(*SetAcceptableUseAcceptedRequest)(nil),    // 54: naisdevice.SetAcceptableUseAcceptedRequest
-	(*SetAcceptableUseAcceptedResponse)(nil),   // 55: naisdevice.SetAcceptableUseAcceptedResponse
-	(*timestamppb.Timestamp)(nil),              // 56: google.protobuf.Timestamp
+	(AgentState)(0),                                  // 0: naisdevice.AgentState
+	(DeviceConfigurationStatus)(0),                   // 1: naisdevice.DeviceConfigurationStatus
+	(AuthProvider)(0),                                // 2: naisdevice.AuthProvider
+	(Severity)(0),                                    // 3: naisdevice.Severity
+	(*TeardownRequest)(nil),                          // 4: naisdevice.TeardownRequest
+	(*TeardownResponse)(nil),                         // 5: naisdevice.TeardownResponse
+	(*ConfigureResponse)(nil),                        // 6: naisdevice.ConfigureResponse
+	(*ConfigureJITAResponse)(nil),                    // 7: naisdevice.ConfigureJITAResponse
+	(*LoginResponse)(nil),                            // 8: naisdevice.LoginResponse
+	(*LogoutResponse)(nil),                           // 9: naisdevice.LogoutResponse
+	(*UpgradeRequest)(nil),                           // 10: naisdevice.UpgradeRequest
+	(*UpgradeResponse)(nil),                          // 11: naisdevice.UpgradeResponse
+	(*GetSerialRequest)(nil),                         // 12: naisdevice.GetSerialRequest
+	(*GetSerialResponse)(nil),                        // 13: naisdevice.GetSerialResponse
+	(*ConfigureJITARequest)(nil),                     // 14: naisdevice.ConfigureJITARequest
+	(*LoginRequest)(nil),                             // 15: naisdevice.LoginRequest
+	(*LogoutRequest)(nil),                            // 16: naisdevice.LogoutRequest
+	(*SetAgentConfigurationRequest)(nil),             // 17: naisdevice.SetAgentConfigurationRequest
+	(*SetAgentConfigurationResponse)(nil),            // 18: naisdevice.SetAgentConfigurationResponse
+	(*GetAgentConfigurationRequest)(nil),             // 19: naisdevice.GetAgentConfigurationRequest
+	(*ShowAcceptableUseRequest)(nil),                 // 20: naisdevice.ShowAcceptableUseRequest
+	(*ShowAcceptableUseResponse)(nil),                // 21: naisdevice.ShowAcceptableUseResponse
+	(*ShowJitaRequest)(nil),                          // 22: naisdevice.ShowJitaRequest
+	(*ShowJitaResponse)(nil),                         // 23: naisdevice.ShowJitaResponse
+	(*GetAgentConfigurationResponse)(nil),            // 24: naisdevice.GetAgentConfigurationResponse
+	(*AgentStatusRequest)(nil),                       // 25: naisdevice.AgentStatusRequest
+	(*AgentStatus)(nil),                              // 26: naisdevice.AgentStatus
+	(*Configuration)(nil),                            // 27: naisdevice.Configuration
+	(*ModifyGatewayRequest)(nil),                     // 28: naisdevice.ModifyGatewayRequest
+	(*ModifyGatewayResponse)(nil),                    // 29: naisdevice.ModifyGatewayResponse
+	(*Gateway)(nil),                                  // 30: naisdevice.Gateway
+	(*Error)(nil),                                    // 31: naisdevice.Error
+	(*SetActiveTenantRequest)(nil),                   // 32: naisdevice.SetActiveTenantRequest
+	(*SetActiveTenantResponse)(nil),                  // 33: naisdevice.SetActiveTenantResponse
+	(*Tenant)(nil),                                   // 34: naisdevice.Tenant
+	(*AgentConfiguration)(nil),                       // 35: naisdevice.AgentConfiguration
+	(*GetGatewayConfigurationRequest)(nil),           // 36: naisdevice.GetGatewayConfigurationRequest
+	(*GetGatewayConfigurationResponse)(nil),          // 37: naisdevice.GetGatewayConfigurationResponse
+	(*GetDeviceConfigurationRequest)(nil),            // 38: naisdevice.GetDeviceConfigurationRequest
+	(*APIServerLoginRequest)(nil),                    // 39: naisdevice.APIServerLoginRequest
+	(*APIServerLoginResponse)(nil),                   // 40: naisdevice.APIServerLoginResponse
+	(*GetDeviceConfigurationResponse)(nil),           // 41: naisdevice.GetDeviceConfigurationResponse
+	(*DeviceIssue)(nil),                              // 42: naisdevice.DeviceIssue
+	(*ListGatewayRequest)(nil),                       // 43: naisdevice.ListGatewayRequest
+	(*Device)(nil),                                   // 44: naisdevice.Device
+	(*Session)(nil),                                  // 45: naisdevice.Session
+	(*GetSessionsRequest)(nil),                       // 46: naisdevice.GetSessionsRequest
+	(*GetSessionsResponse)(nil),                      // 47: naisdevice.GetSessionsResponse
+	(*PingRequest)(nil),                              // 48: naisdevice.PingRequest
+	(*PingResponse)(nil),                             // 49: naisdevice.PingResponse
+	(*GetKolideCacheRequest)(nil),                    // 50: naisdevice.GetKolideCacheRequest
+	(*GetKolideCacheResponse)(nil),                   // 51: naisdevice.GetKolideCacheResponse
+	(*GetAcceptableUseAcceptedAtRequest)(nil),        // 52: naisdevice.GetAcceptableUseAcceptedAtRequest
+	(*GetAcceptableUseAcceptedAtResponse)(nil),       // 53: naisdevice.GetAcceptableUseAcceptedAtResponse
+	(*SetAcceptableUseAcceptedRequest)(nil),          // 54: naisdevice.SetAcceptableUseAcceptedRequest
+	(*SetAcceptableUseAcceptedResponse)(nil),         // 55: naisdevice.SetAcceptableUseAcceptedResponse
+	(*GatewayJitaGrant)(nil),                         // 56: naisdevice.GatewayJitaGrant
+	(*GetGatewayJitaGrantsForUserRequest)(nil),       // 57: naisdevice.GetGatewayJitaGrantsForUserRequest
+	(*GetGatewayJitaGrantsForUserResponse)(nil),      // 58: naisdevice.GetGatewayJitaGrantsForUserResponse
+	(*UserHasAccessToPrivilegedGatewayRequest)(nil),  // 59: naisdevice.UserHasAccessToPrivilegedGatewayRequest
+	(*UserHasAccessToPrivilegedGatewayResponse)(nil), // 60: naisdevice.UserHasAccessToPrivilegedGatewayResponse
+	(*NewPrivilegedGatewayAccess)(nil),               // 61: naisdevice.NewPrivilegedGatewayAccess
+	(*GrantPrivilegedGatewayAccessRequest)(nil),      // 62: naisdevice.GrantPrivilegedGatewayAccessRequest
+	(*GrantPrivilegedGatewayAccessResponse)(nil),     // 63: naisdevice.GrantPrivilegedGatewayAccessResponse
+	(*RevokePrivilegedGatewayAccessRequest)(nil),     // 64: naisdevice.RevokePrivilegedGatewayAccessRequest
+	(*RevokePrivilegedGatewayAccessResponse)(nil),    // 65: naisdevice.RevokePrivilegedGatewayAccessResponse
+	(*timestamppb.Timestamp)(nil),                    // 66: google.protobuf.Timestamp
 }
 var file_pkg_pb_protobuf_api_proto_depIdxs = []int32{
 	30, // 0: naisdevice.ConfigureJITARequest.gateway:type_name -> naisdevice.Gateway
 	35, // 1: naisdevice.SetAgentConfigurationRequest.config:type_name -> naisdevice.AgentConfiguration
 	35, // 2: naisdevice.GetAgentConfigurationResponse.config:type_name -> naisdevice.AgentConfiguration
 	0,  // 3: naisdevice.AgentStatus.connectionState:type_name -> naisdevice.AgentState
-	56, // 4: naisdevice.AgentStatus.connectedSince:type_name -> google.protobuf.Timestamp
+	66, // 4: naisdevice.AgentStatus.connectedSince:type_name -> google.protobuf.Timestamp
 	30, // 5: naisdevice.AgentStatus.Gateways:type_name -> naisdevice.Gateway
 	34, // 6: naisdevice.AgentStatus.Tenants:type_name -> naisdevice.Tenant
 	42, // 7: naisdevice.AgentStatus.Issues:type_name -> naisdevice.DeviceIssue
@@ -3141,71 +3695,85 @@ var file_pkg_pb_protobuf_api_proto_depIdxs = []int32{
 	30, // 16: naisdevice.GetDeviceConfigurationResponse.Gateways:type_name -> naisdevice.Gateway
 	42, // 17: naisdevice.GetDeviceConfigurationResponse.issues:type_name -> naisdevice.DeviceIssue
 	3,  // 18: naisdevice.DeviceIssue.severity:type_name -> naisdevice.Severity
-	56, // 19: naisdevice.DeviceIssue.detectedAt:type_name -> google.protobuf.Timestamp
-	56, // 20: naisdevice.DeviceIssue.lastUpdated:type_name -> google.protobuf.Timestamp
-	56, // 21: naisdevice.DeviceIssue.resolveBefore:type_name -> google.protobuf.Timestamp
-	56, // 22: naisdevice.Device.lastUpdated:type_name -> google.protobuf.Timestamp
+	66, // 19: naisdevice.DeviceIssue.detectedAt:type_name -> google.protobuf.Timestamp
+	66, // 20: naisdevice.DeviceIssue.lastUpdated:type_name -> google.protobuf.Timestamp
+	66, // 21: naisdevice.DeviceIssue.resolveBefore:type_name -> google.protobuf.Timestamp
+	66, // 22: naisdevice.Device.lastUpdated:type_name -> google.protobuf.Timestamp
 	42, // 23: naisdevice.Device.issues:type_name -> naisdevice.DeviceIssue
-	56, // 24: naisdevice.Device.lastSeen:type_name -> google.protobuf.Timestamp
-	56, // 25: naisdevice.Session.expiry:type_name -> google.protobuf.Timestamp
+	66, // 24: naisdevice.Device.lastSeen:type_name -> google.protobuf.Timestamp
+	66, // 25: naisdevice.Session.expiry:type_name -> google.protobuf.Timestamp
 	44, // 26: naisdevice.Session.device:type_name -> naisdevice.Device
 	45, // 27: naisdevice.GetSessionsResponse.sessions:type_name -> naisdevice.Session
-	56, // 28: naisdevice.GetAcceptableUseAcceptedAtResponse.acceptedAt:type_name -> google.protobuf.Timestamp
-	27, // 29: naisdevice.DeviceHelper.Configure:input_type -> naisdevice.Configuration
-	4,  // 30: naisdevice.DeviceHelper.Teardown:input_type -> naisdevice.TeardownRequest
-	10, // 31: naisdevice.DeviceHelper.Upgrade:input_type -> naisdevice.UpgradeRequest
-	12, // 32: naisdevice.DeviceHelper.GetSerial:input_type -> naisdevice.GetSerialRequest
-	48, // 33: naisdevice.DeviceHelper.Ping:input_type -> naisdevice.PingRequest
-	25, // 34: naisdevice.DeviceAgent.Status:input_type -> naisdevice.AgentStatusRequest
-	14, // 35: naisdevice.DeviceAgent.ConfigureJITA:input_type -> naisdevice.ConfigureJITARequest
-	15, // 36: naisdevice.DeviceAgent.Login:input_type -> naisdevice.LoginRequest
-	16, // 37: naisdevice.DeviceAgent.Logout:input_type -> naisdevice.LogoutRequest
-	32, // 38: naisdevice.DeviceAgent.SetActiveTenant:input_type -> naisdevice.SetActiveTenantRequest
-	17, // 39: naisdevice.DeviceAgent.SetAgentConfiguration:input_type -> naisdevice.SetAgentConfigurationRequest
-	19, // 40: naisdevice.DeviceAgent.GetAgentConfiguration:input_type -> naisdevice.GetAgentConfigurationRequest
-	20, // 41: naisdevice.DeviceAgent.ShowAcceptableUse:input_type -> naisdevice.ShowAcceptableUseRequest
-	22, // 42: naisdevice.DeviceAgent.ShowJita:input_type -> naisdevice.ShowJitaRequest
-	39, // 43: naisdevice.APIServer.Login:input_type -> naisdevice.APIServerLoginRequest
-	38, // 44: naisdevice.APIServer.GetDeviceConfiguration:input_type -> naisdevice.GetDeviceConfigurationRequest
-	36, // 45: naisdevice.APIServer.GetGatewayConfiguration:input_type -> naisdevice.GetGatewayConfigurationRequest
-	28, // 46: naisdevice.APIServer.GetGateway:input_type -> naisdevice.ModifyGatewayRequest
-	43, // 47: naisdevice.APIServer.ListGateways:input_type -> naisdevice.ListGatewayRequest
-	28, // 48: naisdevice.APIServer.EnrollGateway:input_type -> naisdevice.ModifyGatewayRequest
-	28, // 49: naisdevice.APIServer.UpdateGateway:input_type -> naisdevice.ModifyGatewayRequest
-	46, // 50: naisdevice.APIServer.GetSessions:input_type -> naisdevice.GetSessionsRequest
-	50, // 51: naisdevice.APIServer.GetKolideCache:input_type -> naisdevice.GetKolideCacheRequest
-	52, // 52: naisdevice.APIServer.GetAcceptableUseAcceptedAt:input_type -> naisdevice.GetAcceptableUseAcceptedAtRequest
-	54, // 53: naisdevice.APIServer.SetAcceptableUseAccepted:input_type -> naisdevice.SetAcceptableUseAcceptedRequest
-	6,  // 54: naisdevice.DeviceHelper.Configure:output_type -> naisdevice.ConfigureResponse
-	5,  // 55: naisdevice.DeviceHelper.Teardown:output_type -> naisdevice.TeardownResponse
-	11, // 56: naisdevice.DeviceHelper.Upgrade:output_type -> naisdevice.UpgradeResponse
-	13, // 57: naisdevice.DeviceHelper.GetSerial:output_type -> naisdevice.GetSerialResponse
-	49, // 58: naisdevice.DeviceHelper.Ping:output_type -> naisdevice.PingResponse
-	26, // 59: naisdevice.DeviceAgent.Status:output_type -> naisdevice.AgentStatus
-	7,  // 60: naisdevice.DeviceAgent.ConfigureJITA:output_type -> naisdevice.ConfigureJITAResponse
-	8,  // 61: naisdevice.DeviceAgent.Login:output_type -> naisdevice.LoginResponse
-	9,  // 62: naisdevice.DeviceAgent.Logout:output_type -> naisdevice.LogoutResponse
-	33, // 63: naisdevice.DeviceAgent.SetActiveTenant:output_type -> naisdevice.SetActiveTenantResponse
-	18, // 64: naisdevice.DeviceAgent.SetAgentConfiguration:output_type -> naisdevice.SetAgentConfigurationResponse
-	24, // 65: naisdevice.DeviceAgent.GetAgentConfiguration:output_type -> naisdevice.GetAgentConfigurationResponse
-	21, // 66: naisdevice.DeviceAgent.ShowAcceptableUse:output_type -> naisdevice.ShowAcceptableUseResponse
-	23, // 67: naisdevice.DeviceAgent.ShowJita:output_type -> naisdevice.ShowJitaResponse
-	40, // 68: naisdevice.APIServer.Login:output_type -> naisdevice.APIServerLoginResponse
-	41, // 69: naisdevice.APIServer.GetDeviceConfiguration:output_type -> naisdevice.GetDeviceConfigurationResponse
-	37, // 70: naisdevice.APIServer.GetGatewayConfiguration:output_type -> naisdevice.GetGatewayConfigurationResponse
-	30, // 71: naisdevice.APIServer.GetGateway:output_type -> naisdevice.Gateway
-	30, // 72: naisdevice.APIServer.ListGateways:output_type -> naisdevice.Gateway
-	29, // 73: naisdevice.APIServer.EnrollGateway:output_type -> naisdevice.ModifyGatewayResponse
-	29, // 74: naisdevice.APIServer.UpdateGateway:output_type -> naisdevice.ModifyGatewayResponse
-	47, // 75: naisdevice.APIServer.GetSessions:output_type -> naisdevice.GetSessionsResponse
-	51, // 76: naisdevice.APIServer.GetKolideCache:output_type -> naisdevice.GetKolideCacheResponse
-	53, // 77: naisdevice.APIServer.GetAcceptableUseAcceptedAt:output_type -> naisdevice.GetAcceptableUseAcceptedAtResponse
-	55, // 78: naisdevice.APIServer.SetAcceptableUseAccepted:output_type -> naisdevice.SetAcceptableUseAcceptedResponse
-	54, // [54:79] is the sub-list for method output_type
-	29, // [29:54] is the sub-list for method input_type
-	29, // [29:29] is the sub-list for extension type_name
-	29, // [29:29] is the sub-list for extension extendee
-	0,  // [0:29] is the sub-list for field type_name
+	66, // 28: naisdevice.GetAcceptableUseAcceptedAtResponse.acceptedAt:type_name -> google.protobuf.Timestamp
+	66, // 29: naisdevice.GatewayJitaGrant.created:type_name -> google.protobuf.Timestamp
+	66, // 30: naisdevice.GatewayJitaGrant.expires:type_name -> google.protobuf.Timestamp
+	66, // 31: naisdevice.GatewayJitaGrant.revoked:type_name -> google.protobuf.Timestamp
+	56, // 32: naisdevice.GetGatewayJitaGrantsForUserResponse.gatewayJitaGrants:type_name -> naisdevice.GatewayJitaGrant
+	66, // 33: naisdevice.NewPrivilegedGatewayAccess.expires:type_name -> google.protobuf.Timestamp
+	61, // 34: naisdevice.GrantPrivilegedGatewayAccessRequest.newPrivilegedGatewayAccess:type_name -> naisdevice.NewPrivilegedGatewayAccess
+	27, // 35: naisdevice.DeviceHelper.Configure:input_type -> naisdevice.Configuration
+	4,  // 36: naisdevice.DeviceHelper.Teardown:input_type -> naisdevice.TeardownRequest
+	10, // 37: naisdevice.DeviceHelper.Upgrade:input_type -> naisdevice.UpgradeRequest
+	12, // 38: naisdevice.DeviceHelper.GetSerial:input_type -> naisdevice.GetSerialRequest
+	48, // 39: naisdevice.DeviceHelper.Ping:input_type -> naisdevice.PingRequest
+	25, // 40: naisdevice.DeviceAgent.Status:input_type -> naisdevice.AgentStatusRequest
+	14, // 41: naisdevice.DeviceAgent.ConfigureJITA:input_type -> naisdevice.ConfigureJITARequest
+	15, // 42: naisdevice.DeviceAgent.Login:input_type -> naisdevice.LoginRequest
+	16, // 43: naisdevice.DeviceAgent.Logout:input_type -> naisdevice.LogoutRequest
+	32, // 44: naisdevice.DeviceAgent.SetActiveTenant:input_type -> naisdevice.SetActiveTenantRequest
+	17, // 45: naisdevice.DeviceAgent.SetAgentConfiguration:input_type -> naisdevice.SetAgentConfigurationRequest
+	19, // 46: naisdevice.DeviceAgent.GetAgentConfiguration:input_type -> naisdevice.GetAgentConfigurationRequest
+	20, // 47: naisdevice.DeviceAgent.ShowAcceptableUse:input_type -> naisdevice.ShowAcceptableUseRequest
+	22, // 48: naisdevice.DeviceAgent.ShowJita:input_type -> naisdevice.ShowJitaRequest
+	39, // 49: naisdevice.APIServer.Login:input_type -> naisdevice.APIServerLoginRequest
+	38, // 50: naisdevice.APIServer.GetDeviceConfiguration:input_type -> naisdevice.GetDeviceConfigurationRequest
+	36, // 51: naisdevice.APIServer.GetGatewayConfiguration:input_type -> naisdevice.GetGatewayConfigurationRequest
+	28, // 52: naisdevice.APIServer.GetGateway:input_type -> naisdevice.ModifyGatewayRequest
+	43, // 53: naisdevice.APIServer.ListGateways:input_type -> naisdevice.ListGatewayRequest
+	28, // 54: naisdevice.APIServer.EnrollGateway:input_type -> naisdevice.ModifyGatewayRequest
+	28, // 55: naisdevice.APIServer.UpdateGateway:input_type -> naisdevice.ModifyGatewayRequest
+	46, // 56: naisdevice.APIServer.GetSessions:input_type -> naisdevice.GetSessionsRequest
+	50, // 57: naisdevice.APIServer.GetKolideCache:input_type -> naisdevice.GetKolideCacheRequest
+	52, // 58: naisdevice.APIServer.GetAcceptableUseAcceptedAt:input_type -> naisdevice.GetAcceptableUseAcceptedAtRequest
+	54, // 59: naisdevice.APIServer.SetAcceptableUseAccepted:input_type -> naisdevice.SetAcceptableUseAcceptedRequest
+	57, // 60: naisdevice.APIServer.GetGatewayJitaGrantsForUser:input_type -> naisdevice.GetGatewayJitaGrantsForUserRequest
+	59, // 61: naisdevice.APIServer.UserHasAccessToPrivilegedGateway:input_type -> naisdevice.UserHasAccessToPrivilegedGatewayRequest
+	62, // 62: naisdevice.APIServer.GrantPrivilegedGatewayAccess:input_type -> naisdevice.GrantPrivilegedGatewayAccessRequest
+	64, // 63: naisdevice.APIServer.RevokePrivilegedGatewayAccess:input_type -> naisdevice.RevokePrivilegedGatewayAccessRequest
+	6,  // 64: naisdevice.DeviceHelper.Configure:output_type -> naisdevice.ConfigureResponse
+	5,  // 65: naisdevice.DeviceHelper.Teardown:output_type -> naisdevice.TeardownResponse
+	11, // 66: naisdevice.DeviceHelper.Upgrade:output_type -> naisdevice.UpgradeResponse
+	13, // 67: naisdevice.DeviceHelper.GetSerial:output_type -> naisdevice.GetSerialResponse
+	49, // 68: naisdevice.DeviceHelper.Ping:output_type -> naisdevice.PingResponse
+	26, // 69: naisdevice.DeviceAgent.Status:output_type -> naisdevice.AgentStatus
+	7,  // 70: naisdevice.DeviceAgent.ConfigureJITA:output_type -> naisdevice.ConfigureJITAResponse
+	8,  // 71: naisdevice.DeviceAgent.Login:output_type -> naisdevice.LoginResponse
+	9,  // 72: naisdevice.DeviceAgent.Logout:output_type -> naisdevice.LogoutResponse
+	33, // 73: naisdevice.DeviceAgent.SetActiveTenant:output_type -> naisdevice.SetActiveTenantResponse
+	18, // 74: naisdevice.DeviceAgent.SetAgentConfiguration:output_type -> naisdevice.SetAgentConfigurationResponse
+	24, // 75: naisdevice.DeviceAgent.GetAgentConfiguration:output_type -> naisdevice.GetAgentConfigurationResponse
+	21, // 76: naisdevice.DeviceAgent.ShowAcceptableUse:output_type -> naisdevice.ShowAcceptableUseResponse
+	23, // 77: naisdevice.DeviceAgent.ShowJita:output_type -> naisdevice.ShowJitaResponse
+	40, // 78: naisdevice.APIServer.Login:output_type -> naisdevice.APIServerLoginResponse
+	41, // 79: naisdevice.APIServer.GetDeviceConfiguration:output_type -> naisdevice.GetDeviceConfigurationResponse
+	37, // 80: naisdevice.APIServer.GetGatewayConfiguration:output_type -> naisdevice.GetGatewayConfigurationResponse
+	30, // 81: naisdevice.APIServer.GetGateway:output_type -> naisdevice.Gateway
+	30, // 82: naisdevice.APIServer.ListGateways:output_type -> naisdevice.Gateway
+	29, // 83: naisdevice.APIServer.EnrollGateway:output_type -> naisdevice.ModifyGatewayResponse
+	29, // 84: naisdevice.APIServer.UpdateGateway:output_type -> naisdevice.ModifyGatewayResponse
+	47, // 85: naisdevice.APIServer.GetSessions:output_type -> naisdevice.GetSessionsResponse
+	51, // 86: naisdevice.APIServer.GetKolideCache:output_type -> naisdevice.GetKolideCacheResponse
+	53, // 87: naisdevice.APIServer.GetAcceptableUseAcceptedAt:output_type -> naisdevice.GetAcceptableUseAcceptedAtResponse
+	55, // 88: naisdevice.APIServer.SetAcceptableUseAccepted:output_type -> naisdevice.SetAcceptableUseAcceptedResponse
+	58, // 89: naisdevice.APIServer.GetGatewayJitaGrantsForUser:output_type -> naisdevice.GetGatewayJitaGrantsForUserResponse
+	60, // 90: naisdevice.APIServer.UserHasAccessToPrivilegedGateway:output_type -> naisdevice.UserHasAccessToPrivilegedGatewayResponse
+	63, // 91: naisdevice.APIServer.GrantPrivilegedGatewayAccess:output_type -> naisdevice.GrantPrivilegedGatewayAccessResponse
+	65, // 92: naisdevice.APIServer.RevokePrivilegedGatewayAccess:output_type -> naisdevice.RevokePrivilegedGatewayAccessResponse
+	64, // [64:93] is the sub-list for method output_type
+	35, // [35:64] is the sub-list for method input_type
+	35, // [35:35] is the sub-list for extension type_name
+	35, // [35:35] is the sub-list for extension extendee
+	0,  // [0:35] is the sub-list for field type_name
 }
 
 func init() { file_pkg_pb_protobuf_api_proto_init() }
@@ -3219,7 +3787,7 @@ func file_pkg_pb_protobuf_api_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_pkg_pb_protobuf_api_proto_rawDesc), len(file_pkg_pb_protobuf_api_proto_rawDesc)),
 			NumEnums:      4,
-			NumMessages:   52,
+			NumMessages:   62,
 			NumExtensions: 0,
 			NumServices:   3,
 		},

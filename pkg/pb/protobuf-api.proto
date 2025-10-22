@@ -107,6 +107,18 @@ service APIServer {
 
   rpc SetAcceptableUseAccepted (SetAcceptableUseAcceptedRequest) returns (SetAcceptableUseAcceptedResponse) {
   }
+
+  rpc GetGatewayJitaGrantsForUser (GetGatewayJitaGrantsForUserRequest) returns (GetGatewayJitaGrantsForUserResponse) {
+  }
+
+  rpc UserHasAccessToPrivilegedGateway (UserHasAccessToPrivilegedGatewayRequest) returns (UserHasAccessToPrivilegedGatewayResponse) {
+  }
+
+  rpc GrantPrivilegedGatewayAccess (GrantPrivilegedGatewayAccessRequest) returns (GrantPrivilegedGatewayAccessResponse) {
+  }
+
+  rpc RevokePrivilegedGatewayAccess (RevokePrivilegedGatewayAccessRequest) returns (RevokePrivilegedGatewayAccessResponse) {
+  }
 }
 
 enum AgentState {
@@ -409,3 +421,49 @@ message SetAcceptableUseAcceptedRequest {
 
 message SetAcceptableUseAcceptedResponse {
 }
+
+message GatewayJitaGrant {
+  int64 id = 1;
+  string gateway = 2;
+  google.protobuf.Timestamp created = 3;
+  google.protobuf.Timestamp expires = 4;
+  google.protobuf.Timestamp revoked = 5;
+  string reason = 6;
+}
+
+message GetGatewayJitaGrantsForUserRequest {
+  string sessionKey = 1;
+}
+
+message GetGatewayJitaGrantsForUserResponse {
+  repeated GatewayJitaGrant gatewayJitaGrants = 1;
+}
+
+message UserHasAccessToPrivilegedGatewayRequest {
+  string sessionKey = 1;
+  string gateway = 2;
+}
+
+message UserHasAccessToPrivilegedGatewayResponse {
+  bool hasAccess = 1;
+}
+
+message NewPrivilegedGatewayAccess {
+  string gateway = 1;
+  google.protobuf.Timestamp expires = 2;
+  string reason = 3;
+}
+
+message GrantPrivilegedGatewayAccessRequest {
+  string sessionKey = 1;
+  NewPrivilegedGatewayAccess newPrivilegedGatewayAccess = 2;
+}
+
+message GrantPrivilegedGatewayAccessResponse {}
+
+message RevokePrivilegedGatewayAccessRequest {
+  string sessionKey = 1;
+  string gateway = 2;
+}
+
+message RevokePrivilegedGatewayAccessResponse {}

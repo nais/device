@@ -81,6 +81,9 @@ func Prepare(ctx context.Context, db DBTX) (*Queries, error) {
 	if q.getGatewayByNameStmt, err = db.PrepareContext(ctx, getGatewayByName); err != nil {
 		return nil, fmt.Errorf("error preparing query GetGatewayByName: %w", err)
 	}
+	if q.getGatewayJitaGrantsForUserStmt, err = db.PrepareContext(ctx, getGatewayJitaGrantsForUser); err != nil {
+		return nil, fmt.Errorf("error preparing query GetGatewayJitaGrantsForUser: %w", err)
+	}
 	if q.getGatewayRoutesStmt, err = db.PrepareContext(ctx, getGatewayRoutes); err != nil {
 		return nil, fmt.Errorf("error preparing query GetGatewayRoutes: %w", err)
 	}
@@ -117,11 +120,17 @@ func Prepare(ctx context.Context, db DBTX) (*Queries, error) {
 	if q.getSessionsStmt, err = db.PrepareContext(ctx, getSessions); err != nil {
 		return nil, fmt.Errorf("error preparing query GetSessions: %w", err)
 	}
+	if q.grantPrivilegedGatewayAccessStmt, err = db.PrepareContext(ctx, grantPrivilegedGatewayAccess); err != nil {
+		return nil, fmt.Errorf("error preparing query GrantPrivilegedGatewayAccess: %w", err)
+	}
 	if q.rejectAcceptableUseStmt, err = db.PrepareContext(ctx, rejectAcceptableUse); err != nil {
 		return nil, fmt.Errorf("error preparing query RejectAcceptableUse: %w", err)
 	}
 	if q.removeExpiredSessionsStmt, err = db.PrepareContext(ctx, removeExpiredSessions); err != nil {
 		return nil, fmt.Errorf("error preparing query RemoveExpiredSessions: %w", err)
+	}
+	if q.revokePrivilegedGatewayAccessStmt, err = db.PrepareContext(ctx, revokePrivilegedGatewayAccess); err != nil {
+		return nil, fmt.Errorf("error preparing query RevokePrivilegedGatewayAccess: %w", err)
 	}
 	if q.setKolideCheckStmt, err = db.PrepareContext(ctx, setKolideCheck); err != nil {
 		return nil, fmt.Errorf("error preparing query SetKolideCheck: %w", err)
@@ -140,6 +149,9 @@ func Prepare(ctx context.Context, db DBTX) (*Queries, error) {
 	}
 	if q.updateGatewayDynamicFieldsStmt, err = db.PrepareContext(ctx, updateGatewayDynamicFields); err != nil {
 		return nil, fmt.Errorf("error preparing query UpdateGatewayDynamicFields: %w", err)
+	}
+	if q.userHasAccessToPrivilegedGatewayStmt, err = db.PrepareContext(ctx, userHasAccessToPrivilegedGateway); err != nil {
+		return nil, fmt.Errorf("error preparing query UserHasAccessToPrivilegedGateway: %w", err)
 	}
 	return &q, nil
 }
@@ -241,6 +253,11 @@ func (q *Queries) Close() error {
 			err = fmt.Errorf("error closing getGatewayByNameStmt: %w", cerr)
 		}
 	}
+	if q.getGatewayJitaGrantsForUserStmt != nil {
+		if cerr := q.getGatewayJitaGrantsForUserStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing getGatewayJitaGrantsForUserStmt: %w", cerr)
+		}
+	}
 	if q.getGatewayRoutesStmt != nil {
 		if cerr := q.getGatewayRoutesStmt.Close(); cerr != nil {
 			err = fmt.Errorf("error closing getGatewayRoutesStmt: %w", cerr)
@@ -301,6 +318,11 @@ func (q *Queries) Close() error {
 			err = fmt.Errorf("error closing getSessionsStmt: %w", cerr)
 		}
 	}
+	if q.grantPrivilegedGatewayAccessStmt != nil {
+		if cerr := q.grantPrivilegedGatewayAccessStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing grantPrivilegedGatewayAccessStmt: %w", cerr)
+		}
+	}
 	if q.rejectAcceptableUseStmt != nil {
 		if cerr := q.rejectAcceptableUseStmt.Close(); cerr != nil {
 			err = fmt.Errorf("error closing rejectAcceptableUseStmt: %w", cerr)
@@ -309,6 +331,11 @@ func (q *Queries) Close() error {
 	if q.removeExpiredSessionsStmt != nil {
 		if cerr := q.removeExpiredSessionsStmt.Close(); cerr != nil {
 			err = fmt.Errorf("error closing removeExpiredSessionsStmt: %w", cerr)
+		}
+	}
+	if q.revokePrivilegedGatewayAccessStmt != nil {
+		if cerr := q.revokePrivilegedGatewayAccessStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing revokePrivilegedGatewayAccessStmt: %w", cerr)
 		}
 	}
 	if q.setKolideCheckStmt != nil {
@@ -339,6 +366,11 @@ func (q *Queries) Close() error {
 	if q.updateGatewayDynamicFieldsStmt != nil {
 		if cerr := q.updateGatewayDynamicFieldsStmt.Close(); cerr != nil {
 			err = fmt.Errorf("error closing updateGatewayDynamicFieldsStmt: %w", cerr)
+		}
+	}
+	if q.userHasAccessToPrivilegedGatewayStmt != nil {
+		if cerr := q.userHasAccessToPrivilegedGatewayStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing userHasAccessToPrivilegedGatewayStmt: %w", cerr)
 		}
 	}
 	return err
@@ -378,91 +410,99 @@ func (q *Queries) queryRow(ctx context.Context, stmt *sql.Stmt, query string, ar
 }
 
 type Queries struct {
-	db                               DBTX
-	tx                               *sql.Tx
-	acceptAcceptableUseStmt          *sql.Stmt
-	addDeviceStmt                    *sql.Stmt
-	addGatewayStmt                   *sql.Stmt
-	addGatewayAccessGroupIDStmt      *sql.Stmt
-	addGatewayRouteStmt              *sql.Stmt
-	addSessionStmt                   *sql.Stmt
-	addSessionAccessGroupIDStmt      *sql.Stmt
-	deleteGatewayAccessGroupIDsStmt  *sql.Stmt
-	deleteGatewayRoutesStmt          *sql.Stmt
-	deleteKolideIssuesForDeviceStmt  *sql.Stmt
-	getAcceptanceStmt                *sql.Stmt
-	getAcceptancesStmt               *sql.Stmt
-	getDeviceByExternalIDStmt        *sql.Stmt
-	getDeviceByIDStmt                *sql.Stmt
-	getDeviceByPublicKeyStmt         *sql.Stmt
-	getDeviceBySerialAndPlatformStmt *sql.Stmt
-	getDevicesStmt                   *sql.Stmt
-	getGatewayAccessGroupIDsStmt     *sql.Stmt
-	getGatewayByNameStmt             *sql.Stmt
-	getGatewayRoutesStmt             *sql.Stmt
-	getGatewaysStmt                  *sql.Stmt
-	getKolideCheckStmt               *sql.Stmt
-	getKolideChecksStmt              *sql.Stmt
-	getKolideIssuesStmt              *sql.Stmt
-	getKolideIssuesForDeviceStmt     *sql.Stmt
-	getLastUsedIPV6Stmt              *sql.Stmt
-	getMostRecentDeviceSessionStmt   *sql.Stmt
-	getPeersStmt                     *sql.Stmt
-	getSessionByKeyStmt              *sql.Stmt
-	getSessionGroupIDsStmt           *sql.Stmt
-	getSessionsStmt                  *sql.Stmt
-	rejectAcceptableUseStmt          *sql.Stmt
-	removeExpiredSessionsStmt        *sql.Stmt
-	setKolideCheckStmt               *sql.Stmt
-	setKolideIssueStmt               *sql.Stmt
-	truncateKolideIssuesStmt         *sql.Stmt
-	updateDeviceStmt                 *sql.Stmt
-	updateGatewayStmt                *sql.Stmt
-	updateGatewayDynamicFieldsStmt   *sql.Stmt
+	db                                   DBTX
+	tx                                   *sql.Tx
+	acceptAcceptableUseStmt              *sql.Stmt
+	addDeviceStmt                        *sql.Stmt
+	addGatewayStmt                       *sql.Stmt
+	addGatewayAccessGroupIDStmt          *sql.Stmt
+	addGatewayRouteStmt                  *sql.Stmt
+	addSessionStmt                       *sql.Stmt
+	addSessionAccessGroupIDStmt          *sql.Stmt
+	deleteGatewayAccessGroupIDsStmt      *sql.Stmt
+	deleteGatewayRoutesStmt              *sql.Stmt
+	deleteKolideIssuesForDeviceStmt      *sql.Stmt
+	getAcceptanceStmt                    *sql.Stmt
+	getAcceptancesStmt                   *sql.Stmt
+	getDeviceByExternalIDStmt            *sql.Stmt
+	getDeviceByIDStmt                    *sql.Stmt
+	getDeviceByPublicKeyStmt             *sql.Stmt
+	getDeviceBySerialAndPlatformStmt     *sql.Stmt
+	getDevicesStmt                       *sql.Stmt
+	getGatewayAccessGroupIDsStmt         *sql.Stmt
+	getGatewayByNameStmt                 *sql.Stmt
+	getGatewayJitaGrantsForUserStmt      *sql.Stmt
+	getGatewayRoutesStmt                 *sql.Stmt
+	getGatewaysStmt                      *sql.Stmt
+	getKolideCheckStmt                   *sql.Stmt
+	getKolideChecksStmt                  *sql.Stmt
+	getKolideIssuesStmt                  *sql.Stmt
+	getKolideIssuesForDeviceStmt         *sql.Stmt
+	getLastUsedIPV6Stmt                  *sql.Stmt
+	getMostRecentDeviceSessionStmt       *sql.Stmt
+	getPeersStmt                         *sql.Stmt
+	getSessionByKeyStmt                  *sql.Stmt
+	getSessionGroupIDsStmt               *sql.Stmt
+	getSessionsStmt                      *sql.Stmt
+	grantPrivilegedGatewayAccessStmt     *sql.Stmt
+	rejectAcceptableUseStmt              *sql.Stmt
+	removeExpiredSessionsStmt            *sql.Stmt
+	revokePrivilegedGatewayAccessStmt    *sql.Stmt
+	setKolideCheckStmt                   *sql.Stmt
+	setKolideIssueStmt                   *sql.Stmt
+	truncateKolideIssuesStmt             *sql.Stmt
+	updateDeviceStmt                     *sql.Stmt
+	updateGatewayStmt                    *sql.Stmt
+	updateGatewayDynamicFieldsStmt       *sql.Stmt
+	userHasAccessToPrivilegedGatewayStmt *sql.Stmt
 }
 
 func (q *Queries) WithTx(tx *sql.Tx) *Queries {
 	return &Queries{
-		db:                               tx,
-		tx:                               tx,
-		acceptAcceptableUseStmt:          q.acceptAcceptableUseStmt,
-		addDeviceStmt:                    q.addDeviceStmt,
-		addGatewayStmt:                   q.addGatewayStmt,
-		addGatewayAccessGroupIDStmt:      q.addGatewayAccessGroupIDStmt,
-		addGatewayRouteStmt:              q.addGatewayRouteStmt,
-		addSessionStmt:                   q.addSessionStmt,
-		addSessionAccessGroupIDStmt:      q.addSessionAccessGroupIDStmt,
-		deleteGatewayAccessGroupIDsStmt:  q.deleteGatewayAccessGroupIDsStmt,
-		deleteGatewayRoutesStmt:          q.deleteGatewayRoutesStmt,
-		deleteKolideIssuesForDeviceStmt:  q.deleteKolideIssuesForDeviceStmt,
-		getAcceptanceStmt:                q.getAcceptanceStmt,
-		getAcceptancesStmt:               q.getAcceptancesStmt,
-		getDeviceByExternalIDStmt:        q.getDeviceByExternalIDStmt,
-		getDeviceByIDStmt:                q.getDeviceByIDStmt,
-		getDeviceByPublicKeyStmt:         q.getDeviceByPublicKeyStmt,
-		getDeviceBySerialAndPlatformStmt: q.getDeviceBySerialAndPlatformStmt,
-		getDevicesStmt:                   q.getDevicesStmt,
-		getGatewayAccessGroupIDsStmt:     q.getGatewayAccessGroupIDsStmt,
-		getGatewayByNameStmt:             q.getGatewayByNameStmt,
-		getGatewayRoutesStmt:             q.getGatewayRoutesStmt,
-		getGatewaysStmt:                  q.getGatewaysStmt,
-		getKolideCheckStmt:               q.getKolideCheckStmt,
-		getKolideChecksStmt:              q.getKolideChecksStmt,
-		getKolideIssuesStmt:              q.getKolideIssuesStmt,
-		getKolideIssuesForDeviceStmt:     q.getKolideIssuesForDeviceStmt,
-		getLastUsedIPV6Stmt:              q.getLastUsedIPV6Stmt,
-		getMostRecentDeviceSessionStmt:   q.getMostRecentDeviceSessionStmt,
-		getPeersStmt:                     q.getPeersStmt,
-		getSessionByKeyStmt:              q.getSessionByKeyStmt,
-		getSessionGroupIDsStmt:           q.getSessionGroupIDsStmt,
-		getSessionsStmt:                  q.getSessionsStmt,
-		rejectAcceptableUseStmt:          q.rejectAcceptableUseStmt,
-		removeExpiredSessionsStmt:        q.removeExpiredSessionsStmt,
-		setKolideCheckStmt:               q.setKolideCheckStmt,
-		setKolideIssueStmt:               q.setKolideIssueStmt,
-		truncateKolideIssuesStmt:         q.truncateKolideIssuesStmt,
-		updateDeviceStmt:                 q.updateDeviceStmt,
-		updateGatewayStmt:                q.updateGatewayStmt,
-		updateGatewayDynamicFieldsStmt:   q.updateGatewayDynamicFieldsStmt,
+		db:                                   tx,
+		tx:                                   tx,
+		acceptAcceptableUseStmt:              q.acceptAcceptableUseStmt,
+		addDeviceStmt:                        q.addDeviceStmt,
+		addGatewayStmt:                       q.addGatewayStmt,
+		addGatewayAccessGroupIDStmt:          q.addGatewayAccessGroupIDStmt,
+		addGatewayRouteStmt:                  q.addGatewayRouteStmt,
+		addSessionStmt:                       q.addSessionStmt,
+		addSessionAccessGroupIDStmt:          q.addSessionAccessGroupIDStmt,
+		deleteGatewayAccessGroupIDsStmt:      q.deleteGatewayAccessGroupIDsStmt,
+		deleteGatewayRoutesStmt:              q.deleteGatewayRoutesStmt,
+		deleteKolideIssuesForDeviceStmt:      q.deleteKolideIssuesForDeviceStmt,
+		getAcceptanceStmt:                    q.getAcceptanceStmt,
+		getAcceptancesStmt:                   q.getAcceptancesStmt,
+		getDeviceByExternalIDStmt:            q.getDeviceByExternalIDStmt,
+		getDeviceByIDStmt:                    q.getDeviceByIDStmt,
+		getDeviceByPublicKeyStmt:             q.getDeviceByPublicKeyStmt,
+		getDeviceBySerialAndPlatformStmt:     q.getDeviceBySerialAndPlatformStmt,
+		getDevicesStmt:                       q.getDevicesStmt,
+		getGatewayAccessGroupIDsStmt:         q.getGatewayAccessGroupIDsStmt,
+		getGatewayByNameStmt:                 q.getGatewayByNameStmt,
+		getGatewayJitaGrantsForUserStmt:      q.getGatewayJitaGrantsForUserStmt,
+		getGatewayRoutesStmt:                 q.getGatewayRoutesStmt,
+		getGatewaysStmt:                      q.getGatewaysStmt,
+		getKolideCheckStmt:                   q.getKolideCheckStmt,
+		getKolideChecksStmt:                  q.getKolideChecksStmt,
+		getKolideIssuesStmt:                  q.getKolideIssuesStmt,
+		getKolideIssuesForDeviceStmt:         q.getKolideIssuesForDeviceStmt,
+		getLastUsedIPV6Stmt:                  q.getLastUsedIPV6Stmt,
+		getMostRecentDeviceSessionStmt:       q.getMostRecentDeviceSessionStmt,
+		getPeersStmt:                         q.getPeersStmt,
+		getSessionByKeyStmt:                  q.getSessionByKeyStmt,
+		getSessionGroupIDsStmt:               q.getSessionGroupIDsStmt,
+		getSessionsStmt:                      q.getSessionsStmt,
+		grantPrivilegedGatewayAccessStmt:     q.grantPrivilegedGatewayAccessStmt,
+		rejectAcceptableUseStmt:              q.rejectAcceptableUseStmt,
+		removeExpiredSessionsStmt:            q.removeExpiredSessionsStmt,
+		revokePrivilegedGatewayAccessStmt:    q.revokePrivilegedGatewayAccessStmt,
+		setKolideCheckStmt:                   q.setKolideCheckStmt,
+		setKolideIssueStmt:                   q.setKolideIssueStmt,
+		truncateKolideIssuesStmt:             q.truncateKolideIssuesStmt,
+		updateDeviceStmt:                     q.updateDeviceStmt,
+		updateGatewayStmt:                    q.updateGatewayStmt,
+		updateGatewayDynamicFieldsStmt:       q.updateGatewayDynamicFieldsStmt,
+		userHasAccessToPrivilegedGatewayStmt: q.userHasAccessToPrivilegedGatewayStmt,
 	}
 }

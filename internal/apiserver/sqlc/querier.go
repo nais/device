@@ -29,6 +29,7 @@ type Querier interface {
 	GetDevices(ctx context.Context) ([]*Device, error)
 	GetGatewayAccessGroupIDs(ctx context.Context, gatewayName string) ([]string, error)
 	GetGatewayByName(ctx context.Context, name string) (*Gateway, error)
+	GetGatewayJitaGrantsForUser(ctx context.Context, userID string) ([]*GatewayJitaGrant, error)
 	GetGatewayRoutes(ctx context.Context, gatewayName string) ([]*GetGatewayRoutesRow, error)
 	GetGateways(ctx context.Context) ([]*Gateway, error)
 	GetKolideCheck(ctx context.Context, id int64) (*KolideCheck, error)
@@ -41,14 +42,17 @@ type Querier interface {
 	GetSessionByKey(ctx context.Context, sessionKey string) (*GetSessionByKeyRow, error)
 	GetSessionGroupIDs(ctx context.Context, sessionKey string) ([]string, error)
 	GetSessions(ctx context.Context) ([]*GetSessionsRow, error)
+	GrantPrivilegedGatewayAccess(ctx context.Context, arg GrantPrivilegedGatewayAccessParams) error
 	RejectAcceptableUse(ctx context.Context, userID string) error
 	RemoveExpiredSessions(ctx context.Context) error
+	RevokePrivilegedGatewayAccess(ctx context.Context, arg RevokePrivilegedGatewayAccessParams) error
 	SetKolideCheck(ctx context.Context, arg SetKolideCheckParams) error
 	SetKolideIssue(ctx context.Context, arg SetKolideIssueParams) error
 	TruncateKolideIssues(ctx context.Context) error
 	UpdateDevice(ctx context.Context, arg UpdateDeviceParams) error
 	UpdateGateway(ctx context.Context, arg UpdateGatewayParams) error
 	UpdateGatewayDynamicFields(ctx context.Context, arg UpdateGatewayDynamicFieldsParams) error
+	UserHasAccessToPrivilegedGateway(ctx context.Context, arg UserHasAccessToPrivilegedGatewayParams) (int64, error)
 }
 
 var _ Querier = (*Queries)(nil)

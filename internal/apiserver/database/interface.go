@@ -38,4 +38,8 @@ type Database interface {
 	RejectAcceptableUse(ctx context.Context, userID string) error
 	GetAcceptances(ctx context.Context) (map[string]struct{}, error)
 	GetAcceptedAt(ctx context.Context, userID string) (*timestamppb.Timestamp, error)
+	GetGatewayJitaGrantsForUser(ctx context.Context, userID string) ([]*pb.GatewayJitaGrant, error)
+	UserHasAccessToPrivilegedGateway(ctx context.Context, userID, gatewayName string) (bool, error)
+	GrantPrivilegedGatewayAccess(ctx context.Context, userID, gatewayName string, expires time.Time, reason string) error
+	RevokePrivilegedGatewayAccess(ctx context.Context, userID, gatewayName string) error
 }

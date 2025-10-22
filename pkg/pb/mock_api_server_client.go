@@ -473,6 +473,93 @@ func (_c *MockAPIServerClient_GetGatewayConfiguration_Call) RunAndReturn(run fun
 	return _c
 }
 
+// GetGatewayJitaGrantsForUser provides a mock function for the type MockAPIServerClient
+func (_mock *MockAPIServerClient) GetGatewayJitaGrantsForUser(ctx context.Context, in *GetGatewayJitaGrantsForUserRequest, opts ...grpc.CallOption) (*GetGatewayJitaGrantsForUserResponse, error) {
+	// grpc.CallOption
+	_va := make([]interface{}, len(opts))
+	for _i := range opts {
+		_va[_i] = opts[_i]
+	}
+	var _ca []interface{}
+	_ca = append(_ca, ctx, in)
+	_ca = append(_ca, _va...)
+	ret := _mock.Called(_ca...)
+
+	if len(ret) == 0 {
+		panic("no return value specified for GetGatewayJitaGrantsForUser")
+	}
+
+	var r0 *GetGatewayJitaGrantsForUserResponse
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, *GetGatewayJitaGrantsForUserRequest, ...grpc.CallOption) (*GetGatewayJitaGrantsForUserResponse, error)); ok {
+		return returnFunc(ctx, in, opts...)
+	}
+	if returnFunc, ok := ret.Get(0).(func(context.Context, *GetGatewayJitaGrantsForUserRequest, ...grpc.CallOption) *GetGatewayJitaGrantsForUserResponse); ok {
+		r0 = returnFunc(ctx, in, opts...)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*GetGatewayJitaGrantsForUserResponse)
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func(context.Context, *GetGatewayJitaGrantsForUserRequest, ...grpc.CallOption) error); ok {
+		r1 = returnFunc(ctx, in, opts...)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// MockAPIServerClient_GetGatewayJitaGrantsForUser_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetGatewayJitaGrantsForUser'
+type MockAPIServerClient_GetGatewayJitaGrantsForUser_Call struct {
+	*mock.Call
+}
+
+// GetGatewayJitaGrantsForUser is a helper method to define mock.On call
+//   - ctx context.Context
+//   - in *GetGatewayJitaGrantsForUserRequest
+//   - opts ...grpc.CallOption
+func (_e *MockAPIServerClient_Expecter) GetGatewayJitaGrantsForUser(ctx interface{}, in interface{}, opts ...interface{}) *MockAPIServerClient_GetGatewayJitaGrantsForUser_Call {
+	return &MockAPIServerClient_GetGatewayJitaGrantsForUser_Call{Call: _e.mock.On("GetGatewayJitaGrantsForUser",
+		append([]interface{}{ctx, in}, opts...)...)}
+}
+
+func (_c *MockAPIServerClient_GetGatewayJitaGrantsForUser_Call) Run(run func(ctx context.Context, in *GetGatewayJitaGrantsForUserRequest, opts ...grpc.CallOption)) *MockAPIServerClient_GetGatewayJitaGrantsForUser_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 *GetGatewayJitaGrantsForUserRequest
+		if args[1] != nil {
+			arg1 = args[1].(*GetGatewayJitaGrantsForUserRequest)
+		}
+		var arg2 []grpc.CallOption
+		variadicArgs := make([]grpc.CallOption, len(args)-2)
+		for i, a := range args[2:] {
+			if a != nil {
+				variadicArgs[i] = a.(grpc.CallOption)
+			}
+		}
+		arg2 = variadicArgs
+		run(
+			arg0,
+			arg1,
+			arg2...,
+		)
+	})
+	return _c
+}
+
+func (_c *MockAPIServerClient_GetGatewayJitaGrantsForUser_Call) Return(getGatewayJitaGrantsForUserResponse *GetGatewayJitaGrantsForUserResponse, err error) *MockAPIServerClient_GetGatewayJitaGrantsForUser_Call {
+	_c.Call.Return(getGatewayJitaGrantsForUserResponse, err)
+	return _c
+}
+
+func (_c *MockAPIServerClient_GetGatewayJitaGrantsForUser_Call) RunAndReturn(run func(ctx context.Context, in *GetGatewayJitaGrantsForUserRequest, opts ...grpc.CallOption) (*GetGatewayJitaGrantsForUserResponse, error)) *MockAPIServerClient_GetGatewayJitaGrantsForUser_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // GetKolideCache provides a mock function for the type MockAPIServerClient
 func (_mock *MockAPIServerClient) GetKolideCache(ctx context.Context, in *GetKolideCacheRequest, opts ...grpc.CallOption) (*GetKolideCacheResponse, error) {
 	// grpc.CallOption
@@ -643,6 +730,93 @@ func (_c *MockAPIServerClient_GetSessions_Call) Return(getSessionsResponse *GetS
 }
 
 func (_c *MockAPIServerClient_GetSessions_Call) RunAndReturn(run func(ctx context.Context, in *GetSessionsRequest, opts ...grpc.CallOption) (*GetSessionsResponse, error)) *MockAPIServerClient_GetSessions_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// GrantPrivilegedGatewayAccess provides a mock function for the type MockAPIServerClient
+func (_mock *MockAPIServerClient) GrantPrivilegedGatewayAccess(ctx context.Context, in *GrantPrivilegedGatewayAccessRequest, opts ...grpc.CallOption) (*GrantPrivilegedGatewayAccessResponse, error) {
+	// grpc.CallOption
+	_va := make([]interface{}, len(opts))
+	for _i := range opts {
+		_va[_i] = opts[_i]
+	}
+	var _ca []interface{}
+	_ca = append(_ca, ctx, in)
+	_ca = append(_ca, _va...)
+	ret := _mock.Called(_ca...)
+
+	if len(ret) == 0 {
+		panic("no return value specified for GrantPrivilegedGatewayAccess")
+	}
+
+	var r0 *GrantPrivilegedGatewayAccessResponse
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, *GrantPrivilegedGatewayAccessRequest, ...grpc.CallOption) (*GrantPrivilegedGatewayAccessResponse, error)); ok {
+		return returnFunc(ctx, in, opts...)
+	}
+	if returnFunc, ok := ret.Get(0).(func(context.Context, *GrantPrivilegedGatewayAccessRequest, ...grpc.CallOption) *GrantPrivilegedGatewayAccessResponse); ok {
+		r0 = returnFunc(ctx, in, opts...)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*GrantPrivilegedGatewayAccessResponse)
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func(context.Context, *GrantPrivilegedGatewayAccessRequest, ...grpc.CallOption) error); ok {
+		r1 = returnFunc(ctx, in, opts...)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// MockAPIServerClient_GrantPrivilegedGatewayAccess_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GrantPrivilegedGatewayAccess'
+type MockAPIServerClient_GrantPrivilegedGatewayAccess_Call struct {
+	*mock.Call
+}
+
+// GrantPrivilegedGatewayAccess is a helper method to define mock.On call
+//   - ctx context.Context
+//   - in *GrantPrivilegedGatewayAccessRequest
+//   - opts ...grpc.CallOption
+func (_e *MockAPIServerClient_Expecter) GrantPrivilegedGatewayAccess(ctx interface{}, in interface{}, opts ...interface{}) *MockAPIServerClient_GrantPrivilegedGatewayAccess_Call {
+	return &MockAPIServerClient_GrantPrivilegedGatewayAccess_Call{Call: _e.mock.On("GrantPrivilegedGatewayAccess",
+		append([]interface{}{ctx, in}, opts...)...)}
+}
+
+func (_c *MockAPIServerClient_GrantPrivilegedGatewayAccess_Call) Run(run func(ctx context.Context, in *GrantPrivilegedGatewayAccessRequest, opts ...grpc.CallOption)) *MockAPIServerClient_GrantPrivilegedGatewayAccess_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 *GrantPrivilegedGatewayAccessRequest
+		if args[1] != nil {
+			arg1 = args[1].(*GrantPrivilegedGatewayAccessRequest)
+		}
+		var arg2 []grpc.CallOption
+		variadicArgs := make([]grpc.CallOption, len(args)-2)
+		for i, a := range args[2:] {
+			if a != nil {
+				variadicArgs[i] = a.(grpc.CallOption)
+			}
+		}
+		arg2 = variadicArgs
+		run(
+			arg0,
+			arg1,
+			arg2...,
+		)
+	})
+	return _c
+}
+
+func (_c *MockAPIServerClient_GrantPrivilegedGatewayAccess_Call) Return(grantPrivilegedGatewayAccessResponse *GrantPrivilegedGatewayAccessResponse, err error) *MockAPIServerClient_GrantPrivilegedGatewayAccess_Call {
+	_c.Call.Return(grantPrivilegedGatewayAccessResponse, err)
+	return _c
+}
+
+func (_c *MockAPIServerClient_GrantPrivilegedGatewayAccess_Call) RunAndReturn(run func(ctx context.Context, in *GrantPrivilegedGatewayAccessRequest, opts ...grpc.CallOption) (*GrantPrivilegedGatewayAccessResponse, error)) *MockAPIServerClient_GrantPrivilegedGatewayAccess_Call {
 	_c.Call.Return(run)
 	return _c
 }
@@ -821,6 +995,93 @@ func (_c *MockAPIServerClient_Login_Call) RunAndReturn(run func(ctx context.Cont
 	return _c
 }
 
+// RevokePrivilegedGatewayAccess provides a mock function for the type MockAPIServerClient
+func (_mock *MockAPIServerClient) RevokePrivilegedGatewayAccess(ctx context.Context, in *RevokePrivilegedGatewayAccessRequest, opts ...grpc.CallOption) (*RevokePrivilegedGatewayAccessResponse, error) {
+	// grpc.CallOption
+	_va := make([]interface{}, len(opts))
+	for _i := range opts {
+		_va[_i] = opts[_i]
+	}
+	var _ca []interface{}
+	_ca = append(_ca, ctx, in)
+	_ca = append(_ca, _va...)
+	ret := _mock.Called(_ca...)
+
+	if len(ret) == 0 {
+		panic("no return value specified for RevokePrivilegedGatewayAccess")
+	}
+
+	var r0 *RevokePrivilegedGatewayAccessResponse
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, *RevokePrivilegedGatewayAccessRequest, ...grpc.CallOption) (*RevokePrivilegedGatewayAccessResponse, error)); ok {
+		return returnFunc(ctx, in, opts...)
+	}
+	if returnFunc, ok := ret.Get(0).(func(context.Context, *RevokePrivilegedGatewayAccessRequest, ...grpc.CallOption) *RevokePrivilegedGatewayAccessResponse); ok {
+		r0 = returnFunc(ctx, in, opts...)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*RevokePrivilegedGatewayAccessResponse)
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func(context.Context, *RevokePrivilegedGatewayAccessRequest, ...grpc.CallOption) error); ok {
+		r1 = returnFunc(ctx, in, opts...)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// MockAPIServerClient_RevokePrivilegedGatewayAccess_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'RevokePrivilegedGatewayAccess'
+type MockAPIServerClient_RevokePrivilegedGatewayAccess_Call struct {
+	*mock.Call
+}
+
+// RevokePrivilegedGatewayAccess is a helper method to define mock.On call
+//   - ctx context.Context
+//   - in *RevokePrivilegedGatewayAccessRequest
+//   - opts ...grpc.CallOption
+func (_e *MockAPIServerClient_Expecter) RevokePrivilegedGatewayAccess(ctx interface{}, in interface{}, opts ...interface{}) *MockAPIServerClient_RevokePrivilegedGatewayAccess_Call {
+	return &MockAPIServerClient_RevokePrivilegedGatewayAccess_Call{Call: _e.mock.On("RevokePrivilegedGatewayAccess",
+		append([]interface{}{ctx, in}, opts...)...)}
+}
+
+func (_c *MockAPIServerClient_RevokePrivilegedGatewayAccess_Call) Run(run func(ctx context.Context, in *RevokePrivilegedGatewayAccessRequest, opts ...grpc.CallOption)) *MockAPIServerClient_RevokePrivilegedGatewayAccess_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 *RevokePrivilegedGatewayAccessRequest
+		if args[1] != nil {
+			arg1 = args[1].(*RevokePrivilegedGatewayAccessRequest)
+		}
+		var arg2 []grpc.CallOption
+		variadicArgs := make([]grpc.CallOption, len(args)-2)
+		for i, a := range args[2:] {
+			if a != nil {
+				variadicArgs[i] = a.(grpc.CallOption)
+			}
+		}
+		arg2 = variadicArgs
+		run(
+			arg0,
+			arg1,
+			arg2...,
+		)
+	})
+	return _c
+}
+
+func (_c *MockAPIServerClient_RevokePrivilegedGatewayAccess_Call) Return(revokePrivilegedGatewayAccessResponse *RevokePrivilegedGatewayAccessResponse, err error) *MockAPIServerClient_RevokePrivilegedGatewayAccess_Call {
+	_c.Call.Return(revokePrivilegedGatewayAccessResponse, err)
+	return _c
+}
+
+func (_c *MockAPIServerClient_RevokePrivilegedGatewayAccess_Call) RunAndReturn(run func(ctx context.Context, in *RevokePrivilegedGatewayAccessRequest, opts ...grpc.CallOption) (*RevokePrivilegedGatewayAccessResponse, error)) *MockAPIServerClient_RevokePrivilegedGatewayAccess_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // SetAcceptableUseAccepted provides a mock function for the type MockAPIServerClient
 func (_mock *MockAPIServerClient) SetAcceptableUseAccepted(ctx context.Context, in *SetAcceptableUseAcceptedRequest, opts ...grpc.CallOption) (*SetAcceptableUseAcceptedResponse, error) {
 	// grpc.CallOption
@@ -991,6 +1252,93 @@ func (_c *MockAPIServerClient_UpdateGateway_Call) Return(modifyGatewayResponse *
 }
 
 func (_c *MockAPIServerClient_UpdateGateway_Call) RunAndReturn(run func(ctx context.Context, in *ModifyGatewayRequest, opts ...grpc.CallOption) (*ModifyGatewayResponse, error)) *MockAPIServerClient_UpdateGateway_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// UserHasAccessToPrivilegedGateway provides a mock function for the type MockAPIServerClient
+func (_mock *MockAPIServerClient) UserHasAccessToPrivilegedGateway(ctx context.Context, in *UserHasAccessToPrivilegedGatewayRequest, opts ...grpc.CallOption) (*UserHasAccessToPrivilegedGatewayResponse, error) {
+	// grpc.CallOption
+	_va := make([]interface{}, len(opts))
+	for _i := range opts {
+		_va[_i] = opts[_i]
+	}
+	var _ca []interface{}
+	_ca = append(_ca, ctx, in)
+	_ca = append(_ca, _va...)
+	ret := _mock.Called(_ca...)
+
+	if len(ret) == 0 {
+		panic("no return value specified for UserHasAccessToPrivilegedGateway")
+	}
+
+	var r0 *UserHasAccessToPrivilegedGatewayResponse
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, *UserHasAccessToPrivilegedGatewayRequest, ...grpc.CallOption) (*UserHasAccessToPrivilegedGatewayResponse, error)); ok {
+		return returnFunc(ctx, in, opts...)
+	}
+	if returnFunc, ok := ret.Get(0).(func(context.Context, *UserHasAccessToPrivilegedGatewayRequest, ...grpc.CallOption) *UserHasAccessToPrivilegedGatewayResponse); ok {
+		r0 = returnFunc(ctx, in, opts...)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*UserHasAccessToPrivilegedGatewayResponse)
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func(context.Context, *UserHasAccessToPrivilegedGatewayRequest, ...grpc.CallOption) error); ok {
+		r1 = returnFunc(ctx, in, opts...)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// MockAPIServerClient_UserHasAccessToPrivilegedGateway_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'UserHasAccessToPrivilegedGateway'
+type MockAPIServerClient_UserHasAccessToPrivilegedGateway_Call struct {
+	*mock.Call
+}
+
+// UserHasAccessToPrivilegedGateway is a helper method to define mock.On call
+//   - ctx context.Context
+//   - in *UserHasAccessToPrivilegedGatewayRequest
+//   - opts ...grpc.CallOption
+func (_e *MockAPIServerClient_Expecter) UserHasAccessToPrivilegedGateway(ctx interface{}, in interface{}, opts ...interface{}) *MockAPIServerClient_UserHasAccessToPrivilegedGateway_Call {
+	return &MockAPIServerClient_UserHasAccessToPrivilegedGateway_Call{Call: _e.mock.On("UserHasAccessToPrivilegedGateway",
+		append([]interface{}{ctx, in}, opts...)...)}
+}
+
+func (_c *MockAPIServerClient_UserHasAccessToPrivilegedGateway_Call) Run(run func(ctx context.Context, in *UserHasAccessToPrivilegedGatewayRequest, opts ...grpc.CallOption)) *MockAPIServerClient_UserHasAccessToPrivilegedGateway_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 *UserHasAccessToPrivilegedGatewayRequest
+		if args[1] != nil {
+			arg1 = args[1].(*UserHasAccessToPrivilegedGatewayRequest)
+		}
+		var arg2 []grpc.CallOption
+		variadicArgs := make([]grpc.CallOption, len(args)-2)
+		for i, a := range args[2:] {
+			if a != nil {
+				variadicArgs[i] = a.(grpc.CallOption)
+			}
+		}
+		arg2 = variadicArgs
+		run(
+			arg0,
+			arg1,
+			arg2...,
+		)
+	})
+	return _c
+}
+
+func (_c *MockAPIServerClient_UserHasAccessToPrivilegedGateway_Call) Return(userHasAccessToPrivilegedGatewayResponse *UserHasAccessToPrivilegedGatewayResponse, err error) *MockAPIServerClient_UserHasAccessToPrivilegedGateway_Call {
+	_c.Call.Return(userHasAccessToPrivilegedGatewayResponse, err)
+	return _c
+}
+
+func (_c *MockAPIServerClient_UserHasAccessToPrivilegedGateway_Call) RunAndReturn(run func(ctx context.Context, in *UserHasAccessToPrivilegedGatewayRequest, opts ...grpc.CallOption) (*UserHasAccessToPrivilegedGatewayResponse, error)) *MockAPIServerClient_UserHasAccessToPrivilegedGateway_Call {
 	_c.Call.Return(run)
 	return _c
 }

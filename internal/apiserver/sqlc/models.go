@@ -42,6 +42,16 @@ type GatewayAccessGroupID struct {
 	GroupID     string
 }
 
+type GatewayJitaGrant struct {
+	ID          int64
+	UserID      string
+	GatewayName string
+	Created     string
+	Expires     string
+	Revoked     sql.NullString
+	Reason      string
+}
+
 type GatewayRoute struct {
 	GatewayName string
 	Route       string
