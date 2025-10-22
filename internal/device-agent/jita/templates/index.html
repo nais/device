@@ -83,7 +83,6 @@
 </table>
 <script>
     document.documentElement.classList.remove('no-js');
-    document.documentElement.classList.add('js');
     document.getElementById('duration').addEventListener('input', (event) => {
         const dur = event.target.value;
         document.getElementById('duration-display').innerHTML = `${dur} hour${dur === '1' ? '' : 's'}`;
