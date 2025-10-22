@@ -26,10 +26,6 @@ type Config struct {
 	GatewayConfigBucketName           string
 	GatewayConfigBucketObjectName     string
 	Google                            *auth.Google
-	JitaPassword                      string
-	JitaUrl                           string
-	JitaUsername                      string
-	JitaEnabled                       bool
 	KolideIntegrationEnabled          bool
 	KolideApiToken                    string
 	KolideEventHandlerAddress         string

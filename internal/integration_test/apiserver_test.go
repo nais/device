@@ -7,7 +7,6 @@ import (
 	"github.com/nais/device/internal/apiserver/api"
 	"github.com/nais/device/internal/apiserver/auth"
 	"github.com/nais/device/internal/apiserver/database"
-	"github.com/nais/device/internal/apiserver/jita"
 	"github.com/nais/device/internal/apiserver/kolide"
 	"github.com/nais/device/pkg/pb"
 	"github.com/sirupsen/logrus"
@@ -19,9 +18,7 @@ func NewAPIServer(t *testing.T, ctx context.Context, log *logrus.Entry, db datab
 	deviceAuth := auth.NewMockAuthenticator(sessions)
 	gatewayAuth := auth.NewMockAPIKeyAuthenticator()
 
-	j := jita.New(log, "user", "pass", "url")
-
-	impl := api.NewGRPCServer(ctx, log, db, deviceAuth, nil, gatewayAuth, nil, j, sessions, kolideClient, true)
+	impl := api.NewGRPCServer(ctx, log, db, deviceAuth, nil, gatewayAuth, nil, sessions, kolideClient, true)
 	server := grpc.NewServer()
 	pb.RegisterAPIServerServer(server, impl)
 

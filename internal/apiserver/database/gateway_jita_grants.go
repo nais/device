@@ -49,6 +49,10 @@ func (db *database) UserHasAccessToPrivilegedGateway(ctx context.Context, userID
 	return hasAccess == 1, nil
 }
 
+func (db *database) UsersWithAccessToPrivilegedGateway(ctx context.Context, gatewayName string) ([]string, error) {
+	return db.queries.UsersWithAccessToPrivilegedGateway(ctx, gatewayName)
+}
+
 func (db *database) GrantPrivilegedGatewayAccess(ctx context.Context, userID, gatewayName string, expires time.Time, reason string) error {
 	return db.queries.GrantPrivilegedGatewayAccess(ctx, sqlc.GrantPrivilegedGatewayAccessParams{
 		UserID:      userID,

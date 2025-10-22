@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/nais/device/internal/apiserver/jita"
 	"github.com/nais/device/internal/apiserver/metrics"
 	"github.com/nais/device/pkg/pb"
 	"google.golang.org/grpc/codes"
@@ -60,12 +59,11 @@ func (s *grpcServer) GetGatewayConfiguration(request *pb.GetGatewayConfiguration
 }
 
 // Return a list of user sessions that are authorized to access a gateway through JITA.
-func (s grpcServer) privilegedUsersForGateway(gateway *pb.Gateway) []jita.PrivilegedUser {
-	if s.jita == nil {
-		return nil
+func (s grpcServer) privilegedUsersForGateway(ctx context.Context, gateway *pb.Gateway) []string {
+	privilegedUsers, err := s.db.UsersWithAccessToPrivilegedGateway(ctx, gateway.Name)
+	if err != nil {
+		s.log.WithError(err).Error("get privileged users")
 	}
-
-	privilegedUsers := s.jita.GetPrivilegedUsersForGateway(gateway.Name)
 
 	m, _ := metrics.PrivilegedUsersPerGateway.GetMetricWithLabelValues(gateway.Name)
 	m.Set(float64(len(privilegedUsers)))
@@ -129,8 +127,7 @@ func (s *grpcServer) makeGatewayConfiguration(ctx context.Context, gatewayName s
 	)
 
 	if gateway.RequiresPrivilegedAccess {
-		privilegedUsers := s.privilegedUsersForGateway(gateway)
-		filters = append(filters, sessionIsPrivileged(privilegedUsers))
+		filters = append(filters, sessionIsPrivileged(s.privilegedUsersForGateway(ctx, gateway)))
 	}
 
 	// Hack to prevent windows users from connecting to the ms-login gateway.
