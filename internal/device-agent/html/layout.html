@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, shrink-to-fit=no"
+    />
+    <title>naisdevice - {{ block "title" . }}{{ end }}</title>
+    <style>
+      :root {
+        color-scheme: light dark;
+      }
+
+      .no-js .js-only {
+        display: none;
+      }
+
+      body {
+        font-family: sans-serif;
+        background-color: light-dark(#ffffff, #23262a);
+        color: light-dark(#23262a, #ffffff);
+        font-size: 1.2rem;
+      }
+
+      p.status,
+      p.error {
+        padding: 1rem;
+        width: max-content;
+        border-radius: 5px;
+        border-width: 1px;
+        border-style: solid;
+      }
+
+      p.status {
+        border-color: light-dark(#00893c, #378f53);
+        background-color: light-dark(#d5f6db, #002a00);
+      }
+
+      p.error {
+        border-color: light-dark(#e22948, #de4a50);
+        background-color: light-dark(#ffe8f0, #490b10);
+      }
+
+      a,
+      a:visited {
+        color: light-dark(#0067c5, #e6f0ff);
+        &:hover {
+          color: light-dark(#0056b4, #cce1ff);
+        }
+      }
+
+      table {
+        border-collapse: collapse;
+
+        th,
+        td {
+          padding: 0.5rem;
+          vertical-align: top;
+        }
+
+        th {
+          text-align: left;
+        }
+
+        tbody {
+          tr:nth-child(odd) {
+            background-color: light-dark(#f2f3f5, #42474f);
+          }
+
+          tr:hover {
+            background-color: light-dark(#e0e3e6, #525962);
+          }
+
+          td:last-child {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+
+            form {
+              margin-left: 1rem;
+            }
+          }
+        }
+      }
+
+      form {
+        div.group {
+          margin-bottom: 1rem;
+        }
+
+        label {
+          display: block;
+          margin-bottom: 0.3rem;
+        }
+
+        textarea {
+          width: 30rem;
+          height: 5rem;
+        }
+
+        select {
+          padding: 0.3rem;
+        }
+
+        input[type="range"] {
+          width: 30rem;
+          display: block;
+          margin: 0.5rem 0;
+        }
+      }
+    </style>
+  </head>
+
+  <body>
+    <h1>{{ block "title" . }}{{ end }}</h1>
+    {{ block "content" . }}{{ end }}
+  </body>
+</html>

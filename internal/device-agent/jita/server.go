@@ -1,20 +1,23 @@
 package jita
 
 import (
+	"embed"
 	"fmt"
-	"html/template"
 	"net/http"
 	"net/url"
 	"strconv"
-	"strings"
 	"time"
 
 	"github.com/nais/device/internal/device-agent/agenthttp"
+	"github.com/nais/device/internal/device-agent/html"
 	"github.com/nais/device/internal/device-agent/runtimeconfig"
 	"github.com/nais/device/pkg/pb"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
+
+//go:embed jita.html
+var template embed.FS
 
 type Handler struct {
 	log logrus.FieldLogger
@@ -118,29 +121,10 @@ func (h *Handler) index(w http.ResponseWriter, req *http.Request) {
 		StatusMessage: req.URL.Query().Get("statusMessage"),
 	}
 
-	t := template.New("site.html").Funcs(template.FuncMap{
-		"formatTime": func(t time.Time) string {
-			return t.Format("02/01/2006, 15:04:05")
-		},
-		"nl2br": func(s string) template.HTML {
-			s = strings.ReplaceAll(s, "\r\n", "\n")
-			s = strings.ReplaceAll(s, "\r", "\n")
-			escaped := template.HTMLEscapeString(s)
-			escaped = strings.ReplaceAll(escaped, "\n", "<br>\n")
-			return template.HTML(escaped)
-		},
-	})
-
-	t, err := t.ParseFS(templates, "templates/site.html", "templates/index.html")
+	err := html.Render(w, template, "jita.html", data)
 	if err != nil {
-		h.log.WithError(err).Error("error parsing templates")
-		http.Error(w, "Failed to parse templates.", http.StatusInternalServerError)
-		return
-	}
-
-	if err := t.ExecuteTemplate(w, "site.html", data); err != nil {
-		h.log.WithError(err).Error("error rendering index page")
-		http.Error(w, "Error rendering index page.", http.StatusInternalServerError)
+		h.log.WithError(err).Error("rendering page")
+		http.Error(w, "Failed to render page.", http.StatusInternalServerError)
 		return
 	}
 }
