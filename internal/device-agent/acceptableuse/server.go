@@ -1,16 +1,20 @@
 package acceptableuse
 
 import (
-	"html/template"
+	"embed"
 	"net/http"
 	"strconv"
 	"time"
 
 	"github.com/nais/device/internal/device-agent/agenthttp"
+	"github.com/nais/device/internal/device-agent/html"
 	"github.com/nais/device/internal/device-agent/runtimeconfig"
 	"github.com/nais/device/pkg/pb"
 	"github.com/sirupsen/logrus"
 )
+
+//go:embed acceptableuse.html
+var template embed.FS
 
 type Handler struct {
 	log logrus.FieldLogger
@@ -44,14 +48,10 @@ func (h *Handler) index(w http.ResponseWriter, req *http.Request) {
 		FormAction:  agenthttp.Path("/acceptableUse", true),
 	}
 
-	t, err := template.ParseFS(templates, "templates/site.html", "templates/index.html")
+	err := html.Render(w, template, "acceptableuse.html", data)
 	if err != nil {
-		http.Error(w, "Failed to parse templates.", http.StatusInternalServerError)
-		return
-	}
-
-	if err := t.ExecuteTemplate(w, "site.html", data); err != nil {
-		http.Error(w, "Failed to render index page.", http.StatusInternalServerError)
+		h.log.WithError(err).Error("rendering page")
+		http.Error(w, "Failed to render page.", http.StatusInternalServerError)
 		return
 	}
 }
