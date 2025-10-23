@@ -24,7 +24,7 @@ func New(rc runtimeconfig.RuntimeConfig, cfg config.Config) state.State {
 }
 
 func (d *Disconnected) Enter(ctx context.Context) state.EventWithSpan {
-	d.rc.SetToken(nil)
+	// d.rc.SetToken(nil)
 	d.rc.ResetEnrollConfig()
 	d.rc.SetAPIServerInfo(nil, "")
 
