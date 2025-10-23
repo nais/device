@@ -4,7 +4,6 @@ import (
 	"context"
 	"testing"
 
-	"github.com/nais/device/internal/device-agent/auth"
 	"github.com/nais/device/internal/device-agent/config"
 	"github.com/nais/device/internal/device-agent/runtimeconfig"
 	statemachine "github.com/nais/device/internal/device-agent/statemachine/state"
@@ -16,8 +15,6 @@ import (
 func TestDisconnected(t *testing.T) {
 	t.Run("disconnected waits for more events", func(t *testing.T) {
 		rc := runtimeconfig.NewMockRuntimeConfig(t)
-		var token *auth.Tokens
-		rc.EXPECT().SetToken(token)
 		rc.EXPECT().ResetEnrollConfig()
 		rc.EXPECT().SetAPIServerInfo(nil, "").Return()
 
@@ -36,8 +33,6 @@ func TestDisconnected(t *testing.T) {
 
 	t.Run("disconnected auto logins if configured (once)", func(t *testing.T) {
 		rc := runtimeconfig.NewMockRuntimeConfig(t)
-		var token *auth.Tokens
-		rc.EXPECT().SetToken(token)
 		rc.EXPECT().ResetEnrollConfig()
 		rc.EXPECT().SetAPIServerInfo(nil, "").Return()
 

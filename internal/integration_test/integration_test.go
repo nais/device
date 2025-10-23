@@ -247,7 +247,6 @@ func tableTest(t *testing.T, log *logrus.Entry, testDevice *pb.Device, endState 
 
 	rc := runtimeconfig.NewMockRuntimeConfig(t)
 	rc.EXPECT().ConnectToAPIServer(mock.Anything).Return(apiServerClient, cleanup, nil)
-	rc.EXPECT().SetToken(mock.AnythingOfType("*auth.Tokens")).Return()
 	rc.EXPECT().ResetEnrollConfig().Return()
 	rc.EXPECT().GetTenantSession().Return(session, nil)
 	rc.EXPECT().LoadEnrollConfig().Return(nil)

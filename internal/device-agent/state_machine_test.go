@@ -61,7 +61,6 @@ func TestStateMachine(t *testing.T) {
 			streamContext = ctx
 		})
 
-		rc.EXPECT().SetToken(mock.Anything)
 		rc.EXPECT().ResetEnrollConfig()
 
 		cfg := config.Config{
