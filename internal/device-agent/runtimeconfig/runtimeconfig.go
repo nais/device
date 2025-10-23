@@ -297,7 +297,7 @@ func (r *runtimeConfig) LoadEnrollConfig() error {
 	}
 
 	if r.config.CustomEnrollURL != "" {
-		return nil
+		return fmt.Errorf("cannot load enroll config when using custom enroll URL")
 	}
 
 	path := r.path()
