@@ -26,6 +26,7 @@ import (
 	"github.com/nais/device/internal/otel"
 	"github.com/nais/device/pkg/pb"
 	"github.com/sirupsen/logrus"
+	"golang.org/x/oauth2"
 	"google.golang.org/api/iterator"
 	"google.golang.org/api/option"
 	"google.golang.org/grpc"
@@ -61,6 +62,8 @@ type RuntimeConfig interface {
 	GetToken(context.Context) (string, error)
 	SetToken(*auth.Tokens)
 	SetTenantSession(*pb.Session) error
+	GetJitaToken(context.Context) *oauth2.Token
+	SetJitaToken(*oauth2.Token)
 
 	BuildHelperConfiguration(peers []*pb.Gateway) *pb.Configuration
 
@@ -77,10 +80,19 @@ type runtimeConfig struct {
 	tokens       *auth.Tokens
 	tenants      []*pb.Tenant
 	log          *logrus.Entry
+	jitaToken    *oauth2.Token
 
 	apiserverClient pb.APIServerClient
 	apiserverKey    string
 	apiserverLock   sync.RWMutex
+}
+
+func (rc *runtimeConfig) GetJitaToken(context.Context) *oauth2.Token {
+	return rc.jitaToken
+}
+
+func (rc *runtimeConfig) SetJitaToken(token *oauth2.Token) {
+	rc.jitaToken = token // storing the access token
 }
 
 func (rc *runtimeConfig) SetAPIServerInfo(apiServerClient pb.APIServerClient, key string) {

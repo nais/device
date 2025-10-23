@@ -37,7 +37,7 @@ func (h *handler) handleRedirectAzure(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	http.Redirect(w, r, "https://console.nav.cloud.nais.io/?naisdevice=connected", http.StatusSeeOther)
+	http.Redirect(w, r, h.redirect, http.StatusSeeOther)
 
 	h.authChannel <- &authFlowResponse{Tokens: &Tokens{Token: t}, err: nil}
 }

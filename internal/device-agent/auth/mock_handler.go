@@ -41,8 +41,8 @@ func (_m *MockHandler) EXPECT() *MockHandler_Expecter {
 }
 
 // GetDeviceAgentToken provides a mock function for the type MockHandler
-func (_mock *MockHandler) GetDeviceAgentToken(ctx context.Context, log logrus.FieldLogger, oauthConfig oauth2.Config) (*Tokens, error) {
-	ret := _mock.Called(ctx, log, oauthConfig)
+func (_mock *MockHandler) GetDeviceAgentToken(ctx context.Context, log logrus.FieldLogger, oauthConfig oauth2.Config, redirect string) (*Tokens, error) {
+	ret := _mock.Called(ctx, log, oauthConfig, redirect)
 
 	if len(ret) == 0 {
 		panic("no return value specified for GetDeviceAgentToken")
@@ -50,18 +50,18 @@ func (_mock *MockHandler) GetDeviceAgentToken(ctx context.Context, log logrus.Fi
 
 	var r0 *Tokens
 	var r1 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, logrus.FieldLogger, oauth2.Config) (*Tokens, error)); ok {
-		return returnFunc(ctx, log, oauthConfig)
+	if returnFunc, ok := ret.Get(0).(func(context.Context, logrus.FieldLogger, oauth2.Config, string) (*Tokens, error)); ok {
+		return returnFunc(ctx, log, oauthConfig, redirect)
 	}
-	if returnFunc, ok := ret.Get(0).(func(context.Context, logrus.FieldLogger, oauth2.Config) *Tokens); ok {
-		r0 = returnFunc(ctx, log, oauthConfig)
+	if returnFunc, ok := ret.Get(0).(func(context.Context, logrus.FieldLogger, oauth2.Config, string) *Tokens); ok {
+		r0 = returnFunc(ctx, log, oauthConfig, redirect)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).(*Tokens)
 		}
 	}
-	if returnFunc, ok := ret.Get(1).(func(context.Context, logrus.FieldLogger, oauth2.Config) error); ok {
-		r1 = returnFunc(ctx, log, oauthConfig)
+	if returnFunc, ok := ret.Get(1).(func(context.Context, logrus.FieldLogger, oauth2.Config, string) error); ok {
+		r1 = returnFunc(ctx, log, oauthConfig, redirect)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -77,11 +77,12 @@ type MockHandler_GetDeviceAgentToken_Call struct {
 //   - ctx context.Context
 //   - log logrus.FieldLogger
 //   - oauthConfig oauth2.Config
-func (_e *MockHandler_Expecter) GetDeviceAgentToken(ctx interface{}, log interface{}, oauthConfig interface{}) *MockHandler_GetDeviceAgentToken_Call {
-	return &MockHandler_GetDeviceAgentToken_Call{Call: _e.mock.On("GetDeviceAgentToken", ctx, log, oauthConfig)}
+//   - redirect string
+func (_e *MockHandler_Expecter) GetDeviceAgentToken(ctx interface{}, log interface{}, oauthConfig interface{}, redirect interface{}) *MockHandler_GetDeviceAgentToken_Call {
+	return &MockHandler_GetDeviceAgentToken_Call{Call: _e.mock.On("GetDeviceAgentToken", ctx, log, oauthConfig, redirect)}
 }
 
-func (_c *MockHandler_GetDeviceAgentToken_Call) Run(run func(ctx context.Context, log logrus.FieldLogger, oauthConfig oauth2.Config)) *MockHandler_GetDeviceAgentToken_Call {
+func (_c *MockHandler_GetDeviceAgentToken_Call) Run(run func(ctx context.Context, log logrus.FieldLogger, oauthConfig oauth2.Config, redirect string)) *MockHandler_GetDeviceAgentToken_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		var arg0 context.Context
 		if args[0] != nil {
@@ -95,10 +96,15 @@ func (_c *MockHandler_GetDeviceAgentToken_Call) Run(run func(ctx context.Context
 		if args[2] != nil {
 			arg2 = args[2].(oauth2.Config)
 		}
+		var arg3 string
+		if args[3] != nil {
+			arg3 = args[3].(string)
+		}
 		run(
 			arg0,
 			arg1,
 			arg2,
+			arg3,
 		)
 	})
 	return _c
@@ -109,7 +115,7 @@ func (_c *MockHandler_GetDeviceAgentToken_Call) Return(tokens *Tokens, err error
 	return _c
 }
 
-func (_c *MockHandler_GetDeviceAgentToken_Call) RunAndReturn(run func(ctx context.Context, log logrus.FieldLogger, oauthConfig oauth2.Config) (*Tokens, error)) *MockHandler_GetDeviceAgentToken_Call {
+func (_c *MockHandler_GetDeviceAgentToken_Call) RunAndReturn(run func(ctx context.Context, log logrus.FieldLogger, oauthConfig oauth2.Config, redirect string) (*Tokens, error)) *MockHandler_GetDeviceAgentToken_Call {
 	_c.Call.Return(run)
 	return _c
 }

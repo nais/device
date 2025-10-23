@@ -189,7 +189,7 @@ func run(ctx context.Context, log *logrus.Entry, cfg *config.Config, notifier no
 	jitaHandler := jita.New(rc, log.WithField("component", "jita"))
 	jitaHandler.Register(agenthttp.HandleFunc)
 
-	das := deviceagent.NewServer(ctx, log.WithField("component", "device-agent-server"), cfg, rc, notifier, stateMachine.SendEvent, acceptableUseHandler, jitaHandler)
+	das := deviceagent.NewServer(ctx, log.WithField("component", "device-agent-server"), cfg, rc, notifier, stateMachine.SendEvent, acceptableUseHandler, jitaHandler, authHandler)
 	pb.RegisterDeviceAgentServer(grpcServer, das)
 
 	newVersionChannel := make(chan bool, 1)
