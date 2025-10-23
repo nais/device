@@ -49,7 +49,7 @@ func TestAuthenticating(t *testing.T) {
 		rc.EXPECT().SetToken(tokens)
 
 		mockAuth := auth.NewMockHandler(t)
-		mockAuth.EXPECT().GetDeviceAgentToken(mock.Anything, mock.Anything, mock.Anything).Return(tokens, nil)
+		mockAuth.EXPECT().GetDeviceAgentToken(mock.Anything, mock.Anything, mock.Anything, "").Return(tokens, nil)
 
 		authState := &Authenticating{
 			authHandler: mockAuth,
@@ -76,7 +76,7 @@ func TestAuthenticating(t *testing.T) {
 		notifier.EXPECT().ShowError(expectedError)
 
 		mockAuth := auth.NewMockHandler(t)
-		mockAuth.EXPECT().GetDeviceAgentToken(mock.Anything, mock.Anything, mock.Anything).Return(nil, expectedError)
+		mockAuth.EXPECT().GetDeviceAgentToken(mock.Anything, mock.Anything, mock.Anything, "").Return(nil, expectedError)
 
 		authState := &Authenticating{
 			authHandler: mockAuth,

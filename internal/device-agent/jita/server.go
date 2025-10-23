@@ -121,8 +121,7 @@ func (h *Handler) index(w http.ResponseWriter, req *http.Request) {
 		StatusMessage: req.URL.Query().Get("statusMessage"),
 	}
 
-	err := html.Render(w, template, "jita.html", data)
-	if err != nil {
+	if err := html.Render(w, template, "jita.html", data); err != nil {
 		h.log.WithError(err).Error("rendering page")
 		http.Error(w, "Failed to render page.", http.StatusInternalServerError)
 		return

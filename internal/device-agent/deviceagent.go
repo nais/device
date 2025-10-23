@@ -3,14 +3,17 @@ package device_agent
 
 import (
 	"context"
+	"fmt"
 	"sync"
 
 	"github.com/google/uuid"
 	"github.com/nais/device/internal/device-agent/acceptableuse"
 	"github.com/nais/device/internal/device-agent/agenthttp"
+	"github.com/nais/device/internal/device-agent/auth"
 	"github.com/nais/device/internal/device-agent/jita"
 	"github.com/nais/device/internal/device-agent/open"
 	"github.com/sirupsen/logrus"
+	"golang.org/x/oauth2"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
@@ -38,6 +41,7 @@ type DeviceAgentServer struct {
 
 	acceptaleUseHandler *acceptableuse.Handler
 	jitaHandler         *jita.Handler
+	authHandler         auth.Handler
 }
 
 func (das *DeviceAgentServer) Login(ctx context.Context, request *pb.LoginRequest) (*pb.LoginResponse, error) {
@@ -138,9 +142,30 @@ func (das *DeviceAgentServer) ShowAcceptableUse(ctx context.Context, _ *pb.ShowA
 	return &pb.ShowAcceptableUseResponse{}, nil
 }
 
-func (das *DeviceAgentServer) ShowJita(_ context.Context, req *pb.ShowJitaRequest) (*pb.ShowJitaResponse, error) {
+func (das *DeviceAgentServer) ShowJita(ctx context.Context, req *pb.ShowJitaRequest) (*pb.ShowJitaResponse, error) {
 	gateway := req.Gateway
-	open.Open(agenthttp.Path("/jita?gateway="+gateway, true))
+
+	tok := das.rc.GetJitaToken(ctx)
+	if tok == nil {
+		return nil, status.Errorf(codes.Internal, "unable to get JITA token: %v")
+	}
+
+	url := agenthttp.Path("/jita?gateway="+gateway, true)
+	if tok == nil {
+		oauth2Config := oauth2.Config{}
+		tokens, err := das.authHandler.GetDeviceAgentToken(ctx, das.log, oauth2Config, url)
+		if err != nil {
+			return nil, status.Errorf(codes.Internal, "unable to get JITA token from Entra: %v", err)
+		}
+
+		if !tokens.Token.Valid() {
+			return nil, fmt.Errorf("received invalid JITA token")
+		}
+
+		das.rc.SetJitaToken(tokens.Token)
+	} else {
+		open.Open(url)
+	}
 	return &pb.ShowJitaResponse{}, nil
 }
 
@@ -152,6 +177,7 @@ func NewServer(ctx context.Context,
 	sendEvent func(state.EventWithSpan),
 	acceptableUse *acceptableuse.Handler,
 	jita *jita.Handler,
+	authHandler auth.Handler,
 ) *DeviceAgentServer {
 	return &DeviceAgentServer{
 		log:                 log,
@@ -163,5 +189,6 @@ func NewServer(ctx context.Context,
 		sendEvent:           sendEvent,
 		acceptaleUseHandler: acceptableUse,
 		jitaHandler:         jita,
+		authHandler:         authHandler,
 	}
 }

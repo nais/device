@@ -10,6 +10,7 @@ import (
 	"github.com/nais/device/internal/device-agent/auth"
 	"github.com/nais/device/pkg/pb"
 	mock "github.com/stretchr/testify/mock"
+	"golang.org/x/oauth2"
 	"google.golang.org/grpc"
 )
 
@@ -419,6 +420,59 @@ func (_c *MockRuntimeConfig_GetDomainFromToken_Call) RunAndReturn(run func() str
 	return _c
 }
 
+// GetJitaToken provides a mock function for the type MockRuntimeConfig
+func (_mock *MockRuntimeConfig) GetJitaToken(context1 context.Context) *oauth2.Token {
+	ret := _mock.Called(context1)
+
+	if len(ret) == 0 {
+		panic("no return value specified for GetJitaToken")
+	}
+
+	var r0 *oauth2.Token
+	if returnFunc, ok := ret.Get(0).(func(context.Context) *oauth2.Token); ok {
+		r0 = returnFunc(context1)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*oauth2.Token)
+		}
+	}
+	return r0
+}
+
+// MockRuntimeConfig_GetJitaToken_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetJitaToken'
+type MockRuntimeConfig_GetJitaToken_Call struct {
+	*mock.Call
+}
+
+// GetJitaToken is a helper method to define mock.On call
+//   - context1 context.Context
+func (_e *MockRuntimeConfig_Expecter) GetJitaToken(context1 interface{}) *MockRuntimeConfig_GetJitaToken_Call {
+	return &MockRuntimeConfig_GetJitaToken_Call{Call: _e.mock.On("GetJitaToken", context1)}
+}
+
+func (_c *MockRuntimeConfig_GetJitaToken_Call) Run(run func(context1 context.Context)) *MockRuntimeConfig_GetJitaToken_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		run(
+			arg0,
+		)
+	})
+	return _c
+}
+
+func (_c *MockRuntimeConfig_GetJitaToken_Call) Return(token *oauth2.Token) *MockRuntimeConfig_GetJitaToken_Call {
+	_c.Call.Return(token)
+	return _c
+}
+
+func (_c *MockRuntimeConfig_GetJitaToken_Call) RunAndReturn(run func(context1 context.Context) *oauth2.Token) *MockRuntimeConfig_GetJitaToken_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // GetTenantSession provides a mock function for the type MockRuntimeConfig
 func (_mock *MockRuntimeConfig) GetTenantSession() (*pb.Session, error) {
 	ret := _mock.Called()
@@ -800,6 +854,46 @@ func (_c *MockRuntimeConfig_SetActiveTenant_Call) Return(err error) *MockRuntime
 
 func (_c *MockRuntimeConfig_SetActiveTenant_Call) RunAndReturn(run func(s string) error) *MockRuntimeConfig_SetActiveTenant_Call {
 	_c.Call.Return(run)
+	return _c
+}
+
+// SetJitaToken provides a mock function for the type MockRuntimeConfig
+func (_mock *MockRuntimeConfig) SetJitaToken(token *oauth2.Token) {
+	_mock.Called(token)
+	return
+}
+
+// MockRuntimeConfig_SetJitaToken_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'SetJitaToken'
+type MockRuntimeConfig_SetJitaToken_Call struct {
+	*mock.Call
+}
+
+// SetJitaToken is a helper method to define mock.On call
+//   - token *oauth2.Token
+func (_e *MockRuntimeConfig_Expecter) SetJitaToken(token interface{}) *MockRuntimeConfig_SetJitaToken_Call {
+	return &MockRuntimeConfig_SetJitaToken_Call{Call: _e.mock.On("SetJitaToken", token)}
+}
+
+func (_c *MockRuntimeConfig_SetJitaToken_Call) Run(run func(token *oauth2.Token)) *MockRuntimeConfig_SetJitaToken_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 *oauth2.Token
+		if args[0] != nil {
+			arg0 = args[0].(*oauth2.Token)
+		}
+		run(
+			arg0,
+		)
+	})
+	return _c
+}
+
+func (_c *MockRuntimeConfig_SetJitaToken_Call) Return() *MockRuntimeConfig_SetJitaToken_Call {
+	_c.Call.Return()
+	return _c
+}
+
+func (_c *MockRuntimeConfig_SetJitaToken_Call) RunAndReturn(run func(token *oauth2.Token)) *MockRuntimeConfig_SetJitaToken_Call {
+	_c.Run(run)
 	return _c
 }
 

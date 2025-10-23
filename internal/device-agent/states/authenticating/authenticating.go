@@ -57,7 +57,7 @@ func (a *Authenticating) Enter(ctx context.Context) state.EventWithSpan {
 
 	ctx, cancel := context.WithTimeout(ctx, authFlowTimeout)
 	oauth2Config := a.cfg.OAuth2Config(a.rc.GetActiveTenant().AuthProvider)
-	token, err := a.authHandler.GetDeviceAgentToken(ctx, a.logger, oauth2Config)
+	token, err := a.authHandler.GetDeviceAgentToken(ctx, a.logger, oauth2Config, "https://console.nav.cloud.nais.io/?naisdevice=connected")
 	cancel()
 	if err != nil {
 		span.RecordError(err)

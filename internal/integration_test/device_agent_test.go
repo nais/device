@@ -39,7 +39,9 @@ func NewDeviceAgent(t *testing.T, wg *sync.WaitGroup, ctx context.Context, log *
 	statusChannel := make(chan *pb.AgentStatus, 32)
 	stateMachine := device_agent.NewStateMachine(ctx, rc, *cfg, notifier, helperClient, statusChannel, mockAuth, log)
 
-	impl := device_agent.NewServer(ctx, log, cfg, rc, notifier, stateMachine.SendEvent, nil, nil)
+	authHandler := mock.NewMockAuth()
+
+	impl := device_agent.NewServer(ctx, log, cfg, rc, notifier, stateMachine.SendEvent, nil, nil, authHandler)
 	server := grpc.NewServer()
 	pb.RegisterDeviceAgentServer(server, impl)
 

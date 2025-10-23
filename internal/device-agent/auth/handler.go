@@ -19,7 +19,7 @@ import (
 )
 
 type Handler interface {
-	GetDeviceAgentToken(ctx context.Context, log logrus.FieldLogger, oauthConfig oauth2.Config) (*Tokens, error)
+	GetDeviceAgentToken(ctx context.Context, log logrus.FieldLogger, oauthConfig oauth2.Config, redirect string) (*Tokens, error)
 }
 
 type handler struct {
@@ -30,6 +30,7 @@ type handler struct {
 	state        string
 	oauthConfig  oauth2.Config
 	codeVerifier *codeverifier.CodeVerifier
+	redirect     string
 }
 
 func (h *handler) valid() error {
@@ -68,7 +69,7 @@ type Tokens struct {
 	IDToken string
 }
 
-func (h *handler) GetDeviceAgentToken(ctx context.Context, log logrus.FieldLogger, oauthConfig oauth2.Config) (*Tokens, error) {
+func (h *handler) GetDeviceAgentToken(ctx context.Context, log logrus.FieldLogger, oauthConfig oauth2.Config, redirect string) (*Tokens, error) {
 	// Ignoring impossible error
 	h.codeVerifier, _ = codeverifier.CreateCodeVerifier()
 	h.state = random.RandomString(16, random.LettersAndNumbers)
@@ -79,6 +80,7 @@ func (h *handler) GetDeviceAgentToken(ctx context.Context, log logrus.FieldLogge
 	} else if h.oauthConfig.Endpoint == endpoints.Google {
 		h.oauthConfig.RedirectURL = agenthttp.Path("/auth/google", false)
 	}
+	h.redirect = redirect
 
 	url := h.oauthConfig.AuthCodeURL(
 		h.state,
