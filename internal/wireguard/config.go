@@ -41,15 +41,15 @@ func (cfg *Config) MarshalINI(w io.Writer) error {
 	ew := ioconvenience.NewErrorWriter(w)
 
 	// Global configuration
-	fmt.Fprintf(ew, "[Interface]\n")
+	_, _ = fmt.Fprintf(ew, "[Interface]\n")
 	fprintNonEmpty(ew, "PrivateKey = %s\n", cfg.PrivateKey)
 	if cfg.ListenPort > 0 {
-		fmt.Fprintf(ew, "ListenPort = %d\n", cfg.ListenPort)
+		_, _ = fmt.Fprintf(ew, "ListenPort = %d\n", cfg.ListenPort)
 	}
 
 	// MTU and Address only supported/implemented on Windows platform
 	if cfg.MTU > 0 {
-		fmt.Fprintf(ew, "MTU = %d\n", cfg.MTU)
+		_, _ = fmt.Fprintf(ew, "MTU = %d\n", cfg.MTU)
 	}
 
 	if cfg.AddressV4 != "" {
@@ -58,20 +58,20 @@ func (cfg *Config) MarshalINI(w io.Writer) error {
 			addr += ", " + cfg.AddressV6
 		}
 
-		fprintNonEmpty(ew, "Address = %s\n", cfg.AddressV4)
+		fprintNonEmpty(ew, "Address = %s\n", addr)
 	}
 
-	fmt.Fprintf(ew, "\n")
+	_, _ = fmt.Fprintf(ew, "\n")
 
 	for _, peer := range cfg.Peers {
-		fmt.Fprintf(ew, "[Peer] # %s\n", peer.GetName())
+		_, _ = fmt.Fprintf(ew, "[Peer] # %s\n", peer.GetName())
 		fprintNonEmpty(ew, "PublicKey = %s\n", peer.GetPublicKey())
 		fprintNonEmpty(ew, "AllowedIPs = %s\n", strings.Join(peer.GetAllowedIPs(), ","))
 		fprintNonEmpty(ew, "Endpoint = %s\n", peer.GetEndpoint())
 		if peer.GetName() == PrometheusPeerName {
-			fmt.Fprint(ew, "PersistentKeepalive = 25\n")
+			_, _ = fmt.Fprint(ew, "PersistentKeepalive = 25\n")
 		}
-		fmt.Fprintf(ew, "\n")
+		_, _ = fmt.Fprintf(ew, "\n")
 	}
 
 	_, err := ew.Status()
