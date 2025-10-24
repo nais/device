@@ -610,6 +610,7 @@ func (x *GetSerialResponse) GetSerial() string {
 type ConfigureJITARequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Gateway       *Gateway               `protobuf:"bytes,1,opt,name=gateway,proto3" json:"gateway,omitempty"`
+	Token         string                 `protobuf:"bytes,2,opt,name=token,proto3" json:"token,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -649,6 +650,13 @@ func (x *ConfigureJITARequest) GetGateway() *Gateway {
 		return x.Gateway
 	}
 	return nil
+}
+
+func (x *ConfigureJITARequest) GetToken() string {
+	if x != nil {
+		return x.Token
+	}
+	return ""
 }
 
 type LoginRequest struct {
@@ -3335,9 +3343,10 @@ const file_pkg_pb_protobuf_api_proto_rawDesc = "" +
 	"\x0fUpgradeResponse\"\x12\n" +
 	"\x10GetSerialRequest\"+\n" +
 	"\x11GetSerialResponse\x12\x16\n" +
-	"\x06serial\x18\x01 \x01(\tR\x06serial\"E\n" +
+	"\x06serial\x18\x01 \x01(\tR\x06serial\"[\n" +
 	"\x14ConfigureJITARequest\x12-\n" +
-	"\agateway\x18\x01 \x01(\v2\x13.naisdevice.GatewayR\agateway\"\x0e\n" +
+	"\agateway\x18\x01 \x01(\v2\x13.naisdevice.GatewayR\agateway\x12\x14\n" +
+	"\x05token\x18\x02 \x01(\tR\x05token\"\x0e\n" +
 	"\fLoginRequest\"\x0f\n" +
 	"\rLogoutRequest\"V\n" +
 	"\x1cSetAgentConfigurationRequest\x126\n" +
