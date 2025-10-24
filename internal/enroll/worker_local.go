@@ -39,7 +39,7 @@ func (w *localWorker) Run(ctx context.Context) error {
 				return
 			}
 			wr.Header().Set("Content-Type", "application/json")
-			wr.Write(all)
+			_, _ = wr.Write(all)
 			w.data = nil
 		case http.MethodPost:
 			if w.response == nil {
@@ -68,7 +68,7 @@ func (w *localWorker) Run(ctx context.Context) error {
 	}()
 
 	<-ctx.Done()
-	server.Close()
+	_ = server.Close()
 
 	return ctx.Err()
 }

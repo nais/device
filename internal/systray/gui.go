@@ -433,7 +433,9 @@ func (gui *Gui) handleGuiEvent(ctx context.Context, guiEvent GuiEvent) {
 		}
 		gui.Config.BlackAndWhiteIcons = !gui.Config.BlackAndWhiteIcons
 		gui.updateIcons()
-		gui.Config.Persist()
+		if err := gui.Config.Persist(); err != nil {
+			gui.log.WithError(err).Error("persist config")
+		}
 
 	case ConnectClicked:
 		gui.log.Info("connect button clicked")

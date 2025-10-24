@@ -10,6 +10,7 @@ import (
 
 	"github.com/nais/device/internal/apiserver/database"
 	"github.com/nais/device/internal/enroll"
+	"github.com/nais/device/internal/ioconvenience"
 	"github.com/nais/device/pkg/pb"
 	"github.com/sirupsen/logrus"
 )
@@ -17,17 +18,17 @@ import (
 type localEnroller struct {
 	db             database.Database
 	log            logrus.FieldLogger
-	enrollmentsUrl string
+	enrollmentsURL string
 }
 
-func NewLocalEnroll(db database.Database, enrollmentsUrl string) localEnroller {
-	if enrollmentsUrl == "" {
-		enrollmentsUrl = " http://localhost:8081/enrollments"
+func NewLocalEnroll(db database.Database, enrollmentsURL string) localEnroller {
+	if enrollmentsURL == "" {
+		enrollmentsURL = " http://localhost:8081/enrollments"
 	}
 	return localEnroller{
 		db:             db,
 		log:            logrus.WithField("component", "local_enroller"),
-		enrollmentsUrl: enrollmentsUrl,
+		enrollmentsURL: enrollmentsURL,
 	}
 }
 
@@ -47,14 +48,16 @@ func (l *localEnroller) Run(ctx context.Context) error {
 				continue
 			}
 			for _, enrollment := range enrollments {
-				l.enroll(ctx, enrollment)
+				if err := l.enroll(ctx, enrollment); err != nil {
+					l.log.WithError(err).Error("local enroller: error enrolling device")
+				}
 			}
 		}
 	}
 }
 
 func (l *localEnroller) getEnrollments(ctx context.Context) ([]enroll.DeviceRequest, error) {
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, l.enrollmentsUrl, nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, l.enrollmentsURL, nil)
 	if err != nil {
 		msg := "local enroller: error creating request"
 		l.log.WithError(err).Error(msg)
@@ -67,7 +70,7 @@ func (l *localEnroller) getEnrollments(ctx context.Context) ([]enroll.DeviceRequ
 		l.log.WithError(err).Error(msg)
 		return nil, fmt.Errorf("%s", msg)
 	}
-	defer resp.Body.Close()
+	defer ioconvenience.CloseWithLog(l.log, resp.Body)
 
 	if resp.StatusCode != http.StatusOK {
 		msg := "local enroller: non-200 response fetching enrollments"
@@ -114,7 +117,7 @@ func (l *localEnroller) enroll(ctx context.Context, enrollment enroll.DeviceRequ
 		return fmt.Errorf("%s", msg)
 	}
 
-	httpResp, err := http.NewRequestWithContext(ctx, http.MethodPost, l.enrollmentsUrl, bytes.NewBuffer(payload))
+	httpResp, err := http.NewRequestWithContext(ctx, http.MethodPost, l.enrollmentsURL, bytes.NewBuffer(payload))
 	if err != nil {
 		msg := "local enroller: error creating response request"
 		l.log.WithError(err).Error(msg)
@@ -127,7 +130,7 @@ func (l *localEnroller) enroll(ctx context.Context, enrollment enroll.DeviceRequ
 		l.log.WithError(err).Error(msg)
 		return fmt.Errorf("%s", msg)
 	}
-	defer resp.Body.Close()
+	defer ioconvenience.CloseWithLog(l.log, resp.Body)
 	if resp.StatusCode != http.StatusOK {
 		msg := "local enroller: non-200 response sending enrollment response"
 		l.log.WithField("status", resp.StatusCode).Error(msg)

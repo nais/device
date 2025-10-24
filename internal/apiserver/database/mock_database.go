@@ -680,12 +680,12 @@ func (_c *MockDatabase_ReadDeviceByExternalID_Call) RunAndReturn(run func(ctx co
 	return _c
 }
 
-// ReadDeviceById provides a mock function for the type MockDatabase
-func (_mock *MockDatabase) ReadDeviceById(ctx context.Context, deviceID int64) (*pb.Device, error) {
+// ReadDeviceByID provides a mock function for the type MockDatabase
+func (_mock *MockDatabase) ReadDeviceByID(ctx context.Context, deviceID int64) (*pb.Device, error) {
 	ret := _mock.Called(ctx, deviceID)
 
 	if len(ret) == 0 {
-		panic("no return value specified for ReadDeviceById")
+		panic("no return value specified for ReadDeviceByID")
 	}
 
 	var r0 *pb.Device
@@ -708,19 +708,19 @@ func (_mock *MockDatabase) ReadDeviceById(ctx context.Context, deviceID int64) (
 	return r0, r1
 }
 
-// MockDatabase_ReadDeviceById_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'ReadDeviceById'
-type MockDatabase_ReadDeviceById_Call struct {
+// MockDatabase_ReadDeviceByID_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'ReadDeviceByID'
+type MockDatabase_ReadDeviceByID_Call struct {
 	*mock.Call
 }
 
-// ReadDeviceById is a helper method to define mock.On call
+// ReadDeviceByID is a helper method to define mock.On call
 //   - ctx context.Context
 //   - deviceID int64
-func (_e *MockDatabase_Expecter) ReadDeviceById(ctx interface{}, deviceID interface{}) *MockDatabase_ReadDeviceById_Call {
-	return &MockDatabase_ReadDeviceById_Call{Call: _e.mock.On("ReadDeviceById", ctx, deviceID)}
+func (_e *MockDatabase_Expecter) ReadDeviceByID(ctx interface{}, deviceID interface{}) *MockDatabase_ReadDeviceByID_Call {
+	return &MockDatabase_ReadDeviceByID_Call{Call: _e.mock.On("ReadDeviceByID", ctx, deviceID)}
 }
 
-func (_c *MockDatabase_ReadDeviceById_Call) Run(run func(ctx context.Context, deviceID int64)) *MockDatabase_ReadDeviceById_Call {
+func (_c *MockDatabase_ReadDeviceByID_Call) Run(run func(ctx context.Context, deviceID int64)) *MockDatabase_ReadDeviceByID_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		var arg0 context.Context
 		if args[0] != nil {
@@ -738,12 +738,12 @@ func (_c *MockDatabase_ReadDeviceById_Call) Run(run func(ctx context.Context, de
 	return _c
 }
 
-func (_c *MockDatabase_ReadDeviceById_Call) Return(device *pb.Device, err error) *MockDatabase_ReadDeviceById_Call {
+func (_c *MockDatabase_ReadDeviceByID_Call) Return(device *pb.Device, err error) *MockDatabase_ReadDeviceByID_Call {
 	_c.Call.Return(device, err)
 	return _c
 }
 
-func (_c *MockDatabase_ReadDeviceById_Call) RunAndReturn(run func(ctx context.Context, deviceID int64) (*pb.Device, error)) *MockDatabase_ReadDeviceById_Call {
+func (_c *MockDatabase_ReadDeviceByID_Call) RunAndReturn(run func(ctx context.Context, deviceID int64) (*pb.Device, error)) *MockDatabase_ReadDeviceByID_Call {
 	_c.Call.Return(run)
 	return _c
 }

@@ -2,6 +2,7 @@ package logger
 
 import (
 	"os"
+	"path/filepath"
 	"testing"
 	"time"
 
@@ -68,24 +69,20 @@ func TestRotate(t *testing.T) {
 			testDir := t.TempDir()
 			assert.NoError(t, err)
 
-			err := os.Chdir(testDir)
-			assert.NoError(t, err)
-
-			defer os.Chdir("..")
-
 			for _, fileName := range tt.expectDelete {
-				_, err = os.Create(fileName)
+				_, err = os.Create(filepath.Join(testDir, fileName))
 				assert.NoError(t, err)
 			}
 
 			for _, fileName := range tt.expectKeep {
-				_, err = os.Create(fileName)
+				_, err = os.Create(filepath.Join(testDir, fileName))
 				assert.NoError(t, err)
 			}
 
-			deleteOldLogFiles(testDir, now.Add(-time.Hour*24*7))
+			err = deleteOldLogFiles(testDir, now.Add(-time.Hour*24*7))
+			assert.NoError(t, err)
 
-			logdirFiles, err := os.ReadDir(".")
+			logdirFiles, err := os.ReadDir(testDir)
 			assert.NoError(t, err)
 			for _, shouldBeDeleted := range tt.expectDelete {
 				for _, f := range logdirFiles {
@@ -161,11 +158,8 @@ func TestLatestFilename(t *testing.T) {
 			testDir := t.TempDir()
 			assert.NoError(t, err)
 
-			err := os.Chdir(testDir)
-			assert.NoError(t, err)
-
 			for _, fileName := range tt.files {
-				_, err = os.Create(fileName)
+				_, err = os.Create(filepath.Join(testDir, fileName))
 				assert.NoError(t, err)
 			}
 

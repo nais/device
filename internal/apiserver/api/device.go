@@ -123,7 +123,7 @@ func (s *grpcServer) makeDeviceConfiguration(ctx context.Context, sessionKey str
 		return nil, err
 	}
 
-	device, err := s.db.ReadDeviceById(ctx, session.GetDevice().GetId())
+	device, err := s.db.ReadDeviceByID(ctx, session.GetDevice().GetId())
 	if err != nil {
 		return nil, err
 	}

@@ -50,7 +50,7 @@ func New(dbPath string, v4Allocator ip.Allocator, v6Allocator ip.Allocator, koli
 	}
 
 	apiServerDB := database{
-		queries:       NewQuerier(db),
+		queries:       NewQuerier(db, log),
 		ipv4Allocator: v4Allocator,
 		ipv6Allocator: v6Allocator,
 		kolideEnabled: kolideEnabled,
@@ -361,12 +361,12 @@ func (db *database) AddDevice(ctx context.Context, device *pb.Device) error {
 	mux.Lock()
 	defer mux.Unlock()
 
-	availableIpV4, err := db.getNextAvailableIPv4(ctx)
+	availableIPV4, err := db.getNextAvailableIPv4(ctx)
 	if err != nil {
 		return fmt.Errorf("finding available ip: %w", err)
 	}
 
-	availableIpV6, err := db.getNextAvailableIPv6(ctx)
+	availableIPV6, err := db.getNextAvailableIPv6(ctx)
 	if err != nil {
 		return fmt.Errorf("finding available ip: %w", err)
 	}
@@ -377,8 +377,8 @@ func (db *database) AddDevice(ctx context.Context, device *pb.Device) error {
 		Serial:    device.Serial,
 		Username:  device.Username,
 		PublicKey: device.PublicKey,
-		Ipv4:      availableIpV4,
-		Ipv6:      availableIpV6,
+		Ipv4:      availableIPV4,
+		Ipv6:      availableIPV6,
 		Healthy:   initialHealthy,
 		Platform:  device.Platform,
 	})
@@ -403,7 +403,7 @@ func (db *database) ReadDevice(ctx context.Context, publicKey string) (*pb.Devic
 	return db.sqlcDeviceToPbDevice(row, issues)
 }
 
-func (db *database) ReadDeviceById(ctx context.Context, deviceID int64) (*pb.Device, error) {
+func (db *database) ReadDeviceByID(ctx context.Context, deviceID int64) (*pb.Device, error) {
 	row, err := db.queries.GetDeviceByID(ctx, deviceID)
 	if err != nil {
 		return nil, err
@@ -633,12 +633,12 @@ func (db *database) getNextAvailableIPv4(ctx context.Context) (string, error) {
 		return "", fmt.Errorf("reading existing ips: %w", err)
 	}
 
-	availableIp, err := db.ipv4Allocator.NextIP(existingIps)
+	availableIP, err := db.ipv4Allocator.NextIP(existingIps)
 	if err != nil {
 		return "", fmt.Errorf("finding available ip: %w", err)
 	}
 
-	return availableIp, nil
+	return availableIP, nil
 }
 
 func (db *database) getNextAvailableIPv6(ctx context.Context) (string, error) {
