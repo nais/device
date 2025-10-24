@@ -150,9 +150,16 @@ func (h *Handler) grant(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
+	token := h.rc.GetJitaToken(req.Context())
+	if token == nil {
+		http.Error(w, "No token found. Make sure you open this page using the systray / cli.", http.StatusUnauthorized)
+		return
+	}
+
 	if err := h.rc.WithAPIServer(func(apiserver pb.APIServerClient, key string) error {
 		_, err := apiserver.GrantPrivilegedGatewayAccess(req.Context(), &pb.GrantPrivilegedGatewayAccessRequest{
 			SessionKey: key,
+			Token:      token.AccessToken,
 			NewPrivilegedGatewayAccess: &pb.NewPrivilegedGatewayAccess{
 				Gateway: gateway,
 				Expires: timestamppb.New(time.Now().Add(time.Hour * time.Duration(duration))),

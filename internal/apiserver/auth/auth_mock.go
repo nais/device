@@ -2,6 +2,7 @@ package auth
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"time"
 
@@ -22,6 +23,10 @@ func MockDevice() *pb.Device {
 
 type mockAuthenticator struct {
 	store SessionStore
+}
+
+func (g *mockAuthenticator) Validate(_ string) error {
+	return fmt.Errorf("unimplemented for mock auth")
 }
 
 func (m *mockAuthenticator) Login(ctx context.Context, _, _, _ string) (*pb.Session, error) {

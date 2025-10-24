@@ -80,18 +80,24 @@ type runtimeConfig struct {
 	tokens       *auth.Tokens
 	tenants      []*pb.Tenant
 	log          *logrus.Entry
-	jitaToken    *oauth2.Token
+
+	jitaToken     *oauth2.Token
+	jitaTokenLock sync.RWMutex
 
 	apiserverClient pb.APIServerClient
 	apiserverKey    string
 	apiserverLock   sync.RWMutex
 }
 
-func (rc *runtimeConfig) GetJitaToken(context.Context) *oauth2.Token {
+func (rc *runtimeConfig) GetJitaToken(ctx context.Context) *oauth2.Token {
+	rc.jitaTokenLock.RLock()
+	defer rc.jitaTokenLock.RUnlock()
 	return rc.jitaToken
 }
 
 func (rc *runtimeConfig) SetJitaToken(token *oauth2.Token) {
+	rc.jitaTokenLock.Lock()
+	defer rc.jitaTokenLock.Unlock()
 	rc.jitaToken = token // storing the access token
 }
 

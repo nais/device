@@ -25,6 +25,10 @@ func (a Azure) Issuer() string {
 	return fmt.Sprintf("https://login.microsoftonline.com/%s/v2.0", a.Tenant)
 }
 
+func (a Azure) jitaIssuer() string {
+	return fmt.Sprintf("https://sts.windows.net/%s/", a.Tenant)
+}
+
 func (a *Azure) SetupJwkSetAutoRefresh(ctx context.Context) error {
 	ar := jwk.NewAutoRefresh(ctx)
 	ar.Configure(a.JwksEndpoint(), jwk.WithMinRefreshInterval(time.Hour))
@@ -45,6 +49,17 @@ func (a *Azure) KeySetFrom(_ jwt.Token) (jwk.Set, error) {
 	defer cancel()
 
 	return a.jwkAutoRefresh.Fetch(ctx, a.JwksEndpoint())
+}
+
+func (a *Azure) JitaJwtOptions(clientID string) []jwt.ParseOption {
+	return []jwt.ParseOption{
+		jwt.WithValidate(true),
+		jwt.InferAlgorithmFromKey(true),
+		jwt.WithKeySetProvider(a),
+		jwt.WithAcceptableSkew(5 * time.Second),
+		jwt.WithIssuer(a.jitaIssuer()),
+		jwt.WithAudience(clientID),
+	}
 }
 
 func (a *Azure) JwtOptions() []jwt.ParseOption {

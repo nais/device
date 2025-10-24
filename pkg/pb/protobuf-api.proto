@@ -140,7 +140,6 @@ message GetSerialResponse {
 
 message ConfigureJITARequest {
   Gateway gateway = 1;
-  string token = 2;
 }
 
 message LoginRequest {}
@@ -397,6 +396,7 @@ message NewPrivilegedGatewayAccess {
 message GrantPrivilegedGatewayAccessRequest {
   string sessionKey = 1;
   NewPrivilegedGatewayAccess newPrivilegedGatewayAccess = 2;
+  string token = 3;
 }
 
 message GrantPrivilegedGatewayAccessResponse {}
