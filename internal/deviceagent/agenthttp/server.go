@@ -47,6 +47,8 @@ func (m *localMux) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 func Serve(listener net.Listener) error {
 	server := &http.Server{Handler: mux}
 	addr = listener.Addr().String()
+	addr = strings.Replace(addr, "127.0.0.1", "localhost", 1)
+	addr = strings.Replace(addr, "[::1]", "localhost", 1)
 	return server.Serve(listener)
 }
 
