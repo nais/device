@@ -1,124 +1,95 @@
 syntax = "proto3";
 
-option go_package = "github.com/nais/device/pkg/pb";
-
 package naisdevice;
 
 import "google/protobuf/timestamp.proto";
 
+option go_package = "github.com/nais/device/pkg/pb";
+
 service DeviceHelper {
   // Push and apply new VPN configuration.
-  rpc Configure (Configuration) returns (ConfigureResponse) {
-  }
+  rpc Configure(Configuration) returns (ConfigureResponse) {}
 
   // Delete VPN configuration and shut down connections.
-  rpc Teardown (TeardownRequest) returns (TeardownResponse) {
-  }
+  rpc Teardown(TeardownRequest) returns (TeardownResponse) {}
 
   // Install the newest version of naisdevice.
-  rpc Upgrade (UpgradeRequest) returns (UpgradeResponse) {
-  }
+  rpc Upgrade(UpgradeRequest) returns (UpgradeResponse) {}
 
-  rpc GetSerial (GetSerialRequest) returns (GetSerialResponse) {
-  }
+  rpc GetSerial(GetSerialRequest) returns (GetSerialResponse) {}
 
-  rpc Ping (PingRequest) returns (PingResponse) {
-  }
+  rpc Ping(PingRequest) returns (PingResponse) {}
 }
 
 service DeviceAgent {
   // DeviceAgent will stream all state changes on this endpoint.
   // Use Status() to continuously monitor the current Agent status.
-  rpc Status (AgentStatusRequest) returns (stream AgentStatus) {
-  }
+  rpc Status(AgentStatusRequest) returns (stream AgentStatus) {}
 
   // Open the JITA form in a web browser.
-  rpc ConfigureJITA (ConfigureJITARequest) returns (ConfigureJITAResponse) {
-  }
+  rpc ConfigureJITA(ConfigureJITARequest) returns (ConfigureJITAResponse) {}
 
   // Log in to API server, enabling access to protected resources.
-  rpc Login (LoginRequest) returns (LoginResponse) {
-  }
+  rpc Login(LoginRequest) returns (LoginResponse) {}
 
   // Log out of API server, shutting down all VPN connections.
-  rpc Logout (LogoutRequest) returns (LogoutResponse) {
-  }
+  rpc Logout(LogoutRequest) returns (LogoutResponse) {}
 
   // Set active tenant
-  rpc SetActiveTenant(SetActiveTenantRequest) returns (SetActiveTenantResponse) {
-  }
+  rpc SetActiveTenant(SetActiveTenantRequest) returns (SetActiveTenantResponse) {}
 
   // Set device agent configuration
-  rpc SetAgentConfiguration (SetAgentConfigurationRequest) returns (SetAgentConfigurationResponse) {
-  }
+  rpc SetAgentConfiguration(SetAgentConfigurationRequest) returns (SetAgentConfigurationResponse) {}
 
   // Get the current configuration for the device agent
-  rpc GetAgentConfiguration (GetAgentConfigurationRequest) returns (GetAgentConfigurationResponse) {
-  }
+  rpc GetAgentConfiguration(GetAgentConfigurationRequest) returns (GetAgentConfigurationResponse) {}
 
   // Show the acceptable use policy
-  rpc ShowAcceptableUse (ShowAcceptableUseRequest) returns (ShowAcceptableUseResponse) {
-  }
+  rpc ShowAcceptableUse(ShowAcceptableUseRequest) returns (ShowAcceptableUseResponse) {}
 
   // Show the jita page
-  rpc ShowJita (ShowJitaRequest) returns (ShowJitaResponse) {
-  }
+  rpc ShowJita(ShowJitaRequest) returns (ShowJitaResponse) {}
 }
 
 service APIServer {
   // Exchange an access token for a session
-  rpc Login (APIServerLoginRequest) returns (APIServerLoginResponse) {
-  }
+  rpc Login(APIServerLoginRequest) returns (APIServerLoginResponse) {}
 
   // Set up a client->server request for continuous streaming of new configuration
-  rpc GetDeviceConfiguration (GetDeviceConfigurationRequest) returns (stream GetDeviceConfigurationResponse) {
-  }
+  rpc GetDeviceConfiguration(GetDeviceConfigurationRequest) returns (stream GetDeviceConfigurationResponse) {}
 
   // Set up continuous streaming of new gateway configuration
-  rpc GetGatewayConfiguration (GetGatewayConfigurationRequest) returns (stream GetGatewayConfigurationResponse) {
-  }
+  rpc GetGatewayConfiguration(GetGatewayConfigurationRequest) returns (stream GetGatewayConfigurationResponse) {}
 
   // Admin endpoint for retrieving a single gateway
-  rpc GetGateway (ModifyGatewayRequest) returns (Gateway) {
-  }
+  rpc GetGateway(ModifyGatewayRequest) returns (Gateway) {}
 
   // Admin endpoint for listing out gateways registered in database
-  rpc ListGateways(ListGatewayRequest) returns (stream Gateway) {
-  }
+  rpc ListGateways(ListGatewayRequest) returns (stream Gateway) {}
 
   // Admin endpoint for adding gateway credentials to the database
-  rpc EnrollGateway (ModifyGatewayRequest) returns (ModifyGatewayResponse) {
-  }
+  rpc EnrollGateway(ModifyGatewayRequest) returns (ModifyGatewayResponse) {}
 
   // Admin endpoint for adding gateway credentials to the database
-  rpc UpdateGateway (ModifyGatewayRequest) returns (ModifyGatewayResponse) {
-  }
+  rpc UpdateGateway(ModifyGatewayRequest) returns (ModifyGatewayResponse) {}
 
   // Admin endpoint for reading sessions from the cache
-  rpc GetSessions (GetSessionsRequest) returns (GetSessionsResponse) {
-  }
+  rpc GetSessions(GetSessionsRequest) returns (GetSessionsResponse) {}
 
   // Admin endpoint for reading kolide cache
-  rpc GetKolideCache (GetKolideCacheRequest) returns (GetKolideCacheResponse) {
-  }
+  rpc GetKolideCache(GetKolideCacheRequest) returns (GetKolideCacheResponse) {}
 
-  rpc GetAcceptableUseAcceptedAt (GetAcceptableUseAcceptedAtRequest) returns (GetAcceptableUseAcceptedAtResponse) {
-  }
+  rpc GetAcceptableUseAcceptedAt(GetAcceptableUseAcceptedAtRequest) returns (GetAcceptableUseAcceptedAtResponse) {}
 
-  rpc SetAcceptableUseAccepted (SetAcceptableUseAcceptedRequest) returns (SetAcceptableUseAcceptedResponse) {
-  }
+  rpc SetAcceptableUseAccepted(SetAcceptableUseAcceptedRequest) returns (SetAcceptableUseAcceptedResponse) {}
 
-  rpc GetGatewayJitaGrantsForUser (GetGatewayJitaGrantsForUserRequest) returns (GetGatewayJitaGrantsForUserResponse) {
-  }
+  rpc GetGatewayJitaGrantsForUser(GetGatewayJitaGrantsForUserRequest) returns (GetGatewayJitaGrantsForUserResponse) {}
 
-  rpc UserHasAccessToPrivilegedGateway (UserHasAccessToPrivilegedGatewayRequest) returns (UserHasAccessToPrivilegedGatewayResponse) {
-  }
+  rpc UserHasAccessToPrivilegedGateway(UserHasAccessToPrivilegedGatewayRequest) returns (UserHasAccessToPrivilegedGatewayResponse) {}
 
-  rpc GrantPrivilegedGatewayAccess (GrantPrivilegedGatewayAccessRequest) returns (GrantPrivilegedGatewayAccessResponse) {
-  }
+  rpc GrantPrivilegedGatewayAccess(GrantPrivilegedGatewayAccessRequest) returns (GrantPrivilegedGatewayAccessResponse) {}
 
-  rpc RevokePrivilegedGatewayAccess (RevokePrivilegedGatewayAccessRequest) returns (RevokePrivilegedGatewayAccessResponse) {
-  }
+  rpc RevokePrivilegedGatewayAccess(RevokePrivilegedGatewayAccessRequest) returns (RevokePrivilegedGatewayAccessResponse) {}
 }
 
 enum AgentState {
@@ -145,42 +116,23 @@ enum DeviceConfigurationStatus {
   InvalidSession = 2;
 }
 
-message TeardownRequest {
+message TeardownRequest {}
 
-}
+message TeardownResponse {}
 
-message TeardownResponse {
+message ConfigureResponse {}
 
-}
+message ConfigureJITAResponse {}
 
-message ConfigureResponse {
+message LoginResponse {}
 
-}
+message LogoutResponse {}
 
+message UpgradeRequest {}
 
+message UpgradeResponse {}
 
-message ConfigureJITAResponse {
-
-}
-
-message LoginResponse {
-}
-
-message LogoutResponse {
-
-}
-
-message UpgradeRequest {
-
-}
-
-message UpgradeResponse {
-
-}
-
-message GetSerialRequest {
-
-}
+message GetSerialRequest {}
 
 message GetSerialResponse {
   string serial = 1;
@@ -188,37 +140,29 @@ message GetSerialResponse {
 
 message ConfigureJITARequest {
   Gateway gateway = 1;
+  string token = 2;
 }
 
-message LoginRequest {
-}
+message LoginRequest {}
 
-message LogoutRequest {
-
-}
+message LogoutRequest {}
 
 message SetAgentConfigurationRequest {
   AgentConfiguration config = 1;
 }
 
-message SetAgentConfigurationResponse {
-}
+message SetAgentConfigurationResponse {}
+message GetAgentConfigurationRequest {}
 
-message GetAgentConfigurationRequest {
-}
+message ShowAcceptableUseRequest {}
 
-message ShowAcceptableUseRequest {
-}
-
-message ShowAcceptableUseResponse {
-}
+message ShowAcceptableUseResponse {}
 
 message ShowJitaRequest {
   string Gateway = 1;
 }
 
-message ShowJitaResponse {
-}
+message ShowJitaResponse {}
 
 message GetAgentConfigurationResponse {
   AgentConfiguration config = 1;
@@ -234,7 +178,7 @@ message AgentStatus {
   bool newVersionAvailable = 3;
   repeated Gateway Gateways = 4;
   repeated Tenant Tenants = 5;
-	repeated DeviceIssue Issues = 6;
+  repeated DeviceIssue Issues = 6;
 }
 
 message Configuration {
@@ -276,8 +220,7 @@ message SetActiveTenantRequest {
   string name = 1;
 }
 
-message SetActiveTenantResponse{
-}
+message SetActiveTenantResponse {}
 
 enum AuthProvider {
   Azure = 0;
@@ -330,7 +273,7 @@ message APIServerLoginResponse {
 message GetDeviceConfigurationResponse {
   DeviceConfigurationStatus status = 1;
   repeated Gateway Gateways = 2;
-	repeated DeviceIssue issues = 3;
+  repeated DeviceIssue issues = 3;
 }
 
 enum Severity {
@@ -342,12 +285,12 @@ enum Severity {
 }
 
 message DeviceIssue {
-	string title = 1;
-	string message = 2;
-	Severity severity = 3;
-	google.protobuf.Timestamp detectedAt = 4;
-	google.protobuf.Timestamp lastUpdated = 5;
-	google.protobuf.Timestamp resolveBefore = 6;
+  string title = 1;
+  string message = 2;
+  Severity severity = 3;
+  google.protobuf.Timestamp detectedAt = 4;
+  google.protobuf.Timestamp lastUpdated = 5;
+  google.protobuf.Timestamp resolveBefore = 6;
 }
 
 message ListGatewayRequest {
@@ -383,19 +326,17 @@ message Session {
   string objectID = 5;
 }
 
-message GetSessionsRequest{
+message GetSessionsRequest {
   string password = 1;
   string username = 2;
 }
 
-message GetSessionsResponse{
+message GetSessionsResponse {
   repeated Session sessions = 1;
 }
 
-message PingRequest {
-}
-message PingResponse {
-}
+message PingRequest {}
+message PingResponse {}
 
 message GetKolideCacheRequest {
   string password = 1;
@@ -403,7 +344,7 @@ message GetKolideCacheRequest {
 }
 
 message GetKolideCacheResponse {
-	bytes rawChecks = 99;
+  bytes rawChecks = 99;
 }
 
 message GetAcceptableUseAcceptedAtRequest {
@@ -419,8 +360,7 @@ message SetAcceptableUseAcceptedRequest {
   bool accepted = 2;
 }
 
-message SetAcceptableUseAcceptedResponse {
-}
+message SetAcceptableUseAcceptedResponse {}
 
 message GatewayJitaGrant {
   int64 id = 1;
