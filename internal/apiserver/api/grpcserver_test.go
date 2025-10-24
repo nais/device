@@ -50,8 +50,8 @@ func TestGetDeviceConfiguration(t *testing.T) {
 			Device: testDevice,
 		}, nil)
 	db.EXPECT().GetAcceptedAt(mock.Anything, mock.Anything).Return(timestamppb.Now(), nil)
-	db.On("ReadDeviceById", mock.Anything, mock.Anything).Return(testDevice, nil)
-	db.On("ReadGateways", mock.Anything).Return([]*pb.Gateway{
+	db.EXPECT().ReadDeviceByID(mock.Anything, mock.Anything).Return(testDevice, nil)
+	db.EXPECT().ReadGateways(mock.Anything).Return([]*pb.Gateway{
 		{
 			Endpoint:       "1.2.3.4:56789",
 			PublicKey:      "publicKey",
