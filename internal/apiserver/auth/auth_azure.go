@@ -23,6 +23,8 @@ type azureAuth struct {
 	log   logrus.FieldLogger
 }
 
+const JITAClientID = "8b625469-1988-4adf-b02f-115315596ab8"
+
 func NewAuthenticator(azureConfig *auth.Azure, db database.Database, store SessionStore, log logrus.FieldLogger) Authenticator {
 	return &azureAuth{
 		db:    db,
@@ -30,6 +32,14 @@ func NewAuthenticator(azureConfig *auth.Azure, db database.Database, store Sessi
 		Azure: azureConfig,
 		log:   log,
 	}
+}
+
+func (s *azureAuth) Validate(token string) error {
+	_, err := jwt.ParseString(token, s.Azure.JitaJwtOptions(JITAClientID)...)
+	if err != nil {
+		return &ParseTokenError{err}
+	}
+	return nil
 }
 
 func (s *azureAuth) Login(ctx context.Context, token, serial, platform string) (*pb.Session, error) {

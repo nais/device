@@ -610,7 +610,6 @@ func (x *GetSerialResponse) GetSerial() string {
 type ConfigureJITARequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Gateway       *Gateway               `protobuf:"bytes,1,opt,name=gateway,proto3" json:"gateway,omitempty"`
-	Token         string                 `protobuf:"bytes,2,opt,name=token,proto3" json:"token,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -650,13 +649,6 @@ func (x *ConfigureJITARequest) GetGateway() *Gateway {
 		return x.Gateway
 	}
 	return nil
-}
-
-func (x *ConfigureJITARequest) GetToken() string {
-	if x != nil {
-		return x.Token
-	}
-	return ""
 }
 
 type LoginRequest struct {
@@ -3155,6 +3147,7 @@ type GrantPrivilegedGatewayAccessRequest struct {
 	state                      protoimpl.MessageState      `protogen:"open.v1"`
 	SessionKey                 string                      `protobuf:"bytes,1,opt,name=sessionKey,proto3" json:"sessionKey,omitempty"`
 	NewPrivilegedGatewayAccess *NewPrivilegedGatewayAccess `protobuf:"bytes,2,opt,name=newPrivilegedGatewayAccess,proto3" json:"newPrivilegedGatewayAccess,omitempty"`
+	Token                      string                      `protobuf:"bytes,3,opt,name=token,proto3" json:"token,omitempty"`
 	unknownFields              protoimpl.UnknownFields
 	sizeCache                  protoimpl.SizeCache
 }
@@ -3201,6 +3194,13 @@ func (x *GrantPrivilegedGatewayAccessRequest) GetNewPrivilegedGatewayAccess() *N
 		return x.NewPrivilegedGatewayAccess
 	}
 	return nil
+}
+
+func (x *GrantPrivilegedGatewayAccessRequest) GetToken() string {
+	if x != nil {
+		return x.Token
+	}
+	return ""
 }
 
 type GrantPrivilegedGatewayAccessResponse struct {
@@ -3343,10 +3343,9 @@ const file_pkg_pb_protobuf_api_proto_rawDesc = "" +
 	"\x0fUpgradeResponse\"\x12\n" +
 	"\x10GetSerialRequest\"+\n" +
 	"\x11GetSerialResponse\x12\x16\n" +
-	"\x06serial\x18\x01 \x01(\tR\x06serial\"[\n" +
+	"\x06serial\x18\x01 \x01(\tR\x06serial\"E\n" +
 	"\x14ConfigureJITARequest\x12-\n" +
-	"\agateway\x18\x01 \x01(\v2\x13.naisdevice.GatewayR\agateway\x12\x14\n" +
-	"\x05token\x18\x02 \x01(\tR\x05token\"\x0e\n" +
+	"\agateway\x18\x01 \x01(\v2\x13.naisdevice.GatewayR\agateway\"\x0e\n" +
 	"\fLoginRequest\"\x0f\n" +
 	"\rLogoutRequest\"V\n" +
 	"\x1cSetAgentConfigurationRequest\x126\n" +
@@ -3525,12 +3524,13 @@ const file_pkg_pb_protobuf_api_proto_rawDesc = "" +
 	"\x1aNewPrivilegedGatewayAccess\x12\x18\n" +
 	"\agateway\x18\x01 \x01(\tR\agateway\x124\n" +
 	"\aexpires\x18\x02 \x01(\v2\x1a.google.protobuf.TimestampR\aexpires\x12\x16\n" +
-	"\x06reason\x18\x03 \x01(\tR\x06reason\"\xad\x01\n" +
+	"\x06reason\x18\x03 \x01(\tR\x06reason\"\xc3\x01\n" +
 	"#GrantPrivilegedGatewayAccessRequest\x12\x1e\n" +
 	"\n" +
 	"sessionKey\x18\x01 \x01(\tR\n" +
 	"sessionKey\x12f\n" +
-	"\x1anewPrivilegedGatewayAccess\x18\x02 \x01(\v2&.naisdevice.NewPrivilegedGatewayAccessR\x1anewPrivilegedGatewayAccess\"&\n" +
+	"\x1anewPrivilegedGatewayAccess\x18\x02 \x01(\v2&.naisdevice.NewPrivilegedGatewayAccessR\x1anewPrivilegedGatewayAccess\x12\x14\n" +
+	"\x05token\x18\x03 \x01(\tR\x05token\"&\n" +
 	"$GrantPrivilegedGatewayAccessResponse\"`\n" +
 	"$RevokePrivilegedGatewayAccessRequest\x12\x1e\n" +
 	"\n" +

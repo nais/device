@@ -27,6 +27,10 @@ func NewGoogleAuthenticator(googleConfig *auth.Google, db database.Database, sto
 	}
 }
 
+func (g *googleAuth) Validate(_ string) error {
+	return fmt.Errorf("unimplemented for google auth")
+}
+
 func (g *googleAuth) Login(ctx context.Context, token, serial, platform string) (*pb.Session, error) {
 	user, err := g.google.ParseAndValidateToken(token)
 	if err != nil {

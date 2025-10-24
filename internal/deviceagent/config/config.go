@@ -72,7 +72,11 @@ func DefaultConfig() (*Config, error) {
 		},
 		JitaOAuth2Config: oauth2.Config{
 			ClientID: "8b625469-1988-4adf-b02f-115315596ab8",
-			Scopes:   []string{".default"},
+			Scopes: []string{
+				"openid",
+				"8b625469-1988-4adf-b02f-115315596ab8/.default",
+				"offline_access",
+			},
 			Endpoint: endpoints.AzureAD("62366534-1ec3-4962-8869-9b5535279d0b"),
 		},
 		GoogleOAuth2Config: oauth2.Config{

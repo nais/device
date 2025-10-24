@@ -37,8 +37,8 @@ elif [[ $auth == "azure" ]]; then
 	)
 	tags=""
 else
-  echo "Unknown auth provider: $auth"
-  exit 1
+	echo "Unknown auth provider: $auth"
+	exit 1
 fi
 
 # shellcheck disable=SC2116
@@ -57,7 +57,7 @@ window_id="${session_id}:${window_name}"
 declare -A panes=(
 	[apiserver]="go run ./cmd/apiserver"
 	[enroller]="go run ./cmd/enroller"
-	[deviceagent]="go run $tags ./cmd/naisdevice-agent --no-helper --custom-enroll-url 'http://localhost:8080/enroll'"
+	[deviceagent]="go run $tags ./cmd/naisdevice-agent --no-helper --custom-enroll-url 'http://localhost:8080/enroll' --log-level debug"
 	[systray]="go run $tags ./cmd/naisdevice-systray --autostart-agent=false"
 )
 
@@ -67,8 +67,6 @@ for pane in "${!panes[@]}"; do
 	tmux select-layout -t "$window_id" even-vertical
 	tmux select-pane -T "$cmd"
 done
-
-
 
 tmux set -w -t "$window_id" pane-border-status top
 tmux set -w -t "$window_id" pane-border-format "#{pane_index} #{pane_title}"
