@@ -3,7 +3,7 @@ package pb
 // see time.Format for format documentation, equals %H:%M:%S
 const timeFormat = "15:04:05"
 
-// Human-friendly connection status
+// ConnectionStateString returns a  human-friendly connection status
 func (x *AgentStatus) ConnectionStateString() string {
 	switch x.ConnectionState {
 	case AgentState_Bootstrapping:

@@ -30,7 +30,7 @@ func RandomString(n int, letters string) string {
 	buf.Grow(n)
 	l := uint32(len(letterRunes))
 	// on each loop, generate one random rune and append to output
-	for i := 0; i < n; i++ {
+	for range n {
 		buf.WriteRune(letterRunes[binary.BigEndian.Uint32(Bytes(4))%l])
 	}
 	return buf.String()

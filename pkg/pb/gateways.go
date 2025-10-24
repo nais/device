@@ -23,8 +23,7 @@ func MergeGatewayHealth(existingGateways []*Gateway, newGateways []*Gateway) []*
 	return updatedGateways
 }
 
-// Satisfy WireGuard interface.
-// IP addresses routed by a gateway includes configured routes plus the gateway itself.
+// GetAllowedIPs returns the IP addresses routed by a gateway, including configured routes plus the gateway itself.
 func (x *Gateway) GetAllowedIPs() []string {
 	ips := append(x.GetRoutesIPv4(), x.GetIpv4()+"/32")
 	if x.GetIpv6() != "" {
@@ -34,23 +33,23 @@ func (x *Gateway) GetAllowedIPs() []string {
 	return ips
 }
 
-func (d *Gateway) Equal(other *Gateway) bool {
-	if d == other {
+func (x *Gateway) Equal(other *Gateway) bool {
+	if x == other {
 		return true
 	}
 
-	if d == nil || other == nil {
+	if x == nil || other == nil {
 		return false
 	}
 
-	return d.GetName() == other.GetName() &&
-		d.GetIpv4() == other.GetIpv4() &&
-		d.GetIpv6() == other.GetIpv6() &&
-		d.GetEndpoint() == other.GetEndpoint() &&
-		d.GetPublicKey() == other.GetPublicKey() &&
-		d.GetRequiresPrivilegedAccess() == other.GetRequiresPrivilegedAccess() &&
-		slices.Equal(d.GetRoutesIPv4(), other.GetRoutesIPv4()) &&
-		slices.Equal(d.GetRoutesIPv6(), other.GetRoutesIPv6()) &&
-		slices.Equal(d.GetAllowedIPs(), other.GetAllowedIPs()) &&
-		slices.Equal(d.GetAccessGroupIDs(), other.GetAccessGroupIDs())
+	return x.GetName() == other.GetName() &&
+		x.GetIpv4() == other.GetIpv4() &&
+		x.GetIpv6() == other.GetIpv6() &&
+		x.GetEndpoint() == other.GetEndpoint() &&
+		x.GetPublicKey() == other.GetPublicKey() &&
+		x.GetRequiresPrivilegedAccess() == other.GetRequiresPrivilegedAccess() &&
+		slices.Equal(x.GetRoutesIPv4(), other.GetRoutesIPv4()) &&
+		slices.Equal(x.GetRoutesIPv6(), other.GetRoutesIPv6()) &&
+		slices.Equal(x.GetAllowedIPs(), other.GetAllowedIPs()) &&
+		slices.Equal(x.GetAccessGroupIDs(), other.GetAccessGroupIDs())
 }

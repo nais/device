@@ -7,7 +7,7 @@ import (
 	"io"
 	"os"
 
-	"github.com/nais/device/internal/device-agent/wireguard"
+	"github.com/nais/device/internal/deviceagent/wireguard"
 	"github.com/nais/device/internal/passwordhash"
 	"github.com/nais/device/pkg/pb"
 	"github.com/urfave/cli/v2"

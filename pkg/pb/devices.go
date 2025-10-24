@@ -8,14 +8,12 @@ import (
 	timestamppb "google.golang.org/protobuf/types/known/timestamppb"
 )
 
-// Satisfy WireGuard interface.
-// This value is written to the config file as a comment, so we put in the serial of the device in order to identify it.
+// GetName is written to the config file as a comment, so we put in the serial of the device in order to identify it.
 func (x *Device) GetName() string {
 	return x.GetSerial()
 }
 
-// Satisfy WireGuard interface.
-// This field contains the private IP addresses of a device.
+// GetAllowedIPs returns the private IP addresses of a device.
 func (x *Device) GetAllowedIPs() []string {
 	ips := []string{x.GetIpv4() + "/32"}
 	if x.GetIpv6() != "" {
@@ -24,8 +22,7 @@ func (x *Device) GetAllowedIPs() []string {
 	return ips
 }
 
-// Satisfy WireGuard interface.
-// Endpoints are not used when configuring gateway and api server; connections are initiated from the client.
+// GetEndpoint does not return anything for devices, as they have no known endpoints.
 func (x *Device) GetEndpoint() string {
 	return ""
 }
