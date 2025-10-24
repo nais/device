@@ -68,8 +68,12 @@ func run(ctx context.Context, notifier notify.Notifier) error {
 		LogLevel:           logrus.InfoLevel.String(),
 		BlackAndWhiteIcons: false,
 	}
-	cfg.Populate()
-	cfg.Persist()
+	if err := cfg.Populate(); err != nil {
+		log.WithError(err).Warn("populate config from file")
+	}
+	if err := cfg.Persist(); err != nil {
+		log.WithError(err).Warn("persist config to file")
+	}
 
 	autoStartAgent := true
 	flag.StringVar(&cfg.LogLevel, "log-level", cfg.LogLevel, "which log level to output")

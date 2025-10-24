@@ -10,6 +10,7 @@ import (
 	"github.com/nais/device/internal/apiserver/api"
 	"github.com/nais/device/internal/apiserver/auth"
 	"github.com/nais/device/internal/apiserver/database"
+	"github.com/nais/device/internal/ioconvenience"
 	"github.com/nais/device/pkg/pb"
 	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
@@ -153,7 +154,7 @@ func Test_GetDeviceConfiguration(t *testing.T) {
 			}
 
 			db := database.NewMockDatabase(t)
-			db.EXPECT().ReadDeviceById(mock.Anything, int64(123)).Return(mockDevice, nil).Once()
+			db.EXPECT().ReadDeviceByID(mock.Anything, int64(123)).Return(mockDevice, nil).Once()
 			if tt.in.kolideEnabled {
 				if tt.in.termsAccepted {
 					db.EXPECT().GetAcceptedAt(mock.Anything, "sessionUserId").Return(timestamppb.Now(), nil).Once()
@@ -181,7 +182,7 @@ func Test_GetDeviceConfiguration(t *testing.T) {
 				grpc.WithTransportCredentials(insecure.NewCredentials()),
 			)
 			assert.NoError(t, err)
-			defer conn.Close()
+			defer ioconvenience.CloseWithLog(log, conn)
 
 			client := pb.NewAPIServerClient(conn)
 
