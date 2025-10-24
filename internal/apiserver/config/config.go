@@ -27,7 +27,7 @@ type Config struct {
 	GatewayConfigBucketObjectName     string
 	Google                            *auth.Google
 	KolideIntegrationEnabled          bool
-	KolideApiToken                    string
+	KolideAPIToken                    string
 	KolideEventHandlerAddress         string
 	KolideEventHandlerEnabled         bool
 	KolideEventHandlerToken           string

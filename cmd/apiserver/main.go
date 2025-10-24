@@ -201,12 +201,12 @@ func run(log *logrus.Entry, cfg config.Config) error {
 
 	var kolideClient kolide.Client
 	if cfg.KolideIntegrationEnabled {
-		if cfg.KolideApiToken == "" {
+		if cfg.KolideAPIToken == "" {
 			return fmt.Errorf("kolide integration enabled but no kolide-api-token provided")
 		}
 
 		log := log.WithField("component", "kolide-client")
-		kolideClient = kolide.New(cfg.KolideApiToken, log)
+		kolideClient = kolide.New(cfg.KolideAPIToken, log)
 	}
 
 	if cfg.AutoEnrollEnabled {

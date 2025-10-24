@@ -19,14 +19,14 @@ import (
 //	<- notifier.Connect()
 //	<- notifier.Disconnect()
 type ConnectionNotifier struct {
-	connect    chan interface{}
-	disconnect chan interface{}
+	connect    chan any
+	disconnect chan any
 }
 
 func NewConnectionNotifier() *ConnectionNotifier {
 	return &ConnectionNotifier{
-		connect:    make(chan interface{}, 16),
-		disconnect: make(chan interface{}, 16),
+		connect:    make(chan any, 16),
+		disconnect: make(chan any, 16),
 	}
 }
 
@@ -43,16 +43,16 @@ func (h *ConnectionNotifier) TagConn(ctx context.Context, info *stats.ConnTagInf
 func (h *ConnectionNotifier) HandleConn(ctx context.Context, s stats.ConnStats) {
 	switch s.(type) {
 	case *stats.ConnBegin:
-		h.connect <- new(interface{})
+		h.connect <- new(any)
 	case *stats.ConnEnd:
-		h.disconnect <- new(interface{})
+		h.disconnect <- new(any)
 	}
 }
 
-func (h *ConnectionNotifier) Connect() <-chan interface{} {
+func (h *ConnectionNotifier) Connect() <-chan any {
 	return h.connect
 }
 
-func (h *ConnectionNotifier) Disconnect() <-chan interface{} {
+func (h *ConnectionNotifier) Disconnect() <-chan any {
 	return h.disconnect
 }

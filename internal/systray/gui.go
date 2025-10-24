@@ -17,7 +17,7 @@ import (
 	"github.com/nais/device/internal/otel"
 
 	"github.com/nais/device/assets/icon/tray"
-	"github.com/nais/device/internal/device-agent/open"
+	"github.com/nais/device/internal/deviceagent/open"
 	"github.com/nais/device/internal/notify"
 	"github.com/nais/device/internal/version"
 	"github.com/nais/device/pkg/pb"

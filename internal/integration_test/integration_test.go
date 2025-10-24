@@ -9,7 +9,7 @@ import (
 	"time"
 
 	"github.com/nais/device/internal/apiserver/kolide"
-	"github.com/nais/device/internal/device-agent/runtimeconfig"
+	"github.com/nais/device/internal/deviceagent/runtimeconfig"
 	"github.com/nais/device/internal/helper"
 	"github.com/nais/device/internal/wireguard"
 	"github.com/nais/device/pkg/pb"
@@ -541,13 +541,11 @@ func bufconnDialer(listener *bufconn.Listener) func(context.Context, string) (ne
 
 func serve(t *testing.T, server *grpc.Server, wg *sync.WaitGroup) (*bufconn.Listener, func()) {
 	lis := bufconn.Listen(1024 * 1024)
-	wg.Add(1)
-	go func() {
+	wg.Go(func() {
 		if err := server.Serve(lis); err != nil {
 			t.Logf("grpc serve error: %v", err)
 		}
-		wg.Done()
-	}()
+	})
 
 	return lis, server.Stop
 }

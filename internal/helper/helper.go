@@ -18,7 +18,7 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
-	"github.com/nais/device/internal/device-agent/wireguard"
+	"github.com/nais/device/internal/deviceagent/wireguard"
 	"github.com/nais/device/pkg/pb"
 )
 
@@ -90,7 +90,7 @@ func (dhs *DeviceHelperServer) Configure(
 	}
 
 	var loopErr error
-	for attempt := 0; attempt < 5; attempt++ {
+	for attempt := range 5 {
 		loopErr = dhs.osConfigurator.SyncConf(ctx, cfg)
 		if loopErr != nil {
 			backoff := time.Duration(attempt) * time.Second
@@ -147,11 +147,11 @@ func (dhs *DeviceHelperServer) GetSerial(
 	context.Context,
 	*pb.GetSerialRequest,
 ) (*pb.GetSerialResponse, error) {
-	device_serial, err := serial.GetDeviceSerial()
+	deviceSerial, err := serial.GetDeviceSerial()
 	if err != nil {
 		return nil, err
 	}
-	return &pb.GetSerialResponse{Serial: device_serial}, nil
+	return &pb.GetSerialResponse{Serial: deviceSerial}, nil
 }
 
 func (dhs *DeviceHelperServer) Ping(
