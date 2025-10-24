@@ -74,13 +74,13 @@ func (h *handler) GetDeviceAgentToken(ctx context.Context, log logrus.FieldLogge
 	h.codeVerifier, _ = codeverifier.CreateCodeVerifier()
 	h.state = random.RandomString(16, random.LettersAndNumbers)
 	h.oauthConfig = oauthConfig
+	h.redirect = redirect
 
 	if h.oauthConfig.Endpoint == endpoints.AzureAD("62366534-1ec3-4962-8869-9b5535279d0b") {
 		h.oauthConfig.RedirectURL = agenthttp.Path("/auth/azure", false)
 	} else if h.oauthConfig.Endpoint == endpoints.Google {
 		h.oauthConfig.RedirectURL = agenthttp.Path("/auth/google", false)
 	}
-	h.redirect = redirect
 
 	url := h.oauthConfig.AuthCodeURL(
 		h.state,
