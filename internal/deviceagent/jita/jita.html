@@ -58,7 +58,7 @@
     </noscript>
   </div>
 
-  <button type="submit">Grant access</button>
+  <input type="submit" value="Grant access">
 </form>
 {{ end }} {{ if .Grants }}
 <h2>Audit log</h2>
@@ -98,7 +98,7 @@
             name="gatewayToRevoke"
             value="{{ $grant.Gateway }}"
           />
-          <button type="submit">Revoke</button>
+          <input type="submit" value="Revoke">
         </form>
         {{ end }}
       </td>
