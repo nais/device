@@ -57,8 +57,8 @@ func (db *database) GrantPrivilegedGatewayAccess(ctx context.Context, userID, ga
 	return db.queries.GrantPrivilegedGatewayAccess(ctx, sqlc.GrantPrivilegedGatewayAccessParams{
 		UserID:      userID,
 		GatewayName: gatewayName,
-		Created:     time.Now().Format(formats.TimeFormat),
-		Expires:     expires.Format(formats.TimeFormat),
+		Created:     time.Now().UTC().Format(formats.TimeFormat),
+		Expires:     expires.UTC().Format(formats.TimeFormat),
 		Reason:      reason,
 	})
 }
@@ -66,7 +66,7 @@ func (db *database) GrantPrivilegedGatewayAccess(ctx context.Context, userID, ga
 func (db *database) RevokePrivilegedGatewayAccess(ctx context.Context, userID, gatewayName string) error {
 	return db.queries.RevokePrivilegedGatewayAccess(ctx, sqlc.RevokePrivilegedGatewayAccessParams{
 		Revoked: sql.NullString{
-			String: time.Now().Format(formats.TimeFormat),
+			String: time.Now().UTC().Format(formats.TimeFormat),
 			Valid:  true,
 		},
 		UserID:      userID,
