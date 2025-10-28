@@ -65,8 +65,9 @@ func Credentials(entries []string) (map[string]string, error) {
 func DefaultConfig() Config {
 	return Config{
 		Azure: &auth.Azure{
-			ClientID: "6e45010d-2637-4a40-b91d-d4cbb451fb57",
-			Tenant:   "62366534-1ec3-4962-8869-9b5535279d0b",
+			ClientID:     "6e45010d-2637-4a40-b91d-d4cbb451fb57",
+			JitaClientID: "8b625469-1988-4adf-b02f-115315596ab8",
+			Tenant:       "62366534-1ec3-4962-8869-9b5535279d0b",
 		},
 		Google: &auth.Google{
 			ClientID: "955023559628-g51n36t4icbd6lq7ils4r0ol9oo8kpk0.apps.googleusercontent.com",

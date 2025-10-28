@@ -11,14 +11,20 @@ import (
 )
 
 type Azure struct {
-	ClientID       string
-	Tenant         string
-	jwkAutoRefresh *jwk.AutoRefresh
-	ctx            context.Context
+	ClientID           string
+	JitaClientID       string
+	Tenant             string
+	jwkAutoRefresh     *jwk.AutoRefresh
+	jitaJwkAutoRefresh *jwk.AutoRefresh
+	ctx                context.Context
 }
 
 func (a Azure) JwksEndpoint() string {
 	return fmt.Sprintf("https://login.microsoftonline.com/%s/discovery/keys", a.Tenant)
+}
+
+func (a Azure) JitaJwksEndpoint() string {
+	return fmt.Sprintf("https://login.microsoftonline.com/%s/discovery/keys?appid=%s", a.Tenant, a.JitaClientID)
 }
 
 func (a Azure) Issuer() string {
@@ -30,6 +36,8 @@ func (a Azure) jitaIssuer() string {
 }
 
 func (a *Azure) SetupJwkSetAutoRefresh(ctx context.Context) error {
+	a.ctx = ctx
+
 	ar := jwk.NewAutoRefresh(ctx)
 	ar.Configure(a.JwksEndpoint(), jwk.WithMinRefreshInterval(time.Hour))
 
@@ -39,8 +47,23 @@ func (a *Azure) SetupJwkSetAutoRefresh(ctx context.Context) error {
 		return fmt.Errorf("fetch jwks: %w", err)
 	}
 
-	a.ctx = ctx
 	a.jwkAutoRefresh = ar
+	return nil
+}
+
+func (a *Azure) SetupJitaJwkSetAutoRefresh(ctx context.Context) error {
+	a.ctx = ctx
+
+	ar := jwk.NewAutoRefresh(ctx)
+	ar.Configure(a.JitaJwksEndpoint(), jwk.WithMinRefreshInterval(time.Hour))
+
+	// trigger initial token fetch
+	_, err := ar.Refresh(ctx, a.JitaJwksEndpoint())
+	if err != nil {
+		return fmt.Errorf("fetch jwks: %w", err)
+	}
+
+	a.jitaJwkAutoRefresh = ar
 	return nil
 }
 
@@ -51,11 +74,22 @@ func (a *Azure) KeySetFrom(_ jwt.Token) (jwk.Set, error) {
 	return a.jwkAutoRefresh.Fetch(ctx, a.JwksEndpoint())
 }
 
+type jita struct {
+	a *Azure
+}
+
+func (j *jita) KeySetFrom(_ jwt.Token) (jwk.Set, error) {
+	ctx, cancel := context.WithTimeout(j.a.ctx, 10*time.Second)
+	defer cancel()
+
+	return j.a.jitaJwkAutoRefresh.Fetch(ctx, j.a.JitaJwksEndpoint())
+}
+
 func (a *Azure) JitaJwtOptions(clientID string) []jwt.ParseOption {
 	return []jwt.ParseOption{
 		jwt.WithValidate(true),
 		jwt.InferAlgorithmFromKey(true),
-		jwt.WithKeySetProvider(a),
+		jwt.WithKeySetProvider(&jita{a: a}),
 		jwt.WithAcceptableSkew(5 * time.Second),
 		jwt.WithIssuer(a.jitaIssuer()),
 		jwt.WithAudience(clientID),
