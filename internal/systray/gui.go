@@ -215,9 +215,11 @@ func (gui *Gui) handleButtonClicks(ctx context.Context) {
 		case <-gui.MenuItems.ZipLog.ClickedCh:
 			gui.Events <- ZipLogsClicked
 		case name := <-gui.PrivilegedGatewayClicked:
-			if _, err := gui.DeviceAgentClient.ShowJita(ctx, &pb.ShowJitaRequest{Gateway: name}); err != nil {
-				gui.log.WithError(err).Error("while showing jita")
-			}
+			go func() {
+				if _, err := gui.DeviceAgentClient.ShowJita(ctx, &pb.ShowJitaRequest{Gateway: name}); err != nil {
+					gui.log.WithError(err).Error("while showing jita")
+				}
+			}()
 		case name := <-gui.TenantItemClicked:
 			gui.activateTenant(ctx, name)
 		case <-gui.MenuItems.AcceptableUse.ClickedCh:
