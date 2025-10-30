@@ -9,6 +9,8 @@ import (
 
 	"github.com/kelseyhightower/envconfig"
 	"github.com/nais/device/internal/auth"
+	"github.com/nais/device/internal/auth/azure"
+	"github.com/nais/device/internal/auth/google"
 	"github.com/nais/device/internal/enroll"
 	"github.com/nais/device/internal/program"
 	"github.com/sirupsen/logrus"
@@ -16,21 +18,16 @@ import (
 
 type Config struct {
 	AzureEnabled    bool
-	Azure           *auth.Azure
+	Azure           auth.Config
 	GoogleEnabled   bool
-	Google          *auth.Google
+	Google          auth.Config
 	LocalListenAddr string
 }
 
 func main() {
 	cfg := Config{
-		Azure: &auth.Azure{
-			ClientID: "6e45010d-2637-4a40-b91d-d4cbb451fb57",
-			Tenant:   "62366534-1ec3-4962-8869-9b5535279d0b",
-		},
-		Google: &auth.Google{
-			ClientID: "955023559628-g51n36t4icbd6lq7ils4r0ol9oo8kpk0.apps.googleusercontent.com",
-		},
+		Azure:           azure.APIServerConfig,
+		Google:          google.APIServerConfig,
 		LocalListenAddr: "",
 	}
 
@@ -121,19 +118,9 @@ func makeWorker(cfg Config, ctx context.Context, log *logrus.Entry) (enroll.Work
 
 func makeTokenValidator(ctx context.Context, cfg Config, log *logrus.Entry) (auth.TokenValidator, error) {
 	if cfg.AzureEnabled {
-		err := cfg.Azure.SetupJwkSetAutoRefresh(ctx)
-		if err != nil {
-			return nil, fmt.Errorf("fetch Azure certs: %w", err)
-		}
-
-		return cfg.Azure.TokenValidatorMiddleware(), nil
+		return auth.Middleware(azure.New(ctx, cfg.Azure)), nil
 	} else if cfg.GoogleEnabled {
-		err := cfg.Google.SetupJwkSetAutoRefresh(ctx)
-		if err != nil {
-			return nil, fmt.Errorf("fetch Google certs: %w", err)
-		}
-
-		return cfg.Google.TokenValidatorMiddleware(), nil
+		return auth.Middleware(google.New(ctx, cfg.Google)), nil
 	} else {
 		log.Warn("AUTH DISABLED, this should NOT run in production")
 		return auth.MockTokenValidator(), nil

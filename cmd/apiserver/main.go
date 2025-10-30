@@ -14,7 +14,7 @@ import (
 
 	"github.com/kelseyhightower/envconfig"
 	"github.com/nais/device/internal/apiserver/api"
-	"github.com/nais/device/internal/apiserver/auth"
+	apiauth "github.com/nais/device/internal/apiserver/auth"
 	"github.com/nais/device/internal/apiserver/bucket"
 	"github.com/nais/device/internal/apiserver/config"
 	"github.com/nais/device/internal/apiserver/database"
@@ -23,6 +23,9 @@ import (
 	"github.com/nais/device/internal/apiserver/ip"
 	"github.com/nais/device/internal/apiserver/kolide"
 	"github.com/nais/device/internal/apiserver/metrics"
+	"github.com/nais/device/internal/auth"
+	"github.com/nais/device/internal/auth/azure"
+	"github.com/nais/device/internal/auth/google"
 	"github.com/nais/device/internal/logger"
 	"github.com/nais/device/internal/otel"
 	"github.com/nais/device/internal/program"
@@ -75,10 +78,10 @@ func main() {
 }
 
 func run(log *logrus.Entry, cfg config.Config) error {
-	var authenticator auth.Authenticator
-	var adminAuthenticator auth.UsernamePasswordAuthenticator
-	var gatewayAuthenticator auth.UsernamePasswordAuthenticator
-	var prometheusAuthenticator auth.UsernamePasswordAuthenticator
+	var authenticator apiauth.Authenticator
+	var adminAuthenticator apiauth.UsernamePasswordAuthenticator
+	var gatewayAuthenticator apiauth.UsernamePasswordAuthenticator
+	var prometheusAuthenticator apiauth.UsernamePasswordAuthenticator
 
 	ctx, cancel := program.MainContext(1 * time.Second)
 	defer cancel()
@@ -119,38 +122,28 @@ func run(log *logrus.Entry, cfg config.Config) error {
 
 	log.Info("loading user sessions from database...")
 
-	sessions := auth.NewSessionStore(db)
+	sessions := apiauth.NewSessionStore(db)
 	err = sessions.Warmup(ctx)
 	if err != nil {
 		return fmt.Errorf("warm session cache from database: %w", err)
 	}
 
+	var tokenParser auth.TokenParser
+	var jitaParser auth.TokenParser
 	switch cfg.DeviceAuthenticationProvider {
 	case "azure":
 		log.Info("fetching Azure OIDC configuration...")
-		err = cfg.Azure.SetupJwkSetAutoRefresh(ctx)
-		if err != nil {
-			return fmt.Errorf("fetch Azure jwks: %w", err)
-		}
+		tokenParser = azure.New(ctx, cfg.Azure)
+		jitaParser = azure.New(ctx, cfg.JITA)
 
-		err = cfg.Azure.SetupJitaJwkSetAutoRefresh(ctx)
-		if err != nil {
-			return fmt.Errorf("fetch Azure jwks: %w", err)
-		}
-
-		authenticator = auth.NewAuthenticator(cfg.Azure, db, sessions, log.WithField("component", "azure-authenticator"))
+		authenticator = apiauth.NewAuthenticator(tokenParser, jitaParser, db, sessions, log.WithField("component", "azure-authenticator"))
 		log.Info("Azure OIDC authenticator configured to authenticate device sessions")
 	case "google":
-		log.Info("setting up Google OIDC configuration...")
-		err = cfg.Google.SetupJwkSetAutoRefresh(ctx)
-		if err != nil {
-			return fmt.Errorf("set up Google jwks: %w", err)
-		}
-
-		authenticator = auth.NewGoogleAuthenticator(cfg.Google, db, sessions)
+		tokenParser = google.New(ctx, cfg.Google)
+		authenticator = apiauth.NewGoogleAuthenticator(tokenParser, db, sessions)
 		log.Info("Google OIDC authenticator configured to authenticate device sessions")
 	default:
-		authenticator = auth.NewMockAuthenticator(sessions)
+		authenticator = apiauth.NewMockAuthenticator(sessions)
 		log.Warn("device authentication DISABLED! Do not run this configuration in production!")
 		log.Warn("to enable device authentication, specify auth provider with --device-authentication-provider=azure|google")
 	}
@@ -275,15 +268,15 @@ func run(log *logrus.Entry, cfg config.Config) error {
 			return fmt.Errorf("control plane basic authentication enabled, but no prometheus credentials provided (try --prometheus-credential-entries)")
 		}
 
-		adminAuthenticator = auth.NewAPIKeyAuthenticator(apiKeys)
-		gatewayAuthenticator = auth.NewGatewayAuthenticator(db)
-		prometheusAuthenticator = auth.NewAPIKeyAuthenticator(promauth)
+		adminAuthenticator = apiauth.NewAPIKeyAuthenticator(apiKeys)
+		gatewayAuthenticator = apiauth.NewGatewayAuthenticator(db)
+		prometheusAuthenticator = apiauth.NewAPIKeyAuthenticator(promauth)
 
 		log.Info("controlplane authentication enabled")
 	} else {
-		adminAuthenticator = auth.NewMockAPIKeyAuthenticator()
-		gatewayAuthenticator = auth.NewMockAPIKeyAuthenticator()
-		prometheusAuthenticator = auth.NewMockAPIKeyAuthenticator()
+		adminAuthenticator = apiauth.NewMockAPIKeyAuthenticator()
+		gatewayAuthenticator = apiauth.NewMockAPIKeyAuthenticator()
+		prometheusAuthenticator = apiauth.NewMockAPIKeyAuthenticator()
 
 		log.Warn("controlplane authentication DISABLED! Do not run this configuration in production!")
 	}
