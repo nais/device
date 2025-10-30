@@ -13,5 +13,5 @@ const (
 
 type Authenticator interface {
 	Login(ctx context.Context, token, serial, platform string) (*pb.Session, error)
-	Validate(token string) error
+	ValidateJita(session *pb.Session, token string) error
 }

@@ -25,7 +25,8 @@ type mockAuthenticator struct {
 	store SessionStore
 }
 
-func (g *mockAuthenticator) Validate(_ string) error {
+// ValidateJita implements Authenticator.
+func (g *mockAuthenticator) ValidateJita(session *pb.Session, token string) error {
 	return fmt.Errorf("unimplemented for mock auth")
 }
 

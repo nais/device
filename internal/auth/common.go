@@ -5,15 +5,19 @@ import (
 	"net/http"
 )
 
-type User struct {
-	ID     string
-	Email  string
-	Groups []string
-}
-
 type (
 	TokenValidator func(http.Handler) http.Handler
 	contextKey     string
+
+	TokenParser interface {
+		ParseString(string) (*User, error)
+		ParseHeader(http.Header, string) (*User, error)
+	}
+	User struct {
+		ID     string
+		Email  string
+		Groups []string
+	}
 )
 
 const contextKeyEmail contextKey = "email"

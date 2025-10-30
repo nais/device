@@ -336,7 +336,7 @@ func (s *grpcServer) GrantPrivilegedGatewayAccess(ctx context.Context, req *pb.G
 		return nil, status.Error(codes.Unauthenticated, "unknown session")
 	}
 
-	if err := s.authenticator.Validate(req.Token); err != nil {
+	if err := s.authenticator.ValidateJita(session, req.Token); err != nil {
 		s.log.WithError(err).Error("validate token")
 		return nil, status.Error(codes.Unauthenticated, "invalid token")
 	}

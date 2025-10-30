@@ -14,25 +14,25 @@ import (
 )
 
 type googleAuth struct {
-	db     database.Database
-	store  SessionStore
-	google *auth.Google
+	db          database.Database
+	store       SessionStore
+	tokenParser auth.TokenParser
 }
 
-func NewGoogleAuthenticator(googleConfig *auth.Google, db database.Database, store SessionStore) Authenticator {
-	return &googleAuth{
-		db:     db,
-		store:  store,
-		google: googleConfig,
-	}
-}
-
-func (g *googleAuth) Validate(_ string) error {
+func (g *googleAuth) ValidateJita(session *pb.Session, token string) error {
 	return fmt.Errorf("unimplemented for google auth")
 }
 
+func NewGoogleAuthenticator(tokenParser auth.TokenParser, db database.Database, store SessionStore) Authenticator {
+	return &googleAuth{
+		db:          db,
+		store:       store,
+		tokenParser: tokenParser,
+	}
+}
+
 func (g *googleAuth) Login(ctx context.Context, token, serial, platform string) (*pb.Session, error) {
-	user, err := g.google.ParseAndValidateToken(token)
+	user, err := g.tokenParser.ParseString(token)
 	if err != nil {
 		return nil, fmt.Errorf("parse and validate token: %w", err)
 	}
