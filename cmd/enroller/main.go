@@ -123,6 +123,6 @@ func makeTokenValidator(ctx context.Context, cfg Config, log *logrus.Entry) (tok
 		return token.Middleware(google.New(ctx, cfg.Google)), nil
 	} else {
 		log.Warn("AUTH DISABLED, this should NOT run in production")
-		return token.MockValidator(), nil
+		return token.MockMiddleware(), nil
 	}
 }
