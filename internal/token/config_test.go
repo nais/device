@@ -26,7 +26,7 @@ func TestConfig_Validate(t *testing.T) {
 			name: "Google issuer without allowed domains",
 			config: Config{
 				ClientID: "client-id",
-				Issuer:   "https://accounts.googleapis.com",
+				Issuer:   "https://accounts.google.com",
 				Endpoint: "https://endpoint.com",
 			},
 			wantErr:     true,
