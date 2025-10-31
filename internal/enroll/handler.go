@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 
-	"github.com/nais/device/internal/auth"
+	"github.com/nais/device/internal/token"
 	"github.com/sirupsen/logrus"
 )
 
@@ -32,7 +32,7 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	req.Owner = auth.GetEmail(r.Context())
+	req.Owner = token.GetEmail(r.Context())
 
 	resp, err := h.worker.Send(r.Context(), &req)
 	if err != nil {

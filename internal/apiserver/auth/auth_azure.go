@@ -10,20 +10,20 @@ import (
 	"google.golang.org/protobuf/types/known/timestamppb"
 
 	"github.com/nais/device/internal/apiserver/database"
-	"github.com/nais/device/internal/auth"
 	"github.com/nais/device/internal/random"
+	"github.com/nais/device/internal/token"
 	"github.com/nais/device/pkg/pb"
 )
 
 type azureAuth struct {
 	db    database.Database
 	store SessionStore
-	azure auth.TokenParser
-	jita  auth.TokenParser
+	azure token.Parser
+	jita  token.Parser
 	log   logrus.FieldLogger
 }
 
-func NewAuthenticator(azure auth.TokenParser, jita auth.TokenParser, db database.Database, store SessionStore, log logrus.FieldLogger) Authenticator {
+func NewAuthenticator(azure token.Parser, jita token.Parser, db database.Database, store SessionStore, log logrus.FieldLogger) Authenticator {
 	return &azureAuth{
 		db:    db,
 		store: store,

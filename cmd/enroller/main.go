@@ -8,19 +8,19 @@ import (
 	"time"
 
 	"github.com/kelseyhightower/envconfig"
-	"github.com/nais/device/internal/auth"
-	"github.com/nais/device/internal/auth/azure"
-	"github.com/nais/device/internal/auth/google"
 	"github.com/nais/device/internal/enroll"
 	"github.com/nais/device/internal/program"
+	"github.com/nais/device/internal/token"
+	"github.com/nais/device/internal/token/azure"
+	"github.com/nais/device/internal/token/google"
 	"github.com/sirupsen/logrus"
 )
 
 type Config struct {
 	AzureEnabled    bool
-	Azure           auth.Config
+	Azure           token.Config
 	GoogleEnabled   bool
-	Google          auth.Config
+	Google          token.Config
 	LocalListenAddr string
 }
 
@@ -116,13 +116,13 @@ func makeWorker(cfg Config, ctx context.Context, log *logrus.Entry) (enroll.Work
 	return enroll.NewNoopWorker(context.Background(), log), nil
 }
 
-func makeTokenValidator(ctx context.Context, cfg Config, log *logrus.Entry) (auth.TokenValidator, error) {
+func makeTokenValidator(ctx context.Context, cfg Config, log *logrus.Entry) (token.Validator, error) {
 	if cfg.AzureEnabled {
-		return auth.Middleware(azure.New(ctx, cfg.Azure)), nil
+		return token.Middleware(azure.New(ctx, cfg.Azure)), nil
 	} else if cfg.GoogleEnabled {
-		return auth.Middleware(google.New(ctx, cfg.Google)), nil
+		return token.Middleware(google.New(ctx, cfg.Google)), nil
 	} else {
 		log.Warn("AUTH DISABLED, this should NOT run in production")
-		return auth.MockTokenValidator(), nil
+		return token.MockValidator(), nil
 	}
 }

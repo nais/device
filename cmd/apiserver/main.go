@@ -23,12 +23,12 @@ import (
 	"github.com/nais/device/internal/apiserver/ip"
 	"github.com/nais/device/internal/apiserver/kolide"
 	"github.com/nais/device/internal/apiserver/metrics"
-	"github.com/nais/device/internal/auth"
-	"github.com/nais/device/internal/auth/azure"
-	"github.com/nais/device/internal/auth/google"
 	"github.com/nais/device/internal/logger"
 	"github.com/nais/device/internal/otel"
 	"github.com/nais/device/internal/program"
+	"github.com/nais/device/internal/token"
+	"github.com/nais/device/internal/token/azure"
+	"github.com/nais/device/internal/token/google"
 	"github.com/nais/device/internal/version"
 	wg "github.com/nais/device/internal/wireguard"
 	"github.com/nais/device/pkg/pb"
@@ -128,8 +128,8 @@ func run(log *logrus.Entry, cfg config.Config) error {
 		return fmt.Errorf("warm session cache from database: %w", err)
 	}
 
-	var tokenParser auth.TokenParser
-	var jitaParser auth.TokenParser
+	var tokenParser token.Parser
+	var jitaParser token.Parser
 	switch cfg.DeviceAuthenticationProvider {
 	case "azure":
 		log.Info("fetching Azure OIDC configuration...")

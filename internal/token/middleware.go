@@ -1,10 +1,10 @@
-package auth
+package token
 
 import (
 	"net/http"
 )
 
-func Middleware(h TokenParser) TokenValidator {
+func Middleware(h Parser) Validator {
 	return func(next http.Handler) http.Handler {
 		fn := func(w http.ResponseWriter, r *http.Request) {
 			user, err := h.ParseHeader(r.Header, "Authorization")

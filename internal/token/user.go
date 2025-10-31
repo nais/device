@@ -1,19 +1,12 @@
-package auth
+package token
 
 import (
 	"context"
-	"net/http"
 )
 
 type (
-	TokenValidator func(http.Handler) http.Handler
-	contextKey     string
-
-	TokenParser interface {
-		ParseString(string) (*User, error)
-		ParseHeader(http.Header, string) (*User, error)
-	}
-	User struct {
+	contextKey string
+	User       struct {
 		ID     string
 		Email  string
 		Groups []string
