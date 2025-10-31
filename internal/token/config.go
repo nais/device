@@ -2,7 +2,6 @@ package token
 
 import (
 	"fmt"
-	"strings"
 )
 
 type Config struct {
@@ -23,7 +22,7 @@ func (c Config) Validate() error {
 		return fmt.Errorf("endpoint is required")
 	}
 
-	if strings.Contains(c.Issuer, "googleapis.com") && len(c.AllowedDomains) == 0 {
+	if c.Issuer == "https://accounts.google.com" && len(c.AllowedDomains) == 0 {
 		return fmt.Errorf("at least one allowed domain is required for Google tokens")
 	}
 
