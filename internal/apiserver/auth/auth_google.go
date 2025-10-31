@@ -7,8 +7,8 @@ import (
 	"time"
 
 	"github.com/nais/device/internal/apiserver/database"
-	"github.com/nais/device/internal/auth"
 	"github.com/nais/device/internal/random"
+	"github.com/nais/device/internal/token"
 	"github.com/nais/device/pkg/pb"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
@@ -16,14 +16,14 @@ import (
 type googleAuth struct {
 	db          database.Database
 	store       SessionStore
-	tokenParser auth.TokenParser
+	tokenParser token.Parser
 }
 
 func (g *googleAuth) ValidateJita(session *pb.Session, token string) error {
 	return fmt.Errorf("unimplemented for google auth")
 }
 
-func NewGoogleAuthenticator(tokenParser auth.TokenParser, db database.Database, store SessionStore) Authenticator {
+func NewGoogleAuthenticator(tokenParser token.Parser, db database.Database, store SessionStore) Authenticator {
 	return &googleAuth{
 		db:          db,
 		store:       store,

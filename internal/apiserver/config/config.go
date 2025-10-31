@@ -5,9 +5,9 @@ import (
 	"net/netip"
 	"strings"
 
-	"github.com/nais/device/internal/auth"
-	"github.com/nais/device/internal/auth/azure"
-	"github.com/nais/device/internal/auth/google"
+	"github.com/nais/device/internal/token"
+	"github.com/nais/device/internal/token/azure"
+	"github.com/nais/device/internal/token/google"
 	"github.com/nais/device/internal/wireguard"
 	"github.com/nais/device/pkg/pb"
 	"github.com/sirupsen/logrus"
@@ -16,8 +16,8 @@ import (
 type Config struct {
 	AutoEnrollEnabled                 bool
 	AutoEnrollmentsURL                string
-	Azure                             auth.Config
-	JITA                              auth.Config
+	Azure                             token.Config
+	JITA                              token.Config
 	BindAddress                       string
 	ControlPlaneAuthenticationEnabled bool
 	AdminCredentialEntries            []string
@@ -28,7 +28,7 @@ type Config struct {
 	GRPCBindAddress                   string
 	GatewayConfigBucketName           string
 	GatewayConfigBucketObjectName     string
-	Google                            auth.Config
+	Google                            token.Config
 	KolideIntegrationEnabled          bool
 	KolideAPIToken                    string
 	KolideEventHandlerAddress         string

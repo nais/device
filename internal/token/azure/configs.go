@@ -3,7 +3,7 @@ package azure
 import (
 	"fmt"
 
-	"github.com/nais/device/internal/auth"
+	"github.com/nais/device/internal/token"
 )
 
 const (
@@ -13,13 +13,13 @@ const (
 )
 
 var (
-	APIServerConfig = auth.Config{
+	APIServerConfig = token.Config{
 		ClientID: apiServerClientID,
 		Issuer:   issuer(azureTenantNav),
 		Endpoint: jwksEndpoint(azureTenantNav),
 	}
 
-	JITAConfig = auth.Config{
+	JITAConfig = token.Config{
 		ClientID: jitaClientID,
 		Issuer:   stsIssuer(azureTenantNav),
 		Endpoint: jwksEndpointWithAppID(azureTenantNav, jitaClientID),
