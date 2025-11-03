@@ -22,9 +22,15 @@ func TestHandler_TokenToUser(t *testing.T) {
 			allowedDomains: []string{"example.com", "test.com"},
 			setupToken: func() jwt.Token {
 				tok := jwt.New()
-				tok.Set("email", "user@example.com")
-				tok.Set("sub", "google-user-123")
-				tok.Set("hd", "example.com")
+				if err := tok.Set("email", "user@example.com"); err != nil {
+					t.Fatalf("failed to set email claim: %v", err)
+				}
+				if err := tok.Set("sub", "google-user-123"); err != nil {
+					t.Fatalf("failed to set sub claim: %v", err)
+				}
+				if err := tok.Set("hd", "example.com"); err != nil {
+					t.Fatalf("failed to set hd claim: %v", err)
+				}
 				return tok
 			},
 			expectError: false,
@@ -39,9 +45,15 @@ func TestHandler_TokenToUser(t *testing.T) {
 			allowedDomains: []string{"example.com", "test.com"},
 			setupToken: func() jwt.Token {
 				tok := jwt.New()
-				tok.Set("email", "user@forbidden.com")
-				tok.Set("sub", "google-user-123")
-				tok.Set("hd", "forbidden.com")
+				if err := tok.Set("email", "user@forbidden.com"); err != nil {
+					t.Fatalf("failed to set email claim: %v", err)
+				}
+				if err := tok.Set("sub", "google-user-123"); err != nil {
+					t.Fatalf("failed to set sub claim: %v", err)
+				}
+				if err := tok.Set("hd", "forbidden.com"); err != nil {
+					t.Fatalf("failed to set hd claim: %v", err)
+				}
 				return tok
 			},
 			expectError: true,
@@ -52,8 +64,12 @@ func TestHandler_TokenToUser(t *testing.T) {
 			allowedDomains: []string{"example.com"},
 			setupToken: func() jwt.Token {
 				tok := jwt.New()
-				tok.Set("email", "user@example.com")
-				tok.Set("sub", "google-user-123")
+				if err := tok.Set("email", "user@example.com"); err != nil {
+					t.Fatalf("failed to set email claim: %v", err)
+				}
+				if err := tok.Set("sub", "google-user-123"); err != nil {
+					t.Fatalf("failed to set sub claim: %v", err)
+				}
 				return tok
 			},
 			expectError: true,
