@@ -32,10 +32,14 @@ concurrency:
   group: ${{ github.ref }}
   cancel-in-progress: true
 
+permissions:
+  contents: read
+
 jobs:
   release-info:
     runs-on: ubuntu-latest
     permissions:
+      contents: read
       pull-requests: write
     steps:
       - uses: actions/checkout@v5
@@ -131,6 +135,8 @@ jobs:
     if: github.ref == 'refs/heads/main' && needs.release-info.outputs.changelog != '' && needs.release-info.outputs.version != ''
     needs: [release-info, branch-protection-checkpoint]
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@v5
         with:

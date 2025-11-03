@@ -14,6 +14,9 @@ on:
 env:
   REGISTRY: europe-north1-docker.pkg.dev/nais-io/nais/images
 
+permissions:
+  contents: read
+
 jobs:
   test:
     strategy:
