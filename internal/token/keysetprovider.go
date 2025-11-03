@@ -23,7 +23,7 @@ func NewKSP(ctx context.Context, jwksURL string) (*KeySetProvider, error) {
 		return nil, fmt.Errorf("fetch jwks: %w", err)
 	}
 
-	return &KeySetProvider{jwks: jwks, endpoint: jwksURL}, nil
+	return &KeySetProvider{ctx: ctx, jwks: jwks, endpoint: jwksURL}, nil
 }
 
 // KeySetFrom ignores the provided token and fetches the JWKS from the configured endpoint. This makes sense as we have one handler per issuer.
