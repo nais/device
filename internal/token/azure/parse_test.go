@@ -22,9 +22,15 @@ func TestHandler_TokenToUser(t *testing.T) {
 			name: "valid token with preferred_username",
 			setupToken: func() jwt.Token {
 				tok := jwt.New()
-				tok.Set("oid", "user-oid-123")
-				tok.Set("preferred_username", "user@example.com")
-				tok.Set("groups", []interface{}{"group1", "group2"})
+				if err := tok.Set("oid", "user-oid-123"); err != nil {
+					t.Fatalf("failed to set oid claim: %v", err)
+				}
+				if err := tok.Set("preferred_username", "user@example.com"); err != nil {
+					t.Fatalf("failed to set preferred_username claim: %v", err)
+				}
+				if err := tok.Set("groups", []interface{}{"group1", "group2"}); err != nil {
+					t.Fatalf("failed to set groups claim: %v", err)
+				}
 				return tok
 			},
 			expectError: false,
@@ -38,9 +44,15 @@ func TestHandler_TokenToUser(t *testing.T) {
 			name: "fallback to unique_name",
 			setupToken: func() jwt.Token {
 				tok := jwt.New()
-				tok.Set("oid", "user-oid-456")
-				tok.Set("unique_name", "user2@example.com")
-				tok.Set("groups", []interface{}{"group3"})
+				if err := tok.Set("oid", "user-oid-456"); err != nil {
+					t.Fatalf("failed to set oid claim: %v", err)
+				}
+				if err := tok.Set("unique_name", "user2@example.com"); err != nil {
+					t.Fatalf("failed to set unique_name claim: %v", err)
+				}
+				if err := tok.Set("groups", []interface{}{"group3"}); err != nil {
+					t.Fatalf("failed to set groups claim: %v", err)
+				}
 				return tok
 			},
 			expectError: false,
@@ -54,9 +66,15 @@ func TestHandler_TokenToUser(t *testing.T) {
 			name: "fallback to upn",
 			setupToken: func() jwt.Token {
 				tok := jwt.New()
-				tok.Set("oid", "user-oid-789")
-				tok.Set("upn", "user3@example.com")
-				tok.Set("groups", []interface{}{})
+				if err := tok.Set("oid", "user-oid-789"); err != nil {
+					t.Fatalf("failed to set oid claim: %v", err)
+				}
+				if err := tok.Set("upn", "user3@example.com"); err != nil {
+					t.Fatalf("failed to set upn claim: %v", err)
+				}
+				if err := tok.Set("groups", []interface{}{}); err != nil {
+					t.Fatalf("failed to set groups claim: %v", err)
+				}
 				return tok
 			},
 			expectError: false,
@@ -70,8 +88,12 @@ func TestHandler_TokenToUser(t *testing.T) {
 			name: "missing all email claims",
 			setupToken: func() jwt.Token {
 				tok := jwt.New()
-				tok.Set("oid", "user-oid-123")
-				tok.Set("groups", []interface{}{"group1"})
+				if err := tok.Set("oid", "user-oid-123"); err != nil {
+					t.Fatalf("failed to set oid claim: %v", err)
+				}
+				if err := tok.Set("groups", []interface{}{"group1"}); err != nil {
+					t.Fatalf("failed to set groups claim: %v", err)
+				}
 				return tok
 			},
 			expectError: true,
