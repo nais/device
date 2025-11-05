@@ -27,10 +27,10 @@ main() {
 	else
 		body=$(
 			cat <<-EOF
-				body="# :disappointed: No release for you
+				# :disappointed: No release for you
 				There are no commits in your branch that follow the [Conventional Commits specification](https://www.conventionalcommits.org/), so no release will be created.
 
-				If you want to create a release from this pull request, please reword your commit messages to replace this message with a preview of a beautiful Changelog."
+				If you want to create a release from this pull request, please reword your commit messages to replace this message with a preview of a beautiful Changelog.
 			EOF
 		)
 	fi
