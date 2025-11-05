@@ -100,13 +100,13 @@ func (h *Handler) index(w http.ResponseWriter, req *http.Request) {
 			ret := make([]accessGrant, len(grants))
 			for i, grant := range grants {
 				var revoked *time.Time
-				expires := grant.Expires.AsTime()
+				expires := grant.Expires.AsTime().Local()
 				if grant.Revoked.IsValid() {
-					r := grant.Revoked.AsTime()
+					r := grant.Revoked.AsTime().Local()
 					revoked = &r
 				}
 				ret[i] = accessGrant{
-					Created:    grant.Created.AsTime(),
+					Created:    grant.Created.AsTime().Local(),
 					Expires:    expires,
 					Revoked:    revoked,
 					Gateway:    grant.Gateway,
