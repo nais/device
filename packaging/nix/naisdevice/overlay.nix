@@ -1,11 +1,11 @@
 final: prev:
 let
-  goVersion = "1.25.1";
+  goVersion = "1.25.3";
   newerGoVersion = prev.go.overrideAttrs (old: {
     inherit goVersion;
     src = prev.fetchurl {
       url = "https://go.dev/dl/go${goVersion}.src.tar.gz";
-      hash = "sha256-0BDBCc7pTYDv5oHqtGvepJGskGv0ZYPDLp8NuwvRpZQ=";
+      hash = "sha256-qBpLpZPQAV4QxR4mfeP/B8eskU38oDfZUX0ClRcJd5U=";
     };
   });
   nixpkgsVersion = prev.go.version;
