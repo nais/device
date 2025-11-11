@@ -35,7 +35,7 @@ func (q *Queries) Transaction(ctx context.Context, callback func(ctx context.Con
 	}
 
 	defer func() {
-		if err := tx.Rollback(); err != nil && errors.Is(err, sql.ErrTxDone) {
+		if err := tx.Rollback(); err != nil && !errors.Is(err, sql.ErrTxDone) {
 			q.log.Errorf("transaction rollback error: %v", err)
 		}
 	}()
