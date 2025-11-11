@@ -34,6 +34,7 @@ func TestStateMachine(t *testing.T) {
 		rc.EXPECT().APIServerPeer().Return(&pb.Gateway{})
 		rc.EXPECT().SetAPIServerInfo(mock.Anything, mock.Anything).Return()
 		rc.EXPECT().BuildHelperConfiguration(mock.Anything).Return(&pb.Configuration{})
+		rc.EXPECT().SetJitaToken(mock.Anything).Return()
 
 		mockGetDeviceConfigclient := pb.NewMockAPIServer_GetDeviceConfigurationClient(t)
 		recv := mockGetDeviceConfigclient.EXPECT().Recv().After(20 * time.Millisecond)

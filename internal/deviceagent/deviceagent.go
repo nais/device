@@ -146,7 +146,7 @@ func (das *DeviceAgentServer) ShowJita(ctx context.Context, req *pb.ShowJitaRequ
 	url := agenthttp.Path("/jita?gateway="+gateway, true)
 
 	tok := das.rc.GetJitaToken(ctx)
-	if tok != nil {
+	if tok.Valid() {
 		open.Open(url)
 		return &pb.ShowJitaResponse{}, nil
 	}

@@ -13,6 +13,8 @@ import (
 	"github.com/nais/device/internal/deviceagent/runtimeconfig"
 	"github.com/nais/device/pkg/pb"
 	"github.com/sirupsen/logrus"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
@@ -69,6 +71,7 @@ func (h *Handler) index(w http.ResponseWriter, req *http.Request) {
 		return nil
 	}); err != nil {
 		h.log.WithError(err).Errorf("unable to communicate with apiserver")
+		h.verifyToken(err)
 		http.Error(w, "Unable to communicate with apiserver.", http.StatusInternalServerError)
 		return
 	}
@@ -128,6 +131,12 @@ func (h *Handler) index(w http.ResponseWriter, req *http.Request) {
 	}
 }
 
+func (h *Handler) verifyToken(err error) {
+	if status.Convert(err).Code() == codes.Unauthenticated {
+		h.rc.SetJitaToken(nil)
+	}
+}
+
 func (h *Handler) grant(w http.ResponseWriter, req *http.Request) {
 	gateway := req.FormValue("gateway")
 	if gateway == "" {
@@ -169,6 +178,7 @@ func (h *Handler) grant(w http.ResponseWriter, req *http.Request) {
 		return err
 	}); err != nil {
 		h.log.WithError(err).Errorf("unable to communicate with apiserver")
+		h.verifyToken(err)
 		redirectToIndexWithErrorMessage("Unable to communicate with apiserver.", w, req)
 		return
 	}
@@ -191,6 +201,7 @@ func (h *Handler) revoke(w http.ResponseWriter, req *http.Request) {
 		return err
 	}); err != nil {
 		h.log.WithError(err).Errorf("unable to communicate with apiserver")
+		h.verifyToken(err)
 		redirectToIndexWithErrorMessage("Unable to communicate with apiserver.", w, req)
 		return
 	}

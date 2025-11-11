@@ -10,6 +10,7 @@ import (
 	"github.com/nais/device/internal/deviceagent/states/disconnected"
 	"github.com/nais/device/pkg/pb"
 	"github.com/stretchr/testify/assert"
+	"golang.org/x/oauth2"
 )
 
 func TestDisconnected(t *testing.T) {
@@ -17,6 +18,7 @@ func TestDisconnected(t *testing.T) {
 		rc := runtimeconfig.NewMockRuntimeConfig(t)
 		rc.EXPECT().ResetEnrollConfig()
 		rc.EXPECT().SetAPIServerInfo(nil, "").Return()
+		rc.EXPECT().SetJitaToken((*oauth2.Token)(nil)).Return()
 
 		cfg := config.Config{
 			AgentConfiguration: &pb.AgentConfiguration{
@@ -35,6 +37,7 @@ func TestDisconnected(t *testing.T) {
 		rc := runtimeconfig.NewMockRuntimeConfig(t)
 		rc.EXPECT().ResetEnrollConfig()
 		rc.EXPECT().SetAPIServerInfo(nil, "").Return()
+		rc.EXPECT().SetJitaToken((*oauth2.Token)(nil)).Return()
 
 		cfg := config.Config{
 			AgentConfiguration: &pb.AgentConfiguration{

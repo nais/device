@@ -27,6 +27,7 @@ func (d *Disconnected) Enter(ctx context.Context) state.EventWithSpan {
 	// d.rc.SetToken(nil)
 	d.rc.ResetEnrollConfig()
 	d.rc.SetAPIServerInfo(nil, "")
+	d.rc.SetJitaToken(nil)
 
 	if d.cfg.AgentConfiguration.AutoConnect && !d.autoConnectTriggered {
 		d.autoConnectTriggered = true
