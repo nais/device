@@ -48,6 +48,8 @@ jobs:
       - uses: jdx/mise-action@v3
       - id: generate
         run: mise run ci:release-info
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     outputs:
       version: ${{ steps.generate.outputs.version }}
       changelog: ${{ steps.generate.outputs.changelog }}
