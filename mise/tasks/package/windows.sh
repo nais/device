@@ -28,5 +28,5 @@ for bin in bin/windows-client/*; do
 	mise run package:windows:sign-exe "$bin" "$cert_file" "$key_file"
 done
 
-sign_opts="-Dcert_file=$cert_file -Dkey_file=$key_file"
+sign_opts="-DCERT_FILE=$cert_file -DKEY_FILE=$key_file"
 makensis -NOCD "-DOUTFILE=$outfile" "-DVERSION=$version" "$sign_opts" ./assets/windows/naisdevice.nsi
