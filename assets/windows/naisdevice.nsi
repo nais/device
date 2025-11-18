@@ -7,10 +7,13 @@
 
 !define /ifndef VERSION "develop" ; Override when building release, MUST match '\d+.\d+.\d+.\d+'
 
+!ifndef WIREGUARD
+  !error "Specify path to the WIREGUARD MSI file using -DWIREGUARD."
+!endif
+
 !define APP_NAME "naisdevice"
 !define UNINSTALLER "uninstaller.exe"
 !define BIN_DIR "./bin/windows-client"
-!define WIREGUARD "./assets/windows/wireguard-amd64-0.5.3.msi"
 !define REG_UNINSTALL "SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall"
 !define REG_ARP "${REG_UNINSTALL}\${APP_NAME}"
 !define SERVICE_NAME "NaisDeviceHelper"
