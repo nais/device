@@ -28,4 +28,5 @@ for bin in bin/windows-client/*; do
 	mise run package:windows:sign-exe "$bin" "$cert_file" "$key_file"
 done
 
-makensis -NOCD "-DOUTFILE=$outfile" "-DVERSION=$version" "-DCERT_FILE=$cert_file" "-DKEY_FILE=$key_file" ./assets/windows/naisdevice.nsi
+wireguard="${MISE_PROJECT_ROOT}/assets/windows/wireguard-${GOARCH}-0.5.3.msi"
+makensis -NOCD "-DWIREGUARD=$wireguard" "-DOUTFILE=$outfile" "-DVERSION=$version" "-DCERT_FILE=$cert_file" "-DKEY_FILE=$key_file" ./assets/windows/naisdevice.nsi
