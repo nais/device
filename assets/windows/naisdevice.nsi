@@ -11,6 +11,10 @@
   !error "Specify path to the WIREGUARD MSI file using -DWIREGUARD."
 !endif
 
+!ifndef WIREGUARD_FILENAME
+  !error "Specify filename part of WIREGUARD variable using -DWIREGUARD_FILENAME."
+!endif
+
 !define APP_NAME "naisdevice"
 !define UNINSTALLER "uninstaller.exe"
 !define BIN_DIR "./bin/windows-client"
@@ -355,8 +359,8 @@ Function _InstallWireGuard_Init
     Push $R9
 
     SetOutPath $TEMP
-    File "${WIREGUARD}"
-    ExecWait 'msiexec /package "$TEMP\${WIREGUARD}" DO_NOT_LAUNCH=true' $R9
+    File /oname=${WIREGUARD_FILENAME} "${WIREGUARD}"
+    ExecWait 'msiexec /package "$TEMP\${WIREGUARD_FILENAME}" DO_NOT_LAUNCH=true' $R9
     ${If} ${Errors}
         !insertmacro _Log "Error while installing WireGuard"
         !insertmacro _Log "Exit code from wireguard installer: $R9"

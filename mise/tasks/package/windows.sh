@@ -29,4 +29,5 @@ for bin in bin/windows-client/*; do
 done
 
 wireguard="${MISE_PROJECT_ROOT}/assets/windows/wireguard-${GOARCH}-0.5.3.msi"
-makensis -NOCD "-DWIREGUARD=$wireguard" "-DOUTFILE=$outfile" "-DVERSION=$version" "-DCERT_FILE=$cert_file" "-DKEY_FILE=$key_file" ./assets/windows/naisdevice.nsi
+wireguard_filename=$(basename "$wireguard")
+makensis -NOCD "-DWIREGUARD=$wireguard" "-DWIREGUARD_FILENAME=$wireguard_filename" "-DOUTFILE=$outfile" "-DVERSION=$version" "-DCERT_FILE=$cert_file" "-DKEY_FILE=$key_file" ./assets/windows/naisdevice.nsi
