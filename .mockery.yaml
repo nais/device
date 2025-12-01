@@ -26,10 +26,10 @@ packages:
   github.com/nais/device/internal/notify:
     interfaces:
       Notifier:
-  github.com/nais/device/internal/device-agent/runtimeconfig:
+  github.com/nais/device/internal/deviceagent/runtimeconfig:
     interfaces:
       RuntimeConfig:
-  github.com/nais/device/internal/device-agent/auth:
+  github.com/nais/device/internal/deviceagent/auth:
     interfaces:
       Handler:
   github.com/nais/device/internal/helper:
