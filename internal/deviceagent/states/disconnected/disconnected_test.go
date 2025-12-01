@@ -4,6 +4,7 @@ import (
 	"context"
 	"testing"
 
+	"github.com/nais/device/internal/deviceagent/auth"
 	"github.com/nais/device/internal/deviceagent/config"
 	"github.com/nais/device/internal/deviceagent/runtimeconfig"
 	statemachine "github.com/nais/device/internal/deviceagent/statemachine/state"
@@ -19,6 +20,7 @@ func TestDisconnected(t *testing.T) {
 		rc.EXPECT().ResetEnrollConfig()
 		rc.EXPECT().SetAPIServerInfo(nil, "").Return()
 		rc.EXPECT().SetJitaToken((*oauth2.Token)(nil)).Return()
+		rc.EXPECT().SetToken((*auth.Tokens)(nil)).Return()
 
 		cfg := config.Config{
 			AgentConfiguration: &pb.AgentConfiguration{
@@ -38,6 +40,7 @@ func TestDisconnected(t *testing.T) {
 		rc.EXPECT().ResetEnrollConfig()
 		rc.EXPECT().SetAPIServerInfo(nil, "").Return()
 		rc.EXPECT().SetJitaToken((*oauth2.Token)(nil)).Return()
+		rc.EXPECT().SetToken((*auth.Tokens)(nil)).Return()
 
 		cfg := config.Config{
 			AgentConfiguration: &pb.AgentConfiguration{
