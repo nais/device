@@ -7,11 +7,11 @@
       "installer": {
         "script": [
           "Write-Output \"Executing installer at $dir\\$fname\"",
-          "Invoke-ExternalCommand \"$dir\\$fname\" -RunAs | Out-Null"
+          "Invoke-ExternalCommand \"$dir\\$fname\" /S -RunAs"
         ]
       },
       "post_uninstall": [
-        "if ($cmd -eq \"uninstall\") { Invoke-ExternalCommand \"$env:ProgramW6432\\NAV\\naisdevice\\uninstaller.exe\" -RunAs | Out-Null }"
+        "if ($cmd -eq \"uninstall\") { Invoke-ExternalCommand \"$env:ProgramW6432\\NAV\\naisdevice\\uninstaller.exe\" /S -RunAs }"
       ]
     },
     "arm64": {
@@ -20,11 +20,11 @@
       "installer": {
         "script": [
           "Write-Output \"Executing installer at $dir\\$fname\"",
-          "Invoke-ExternalCommand \"$dir\\$fname\" -RunAs | Out-Null"
+          "Invoke-ExternalCommand \"$dir\\$fname\" /S -RunAs"
         ]
       },
       "post_uninstall": [
-        "if ($cmd -eq \"uninstall\") { Invoke-ExternalCommand \"$env:ProgramW6432\\NAV\\naisdevice\\uninstaller.exe\" -RunAs | Out-Null }"
+        "if ($cmd -eq \"uninstall\") { Invoke-ExternalCommand \"$env:ProgramW6432\\NAV\\naisdevice\\uninstaller.exe\" /S -RunAs }"
       ]
     }
   },
