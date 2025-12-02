@@ -1,7 +1,7 @@
 [tools]
 buf = "1.59.0"
 git-cliff = "2.10.1"
-go = "1.25.3"
+go = "1.25.5"
 jq = "1.8.1"
 protoc = "29.4"
 protoc-gen-go = "1.36.6"
