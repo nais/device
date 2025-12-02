@@ -29,6 +29,7 @@ on:
       - "!mise/tasks/**/*controlplane*"
 
 env:
+  # some mise tasks use this to determine how they package/sign stuff.
   RELEASE: ${{ (github.ref == 'refs/heads/main' && github.actor != 'dependabot[bot]') && 'true' || 'false' }}
 
 concurrency:
@@ -135,7 +136,7 @@ jobs:
       - run: echo Checks and builds passed
 
   release-github:
-    if: env.RELEASE == 'true' && needs.release-info.outputs.changelog != '' && needs.release-info.outputs.version != ''
+    if: github.ref == 'refs/heads/main' && github.actor != 'dependabot[bot]' && needs.release-info.outputs.changelog != '' && needs.release-info.outputs.version != ''
     needs: [release-info, branch-protection-checkpoint]
     runs-on: ubuntu-latest
     permissions:
