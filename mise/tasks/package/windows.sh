@@ -39,4 +39,4 @@ fi
 wireguard="${MISE_PROJECT_ROOT}/assets/windows/wireguard-${GOARCH}-0.5.3.msi"
 wireguard_filename=$(basename "$wireguard")
 # shellcheck disable=SC2086
-mmakensis -NOCD "-DWIREGUARD=$wireguard" "-DWIREGUARD_FILENAME=$wireguard_filename" "-DOUTFILE=$outfile" "-DVERSION=$version" $sign_flags ./assets/windows/naisdevice.nsi
+makensis -NOCD "-DWIREGUARD=$wireguard" "-DWIREGUARD_FILENAME=$wireguard_filename" "-DOUTFILE=$outfile" "-DVERSION=$version" $sign_flags ./assets/windows/naisdevice.nsi
