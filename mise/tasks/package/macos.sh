@@ -27,23 +27,32 @@ app_cert='Developer ID Application: Arbeids- og velferdsetaten (GC9RAU27PY)'
 install_cert='Developer ID Installer: Arbeids- og velferdsetaten (GC9RAU27PY)'
 pkgid="io.nais.device"
 
-# Build and sign app
+# make Application
 mkdir -p "$app_dir/Contents/"{MacOS,Resources}
 cp ./bin/macos-client/* "$build_dir/naisdevice.app/Contents/MacOS/"
 cp ./assets/macos/icon/naisdevice.icns "$build_dir/naisdevice.app/Contents/Resources/"
 
 sed "s/VERSIONSTRING/$version/" ./assets/macos/Info.plist.tpl >"$build_dir/naisdevice.app/Contents/Info.plist"
 
-codesign -s "$app_cert" -f -v --timestamp --deep --options runtime "$build_dir/naisdevice.app/Contents/MacOS/"*
-codesign -s "$app_cert" -f -v --timestamp --deep --options runtime "$build_dir/naisdevice.app/Contents/Info.plist"
+if [ "$release" == "true" ]; then
+	codesign -s "$app_cert" -f -v --timestamp --deep --options runtime "$build_dir/naisdevice.app/Contents/MacOS/"*
+	codesign -s "$app_cert" -f -v --timestamp --deep --options runtime "$build_dir/naisdevice.app/Contents/Info.plist"
+fi
 
-# Build and sign pkg
+# mage Package
 mkdir -p "$build_dir/"{scripts/,pkgroot/}
 cp ./assets/macos/{preinstall,postinstall} "$build_dir/scripts/"
 cp -r "$app_dir" "$build_dir/pkgroot/"
 xattr -rc "$build_dir/pkgroot/$(basename "$app_dir")"
 
+if [ "$release" == "true" ]; then
+	sign_flag="--sign \"$install_cert\""
+else
+	sign_flag=""
+fi
+
 pkgbuild --analyze --root "$build_dir/pkgroot/" "$build_plist"
+# shellcheck disable=SC2086
 pkgbuild \
 	--root "$build_dir/pkgroot/" \
 	--component-plist "$build_plist" \
@@ -51,7 +60,7 @@ pkgbuild \
 	--install-location "/Applications" \
 	--scripts "$build_dir/scripts" \
 	--version "$version" \
-	--sign "$install_cert" \
+	$sign_flag \
 	--ownership recommended \
 	"$outfile"
 
