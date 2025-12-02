@@ -42,10 +42,10 @@ jobs:
       contents: read
       pull-requests: write
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # ratchet:actions/checkout@v5
         with:
           fetch-depth: 0
-      - uses: jdx/mise-action@v3
+      - uses: jdx/mise-action@146a28175021df8ca24f8ee1828cc2a60f980bd5 # ratchet:jdx/mise-action@v3
       - id: generate
         run: mise run ci:release-info
         env:
@@ -67,8 +67,8 @@ jobs:
     permissions:
       contents: read
     steps:
-      - uses: actions/checkout@v5
-      - uses: jdx/mise-action@v3
+      - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # ratchet:actions/checkout@v5
+      - uses: jdx/mise-action@146a28175021df8ca24f8ee1828cc2a60f980bd5 # ratchet:jdx/mise-action@v3
       - run: mise run ${{ matrix.mise_task }}
 
   builds:
@@ -100,12 +100,12 @@ jobs:
       GOTAGS: ${{ matrix.gotags }}
       OUTFILE: ./release_artifacts/naisdevice${{ matrix.gotags == 'tenant' && '-tenant' || '' }}_${{ matrix.platform.os }}_${{ matrix.arch }}.${{ matrix.platform.ext }}
     steps:
-      - uses: actions/checkout@v5
-      - uses: jdx/mise-action@v3
+      - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # ratchet:actions/checkout@v5
+      - uses: jdx/mise-action@146a28175021df8ca24f8ee1828cc2a60f980bd5 # ratchet:jdx/mise-action@v3
       - if: matrix.platform.os == 'windows'
         run: sudo apt-get update && sudo apt-get install --yes nsis osslsigncode
       - if: matrix.platform.os == 'macos'
-        uses: Apple-Actions/import-codesign-certs@v3
+        uses: Apple-Actions/import-codesign-certs@63fff01cd422d4b7b855d40ca1e9d34d2de9427d # ratchet:Apple-Actions/import-codesign-certs@v3
         with:
           p12-file-base64: ${{ secrets.CERTIFICATES_P12 }}
           p12-password: ${{ secrets.CERTIFICATES_P12_PASSWORD }}
@@ -121,7 +121,7 @@ jobs:
           mkdir -p "$(dirname $OUTFILE)"
           mise run "package:${{ matrix.platform.os }}"
       - if: github.ref == 'refs/heads/main'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # ratchet:actions/upload-artifact@v4
         with:
           name: installer-${{ matrix.platform.os }}-${{ matrix.arch }}-${{ matrix.gotags || 'nav' }}
           path: ${{ env.OUTFILE }}
@@ -140,17 +140,18 @@ jobs:
     permissions:
       contents: write
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # ratchet:actions/checkout@v5
         with:
           fetch-depth: 0
-      - uses: jdx/mise-action@v3
+      - uses: jdx/mise-action@146a28175021df8ca24f8ee1828cc2a60f980bd5 # ratchet:jdx/mise-action@v3
       - run: git tag ${{ needs.release-info.outputs.version }}
-      - uses: actions/download-artifact@v5
+      - uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0 # ratchet:actions/download-artifact@v5
         with:
           merge-multiple: true
           path: release_artifacts
       - run: mise run ci:generate-checksums ./release_artifacts/ > ./release_artifacts/checksums.txt
-      - uses: softprops/action-gh-release@v2.4.2 # TODO: revert to v2 when outputs.assets outputs tagged urls instead of untagged ones
+      # TODO: revert to v2 when outputs.assets outputs tagged urls instead of untagged ones
+      - uses: softprops/action-gh-release@5be0e66d93ac7ed76da52eca8bb058f665c3a5fe # ratchet:softprops/action-gh-release@v2.4.2
         id: release
         with:
           tag_name: ${{ needs.release-info.outputs.version }}
@@ -163,7 +164,7 @@ jobs:
       - env:
           VERSION: ${{ needs.release-info.outputs.version }}
         run: mise run ci:prepare-template-vars ./release_artifacts/checksums.txt ./assets.json -v > template.vars
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # ratchet:actions/upload-artifact@v4
         with:
           name: template-vars
           path: ./template.vars
@@ -184,15 +185,15 @@ jobs:
       contents: read
       id-token: write
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # ratchet:actions/checkout@v5
       - id: auth
-        uses: google-github-actions/auth@v3
+        uses: google-github-actions/auth@7c6bc770dae815cd3e89ee6cdf493a5fab2cc093 # ratchet:google-github-actions/auth@v3
         with:
           workload_identity_provider: ${{ secrets.NAIS_IO_WORKLOAD_IDENTITY_PROVIDER }}
           service_account: gh-naisdevice@nais-io.iam.gserviceaccount.com
           token_format: access_token
-      - uses: google-github-actions/setup-gcloud@v3
-      - uses: actions/download-artifact@v5
+      - uses: google-github-actions/setup-gcloud@aa5489c8933f4cc7a4f7d45035b3b1440c9c10db # ratchet:google-github-actions/setup-gcloud@v3
+      - uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0 # ratchet:actions/download-artifact@v5
         with:
           name: installer-linux-${{ matrix.arch }}-${{ matrix.suffix }}
           path: ./downloaded-artifact/
@@ -220,15 +221,15 @@ jobs:
       contents: read
       id-token: write
     steps:
-      - uses: actions/checkout@v5
-      - uses: navikt/github-app-token-generator@v1
+      - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # ratchet:actions/checkout@v5
+      - uses: navikt/github-app-token-generator@b96ff604b2300989cd1105e3fad09199fca56681 # ratchet:navikt/github-app-token-generator@v1
         id: token
         with:
           private-key: ${{ secrets.NAIS_APP_PRIVATE_KEY }}
           app-id: ${{ secrets.NAIS_APP_ID }}
           repo: ${{ matrix.target.repo }}
-      - uses: jdx/mise-action@v3
-      - uses: actions/download-artifact@v5
+      - uses: jdx/mise-action@146a28175021df8ca24f8ee1828cc2a60f980bd5 # ratchet:jdx/mise-action@v3
+      - uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0 # ratchet:actions/download-artifact@v5
         with:
           name: template-vars
       - name: update ${{ matrix.target.repo }}

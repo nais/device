@@ -29,8 +29,8 @@ jobs:
           - test
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
-      - uses: jdx/mise-action@v3
+      - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # ratchet:actions/checkout@v5
+      - uses: jdx/mise-action@146a28175021df8ca24f8ee1828cc2a60f980bd5 # ratchet:jdx/mise-action@v3
         with:
           cache: false
       - run: mise run ${{ matrix.mise_task }}
@@ -41,18 +41,18 @@ jobs:
       - test
     runs-on: ubuntu-22.04
     steps:
-      - uses: actions/checkout@v5
-      - uses: jdx/mise-action@v3
+      - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # ratchet:actions/checkout@v5
+      - uses: jdx/mise-action@146a28175021df8ca24f8ee1828cc2a60f980bd5 # ratchet:jdx/mise-action@v3
 
       - name: "Build controlplane"
         run: |
           export VERSION="$(date "+%Y-%m-%d-%H%M%S")"
           mise run package:controlplane-debs
 
-      - uses: google-github-actions/setup-gcloud@v3
+      - uses: google-github-actions/setup-gcloud@aa5489c8933f4cc7a4f7d45035b3b1440c9c10db # ratchet:google-github-actions/setup-gcloud@v3
 
       - name: "Auth with Google"
-        uses: "google-github-actions/auth@v2"
+        uses: "google-github-actions/auth@c200f3691d83b41bf9bbd8638997a462592937ed" # ratchet:google-github-actions/auth@v2
         with:
           credentials_json: "${{ secrets.GOOGLE_DEB_UPLOAD_SA_JSON }}"
 
@@ -72,12 +72,12 @@ jobs:
       packages: read
     runs-on: ubuntu-22.04
     steps:
-      - uses: actions/checkout@v5
-      - uses: google-github-actions/setup-gcloud@v3
+      - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # ratchet:actions/checkout@v5
+      - uses: google-github-actions/setup-gcloud@aa5489c8933f4cc7a4f7d45035b3b1440c9c10db # ratchet:google-github-actions/setup-gcloud@v3
 
       - id: "auth"
         name: "Authenticate to Google Cloud"
-        uses: "google-github-actions/auth@v2"
+        uses: "google-github-actions/auth@c200f3691d83b41bf9bbd8638997a462592937ed" # ratchet:google-github-actions/auth@v2
         with:
           workload_identity_provider: ${{ secrets.NAIS_IO_WORKLOAD_IDENTITY_PROVIDER }}
           service_account: "gh-naisdevice@nais-io.iam.gserviceaccount.com"
@@ -85,10 +85,10 @@ jobs:
 
       - name: Set up Docker Buildx
         id: buildx
-        uses: docker/setup-buildx-action@v3
+        uses: docker/setup-buildx-action@e468171a9de216ec08956ac3ada2f0791b6bd435 # ratchet:docker/setup-buildx-action@v3
 
       - name: Login to registry
-        uses: docker/login-action@v3
+        uses: docker/login-action@5e57cd118135c172c3672efd75eb46360885c0ef # ratchet:docker/login-action@v3
         with:
           registry: ${{ env.REGISTRY }}
           username: "oauth2accesstoken"
@@ -96,7 +96,7 @@ jobs:
 
       - name: Docker meta enroller
         id: metadata
-        uses: docker/metadata-action@v5
+        uses: docker/metadata-action@c299e40c65443455700f0fdfc63efafe5b349051 # ratchet:docker/metadata-action@v5
         with:
           images: ${{ env.REGISTRY }}/naisdevice-enroller
           # Docker tags based on the following events/attributes
@@ -110,7 +110,7 @@ jobs:
             type=sha
 
       - name: Build and push enroller
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@263435318d21b8e681c14492fe198d362a7d2c83 # ratchet:docker/build-push-action@v6
         env:
           cache_ref: ${{ env.REGISTRY }}/naisdevice-enroller:main
         with:
@@ -132,11 +132,11 @@ jobs:
       packages: read
     runs-on: ubuntu-22.04
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # ratchet:actions/checkout@v5
 
       - id: "auth"
         name: "Authenticate to Google Cloud"
-        uses: "google-github-actions/auth@v2"
+        uses: "google-github-actions/auth@c200f3691d83b41bf9bbd8638997a462592937ed" # ratchet:google-github-actions/auth@v2
         with:
           workload_identity_provider: ${{ secrets.NAIS_IO_WORKLOAD_IDENTITY_PROVIDER }}
           service_account: "gh-naisdevice@nais-io.iam.gserviceaccount.com"
@@ -144,10 +144,10 @@ jobs:
 
       - name: Set up Docker Buildx
         id: buildx
-        uses: docker/setup-buildx-action@v3
+        uses: docker/setup-buildx-action@e468171a9de216ec08956ac3ada2f0791b6bd435 # ratchet:docker/setup-buildx-action@v3
 
       - name: Login to registry
-        uses: docker/login-action@v3
+        uses: docker/login-action@5e57cd118135c172c3672efd75eb46360885c0ef # ratchet:docker/login-action@v3
         with:
           registry: ${{ env.REGISTRY }}
           username: "oauth2accesstoken"
@@ -155,7 +155,7 @@ jobs:
 
       - name: Docker meta auth-server
         id: metadata
-        uses: docker/metadata-action@v5
+        uses: docker/metadata-action@c299e40c65443455700f0fdfc63efafe5b349051 # ratchet:docker/metadata-action@v5
         with:
           images: ${{ env.REGISTRY }}/naisdevice-auth-server
           # Docker tags based on the following events/attributes
@@ -169,7 +169,7 @@ jobs:
             type=sha
 
       - name: Build and push auth-server
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@263435318d21b8e681c14492fe198d362a7d2c83 # ratchet:docker/build-push-action@v6
         env:
           cache_ref: ${{ env.REGISTRY }}/naisdevice-auth-server:main
         with:
