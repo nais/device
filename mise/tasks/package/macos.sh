@@ -45,13 +45,12 @@ cp ./assets/macos/{preinstall,postinstall} "$build_dir/scripts/"
 cp -r "$app_dir" "$build_dir/pkgroot/"
 xattr -rc "$build_dir/pkgroot/$(basename "$app_dir")"
 
-sign_flag=""
+sign_flag=()
 if [ "$release" == "true" ]; then
-	sign_flag="--sign $install_cert"
+	sign_flag=(--sign "$install_cert")
 fi
 
 pkgbuild --analyze --root "$build_dir/pkgroot/" "$build_plist"
-# shellcheck disable=SC2086
 pkgbuild \
 	--root "$build_dir/pkgroot/" \
 	--component-plist "$build_plist" \
@@ -59,7 +58,7 @@ pkgbuild \
 	--install-location "/Applications" \
 	--scripts "$build_dir/scripts" \
 	--version "$version" \
-	$sign_flag \
+	"${sign_flag[@]}" \
 	--ownership recommended \
 	"$outfile"
 
