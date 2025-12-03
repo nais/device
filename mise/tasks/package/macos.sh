@@ -46,7 +46,7 @@ cp -r "$app_dir" "$build_dir/pkgroot/"
 xattr -rc "$build_dir/pkgroot/$(basename "$app_dir")"
 
 if [ "$release" == "true" ]; then
-	sign_flag="--sign \"$install_cert\""
+	sign_flag="--sign $install_cert"
 else
 	sign_flag=""
 fi
