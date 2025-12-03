@@ -45,10 +45,9 @@ cp ./assets/macos/{preinstall,postinstall} "$build_dir/scripts/"
 cp -r "$app_dir" "$build_dir/pkgroot/"
 xattr -rc "$build_dir/pkgroot/$(basename "$app_dir")"
 
+sign_flag=""
 if [ "$release" == "true" ]; then
 	sign_flag="--sign $install_cert"
-else
-	sign_flag=""
 fi
 
 pkgbuild --analyze --root "$build_dir/pkgroot/" "$build_plist"
