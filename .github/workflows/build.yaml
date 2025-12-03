@@ -147,7 +147,7 @@ jobs:
           fetch-depth: 0
       - uses: jdx/mise-action@146a28175021df8ca24f8ee1828cc2a60f980bd5 # ratchet:jdx/mise-action@v3
       - run: git tag ${{ needs.release-info.outputs.version }}
-      - uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0 # ratchet:actions/download-artifact@v5
+      - uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53 # ratchet:actions/download-artifact@v5
         with:
           merge-multiple: true
           path: release_artifacts
@@ -194,7 +194,7 @@ jobs:
           service_account: gh-naisdevice@nais-io.iam.gserviceaccount.com
           token_format: access_token
       - uses: google-github-actions/setup-gcloud@aa5489c8933f4cc7a4f7d45035b3b1440c9c10db # ratchet:google-github-actions/setup-gcloud@v3
-      - uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0 # ratchet:actions/download-artifact@v5
+      - uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53 # ratchet:actions/download-artifact@v5
         with:
           name: installer-linux-${{ matrix.arch }}-${{ matrix.suffix }}
           path: ./downloaded-artifact/
@@ -228,7 +228,7 @@ jobs:
           app-id: ${{ secrets.NAIS_APP_ID }}
           repo: ${{ matrix.target.repo }}
       - uses: jdx/mise-action@146a28175021df8ca24f8ee1828cc2a60f980bd5 # ratchet:jdx/mise-action@v3
-      - uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0 # ratchet:actions/download-artifact@v5
+      - uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53 # ratchet:actions/download-artifact@v5
         with:
           name: template-vars
       - name: update ${{ matrix.target.repo }}
