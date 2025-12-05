@@ -31,7 +31,7 @@ while read -r hash file; do
 	hash16=${hash^^}
 	hash32=$(basenc --base16 -d <<<"${hash16}" | basenc --base32)
 
-	url="https://github.com/nais/device/releases/download/$VERSION/$file"
+	url="https://github.com/nais/device/releases/download/$VERSION/$basename"
 
 	echo "${key}_HASH_BASE16=${hash16}"
 	echo "${key}_HASH_BASE32=${hash32}"
