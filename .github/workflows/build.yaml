@@ -160,7 +160,6 @@ jobs:
           merge-multiple: true
           path: release_artifacts
       - run: mise run ci:generate-checksums ./release_artifacts/ > ./release_artifacts/checksums.txt
-      # TODO: revert to v2 when outputs.assets outputs tagged urls instead of untagged ones
       - uses: softprops/action-gh-release@a06a81a03ee405af7f2048a818ed3f03bbf83c7b # ratchet:softprops/action-gh-release@v2.5.0
         id: release
         with:
