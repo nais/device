@@ -6,6 +6,8 @@ set -o errexit
 set -o pipefail
 set -o nounset
 
+echo "$BASH => $BASH_VERSION"
+
 # shellcheck disable=SC2153
 version="$VERSION"
 # shellcheck disable=SC2153
