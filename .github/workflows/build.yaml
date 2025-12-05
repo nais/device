@@ -110,6 +110,8 @@ jobs:
       - uses: jdx/mise-action@146a28175021df8ca24f8ee1828cc2a60f980bd5 # ratchet:jdx/mise-action@v3
       - if: matrix.platform.os == 'windows'
         run: sudo apt-get update && sudo apt-get install --yes nsis osslsigncode
+      - if: matrix.platform.os == 'macos'
+        run: brew install bash
       - if: matrix.platform.os == 'macos' && env.RELEASE == 'true'
         uses: Apple-Actions/import-codesign-certs@63fff01cd422d4b7b855d40ca1e9d34d2de9427d # ratchet:Apple-Actions/import-codesign-certs@v3
         with:
