@@ -62,9 +62,11 @@ jobs:
     strategy:
       matrix:
         mise_task:
-          - check:govulncheck
-          - check:staticcheck
+          - check:golangci-lint
           - check:govet
+          - check:govulncheck
+          - check:ratchet
+          - check:staticcheck
           - ci:fmt
           - test
     runs-on: ubuntu-latest
