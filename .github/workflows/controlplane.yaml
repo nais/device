@@ -31,7 +31,7 @@ jobs:
           - test
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # ratchet:actions/checkout@v5
+      - uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # ratchet:actions/checkout@v6
       - uses: jdx/mise-action@146a28175021df8ca24f8ee1828cc2a60f980bd5 # ratchet:jdx/mise-action@v3
         with:
           cache: false
@@ -43,7 +43,7 @@ jobs:
       - test
     runs-on: ubuntu-22.04
     steps:
-      - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # ratchet:actions/checkout@v5
+      - uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # ratchet:actions/checkout@v6
       - uses: jdx/mise-action@146a28175021df8ca24f8ee1828cc2a60f980bd5 # ratchet:jdx/mise-action@v3
 
       - name: "Build controlplane"
@@ -54,7 +54,7 @@ jobs:
       - uses: google-github-actions/setup-gcloud@aa5489c8933f4cc7a4f7d45035b3b1440c9c10db # ratchet:google-github-actions/setup-gcloud@v3
 
       - name: "Auth with Google"
-        uses: "google-github-actions/auth@7c6bc770dae815cd3e89ee6cdf493a5fab2cc093" # ratchet:google-github-actions/auth@v2
+        uses: "google-github-actions/auth@c200f3691d83b41bf9bbd8638997a462592937ed" # ratchet:google-github-actions/auth@v2
         with:
           credentials_json: "${{ secrets.GOOGLE_DEB_UPLOAD_SA_JSON }}"
 
@@ -74,12 +74,12 @@ jobs:
       packages: read
     runs-on: ubuntu-22.04
     steps:
-      - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # ratchet:actions/checkout@v5
+      - uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # ratchet:actions/checkout@v6
       - uses: google-github-actions/setup-gcloud@aa5489c8933f4cc7a4f7d45035b3b1440c9c10db # ratchet:google-github-actions/setup-gcloud@v3
 
       - id: "auth"
         name: "Authenticate to Google Cloud"
-        uses: "google-github-actions/auth@7c6bc770dae815cd3e89ee6cdf493a5fab2cc093" # ratchet:google-github-actions/auth@v2
+        uses: "google-github-actions/auth@c200f3691d83b41bf9bbd8638997a462592937ed" # ratchet:google-github-actions/auth@v2
         with:
           workload_identity_provider: ${{ secrets.NAIS_IO_WORKLOAD_IDENTITY_PROVIDER }}
           service_account: "gh-naisdevice@nais-io.iam.gserviceaccount.com"
@@ -134,11 +134,11 @@ jobs:
       packages: read
     runs-on: ubuntu-22.04
     steps:
-      - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # ratchet:actions/checkout@v5
+      - uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # ratchet:actions/checkout@v6
 
       - id: "auth"
         name: "Authenticate to Google Cloud"
-        uses: "google-github-actions/auth@7c6bc770dae815cd3e89ee6cdf493a5fab2cc093" # ratchet:google-github-actions/auth@v2
+        uses: "google-github-actions/auth@c200f3691d83b41bf9bbd8638997a462592937ed" # ratchet:google-github-actions/auth@v2
         with:
           workload_identity_provider: ${{ secrets.NAIS_IO_WORKLOAD_IDENTITY_PROVIDER }}
           service_account: "gh-naisdevice@nais-io.iam.gserviceaccount.com"

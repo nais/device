@@ -46,7 +46,7 @@ jobs:
       contents: read
       pull-requests: write
     steps:
-      - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # ratchet:actions/checkout@v5
+      - uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # ratchet:actions/checkout@v6
         with:
           fetch-depth: 0
       - uses: jdx/mise-action@146a28175021df8ca24f8ee1828cc2a60f980bd5 # ratchet:jdx/mise-action@v3
@@ -74,7 +74,7 @@ jobs:
     permissions:
       contents: read
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # ratchet:actions/checkout@v6
       - uses: jdx/mise-action@146a28175021df8ca24f8ee1828cc2a60f980bd5 # ratchet:jdx/mise-action@v3
       - run: mise run ${{ matrix.mise_task }}
 
@@ -107,7 +107,7 @@ jobs:
       GOTAGS: ${{ matrix.gotags }}
       OUTFILE: ./release_artifacts/naisdevice${{ matrix.gotags == 'tenant' && '-tenant' || '' }}_${{ matrix.platform.os }}_${{ matrix.arch }}.${{ matrix.platform.ext }}
     steps:
-      - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # ratchet:actions/checkout@v5
+      - uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # ratchet:actions/checkout@v6
       - uses: jdx/mise-action@146a28175021df8ca24f8ee1828cc2a60f980bd5 # ratchet:jdx/mise-action@v3
       - if: matrix.platform.os == 'windows'
         run: sudo apt-get update && sudo apt-get install --yes nsis osslsigncode
@@ -128,7 +128,7 @@ jobs:
         run: |
           mkdir -p "$(dirname $OUTFILE)"
           mise run "package:${{ matrix.platform.os }}"
-      - uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # ratchet:actions/upload-artifact@v4
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # ratchet:actions/upload-artifact@v4
         with:
           name: installer-${{ matrix.platform.os }}-${{ matrix.arch }}-${{ matrix.gotags || 'nav' }}
           path: ${{ env.OUTFILE }}
@@ -150,12 +150,12 @@ jobs:
     permissions:
       contents: write
     steps:
-      - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # ratchet:actions/checkout@v5
+      - uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # ratchet:actions/checkout@v6
         with:
           fetch-depth: 0
       - uses: jdx/mise-action@146a28175021df8ca24f8ee1828cc2a60f980bd5 # ratchet:jdx/mise-action@v3
       - run: git tag ${{ needs.release-info.outputs.version }}
-      - uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53 # ratchet:actions/download-artifact@v5
+      - uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0 # ratchet:actions/download-artifact@v5
         with:
           merge-multiple: true
           path: release_artifacts
@@ -174,7 +174,7 @@ jobs:
       - env:
           VERSION: ${{ needs.release-info.outputs.version }}
         run: mise run ci:prepare-template-vars ./release_artifacts/checksums.txt ./assets.json -v > template.vars
-      - uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # ratchet:actions/upload-artifact@v4
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # ratchet:actions/upload-artifact@v4
         with:
           name: template-vars
           path: ./template.vars
@@ -194,7 +194,7 @@ jobs:
       contents: read
       id-token: write
     steps:
-      - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # ratchet:actions/checkout@v5
+      - uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # ratchet:actions/checkout@v6
       - id: auth
         uses: google-github-actions/auth@7c6bc770dae815cd3e89ee6cdf493a5fab2cc093 # ratchet:google-github-actions/auth@v3
         with:
@@ -202,7 +202,7 @@ jobs:
           service_account: gh-naisdevice@nais-io.iam.gserviceaccount.com
           token_format: access_token
       - uses: google-github-actions/setup-gcloud@aa5489c8933f4cc7a4f7d45035b3b1440c9c10db # ratchet:google-github-actions/setup-gcloud@v3
-      - uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53 # ratchet:actions/download-artifact@v5
+      - uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0 # ratchet:actions/download-artifact@v5
         with:
           name: installer-linux-${{ matrix.arch }}-${{ matrix.suffix }}
           path: ./downloaded-artifact/
@@ -228,7 +228,7 @@ jobs:
       contents: read
       id-token: write
     steps:
-      - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # ratchet:actions/checkout@v5
+      - uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # ratchet:actions/checkout@v6
       - uses: navikt/github-app-token-generator@b96ff604b2300989cd1105e3fad09199fca56681 # ratchet:navikt/github-app-token-generator@v1
         id: token
         with:
@@ -236,7 +236,7 @@ jobs:
           app-id: ${{ secrets.NAIS_APP_ID }}
           repo: ${{ matrix.target.repo }}
       - uses: jdx/mise-action@146a28175021df8ca24f8ee1828cc2a60f980bd5 # ratchet:jdx/mise-action@v3
-      - uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53 # ratchet:actions/download-artifact@v5
+      - uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0 # ratchet:actions/download-artifact@v5
         with:
           name: template-vars
       - name: update ${{ matrix.target.repo }}
