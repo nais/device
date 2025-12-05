@@ -6,14 +6,11 @@ set -o nounset
 set -o pipefail
 
 checksums_txt="$1"
-assets_json="$2"
-verbose="${3:-""}"
+verbose="${2:-""}"
 
 if [[ $verbose == "-v" ]]; then
 	>&2 echo "checksums:"
 	>&2 cat "$checksums_txt"
-	>&2 echo "assets:"
-	>&2 cat "$assets_json"
 fi
 
 echo "VERSION=$VERSION"
@@ -34,7 +31,7 @@ while read -r hash file; do
 	hash16=${hash^^}
 	hash32=$(basenc --base16 -d <<<"${hash16}" | basenc --base32)
 
-	url=$(jq -r --arg file "$basename" '.[] | select(.name == $file) | .browser_download_url' "$assets_json")
+	url="https://github.com/nais/device/releases/download/$VERSION/$file"
 
 	echo "${key}_HASH_BASE16=${hash16}"
 	echo "${key}_HASH_BASE32=${hash32}"

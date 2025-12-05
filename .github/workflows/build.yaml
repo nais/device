@@ -170,10 +170,9 @@ jobs:
           files: ./release_artifacts/*
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - run: echo '${{ steps.release.outputs.assets }}' > assets.json
       - env:
           VERSION: ${{ needs.release-info.outputs.version }}
-        run: mise run ci:prepare-template-vars ./release_artifacts/checksums.txt ./assets.json -v > template.vars
+        run: mise run ci:prepare-template-vars ./release_artifacts/checksums.txt -v > template.vars
       - uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # ratchet:actions/upload-artifact@v5
         with:
           name: template-vars
