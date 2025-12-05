@@ -60,6 +60,7 @@ jobs:
 
   checks:
     strategy:
+      fail-fast: false
       matrix:
         mise_task:
           - check:golangci-lint
@@ -135,9 +136,12 @@ jobs:
   # Used by GitHub to determine if all checks/builds have passed
   branch-protection-checkpoint:
     needs: [checks, builds]
+    if: ${{ always() }}
     runs-on: ubuntu-latest
     steps:
-      - run: echo Checks and builds passed
+      - if: ${{ needs.checks.result != 'success' || needs.build.result != 'success' }}
+        run: exit 1
+      - run: echo "All checks and builds passed."
 
   release-github:
     if: github.ref == 'refs/heads/main' && github.actor != 'dependabot[bot]' && needs.release-info.outputs.changelog != '' && needs.release-info.outputs.version != ''
