@@ -139,7 +139,7 @@ jobs:
     if: ${{ always() }}
     runs-on: ubuntu-latest
     steps:
-      - if: ${{ needs.checks.result != 'success' || needs.build.result != 'success' }}
+      - if: ${{ needs.checks.result != 'success' || needs.builds.result != 'success' }}
         run: exit 1
       - run: echo "All checks and builds passed."
 
