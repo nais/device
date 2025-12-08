@@ -44,7 +44,7 @@ func (g *GatewayConfigurer) SyncConfig(ctx context.Context) error {
 	if err != nil {
 		return fmt.Errorf("open bucket: %w", err)
 	}
-	defer ioconvenience.CloseWithLog(g.log, object)
+	defer ioconvenience.CloseWithLog(object, g.log)
 
 	// only update configuration if changed server-side
 	lastUpdated := object.LastUpdated()

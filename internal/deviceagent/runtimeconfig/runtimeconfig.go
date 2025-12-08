@@ -293,7 +293,7 @@ func (r *runtimeConfig) SaveEnrollConfig() error {
 	if err != nil {
 		return err
 	}
-	defer ioconvenience.CloseWithLog(r.log, f)
+	defer ioconvenience.CloseWithLog(f, r.log)
 
 	return json.NewEncoder(f).Encode(r.enrollConfig)
 }

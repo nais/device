@@ -49,7 +49,7 @@ func (s *trayState) onReady() {
 
 func (s *trayState) onExit() {
 	if s.connection != nil {
-		ioconvenience.CloseWithLog(s.log, s.connection)
+		ioconvenience.CloseWithLog(s.connection, s.log)
 	}
 }
 

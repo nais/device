@@ -28,7 +28,7 @@ func UpdateConfiguration(targetIPs []string, log logrus.FieldLogger) error {
 	if err != nil {
 		return fmt.Errorf("unable to open file: %w", err)
 	}
-	defer ioconvenience.CloseWithLog(log, nodeTargetsFile)
+	defer ioconvenience.CloseWithLog(nodeTargetsFile, log)
 
 	err = EncodePrometheusTargets(targetIPs, 9100, nodeTargetsFile)
 	if err != nil {
@@ -39,7 +39,7 @@ func UpdateConfiguration(targetIPs []string, log logrus.FieldLogger) error {
 	if err != nil {
 		return fmt.Errorf("unable to open file: %w", err)
 	}
-	defer ioconvenience.CloseWithLog(log, gatewayTargetsFile)
+	defer ioconvenience.CloseWithLog(gatewayTargetsFile, log)
 
 	err = EncodePrometheusTargets(targetIPs, 3000, gatewayTargetsFile)
 	if err != nil {

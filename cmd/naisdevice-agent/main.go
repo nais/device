@@ -142,7 +142,7 @@ func run(ctx context.Context, log *logrus.Entry, cfg *config.Config, notifier no
 			return fmt.Errorf("connect to naisdevice-helper: %v", err)
 		}
 		client = pb.NewDeviceHelperClient(connection)
-		defer ioconvenience.CloseWithLog(log, connection)
+		defer ioconvenience.CloseWithLog(connection, log)
 	}
 
 	go func() {

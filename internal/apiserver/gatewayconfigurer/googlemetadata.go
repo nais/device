@@ -64,7 +64,7 @@ func getGatewayMetadatas(ctx context.Context, log logrus.FieldLogger) (map[strin
 	if err != nil {
 		return nil, err
 	}
-	defer ioconvenience.CloseWithLog(log, resp.Body)
+	defer ioconvenience.CloseWithLog(resp.Body, log)
 
 	if resp.StatusCode != 200 {
 		return nil, fmt.Errorf("non-200 status on metadata request: %v", resp.Status)

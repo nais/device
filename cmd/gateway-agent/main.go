@@ -170,7 +170,7 @@ func run(log *logrus.Entry, cfg config.Config) error {
 		return fmt.Errorf("unable to connect to api server: %w", err)
 	}
 
-	defer ioconvenience.CloseWithLog(log, apiserver)
+	defer ioconvenience.CloseWithLog(apiserver, log)
 
 	apiserverClient := pb.NewAPIServerClient(apiserver)
 

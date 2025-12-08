@@ -130,7 +130,7 @@ func (dhs *DeviceHelperServer) writeConfigFile(cfg *pb.Configuration) error {
 	if err != nil {
 		return fmt.Errorf("open file: %s", err)
 	}
-	defer ioconvenience.CloseWithLog(dhs.log, fd)
+	defer ioconvenience.CloseWithLog(fd, dhs.log)
 
 	_, err = io.Copy(fd, buf)
 	if err != nil {

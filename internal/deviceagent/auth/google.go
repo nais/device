@@ -70,7 +70,7 @@ func (h *handler) handleRedirectGoogle(w http.ResponseWriter, r *http.Request) {
 		failAuth(err, w, h.authChannel)
 		return
 	}
-	defer ioconvenience.CloseWithLog(h.log, res.Body)
+	defer ioconvenience.CloseWithLog(res.Body, h.log)
 
 	var exchangeResponse ExchangeResponse
 	err = json.NewDecoder(res.Body).Decode(&exchangeResponse)
@@ -113,7 +113,7 @@ func consoleURL(ctx context.Context, idToken, state string, log logrus.FieldLogg
 	if err != nil {
 		return "", err
 	}
-	defer ioconvenience.CloseWithLog(log, resp.Body)
+	defer ioconvenience.CloseWithLog(resp.Body, log)
 
 	d := struct {
 		ConsoleURL string `json:"consoleUrl"`
