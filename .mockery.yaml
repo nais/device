@@ -1,6 +1,7 @@
 inpackage: true
 dir: "{{ .InterfaceDir }}"
 filename: "mock_{{ .InterfaceName | snakecase }}.go"
+include-auto-generated: true
 template-data:
   unroll-variadic: true
 packages:
