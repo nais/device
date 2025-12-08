@@ -68,6 +68,8 @@ func kolideCheckSeverity(tags []string, log logrus.FieldLogger) pb.Severity {
 			severity = pb.Severity_Info
 		case strings.EqualFold(tag, pb.Severity_Notice.String()):
 			severity = pb.Severity_Notice
+		case strings.EqualFold(tag, pb.Severity_Attention.String()):
+			severity = pb.Severity_Attention
 		case strings.EqualFold(tag, pb.Severity_Warning.String()):
 			severity = pb.Severity_Warning
 		case strings.EqualFold(tag, pb.Severity_Danger.String()):
