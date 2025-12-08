@@ -59,7 +59,7 @@ func SetupLogger(level, logDir, prefix string) *logrus.Logger {
 	return log
 }
 
-func Setup(level string) *logrus.Logger {
+func Setup(level string) logrus.FieldLogger {
 	log := logrus.New()
 	log.SetFormatter(&logrus.JSONFormatter{FieldMap: logrus.FieldMap{
 		logrus.FieldKeyMsg: "message",

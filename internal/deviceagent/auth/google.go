@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/lestrrat-go/jwx/jwt"
+	"github.com/nais/device/internal/ioconvenience"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/oauth2"
 )
@@ -69,7 +70,7 @@ func (h *handler) handleRedirectGoogle(w http.ResponseWriter, r *http.Request) {
 		failAuth(err, w, h.authChannel)
 		return
 	}
-	defer res.Body.Close()
+	defer ioconvenience.CloseWithLog(h.log, res.Body)
 
 	var exchangeResponse ExchangeResponse
 	err = json.NewDecoder(res.Body).Decode(&exchangeResponse)
@@ -78,7 +79,7 @@ func (h *handler) handleRedirectGoogle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	ret, err := consoleURL(ctx, exchangeResponse.IDToken, "connected")
+	ret, err := consoleURL(ctx, exchangeResponse.IDToken, "connected", h.log)
 	if err != nil {
 		logrus.Println("Failed to get console	URL: " + err.Error())
 		successfulResponse(w, "Successfully authenticated 👌 Close me pls", r.Header.Get("user-agent"))
@@ -90,7 +91,7 @@ func (h *handler) handleRedirectGoogle(w http.ResponseWriter, r *http.Request) {
 	h.authChannel <- &authFlowResponse{Tokens: tokens, err: nil}
 }
 
-func consoleURL(ctx context.Context, idToken, state string) (string, error) {
+func consoleURL(ctx context.Context, idToken, state string, log logrus.FieldLogger) (string, error) {
 	t, err := jwt.ParseString(idToken, jwt.WithValidate(false))
 	if err != nil {
 		return "", err
@@ -112,7 +113,7 @@ func consoleURL(ctx context.Context, idToken, state string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	defer resp.Body.Close()
+	defer ioconvenience.CloseWithLog(log, resp.Body)
 
 	d := struct {
 		ConsoleURL string `json:"consoleUrl"`

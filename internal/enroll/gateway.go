@@ -11,6 +11,7 @@ import (
 	"strconv"
 
 	"cloud.google.com/go/pubsub"
+	"github.com/nais/device/internal/ioconvenience"
 	"github.com/sirupsen/logrus"
 )
 
@@ -18,7 +19,7 @@ type GatewayClient struct {
 	wireGuardPublicKey []byte
 	port               int
 	hashedPassword     string
-	log                *logrus.Entry
+	log                logrus.FieldLogger
 
 	Name             string `json:"name"`
 	EnrollProjectID  string `json:"project_id"`
@@ -27,8 +28,8 @@ type GatewayClient struct {
 	ExternalIP       string `json:"external_ip"`
 }
 
-func NewGatewayClient(ctx context.Context, publicKey []byte, hashedPassword string, wireguardListenPort int, log *logrus.Entry) (*GatewayClient, error) {
-	b, err := GetGoogleMetadata(ctx, "instance/attributes/enroll-config")
+func NewGatewayClient(ctx context.Context, publicKey []byte, hashedPassword string, wireguardListenPort int, log logrus.FieldLogger) (*GatewayClient, error) {
+	b, err := GetGoogleMetadata(ctx, "instance/attributes/enroll-config", log)
 	if err != nil {
 		return nil, err
 	}
@@ -47,7 +48,7 @@ func NewGatewayClient(ctx context.Context, publicKey []byte, hashedPassword stri
 
 func (c *GatewayClient) Bootstrap(ctx context.Context) (*Response, error) {
 	c.log.Info("bootstrapping...")
-	projectID, err := GetGoogleMetadataString(ctx, "project/project-id")
+	projectID, err := GetGoogleMetadataString(ctx, "project/project-id", c.log)
 	if err != nil {
 		return nil, fmt.Errorf("get google metadata: %w", err)
 	}
@@ -134,12 +135,12 @@ func (c *GatewayClient) publishAndWait(ctx context.Context, topic *pubsub.Topic)
 	return nil
 }
 
-func GetGoogleMetadataString(ctx context.Context, path string) (string, error) {
-	b, err := GetGoogleMetadata(ctx, path)
+func GetGoogleMetadataString(ctx context.Context, path string, log logrus.FieldLogger) (string, error) {
+	b, err := GetGoogleMetadata(ctx, path, log)
 	return string(b), err
 }
 
-func GetGoogleMetadata(ctx context.Context, path string) ([]byte, error) {
+func GetGoogleMetadata(ctx context.Context, path string, log logrus.FieldLogger) ([]byte, error) {
 	url := "http://metadata.google.internal/computeMetadata/v1/" + path
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 	if err != nil {
@@ -151,7 +152,7 @@ func GetGoogleMetadata(ctx context.Context, path string) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer resp.Body.Close()
+	defer ioconvenience.CloseWithLog(log, resp.Body)
 
 	if resp.StatusCode != 200 {
 		return nil, fmt.Errorf("non-200 status on metadata request: %v", resp.Status)

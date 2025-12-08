@@ -57,7 +57,7 @@ func New(dbPath string, v4Allocator ip.Allocator, v6Allocator ip.Allocator, koli
 		log:           log,
 	}
 
-	if err = runMigrations(dbPath); err != nil {
+	if err = runMigrations(dbPath, log); err != nil {
 		return nil, fmt.Errorf("migrating database: %w", err)
 	}
 

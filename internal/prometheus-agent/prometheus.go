@@ -5,6 +5,9 @@ import (
 	"fmt"
 	"io"
 	"os"
+
+	"github.com/nais/device/internal/ioconvenience"
+	"github.com/sirupsen/logrus"
 )
 
 type SDConfig struct {
@@ -20,12 +23,12 @@ func EncodePrometheusTargets(targetIPs []string, port int, writer io.Writer) err
 	return json.NewEncoder(writer).Encode([]SDConfig{{Targets: configTargets}})
 }
 
-func UpdateConfiguration(targetIPs []string) error {
+func UpdateConfiguration(targetIPs []string, log logrus.FieldLogger) error {
 	nodeTargetsFile, err := os.Create("/etc/prometheus/node-targets.json")
 	if err != nil {
 		return fmt.Errorf("unable to open file: %w", err)
 	}
-	defer nodeTargetsFile.Close()
+	defer ioconvenience.CloseWithLog(log, nodeTargetsFile)
 
 	err = EncodePrometheusTargets(targetIPs, 9100, nodeTargetsFile)
 	if err != nil {
@@ -36,7 +39,7 @@ func UpdateConfiguration(targetIPs []string) error {
 	if err != nil {
 		return fmt.Errorf("unable to open file: %w", err)
 	}
-	defer gatewayTargetsFile.Close()
+	defer ioconvenience.CloseWithLog(log, gatewayTargetsFile)
 
 	err = EncodePrometheusTargets(targetIPs, 3000, gatewayTargetsFile)
 	if err != nil {

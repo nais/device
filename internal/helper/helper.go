@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"github.com/nais/device/internal/helper/serial"
+	"github.com/nais/device/internal/ioconvenience"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -129,7 +130,7 @@ func (dhs *DeviceHelperServer) writeConfigFile(cfg *pb.Configuration) error {
 	if err != nil {
 		return fmt.Errorf("open file: %s", err)
 	}
-	defer fd.Close()
+	defer ioconvenience.CloseWithLog(dhs.log, fd)
 
 	_, err = io.Copy(fd, buf)
 	if err != nil {

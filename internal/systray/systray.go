@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"fyne.io/systray"
+	"github.com/nais/device/internal/ioconvenience"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 
@@ -48,7 +49,7 @@ func (s *trayState) onReady() {
 
 func (s *trayState) onExit() {
 	if s.connection != nil {
-		s.connection.Close()
+		ioconvenience.CloseWithLog(s.log, s.connection)
 	}
 }
 

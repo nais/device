@@ -69,7 +69,7 @@ func main() {
 	}
 
 	unixSocket := filepath.Join(config.RuntimeDir, "helper.sock")
-	listener, err := unixsocket.ListenWithFileMode(unixSocket, 0o666)
+	listener, err := unixsocket.ListenWithFileMode(unixSocket, 0o666, log)
 	if err != nil {
 		log.WithError(err).Fatal("failed to listen on unix socket")
 	}

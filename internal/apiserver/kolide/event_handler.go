@@ -5,6 +5,7 @@ import (
 	"crypto/tls"
 	"time"
 
+	"github.com/nais/device/internal/ioconvenience"
 	kolidepb "github.com/nais/kolide-event-handler/pkg/pb"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
@@ -31,7 +32,7 @@ const (
 	eventStreamBackoff = 10 * time.Second
 )
 
-func DeviceEventStreamer(ctx context.Context, log *logrus.Entry, grpcAddress, grpcToken string, grpcSecure bool, stream chan<- *kolidepb.DeviceEvent) error {
+func DeviceEventStreamer(ctx context.Context, log logrus.FieldLogger, grpcAddress, grpcToken string, grpcSecure bool, stream chan<- *kolidepb.DeviceEvent) error {
 	interceptor := &ClientInterceptor{
 		RequireTLS: grpcSecure,
 		Token:      grpcToken,
@@ -55,7 +56,7 @@ func DeviceEventStreamer(ctx context.Context, log *logrus.Entry, grpcAddress, gr
 		return err
 	}
 
-	defer conn.Close()
+	defer ioconvenience.CloseWithLog(log, conn)
 
 	s := kolidepb.NewKolideEventHandlerClient(conn)
 

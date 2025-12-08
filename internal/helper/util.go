@@ -10,6 +10,9 @@ import (
 	"os/exec"
 	"path/filepath"
 	"time"
+
+	"github.com/nais/device/internal/ioconvenience"
+	"github.com/sirupsen/logrus"
 )
 
 const (
@@ -41,7 +44,7 @@ func runCommands(ctx context.Context, commands [][]string) error {
 	return nil
 }
 
-func ZipLogFiles(files []string) (string, error) {
+func ZipLogFiles(files []string, log logrus.FieldLogger) (string, error) {
 	if len(files) == 0 {
 		return "nil", errors.New("can't be bothered to zip nothing")
 	}
@@ -49,7 +52,7 @@ func ZipLogFiles(files []string) (string, error) {
 	if err != nil {
 		return "nil", err
 	}
-	defer archive.Close()
+	defer ioconvenience.CloseWithLog(log, archive)
 	zipWriter := zip.NewWriter(archive)
 	for _, filename := range files {
 		_, err = os.Stat(filename)

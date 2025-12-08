@@ -46,7 +46,7 @@ func main() {
 	}
 }
 
-func run(log *logrus.Entry, cfg config.Config) error {
+func run(log logrus.FieldLogger, cfg config.Config) error {
 	ctx, cancel := program.MainContext(time.Second)
 	defer cancel()
 
@@ -121,7 +121,7 @@ func run(log *logrus.Entry, cfg config.Config) error {
 			return err
 		}
 
-		return applyGateways(netConf, gateways, apiserver)
+		return applyGateways(netConf, gateways, log, apiserver)
 	}
 
 	for ctx.Err() == nil {
@@ -171,7 +171,7 @@ func listGateways(ctx context.Context, cfg config.Config, client pb.APIServerCli
 	return gateways, nil
 }
 
-func applyGateways(netConf wireguard.NetworkConfigurer, gateways []*pb.Gateway, staticPeers ...wireguard.Peer) error {
+func applyGateways(netConf wireguard.NetworkConfigurer, gateways []*pb.Gateway, log logrus.FieldLogger, staticPeers ...wireguard.Peer) error {
 	peers := make([]wireguard.Peer, len(gateways))
 	ips := make([]string, len(gateways))
 
@@ -187,5 +187,5 @@ func applyGateways(netConf wireguard.NetworkConfigurer, gateways []*pb.Gateway, 
 		return err
 	}
 
-	return prometheusagent.UpdateConfiguration(ips)
+	return prometheusagent.UpdateConfiguration(ips, log)
 }

@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/google/gopacket/routing"
+	"github.com/nais/device/internal/ioconvenience"
 	"github.com/sirupsen/logrus"
 )
 
@@ -154,7 +155,7 @@ func (nc *networkConfigurer) ApplyWireGuardConfig(peers []Peer) error {
 	if err != nil {
 		return fmt.Errorf("open WireGuard config file: %w", err)
 	}
-	defer configFile.Close()
+	defer ioconvenience.CloseWithLog(nc.log, configFile)
 
 	nc.config.Peers = peers
 	err = nc.config.MarshalINI(configFile)

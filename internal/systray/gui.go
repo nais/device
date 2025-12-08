@@ -467,7 +467,7 @@ func (gui *Gui) handleGuiEvent(ctx context.Context, guiEvent GuiEvent) {
 			logger.LatestFilepath(helperconfig.LogDir, logger.Helper),
 			logger.LatestFilepath(userLogDirPath, logger.Systray),
 		}
-		zipLocation, err := helper.ZipLogFiles(logFiles[:])
+		zipLocation, err := helper.ZipLogFiles(logFiles[:], gui.log)
 		if err != nil {
 			gui.log.WithError(err).Error("zipping log files")
 		}
