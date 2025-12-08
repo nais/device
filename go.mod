@@ -19,7 +19,7 @@ require (
 	cloud.google.com/go/pubsub v1.45.1
 	cloud.google.com/go/storage v1.49.0
 	fyne.io/systray v1.11.0
-	github.com/coreos/go-iptables v0.7.0
+	github.com/coreos/go-iptables v0.8.0
 	github.com/gen2brain/beeep v0.11.1
 	github.com/golang-migrate/migrate/v4 v4.16.2
 	github.com/google/gopacket v1.1.20-0.20220810144506-32ee38206866
