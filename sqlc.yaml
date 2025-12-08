@@ -10,3 +10,4 @@ sql:
         emit_interface: true
         emit_result_struct_pointers: true
         emit_prepared_queries: true
+        omit_sqlc_version: true
