@@ -8,6 +8,7 @@ import (
 	"net/url"
 	"strings"
 
+	"github.com/nais/device/internal/ioconvenience"
 	"github.com/sirupsen/logrus"
 )
 
@@ -115,7 +116,7 @@ func (kc *client) getPaginated(ctx context.Context, initialUrl string) ([]json.R
 				return fmt.Errorf("getting paginated response: %w", err)
 			}
 
-			defer response.Body.Close()
+			defer ioconvenience.CloseWithLog(kc.log, response.Body)
 
 			paginatedResponse := &PaginatedResponse{}
 			err = json.NewDecoder(response.Body).Decode(paginatedResponse)

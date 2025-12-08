@@ -31,6 +31,7 @@ type handler struct {
 	oauthConfig  oauth2.Config
 	codeVerifier *codeverifier.CodeVerifier
 	redirect     string
+	log          logrus.FieldLogger
 }
 
 func (h *handler) valid() error {
@@ -46,10 +47,11 @@ func (h *handler) valid() error {
 	return nil
 }
 
-func New(authServer string) *handler {
+func New(authServer string, log logrus.FieldLogger) *handler {
 	h := &handler{
 		authChannel: make(chan *authFlowResponse),
 		authServer:  authServer,
+		log:         log,
 	}
 
 	// define a handler that will get the authorization code, call the authFlowResponse endpoint, and close the HTTP server

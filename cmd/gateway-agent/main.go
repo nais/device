@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"time"
 
+	"github.com/nais/device/internal/ioconvenience"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials/insecure"
@@ -169,7 +170,7 @@ func run(log *logrus.Entry, cfg config.Config) error {
 		return fmt.Errorf("unable to connect to api server: %w", err)
 	}
 
-	defer apiserver.Close()
+	defer ioconvenience.CloseWithLog(log, apiserver)
 
 	apiserverClient := pb.NewAPIServerClient(apiserver)
 

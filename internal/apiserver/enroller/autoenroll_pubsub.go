@@ -25,7 +25,7 @@ type autoEnroll struct {
 	db                   database.Database
 	peers                []*pb.Gateway
 	apiServerGRPCAddress string
-	log                  *logrus.Entry
+	log                  logrus.FieldLogger
 	gatewayTopic         *pubsub.Topic
 	gatewaySubscription  *pubsub.Subscription
 	deviceTopic          *pubsub.Topic
@@ -38,9 +38,9 @@ func NewAutoEnroll(
 	db database.Database,
 	peers []*pb.Gateway,
 	apiServerGRPCAddress string,
-	log *logrus.Entry,
+	log logrus.FieldLogger,
 ) (*autoEnroll, error) {
-	projectID, err := enroll.GetGoogleMetadataString(ctx, "project/project-id")
+	projectID, err := enroll.GetGoogleMetadataString(ctx, "project/project-id", log)
 	if err != nil {
 		log.WithError(err).Fatal("failed to get project ID")
 	}
@@ -50,7 +50,7 @@ func NewAutoEnroll(
 		return nil, err
 	}
 
-	b, err := enroll.GetGoogleMetadata(ctx, "instance/attributes/auto-enroll-config")
+	b, err := enroll.GetGoogleMetadata(ctx, "instance/attributes/auto-enroll-config", log)
 	if err != nil {
 		return nil, err
 	}

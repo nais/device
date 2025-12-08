@@ -5,12 +5,16 @@ import (
 	"os"
 	"testing"
 
+	"github.com/nais/device/internal/ioconvenience"
+	"github.com/sirupsen/logrus/hooks/test"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestAllFilesAreZippedWhenPresent(t *testing.T) {
+	log, _ := test.NewNullLogger()
+
 	filesToZip := createTempFiles(t)
-	zipLocation, err := ZipLogFiles(filesToZip)
+	zipLocation, err := ZipLogFiles(filesToZip, log)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -20,7 +24,7 @@ func TestAllFilesAreZippedWhenPresent(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer zipfile.Close()
+	defer ioconvenience.CloseWithLog(log, zipfile)
 
 	filesInZip := zipfile.File
 	assert.Equal(t, len(filesToZip), len(filesInZip))
@@ -35,9 +39,11 @@ func removeTestFile(t *testing.T, file string) func() {
 }
 
 func TestNonExistingFilesAreSkipped(t *testing.T) {
+	log, _ := test.NewNullLogger()
+
 	files := createTempFiles(t)
 	files = append(files, "NonExisting")
-	zipLocation, err := ZipLogFiles(files)
+	zipLocation, err := ZipLogFiles(files, log)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -47,15 +53,17 @@ func TestNonExistingFilesAreSkipped(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer zipfile.Close()
+	defer ioconvenience.CloseWithLog(log, zipfile)
 
 	filesInZip := zipfile.File
 	assert.Equal(t, len(files)-1, len(filesInZip))
 }
 
 func TestEmptyFileListYieldsError(t *testing.T) {
+	log, _ := test.NewNullLogger()
+
 	var files []string
-	_, err := ZipLogFiles(files)
+	_, err := ZipLogFiles(files, log)
 	assert.Error(t, err)
 }
 

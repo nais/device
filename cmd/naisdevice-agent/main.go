@@ -11,7 +11,7 @@ import (
 	"path/filepath"
 	"time"
 
-	deviceagent "github.com/nais/device/internal/deviceagent"
+	"github.com/nais/device/internal/deviceagent"
 	"github.com/nais/device/internal/deviceagent/acceptableuse"
 	"github.com/nais/device/internal/deviceagent/agenthttp"
 	"github.com/nais/device/internal/deviceagent/auth"
@@ -19,6 +19,7 @@ import (
 	"github.com/nais/device/internal/deviceagent/filesystem"
 	"github.com/nais/device/internal/deviceagent/jita"
 	"github.com/nais/device/internal/deviceagent/runtimeconfig"
+	"github.com/nais/device/internal/ioconvenience"
 	"github.com/nais/device/internal/logger"
 	"github.com/nais/device/internal/notify"
 	"github.com/nais/device/internal/otel"
@@ -141,7 +142,7 @@ func run(ctx context.Context, log *logrus.Entry, cfg *config.Config, notifier no
 			return fmt.Errorf("connect to naisdevice-helper: %v", err)
 		}
 		client = pb.NewDeviceHelperClient(connection)
-		defer connection.Close()
+		defer ioconvenience.CloseWithLog(log, connection)
 	}
 
 	go func() {
@@ -168,9 +169,9 @@ func run(ctx context.Context, log *logrus.Entry, cfg *config.Config, notifier no
 		}
 	}()
 
-	authHandler := auth.New(cfg.GoogleAuthServerAddress)
+	authHandler := auth.New(cfg.GoogleAuthServerAddress, log.WithField("component", "authHandler"))
 
-	listener, err := unixsocket.ListenWithFileMode(cfg.GrpcAddress, 0o666)
+	listener, err := unixsocket.ListenWithFileMode(cfg.GrpcAddress, 0o666, log)
 	if err != nil {
 		return err
 	}

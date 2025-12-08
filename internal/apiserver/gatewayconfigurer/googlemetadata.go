@@ -7,12 +7,13 @@ import (
 	"net/http"
 
 	"github.com/nais/device/internal/apiserver/database"
+	"github.com/nais/device/internal/ioconvenience"
 	"github.com/sirupsen/logrus"
 )
 
 type GoogleMetadata struct {
 	db  database.Database
-	log *logrus.Entry
+	log logrus.FieldLogger
 }
 
 type GatewayMetadata struct {
@@ -21,7 +22,7 @@ type GatewayMetadata struct {
 	RequiresPrivilegedAccess bool     `json:"requires_privileged_access"`
 }
 
-func NewGoogleMetadata(db database.Database, log *logrus.Entry) *GoogleMetadata {
+func NewGoogleMetadata(db database.Database, log logrus.FieldLogger) *GoogleMetadata {
 	return &GoogleMetadata{
 		db:  db,
 		log: log,
@@ -29,7 +30,7 @@ func NewGoogleMetadata(db database.Database, log *logrus.Entry) *GoogleMetadata 
 }
 
 func (g *GoogleMetadata) SyncConfig(ctx context.Context) error {
-	gatewayRoutes, err := getGatewayMetadatas(ctx)
+	gatewayRoutes, err := getGatewayMetadatas(ctx, g.log)
 	if err != nil {
 		return err
 	}
@@ -52,7 +53,7 @@ func (g *GoogleMetadata) SyncConfig(ctx context.Context) error {
 	return nil
 }
 
-func getGatewayMetadatas(ctx context.Context) (map[string]*GatewayMetadata, error) {
+func getGatewayMetadatas(ctx context.Context, log logrus.FieldLogger) (map[string]*GatewayMetadata, error) {
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, "http://metadata.google.internal/computeMetadata/v1/instance/attributes/gateway-routes", nil)
 	if err != nil {
 		return nil, err
@@ -63,7 +64,7 @@ func getGatewayMetadatas(ctx context.Context) (map[string]*GatewayMetadata, erro
 	if err != nil {
 		return nil, err
 	}
-	defer resp.Body.Close()
+	defer ioconvenience.CloseWithLog(log, resp.Body)
 
 	if resp.StatusCode != 200 {
 		return nil, fmt.Errorf("non-200 status on metadata request: %v", resp.Status)
