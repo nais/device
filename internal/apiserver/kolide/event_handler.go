@@ -56,7 +56,7 @@ func DeviceEventStreamer(ctx context.Context, log logrus.FieldLogger, grpcAddres
 		return err
 	}
 
-	defer ioconvenience.CloseWithLog(log, conn)
+	defer ioconvenience.CloseWithLog(conn, log)
 
 	s := kolidepb.NewKolideEventHandlerClient(conn)
 

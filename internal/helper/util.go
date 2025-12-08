@@ -52,7 +52,7 @@ func ZipLogFiles(files []string, log logrus.FieldLogger) (string, error) {
 	if err != nil {
 		return "nil", err
 	}
-	defer ioconvenience.CloseWithLog(log, archive)
+	defer ioconvenience.CloseWithLog(archive, log)
 	zipWriter := zip.NewWriter(archive)
 	for _, filename := range files {
 		_, err = os.Stat(filename)

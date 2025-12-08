@@ -16,7 +16,7 @@ func runMigrations(dbPath string, log logrus.FieldLogger) error {
 	if err != nil {
 		return err
 	}
-	defer ioconvenience.CloseWithLog(log, sourceDriver)
+	defer ioconvenience.CloseWithLog(sourceDriver, log)
 
 	m, err := migrate.NewWithSourceInstance("iofs", sourceDriver, "sqlite3://"+dbPath)
 	if err != nil {

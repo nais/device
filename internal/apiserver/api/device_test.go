@@ -182,7 +182,7 @@ func Test_GetDeviceConfiguration(t *testing.T) {
 				grpc.WithTransportCredentials(insecure.NewCredentials()),
 			)
 			assert.NoError(t, err)
-			defer ioconvenience.CloseWithLog(log, conn)
+			defer ioconvenience.CloseWithLog(conn, log)
 
 			client := pb.NewAPIServerClient(conn)
 

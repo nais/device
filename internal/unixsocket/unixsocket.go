@@ -23,7 +23,7 @@ func ListenWithFileMode(addr string, perm os.FileMode, log logrus.FieldLogger) (
 	}
 	err = os.Chmod(addr, perm)
 	if err != nil {
-		ioconvenience.CloseWithLog(log, listener)
+		ioconvenience.CloseWithLog(listener, log)
 		return nil, fmt.Errorf("set permission %v on unix socket: %w", perm, err)
 	}
 	return listener, err

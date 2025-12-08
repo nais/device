@@ -70,7 +70,7 @@ func (l *localEnroller) getEnrollments(ctx context.Context) ([]enroll.DeviceRequ
 		l.log.WithError(err).Error(msg)
 		return nil, fmt.Errorf("%s", msg)
 	}
-	defer ioconvenience.CloseWithLog(l.log, resp.Body)
+	defer ioconvenience.CloseWithLog(resp.Body, l.log)
 
 	if resp.StatusCode != http.StatusOK {
 		msg := "local enroller: non-200 response fetching enrollments"
@@ -130,7 +130,7 @@ func (l *localEnroller) enroll(ctx context.Context, enrollment enroll.DeviceRequ
 		l.log.WithError(err).Error(msg)
 		return fmt.Errorf("%s", msg)
 	}
-	defer ioconvenience.CloseWithLog(l.log, resp.Body)
+	defer ioconvenience.CloseWithLog(resp.Body, l.log)
 	if resp.StatusCode != http.StatusOK {
 		msg := "local enroller: non-200 response sending enrollment response"
 		l.log.WithField("status", resp.StatusCode).Error(msg)

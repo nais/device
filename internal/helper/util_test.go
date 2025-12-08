@@ -24,7 +24,7 @@ func TestAllFilesAreZippedWhenPresent(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer ioconvenience.CloseWithLog(log, zipfile)
+	defer ioconvenience.CloseWithLog(zipfile, log)
 
 	filesInZip := zipfile.File
 	assert.Equal(t, len(filesToZip), len(filesInZip))
@@ -53,7 +53,7 @@ func TestNonExistingFilesAreSkipped(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer ioconvenience.CloseWithLog(log, zipfile)
+	defer ioconvenience.CloseWithLog(zipfile, log)
 
 	filesInZip := zipfile.File
 	assert.Equal(t, len(files)-1, len(filesInZip))
