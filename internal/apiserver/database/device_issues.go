@@ -15,11 +15,12 @@ import (
 
 // Devices are allowed to connect this long after a failed check is triggered.
 const (
-	DurationCritical = 0
-	DurationDanger   = time.Hour
-	DurationWarning  = time.Hour * 24 * 2
-	DurationNotice   = time.Hour * 24 * 7
-	DurationUnknown  = time.Hour * 24 * 30
+	DurationCritical  = 0
+	DurationDanger    = time.Hour
+	DurationWarning   = time.Hour * 24 * 2
+	DurationAttention = time.Hour * 24 * 3
+	DurationNotice    = time.Hour * 24 * 7
+	DurationUnknown   = time.Hour * 24 * 30
 )
 
 func (db *database) getDeviceIssues(ctx context.Context, device *sqlc.Device) ([]*pb.DeviceIssue, error) {
@@ -80,6 +81,8 @@ func graceTime(severity pb.Severity) time.Duration {
 	switch severity {
 	case pb.Severity_Notice:
 		return DurationNotice
+	case pb.Severity_Attention:
+		return DurationAttention
 	case pb.Severity_Warning:
 		return DurationWarning
 	case pb.Severity_Danger:

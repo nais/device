@@ -24,6 +24,7 @@ func TestCheck(t *testing.T) {
 		{[]string{"warning"}, pb.Severity_Warning, DurationWarning},
 		{[]string{"danger"}, pb.Severity_Danger, DurationDanger},
 		{[]string{"critical"}, pb.Severity_Critical, DurationCritical},
+		{[]string{"attention"}, pb.Severity_Attention, DurationAttention},
 	}
 
 	for _, tt := range tagTests {
