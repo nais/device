@@ -26,8 +26,9 @@ const _GuiEvent_name = "VersionClickedStateInfoClickedConnectClickedQuitClickedD
 var _GuiEvent_index = [...]uint8{0, 14, 30, 44, 55, 71, 87, 101, 111, 129, 149, 169}
 
 func (i GuiEvent) String() string {
-	if i < 0 || i >= GuiEvent(len(_GuiEvent_index)-1) {
+	idx := int(i) - 0
+	if i < 0 || idx >= len(_GuiEvent_index)-1 {
 		return "GuiEvent(" + strconv.FormatInt(int64(i), 10) + ")"
 	}
-	return _GuiEvent_name[_GuiEvent_index[i]:_GuiEvent_index[i+1]]
+	return _GuiEvent_name[_GuiEvent_index[idx]:_GuiEvent_index[idx+1]]
 }
