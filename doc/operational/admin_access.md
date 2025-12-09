@@ -14,6 +14,8 @@ Follow cli instructions
 
 ## SSH til GCP noder (gateways, apiserver, prometheus...)
 
+Du finner nodene i `nais-device` prosjektet.
+
 `gcloud --project <project_id> compute ssh --tunnel-through-iap <hostname>`
 
 ## SSH til Azure gateways
