@@ -2,4 +2,4 @@
   hosts: all
   tasks:
     - name: Install roles from Ansible Galaxy
-      command: ansible-galaxy install grafana.grafana
+      command: ansible-galaxy collection install grafana.grafana
