@@ -1,3 +1,10 @@
+- name: Set HTTPS_PROXY for otel-collector
+  ansible.builtin.copy:
+    dest: /etc/systemd/system/otel-collector.service.d/override.conf
+    content: |
+      [Service]
+      Environment="HTTPS_PROXY=http://webproxy-internett.nav.no:8088"
+
 - name: Install OpenTelemetry Collector
   ansible.builtin.include_role:
     name: grafana.grafana.opentelemetry_collector
