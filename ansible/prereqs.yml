@@ -1,0 +1,7 @@
+- name: Set up ansible
+  hosts: all
+  tasks:
+    - name: Install roles from Ansible Galaxy
+      command: ansible-galaxy install {{ item.item }}
+      with_items:
+        - grafana.grafana
