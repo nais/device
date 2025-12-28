@@ -58,7 +58,7 @@ Host a30drvl*.oera.no
 Deretter kan man koble til med:
 
 ```
-xpanes --ssh a30drvl0{19..43}.oera.no
+xpanes --ssh a30drvl0{19..43}.oera.no a30drvl0{45..50}.oera.no
 ```
 
 ### Tenant management apiservere
