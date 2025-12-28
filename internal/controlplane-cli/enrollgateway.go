@@ -176,6 +176,21 @@ func EnrollGateway(c *cli.Context) error {
 	fmt.Printf("GATEWAY_AGENT_APISERVERPASSWORD=\"%s\"\n", password)
 	fmt.Printf("GATEWAY_AGENT_PRIVATEKEY=\"%s\"\n", base64.StdEncoding.EncodeToString(privateKey))
 	fmt.Printf("GATEWAY_AGENT_DEVICEIP=\"%s/21\"\n", response.GetGateway().GetIpv4())
+	fmt.Printf("GATEWAY_AGENT_DEVICEIPV6=%q\n", response.GetGateway().GetIpv6()+"/64")
+
+	fmt.Println()
+	fmt.Printf("GATEWAY_AGENT_ENABLEROUTING=%q\n", "true")
+	fmt.Printf("GATEWAY_AGENT_PROMETHEUSADDR=%q\n", ":3000")
+	fmt.Printf("GATEWAY_AGENT_APISERVERENDPOINT=%q\n", "35.228.142.96:51820")
+	fmt.Printf("GATEWAY_AGENT_APISERVERPRIVATEIP=%q\n", "10.255.240.1")
+	fmt.Printf("GATEWAY_AGENT_APISERVERPUBLICKEY=%q\n", "FUwVtyvs8nIRx9RpUUEopkfV8idmHz9g9K/vf9MFOXI=")
+	fmt.Printf("GATEWAY_AGENT_APISERVERURL=%q\n", "10.255.240.1:8099")
+	fmt.Printf("GATEWAY_AGENT_AUTOENROLL=%q\n", "false")
+	fmt.Printf("GATEWAY_AGENT_ENABLEROUTING=%q\n", "true")
+	fmt.Printf("GATEWAY_AGENT_LOGLEVEL=%q\n", "info")
+	fmt.Printf("GATEWAY_AGENT_PROMETHEUSADDR=%q\n", "0.0.0.0:3000")
+	fmt.Printf("GATEWAY_AGENT_PROMETHEUSPUBLICKEY=%q\n", "MN9B/ZgAQdgCXH3/KUaUiObwrzHv6zF2P6M4ySTx81M=")
+	fmt.Printf("GATEWAY_AGENT_PROMETHEUSTUNNELIP=%q\n", "10.255.247.254")
 
 	return err
 }
