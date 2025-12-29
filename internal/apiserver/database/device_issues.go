@@ -31,7 +31,7 @@ func (db *database) getDeviceIssues(ctx context.Context, device *sqlc.Device) ([
 	if device.ExternalID.String == "" {
 		return []*pb.DeviceIssue{{
 			Title:         "No Kolide device ID found for device",
-			Message:       "Make sure you've installed Kolide according to the documentation at https://doc.nais.io/operate/naisdevice/how-to/install-kolide",
+			Message:       "Make sure you've installed Kolide according to the documentation at https://doc.nais.io/operate/naisdevice/how-to/install",
 			Severity:      pb.Severity_Critical,
 			DetectedAt:    timestamppb.Now(),
 			LastUpdated:   timestamppb.Now(),
