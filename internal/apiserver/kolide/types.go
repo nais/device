@@ -5,41 +5,47 @@ import (
 	"time"
 )
 
-type DeviceFailure struct {
-	ID          int64                  `json:"id"`
-	CheckID     int64                  `json:"check_id"`
-	Value       map[string]interface{} `json:"value"`
-	Title       string                 `json:"title"`
-	Timestamp   *time.Time             `json:"timestamp"`
-	ResolvedAt  *time.Time             `json:"resolved_at"`
-	LastUpdated time.Time              `json:"-"`
-	Ignored     bool                   `json:"ignored"`
-	Check       Check                  `json:"check"`
-	Device      Device                 `json:"device"`
+type Reference struct {
+	Identifier string `json:"identifier"`
 }
 
-type DeviceOwner struct {
+type Issue struct {
+	ID              string         `json:"id"`
+	Value           map[string]any `json:"value"`
+	Title           string         `json:"title"`
+	DetectedAt      *time.Time     `json:"detected_at"`
+	ResolvedAt      *time.Time     `json:"resolved_at"`
+	LastRecheckedAt *time.Time     `json:"last_rechecked_at"`
+	Exempted        bool           `json:"exempted"`
+	DeviceRef       Reference      `json:"device_information"`
+	CheckRef        Reference      `json:"check_information"`
+}
+
+type Person struct {
+	ID    string `json:"id"`
 	Email string `json:"email"`
 }
 
 type Device struct {
-	ID              int64           `json:"id"`
-	Name            string          `json:"name"`
-	OwnedBy         string          `json:"owned_by"`
-	Platform        string          `json:"platform"`
-	LastSeenAt      *time.Time      `json:"last_seen_at"`
-	FailureCount    int             `json:"failure_count"`
-	PrimaryUserName string          `json:"primary_user_name"`
-	Serial          string          `json:"serial"`
-	AssignedOwner   DeviceOwner     `json:"assigned_owner"`
-	Failures        []DeviceFailure `json:"failures"`
+	ID                  string     `json:"id"`
+	Name                string     `json:"name"`
+	Platform            string     `json:"device_type"`
+	Serial              string     `json:"serial"`
+	LastAuthenticatedAt *time.Time `json:"last_authenticated_at"`
+
+	OwnerRef Reference `json:"registered_owner_info"`
+	Owner    Person
+}
+
+type CheckTag struct {
+	Name string `json:"name"`
 }
 
 type Check struct {
-	ID          int64    `json:"id"`
-	Tags        []string `json:"tags"`
-	DisplayName string   `json:"display_name"`
-	Description string   `json:"description"`
+	ID          string     `json:"id"`
+	Tags        []CheckTag `json:"check_tags"`
+	IssueTitle  string     `json:"issue_title"`
+	Description string     `json:"description"`
 }
 
 type Pagination struct {

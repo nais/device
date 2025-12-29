@@ -3,7 +3,6 @@ package database_test
 import (
 	"context"
 	"fmt"
-	"strconv"
 	"testing"
 	"time"
 
@@ -100,40 +99,38 @@ func TestAddDevice(t *testing.T) {
 	defer cancel()
 
 	serial := "serial"
-	d := &pb.Device{Username: "username", PublicKey: "publickey", Serial: serial, Platform: "darwin", LastSeen: timestamppb.Now(), ExternalID: "1"}
+	d := &pb.Device{Username: "username", PublicKey: "publickey", Serial: serial, Platform: "darwin", ExternalID: "1"}
 	checks := []*kolide.Check{
 		{
-			ID:          1,
-			Tags:        []string{"critical"},
-			DisplayName: "check display name",
+			ID:          "1",
+			Tags:        []kolide.CheckTag{{Name: "critical"}},
+			IssueTitle:  "check display name",
 			Description: "check description",
 		},
 	}
-	externalID, err := strconv.Atoi(d.ExternalID)
-	if err != nil {
-		t.Fatal(err)
-	}
-	issues := []*kolide.DeviceFailure{
+	issues := []*kolide.Issue{
 		{
+			ID:    "1",
 			Title: "integration test issue",
-			Device: kolide.Device{
-				ID: int64(externalID),
+			DeviceRef: kolide.Reference{
+				Identifier: d.ExternalID,
 			},
-			CheckID:   checks[0].ID,
-			Timestamp: &time.Time{},
+			CheckRef: kolide.Reference{
+				Identifier: checks[0].ID,
+			},
+			DetectedAt: &time.Time{},
 		},
 	}
-	err = db.AddDevice(ctx, d)
+	err := db.AddDevice(ctx, d)
+	assert.NoError(t, err)
+
+	err = db.LinkKolideDevice(ctx, d.ExternalID, d.Serial, d.Platform)
 	assert.NoError(t, err)
 
 	err = db.UpdateKolideChecks(ctx, checks)
 	assert.NoError(t, err)
 
 	err = db.UpdateKolideIssuesForDevice(ctx, d.ExternalID, issues)
-	assert.NoError(t, err)
-
-	ls := d.LastSeen.AsTime()
-	err = db.SetDeviceSeenByKolide(ctx, d.ExternalID, d.Serial, d.Platform, &ls)
 	assert.NoError(t, err)
 
 	device, err := db.ReadDevice(ctx, d.PublicKey)
@@ -146,7 +143,7 @@ func TestAddDevice(t *testing.T) {
 
 	assert.Len(t, device.Issues, 1)
 	assert.Equal(t, issues[0].Title, device.Issues[0].Title)
-	assert.Equal(t, fmt.Sprint(issues[0].Device.ID), device.ExternalID)
+	assert.Equal(t, fmt.Sprint(issues[0].DeviceRef.Identifier), device.ExternalID)
 
 	// re-add also works
 	err = db.AddDevice(ctx, d)

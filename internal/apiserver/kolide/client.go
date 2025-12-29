@@ -13,14 +13,14 @@ import (
 )
 
 type Client interface {
-	GetIssues(ctx context.Context) ([]*DeviceFailure, error)
-	GetDeviceIssues(ctx context.Context, deviceID string) ([]*DeviceFailure, error)
+	GetIssues(ctx context.Context) ([]*Issue, error)
+	GetDeviceIssues(ctx context.Context, deviceID string) ([]*Issue, error)
 	GetChecks(ctx context.Context) ([]*Check, error)
 	GetDevices(ctx context.Context) ([]*Device, error)
 }
 
 type client struct {
-	baseUrl string
+	baseURL string
 	client  *http.Client
 
 	log logrus.FieldLogger
@@ -28,15 +28,15 @@ type client struct {
 
 type ClientOption func(*client)
 
-func WithBaseUrl(baseUrl string) ClientOption {
+func WithBaseURL(baseURL string) ClientOption {
 	return func(c *client) {
-		c.baseUrl = baseUrl
+		c.baseURL = baseURL
 	}
 }
 
 func New(token string, log logrus.FieldLogger, opts ...ClientOption) *client {
 	c := &client{
-		baseUrl: "https://k2.kolide.com/api/v0",
+		baseURL: "https://api.kolide.com",
 		client: &http.Client{
 			Transport: NewTransport(token),
 		},
@@ -52,7 +52,7 @@ var _ Client = &client{}
 
 func convertPlatform(platform string) string {
 	switch strings.ToLower(platform) {
-	case "darwin":
+	case "darwin", "mac":
 		return "darwin"
 	case "windows":
 		return "windows"
@@ -61,27 +61,27 @@ func convertPlatform(platform string) string {
 	}
 }
 
-func (kc *client) GetIssues(ctx context.Context) ([]*DeviceFailure, error) {
-	resp, err := kc.getPaginated(ctx, kc.baseUrl+"/failures/open")
+func (kc *client) GetIssues(ctx context.Context) ([]*Issue, error) {
+	resp, err := kc.getPaginated(ctx, kc.baseURL+"/issues?&query=resolved_at%3Anull")
 	if err != nil {
 		return nil, fmt.Errorf("getting open failures: %w", err)
 	}
 
-	issues := make([]*DeviceFailure, len(resp))
-	for i, rawFailure := range resp {
-		failure := DeviceFailure{}
-		err := json.Unmarshal(rawFailure, &failure)
+	issues := make([]*Issue, len(resp))
+	for i, rawIssue := range resp {
+		issue := Issue{}
+		err := json.Unmarshal(rawIssue, &issue)
 		if err != nil {
-			return nil, fmt.Errorf("unmarshal failure: %w", err)
+			return nil, fmt.Errorf("unmarshal issue: %w", err)
 		}
-		issues[i] = &failure
+		issues[i] = &issue
 	}
 
 	return issues, nil
 }
 
 func (kc *client) GetChecks(ctx context.Context) ([]*Check, error) {
-	rawChecks, err := kc.getPaginated(ctx, kc.baseUrl+"/checks")
+	rawChecks, err := kc.getPaginated(ctx, kc.baseURL+"/checks")
 	if err != nil {
 		return nil, fmt.Errorf("getting checks: %w", err)
 	}
@@ -98,20 +98,20 @@ func (kc *client) GetChecks(ctx context.Context) ([]*Check, error) {
 	return checks, nil
 }
 
-func (kc *client) getPaginated(ctx context.Context, initialUrl string) ([]json.RawMessage, error) {
+func (kc *client) getPaginated(ctx context.Context, initialURL string) ([]json.RawMessage, error) {
 	var data []json.RawMessage
-	nextUrl, err := url.Parse(initialUrl)
+	nextURL, err := url.Parse(initialURL)
 	if err != nil {
 		return nil, err
 	}
 
-	q := nextUrl.Query()
+	q := nextURL.Query()
 	q.Set("per_page", "100")
-	nextUrl.RawQuery = q.Encode()
+	nextURL.RawQuery = q.Encode()
 
 	for {
 		err := func() error {
-			response, err := kc.get(ctx, nextUrl.String())
+			response, err := kc.get(ctx, nextURL.String())
 			if err != nil {
 				return fmt.Errorf("getting paginated response: %w", err)
 			}
@@ -126,12 +126,12 @@ func (kc *client) getPaginated(ctx context.Context, initialUrl string) ([]json.R
 
 			data = append(data, paginatedResponse.Data...)
 
-			values := nextUrl.Query()
+			values := nextURL.Query()
 			values.Set("cursor", paginatedResponse.Pagination.NextCursor)
-			nextUrl.RawQuery = values.Encode()
+			nextURL.RawQuery = values.Encode()
 			return nil
 		}()
-		if nextUrl.Query().Get("cursor") == "" || err != nil {
+		if nextURL.Query().Get("cursor") == "" || err != nil {
 			return data, err
 		}
 	}
@@ -139,7 +139,7 @@ func (kc *client) getPaginated(ctx context.Context, initialUrl string) ([]json.R
 
 func (kc *client) GetDevices(ctx context.Context) ([]*Device, error) {
 	kc.log.Debug("getting all devices...")
-	url := kc.baseUrl + "/devices"
+	url := kc.baseURL + "/devices"
 	rawDevices, err := kc.getPaginated(ctx, url)
 	if err != nil {
 		return nil, err
@@ -160,21 +160,21 @@ func (kc *client) GetDevices(ctx context.Context) ([]*Device, error) {
 	return devices, nil
 }
 
-func (kc *client) GetDeviceIssues(ctx context.Context, deviceID string) ([]*DeviceFailure, error) {
-	url := fmt.Sprintf(kc.baseUrl+"/devices/%v/failures", deviceID)
-	rawFailures, err := kc.getPaginated(ctx, url)
+func (kc *client) GetDeviceIssues(ctx context.Context, deviceID string) ([]*Issue, error) {
+	url := fmt.Sprintf(kc.baseURL+"/devices/%v/open_issues", deviceID)
+	rawIssues, err := kc.getPaginated(ctx, url)
 	if err != nil {
-		return nil, fmt.Errorf("getting paginated device failures: %v", err)
+		return nil, fmt.Errorf("getting paginated device issues: %v", err)
 	}
 
-	failures := make([]*DeviceFailure, len(rawFailures))
-	for i, rawFailure := range rawFailures {
-		err := json.Unmarshal(rawFailure, failures[i])
+	issues := make([]*Issue, len(rawIssues))
+	for i, rawIssue := range rawIssues {
+		err := json.Unmarshal(rawIssue, issues[i])
 		if err != nil {
-			return nil, fmt.Errorf("unmarshal failure: %w", err)
+			return nil, fmt.Errorf("unmarshal issue: %w", err)
 		}
 	}
-	return failures, nil
+	return issues, nil
 }
 
 func (kc *client) get(ctx context.Context, url string) (*http.Response, error) {

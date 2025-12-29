@@ -42,7 +42,6 @@ func TestIntegration(t *testing.T) {
 				Serial:     "test-serial",
 				PublicKey:  "publicKey",
 				Username:   "tester",
-				LastSeen:   timestamppb.Now(),
 				Platform:   "linux",
 				ExternalID: "1",
 				Issues: []*pb.DeviceIssue{
@@ -65,7 +64,6 @@ func TestIntegration(t *testing.T) {
 				PublicKey:  "publicKey",
 				Username:   "tester",
 				Platform:   "linux",
-				LastSeen:   timestamppb.Now(),
 				ExternalID: "1",
 			},
 			endState: pb.AgentState_Connected,
@@ -109,34 +107,31 @@ func tableTest(t *testing.T, log *logrus.Entry, testDevice *pb.Device, endState 
 	kolideClient := &kolide.FakeClient{}
 
 	db := NewDB(t)
-	lastSeen := testDevice.LastSeen.AsTime()
 	assert.NoError(t, db.AddDevice(ctx, testDevice))
-	assert.NoError(t, db.SetDeviceSeenByKolide(ctx, testDevice.ExternalID, testDevice.Serial, testDevice.Platform, &lastSeen))
-	issues := make([]*kolide.DeviceFailure, len(testDevice.Issues))
+	assert.NoError(t, db.LinkKolideDevice(ctx, testDevice.ExternalID, testDevice.Serial, testDevice.Platform))
+	issues := make([]*kolide.Issue, len(testDevice.Issues))
 	checks := make([]*kolide.Check, len(testDevice.Issues))
 	for i, issue := range testDevice.Issues {
 		checks[i] = &kolide.Check{
-			ID:          int64(i),
-			Tags:        []string{issue.Severity.String()},
-			DisplayName: issue.Title,
+			ID:          strconv.Itoa(i),
+			Tags:        []kolide.CheckTag{{Name: issue.Severity.String()}},
+			IssueTitle:  issue.Title,
 			Description: issue.Message,
 		}
 		detectedAt := issue.DetectedAt.AsTime()
-		externalID, err := strconv.Atoi(testDevice.ExternalID)
-		if err != nil {
-			t.Fatal(err)
-		}
-		issues[i] = &kolide.DeviceFailure{
-			ID: int64(i),
-			Device: kolide.Device{
-				ID: int64(externalID),
+		issues[i] = &kolide.Issue{
+			ID: strconv.Itoa(i),
+			CheckRef: kolide.Reference{
+				Identifier: checks[i].ID,
 			},
-			CheckID:     int64(i),
-			Title:       issue.Title,
-			Timestamp:   &detectedAt,
-			ResolvedAt:  nil,
-			LastUpdated: detectedAt,
-			Ignored:     false,
+			DeviceRef: kolide.Reference{
+				Identifier: testDevice.ExternalID,
+			},
+			Title:           issue.Title,
+			DetectedAt:      &detectedAt,
+			ResolvedAt:      nil,
+			LastRecheckedAt: &detectedAt,
+			Exempted:        false,
 		}
 	}
 	assert.NoError(t, db.UpdateKolideChecks(ctx, checks))

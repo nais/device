@@ -16,7 +16,7 @@ type Transport struct {
 	Token             string
 	Transport         http.RoundTripper
 	DefaultRetryAfter time.Duration
-	MaxHttpRetries    int
+	MaxHTTPRetries    int
 }
 
 var _ http.RoundTripper = &Transport{}
@@ -25,7 +25,7 @@ func NewTransport(token string) *Transport {
 	return &Transport{
 		Token:             token,
 		Transport:         http.DefaultTransport,
-		MaxHttpRetries:    10,
+		MaxHTTPRetries:    10,
 		DefaultRetryAfter: time.Second,
 	}
 }
@@ -33,8 +33,9 @@ func NewTransport(token string) *Transport {
 func (t *Transport) RoundTrip(req *http.Request) (*http.Response, error) {
 	req.Header.Set("Authorization", "Bearer "+t.Token)
 	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("X-Kolide-Api-Version", "2023-05-26")
 
-	for attempt := range t.MaxHttpRetries {
+	for attempt := range t.MaxHTTPRetries {
 		resp, err := t.Transport.RoundTrip(req)
 		if err != nil {
 			return nil, err
@@ -48,7 +49,7 @@ func (t *Transport) RoundTrip(req *http.Request) (*http.Response, error) {
 		retryAfter := t.getRetryAfter(resp.Header)
 		log.WithFields(log.Fields{
 			"attempt":      attempt + 1,
-			"max_attempts": t.MaxHttpRetries,
+			"max_attempts": t.MaxHTTPRetries,
 			"response":     resp.Status,
 			"retry_after":  retryAfter,
 		}).Debug("rate limited, sleeping")

@@ -356,8 +356,7 @@ func run(log *logrus.Entry, cfg config.Config) error {
 
 			sessions.RefreshDevice(device)
 
-			now := time.Now()
-			err = db.SetDeviceSeenByKolide(ctx, device.ExternalID, device.Serial, device.Platform, &now)
+			err = db.LinkKolideDevice(ctx, device.ExternalID, device.Serial, device.Platform)
 			if err != nil {
 				return err
 			}
