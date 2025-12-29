@@ -234,15 +234,12 @@ func (c *Connected) defaultSyncConfigLoop(ctx context.Context) error {
 				}
 				// notify unless we've already notified about this.
 				if cfg.Status != previousStatus {
-					if len(cfg.Issues) == 1 {
-						c.notifier.Errorf("%v. Run '/msg @Kolide status' on Slack and fix the errors", cfg.Issues[0].Title)
-					} else {
-						// Make sure we do not report `Found 0 issues`
-						count := ""
-						if len(cfg.Issues) > 0 {
-							count = fmt.Sprintf(" %v", len(cfg.Issues))
+					if len(cfg.Issues) > 0 {
+						if hasKolideNotLinkedIssue(cfg.Issues) {
+							c.notifier.Errorf("Kolide is not linked to your device. Install Kolide according to the documentation at https://doc.nais.io/operate/naisdevice/how-to/install")
+						} else {
+							c.notifier.Errorf("Found %d issue(s) on your device. Check Kolide icon in the systray for further investigation.", len(cfg.Issues))
 						}
-						c.notifier.Errorf("Found %v issues on your device. Run '/msg @Kolide status' on Slack and fix the errors", count)
 					}
 				}
 
@@ -413,4 +410,13 @@ func ping(log logrus.FieldLogger, addr string) error {
 	}
 
 	return nil
+}
+
+func hasKolideNotLinkedIssue(issues []*pb.DeviceIssue) bool {
+	for _, issue := range issues {
+		if issue.Title == "No Kolide device ID found for device" {
+			return true
+		}
+	}
+	return false
 }

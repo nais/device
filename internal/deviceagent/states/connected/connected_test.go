@@ -321,6 +321,7 @@ func TestConnected_defaultSyncConfigLoop(t *testing.T) {
 				return &pb.GetDeviceConfigurationResponse{
 					Status:   pb.DeviceConfigurationStatus_DeviceUnhealthy,
 					Gateways: []*pb.Gateway{},
+					Issues:   []*pb.DeviceIssue{{Title: "Test issue"}},
 				}, nil
 			})
 
