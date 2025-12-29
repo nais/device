@@ -64,7 +64,7 @@ func convertPlatform(platform string) string {
 func (kc *client) GetIssues(ctx context.Context) ([]*Issue, error) {
 	resp, err := kc.getPaginated(ctx, kc.baseURL+"/issues?&query=resolved_at%3Anull")
 	if err != nil {
-		return nil, fmt.Errorf("getting open failures: %w", err)
+		return nil, fmt.Errorf("getting open issues: %w", err)
 	}
 
 	issues := make([]*Issue, len(resp))
