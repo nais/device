@@ -169,10 +169,12 @@ func (kc *client) GetDeviceIssues(ctx context.Context, deviceID string) ([]*Issu
 
 	issues := make([]*Issue, len(rawIssues))
 	for i, rawIssue := range rawIssues {
-		err := json.Unmarshal(rawIssue, issues[i])
+		issue := &Issue{}
+		err := json.Unmarshal(rawIssue, issue)
 		if err != nil {
 			return nil, fmt.Errorf("unmarshal issue: %w", err)
 		}
+		issues[i] = issue
 	}
 	return issues, nil
 }
