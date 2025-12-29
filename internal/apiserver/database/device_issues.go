@@ -39,18 +39,12 @@ func (db *database) getDeviceIssues(ctx context.Context, device *sqlc.Device) ([
 		}}, nil
 	}
 
-	lastSeen := stringToTime(device.LastSeen.String)
-	lastUpdated := stringToTime(device.LastUpdated.String)
-
 	issues, err := db.queries.GetKolideIssuesForDevice(ctx, device.ExternalID.String)
 	if err != nil && !errors.Is(err, sql.ErrNoRows) {
 		return nil, fmt.Errorf("getting kolide issues: %w", err)
 	}
 
 	deviceIssues := make([]*pb.DeviceIssue, 0)
-	if lastSeenIssue := generateLastSeenIssue(lastSeen, lastUpdated); lastSeenIssue != nil {
-		deviceIssues = append(deviceIssues, lastSeenIssue)
-	}
 
 	for _, issue := range issues {
 		checkTags := strings.Split(issue.Tags, ",")

@@ -1,0 +1,101 @@
+{
+  "data": [
+    {
+      "id": "100001",
+      "issue_key": "username",
+      "issue_value": "johndoe",
+      "title": "Bluetooth Sharing Is Not Disabled",
+      "value": {
+        "path": "/Users/johndoe/Library/Preferences/ByHost/com.apple.Bluetooth.ABC123.plist",
+        "username": "johndoe",
+        "logged_in": "1",
+        "current_os_version": "15.7.3",
+        "KOLIDE_CHECK_STATUS": "FAIL",
+        "user_bluetooth_sharing_enabled": "1"
+      },
+      "exempted": false,
+      "resolved_at": null,
+      "detected_at": "2025-08-05T08:41:28.624Z",
+      "blocks_device_at": "2025-12-28T21:59:45.789Z",
+      "device_information": {
+        "identifier": "10001",
+        "link": "https://api.kolide.com/devices/10001"
+      },
+      "check_information": {
+        "identifier": "1",
+        "link": "https://api.kolide.com/checks/1"
+      },
+      "last_rechecked_at": "2025-12-28T13:21:16.000Z"
+    },
+    {
+      "id": "100002",
+      "issue_key": "path",
+      "issue_value": "/Users/janesmith/.ssh/id_ed25519",
+      "title": "Unencrypted SSH Key Detected",
+      "value": {
+        "gid": "20",
+        "md5": "a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6",
+        "uid": "501",
+        "path": "/Users/janesmith/.ssh/id_ed25519",
+        "key_type": "ssh-ed25519",
+        "username": "janesmith",
+        "encrypted": "0",
+        "group_name": "staff",
+        "os_platform": "darwin",
+        "file_created_at": "2023-08-14 14:11:00",
+        "KOLIDE_CHECK_STATUS": "FAIL"
+      },
+      "exempted": false,
+      "resolved_at": null,
+      "detected_at": "2025-03-12T13:34:35.376Z",
+      "blocks_device_at": "2025-12-28T21:59:45.572Z",
+      "device_information": {
+        "identifier": "10002",
+        "link": "https://api.kolide.com/devices/10002"
+      },
+      "check_information": {
+        "identifier": "3",
+        "link": "https://api.kolide.com/checks/3"
+      },
+      "last_rechecked_at": "2025-12-27T23:29:06.000Z"
+    },
+    {
+      "id": "100003",
+      "issue_key": "path",
+      "issue_value": "/Users/michaelj/.ssh/deploy_key",
+      "title": "Unencrypted SSH Key Detected",
+      "value": {
+        "gid": "20",
+        "md5": "b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7",
+        "uid": "501",
+        "path": "/Users/michaelj/.ssh/deploy_key",
+        "key_type": "ssh-rsa",
+        "username": "michaelj",
+        "encrypted": "0",
+        "group_name": "staff",
+        "os_platform": "windows",
+        "file_created_at": "2025-04-09 13:15:00",
+        "KOLIDE_CHECK_STATUS": "FAIL"
+      },
+      "exempted": false,
+      "resolved_at": null,
+      "detected_at": "2025-04-09T13:39:31.860Z",
+      "blocks_device_at": "2025-12-28T21:59:45.615Z",
+      "device_information": {
+        "identifier": "10003",
+        "link": "https://api.kolide.com/devices/10003"
+      },
+      "check_information": {
+        "identifier": "3",
+        "link": "https://api.kolide.com/checks/3"
+      },
+      "last_rechecked_at": "2025-12-28T21:46:18.000Z"
+    }
+  ],
+  "pagination": {
+    "next": "",
+    "next_cursor": "",
+    "current_cursor": "",
+    "count": 3
+  }
+}

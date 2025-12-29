@@ -107,24 +107,14 @@ func (db *database) ReadPeers(ctx context.Context) ([]*peer, error) {
 	return peers, nil
 }
 
-func (db *database) SetDeviceSeenByKolide(ctx context.Context, externalID string, serial string, platform string, lastSeen *time.Time) error {
-	lastSeenCol := sql.NullString{}
-	if lastSeen != nil {
-		lastSeenCol = sql.NullString{
-			String: timeToString(*lastSeen),
-			Valid:  true,
-		}
-	}
-
+func (db *database) LinkKolideDevice(ctx context.Context, externalID string, serial string, platform string) error {
 	return db.queries.UpdateDevice(ctx, sqlc.UpdateDeviceParams{
-		Healthy:  false,
 		Serial:   serial,
 		Platform: platform,
 		LastUpdated: sql.NullString{
 			String: timeToString(time.Now().UTC()),
 			Valid:  true,
 		},
-		LastSeen: lastSeenCol,
 		ExternalID: sql.NullString{
 			String: externalID,
 			Valid:  externalID != "",

@@ -218,10 +218,7 @@ func (s *grpcServer) UpdateAllDevices(ctx context.Context) error {
 	for _, kolideDevice := range kolideDevices {
 		for _, device := range devices {
 			if kolideDevice.Serial == device.Serial && kolideDevice.Platform == device.Platform {
-				device.ExternalID = fmt.Sprint(kolideDevice.ID)
-				if kolideDevice.LastSeenAt != nil {
-					device.LastSeen = timestamppb.New(*kolideDevice.LastSeenAt)
-				}
+				device.ExternalID = kolideDevice.ID
 				break
 			}
 		}

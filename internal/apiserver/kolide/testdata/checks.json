@@ -1,0 +1,48 @@
+{
+  "data": [
+    {
+      "id": "1",
+      "name": "macOS Sharing - Require Bluetooth Sharing to Be Disabled",
+      "slug": "macos_bluetooth_sharing",
+      "compatible_platforms": ["darwin"],
+      "description": "This check ensures the macOS Sharing Setting is disabled.",
+      "topics": ["sharing-preferences"],
+      "issue_title": "Bluetooth Sharing Is Not Disabled",
+      "check_tags": [
+        {
+          "id": "3388",
+          "name": "CRITICAL",
+          "description": "Checks that produce failures which should be resolved immediately.",
+          "color": "rgba(255, 40, 122, 1)"
+        }
+      ],
+      "kolide_provided": true,
+      "type": "osquery"
+    },
+    {
+      "id": "3",
+      "name": "SSH Keys - Require SSH Keys to Be Encrypted",
+      "slug": "unencrypted",
+      "compatible_platforms": ["linux", "darwin", "windows"],
+      "description": "This check looks for unencrypted SSH keys on the device.",
+      "topics": ["unencrypted-credentials"],
+      "issue_title": "Unencrypted SSH Key Detected",
+      "check_tags": [
+        {
+          "id": "4199",
+          "name": "DANGER",
+          "description": "Less severe than Critical but will sever connections no less than one hour after check produces a fail.",
+          "color": "rgba(239, 112, 9, 1)"
+        }
+      ],
+      "kolide_provided": true,
+      "type": "osquery"
+    }
+  ],
+  "pagination": {
+    "next": "",
+    "next_cursor": "",
+    "current_cursor": "",
+    "count": 2
+  }
+}

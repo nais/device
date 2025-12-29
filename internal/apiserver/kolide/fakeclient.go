@@ -14,7 +14,7 @@ func (f *FakeClient) GetChecks(ctx context.Context) ([]*Check, error) {
 }
 
 // GetDeviceIssues implements Client.
-func (f *FakeClient) GetDeviceIssues(ctx context.Context, deviceID string) ([]*DeviceFailure, error) {
+func (f *FakeClient) GetDeviceIssues(ctx context.Context, deviceID string) ([]*Issue, error) {
 	panic("unimplemented")
 }
 
@@ -24,7 +24,7 @@ func (f *FakeClient) GetDevices(ctx context.Context) ([]*Device, error) {
 }
 
 // GetIssues implements Client.
-func (f *FakeClient) GetIssues(ctx context.Context) ([]*DeviceFailure, error) {
+func (f *FakeClient) GetIssues(ctx context.Context) ([]*Issue, error) {
 	panic("unimplemented")
 }
 

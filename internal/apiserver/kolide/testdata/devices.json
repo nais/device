@@ -1,0 +1,106 @@
+{
+  "data": [
+    {
+      "id": "10001",
+      "name": "MacBook-Pro-001",
+      "registered_at": "2025-12-16T09:40:59.052Z",
+      "last_authenticated_at": null,
+      "registered_owner_info": {
+        "identifier": "44200",
+        "link": "https://api.kolide.com/people/44200"
+      },
+      "operating_system": "macOS 15.7.3 Sequoia",
+      "hardware_model": "MacBook Pro (15-inch, 2018)",
+      "serial": "XXXX1111AAAA",
+      "hardware_uuid": "00000000-1111-2222-3333-444444444444",
+      "note": null,
+      "auth_state": "Good",
+      "will_block_at": null,
+      "product_image_url": "https://example.com/macbook-pro.png",
+      "auth_configuration": {
+        "device_id": "10001",
+        "authentication_mode": "anyone",
+        "person_groups": []
+      },
+      "device_type": "Mac",
+      "form_factor": "computer"
+    },
+    {
+      "id": "10002",
+      "name": "MacBook-Pro-002",
+      "registered_at": "2025-12-15T14:55:21.035Z",
+      "last_authenticated_at": null,
+      "registered_owner_info": {
+        "identifier": "44794",
+        "link": "https://api.kolide.com/people/44794"
+      },
+      "operating_system": "macOS 26.2 Tahoe",
+      "hardware_model": "MacBook Pro (16-inch, 2021)",
+      "serial": "XXXX2222BBBB",
+      "hardware_uuid": "11111111-2222-3333-4444-555555555555",
+      "note": null,
+      "auth_state": "Blocked",
+      "will_block_at": "2025-12-25T11:05:07.614Z",
+      "product_image_url": "https://example.com/macbook-pro.png",
+      "auth_configuration": {
+        "device_id": "10002",
+        "authentication_mode": "only_registered_owner",
+        "person_groups": []
+      },
+      "device_type": "Mac",
+      "form_factor": "computer"
+    },
+    {
+      "id": "10003",
+      "name": "DESKTOP-TEST01",
+      "registered_at": "2025-12-18T08:33:26.577Z",
+      "last_authenticated_at": null,
+      "registered_owner_info": {
+        "identifier": "45037",
+        "link": "https://api.kolide.com/people/45037"
+      },
+      "operating_system": "Microsoft Windows 11 Enterprise",
+      "hardware_model": "ThinkPad X1 Carbon",
+      "serial": "XXXX3333CCCC",
+      "hardware_uuid": "22222222-3333-4444-5555-666666666666",
+      "note": null,
+      "auth_state": "Good",
+      "will_block_at": null,
+      "product_image_url": "https://example.com/thinkpad.png",
+      "auth_configuration": {
+        "device_id": "10003",
+        "authentication_mode": "anyone",
+        "person_groups": []
+      },
+      "device_type": "Windows",
+      "form_factor": "computer"
+    },
+    {
+      "id": "10004",
+      "name": "MacBook-Pro-003",
+      "registered_at": null,
+      "last_authenticated_at": null,
+      "registered_owner_info": {
+        "identifier": "",
+        "link": null
+      },
+      "operating_system": "macOS 15.7.3 Sequoia",
+      "hardware_model": "MacBook Pro (14-inch, 2021)",
+      "serial": "XXXX4444DDDD",
+      "hardware_uuid": "33333333-4444-5555-6666-777777777777",
+      "note": null,
+      "auth_state": "Good",
+      "will_block_at": null,
+      "product_image_url": "https://example.com/macbook-pro.png",
+      "auth_configuration": null,
+      "device_type": "Mac",
+      "form_factor": "computer"
+    }
+  ],
+  "pagination": {
+    "next": "",
+    "next_cursor": "",
+    "current_cursor": "",
+    "count": 4
+  }
+}

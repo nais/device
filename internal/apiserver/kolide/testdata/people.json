@@ -1,0 +1,54 @@
+{
+  "data": [
+    {
+      "id": "44200",
+      "name": "Doe, John",
+      "email": "john.doe@example.com",
+      "created_at": "2020-03-10T08:22:46.793Z",
+      "last_authenticated_at": null,
+      "has_registered_device": true,
+      "usernames": [
+        "John.Doe@example.com"
+      ]
+    },
+    {
+      "id": "44794",
+      "name": "Smith, Jane",
+      "email": "jane.smith@example.com",
+      "created_at": "2020-03-17T08:06:43.422Z",
+      "last_authenticated_at": null,
+      "has_registered_device": true,
+      "usernames": [
+        "Jane.Smith@example.com"
+      ]
+    },
+    {
+      "id": "45037",
+      "name": "Johnson, Michael",
+      "email": "michael.johnson@example.com",
+      "created_at": "2020-03-23T17:49:47.388Z",
+      "last_authenticated_at": null,
+      "has_registered_device": true,
+      "usernames": [
+        "Michael.Johnson@example.com"
+      ]
+    },
+    {
+      "id": "47221",
+      "name": "Williams, Sarah",
+      "email": "sarah.williams@example.com",
+      "created_at": "2020-04-21T06:50:05.787Z",
+      "last_authenticated_at": null,
+      "has_registered_device": false,
+      "usernames": [
+        "Sarah.Williams@example.com"
+      ]
+    }
+  ],
+  "pagination": {
+    "next": "",
+    "next_cursor": "",
+    "current_cursor": "",
+    "count": 4
+  }
+}

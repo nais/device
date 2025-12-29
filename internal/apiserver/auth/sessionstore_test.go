@@ -43,7 +43,6 @@ func TestSessionStore_SetAndGetFromCache(t *testing.T) {
 	device := &pb.Device{
 		Serial:   "device-1",
 		Platform: "linux",
-		LastSeen: timestamppb.Now(),
 	}
 	if err := db.AddDevice(ctx, device); err != nil {
 		t.Fatal(err)
@@ -90,7 +89,6 @@ func TestSessionStore_Warmup(t *testing.T) {
 			Serial:    fmt.Sprintf("device-%v", deviceID),
 			PublicKey: fmt.Sprintf("device-%v", deviceID),
 			Platform:  "linux",
-			LastSeen:  timestamppb.Now(),
 		}
 		if err := db.AddDevice(ctx, device); err != nil {
 			t.Fatal(err)
@@ -119,69 +117,20 @@ func TestSessionStore_Warmup(t *testing.T) {
 	assert.Equal(t, int64(14), retrieved.GetDevice().GetId())
 }
 
-func TestSessionStore_UpdateDevice(t *testing.T) {
-	ctx := context.Background()
-	db := testdatabase.Setup(t, false)
-	store := auth.NewSessionStore(db)
-
-	now := time.Now()
-	for i := range 20 {
-		deviceID := int64(i + 1)
-		device := &pb.Device{
-			Serial:    fmt.Sprintf("device-%v", deviceID),
-			PublicKey: fmt.Sprintf("device-%v", deviceID),
-			Platform:  "linux",
-			LastSeen:  timestamppb.New(now),
-		}
-		session := &pb.Session{
-			Key: fmt.Sprintf("session-for-device-%v", deviceID),
-			Device: &pb.Device{
-				Id:       deviceID,
-				LastSeen: timestamppb.New(now),
-			},
-		}
-
-		if err := db.AddDevice(ctx, device); err != nil {
-			t.Fatal(err)
-		}
-		if err := db.AddSessionInfo(ctx, session); err != nil {
-			t.Fatal(err)
-		}
-	}
-
-	updatedDevice := &pb.Device{
-		Id:       int64(2),
-		LastSeen: timestamppb.New(now.Add(2 * time.Hour)),
-	}
-
-	sess, err := store.Get(ctx, "session-for-device-2")
-	assert.NoError(t, err)
-	assert.False(t, sess.GetDevice().GetLastSeen().AsTime().Equal(updatedDevice.GetLastSeen().AsTime()))
-
-	store.RefreshDevice(updatedDevice)
-
-	sess, err = store.Get(ctx, "session-for-device-2")
-	assert.NoError(t, err)
-	assert.True(t, sess.GetDevice().GetLastSeen().AsTime().Equal(updatedDevice.GetLastSeen().AsTime()))
-}
-
 // Test that existing sessions with the same device id are removed.
 func TestSessionStore_ReplaceOnSet(t *testing.T) {
 	ctx := context.Background()
 	db := testdatabase.Setup(t, false)
 	store := auth.NewSessionStore(db)
 
-	now := time.Now()
-
 	device := &pb.Device{
 		Serial:    "device-1",
 		PublicKey: "device-1",
 		Platform:  "linux",
-		LastSeen:  timestamppb.New(now),
 	}
 	session := &pb.Session{
 		Key:    "old_key_1",
-		Device: &pb.Device{Id: 1, LastSeen: timestamppb.New(now)},
+		Device: &pb.Device{Id: 1},
 	}
 	if err := db.AddDevice(ctx, device); err != nil {
 		t.Fatal(err)
@@ -200,8 +149,7 @@ func TestSessionStore_ReplaceOnSet(t *testing.T) {
 	assert.NoError(t, store.Set(ctx, &pb.Session{
 		Key: "old_key_2",
 		Device: &pb.Device{
-			Id:       2,
-			LastSeen: timestamppb.New(now),
+			Id: 2,
 		},
 	}))
 
@@ -214,8 +162,7 @@ func TestSessionStore_ReplaceOnSet(t *testing.T) {
 	assert.NoError(t, store.Set(ctx, &pb.Session{
 		Key: "new_key_1",
 		Device: &pb.Device{
-			Id:       1,
-			LastSeen: timestamppb.New(now),
+			Id: 1,
 		},
 	}))
 
