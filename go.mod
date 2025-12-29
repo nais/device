@@ -26,7 +26,7 @@ require (
 	github.com/google/uuid v1.6.0
 	github.com/kelseyhightower/envconfig v1.4.0
 	github.com/lestrrat-go/jwx v1.2.29
-	github.com/microsoft/wmi v0.25.2
+	github.com/microsoft/wmi v0.38.3
 	github.com/nais/kolide-event-handler v0.0.0-20240619222557-6845c37b3249
 	github.com/nirasan/go-oauth-pkce-code-verifier v0.0.0-20220510032225-4f9f17eaec4c
 	github.com/prometheus/client_golang v1.23.2
