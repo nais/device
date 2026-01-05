@@ -27,6 +27,7 @@ on:
       - "mise/config.toml"
       - "mise/tasks/**"
       - "!mise/tasks/**/*controlplane*"
+      - "pkg/pb/**"
 
 env:
   # some mise tasks use this to determine how they package/sign stuff.
