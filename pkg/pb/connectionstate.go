@@ -7,15 +7,15 @@ const timeFormat = "15:04:05"
 func (x *AgentStatus) ConnectionStateString() string {
 	switch x.ConnectionState {
 	case AgentState_Bootstrapping:
-		return "Bootstrapping device..."
+		return "Bootstrapping device"
 	case AgentState_Unhealthy:
-		return "Device is unhealthy; no access to resources"
+		return "No access, check Kolide tray icon"
 	case AgentState_Disconnecting:
-		return "Disconnecting..."
+		return "Disconnecting"
 	case AgentState_Authenticating:
-		return "Authenticating..."
+		return "Authenticating"
 	case AgentState_AuthenticateBackoff:
-		return "Authentication failed; waiting to retry..."
+		return "Authentication failed; waiting to retry"
 	case AgentState_Connected:
 		return "Connected since " + x.ConnectedSince.AsTime().Local().Format(timeFormat)
 	default:
