@@ -129,7 +129,7 @@ jobs:
         run: |
           mkdir -p "$(dirname $OUTFILE)"
           mise run "package:${{ matrix.platform.os }}"
-      - uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # ratchet:actions/upload-artifact@v5
+      - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # ratchet:actions/upload-artifact@v5
         with:
           name: installer-${{ matrix.platform.os }}-${{ matrix.arch }}-${{ matrix.gotags || 'nav' }}
           path: ${{ env.OUTFILE }}
@@ -173,7 +173,7 @@ jobs:
       - env:
           VERSION: ${{ needs.release-info.outputs.version }}
         run: mise run ci:prepare-template-vars ./release_artifacts/checksums.txt -v > template.vars
-      - uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # ratchet:actions/upload-artifact@v5
+      - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # ratchet:actions/upload-artifact@v5
         with:
           name: template-vars
           path: ./template.vars
