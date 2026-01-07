@@ -10,15 +10,15 @@ import (
 )
 
 type Config struct {
-	GrpcAddress string
+	GrpcAddress string `json:"-"`
 
-	ConfigDir string
+	ConfigDir string `json:"-"`
 
 	LogLevel    string
-	LogFilePath string
+	LogFilePath string `json:"-"`
 
 	BlackAndWhiteIcons bool
-	Notifier           notify.Notifier
+	Notifier           notify.Notifier `json:"-"`
 }
 
 func (cfg *Config) Persist() error {
@@ -35,18 +35,15 @@ func (cfg *Config) Persist() error {
 }
 
 func (cfg *Config) Populate() error {
-	var tempCfg Config
-
 	configFile, err := os.Open(filepath.Join(cfg.ConfigDir, ConfigFile))
 	if err != nil {
 		return fmt.Errorf("opening file: %v", err)
 	}
 
-	err = json.NewDecoder(configFile).Decode(&tempCfg)
+	err = json.NewDecoder(configFile).Decode(&cfg)
 	if err != nil {
 		return fmt.Errorf("decoding json from file: %v", err)
 	}
 
-	*cfg = tempCfg
 	return nil
 }
