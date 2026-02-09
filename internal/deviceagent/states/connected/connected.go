@@ -237,6 +237,8 @@ func (c *Connected) defaultSyncConfigLoop(ctx context.Context) error {
 					if len(cfg.Issues) > 0 {
 						if hasKolideNotLinkedIssue(cfg.Issues) {
 							c.notifier.Errorf("Kolide is not linked to your device. Install Kolide according to the documentation at https://doc.nais.io/operate/naisdevice/how-to/install")
+						} else if hasAcceptableUseNotAcceptedIssue(cfg.Issues) {
+							c.notifier.Errorf("You must accept the Do's and don'ts. Click on the naisdevice icon and select 'Acceptable use policy'.")
 						} else {
 							c.notifier.Errorf("Found %d issue(s) on your device. Check Kolide icon in the systray for further investigation.", len(cfg.Issues))
 						}
@@ -415,6 +417,15 @@ func ping(log logrus.FieldLogger, addr string) error {
 func hasKolideNotLinkedIssue(issues []*pb.DeviceIssue) bool {
 	for _, issue := range issues {
 		if issue.Title == "No Kolide device ID found for device" {
+			return true
+		}
+	}
+	return false
+}
+
+func hasAcceptableUseNotAcceptedIssue(issues []*pb.DeviceIssue) bool {
+	for _, issue := range issues {
+		if issue.Title == "Do's and don'ts not accepted" {
 			return true
 		}
 	}
