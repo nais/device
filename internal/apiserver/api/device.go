@@ -215,6 +215,13 @@ func (s *grpcServer) UpdateAllDevices(ctx context.Context) error {
 	if err != nil {
 		return fmt.Errorf("getting kolide devices: %w", err)
 	}
+
+	// Clear all external_ids first - they will be set again if a match is found
+	for _, device := range devices {
+		device.ExternalID = ""
+	}
+
+	// Set external_id for devices that match Kolide devices
 	for _, kolideDevice := range kolideDevices {
 		for _, device := range devices {
 			if kolideDevice.Serial == device.Serial && kolideDevice.Platform == device.Platform {
