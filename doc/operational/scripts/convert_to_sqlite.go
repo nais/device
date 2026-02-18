@@ -113,7 +113,7 @@ func convertGateway(gateway map[string]string) {
 	)
 
 	routes := make(map[string]bool)
-	for _, route := range strings.Split(gateway["routes"], ",") {
+	for route := range strings.SplitSeq(gateway["routes"], ",") {
 		if routes[route] {
 			continue
 		}
@@ -125,7 +125,7 @@ func convertGateway(gateway map[string]string) {
 	}
 
 	groupIDs := make(map[string]bool)
-	for _, groupID := range strings.Split(gateway["access_group_ids"], ",") {
+	for groupID := range strings.SplitSeq(gateway["access_group_ids"], ",") {
 		if groupIDs[groupID] {
 			continue
 		}
@@ -162,7 +162,7 @@ func convertSessions(sessions map[string]string) {
 		sessions["object_id"],
 	)
 
-	for _, groupID := range strings.Split(sessions["groups"], ",") {
+	for groupID := range strings.SplitSeq(sessions["groups"], ",") {
 		fmt.Printf("INSERT INTO session_access_group_ids(session_key, group_id) VALUES('%s', '%s');\n",
 			sessions["key"],
 			groupID,
