@@ -1,5 +1,4 @@
 //go:build tenant
-// +build tenant
 
 package runtimeconfig
 

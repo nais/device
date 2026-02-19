@@ -64,12 +64,7 @@ func sessionForGatewayGroups(gatewayGroups []string) func(*pb.Session) bool {
 
 func sessionIsPrivileged(privilegedUsers []string) func(*pb.Session) bool {
 	return func(session *pb.Session) bool {
-		for _, privilegedUser := range privilegedUsers {
-			if privilegedUser == session.ObjectID {
-				return true
-			}
-		}
-		return false
+		return slices.Contains(privilegedUsers, session.ObjectID)
 	}
 }
 
