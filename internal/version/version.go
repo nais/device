@@ -5,7 +5,7 @@ var (
 	Version  = "unknown" // Numeric version
 
 	// for use when using structured logging
-	LogFields = map[string]interface{}{
+	LogFields = map[string]any{
 		"revision": Revision,
 		"version":  Version,
 	}

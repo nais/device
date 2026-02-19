@@ -3,6 +3,7 @@ package statemachine
 import (
 	"context"
 	"fmt"
+	"slices"
 
 	"github.com/sirupsen/logrus"
 	"go.opentelemetry.io/otel/trace"
@@ -112,11 +113,9 @@ func (sm *StateMachine) transition(event state.EventWithSpan) {
 	}
 
 	ctx := trace.ContextWithSpan(sm.ctx, event.Span)
-	for _, s := range t.Sources {
-		if sm.current.IsState(s) {
-			sm.setState(ctx, t.Target)
-			return
-		}
+	if slices.ContainsFunc(t.Sources, sm.current.IsState) {
+		sm.setState(ctx, t.Target)
+		return
 	}
 
 	sm.logger.WithField("event", event).WithField("state", sm.current).Warn("no defined transition for event in state")

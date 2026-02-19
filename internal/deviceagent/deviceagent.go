@@ -69,7 +69,11 @@ func (das *DeviceAgentServer) Status(request *pb.AgentStatusRequest, statusServe
 
 	defer func() {
 		das.log.Debug("grpc: client connection with device helper closed")
-		if !request.GetKeepConnectionOnComplete() {
+		das.agentStatusLock.RLock()
+		keepConnection := request.GetKeepConnectionOnComplete()
+		connectionState := das.AgentStatus.GetConnectionState()
+		das.agentStatusLock.RUnlock()
+		if !keepConnection || connectionState != pb.AgentState_Connected {
 			das.log.Debug("grpc: keepalive not requested, tearing down connections...")
 			das.sendEvent(state.SpanEvent(statusServer.Context(), state.EventDisconnect))
 		}

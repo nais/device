@@ -28,7 +28,7 @@ func TestHandler_TokenToUser(t *testing.T) {
 				if err := tok.Set("preferred_username", "user@example.com"); err != nil {
 					t.Fatalf("failed to set preferred_username claim: %v", err)
 				}
-				if err := tok.Set("groups", []interface{}{"group1", "group2"}); err != nil {
+				if err := tok.Set("groups", []any{"group1", "group2"}); err != nil {
 					t.Fatalf("failed to set groups claim: %v", err)
 				}
 				return tok
@@ -50,7 +50,7 @@ func TestHandler_TokenToUser(t *testing.T) {
 				if err := tok.Set("unique_name", "user2@example.com"); err != nil {
 					t.Fatalf("failed to set unique_name claim: %v", err)
 				}
-				if err := tok.Set("groups", []interface{}{"group3"}); err != nil {
+				if err := tok.Set("groups", []any{"group3"}); err != nil {
 					t.Fatalf("failed to set groups claim: %v", err)
 				}
 				return tok
@@ -72,7 +72,7 @@ func TestHandler_TokenToUser(t *testing.T) {
 				if err := tok.Set("upn", "user3@example.com"); err != nil {
 					t.Fatalf("failed to set upn claim: %v", err)
 				}
-				if err := tok.Set("groups", []interface{}{}); err != nil {
+				if err := tok.Set("groups", []any{}); err != nil {
 					t.Fatalf("failed to set groups claim: %v", err)
 				}
 				return tok
@@ -91,7 +91,7 @@ func TestHandler_TokenToUser(t *testing.T) {
 				if err := tok.Set("oid", "user-oid-123"); err != nil {
 					t.Fatalf("failed to set oid claim: %v", err)
 				}
-				if err := tok.Set("groups", []interface{}{"group1"}); err != nil {
+				if err := tok.Set("groups", []any{"group1"}); err != nil {
 					t.Fatalf("failed to set groups claim: %v", err)
 				}
 				return tok
