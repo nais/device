@@ -43,5 +43,15 @@ all:
         $(hostname):
 EOF
 
+cat <<EOF >/root/run-ansible.sh
+if [ \$(pgrep ansible-pull -c) -ne 0 ]; then
+  echo "already running"
+  exit 0
+fi
+
+HTTPS_PROXY=http://webproxy-internett.nav.no:8088 /usr/bin/ansible-pull --only-if-changed -U https://github.com/nais/device --checkout main ansible/prereqs.yml ansible/site.yml -i /root/ansible-inventory.yaml >> /var/log/ansible.log
+EOF
+chmod +x /root/run-ansible.sh
+
 echo "add the following line to crontab:"
-echo "*/5 * * * * [ \$(pgrep ansible-pull -c) -eq 0 ] && HTTPS_PROXY=$HTTPS_PROXY /usr/bin/ansible-pull --only-if-changed -U https://github.com/nais/device ansible/site.yml -i /root/ansible-inventory.yaml >> /var/log/ansible.log"
+echo "*/5 * * * * /root/run-ansible.sh"

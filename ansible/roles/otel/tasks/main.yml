@@ -1,0 +1,60 @@
+- name: Set HTTPS_PROXY for otel-collector
+  ansible.builtin.copy:
+    dest: /etc/systemd/system/otel-collector.service.d/override.conf
+    content: |
+      [Service]
+      Environment="HTTPS_PROXY=http://webproxy-internett.nav.no:8088"
+
+- name: Install OpenTelemetry Collector
+  ansible.builtin.include_role:
+    name: grafana.grafana.opentelemetry_collector
+  vars:
+    otel_collector_receivers:
+      hostmetrics:
+        collection_interval: 60s
+        scrapers:
+          cpu: {}
+          disk: {}
+          load: {}
+          filesystem: {}
+          memory: {}
+          network: {}
+          paging: {}
+          process:
+            mute_process_name_error: true
+            mute_process_exe_error: true
+            mute_process_io_error: true
+          processes: {}
+
+    otel_collector_processors:
+      batch:
+      resourcedetection:
+        detectors: [env, system]
+        timeout: 2s
+        system:
+          hostname_sources: [os]
+      transform/add_resource_attributes_as_metric_attributes:
+        error_mode: ignore
+        metric_statements:
+          - context: datapoint
+            statements:
+              - set(attributes["deployment.environment"],
+                resource.attributes["deployment.environment"])
+              - set(attributes["service.version"],
+                resource.attributes["service.version"])
+
+    otel_collector_exporters:
+      otlphttp/nais:
+        endpoint: "https://collector-internet.nav.cloud.nais.io"
+
+    otel_collector_service:
+      pipelines:
+        metrics:
+          receivers: [hostmetrics]
+          processors:
+            [
+              resourcedetection,
+              transform/add_resource_attributes_as_metric_attributes,
+              batch,
+            ]
+          exporters: [otlphttp/nais]
