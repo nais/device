@@ -4,33 +4,39 @@
     "64bit": {
       "url": "$NAISDEVICE_WINDOWS_AMD64_URL",
       "hash": "$NAISDEVICE_WINDOWS_AMD64_HASH_BASE16",
-      "pre_install": [
-        "if (!(is_admin)) { error \"Administrator privileges are needed for installation\"; break }"
-      ],
       "installer": {
         "script": [
           "Write-Output \"Executing installer at $dir\\$fname\"",
-          "Invoke-ExternalCommand \"$dir\\$fname\" /S -RunAs"
+          "if (!(Invoke-ExternalCommand \"$dir\\$fname\" /S -RunAs)) {",
+          "  exit 1",
+          "}"
         ]
       },
       "post_uninstall": [
-        "if ($cmd -eq \"uninstall\") { Invoke-ExternalCommand \"$env:ProgramW6432\\NAV\\naisdevice\\uninstaller.exe\" /S -RunAs }"
+        "if ($cmd -eq \"uninstall\") {",
+        "  if (!(Invoke-ExternalCommand \"$env:ProgramW6432\\NAV\\naisdevice\\uninstaller.exe\" /S -RunAs)) {",
+        "    exit 1",
+        "  }",
+        "}"
       ]
     },
     "arm64": {
       "url": "$NAISDEVICE_WINDOWS_ARM64_URL",
       "hash": "$NAISDEVICE_WINDOWS_ARM64_HASH_BASE16",
-      "pre_install": [
-        "if (!(is_admin)) { error \"Administrator privileges are needed for installation\"; break }"
-      ],
       "installer": {
         "script": [
           "Write-Output \"Executing installer at $dir\\$fname\"",
-          "Invoke-ExternalCommand \"$dir\\$fname\" /S -RunAs"
+          "if (!(Invoke-ExternalCommand \"$dir\\$fname\" /S -RunAs)) {",
+          "  exit 1",
+          "}"
         ]
       },
       "post_uninstall": [
-        "if ($cmd -eq \"uninstall\") { Invoke-ExternalCommand \"$env:ProgramW6432\\NAV\\naisdevice\\uninstaller.exe\" /S -RunAs }"
+        "if ($cmd -eq \"uninstall\") {",
+        "  if (!(Invoke-ExternalCommand \"$env:ProgramW6432\\NAV\\naisdevice\\uninstaller.exe\" /S -RunAs)) {",
+        "    exit 1",
+        "  }",
+        "}"
       ]
     }
   },
