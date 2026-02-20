@@ -102,7 +102,7 @@ jobs:
             ext: pkg
     runs-on: ${{ matrix.platform.runner }}
     env:
-      VERSION: ${{ needs.release-info.outputs.version || 'none' }} # Allow builds to continue with no version, it won't release.
+      VERSION: ${{ needs.release-info.outputs.version || 'v0.0.0' }} # Fallback to a valid version so packaging works even without a changelog. The release job gates on a real version.
       GOOS: ${{ matrix.platform.goos }}
       GOARCH: ${{ matrix.arch }}
       GOTAGS: ${{ matrix.gotags }}
