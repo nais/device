@@ -4,6 +4,9 @@
     "64bit": {
       "url": "$NAISDEVICE_TENANT_WINDOWS_AMD64_URL",
       "hash": "$NAISDEVICE_TENANT_WINDOWS_AMD64_HASH_BASE16",
+      "pre_install": [
+        "if (!(is_admin)) { error \"Administrator privileges are needed for installation\"; break }"
+      ],
       "installer": {
         "script": [
           "Write-Output \"Executing installer at $dir\\$fname\"",
@@ -17,6 +20,9 @@
     "arm64": {
       "url": "$NAISDEVICE_TENANT_WINDOWS_ARM64_URL",
       "hash": "$NAISDEVICE_TENANT_WINDOWS_ARM64_HASH_BASE16",
+      "pre_install": [
+        "if (!(is_admin)) { error \"Administrator privileges are needed for installation\"; break }"
+      ],
       "installer": {
         "script": [
           "Write-Output \"Executing installer at $dir\\$fname\"",
