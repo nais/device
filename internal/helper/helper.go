@@ -6,20 +6,15 @@
 package helper
 
 import (
-	"bytes"
 	"context"
 	"fmt"
-	"io"
-	"os"
 	"time"
 
 	"github.com/nais/device/internal/helper/serial"
-	"github.com/nais/device/internal/ioconvenience"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
-	"github.com/nais/device/internal/deviceagent/wireguard"
 	"github.com/nais/device/pkg/pb"
 )
 
@@ -60,15 +55,6 @@ func (dhs *DeviceHelperServer) Teardown(
 		return nil, fmt.Errorf("tearing down interface: %v", err)
 	}
 
-	dhs.log.Info("flushing WireGuard configuration from disk")
-	err = os.Remove(dhs.config.WireGuardConfigPath)
-	if err != nil {
-		if !os.IsNotExist(err) {
-			return nil, fmt.Errorf("flush WireGuard configuration from disk: %v", err)
-		}
-		dhs.log.Info("WireGuard configuration file does not exist on disk")
-	}
-
 	return &pb.TeardownResponse{}, nil
 }
 
@@ -78,14 +64,7 @@ func (dhs *DeviceHelperServer) Configure(
 ) (*pb.ConfigureResponse, error) {
 	dhs.log.Info("new configuration received from device-agent")
 
-	err := dhs.writeConfigFile(cfg)
-	if err != nil {
-		return nil, status.Errorf(codes.ResourceExhausted, "write WireGuard configuration: %s", err)
-	}
-
-	dhs.log.Info("wrote WireGuard config to disk")
-
-	err = dhs.osConfigurator.SetupInterface(ctx, cfg)
+	err := dhs.osConfigurator.SetupInterface(ctx, cfg)
 	if err != nil {
 		return nil, status.Errorf(codes.FailedPrecondition, "setup interface and routes: %s", err)
 	}
@@ -95,7 +74,7 @@ func (dhs *DeviceHelperServer) Configure(
 		loopErr = dhs.osConfigurator.SyncConf(ctx, cfg)
 		if loopErr != nil {
 			backoff := time.Duration(attempt) * time.Second
-			dhs.log.WithError(err).Error("synchronize WireGuard configuration")
+			dhs.log.WithError(loopErr).Error("synchronize WireGuard configuration")
 			dhs.log.WithField("attempt", attempt+1).WithField("backoff", backoff).Info("configuring failed, sleeping before retrying")
 			time.Sleep(backoff)
 			continue
@@ -116,32 +95,6 @@ func (dhs *DeviceHelperServer) Configure(
 	}
 
 	return &pb.ConfigureResponse{}, nil
-}
-
-func (dhs *DeviceHelperServer) writeConfigFile(cfg *pb.Configuration) error {
-	buf := new(bytes.Buffer)
-
-	err := wireguard.Marshal(buf, cfg)
-	if err != nil {
-		return fmt.Errorf("render configuration: %s", err)
-	}
-
-	fd, err := os.OpenFile(dhs.config.WireGuardConfigPath, os.O_CREATE|os.O_RDWR|os.O_TRUNC, 0o600)
-	if err != nil {
-		return fmt.Errorf("open file: %s", err)
-	}
-	defer ioconvenience.CloseWithLog(fd, dhs.log)
-
-	_, err = io.Copy(fd, buf)
-	if err != nil {
-		return fmt.Errorf("write to disk: %s", err)
-	}
-
-	if err := fd.Sync(); err != nil {
-		return fmt.Errorf("sync file: %s", err)
-	}
-
-	return nil
 }
 
 func (dhs *DeviceHelperServer) GetSerial(

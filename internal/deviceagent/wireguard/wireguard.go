@@ -1,59 +1,31 @@
 package wireguard
 
 import (
-	"crypto/rand"
-	"encoding/base64"
 	"fmt"
-	"io"
 	"os"
-	"sort"
-	"strings"
-
-	"github.com/nais/device/internal/wireguard"
-	"golang.org/x/crypto/curve25519"
 
 	"github.com/nais/device/internal/deviceagent/filesystem"
-	"github.com/nais/device/pkg/pb"
+	"github.com/nais/device/internal/wireguard"
 )
 
 func KeyToBase64(key []byte) []byte {
-	dst := make([]byte, base64.StdEncoding.EncodedLen(len(key)))
-	base64.StdEncoding.Encode(dst, key)
-	return dst
+	return wireguard.KeyToBase64(key)
 }
 
 func Base64toKey(encoded []byte) ([]byte, error) {
-	decoded := make([]byte, 32)
-	_, err := base64.StdEncoding.Decode(decoded, encoded)
-	if err != nil {
-		return nil, fmt.Errorf("decoding base64 key: %w", err)
-	}
-
-	return decoded, nil
+	return wireguard.Base64ToKey(encoded)
 }
 
 func WgGenKey() []byte {
-	var privateKey [32]byte
-
-	n, err := rand.Read(privateKey[:])
-
-	if err != nil || n != len(privateKey) {
+	key, err := wireguard.GenKey()
+	if err != nil {
 		panic("Unable to generate random bytes")
 	}
-
-	privateKey[0] &= 248
-	privateKey[31] = (privateKey[31] & 127) | 64
-	return privateKey[:]
+	return []byte(key)
 }
 
 func WGPubKey(privateKeySlice []byte) []byte {
-	var privateKey [32]byte
-	var publicKey [32]byte
-	copy(privateKey[:], privateKeySlice[:])
-
-	curve25519.ScalarBaseMult(&publicKey, &privateKey)
-
-	return publicKey[:]
+	return wireguard.PubKey(privateKeySlice)
 }
 
 func EnsurePrivateKey(keyPath string) ([]byte, error) {
@@ -80,33 +52,4 @@ func EnsurePrivateKey(keyPath string) ([]byte, error) {
 
 func PublicKey(privateKey []byte) []byte {
 	return KeyToBase64(WGPubKey(privateKey))
-}
-
-func sortGateways(gateways []*pb.Gateway) {
-	if gateways == nil {
-		return
-	}
-	sort.Slice(gateways, func(i, j int) bool {
-		return strings.Compare(gateways[i].Name, gateways[j].Name) < 0
-	})
-}
-
-func Marshal(w io.Writer, x *pb.Configuration) error {
-	// Sort gateways here to let windows helper detect changes in, and prevent unnecessary restarts
-	gateways := x.GetGateways()
-	sortGateways(gateways)
-
-	cf := &wireguard.Config{
-		Peers:      wireguard.CastPeerList(gateways),
-		PrivateKey: x.GetPrivateKey(),
-	}
-
-	// Address configuration only supported on Windows
-	if windows {
-		cf.MTU = mtu
-		cf.AddressV4 = x.GetDeviceIPv4()
-		cf.AddressV6 = x.GetDeviceIPv6()
-	}
-
-	return cf.MarshalINI(w)
 }
