@@ -2,6 +2,7 @@ package helper
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net"
 	"net/netip"
@@ -26,10 +27,11 @@ import (
 type DarwinConfigurator struct {
 	helperConfig Config
 
-	mu       sync.Mutex
-	wgDevice *device.Device
-	tunDev   tun.Device
-	uapi     net.Listener
+	mu        sync.Mutex
+	wgDevice  *device.Device
+	tunDev    tun.Device
+	uapi      net.Listener
+	ifaceName string // actual interface name assigned by macOS (may differ from requested)
 }
 
 var _ OSConfigurator = &DarwinConfigurator{}
@@ -45,14 +47,33 @@ func (c *DarwinConfigurator) Prerequisites() error {
 }
 
 func (c *DarwinConfigurator) SyncConf(ctx context.Context, cfg *pb.Configuration) error {
-	return wgconfig.ApplyConfig(ctx, c.helperConfig.Interface, cfg)
+	c.mu.Lock()
+	ifaceName := c.ifaceName
+	c.mu.Unlock()
+	if ifaceName == "" {
+		ifaceName = c.helperConfig.Interface
+	}
+	return wgconfig.ApplyConfig(ctx, ifaceName, cfg)
 }
 
 func (c *DarwinConfigurator) SetupRoutes(ctx context.Context, gateways []*pb.Gateway) (int, error) {
-	iface, err := net.InterfaceByName(c.helperConfig.Interface)
-	if err != nil {
-		return 0, fmt.Errorf("lookup interface %q: %w", c.helperConfig.Interface, err)
+	c.mu.Lock()
+	ifaceName := c.ifaceName
+	c.mu.Unlock()
+	if ifaceName == "" {
+		ifaceName = c.helperConfig.Interface
 	}
+
+	iface, err := net.InterfaceByName(ifaceName)
+	if err != nil {
+		return 0, fmt.Errorf("lookup interface %q: %w", ifaceName, err)
+	}
+
+	fd, err := unix.Socket(unix.AF_ROUTE, unix.SOCK_RAW, unix.AF_UNSPEC)
+	if err != nil {
+		return 0, fmt.Errorf("open routing socket: %w", err)
+	}
+	defer func() { _ = unix.Close(fd) }()
 
 	routesAdded := 0
 	for _, gw := range gateways {
@@ -60,7 +81,7 @@ func (c *DarwinConfigurator) SetupRoutes(ctx context.Context, gateways []*pb.Gat
 			if strings.HasPrefix(cidr, TunnelNetworkPrefix) {
 				continue
 			}
-			if err := addRouteViaInterface(cidr, iface); err != nil {
+			if err := addRouteViaInterface(fd, cidr, iface); err != nil {
 				return routesAdded, fmt.Errorf("add IPv4 route %s: %w", cidr, err)
 			}
 			routesAdded++
@@ -73,7 +94,7 @@ func (c *DarwinConfigurator) SetupRoutes(ctx context.Context, gateways []*pb.Gat
 			if strings.HasPrefix(cidr, TunnelNetworkPrefix) {
 				continue
 			}
-			if err := addRouteViaInterface(cidr, iface); err != nil {
+			if err := addRouteViaInterface(fd, cidr, iface); err != nil {
 				return routesAdded, fmt.Errorf("add IPv6 route %s: %w", cidr, err)
 			}
 			routesAdded++
@@ -130,6 +151,7 @@ func (c *DarwinConfigurator) SetupInterface(ctx context.Context, cfg *pb.Configu
 	c.wgDevice = wgDev
 	c.tunDev = tunDev
 	c.uapi = uapi
+	c.ifaceName = ifaceName
 
 	// Configure IP addresses and bring the interface up.
 	// We shell out to ifconfig because macOS has no stable public API for assigning
@@ -164,7 +186,14 @@ func (c *DarwinConfigurator) SetupInterface(ctx context.Context, cfg *pb.Configu
 		return fmt.Errorf("lookup interface %q: %w", ifaceName, err)
 	}
 
-	if err := addRouteViaInterface(cfg.GetDeviceIPv4()+"/21", iface); err != nil {
+	routeFd, err := unix.Socket(unix.AF_ROUTE, unix.SOCK_RAW, unix.AF_UNSPEC)
+	if err != nil {
+		c.closeLocked()
+		return fmt.Errorf("open routing socket: %w", err)
+	}
+	defer func() { _ = unix.Close(routeFd) }()
+
+	if err := addRouteViaInterface(routeFd, cfg.GetDeviceIPv4()+"/21", iface); err != nil {
 		c.closeLocked()
 		return fmt.Errorf("add tunnel network route: %w", err)
 	}
@@ -209,21 +238,16 @@ func (c *DarwinConfigurator) closeLocked() {
 	}
 	// wgDevice.Close() also closes tunDev
 	c.tunDev = nil
+	c.ifaceName = ""
 }
 
 // addRouteViaInterface adds a route for the given CIDR through the specified
-// network interface using BSD routing sockets.
-func addRouteViaInterface(cidr string, iface *net.Interface) error {
+// network interface using the provided BSD routing socket fd.
+func addRouteViaInterface(fd int, cidr string, iface *net.Interface) error {
 	prefix, err := netip.ParsePrefix(cidr)
 	if err != nil {
 		return fmt.Errorf("parse CIDR %q: %w", cidr, err)
 	}
-
-	fd, err := unix.Socket(unix.AF_ROUTE, unix.SOCK_RAW, unix.AF_UNSPEC)
-	if err != nil {
-		return fmt.Errorf("open routing socket: %w", err)
-	}
-	defer func() { _ = unix.Close(fd) }()
 
 	addrs := make([]route.Addr, syscall.RTAX_MAX)
 
@@ -272,7 +296,7 @@ func addRouteViaInterface(cidr string, iface *net.Interface) error {
 
 	_, err = unix.Write(fd, b)
 	if err != nil {
-		if err == unix.EEXIST {
+		if errors.Is(err, unix.EEXIST) {
 			return nil
 		}
 		return fmt.Errorf("write route message: %w", err)
