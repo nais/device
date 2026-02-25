@@ -2,6 +2,7 @@ package helper
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net"
 	"strings"
@@ -59,7 +60,7 @@ func (c *LinuxConfigurator) SetupRoutes(ctx context.Context, gateways []*pb.Gate
 			}
 
 			if err := netlink.RouteAdd(route); err != nil {
-				if err == syscall.EEXIST {
+				if errors.Is(err, syscall.EEXIST) {
 					continue
 				}
 				return routesAdded, fmt.Errorf("add route %s: %w", cidr, err)

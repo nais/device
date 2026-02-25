@@ -108,7 +108,7 @@ func (a *autoEnroll) receiveGateway(ctx context.Context, msg *pubsub.Message) {
 
 	err := a.db.AddGateway(ctx, &pb.Gateway{
 		Name:         req.Name,
-		PublicKey:    string(req.WireGuardPublicKey),
+		PublicKey:    req.WireGuardPublicKey,
 		Endpoint:     req.Endpoint,
 		PasswordHash: req.HashedPassword,
 	})
@@ -173,7 +173,7 @@ func (a *autoEnroll) receiveDevice(ctx context.Context, msg *pubsub.Message) {
 
 	err := a.db.AddDevice(ctx, &pb.Device{
 		Username:  req.Owner,
-		PublicKey: string(req.WireGuardPublicKey),
+		PublicKey: req.WireGuardPublicKey,
 		Serial:    req.Serial,
 		Platform:  req.Platform,
 	})

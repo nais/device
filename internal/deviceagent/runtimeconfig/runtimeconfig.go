@@ -230,7 +230,7 @@ func (r *runtimeConfig) enroll(ctx context.Context, serial, token string) error 
 	req := &enroll.DeviceRequest{
 		Platform:           r.config.Platform,
 		Serial:             serial,
-		WireGuardPublicKey: []byte(r.privateKey.PublicKey().String()),
+		WireGuardPublicKey: r.privateKey.PublicKey().String(),
 	}
 
 	buf := &bytes.Buffer{}

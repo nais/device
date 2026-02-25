@@ -93,7 +93,7 @@ func (l *localEnroller) enroll(ctx context.Context, enrollment enroll.DeviceRequ
 		Username:  enrollment.Owner,
 		Serial:    enrollment.Serial,
 		Platform:  enrollment.Platform,
-		PublicKey: string(enrollment.WireGuardPublicKey),
+		PublicKey: enrollment.WireGuardPublicKey,
 	}
 
 	if err := l.db.AddDevice(ctx, device); err != nil {

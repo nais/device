@@ -73,7 +73,7 @@ func (dhs *DeviceHelperServer) Configure(
 	for attempt := range 5 {
 		loopErr = dhs.osConfigurator.SyncConf(ctx, cfg)
 		if loopErr != nil {
-			backoff := time.Duration(attempt) * time.Second
+			backoff := time.Duration(attempt+1) * time.Second
 			dhs.log.WithError(loopErr).Error("synchronize WireGuard configuration")
 			dhs.log.WithField("attempt", attempt+1).WithField("backoff", backoff).Info("configuring failed, sleeping before retrying")
 			select {
@@ -93,6 +93,10 @@ func (dhs *DeviceHelperServer) Configure(
 		)
 	}
 
+	// TODO: SetupRoutes only adds routes; it does not remove routes for gateways
+	// that were present in a previous configuration but are now absent. Stale routes
+	// are effectively harmless (they black-hole to a non-existent WireGuard peer),
+	// but a proper implementation should diff and clean up removed routes.
 	_, err = dhs.osConfigurator.SetupRoutes(ctx, cfg.GetGateways())
 	if err != nil {
 		return nil, status.Errorf(codes.FailedPrecondition, "setting up routes: %s", err)
