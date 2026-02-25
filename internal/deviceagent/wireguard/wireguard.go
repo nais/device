@@ -1,39 +1,39 @@
 package wireguard
 
 import (
+	"encoding/base64"
 	"fmt"
 	"os"
 
 	"github.com/nais/device/internal/deviceagent/filesystem"
-	"github.com/nais/device/internal/wireguard"
+	"golang.zx2c4.com/wireguard/wgctrl/wgtypes"
 )
 
-func EnsurePrivateKey(keyPath string) ([]byte, error) {
+func EnsurePrivateKey(keyPath string) (wgtypes.Key, error) {
 	if err := filesystem.FileMustExist(keyPath); os.IsNotExist(err) {
-		key, err := wireguard.GenKey()
+		key, err := wgtypes.GeneratePrivateKey()
 		if err != nil {
-			return nil, fmt.Errorf("generating private key: %w", err)
+			return wgtypes.Key{}, fmt.Errorf("generating private key: %w", err)
 		}
-		if err := os.WriteFile(keyPath, wireguard.KeyToBase64(key), 0o600); err != nil {
-			return nil, fmt.Errorf("writing private key to disk: %w", err)
+		if err := os.WriteFile(keyPath, []byte(key.String()), 0o600); err != nil {
+			return wgtypes.Key{}, fmt.Errorf("writing private key to disk: %w", err)
 		}
+		return key, nil
 	} else if err != nil {
-		return nil, fmt.Errorf("ensuring private key exists: %w", err)
+		return wgtypes.Key{}, fmt.Errorf("ensuring private key exists: %w", err)
 	}
 
 	privateKeyEncoded, err := os.ReadFile(keyPath)
 	if err != nil {
-		return nil, fmt.Errorf("reading private key: %v", err)
+		return wgtypes.Key{}, fmt.Errorf("reading private key: %v", err)
 	}
 
-	privateKey, err := wireguard.Base64ToKey(privateKeyEncoded)
+	var key wgtypes.Key
+	b, err := base64.StdEncoding.DecodeString(string(privateKeyEncoded))
 	if err != nil {
-		return nil, fmt.Errorf("decoding private key: %v", err)
+		return wgtypes.Key{}, fmt.Errorf("decoding private key: %v", err)
 	}
+	copy(key[:], b)
 
-	return privateKey, nil
-}
-
-func PublicKey(privateKey []byte) []byte {
-	return wireguard.KeyToBase64(wireguard.PubKey(privateKey))
+	return key, nil
 }
