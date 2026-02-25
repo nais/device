@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net"
 	"os"
+	"os/exec"
 	"strings"
 	"sync"
 	"syscall"
@@ -140,9 +141,15 @@ func (c *DarwinConfigurator) SetupInterface(ctx context.Context, cfg *pb.Configu
 		{"ifconfig", ifaceName, "up"},
 	}
 
-	if err := runCommands(ctx, commands); err != nil {
-		c.closeLocked()
-		return fmt.Errorf("configure interface: %w", err)
+	for _, s := range commands {
+		cmd := exec.CommandContext(ctx, s[0], s[1:]...)
+
+		if out, err := cmd.CombinedOutput(); err != nil {
+			c.closeLocked()
+			return fmt.Errorf("running %v: %w: %v", cmd, err, string(out))
+		}
+
+		time.Sleep(100 * time.Millisecond) // avoid serializable race conditions with kernel
 	}
 
 	// Add /21 route for the tunnel network
