@@ -92,24 +92,34 @@ func (c *LinuxConfigurator) SetupInterface(ctx context.Context, cfg *pb.Configur
 		return fmt.Errorf("lookup interface after creation: %w", err)
 	}
 
-	ipv4Addr, err := netlink.ParseAddr(cfg.DeviceIPv4 + "/21")
-	if err != nil {
-		return fmt.Errorf("parse IPv4 address: %w", err)
-	}
-	if err := netlink.AddrAdd(link, ipv4Addr); err != nil {
-		return fmt.Errorf("add IPv4 address: %w", err)
+	// cleanup deletes the interface if any subsequent configuration step fails.
+	cleanup := func(cause error) error {
+		if delErr := netlink.LinkDel(link); delErr != nil {
+			return fmt.Errorf("%w (additionally, failed to delete interface: %v)", cause, delErr)
+		}
+		return cause
 	}
 
-	ipv6Addr, err := netlink.ParseAddr(cfg.DeviceIPv6 + "/64")
+	ipv4Addr, err := netlink.ParseAddr(cfg.DeviceIPv4 + "/21")
 	if err != nil {
-		return fmt.Errorf("parse IPv6 address: %w", err)
+		return cleanup(fmt.Errorf("parse IPv4 address: %w", err))
 	}
-	if err := netlink.AddrAdd(link, ipv6Addr); err != nil {
-		return fmt.Errorf("add IPv6 address: %w", err)
+	if err := netlink.AddrAdd(link, ipv4Addr); err != nil {
+		return cleanup(fmt.Errorf("add IPv4 address: %w", err))
+	}
+
+	if cfg.DeviceIPv6 != "" {
+		ipv6Addr, err := netlink.ParseAddr(cfg.DeviceIPv6 + "/64")
+		if err != nil {
+			return cleanup(fmt.Errorf("parse IPv6 address: %w", err))
+		}
+		if err := netlink.AddrAdd(link, ipv6Addr); err != nil {
+			return cleanup(fmt.Errorf("add IPv6 address: %w", err))
+		}
 	}
 
 	if err := netlink.LinkSetUp(link); err != nil {
-		return fmt.Errorf("bring interface up: %w", err)
+		return cleanup(fmt.Errorf("bring interface up: %w", err))
 	}
 
 	return nil

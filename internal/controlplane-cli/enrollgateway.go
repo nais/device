@@ -8,9 +8,9 @@ import (
 	"os"
 
 	"github.com/nais/device/internal/passwordhash"
-	"github.com/nais/device/internal/wireguard"
 	"github.com/nais/device/pkg/pb"
 	"github.com/urfave/cli/v2"
+	"golang.zx2c4.com/wireguard/wgctrl/wgtypes"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 )
@@ -133,18 +133,18 @@ func EnrollGateway(c *cli.Context) error {
 	key := passwordhash.HashPassword([]byte(password), salt)
 	passhash := passwordhash.FormatHash(key, salt)
 
-	privateKey, err := wireguard.GenKey()
+	privateKey, err := wgtypes.GeneratePrivateKey()
 	if err != nil {
 		return fmt.Errorf("generating private key: %w", err)
 	}
-	publicKey := privateKey.Public()
+	publicKey := privateKey.PublicKey().String()
 
 	req := &pb.ModifyGatewayRequest{
 		Username: AdminUsername,
 		Password: c.String(FlagAdminPassword),
 		Gateway: &pb.Gateway{
 			Name:         c.String(FlagName),
-			PublicKey:    string(publicKey),
+			PublicKey:    publicKey,
 			Endpoint:     c.String(FlagEndpoint),
 			PasswordHash: string(passhash),
 		},
@@ -177,7 +177,7 @@ func EnrollGateway(c *cli.Context) error {
 
 	fmt.Printf("GATEWAY_AGENT_NAME=\"%s\"\n", response.GetGateway().GetName())
 	fmt.Printf("GATEWAY_AGENT_APISERVERPASSWORD=\"%s\"\n", password)
-	fmt.Printf("GATEWAY_AGENT_PRIVATEKEY=\"%s\"\n", base64.StdEncoding.EncodeToString(privateKey))
+	fmt.Printf("GATEWAY_AGENT_PRIVATEKEY=\"%s\"\n", privateKey.String())
 	fmt.Printf("GATEWAY_AGENT_DEVICEIP=\"%s/21\"\n", response.GetGateway().GetIpv4())
 
 	return err

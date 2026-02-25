@@ -138,9 +138,11 @@ func (c *DarwinConfigurator) SetupInterface(ctx context.Context, cfg *pb.Configu
 	// tool used by the macOS networking stack itself.
 	commands := [][]string{
 		{"ifconfig", ifaceName, "inet", cfg.GetDeviceIPv4() + "/21", cfg.GetDeviceIPv4(), "alias"},
-		{"ifconfig", ifaceName, "inet6", cfg.GetDeviceIPv6() + "/64", "alias"},
-		{"ifconfig", ifaceName, "up"},
 	}
+	if cfg.GetDeviceIPv6() != "" {
+		commands = append(commands, []string{"ifconfig", ifaceName, "inet6", cfg.GetDeviceIPv6() + "/64", "alias"})
+	}
+	commands = append(commands, []string{"ifconfig", ifaceName, "up"})
 
 	for _, s := range commands {
 		cmd := exec.CommandContext(ctx, s[0], s[1:]...)
