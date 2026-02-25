@@ -14,6 +14,9 @@ import (
 
 const (
 	TunnelNetworkPrefix = "10.255.24."
+
+	// wireguardMTU is the MTU used for WireGuard tunnel interfaces across all platforms.
+	wireguardMTU = 1360
 )
 
 func ZipLogFiles(files []string, log logrus.FieldLogger) (string, error) {
@@ -33,7 +36,7 @@ func ZipLogFiles(files []string, log logrus.FieldLogger) (string, error) {
 		}
 		logFile, err := os.Open(filename)
 		if err != nil {
-			return "nil", fmt.Errorf("%s %v", filename, err)
+			return "nil", fmt.Errorf("%s: %w", filename, err)
 		}
 		zipEntryWiter, err := zipWriter.Create(filepath.Base(filename))
 		if err != nil {

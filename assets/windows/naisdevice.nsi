@@ -349,8 +349,6 @@ Function _StartService_Abort
 FunctionEnd
 
 ; Function to initialize any needed state, PP_NoOp to skip
-Function _StartService_Init
-FunctionEnd
 
 ; Function called on every step. Should push 0 to the stack to leave the page, any other value to continue (required)
 Function _StartService_Step
@@ -382,6 +380,6 @@ ${ProgressPage} \
         The final step is to start the background service.$\n$\n\
         Have a nais day!" \
     _StartService_Abort \
-    _StartService_Init \
+    PP_NoOp \
     _StartService_Step \
     PP_NoOp

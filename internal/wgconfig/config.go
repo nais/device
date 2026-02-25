@@ -3,6 +3,7 @@
 package wgconfig
 
 import (
+	"context"
 	"fmt"
 	"net"
 	"time"
@@ -20,7 +21,7 @@ const (
 
 // ApplyConfig configures the named WireGuard device with the given configuration.
 // It replaces all existing peers.
-func ApplyConfig(ifaceName string, cfg *pb.Configuration) error {
+func ApplyConfig(ctx context.Context, ifaceName string, cfg *pb.Configuration) error {
 	wgCfg, err := BuildConfig(cfg)
 	if err != nil {
 		return fmt.Errorf("build wgctrl config: %w", err)
@@ -56,44 +57,11 @@ func BuildConfig(cfg *pb.Configuration) (*wgtypes.Config, error) {
 		peers = append(peers, *peerCfg)
 	}
 
-	replacePeers := true
 	return &wgtypes.Config{
 		PrivateKey:   &privateKey,
-		ReplacePeers: replacePeers,
+		ReplacePeers: true,
 		Peers:        peers,
 	}, nil
-}
-
-// BuildServerConfig converts a wireguard.Config into a wgtypes.Config.
-func BuildServerConfig(cfg *wireguard.Config) (*wgtypes.Config, error) {
-	privateKey, err := wgtypes.ParseKey(cfg.PrivateKey)
-	if err != nil {
-		return nil, fmt.Errorf("parse private key: %w", err)
-	}
-
-	peers := make([]wgtypes.PeerConfig, 0, len(cfg.Peers))
-	for _, peer := range cfg.Peers {
-		peerCfg, err := buildPeerConfig(peer)
-		if err != nil {
-			return nil, fmt.Errorf("build peer config for %q: %w", peer.GetName(), err)
-		}
-		peers = append(peers, *peerCfg)
-	}
-
-	listenPort := cfg.ListenPort
-
-	replacePeers := true
-	wgCfg := &wgtypes.Config{
-		PrivateKey:   &privateKey,
-		ReplacePeers: replacePeers,
-		Peers:        peers,
-	}
-
-	if listenPort > 0 {
-		wgCfg.ListenPort = &listenPort
-	}
-
-	return wgCfg, nil
 }
 
 func buildPeerConfig(peer wireguard.Peer) (*wgtypes.PeerConfig, error) {
