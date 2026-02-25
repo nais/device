@@ -19,18 +19,6 @@ const (
 	TunnelNetworkPrefix = "10.255.24."
 )
 
-func RegularFileExists(filepath string) error {
-	info, err := os.Stat(filepath)
-	if err != nil {
-		return err
-	}
-	if info.IsDir() {
-		return fmt.Errorf("%v is a directory", filepath)
-	}
-
-	return nil
-}
-
 func runCommands(ctx context.Context, commands [][]string) error {
 	for _, s := range commands {
 		cmd := exec.CommandContext(ctx, s[0], s[1:]...)

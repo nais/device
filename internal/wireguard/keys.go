@@ -17,12 +17,12 @@ type PrivateKey []byte
 
 // Public returns the public key base64 encoded
 func (p PrivateKey) Public() []byte {
-	return keyToBase64(pubKey(p))
+	return KeyToBase64(PubKey(p))
 }
 
 // Private returns the private key base64 encoded
 func (p PrivateKey) Private() []byte {
-	return keyToBase64(p)
+	return KeyToBase64(p)
 }
 
 func GenKey() (PrivateKey, error) {
@@ -39,7 +39,8 @@ func GenKey() (PrivateKey, error) {
 	return PrivateKey(privateKey[:]), nil
 }
 
-func pubKey(privateKeySlice []byte) []byte {
+// PubKey derives the Curve25519 public key from a raw 32-byte private key.
+func PubKey(privateKeySlice []byte) []byte {
 	var privateKey [32]byte
 	var publicKey [32]byte
 	copy(privateKey[:], privateKeySlice[:])
@@ -49,10 +50,19 @@ func pubKey(privateKeySlice []byte) []byte {
 	return publicKey[:]
 }
 
-func keyToBase64(key []byte) []byte {
+func KeyToBase64(key []byte) []byte {
 	dst := make([]byte, base64.StdEncoding.EncodedLen(len(key)))
 	base64.StdEncoding.Encode(dst, key)
 	return dst
+}
+
+func Base64ToKey(encoded []byte) ([]byte, error) {
+	decoded := make([]byte, 32)
+	_, err := base64.StdEncoding.Decode(decoded, encoded)
+	if err != nil {
+		return nil, fmt.Errorf("decoding base64 key: %w", err)
+	}
+	return decoded, nil
 }
 
 func ReadOrCreatePrivateKey(path string, log *logrus.Entry) (PrivateKey, error) {

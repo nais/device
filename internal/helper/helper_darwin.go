@@ -3,17 +3,33 @@ package helper
 import (
 	"context"
 	"fmt"
+	"net"
 	"os"
-	"os/exec"
 	"strings"
+	"sync"
+	"syscall"
+	"time"
 
+	"golang.org/x/net/route"
+	"golang.org/x/sys/unix"
+	"golang.zx2c4.com/wireguard/conn"
+	"golang.zx2c4.com/wireguard/device"
+	"golang.zx2c4.com/wireguard/ipc"
+	"golang.zx2c4.com/wireguard/tun"
+
+	"github.com/nais/device/internal/wgconfig"
 	"github.com/nais/device/pkg/pb"
 )
 
+const wireguardMTU = 1360
+
 type DarwinConfigurator struct {
-	helperConfig      Config
-	wireGuardBinary   string
-	wireGuardGoBinary string
+	helperConfig Config
+
+	mu       sync.Mutex
+	wgDevice *device.Device
+	tunDev   tun.Device
+	uapi     net.Listener
 }
 
 var _ OSConfigurator = &DarwinConfigurator{}
@@ -24,74 +40,38 @@ func New(helperConfig Config) *DarwinConfigurator {
 	}
 }
 
-func pathWithFallBacks(binary string, possiblePaths ...string) (string, error) {
-	if p, err := exec.LookPath(binary); err == nil {
-		return p, nil
-	}
-
-	for _, p := range possiblePaths {
-		if s, err := os.Stat(p); err == nil && !s.IsDir() {
-			return p, nil
-		}
-	}
-
-	return "", fmt.Errorf("%q not found in PATH or any of %+v", binary, possiblePaths)
-}
-
 func (c *DarwinConfigurator) Prerequisites() error {
-	var err error
-
-	c.wireGuardBinary, err = pathWithFallBacks("wg", "/usr/local/bin/wg", "/opt/homebrew/bin/wg", "/usr/bin/wg")
-	if err != nil {
-		return fmt.Errorf("look for wg: %w", err)
-	}
-
-	c.wireGuardGoBinary, err = pathWithFallBacks("wireguard-go", "/usr/local/bin/wireguard-go", "/opt/homebrew/bin/wireguard-go", "/usr/bin/wireguard-go")
-	if err != nil {
-		return fmt.Errorf("look for wireguard-go: %w", err)
-	}
-
 	return nil
 }
 
 func (c *DarwinConfigurator) SyncConf(ctx context.Context, cfg *pb.Configuration) error {
-	cmd := exec.CommandContext(ctx, c.wireGuardBinary, "syncconf", c.helperConfig.Interface, c.helperConfig.WireGuardConfigPath)
-	if b, err := cmd.CombinedOutput(); err != nil {
-		return fmt.Errorf("running syncconf: %w: %v", err, string(b))
-	}
-
-	return nil
+	return wgconfig.ApplyConfig(c.helperConfig.Interface, cfg)
 }
 
 func (c *DarwinConfigurator) SetupRoutes(ctx context.Context, gateways []*pb.Gateway) (int, error) {
+	iface, err := net.InterfaceByName(c.helperConfig.Interface)
+	if err != nil {
+		return 0, fmt.Errorf("lookup interface %q: %w", c.helperConfig.Interface, err)
+	}
+
 	routesAdded := 0
 	for _, gw := range gateways {
-		applyRoute := func(cidr, family string) error {
-			cmd := exec.CommandContext(ctx, "route", "-q", "-n", "add", family, cidr, "-interface", c.helperConfig.Interface)
-			output, err := cmd.CombinedOutput()
-			if err != nil {
-				return fmt.Errorf("executing %v, err: %w, stderr: %s", cmd, err, string(output))
-			}
-
-			return nil
-		}
-
 		for _, cidr := range gw.GetRoutesIPv4() {
 			if strings.HasPrefix(cidr, TunnelNetworkPrefix) {
-				// Don't add routes for the tunnel network, as the whole /21 net is already routed to utun
 				continue
 			}
-			err := applyRoute(cidr, "-inet")
-			if err != nil {
-				return routesAdded, err
+			if err := addRouteViaInterface(cidr, iface, false); err != nil {
+				return routesAdded, fmt.Errorf("add IPv4 route %s: %w", cidr, err)
 			}
 			routesAdded++
 		}
 
 		for _, cidr := range gw.GetRoutesIPv6() {
-			err := applyRoute(cidr, "-inet6")
-			if err != nil {
-				return routesAdded, err
+			if strings.HasPrefix(cidr, TunnelNetworkPrefix) {
+				continue
+			}
+			if err := addRouteViaInterface(cidr, iface, true); err != nil {
+				return routesAdded, fmt.Errorf("add IPv6 route %s: %w", cidr, err)
 			}
 			routesAdded++
 		}
@@ -101,37 +81,174 @@ func (c *DarwinConfigurator) SetupRoutes(ctx context.Context, gateways []*pb.Gat
 }
 
 func (c *DarwinConfigurator) SetupInterface(ctx context.Context, cfg *pb.Configuration) error {
-	if c.interfaceExists(ctx) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	if c.wgDevice != nil {
 		return nil
 	}
 
-	commands := [][]string{
-		{c.wireGuardGoBinary, c.helperConfig.Interface},
-		{"ifconfig", c.helperConfig.Interface, "inet", cfg.GetDeviceIPv4() + "/21", cfg.GetDeviceIPv4(), "alias"},
-		{"ifconfig", c.helperConfig.Interface, "inet6", cfg.GetDeviceIPv6() + "/64", "alias"},
-		{"ifconfig", c.helperConfig.Interface, "mtu", "1360"},
-		{"ifconfig", c.helperConfig.Interface, "up"},
-		{"route", "-q", "-n", "add", "-inet", cfg.GetDeviceIPv4() + "/21", "-interface", c.helperConfig.Interface},
-	}
-
-	return runCommands(ctx, commands)
-}
-
-func (c *DarwinConfigurator) TeardownInterface(ctx context.Context) error {
-	if !c.interfaceExists(ctx) {
-		return nil
-	}
-
-	cmd := exec.CommandContext(ctx, "pkill", "-f", fmt.Sprintf("%s %s", c.wireGuardGoBinary, c.helperConfig.Interface))
-	out, err := cmd.CombinedOutput()
+	tunDev, err := tun.CreateTUN(c.helperConfig.Interface, wireguardMTU)
 	if err != nil {
-		return fmt.Errorf("teardown failed: %w, stderr: %s", err, string(out))
+		return fmt.Errorf("create TUN device: %w", err)
+	}
+
+	ifaceName, err := tunDev.Name()
+	if err != nil {
+		_ = tunDev.Close()
+		return fmt.Errorf("get TUN device name: %w", err)
+	}
+
+	logger := &device.Logger{
+		Verbosef: device.DiscardLogf,
+		Errorf:   func(format string, args ...any) { fmt.Fprintf(os.Stderr, "wireguard: "+format+"\n", args...) },
+	}
+	wgDev := device.NewDevice(tunDev, conn.NewDefaultBind(), logger)
+
+	// UAPI socket allows wgctrl to configure the device
+	fileUAPI, err := ipc.UAPIOpen(ifaceName)
+	if err != nil {
+		wgDev.Close()
+		return fmt.Errorf("open UAPI socket: %w", err)
+	}
+
+	uapi, err := ipc.UAPIListen(ifaceName, fileUAPI)
+	if err != nil {
+		_ = fileUAPI.Close()
+		wgDev.Close()
+		return fmt.Errorf("listen on UAPI socket: %w", err)
+	}
+
+	go func() {
+		for {
+			uapiConn, err := uapi.Accept()
+			if err != nil {
+				return
+			}
+			go wgDev.IpcHandle(uapiConn)
+		}
+	}()
+
+	c.wgDevice = wgDev
+	c.tunDev = tunDev
+	c.uapi = uapi
+
+	// Configure IP addresses and bring the interface up
+	commands := [][]string{
+		{"ifconfig", ifaceName, "inet", cfg.GetDeviceIPv4() + "/21", cfg.GetDeviceIPv4(), "alias"},
+		{"ifconfig", ifaceName, "inet6", cfg.GetDeviceIPv6() + "/64", "alias"},
+		{"ifconfig", ifaceName, "up"},
+	}
+
+	if err := runCommands(ctx, commands); err != nil {
+		c.closeLocked()
+		return fmt.Errorf("configure interface: %w", err)
+	}
+
+	// Add /21 route for the tunnel network
+	iface, err := net.InterfaceByName(ifaceName)
+	if err != nil {
+		c.closeLocked()
+		return fmt.Errorf("lookup interface %q: %w", ifaceName, err)
+	}
+
+	if err := addRouteViaInterface(cfg.GetDeviceIPv4()+"/21", iface, false); err != nil {
+		c.closeLocked()
+		return fmt.Errorf("add tunnel network route: %w", err)
 	}
 
 	return nil
 }
 
-func (c *DarwinConfigurator) interfaceExists(ctx context.Context) bool {
-	cmd := exec.CommandContext(ctx, "pgrep", "-f", fmt.Sprintf("%s %s", c.wireGuardGoBinary, c.helperConfig.Interface))
-	return cmd.Run() == nil
+func (c *DarwinConfigurator) TeardownInterface(ctx context.Context) error {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	if c.wgDevice == nil {
+		return nil
+	}
+
+	c.closeLocked()
+	return nil
+}
+
+// closeLocked shuts down the UAPI listener, WireGuard device, and TUN.
+// Must be called with c.mu held.
+func (c *DarwinConfigurator) closeLocked() {
+	if c.uapi != nil {
+		_ = c.uapi.Close()
+		c.uapi = nil
+	}
+	if c.wgDevice != nil {
+		c.wgDevice.Close()
+		c.wgDevice = nil
+	}
+	// wgDevice.Close() also closes tunDev
+	c.tunDev = nil
+}
+
+// addRouteViaInterface adds a route for the given CIDR through the specified
+// network interface using BSD routing sockets.
+func addRouteViaInterface(cidr string, iface *net.Interface, ipv6 bool) error {
+	_, ipNet, err := net.ParseCIDR(cidr)
+	if err != nil {
+		return fmt.Errorf("parse CIDR %q: %w", cidr, err)
+	}
+
+	fd, err := unix.Socket(unix.AF_ROUTE, unix.SOCK_RAW, unix.AF_UNSPEC)
+	if err != nil {
+		return fmt.Errorf("open routing socket: %w", err)
+	}
+	defer func() { _ = unix.Close(fd) }()
+
+	addrs := make([]route.Addr, syscall.RTAX_MAX)
+
+	if ipv6 {
+		var dst [16]byte
+		copy(dst[:], ipNet.IP.To16())
+		addrs[syscall.RTAX_DST] = &route.Inet6Addr{IP: dst}
+
+		var mask [16]byte
+		copy(mask[:], ipNet.Mask)
+		addrs[syscall.RTAX_NETMASK] = &route.Inet6Addr{IP: mask}
+	} else {
+		var dst [4]byte
+		copy(dst[:], ipNet.IP.To4())
+		addrs[syscall.RTAX_DST] = &route.Inet4Addr{IP: dst}
+
+		var mask [4]byte
+		copy(mask[:], ipNet.Mask)
+		addrs[syscall.RTAX_NETMASK] = &route.Inet4Addr{IP: mask}
+	}
+
+	// LinkAddr as gateway routes directly through the interface
+	addrs[syscall.RTAX_GATEWAY] = &route.LinkAddr{
+		Index: iface.Index,
+		Name:  iface.Name,
+	}
+
+	rtm := &route.RouteMessage{
+		Version: syscall.RTM_VERSION,
+		Type:    syscall.RTM_ADD,
+		Flags:   syscall.RTF_UP | syscall.RTF_STATIC,
+		Index:   iface.Index,
+		ID:      uintptr(os.Getpid()),
+		Seq:     int(time.Now().UnixNano() & 0x7fffffff),
+		Addrs:   addrs,
+	}
+
+	b, err := rtm.Marshal()
+	if err != nil {
+		return fmt.Errorf("marshal route message: %w", err)
+	}
+
+	_, err = unix.Write(fd, b)
+	if err != nil {
+		if err == unix.EEXIST {
+			return nil
+		}
+		return fmt.Errorf("write route message: %w", err)
+	}
+
+	return nil
 }

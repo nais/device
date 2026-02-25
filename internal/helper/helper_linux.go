@@ -3,13 +3,17 @@ package helper
 import (
 	"context"
 	"fmt"
-	"os/exec"
+	"net"
 	"strings"
+	"syscall"
 
+	"github.com/vishvananda/netlink"
+
+	"github.com/nais/device/internal/wgconfig"
 	"github.com/nais/device/pkg/pb"
 )
 
-var wireguardBinary = ""
+const wireguardMTU = 1360
 
 func New(helperConfig Config) *LinuxConfigurator {
 	return &LinuxConfigurator{
@@ -24,60 +28,43 @@ type LinuxConfigurator struct {
 var _ OSConfigurator = &LinuxConfigurator{}
 
 func (c *LinuxConfigurator) Prerequisites() error {
-	var err error
-	wireguardBinary, err = exec.LookPath("wg")
-	if err != nil {
-		return fmt.Errorf("unable to find wg binary: %w", err)
-	}
-	if wireguardBinary == "" {
-		return fmt.Errorf("wg path is empty string")
-	}
-
 	return nil
 }
 
 func (c *LinuxConfigurator) SyncConf(ctx context.Context, cfg *pb.Configuration) error {
-	cmd := exec.CommandContext(
-		ctx,
-		wireguardBinary,
-		"syncconf",
-		c.helperConfig.Interface,
-		c.helperConfig.WireGuardConfigPath,
-	)
-	if b, err := cmd.CombinedOutput(); err != nil {
-		return fmt.Errorf("running syncconf: %w: %v", err, string(b))
-	}
-
-	return nil
+	return wgconfig.ApplyConfig(c.helperConfig.Interface, cfg)
 }
 
 func (c *LinuxConfigurator) SetupRoutes(ctx context.Context, gateways []*pb.Gateway) (int, error) {
+	link, err := netlink.LinkByName(c.helperConfig.Interface)
+	if err != nil {
+		return 0, fmt.Errorf("lookup interface %q: %w", c.helperConfig.Interface, err)
+	}
+
 	routesAdded := 0
 	for _, gw := range gateways {
-		// For Linux we can handle ipv4/6 addreses the same - the `ip` utility handles this for us
 		for _, cidr := range append(gw.GetRoutesIPv4(), gw.GetRoutesIPv6()...) {
 			if strings.HasPrefix(cidr, TunnelNetworkPrefix) {
-				// Don't add routes for the tunnel network, as the whole /21 net is already routed to utun
 				continue
 			}
 
 			cidr = strings.TrimSpace(cidr)
 
-			cmd := exec.CommandContext(
-				ctx,
-				"ip",
-				"route",
-				"add",
-				cidr,
-				"dev",
-				c.helperConfig.Interface,
-			)
-			output, err := cmd.CombinedOutput()
-			if exitErr, ok := err.(*exec.ExitError); ok {
-				if exitErr.ExitCode() == 2 && strings.Contains(string(output), "File exists") {
+			_, dst, err := net.ParseCIDR(cidr)
+			if err != nil {
+				return routesAdded, fmt.Errorf("parse CIDR %q: %w", cidr, err)
+			}
+
+			route := &netlink.Route{
+				LinkIndex: link.Attrs().Index,
+				Dst:       dst,
+			}
+
+			if err := netlink.RouteAdd(route); err != nil {
+				if err == syscall.EEXIST {
 					continue
 				}
-				return routesAdded, fmt.Errorf("executing %v: %w, stderr: %s", cmd, exitErr, string(output))
+				return routesAdded, fmt.Errorf("add route %s: %w", cidr, err)
 			}
 			routesAdded++
 		}
@@ -91,14 +78,43 @@ func (c *LinuxConfigurator) SetupInterface(ctx context.Context, cfg *pb.Configur
 		return nil
 	}
 
-	commands := [][]string{
-		{"ip", "link", "add", "dev", c.helperConfig.Interface, "type", "wireguard"},
-		{"ip", "link", "set", "mtu", "1360", "up", "dev", c.helperConfig.Interface},
-		{"ip", "address", "add", "dev", c.helperConfig.Interface, cfg.DeviceIPv4 + "/21"},
-		{"ip", "address", "add", "dev", c.helperConfig.Interface, cfg.DeviceIPv6 + "/64"},
+	wgLink := &netlink.Wireguard{
+		LinkAttrs: netlink.LinkAttrs{
+			Name: c.helperConfig.Interface,
+			MTU:  wireguardMTU,
+		},
 	}
 
-	return runCommands(ctx, commands)
+	if err := netlink.LinkAdd(wgLink); err != nil {
+		return fmt.Errorf("create wireguard interface: %w", err)
+	}
+
+	link, err := netlink.LinkByName(c.helperConfig.Interface)
+	if err != nil {
+		return fmt.Errorf("lookup interface after creation: %w", err)
+	}
+
+	ipv4Addr, err := netlink.ParseAddr(cfg.DeviceIPv4 + "/21")
+	if err != nil {
+		return fmt.Errorf("parse IPv4 address: %w", err)
+	}
+	if err := netlink.AddrAdd(link, ipv4Addr); err != nil {
+		return fmt.Errorf("add IPv4 address: %w", err)
+	}
+
+	ipv6Addr, err := netlink.ParseAddr(cfg.DeviceIPv6 + "/64")
+	if err != nil {
+		return fmt.Errorf("parse IPv6 address: %w", err)
+	}
+	if err := netlink.AddrAdd(link, ipv6Addr); err != nil {
+		return fmt.Errorf("add IPv6 address: %w", err)
+	}
+
+	if err := netlink.LinkSetUp(link); err != nil {
+		return fmt.Errorf("bring interface up: %w", err)
+	}
+
+	return nil
 }
 
 func (c *LinuxConfigurator) TeardownInterface(ctx context.Context) error {
@@ -106,16 +122,19 @@ func (c *LinuxConfigurator) TeardownInterface(ctx context.Context) error {
 		return nil
 	}
 
-	cmd := exec.CommandContext(ctx, "ip", "link", "del", c.helperConfig.Interface)
-	out, err := cmd.CombinedOutput()
+	link, err := netlink.LinkByName(c.helperConfig.Interface)
 	if err != nil {
-		return fmt.Errorf("teardown failed: %w, stderr: %s", err, string(out))
+		return fmt.Errorf("lookup interface %q: %w", c.helperConfig.Interface, err)
+	}
+
+	if err := netlink.LinkDel(link); err != nil {
+		return fmt.Errorf("delete interface: %w", err)
 	}
 
 	return nil
 }
 
 func (c *LinuxConfigurator) interfaceExists(ctx context.Context) bool {
-	cmd := exec.CommandContext(ctx, "ip", "link", "show", "dev", c.helperConfig.Interface)
-	return cmd.Run() == nil
+	_, err := netlink.LinkByName(c.helperConfig.Interface)
+	return err == nil
 }
