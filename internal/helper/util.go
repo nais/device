@@ -2,14 +2,11 @@ package helper
 
 import (
 	"archive/zip"
-	"context"
 	"errors"
 	"fmt"
 	"io"
 	"os"
-	"os/exec"
 	"path/filepath"
-	"time"
 
 	"github.com/nais/device/internal/ioconvenience"
 	"github.com/sirupsen/logrus"
@@ -18,19 +15,6 @@ import (
 const (
 	TunnelNetworkPrefix = "10.255.24."
 )
-
-func runCommands(ctx context.Context, commands [][]string) error {
-	for _, s := range commands {
-		cmd := exec.CommandContext(ctx, s[0], s[1:]...)
-
-		if out, err := cmd.CombinedOutput(); err != nil {
-			return fmt.Errorf("running %v: %w: %v", cmd, err, string(out))
-		}
-
-		time.Sleep(100 * time.Millisecond) // avoid serializable race conditions with kernel
-	}
-	return nil
-}
 
 func ZipLogFiles(files []string, log logrus.FieldLogger) (string, error) {
 	if len(files) == 0 {
