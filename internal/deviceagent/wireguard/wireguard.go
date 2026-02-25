@@ -8,29 +8,13 @@ import (
 	"github.com/nais/device/internal/wireguard"
 )
 
-func KeyToBase64(key []byte) []byte {
-	return wireguard.KeyToBase64(key)
-}
-
-func Base64toKey(encoded []byte) ([]byte, error) {
-	return wireguard.Base64ToKey(encoded)
-}
-
-func WgGenKey() []byte {
-	key, err := wireguard.GenKey()
-	if err != nil {
-		panic("Unable to generate random bytes")
-	}
-	return []byte(key)
-}
-
-func WGPubKey(privateKeySlice []byte) []byte {
-	return wireguard.PubKey(privateKeySlice)
-}
-
 func EnsurePrivateKey(keyPath string) ([]byte, error) {
 	if err := filesystem.FileMustExist(keyPath); os.IsNotExist(err) {
-		if err := os.WriteFile(keyPath, KeyToBase64(WgGenKey()), 0o600); err != nil {
+		key, err := wireguard.GenKey()
+		if err != nil {
+			return nil, fmt.Errorf("generating private key: %w", err)
+		}
+		if err := os.WriteFile(keyPath, wireguard.KeyToBase64(key), 0o600); err != nil {
 			return nil, fmt.Errorf("writing private key to disk: %w", err)
 		}
 	} else if err != nil {
@@ -42,7 +26,7 @@ func EnsurePrivateKey(keyPath string) ([]byte, error) {
 		return nil, fmt.Errorf("reading private key: %v", err)
 	}
 
-	privateKey, err := Base64toKey(privateKeyEncoded)
+	privateKey, err := wireguard.Base64ToKey(privateKeyEncoded)
 	if err != nil {
 		return nil, fmt.Errorf("decoding private key: %v", err)
 	}
@@ -51,5 +35,5 @@ func EnsurePrivateKey(keyPath string) ([]byte, error) {
 }
 
 func PublicKey(privateKey []byte) []byte {
-	return KeyToBase64(WGPubKey(privateKey))
+	return wireguard.KeyToBase64(wireguard.PubKey(privateKey))
 }

@@ -7,8 +7,8 @@ import (
 	"io"
 	"os"
 
-	"github.com/nais/device/internal/deviceagent/wireguard"
 	"github.com/nais/device/internal/passwordhash"
+	"github.com/nais/device/internal/wireguard"
 	"github.com/nais/device/pkg/pb"
 	"github.com/urfave/cli/v2"
 	"google.golang.org/grpc"
@@ -133,8 +133,11 @@ func EnrollGateway(c *cli.Context) error {
 	key := passwordhash.HashPassword([]byte(password), salt)
 	passhash := passwordhash.FormatHash(key, salt)
 
-	privateKey := wireguard.WgGenKey()
-	publicKey := wireguard.PublicKey(privateKey)
+	privateKey, err := wireguard.GenKey()
+	if err != nil {
+		return fmt.Errorf("generating private key: %w", err)
+	}
+	publicKey := privateKey.Public()
 
 	req := &pb.ModifyGatewayRequest{
 		Username: AdminUsername,
