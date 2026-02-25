@@ -13,8 +13,6 @@ import (
 	"github.com/nais/device/pkg/pb"
 )
 
-const wireguardMTU = 1360
-
 func New(helperConfig Config) *LinuxConfigurator {
 	return &LinuxConfigurator{
 		helperConfig: helperConfig,
@@ -32,7 +30,7 @@ func (c *LinuxConfigurator) Prerequisites() error {
 }
 
 func (c *LinuxConfigurator) SyncConf(ctx context.Context, cfg *pb.Configuration) error {
-	return wgconfig.ApplyConfig(c.helperConfig.Interface, cfg)
+	return wgconfig.ApplyConfig(ctx, c.helperConfig.Interface, cfg)
 }
 
 func (c *LinuxConfigurator) SetupRoutes(ctx context.Context, gateways []*pb.Gateway) (int, error) {

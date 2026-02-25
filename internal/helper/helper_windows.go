@@ -2,6 +2,7 @@ package helper
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net"
 	"net/netip"
@@ -9,6 +10,7 @@ import (
 	"strings"
 	"sync"
 
+	"golang.org/x/sys/windows"
 	"golang.zx2c4.com/wireguard/conn"
 	"golang.zx2c4.com/wireguard/device"
 	"golang.zx2c4.com/wireguard/ipc"
@@ -18,8 +20,6 @@ import (
 	"github.com/nais/device/internal/wgconfig"
 	"github.com/nais/device/pkg/pb"
 )
-
-const wireguardMTU = 1360
 
 type WindowsConfigurator struct {
 	helperConfig Config
@@ -43,14 +43,22 @@ func (c *WindowsConfigurator) Prerequisites() error {
 }
 
 func (c *WindowsConfigurator) SyncConf(ctx context.Context, cfg *pb.Configuration) error {
-	return wgconfig.ApplyConfig(c.helperConfig.Interface, cfg)
+	return wgconfig.ApplyConfig(ctx, c.helperConfig.Interface, cfg)
 }
 
 func (c *WindowsConfigurator) SetupRoutes(ctx context.Context, gateways []*pb.Gateway) (int, error) {
-	ifLUID, err := c.interfaceLUID()
-	if err != nil {
-		return 0, err
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	if c.tunDev == nil {
+		return 0, fmt.Errorf("TUN device not initialized")
 	}
+
+	nativeTun, ok := c.tunDev.(*tun.NativeTun)
+	if !ok {
+		return 0, fmt.Errorf("unexpected TUN device type %T", c.tunDev)
+	}
+	ifLUID := winipcfg.LUID(nativeTun.LUID())
 
 	routesAdded := 0
 	for _, gw := range gateways {
@@ -72,7 +80,7 @@ func (c *WindowsConfigurator) SetupRoutes(ctx context.Context, gateways []*pb.Ga
 			}
 
 			if err := ifLUID.AddRoute(dst, nextHop, 0); err != nil {
-				if strings.Contains(err.Error(), "already exists") {
+				if errors.Is(err, windows.ERROR_OBJECT_ALREADY_EXISTS) {
 					continue
 				}
 				return routesAdded, fmt.Errorf("add route %s: %w", cidr, err)
@@ -103,21 +111,16 @@ func (c *WindowsConfigurator) SetupInterface(ctx context.Context, cfg *pb.Config
 	}
 	wgDev := device.NewDevice(tunDev, conn.NewDefaultBind(), logger)
 
+	if err := wgDev.Up(); err != nil {
+		wgDev.Close()
+		return fmt.Errorf("bring up wireguard device: %w", err)
+	}
+
 	uapi, err := ipc.UAPIListen(c.helperConfig.Interface)
 	if err != nil {
 		wgDev.Close()
 		return fmt.Errorf("listen on UAPI named pipe: %w", err)
 	}
-
-	go func() {
-		for {
-			uapiConn, err := uapi.Accept()
-			if err != nil {
-				return
-			}
-			go wgDev.IpcHandle(uapiConn)
-		}
-	}()
 
 	c.wgDevice = wgDev
 	c.tunDev = tunDev
@@ -154,6 +157,18 @@ func (c *WindowsConfigurator) SetupInterface(ctx context.Context, cfg *pb.Config
 		}
 	}
 
+	// Start accepting UAPI connections only after all initialization has succeeded.
+	// This ensures wgctrl can't race against incomplete interface setup.
+	go func() {
+		for {
+			uapiConn, err := uapi.Accept()
+			if err != nil {
+				return
+			}
+			go wgDev.IpcHandle(uapiConn)
+		}
+	}()
+
 	return nil
 }
 
@@ -181,19 +196,4 @@ func (c *WindowsConfigurator) closeLocked() {
 		c.wgDevice = nil
 	}
 	c.tunDev = nil
-}
-
-func (c *WindowsConfigurator) interfaceLUID() (winipcfg.LUID, error) {
-	c.mu.Lock()
-	defer c.mu.Unlock()
-
-	if c.tunDev == nil {
-		return 0, fmt.Errorf("TUN device not initialized")
-	}
-
-	nativeTun, ok := c.tunDev.(*tun.NativeTun)
-	if !ok {
-		return 0, fmt.Errorf("unexpected TUN device type %T", c.tunDev)
-	}
-	return winipcfg.LUID(nativeTun.LUID()), nil
 }

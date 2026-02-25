@@ -52,7 +52,7 @@ func (dhs *DeviceHelperServer) Teardown(
 	dhs.log.WithField("interface", dhs.config.Interface).Info("removing network interface and all routes")
 	err := dhs.osConfigurator.TeardownInterface(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("tearing down interface: %v", err)
+		return nil, fmt.Errorf("tearing down interface: %w", err)
 	}
 
 	return &pb.TeardownResponse{}, nil

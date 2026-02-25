@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net"
+	"net/netip"
 	"os"
 	"os/exec"
 	"strings"
@@ -21,8 +22,6 @@ import (
 	"github.com/nais/device/internal/wgconfig"
 	"github.com/nais/device/pkg/pb"
 )
-
-const wireguardMTU = 1360
 
 type DarwinConfigurator struct {
 	helperConfig Config
@@ -46,7 +45,7 @@ func (c *DarwinConfigurator) Prerequisites() error {
 }
 
 func (c *DarwinConfigurator) SyncConf(ctx context.Context, cfg *pb.Configuration) error {
-	return wgconfig.ApplyConfig(c.helperConfig.Interface, cfg)
+	return wgconfig.ApplyConfig(ctx, c.helperConfig.Interface, cfg)
 }
 
 func (c *DarwinConfigurator) SetupRoutes(ctx context.Context, gateways []*pb.Gateway) (int, error) {
@@ -61,17 +60,20 @@ func (c *DarwinConfigurator) SetupRoutes(ctx context.Context, gateways []*pb.Gat
 			if strings.HasPrefix(cidr, TunnelNetworkPrefix) {
 				continue
 			}
-			if err := addRouteViaInterface(cidr, iface, false); err != nil {
+			if err := addRouteViaInterface(cidr, iface); err != nil {
 				return routesAdded, fmt.Errorf("add IPv4 route %s: %w", cidr, err)
 			}
 			routesAdded++
 		}
 
 		for _, cidr := range gw.GetRoutesIPv6() {
+			// TunnelNetworkPrefix is an IPv4 prefix ("10.255.24.") so this check
+			// is a no-op for IPv6 CIDRs. It's kept for consistency with the IPv4
+			// loop and as a safeguard in case the prefix changes in the future.
 			if strings.HasPrefix(cidr, TunnelNetworkPrefix) {
 				continue
 			}
-			if err := addRouteViaInterface(cidr, iface, true); err != nil {
+			if err := addRouteViaInterface(cidr, iface); err != nil {
 				return routesAdded, fmt.Errorf("add IPv6 route %s: %w", cidr, err)
 			}
 			routesAdded++
@@ -106,6 +108,11 @@ func (c *DarwinConfigurator) SetupInterface(ctx context.Context, cfg *pb.Configu
 	}
 	wgDev := device.NewDevice(tunDev, conn.NewDefaultBind(), logger)
 
+	if err := wgDev.Up(); err != nil {
+		wgDev.Close()
+		return fmt.Errorf("bring up wireguard device: %w", err)
+	}
+
 	// UAPI socket allows wgctrl to configure the device
 	fileUAPI, err := ipc.UAPIOpen(ifaceName)
 	if err != nil {
@@ -120,21 +127,15 @@ func (c *DarwinConfigurator) SetupInterface(ctx context.Context, cfg *pb.Configu
 		return fmt.Errorf("listen on UAPI socket: %w", err)
 	}
 
-	go func() {
-		for {
-			uapiConn, err := uapi.Accept()
-			if err != nil {
-				return
-			}
-			go wgDev.IpcHandle(uapiConn)
-		}
-	}()
-
 	c.wgDevice = wgDev
 	c.tunDev = tunDev
 	c.uapi = uapi
 
-	// Configure IP addresses and bring the interface up
+	// Configure IP addresses and bring the interface up.
+	// We shell out to ifconfig because macOS has no stable public API for assigning
+	// addresses to utun interfaces — the required SIOCAIFADDR_IN6 / SIOCSIFADDR
+	// ioctls are undocumented and vary across OS versions. ifconfig is the standard
+	// tool used by the macOS networking stack itself.
 	commands := [][]string{
 		{"ifconfig", ifaceName, "inet", cfg.GetDeviceIPv4() + "/21", cfg.GetDeviceIPv4(), "alias"},
 		{"ifconfig", ifaceName, "inet6", cfg.GetDeviceIPv6() + "/64", "alias"},
@@ -149,7 +150,9 @@ func (c *DarwinConfigurator) SetupInterface(ctx context.Context, cfg *pb.Configu
 			return fmt.Errorf("running %v: %w: %v", cmd, err, string(out))
 		}
 
-		time.Sleep(100 * time.Millisecond) // avoid serializable race conditions with kernel
+		// Small delay between ifconfig calls to avoid kernel ENOMEM / EBUSY
+		// errors when rapidly configuring addresses on a freshly-created utun.
+		time.Sleep(100 * time.Millisecond)
 	}
 
 	// Add /21 route for the tunnel network
@@ -159,10 +162,22 @@ func (c *DarwinConfigurator) SetupInterface(ctx context.Context, cfg *pb.Configu
 		return fmt.Errorf("lookup interface %q: %w", ifaceName, err)
 	}
 
-	if err := addRouteViaInterface(cfg.GetDeviceIPv4()+"/21", iface, false); err != nil {
+	if err := addRouteViaInterface(cfg.GetDeviceIPv4()+"/21", iface); err != nil {
 		c.closeLocked()
 		return fmt.Errorf("add tunnel network route: %w", err)
 	}
+
+	// Start accepting UAPI connections only after all initialization has succeeded.
+	// This ensures wgctrl can't race against incomplete interface setup.
+	go func() {
+		for {
+			uapiConn, err := uapi.Accept()
+			if err != nil {
+				return
+			}
+			go wgDev.IpcHandle(uapiConn)
+		}
+	}()
 
 	return nil
 }
@@ -196,8 +211,8 @@ func (c *DarwinConfigurator) closeLocked() {
 
 // addRouteViaInterface adds a route for the given CIDR through the specified
 // network interface using BSD routing sockets.
-func addRouteViaInterface(cidr string, iface *net.Interface, ipv6 bool) error {
-	_, ipNet, err := net.ParseCIDR(cidr)
+func addRouteViaInterface(cidr string, iface *net.Interface) error {
+	prefix, err := netip.ParsePrefix(cidr)
 	if err != nil {
 		return fmt.Errorf("parse CIDR %q: %w", cidr, err)
 	}
@@ -210,21 +225,25 @@ func addRouteViaInterface(cidr string, iface *net.Interface, ipv6 bool) error {
 
 	addrs := make([]route.Addr, syscall.RTAX_MAX)
 
-	if ipv6 {
-		var dst [16]byte
-		copy(dst[:], ipNet.IP.To16())
+	if prefix.Addr().Is6() {
+		dst := prefix.Addr().As16()
 		addrs[syscall.RTAX_DST] = &route.Inet6Addr{IP: dst}
 
 		var mask [16]byte
-		copy(mask[:], ipNet.Mask)
+		ones := prefix.Bits()
+		for i := range ones {
+			mask[i/8] |= 1 << (7 - i%8)
+		}
 		addrs[syscall.RTAX_NETMASK] = &route.Inet6Addr{IP: mask}
 	} else {
-		var dst [4]byte
-		copy(dst[:], ipNet.IP.To4())
+		dst := prefix.Addr().As4()
 		addrs[syscall.RTAX_DST] = &route.Inet4Addr{IP: dst}
 
 		var mask [4]byte
-		copy(mask[:], ipNet.Mask)
+		ones := prefix.Bits()
+		for i := range ones {
+			mask[i/8] |= 1 << (7 - i%8)
+		}
 		addrs[syscall.RTAX_NETMASK] = &route.Inet4Addr{IP: mask}
 	}
 
