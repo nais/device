@@ -76,7 +76,11 @@ func (dhs *DeviceHelperServer) Configure(
 			backoff := time.Duration(attempt) * time.Second
 			dhs.log.WithError(loopErr).Error("synchronize WireGuard configuration")
 			dhs.log.WithField("attempt", attempt+1).WithField("backoff", backoff).Info("configuring failed, sleeping before retrying")
-			time.Sleep(backoff)
+			select {
+			case <-ctx.Done():
+				return nil, status.Errorf(codes.Canceled, "context canceled during WireGuard sync retry: %s", loopErr)
+			case <-time.After(backoff):
+			}
 			continue
 		}
 		break

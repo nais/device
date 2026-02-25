@@ -11,6 +11,7 @@ import (
 	"github.com/nais/device/internal/wireguard"
 	"github.com/nais/device/pkg/pb"
 	"github.com/sirupsen/logrus"
+	"golang.zx2c4.com/wireguard/wgctrl/wgtypes"
 )
 
 type Config struct {
@@ -44,7 +45,7 @@ type Config struct {
 	WireGuardIP                       string // for passing in raw string
 	WireGuardIPv6                     string // for passing in raw string
 	WireGuardConfigPath               string
-	WireGuardPrivateKey               wireguard.PrivateKey
+	WireGuardPrivateKey               wgtypes.Key
 	WireGuardPrivateKeyPath           string
 	WireGuardNetworkAddress           string
 	WireGuardIPv4Prefix               *netip.Prefix `ignored:"true"`
@@ -141,7 +142,7 @@ func (cfg *Config) APIServerPeer() *pb.Gateway {
 
 	return &pb.Gateway{
 		Name:      "apiserver",
-		PublicKey: string(cfg.WireGuardPrivateKey.Public()),
+		PublicKey: cfg.WireGuardPrivateKey.PublicKey().String(),
 		Endpoint:  cfg.Endpoint,
 		Ipv4:      cfg.WireGuardIPv4Prefix.Addr().String(),
 		Ipv6:      ipv6,

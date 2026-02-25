@@ -1,9 +1,9 @@
 package wireguard
 
 import (
-	"encoding/base64"
 	"fmt"
 	"os"
+	"strings"
 
 	"github.com/nais/device/internal/deviceagent/filesystem"
 	"golang.zx2c4.com/wireguard/wgctrl/wgtypes"
@@ -25,15 +25,13 @@ func EnsurePrivateKey(keyPath string) (wgtypes.Key, error) {
 
 	privateKeyEncoded, err := os.ReadFile(keyPath)
 	if err != nil {
-		return wgtypes.Key{}, fmt.Errorf("reading private key: %v", err)
+		return wgtypes.Key{}, fmt.Errorf("reading private key: %w", err)
 	}
 
-	var key wgtypes.Key
-	b, err := base64.StdEncoding.DecodeString(string(privateKeyEncoded))
+	key, err := wgtypes.ParseKey(strings.TrimSpace(string(privateKeyEncoded)))
 	if err != nil {
-		return wgtypes.Key{}, fmt.Errorf("decoding private key: %v", err)
+		return wgtypes.Key{}, fmt.Errorf("parsing private key: %w", err)
 	}
-	copy(key[:], b)
 
 	return key, nil
 }

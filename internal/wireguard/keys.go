@@ -6,55 +6,42 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/sirupsen/logrus"
 	"golang.zx2c4.com/wireguard/wgctrl/wgtypes"
 )
 
-type PrivateKey []byte
-
-func (p PrivateKey) Public() []byte {
-	key, _ := wgtypes.NewKey(p)
-	pub := key.PublicKey()
-	return []byte(pub.String())
-}
-
-func (p PrivateKey) Private() []byte {
-	key, _ := wgtypes.NewKey(p)
-	return []byte(key.String())
-}
-
-func GenKey() (PrivateKey, error) {
-	key, err := wgtypes.GeneratePrivateKey()
-	if err != nil {
-		return nil, fmt.Errorf("generate private key: %w", err)
-	}
-	return PrivateKey(key[:]), nil
-}
-
-func ReadOrCreatePrivateKey(path string, log *logrus.Entry) (PrivateKey, error) {
+func ReadOrCreatePrivateKey(path string, log *logrus.Entry) (wgtypes.Key, error) {
 	b, err := os.ReadFile(path)
 	if err != nil && !errors.Is(err, fs.ErrNotExist) {
-		return nil, fmt.Errorf("read private key: %w", err)
+		return wgtypes.Key{}, fmt.Errorf("read private key: %w", err)
 	}
 
 	if errors.Is(err, fs.ErrNotExist) {
 		log.Info("no private key found, generating new one...")
-		b, err = GenKey()
+		key, err := wgtypes.GeneratePrivateKey()
 		if err != nil {
-			return nil, fmt.Errorf("generate private key: %w", err)
+			return wgtypes.Key{}, fmt.Errorf("generate private key: %w", err)
 		}
 
 		if err := os.MkdirAll(filepath.Dir(path), 0o700); err != nil {
-			return nil, fmt.Errorf("create config dir: %w", err)
+			return wgtypes.Key{}, fmt.Errorf("create config dir: %w", err)
 		}
 
-		if err := os.WriteFile(path, b, 0o600); err != nil {
-			return nil, fmt.Errorf("write private key: %w", err)
+		if err := os.WriteFile(path, []byte(key.String()), 0o600); err != nil {
+			return wgtypes.Key{}, fmt.Errorf("write private key: %w", err)
 		}
-	} else {
-		log.Info("found private key, using it...")
+
+		return key, nil
 	}
 
-	return PrivateKey(b), nil
+	log.Info("found private key, using it...")
+
+	key, err := wgtypes.ParseKey(strings.TrimSpace(string(b)))
+	if err != nil {
+		return wgtypes.Key{}, fmt.Errorf("parse private key: %w", err)
+	}
+
+	return key, nil
 }
