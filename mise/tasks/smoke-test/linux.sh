@@ -16,11 +16,8 @@ trap cleanup EXIT
 echo "==> Building smoke-test binary"
 go build -o ./smoke-test ./cmd/smoke-test
 
-echo "==> Loading wireguard kernel module"
-sudo modprobe wireguard
-
 echo "==> Installing dependencies"
-sudo apt-get update && sudo apt-get install --yes jq wireguard-tools
+sudo apt-get update && sudo apt-get install --yes jq
 
 echo "==> Installing $installer_deb"
 sudo dpkg -i "$installer_deb"
