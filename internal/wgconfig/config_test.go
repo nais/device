@@ -157,6 +157,41 @@ func TestBuildConfig_PeerWithoutEndpoint(t *testing.T) {
 	assert.Nil(t, wgCfg.Peers[0].Endpoint)
 }
 
+func TestBuildConfig_BareIPWithoutCIDRPrefix(t *testing.T) {
+	cfg := &pb.Configuration{
+		PrivateKey: testPrivateKey,
+		Gateways: []*pb.Gateway{
+			{
+				Name:       "gw-bare-ip",
+				PublicKey:  generateTestPublicKey(),
+				Endpoint:   "1.2.3.4:51820",
+				Ipv4:       "10.255.24.10",
+				Ipv6:       "fd00::10",
+				RoutesIPv4: []string{"10.43.0.60", "10.0.0.0/24"},
+				RoutesIPv6: []string{"fd00::1"},
+			},
+		},
+	}
+
+	wgCfg, err := wgconfig.BuildConfig(cfg)
+	require.NoError(t, err)
+	require.Len(t, wgCfg.Peers, 1)
+
+	peer := wgCfg.Peers[0]
+	expectedCIDRs := []string{
+		"10.43.0.60/32",
+		"10.0.0.0/24",
+		"10.255.24.10/32",
+		"fd00::10/128",
+		"fd00::1/128",
+	}
+	require.Len(t, peer.AllowedIPs, len(expectedCIDRs))
+	for i, cidr := range expectedCIDRs {
+		_, expected, _ := net.ParseCIDR(cidr)
+		assert.Equal(t, *expected, peer.AllowedIPs[i], "AllowedIP mismatch at index %d", i)
+	}
+}
+
 func TestBuildConfig_InvalidPrivateKey(t *testing.T) {
 	cfg := &pb.Configuration{
 		PrivateKey: "not-a-valid-key",

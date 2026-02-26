@@ -11,6 +11,7 @@ import (
 	"golang.zx2c4.com/wireguard/wgctrl"
 	"golang.zx2c4.com/wireguard/wgctrl/wgtypes"
 
+	"github.com/nais/device/internal/iputil"
 	"github.com/nais/device/internal/wireguard"
 	"github.com/nais/device/pkg/pb"
 )
@@ -100,11 +101,22 @@ func buildPeerConfig(peer wireguard.Peer) (*wgtypes.PeerConfig, error) {
 func parseAllowedIPs(cidrs []string) ([]net.IPNet, error) {
 	nets := make([]net.IPNet, 0, len(cidrs))
 	for _, cidr := range cidrs {
-		_, ipNet, err := net.ParseCIDR(cidr)
+		prefix, err := iputil.ParsePrefix(cidr)
 		if err != nil {
-			return nil, fmt.Errorf("parse CIDR %q: %w", cidr, err)
+			return nil, fmt.Errorf("parse allowed IP: %w", err)
 		}
-		nets = append(nets, *ipNet)
+		addr := prefix.Addr()
+		ones := prefix.Bits()
+		var bits int
+		if addr.Is4() {
+			bits = 32
+		} else {
+			bits = 128
+		}
+		nets = append(nets, net.IPNet{
+			IP:   addr.AsSlice(),
+			Mask: net.CIDRMask(ones, bits),
+		})
 	}
 	return nets, nil
 }

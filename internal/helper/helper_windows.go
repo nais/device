@@ -17,6 +17,7 @@ import (
 	"golang.zx2c4.com/wireguard/tun"
 	"golang.zx2c4.com/wireguard/windows/tunnel/winipcfg"
 
+	"github.com/nais/device/internal/iputil"
 	"github.com/nais/device/internal/wgconfig"
 	"github.com/nais/device/pkg/pb"
 )
@@ -69,9 +70,9 @@ func (c *WindowsConfigurator) SetupRoutes(ctx context.Context, gateways []*pb.Ga
 
 			cidr = strings.TrimSpace(cidr)
 
-			dst, err := netip.ParsePrefix(cidr)
+			dst, err := iputil.ParsePrefix(cidr)
 			if err != nil {
-				return routesAdded, fmt.Errorf("parse CIDR %q: %w", cidr, err)
+				return routesAdded, fmt.Errorf("parse route: %w", err)
 			}
 
 			nextHop := netip.IPv4Unspecified()
