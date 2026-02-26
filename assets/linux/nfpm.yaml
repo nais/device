@@ -13,7 +13,6 @@ license: "MIT"
 depends:
   - "jq"
   - "sed"
-  - "wireguard"
 scripts:
   postinstall: "./assets/linux/postinstall"
   postremove: "./assets/linux/postrm"
