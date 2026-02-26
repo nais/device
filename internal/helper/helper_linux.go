@@ -10,6 +10,7 @@ import (
 
 	"github.com/vishvananda/netlink"
 
+	"github.com/nais/device/internal/iputil"
 	"github.com/nais/device/internal/wgconfig"
 	"github.com/nais/device/pkg/pb"
 )
@@ -49,9 +50,21 @@ func (c *LinuxConfigurator) SetupRoutes(ctx context.Context, gateways []*pb.Gate
 
 			cidr = strings.TrimSpace(cidr)
 
-			_, dst, err := net.ParseCIDR(cidr)
+			prefix, err := iputil.ParsePrefix(cidr)
 			if err != nil {
-				return routesAdded, fmt.Errorf("parse CIDR %q: %w", cidr, err)
+				return routesAdded, fmt.Errorf("parse route: %w", err)
+			}
+			addr := prefix.Addr()
+			ones := prefix.Bits()
+			var bits int
+			if addr.Is4() {
+				bits = 32
+			} else {
+				bits = 128
+			}
+			dst := &net.IPNet{
+				IP:   addr.AsSlice(),
+				Mask: net.CIDRMask(ones, bits),
 			}
 
 			route := &netlink.Route{

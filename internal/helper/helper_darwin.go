@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"net"
-	"net/netip"
 	"os"
 	"os/exec"
 	"strings"
@@ -20,6 +19,7 @@ import (
 	"golang.zx2c4.com/wireguard/ipc"
 	"golang.zx2c4.com/wireguard/tun"
 
+	"github.com/nais/device/internal/iputil"
 	"github.com/nais/device/internal/wgconfig"
 	"github.com/nais/device/pkg/pb"
 )
@@ -244,9 +244,9 @@ func (c *DarwinConfigurator) closeLocked() {
 // addRouteViaInterface adds a route for the given CIDR through the specified
 // network interface using the provided BSD routing socket fd.
 func addRouteViaInterface(fd int, cidr string, iface *net.Interface) error {
-	prefix, err := netip.ParsePrefix(cidr)
+	prefix, err := iputil.ParsePrefix(cidr)
 	if err != nil {
-		return fmt.Errorf("parse CIDR %q: %w", cidr, err)
+		return fmt.Errorf("add route: %w", err)
 	}
 
 	addrs := make([]route.Addr, syscall.RTAX_MAX)
