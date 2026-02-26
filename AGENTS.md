@@ -1,4 +1,4 @@
-# Project instructions for Copilot
+# Project instructions for AI coding agents
 
 ## Commands
 
@@ -24,3 +24,9 @@
 - Wrap errors with context: `fmt.Errorf("short description: %w", err)`.
 - Use `testify/require` and `testify/assert` for tests. Prefer table-driven tests.
 - Platform-specific code goes in files with build-tag suffixes (`_darwin.go`, `_linux.go`, `_windows.go`).
+
+## Git
+
+- Use [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/) for all commit messages.
+- Never commit unless explicitly told to.
+- Never push unless explicitly told to.
