@@ -134,15 +134,46 @@ jobs:
           name: installer-${{ matrix.platform.os }}-${{ matrix.arch }}-${{ matrix.gotags || 'nav' }}
           path: ${{ env.OUTFILE }}
 
+  smoke-tests:
+    name: smoke test ${{ matrix.os }}
+    needs: [builds]
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: macos
+            runner: macos-latest
+            artifact: installer-macos-arm64-nav
+            installer_glob: "*.pkg"
+          - os: linux
+            runner: ubuntu-latest
+            artifact: installer-linux-amd64-nav
+            installer_glob: "*.deb"
+          - os: windows
+            runner: windows-latest
+            artifact: installer-windows-amd64-nav
+            installer_glob: "*.exe"
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # ratchet:actions/checkout@v6
+      - uses: jdx/mise-action@6d1e696aa24c1aa1bcc1adea0212707c71ab78a8 # ratchet:jdx/mise-action@v3
+      - uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # ratchet:actions/download-artifact@v6
+        with:
+          name: ${{ matrix.artifact }}
+          path: ./downloaded-artifact/
+      - name: run smoke test
+        shell: bash
+        run: mise run smoke-test:${{ matrix.os }} ./downloaded-artifact/${{ matrix.installer_glob }}
+
   # Used by GitHub to determine if all checks/builds have passed
   branch-protection-checkpoint:
-    needs: [checks, builds]
+    needs: [checks, builds, smoke-tests]
     if: ${{ always() }}
     runs-on: ubuntu-latest
     steps:
-      - if: ${{ needs.checks.result != 'success' || needs.builds.result != 'success' }}
+      - if: ${{ needs.checks.result != 'success' || needs.builds.result != 'success' || needs.smoke-tests.result != 'success' }}
         run: exit 1
-      - run: echo "All checks and builds passed."
+      - run: echo "All checks, builds, and smoke tests passed."
 
   release-github:
     if: github.ref == 'refs/heads/main' && github.actor != 'dependabot[bot]' && needs.release-info.outputs.changelog != '' && needs.release-info.outputs.version != ''

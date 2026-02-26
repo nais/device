@@ -198,6 +198,23 @@ SectionEnd
 
 ; Functions --------------------------------
 
+Function .onInstSuccess
+    ${IfNot} ${Silent}
+        Return
+    ${EndIf}
+
+    !insertmacro _Log "Silent install: starting ${SERVICE_NAME} service"
+    SimpleSC::StartService ${SERVICE_NAME} "" 60
+    Pop $0
+    ${If} $0 != 0
+        SimpleSC::GetErrorMessage
+        Pop $0
+        !insertmacro _Log "Silent install: failed to start service: $0"
+    ${Else}
+        !insertmacro _Log "Silent install: service started successfully"
+    ${EndIf}
+FunctionEnd
+
 !macro GUIInit un
 Function ${un}GUIInit
     !insertmacro _Log "Inside GUIInit"
