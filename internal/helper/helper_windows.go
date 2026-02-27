@@ -10,6 +10,7 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/sirupsen/logrus"
 	"golang.org/x/sys/windows"
 	"golang.zx2c4.com/wireguard/conn"
 	"golang.zx2c4.com/wireguard/device"
@@ -34,7 +35,7 @@ type WindowsConfigurator struct {
 
 var _ OSConfigurator = &WindowsConfigurator{}
 
-func New(helperConfig Config) *WindowsConfigurator {
+func New(helperConfig Config, _ *logrus.Entry) *WindowsConfigurator {
 	return &WindowsConfigurator{
 		helperConfig: helperConfig,
 	}

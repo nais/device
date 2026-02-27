@@ -12,6 +12,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/sirupsen/logrus"
 	"golang.org/x/net/route"
 	"golang.org/x/sys/unix"
 	"golang.zx2c4.com/wireguard/conn"
@@ -37,7 +38,7 @@ type DarwinConfigurator struct {
 
 var _ OSConfigurator = &DarwinConfigurator{}
 
-func New(helperConfig Config) *DarwinConfigurator {
+func New(helperConfig Config, _ *logrus.Entry) *DarwinConfigurator {
 	return &DarwinConfigurator{
 		helperConfig: helperConfig,
 	}

@@ -62,13 +62,26 @@ func (dhs *DeviceHelperServer) Configure(
 	ctx context.Context,
 	cfg *pb.Configuration,
 ) (*pb.ConfigureResponse, error) {
-	dhs.log.Info("new configuration received from device-agent")
+	dhs.log.WithField("num_gateways", len(cfg.GetGateways())).Info("new configuration received from device-agent")
+	for _, gw := range cfg.GetGateways() {
+		dhs.log.WithFields(logrus.Fields{
+			"gateway":     gw.GetName(),
+			"endpoint":    gw.GetEndpoint(),
+			"ipv4":        gw.GetIpv4(),
+			"ipv6":        gw.GetIpv6(),
+			"routes_ipv4": gw.GetRoutesIPv4(),
+			"routes_ipv6": gw.GetRoutesIPv6(),
+		}).Debug("gateway in configuration")
+	}
 
+	dhs.log.Debug("setting up interface")
 	err := dhs.osConfigurator.SetupInterface(ctx, cfg)
 	if err != nil {
 		return nil, status.Errorf(codes.FailedPrecondition, "setup interface and routes: %s", err)
 	}
+	dhs.log.Debug("interface setup complete")
 
+	dhs.log.Debug("syncing wireguard configuration")
 	var loopErr error
 	for attempt := range 5 {
 		loopErr = dhs.osConfigurator.SyncConf(ctx, cfg)
@@ -92,15 +105,18 @@ func (dhs *DeviceHelperServer) Configure(
 			loopErr,
 		)
 	}
+	dhs.log.Debug("wireguard configuration synced")
 
 	// TODO: SetupRoutes only adds routes; it does not remove routes for gateways
 	// that were present in a previous configuration but are now absent. Stale routes
 	// are effectively harmless (they black-hole to a non-existent WireGuard peer),
 	// but a proper implementation should diff and clean up removed routes.
+	dhs.log.Debug("setting up routes")
 	_, err = dhs.osConfigurator.SetupRoutes(ctx, cfg.GetGateways())
 	if err != nil {
 		return nil, status.Errorf(codes.FailedPrecondition, "setting up routes: %s", err)
 	}
+	dhs.log.Debug("routes setup complete, configure finished successfully")
 
 	return &pb.ConfigureResponse{}, nil
 }
