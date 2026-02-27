@@ -5,9 +5,9 @@ import (
 	"errors"
 	"fmt"
 	"net"
+	"net/netip"
 	"os"
 	"os/exec"
-	"strings"
 	"sync"
 	"syscall"
 	"time"
@@ -32,6 +32,7 @@ type DarwinConfigurator struct {
 	tunDev    tun.Device
 	uapi      net.Listener
 	ifaceName string // actual interface name assigned by macOS (may differ from requested)
+	tunnelNet netip.Prefix
 }
 
 var _ OSConfigurator = &DarwinConfigurator{}
@@ -78,7 +79,7 @@ func (c *DarwinConfigurator) SetupRoutes(ctx context.Context, gateways []*pb.Gat
 	routesAdded := 0
 	for _, gw := range gateways {
 		for _, cidr := range gw.GetRoutesIPv4() {
-			if strings.HasPrefix(cidr, TunnelNetworkPrefix) {
+			if IsTunnelRoute(c.tunnelNet, cidr) {
 				continue
 			}
 			if err := addRouteViaInterface(fd, cidr, iface); err != nil {
@@ -88,10 +89,7 @@ func (c *DarwinConfigurator) SetupRoutes(ctx context.Context, gateways []*pb.Gat
 		}
 
 		for _, cidr := range gw.GetRoutesIPv6() {
-			// TunnelNetworkPrefix is an IPv4 prefix ("10.255.24.") so this check
-			// is a no-op for IPv6 CIDRs. It's kept for consistency with the IPv4
-			// loop and as a safeguard in case the prefix changes in the future.
-			if strings.HasPrefix(cidr, TunnelNetworkPrefix) {
+			if IsTunnelRoute(c.tunnelNet, cidr) {
 				continue
 			}
 			if err := addRouteViaInterface(fd, cidr, iface); err != nil {
@@ -107,6 +105,12 @@ func (c *DarwinConfigurator) SetupRoutes(ctx context.Context, gateways []*pb.Gat
 func (c *DarwinConfigurator) SetupInterface(ctx context.Context, cfg *pb.Configuration) error {
 	c.mu.Lock()
 	defer c.mu.Unlock()
+
+	tunnelNet, err := TunnelNetworkFromIP(cfg.GetDeviceIPv4())
+	if err != nil {
+		return fmt.Errorf("derive tunnel network: %w", err)
+	}
+	c.tunnelNet = tunnelNet
 
 	if c.wgDevice != nil {
 		return nil

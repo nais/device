@@ -25,10 +25,11 @@ import (
 type WindowsConfigurator struct {
 	helperConfig Config
 
-	mu       sync.Mutex
-	wgDevice *device.Device
-	tunDev   tun.Device
-	uapi     net.Listener
+	mu        sync.Mutex
+	wgDevice  *device.Device
+	tunDev    tun.Device
+	uapi      net.Listener
+	tunnelNet netip.Prefix
 }
 
 var _ OSConfigurator = &WindowsConfigurator{}
@@ -64,7 +65,7 @@ func (c *WindowsConfigurator) SetupRoutes(ctx context.Context, gateways []*pb.Ga
 	routesAdded := 0
 	for _, gw := range gateways {
 		for _, cidr := range append(gw.GetRoutesIPv4(), gw.GetRoutesIPv6()...) {
-			if strings.HasPrefix(cidr, TunnelNetworkPrefix) {
+			if IsTunnelRoute(c.tunnelNet, cidr) {
 				continue
 			}
 
@@ -96,6 +97,12 @@ func (c *WindowsConfigurator) SetupRoutes(ctx context.Context, gateways []*pb.Ga
 func (c *WindowsConfigurator) SetupInterface(ctx context.Context, cfg *pb.Configuration) error {
 	c.mu.Lock()
 	defer c.mu.Unlock()
+
+	tunnelNet, err := TunnelNetworkFromIP(cfg.DeviceIPv4)
+	if err != nil {
+		return fmt.Errorf("derive tunnel network: %w", err)
+	}
+	c.tunnelNet = tunnelNet
 
 	if c.wgDevice != nil {
 		return nil

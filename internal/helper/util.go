@@ -5,19 +5,40 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"net/netip"
 	"os"
 	"path/filepath"
 
 	"github.com/nais/device/internal/ioconvenience"
+	"github.com/nais/device/internal/iputil"
 	"github.com/sirupsen/logrus"
 )
 
 const (
-	TunnelNetworkPrefix = "10.255.24."
-
 	// wireguardMTU is the MTU used for WireGuard tunnel interfaces across all platforms.
 	wireguardMTU = 1360
+
+	// tunnelIPv4PrefixLen is the prefix length used for the IPv4 tunnel network.
+	tunnelIPv4PrefixLen = 21
 )
+
+// TunnelNetworkFromIP derives the tunnel network prefix from the device's IPv4 address.
+func TunnelNetworkFromIP(deviceIPv4 string) (netip.Prefix, error) {
+	addr, err := netip.ParseAddr(deviceIPv4)
+	if err != nil {
+		return netip.Prefix{}, fmt.Errorf("parse device IPv4 %q: %w", deviceIPv4, err)
+	}
+	return netip.PrefixFrom(addr, tunnelIPv4PrefixLen).Masked(), nil
+}
+
+// IsTunnelRoute reports whether cidr falls within the tunnel network.
+func IsTunnelRoute(tunnelNet netip.Prefix, cidr string) bool {
+	prefix, err := iputil.ParsePrefix(cidr)
+	if err != nil {
+		return false
+	}
+	return tunnelNet.Contains(prefix.Addr()) && prefix.Bits() >= tunnelNet.Bits()
+}
 
 func ZipLogFiles(files []string, log logrus.FieldLogger) (string, error) {
 	if len(files) == 0 {
