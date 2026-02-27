@@ -79,7 +79,7 @@ func run(log *logrus.Entry, cfg config.Config) error {
 
 		ecfg, err := enroll.NewGatewayClient(
 			ctx,
-			privateKey.Public(),
+			privateKey.PublicKey().String(),
 			hashedPassword,
 			wireguardListenPort,
 			log.WithField("component", "bootstrap"),
@@ -96,7 +96,7 @@ func run(log *logrus.Entry, cfg config.Config) error {
 		}
 
 		cfg.Name = ecfg.Name
-		cfg.PrivateKey = string(privateKey.Private())
+		cfg.PrivateKey = privateKey.String()
 		cfg.APIServerURL = enrollResp.APIServerGRPCAddress
 		cfg.DeviceIPv4 = enrollResp.WireGuardIPv4
 
