@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"net"
+	"net/netip"
 	"strings"
 	"syscall"
 
@@ -23,6 +24,7 @@ func New(helperConfig Config) *LinuxConfigurator {
 
 type LinuxConfigurator struct {
 	helperConfig Config
+	tunnelNet    netip.Prefix
 }
 
 var _ OSConfigurator = &LinuxConfigurator{}
@@ -44,7 +46,7 @@ func (c *LinuxConfigurator) SetupRoutes(ctx context.Context, gateways []*pb.Gate
 	routesAdded := 0
 	for _, gw := range gateways {
 		for _, cidr := range append(gw.GetRoutesIPv4(), gw.GetRoutesIPv6()...) {
-			if strings.HasPrefix(cidr, TunnelNetworkPrefix) {
+			if IsTunnelRoute(c.tunnelNet, cidr) {
 				continue
 			}
 
@@ -86,6 +88,12 @@ func (c *LinuxConfigurator) SetupRoutes(ctx context.Context, gateways []*pb.Gate
 }
 
 func (c *LinuxConfigurator) SetupInterface(ctx context.Context, cfg *pb.Configuration) error {
+	tunnelNet, err := TunnelNetworkFromIP(cfg.DeviceIPv4)
+	if err != nil {
+		return fmt.Errorf("derive tunnel network: %w", err)
+	}
+	c.tunnelNet = tunnelNet
+
 	if c.interfaceExists(ctx) {
 		return nil
 	}

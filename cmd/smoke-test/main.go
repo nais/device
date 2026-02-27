@@ -28,6 +28,7 @@ import (
 const ifaceName = "utun69"
 
 var wantRoutes = []netip.Prefix{
+	netip.MustParsePrefix("10.255.240.0/21"),
 	netip.MustParsePrefix("10.123.0.0/24"),
 	netip.MustParsePrefix("10.124.0.0/16"),
 }
@@ -76,13 +77,13 @@ func run() error {
 
 	cfg := &pb.Configuration{
 		PrivateKey: privateKey.String(),
-		DeviceIPv4: "10.255.24.100",
+		DeviceIPv4: "10.255.240.100",
 		Gateways: []*pb.Gateway{
 			{
 				Name:       "smoke-gw",
 				PublicKey:  gwPublicKey.String(),
 				Endpoint:   "127.0.0.1:51820",
-				Ipv4:       "10.255.24.1",
+				Ipv4:       "10.255.240.1",
 				RoutesIPv4: []string{"10.123.0.0/24", "10.124.0.0/16"},
 			},
 		},
