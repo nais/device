@@ -8,7 +8,8 @@ set -o nounset
 
 # Windows MSI requires X.X.X.X version format
 # shellcheck disable=SC2153
-version="${VERSION#"v"}.0"
+version="${VERSION#"v"}"
+version="${version%%-*}.0" # strip pre-release suffix (e.g. -rc.42) and append .0
 # shellcheck disable=SC2153
 outfile=$OUTFILE
 # shellcheck disable=SC2153
