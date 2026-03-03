@@ -32,7 +32,7 @@
         _module.args.pkgs = import inputs.nixpkgs {
           inherit system;
           overlays = [
-            # (import ./packaging/nix/naisdevice/overlay.nix) # Allows referencing new versions of go before landed in channel
+            (import ./packaging/nix/naisdevice/overlay.nix) # Allows referencing new versions of go before landed in channel
           ];
         };
         packages.default = config.packages.naisdevice;
@@ -50,7 +50,7 @@
           packages = with pkgs; [
             gcc # needed for sqlite3-go
             gnumake
-            go
+            go_latest
             gopls
             graphviz
             imagemagick

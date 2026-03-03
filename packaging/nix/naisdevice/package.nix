@@ -6,7 +6,7 @@
   version = builtins.substring 0 8 (self.lastModifiedDate or self.lastModified or "19700101");
   rev = self.rev or "dirty";
 in
-  pkgs.buildGoModule {
+  pkgs.buildGoLatestModule {
     pname = "naisdevice";
     subPackages = [
       "cmd/naisdevice-helper"
@@ -15,7 +15,7 @@ in
     ];
     inherit version;
     src = self;
-    vendorHash = "sha256-ky8KmNTdKPwc1ZeKx/aTTIGt0UOmqypYXipJvetS/54=";
+    vendorHash = "sha256-IuiHWdUmnsov610P3ZMddNYFucUZWy8X0XamG0DA6Ks=";
 
     ldflags = [
       "-X github.com/nais/device/internal/version.Revision=${rev}"
