@@ -7,7 +7,7 @@
   version = builtins.substring 0 8 (self.lastModifiedDate or self.lastModified or "19700101");
   rev = self.rev or "dirty";
 in
-  pkgs.buildGoModule {
+  pkgs.buildGoLatestModule {
     pname = subPackage;
     subPackages = ["cmd/${subPackage}"];
     inherit version;
