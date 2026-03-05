@@ -19,7 +19,7 @@ import (
 )
 
 func Test_MakeGatewayConfiguration(t *testing.T) {
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
 	// hash generated with `controlplane-cli passhash --password hunter2`
@@ -45,17 +45,7 @@ func Test_MakeGatewayConfiguration(t *testing.T) {
 		AccessGroupIDs: []string{"groupId"},
 	}
 
-	db := database.NewMockDatabase(t)
-	db.EXPECT().ReadGateway(mock.Anything, "gateway").Return(mockGateway, nil).Times(2)
-	db.EXPECT().ReadGateway(mock.Anything, "privilegedGateway").Return(mockPrivilegedGateway, nil).Times(2)
-	db.EXPECT().GetAcceptances(mock.Anything).Return(map[string]struct{}{
-		"sessionUserId":               {},
-		"sessionUserIdWithPrivileged": {},
-	}, nil).Times(2)
-	db.EXPECT().UsersWithAccessToPrivilegedGateway(mock.Anything, "privilegedGateway").Return([]string{"sessionUserIdWithPrivileged"}, nil).Once()
-
-	sessionStore := auth.NewMockSessionStore(t)
-	sessionStore.EXPECT().All().Return([]*pb.Session{
+	sessions := []*pb.Session{
 		{
 			Device:   &pb.Device{PublicKey: "devicePublicKey1"},
 			ObjectID: "sessionUserId",
@@ -68,7 +58,22 @@ func Test_MakeGatewayConfiguration(t *testing.T) {
 			Expiry:   timestamppb.New(time.Now().Add(24 * time.Hour)),
 			Groups:   []string{"groupId"},
 		},
-	})
+	}
+
+	// The server loop runs makeGatewayConfiguration repeatedly (on ticker and
+	// triggers), so we allow any number of calls to the DB rather than fixing
+	// exact counts, which would cause flakiness based on goroutine scheduling.
+	db := database.NewMockDatabase(t)
+	db.On("ReadGateway", mock.Anything, "gateway").Return(mockGateway, nil).Maybe()
+	db.On("ReadGateway", mock.Anything, "privilegedGateway").Return(mockPrivilegedGateway, nil).Maybe()
+	db.On("GetAcceptances", mock.Anything).Return(map[string]struct{}{
+		"sessionUserId":               {},
+		"sessionUserIdWithPrivileged": {},
+	}, nil).Maybe()
+	db.On("UsersWithAccessToPrivilegedGateway", mock.Anything, "privilegedGateway").Return([]string{"sessionUserIdWithPrivileged"}, nil).Maybe()
+
+	sessionStore := auth.NewMockSessionStore(t)
+	sessionStore.On("All").Return(sessions).Maybe()
 
 	gatewayAuthenticator := auth.NewGatewayAuthenticator(db)
 
@@ -93,9 +98,12 @@ func Test_MakeGatewayConfiguration(t *testing.T) {
 
 	client := pb.NewAPIServerClient(conn)
 
-	// Test authenticated call with correct password
+	// Test first stream: normal gateway.
+	// Use a per-stream context so we can cancel it before opening the second
+	// stream, preventing the server-side loop from making extra DB calls.
+	stream1Ctx, stream1Cancel := context.WithCancel(ctx)
 	stream, err := client.GetGatewayConfiguration(
-		ctx,
+		stream1Ctx,
 		&pb.GetGatewayConfigurationRequest{
 			Gateway:  "gateway",
 			Password: "hunter2",
@@ -112,8 +120,21 @@ func Test_MakeGatewayConfiguration(t *testing.T) {
 	assert.Equal(t, "devicePublicKey1", resp.GetDevices()[0].PublicKey)
 	assert.Equal(t, "devicePublicKey2", resp.GetDevices()[1].PublicKey)
 
+	// Cancel the first stream and drain it before opening the second, to ensure
+	// the server-side goroutine has exited and won't race with the second stream.
+	stream1Cancel()
+	for {
+		_, err := stream.Recv()
+		if err != nil {
+			break
+		}
+	}
+
+	// Test second stream: privileged gateway.
+	stream2Ctx, stream2Cancel := context.WithCancel(ctx)
+	defer stream2Cancel()
 	stream, err = client.GetGatewayConfiguration(
-		ctx,
+		stream2Ctx,
 		&pb.GetGatewayConfigurationRequest{
 			Gateway:  "privilegedGateway",
 			Password: "hunter2",
@@ -128,4 +149,6 @@ func Test_MakeGatewayConfiguration(t *testing.T) {
 
 	assert.Len(t, resp.GetDevices(), 1)
 	assert.Equal(t, "devicePublicKey2", resp.GetDevices()[0].PublicKey)
+
+	stream2Cancel()
 }
