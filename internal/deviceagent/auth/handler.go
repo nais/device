@@ -78,17 +78,21 @@ func (h *handler) GetDeviceAgentToken(ctx context.Context, log logrus.FieldLogge
 	h.oauthConfig = oauthConfig
 	h.redirect = redirect
 
+	var extraAuthParams []oauth2.AuthCodeOption
 	if h.oauthConfig.Endpoint == endpoints.AzureAD("62366534-1ec3-4962-8869-9b5535279d0b") {
 		h.oauthConfig.RedirectURL = agenthttp.Path("/auth/azure", false)
+		extraAuthParams = append(extraAuthParams, oauth2.SetAuthURLParam("domain_hint", "nav.no"))
 	} else if h.oauthConfig.Endpoint == endpoints.Google {
 		h.oauthConfig.RedirectURL = agenthttp.Path("/auth/google", false)
 	}
 
 	url := h.oauthConfig.AuthCodeURL(
 		h.state,
-		oauth2.AccessTypeOffline,
-		oauth2.SetAuthURLParam("code_challenge_method", "S256"),
-		oauth2.SetAuthURLParam("code_challenge", h.codeVerifier.CodeChallengeS256()))
+		append([]oauth2.AuthCodeOption{
+			oauth2.AccessTypeOffline,
+			oauth2.SetAuthURLParam("code_challenge_method", "S256"),
+			oauth2.SetAuthURLParam("code_challenge", h.codeVerifier.CodeChallengeS256()),
+		}, extraAuthParams...)...)
 
 	open.Open(url)
 	log.WithField("url", url).Info("if the browser didn't open, visit url to sign in")
