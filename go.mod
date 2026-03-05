@@ -19,7 +19,7 @@ tool (
 require (
 	cloud.google.com/go/pubsub v1.49.0
 	cloud.google.com/go/storage v1.57.2
-	fyne.io/systray v1.11.0
+	fyne.io/systray v1.12.0
 	github.com/coreos/go-iptables v0.8.0
 	github.com/gen2brain/beeep v0.11.1
 	github.com/golang-migrate/migrate/v4 v4.16.2
