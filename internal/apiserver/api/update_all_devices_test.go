@@ -2,6 +2,7 @@ package api_test
 
 import (
 	"context"
+	"fmt"
 	"testing"
 	"time"
 
@@ -466,4 +467,17 @@ func (m *mockKolideClient) GetChecks(ctx context.Context) ([]*kolide.Check, erro
 
 func (m *mockKolideClient) GetDeviceIssues(ctx context.Context, deviceID string) ([]*kolide.Issue, error) {
 	return m.issues, nil
+}
+
+func (m *mockKolideClient) GetDevice(ctx context.Context, deviceID string) (*kolide.Device, error) {
+	for _, d := range m.devices {
+		if d.ID == deviceID {
+			return d, nil
+		}
+	}
+	return nil, fmt.Errorf("device %v not found", deviceID)
+}
+
+func (m *mockKolideClient) GetPeople(ctx context.Context) (map[string]*kolide.Person, error) {
+	return map[string]*kolide.Person{}, nil
 }

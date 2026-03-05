@@ -5,10 +5,14 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"slices"
+	"strings"
 	"time"
 
+	"github.com/nais/device/internal/apiserver/kolide"
 	"github.com/nais/device/internal/apiserver/metrics"
 	"github.com/nais/device/pkg/pb"
+	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/timestamppb"
@@ -228,6 +232,31 @@ func (s *grpcServer) UpdateAllDevices(ctx context.Context) error {
 				device.ExternalID = kolideDevice.ID
 				break
 			}
+		}
+	}
+
+	// Log devices that don't have a matching Kolide device (by serial, platform, and owner email)
+	for _, device := range devices {
+		idx := slices.IndexFunc(kolideDevices, func(kd *kolide.Device) bool {
+			return kd.Serial == device.Serial && kd.Platform == device.Platform
+		})
+		if idx == -1 {
+			s.log.WithFields(logrus.Fields{
+				"device_serial":   device.Serial,
+				"device_platform": device.Platform,
+				"device_username": device.Username,
+			}).Info("no matching kolide device found for serial+platform")
+			continue
+		}
+		kd := kolideDevices[idx]
+		if !strings.EqualFold(kd.Owner.Email, device.Username) {
+			s.log.WithFields(logrus.Fields{
+				"device_serial":      device.Serial,
+				"device_platform":    device.Platform,
+				"device_username":    device.Username,
+				"kolide_owner_email": kd.Owner.Email,
+				"kolide_owner_id":    kd.OwnerRef.Identifier,
+			}).Warn("kolide device owner email does not match enrolled username")
 		}
 	}
 

@@ -13,6 +13,11 @@ func (f *FakeClient) GetChecks(ctx context.Context) ([]*Check, error) {
 	panic("unimplemented")
 }
 
+// GetDevice implements Client.
+func (f *FakeClient) GetDevice(ctx context.Context, deviceID string) (*Device, error) {
+	panic("unimplemented")
+}
+
 // GetDeviceIssues implements Client.
 func (f *FakeClient) GetDeviceIssues(ctx context.Context, deviceID string) ([]*Issue, error) {
 	panic("unimplemented")
@@ -25,6 +30,11 @@ func (f *FakeClient) GetDevices(ctx context.Context) ([]*Device, error) {
 
 // GetIssues implements Client.
 func (f *FakeClient) GetIssues(ctx context.Context) ([]*Issue, error) {
+	panic("unimplemented")
+}
+
+// GetPeople implements Client.
+func (f *FakeClient) GetPeople(ctx context.Context) (map[string]*Person, error) {
 	panic("unimplemented")
 }
 

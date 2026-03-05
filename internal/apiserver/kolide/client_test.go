@@ -62,6 +62,8 @@ func TestClient_GetDevices(t *testing.T) {
 		assert.Equal(t, "darwin", d.Platform) // converted from "Mac"
 		assert.Equal(t, "XXXX1111AAAA", d.Serial)
 		assert.Equal(t, "44200", d.OwnerRef.Identifier)
+		assert.Equal(t, "john.doe@example.com", d.Owner.Email)
+		assert.Equal(t, "44200", d.Owner.ID)
 	})
 
 	t.Run("Windows device platform converted", func(t *testing.T) {
@@ -74,6 +76,33 @@ func TestClient_GetDevices(t *testing.T) {
 		d := devices[3]
 		assert.Equal(t, "10004", d.ID)
 		assert.Equal(t, "", d.OwnerRef.Identifier)
+		assert.Equal(t, "", d.Owner.Email)
+	})
+}
+
+func TestClient_GetPeople(t *testing.T) {
+	ctx := context.Background()
+	server, _ := setupTestServer(t)
+	defer server.Close()
+
+	client := kolide.New("token", logrus.New(), kolide.WithBaseURL(server.URL))
+
+	people, err := client.GetPeople(ctx)
+	require.NoError(t, err)
+	require.Len(t, people, 4)
+
+	t.Run("person keyed by id", func(t *testing.T) {
+		p, ok := people["44200"]
+		require.True(t, ok)
+		assert.Equal(t, "44200", p.ID)
+		assert.Equal(t, "john.doe@example.com", p.Email)
+	})
+
+	t.Run("all expected people present", func(t *testing.T) {
+		assert.Contains(t, people, "44200")
+		assert.Contains(t, people, "44794")
+		assert.Contains(t, people, "45037")
+		assert.Contains(t, people, "47221")
 	})
 }
 
@@ -193,6 +222,12 @@ func TestClient_Pagination(t *testing.T) {
 
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		callCount++
+
+		if r.URL.Path == "/people" {
+			w.Write([]byte(`{"data": [], "pagination": {"count": 0}}`))
+			return
+		}
+
 		cursor := r.URL.Query().Get("cursor")
 
 		switch cursor {
@@ -215,7 +250,70 @@ func TestClient_Pagination(t *testing.T) {
 	devices, err := client.GetDevices(ctx)
 	require.NoError(t, err)
 	assert.Len(t, devices, 2)
-	assert.Equal(t, 2, callCount)
+	assert.Equal(t, 3, callCount) // 2 pages of devices + 1 people call
 	assert.Equal(t, "1", devices[0].ID)
 	assert.Equal(t, "2", devices[1].ID)
+}
+
+func TestClient_GetDevice(t *testing.T) {
+	ctx := context.Background()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/devices/10001":
+			w.Write([]byte(`{
+				"id": "10001",
+				"name": "MacBook-Pro-001",
+				"device_type": "Mac",
+				"serial": "XXXX1111AAAA",
+				"registered_owner_info": {"identifier": "44200"}
+			}`))
+		case "/people/44200":
+			w.Write([]byte(`{"id": "44200", "email": "john.doe@example.com"}`))
+		default:
+			t.Errorf("unexpected request to %v", r.URL.Path)
+			w.WriteHeader(http.StatusNotFound)
+		}
+	}))
+	defer server.Close()
+
+	client := kolide.New("token", logrus.New(), kolide.WithBaseURL(server.URL))
+
+	t.Run("device with owner resolved", func(t *testing.T) {
+		d, err := client.GetDevice(ctx, "10001")
+		require.NoError(t, err)
+		assert.Equal(t, "10001", d.ID)
+		assert.Equal(t, "MacBook-Pro-001", d.Name)
+		assert.Equal(t, "darwin", d.Platform) // converted from "Mac"
+		assert.Equal(t, "XXXX1111AAAA", d.Serial)
+		assert.Equal(t, "44200", d.OwnerRef.Identifier)
+		assert.Equal(t, "44200", d.Owner.ID)
+		assert.Equal(t, "john.doe@example.com", d.Owner.Email)
+	})
+
+	t.Run("device with no owner has empty Owner", func(t *testing.T) {
+		noOwnerServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			switch r.URL.Path {
+			case "/devices/10004":
+				w.Write([]byte(`{
+					"id": "10004",
+					"name": "MacBook-Pro-003",
+					"device_type": "Mac",
+					"serial": "XXXX4444DDDD",
+					"registered_owner_info": {"identifier": ""}
+				}`))
+			default:
+				t.Errorf("unexpected request to %v", r.URL.Path)
+				w.WriteHeader(http.StatusNotFound)
+			}
+		}))
+		defer noOwnerServer.Close()
+
+		noOwnerClient := kolide.New("token", logrus.New(), kolide.WithBaseURL(noOwnerServer.URL))
+		d, err := noOwnerClient.GetDevice(ctx, "10004")
+		require.NoError(t, err)
+		assert.Equal(t, "10004", d.ID)
+		assert.Equal(t, "", d.OwnerRef.Identifier)
+		assert.Equal(t, "", d.Owner.Email)
+	})
 }

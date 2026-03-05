@@ -16,7 +16,9 @@ type Client interface {
 	GetIssues(ctx context.Context) ([]*Issue, error)
 	GetDeviceIssues(ctx context.Context, deviceID string) ([]*Issue, error)
 	GetChecks(ctx context.Context) ([]*Check, error)
+	GetDevice(ctx context.Context, deviceID string) (*Device, error)
 	GetDevices(ctx context.Context) ([]*Device, error)
+	GetPeople(ctx context.Context) (map[string]*Person, error)
 }
 
 type client struct {
@@ -137,12 +139,35 @@ func (kc *client) getPaginated(ctx context.Context, initialURL string) ([]json.R
 	}
 }
 
+func (kc *client) GetPeople(ctx context.Context) (map[string]*Person, error) {
+	rawPeople, err := kc.getPaginated(ctx, kc.baseURL+"/people")
+	if err != nil {
+		return nil, fmt.Errorf("getting people: %w", err)
+	}
+
+	people := make(map[string]*Person, len(rawPeople))
+	for _, rawPerson := range rawPeople {
+		person := &Person{}
+		err := json.Unmarshal(rawPerson, person)
+		if err != nil {
+			return nil, fmt.Errorf("unmarshal person: %w", err)
+		}
+		people[person.ID] = person
+	}
+	return people, nil
+}
+
 func (kc *client) GetDevices(ctx context.Context) ([]*Device, error) {
 	kc.log.Debug("getting all devices...")
 	url := kc.baseURL + "/devices"
 	rawDevices, err := kc.getPaginated(ctx, url)
 	if err != nil {
 		return nil, err
+	}
+
+	people, err := kc.GetPeople(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("getting people for device owner resolution: %w", err)
 	}
 
 	devices := make([]*Device, len(rawDevices))
@@ -154,10 +179,44 @@ func (kc *client) GetDevices(ctx context.Context) ([]*Device, error) {
 		}
 
 		device.Platform = convertPlatform(device.Platform)
+		if person, ok := people[device.OwnerRef.Identifier]; ok {
+			device.Owner = *person
+		}
 		devices[i] = device
 	}
 
 	return devices, nil
+}
+
+func (kc *client) GetDevice(ctx context.Context, deviceID string) (*Device, error) {
+	resp, err := kc.get(ctx, fmt.Sprintf(kc.baseURL+"/devices/%v", deviceID))
+	if err != nil {
+		return nil, fmt.Errorf("getting device %v: %w", deviceID, err)
+	}
+	defer ioconvenience.CloseWithLog(resp.Body, kc.log)
+
+	device := &Device{}
+	if err := json.NewDecoder(resp.Body).Decode(device); err != nil {
+		return nil, fmt.Errorf("unmarshal device %v: %w", deviceID, err)
+	}
+
+	device.Platform = convertPlatform(device.Platform)
+
+	if device.OwnerRef.Identifier != "" {
+		resp, err := kc.get(ctx, fmt.Sprintf(kc.baseURL+"/people/%v", device.OwnerRef.Identifier))
+		if err != nil {
+			return nil, fmt.Errorf("getting person %v for device %v: %w", device.OwnerRef.Identifier, deviceID, err)
+		}
+		defer ioconvenience.CloseWithLog(resp.Body, kc.log)
+
+		person := &Person{}
+		if err := json.NewDecoder(resp.Body).Decode(person); err != nil {
+			return nil, fmt.Errorf("unmarshal person %v: %w", device.OwnerRef.Identifier, err)
+		}
+		device.Owner = *person
+	}
+
+	return device, nil
 }
 
 func (kc *client) GetDeviceIssues(ctx context.Context, deviceID string) ([]*Issue, error) {

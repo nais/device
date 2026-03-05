@@ -10,6 +10,7 @@ import (
 	_ "net/http/pprof"
 	"net/netip"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/kelseyhightower/envconfig"
@@ -347,6 +348,21 @@ func run(log *logrus.Entry, cfg config.Config) error {
 			device, err := db.ReadDeviceByExternalID(ctx, event.GetExternalID())
 			if err != nil {
 				return fmt.Errorf("read device with external_id=%v: %w", event.GetExternalID(), err)
+			}
+
+			kolideDevice, err := kolideClient.GetDevice(ctx, device.ExternalID)
+			if err != nil {
+				return fmt.Errorf("get kolide device %v: %w", device.ExternalID, err)
+			}
+
+			if !strings.EqualFold(kolideDevice.Owner.Email, device.Username) {
+				log.WithFields(logrus.Fields{
+					"device_serial":      device.Serial,
+					"device_platform":    device.Platform,
+					"device_username":    device.Username,
+					"kolide_owner_email": kolideDevice.Owner.Email,
+					"kolide_owner_id":    kolideDevice.OwnerRef.Identifier,
+				}).Warn("kolide device owner email does not match enrolled username")
 			}
 
 			failures, err := kolideClient.GetDeviceIssues(ctx, device.ExternalID)
