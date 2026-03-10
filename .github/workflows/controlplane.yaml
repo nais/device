@@ -112,7 +112,7 @@ jobs:
             type=sha
 
       - name: Build and push enroller
-        uses: docker/build-push-action@263435318d21b8e681c14492fe198d362a7d2c83 # ratchet:docker/build-push-action@v6
+        uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # ratchet:docker/build-push-action@v6
         env:
           cache_ref: ${{ env.REGISTRY }}/naisdevice-enroller:main
         with:
@@ -171,7 +171,7 @@ jobs:
             type=sha
 
       - name: Build and push auth-server
-        uses: docker/build-push-action@263435318d21b8e681c14492fe198d362a7d2c83 # ratchet:docker/build-push-action@v6
+        uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # ratchet:docker/build-push-action@v6
         env:
           cache_ref: ${{ env.REGISTRY }}/naisdevice-auth-server:main
         with:
