@@ -2,3 +2,4 @@ dependencies:
   - role: naisdevice_apt_repo
   - role: common
   - role: logging
+  - role: otel
