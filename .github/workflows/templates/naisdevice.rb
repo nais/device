@@ -11,12 +11,12 @@ cask "naisdevice" do
   ]
 
   if Hardware::CPU.intel?
-    url "$NAISDEVICE_MACOS_AMD64_URL", verified: "github.com/nais/device/"
+    url "https://github.com/nais/device/releases/download/#{version}/$NAISDEVICE_MACOS_AMD64_FILENAME", verified: "github.com/nais/device/"
     sha256 "$NAISDEVICE_MACOS_AMD64_HASH_BASE16"
     pkg "naisdevice_macos_amd64.pkg"
   end
   if Hardware::CPU.arm?
-    url "$NAISDEVICE_MACOS_ARM64_URL", verified: "github.com/nais/device/"
+    url "https://github.com/nais/device/releases/download/#{version}/$NAISDEVICE_MACOS_ARM64_FILENAME", verified: "github.com/nais/device/"
     sha256 "$NAISDEVICE_MACOS_ARM64_HASH_BASE16"
     pkg "naisdevice_macos_arm64.pkg"
   end
