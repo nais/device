@@ -64,6 +64,8 @@ var (
 )
 
 func (c *Connected) Enter(ctx context.Context) state.EventWithSpan {
+	c.connectedSince = nil
+
 	// Set up WireGuard interface for communication with APIServer
 	helperCtx, cancel := context.WithTimeout(ctx, helperTimeout)
 	_, err := c.deviceHelper.Configure(helperCtx, c.rc.BuildHelperConfiguration([]*pb.Gateway{
@@ -83,6 +85,7 @@ func (c *Connected) Enter(ctx context.Context) state.EventWithSpan {
 		_, err = c.deviceHelper.Teardown(teardownCtx, &pb.TeardownRequest{})
 		cancel()
 		c.cfg = nil
+		c.connectedSince = nil
 	}()
 
 	attempt := 0

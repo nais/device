@@ -74,7 +74,16 @@ func TestReadyForConnectedIcon(t *testing.T) {
 					{Healthy: false, RequiresPrivilegedAccess: true},
 				},
 			},
-			want: true,
+			want: false,
+		},
+		{
+			name: "no gateways",
+			status: &pb.AgentStatus{
+				ConnectionState: pb.AgentState_Connected,
+				ConnectedSince:  connectedAt,
+				Gateways:        []*pb.Gateway{},
+			},
+			want: false,
 		},
 	}
 
