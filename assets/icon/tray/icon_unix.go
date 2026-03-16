@@ -7,6 +7,8 @@ import _ "embed"
 var (
 	//go:embed unix/nais-logo-blue.png
 	NaisLogoBlue []byte
+	//go:embed unix/nais-logo-pink.png
+	NaisLogoPink []byte
 	//go:embed unix/nais-logo-bw-connected.png
 	NaisLogoBwConnected []byte
 	//go:embed unix/nais-logo-bw-disconnected.png
