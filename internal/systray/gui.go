@@ -380,13 +380,41 @@ func (gui *Gui) applyDisconnectedIcon() {
 	}
 }
 
+func readyForConnectedIcon(status *pb.AgentStatus) bool {
+	if status == nil || status.GetConnectedSince() == nil {
+		return false
+	}
+
+	nonJITAGatewayFound := false
+	for _, gateway := range status.GetGateways() {
+		if gateway.GetRequiresPrivilegedAccess() {
+			continue
+		}
+
+		nonJITAGatewayFound = true
+		if !gateway.GetHealthy() {
+			return false
+		}
+	}
+
+	if !nonJITAGatewayFound {
+		return true
+	}
+
+	return true
+}
+
 func (gui *Gui) updateIcons() {
 	switch gui.AgentStatus.GetConnectionState() {
 	case pb.AgentState_Connected:
-		if gui.Config.BlackAndWhiteIcons {
-			gui.setTemplateIcon(tray.NaisLogoBwConnected, tray.NaisLogoBwConnected)
+		if readyForConnectedIcon(gui.AgentStatus) {
+			if gui.Config.BlackAndWhiteIcons {
+				gui.setTemplateIcon(tray.NaisLogoBwConnected, tray.NaisLogoBwConnected)
+			} else {
+				gui.setIcon(tray.NaisLogoGreen)
+			}
 		} else {
-			gui.setIcon(tray.NaisLogoGreen)
+			gui.setIcon(tray.NaisLogoPink)
 		}
 	case pb.AgentState_Disconnected:
 		gui.applyDisconnectedIcon()
