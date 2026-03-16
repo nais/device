@@ -385,17 +385,20 @@ func readyForConnectedIcon(status *pb.AgentStatus) bool {
 		return false
 	}
 
+	hasNonJITAGateway := false
 	for _, gateway := range status.GetGateways() {
 		if gateway.GetRequiresPrivilegedAccess() {
 			continue
 		}
+
+		hasNonJITAGateway = true
 
 		if !gateway.GetHealthy() {
 			return false
 		}
 	}
 
-	return true
+	return hasNonJITAGateway
 }
 
 func (gui *Gui) updateIcons() {
