@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 #MISE description="Build windows client"
+#MISE depends=["build:windows:verify-wintun"]
 #MISE env={ GOOS = "windows" }
 
 set -o errexit
