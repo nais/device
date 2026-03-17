@@ -38,10 +38,25 @@ func ReadOrCreatePrivateKey(path string, log *logrus.Entry) (wgtypes.Key, error)
 
 	log.Info("found private key, using it...")
 
-	key, err := wgtypes.ParseKey(strings.TrimSpace(string(b)))
-	if err != nil {
-		return wgtypes.Key{}, fmt.Errorf("parse private key: %w", err)
+	if key, err := wgtypes.ParseKey(strings.TrimSpace(string(b))); err == nil {
+		return key, nil
 	}
 
-	return key, nil
+	if len(b) != len(wgtypes.Key{}) {
+		return wgtypes.Key{}, fmt.Errorf("parse private key: invalid key length %d", len(b))
+	}
+
+	legacyKey, err := wgtypes.NewKey(b)
+	if err != nil {
+		return wgtypes.Key{}, fmt.Errorf("parse legacy private key: %w", err)
+	}
+
+	if err := os.WriteFile(path, []byte(legacyKey.String()), 0o600); err != nil {
+		return wgtypes.Key{}, fmt.Errorf("rewrite private key: %w", err)
+	}
+	if err := os.Chmod(path, 0o600); err != nil {
+		return wgtypes.Key{}, fmt.Errorf("set private key file mode: %w", err)
+	}
+
+	return legacyKey, nil
 }

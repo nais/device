@@ -28,10 +28,25 @@ func EnsurePrivateKey(keyPath string) (wgtypes.Key, error) {
 		return wgtypes.Key{}, fmt.Errorf("reading private key: %w", err)
 	}
 
-	key, err := wgtypes.ParseKey(strings.TrimSpace(string(privateKeyEncoded)))
-	if err != nil {
-		return wgtypes.Key{}, fmt.Errorf("parsing private key: %w", err)
+	if key, err := wgtypes.ParseKey(strings.TrimSpace(string(privateKeyEncoded))); err == nil {
+		return key, nil
 	}
 
-	return key, nil
+	if len(privateKeyEncoded) != len(wgtypes.Key{}) {
+		return wgtypes.Key{}, fmt.Errorf("parsing private key: invalid key length %d", len(privateKeyEncoded))
+	}
+
+	legacyKey, err := wgtypes.NewKey(privateKeyEncoded)
+	if err != nil {
+		return wgtypes.Key{}, fmt.Errorf("parsing legacy private key: %w", err)
+	}
+
+	if err := os.WriteFile(keyPath, []byte(legacyKey.String()), 0o600); err != nil {
+		return wgtypes.Key{}, fmt.Errorf("rewriting legacy private key to disk: %w", err)
+	}
+	if err := os.Chmod(keyPath, 0o600); err != nil {
+		return wgtypes.Key{}, fmt.Errorf("setting private key file mode: %w", err)
+	}
+
+	return legacyKey, nil
 }

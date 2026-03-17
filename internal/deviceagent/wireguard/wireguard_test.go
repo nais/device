@@ -59,3 +59,27 @@ func TestEnsurePrivateKey_IdempotentAcrossCalls(t *testing.T) {
 
 	assert.Equal(t, key1, key2, "same key should be returned across calls")
 }
+
+func TestEnsurePrivateKey_MigratesLegacyRawKey(t *testing.T) {
+	dir := t.TempDir()
+	keyPath := filepath.Join(dir, "private.key")
+
+	original, err := wgtypes.GeneratePrivateKey()
+	require.NoError(t, err)
+
+	legacyBytes := make([]byte, len(original))
+	copy(legacyBytes, original[:])
+	require.NoError(t, os.WriteFile(keyPath, legacyBytes, 0o644))
+
+	key, err := wireguard.EnsurePrivateKey(keyPath)
+	require.NoError(t, err)
+	assert.Equal(t, original, key)
+
+	migrated, err := os.ReadFile(keyPath)
+	require.NoError(t, err)
+	assert.Equal(t, original.String(), string(migrated))
+
+	info, err := os.Stat(keyPath)
+	require.NoError(t, err)
+	assert.Equal(t, os.FileMode(0o600), info.Mode().Perm())
+}
