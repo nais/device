@@ -75,6 +75,8 @@ func (c *LinuxConfigurator) SetupRoutes(ctx context.Context, gateways []*pb.Gate
 	routesAdded := 0
 	for _, gw := range gateways {
 		for _, cidr := range append(gw.GetRoutesIPv4(), gw.GetRoutesIPv6()...) {
+			cidr = strings.TrimSpace(cidr)
+
 			if IsTunnelRoute(tunnelNet, cidr) {
 				c.log.WithFields(logrus.Fields{
 					"cidr":    cidr,
@@ -82,8 +84,6 @@ func (c *LinuxConfigurator) SetupRoutes(ctx context.Context, gateways []*pb.Gate
 				}).Debug("skipping tunnel route")
 				continue
 			}
-
-			cidr = strings.TrimSpace(cidr)
 
 			prefix, err := iputil.ParsePrefix(cidr)
 			if err != nil {
@@ -166,6 +166,10 @@ func (c *LinuxConfigurator) SetupInterface(ctx context.Context, cfg *pb.Configur
 
 	link, err := netlink.LinkByName(c.helperConfig.Interface)
 	if err != nil {
+		cleanupErr := netlink.LinkDel(wgLink)
+		if cleanupErr != nil {
+			return fmt.Errorf("lookup interface after creation: %w (additionally, failed to delete interface: %v)", err, cleanupErr)
+		}
 		return fmt.Errorf("lookup interface after creation: %w", err)
 	}
 	c.log.WithFields(logrus.Fields{

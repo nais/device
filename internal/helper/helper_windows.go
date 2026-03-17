@@ -66,11 +66,11 @@ func (c *WindowsConfigurator) SetupRoutes(ctx context.Context, gateways []*pb.Ga
 	routesAdded := 0
 	for _, gw := range gateways {
 		for _, cidr := range append(gw.GetRoutesIPv4(), gw.GetRoutesIPv6()...) {
+			cidr = strings.TrimSpace(cidr)
+
 			if IsTunnelRoute(c.tunnelNet, cidr) {
 				continue
 			}
-
-			cidr = strings.TrimSpace(cidr)
 
 			dst, err := iputil.ParsePrefix(cidr)
 			if err != nil {
