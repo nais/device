@@ -48,6 +48,10 @@ main() {
 		return
 	fi
 
+	if [[ "${PRE_RELEASE:-}" == "true" && -n "${PR_NUMBER:-}" ]]; then
+		version="${version}-rc.${PR_NUMBER}"
+	fi
+
 	output "changelog" "$changelog"
 	output "version" "$version"
 }
