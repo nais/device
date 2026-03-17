@@ -106,9 +106,16 @@ func (a *autoEnroll) receiveGateway(ctx context.Context, msg *pubsub.Message) {
 	}
 	log := a.log.WithField("gateway", req.Name)
 
-	err := a.db.AddGateway(ctx, &pb.Gateway{
+	normalizedPublicKey, err := enroll.NormalizeWireGuardPublicKey(req.WireGuardPublicKey)
+	if err != nil {
+		log.WithError(err).Error("invalid wireguard public key")
+		msg.Nack()
+		return
+	}
+
+	err = a.db.AddGateway(ctx, &pb.Gateway{
 		Name:         req.Name,
-		PublicKey:    req.WireGuardPublicKey,
+		PublicKey:    normalizedPublicKey,
 		Endpoint:     req.Endpoint,
 		PasswordHash: req.HashedPassword,
 	})
@@ -171,9 +178,16 @@ func (a *autoEnroll) receiveDevice(ctx context.Context, msg *pubsub.Message) {
 	}
 	log := a.log.WithFields(logrus.Fields{"serial": req.Serial, "platform": req.Platform})
 
-	err := a.db.AddDevice(ctx, &pb.Device{
+	normalizedPublicKey, err := enroll.NormalizeWireGuardPublicKey(req.WireGuardPublicKey)
+	if err != nil {
+		log.WithError(err).Error("invalid wireguard public key")
+		msg.Nack()
+		return
+	}
+
+	err = a.db.AddDevice(ctx, &pb.Device{
 		Username:  req.Owner,
-		PublicKey: req.WireGuardPublicKey,
+		PublicKey: normalizedPublicKey,
 		Serial:    req.Serial,
 		Platform:  req.Platform,
 	})
