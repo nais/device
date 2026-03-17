@@ -20,7 +20,7 @@ echo "==> Installing dependencies"
 sudo apt-get update && sudo apt-get install --yes jq
 
 echo "==> Installing $installer_deb"
-sudo dpkg -i "$installer_deb"
+sudo apt-get install --yes "$installer_deb"
 
 echo "==> Waiting for helper to start"
 for i in $(seq 1 10); do
