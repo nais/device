@@ -2,7 +2,7 @@
   "version": "$VERSION",
   "architecture": {
     "64bit": {
-      "url": "https://github.com/nais/device/releases/download/$VERSION/$NAISDEVICE_WINDOWS_AMD64_FILENAME",
+      "url": "https://github.com/nais/device/releases/download/$version/$NAISDEVICE_WINDOWS_AMD64_FILENAME",
       "hash": "$NAISDEVICE_WINDOWS_AMD64_HASH_BASE16",
       "installer": {
         "script": [
@@ -21,7 +21,7 @@
       ]
     },
     "arm64": {
-      "url": "https://github.com/nais/device/releases/download/$VERSION/$NAISDEVICE_WINDOWS_ARM64_FILENAME",
+      "url": "https://github.com/nais/device/releases/download/$version/$NAISDEVICE_WINDOWS_ARM64_FILENAME",
       "hash": "$NAISDEVICE_WINDOWS_ARM64_HASH_BASE16",
       "installer": {
         "script": [
