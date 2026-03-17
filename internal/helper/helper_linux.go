@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"net"
 	"net/netip"
-	"strings"
 	"sync"
 	"syscall"
 
@@ -75,8 +74,6 @@ func (c *LinuxConfigurator) SetupRoutes(ctx context.Context, gateways []*pb.Gate
 	routesAdded := 0
 	for _, gw := range gateways {
 		for _, cidr := range append(gw.GetRoutesIPv4(), gw.GetRoutesIPv6()...) {
-			cidr = strings.TrimSpace(cidr)
-
 			if IsTunnelRoute(tunnelNet, cidr) {
 				c.log.WithFields(logrus.Fields{
 					"cidr":    cidr,

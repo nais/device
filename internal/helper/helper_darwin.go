@@ -8,7 +8,6 @@ import (
 	"net/netip"
 	"os"
 	"os/exec"
-	"strings"
 	"sync"
 	"syscall"
 	"time"
@@ -82,7 +81,6 @@ func (c *DarwinConfigurator) SetupRoutes(ctx context.Context, gateways []*pb.Gat
 	routesAdded := 0
 	for _, gw := range gateways {
 		for _, cidr := range gw.GetRoutesIPv4() {
-			cidr = strings.TrimSpace(cidr)
 			if IsTunnelRoute(tunnelNet, cidr) {
 				continue
 			}
@@ -93,7 +91,6 @@ func (c *DarwinConfigurator) SetupRoutes(ctx context.Context, gateways []*pb.Gat
 		}
 
 		for _, cidr := range gw.GetRoutesIPv6() {
-			cidr = strings.TrimSpace(cidr)
 			if IsTunnelRoute(tunnelNet, cidr) {
 				continue
 			}

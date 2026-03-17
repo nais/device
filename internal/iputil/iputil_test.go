@@ -41,6 +41,16 @@ func TestParsePrefix(t *testing.T) {
 			want:  netip.MustParsePrefix("fd00::1/128"),
 		},
 		{
+			name:  "CIDR with surrounding whitespace",
+			input: " 10.0.0.0/24 ",
+			want:  netip.MustParsePrefix("10.0.0.0/24"),
+		},
+		{
+			name:  "bare IP with surrounding whitespace",
+			input: " 10.43.0.60 ",
+			want:  netip.MustParsePrefix("10.43.0.60/32"),
+		},
+		{
 			name:    "garbage input",
 			input:   "not-an-ip",
 			wantErr: true,
