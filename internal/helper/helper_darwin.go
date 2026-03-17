@@ -61,6 +61,7 @@ func (c *DarwinConfigurator) SyncConf(ctx context.Context, cfg *pb.Configuration
 func (c *DarwinConfigurator) SetupRoutes(ctx context.Context, gateways []*pb.Gateway) (int, error) {
 	c.mu.Lock()
 	ifaceName := c.ifaceName
+	tunnelNet := c.tunnelNet
 	c.mu.Unlock()
 	if ifaceName == "" {
 		ifaceName = c.helperConfig.Interface
@@ -80,7 +81,7 @@ func (c *DarwinConfigurator) SetupRoutes(ctx context.Context, gateways []*pb.Gat
 	routesAdded := 0
 	for _, gw := range gateways {
 		for _, cidr := range gw.GetRoutesIPv4() {
-			if IsTunnelRoute(c.tunnelNet, cidr) {
+			if IsTunnelRoute(tunnelNet, cidr) {
 				continue
 			}
 			if err := addRouteViaInterface(fd, cidr, iface); err != nil {
@@ -90,7 +91,7 @@ func (c *DarwinConfigurator) SetupRoutes(ctx context.Context, gateways []*pb.Gat
 		}
 
 		for _, cidr := range gw.GetRoutesIPv6() {
-			if IsTunnelRoute(c.tunnelNet, cidr) {
+			if IsTunnelRoute(tunnelNet, cidr) {
 				continue
 			}
 			if err := addRouteViaInterface(fd, cidr, iface); err != nil {

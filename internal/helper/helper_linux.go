@@ -7,6 +7,7 @@ import (
 	"net"
 	"net/netip"
 	"strings"
+	"sync"
 	"syscall"
 
 	"github.com/sirupsen/logrus"
@@ -26,6 +27,7 @@ func New(helperConfig Config, log *logrus.Entry) *LinuxConfigurator {
 
 type LinuxConfigurator struct {
 	helperConfig Config
+	mu           sync.RWMutex
 	tunnelNet    netip.Prefix
 	log          *logrus.Entry
 }
@@ -41,7 +43,7 @@ func (c *LinuxConfigurator) SyncConf(ctx context.Context, cfg *pb.Configuration)
 		c.log.WithFields(logrus.Fields{
 			"peer":        gw.GetName(),
 			"endpoint":    gw.GetEndpoint(),
-			"public_key":  gw.GetPublicKey()[:8] + "...",
+			"public_key":  fmt.Sprintf("%.8s...", gw.GetPublicKey()),
 			"allowed_ips": gw.GetAllowedIPs(),
 		}).Debug("configuring wireguard peer")
 	}
@@ -55,6 +57,10 @@ func (c *LinuxConfigurator) SyncConf(ctx context.Context, cfg *pb.Configuration)
 }
 
 func (c *LinuxConfigurator) SetupRoutes(ctx context.Context, gateways []*pb.Gateway) (int, error) {
+	c.mu.RLock()
+	tunnelNet := c.tunnelNet
+	c.mu.RUnlock()
+
 	link, err := netlink.LinkByName(c.helperConfig.Interface)
 	if err != nil {
 		return 0, fmt.Errorf("lookup interface %q: %w", c.helperConfig.Interface, err)
@@ -69,7 +75,7 @@ func (c *LinuxConfigurator) SetupRoutes(ctx context.Context, gateways []*pb.Gate
 	routesAdded := 0
 	for _, gw := range gateways {
 		for _, cidr := range append(gw.GetRoutesIPv4(), gw.GetRoutesIPv6()...) {
-			if IsTunnelRoute(c.tunnelNet, cidr) {
+			if IsTunnelRoute(tunnelNet, cidr) {
 				c.log.WithFields(logrus.Fields{
 					"cidr":    cidr,
 					"gateway": gw.GetName(),
@@ -128,7 +134,9 @@ func (c *LinuxConfigurator) SetupInterface(ctx context.Context, cfg *pb.Configur
 	if err != nil {
 		return fmt.Errorf("derive tunnel network: %w", err)
 	}
+	c.mu.Lock()
 	c.tunnelNet = tunnelNet
+	c.mu.Unlock()
 	c.log.WithFields(logrus.Fields{
 		"device_ipv4": cfg.DeviceIPv4,
 		"device_ipv6": cfg.DeviceIPv6,

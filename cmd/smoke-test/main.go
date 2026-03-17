@@ -95,6 +95,18 @@ func run() error {
 	}
 	log.Println("configure succeeded")
 
+	defer func() {
+		teardownCtx, teardownCancel := context.WithTimeout(context.Background(), 10*time.Second)
+		defer teardownCancel()
+
+		log.Println("sending Teardown request...")
+		if _, err := client.Teardown(teardownCtx, &pb.TeardownRequest{}); err != nil {
+			log.Printf("WARN: teardown failed: %v", err)
+			return
+		}
+		log.Println("teardown succeeded")
+	}()
+
 	if err := verifyPeers(gwPublicKey); err != nil {
 		return fmt.Errorf("verify peers: %w", err)
 	}
@@ -102,12 +114,6 @@ func run() error {
 	if err := verifyRoutes(wantRoutes); err != nil {
 		return fmt.Errorf("verify routes: %w", err)
 	}
-
-	log.Println("sending Teardown request...")
-	if _, err := client.Teardown(ctx, &pb.TeardownRequest{}); err != nil {
-		return fmt.Errorf("teardown: %w", err)
-	}
-	log.Println("teardown succeeded")
 
 	return nil
 }

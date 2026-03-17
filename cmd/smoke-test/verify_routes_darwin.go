@@ -57,7 +57,7 @@ func verifyRoutes(prefixes []netip.Prefix) error {
 }
 
 func routeMsgToPrefix(rm *route.RouteMessage) (netip.Prefix, bool) {
-	if len(rm.Addrs) < 2 {
+	if len(rm.Addrs) <= syscall.RTAX_NETMASK {
 		return netip.Prefix{}, false
 	}
 
