@@ -1,0 +1,37 @@
+name: test latest dependencies
+on:
+  push:
+    branches: [main]
+  pull_request:
+  schedule: # daily at 10:22 UTC
+    - cron: "22 10 * * *"
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  test:
+    strategy:
+      fail-fast: false
+      matrix:
+        go:
+          - version: stable
+          - version-file: go.mod
+        dependencies:
+          - locked
+          - latest
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # ratchet:actions/checkout@v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # ratchet:actions/setup-go@v5
+        with:
+          go-version: ${{ matrix.go.version }}
+          go-version-file: ${{ matrix.go.version-file }}
+      - uses: geomys/sandboxed-step@7d75eb49d17fdeeb3656b3a57d35932d205bcfb9 # ratchet:geomys/sandboxed-step@v1
+        with:
+          run: |
+            if [ "${{ matrix.dependencies }}" = "latest" ]; then
+              go get -u -t ./...
+            fi
+            go test --race ./...
