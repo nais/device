@@ -96,6 +96,10 @@ jobs:
           username: "oauth2accesstoken"
           password: "${{ steps.auth.outputs.access_token }}"
 
+      - name: Get Go version from go.mod
+        id: go-version
+        run: echo "version=$(awk '/^go /{print $2}' go.mod)" >> "$GITHUB_OUTPUT"
+
       - name: Docker meta enroller
         id: metadata
         uses: docker/metadata-action@c299e40c65443455700f0fdfc63efafe5b349051 # ratchet:docker/metadata-action@v5
@@ -121,6 +125,8 @@ jobs:
           push: true
           tags: ${{ steps.metadata.outputs.tags }}
           labels: ${{ steps.metadata.outputs.labels }}
+          build-args: |
+            GO_VERSION=${{ steps.go-version.outputs.version }}
           cache-from: type=registry,ref=${{ env.cache_ref }}
           cache-to: type=registry,ref=${{ env.cache_ref }},mode=max
 
@@ -155,6 +161,10 @@ jobs:
           username: "oauth2accesstoken"
           password: "${{ steps.auth.outputs.access_token }}"
 
+      - name: Get Go version from go.mod
+        id: go-version
+        run: echo "version=$(awk '/^go /{print $2}' go.mod)" >> "$GITHUB_OUTPUT"
+
       - name: Docker meta auth-server
         id: metadata
         uses: docker/metadata-action@c299e40c65443455700f0fdfc63efafe5b349051 # ratchet:docker/metadata-action@v5
@@ -180,5 +190,7 @@ jobs:
           push: true
           tags: ${{ steps.metadata.outputs.tags }}
           labels: ${{ steps.metadata.outputs.labels }}
+          build-args: |
+            GO_VERSION=${{ steps.go-version.outputs.version }}
           cache-from: type=registry,ref=${{ env.cache_ref }}
           cache-to: type=gha,ref=${{ env.cache_ref }},mode=max
