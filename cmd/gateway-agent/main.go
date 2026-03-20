@@ -1,3 +1,5 @@
+//go:build linux
+
 package main
 
 import (
@@ -24,6 +26,7 @@ import (
 	"github.com/nais/device/internal/logger"
 
 	"github.com/coreos/go-iptables/iptables"
+	"github.com/google/gopacket/routing"
 	"github.com/kelseyhightower/envconfig"
 	"github.com/sirupsen/logrus"
 
@@ -118,16 +121,14 @@ func run(log *logrus.Entry, cfg config.Config) error {
 			return fmt.Errorf("cannot enable routing: %w", err)
 		}
 		iptablesV4, err := iptables.NewWithProtocol(iptables.ProtocolIPv4)
-		_ = iptablesV4 // workaround as statickcheck thinks this in unused (but only on macos :shrug:)
 		if err != nil {
 			return fmt.Errorf("setup iptables: %w", err)
 		}
 		iptablesV6, err := iptables.NewWithProtocol(iptables.ProtocolIPv6)
-		_ = iptablesV6 // workaround as statickcheck thinks this in unused (but only on macos :shrug:)
 		if err != nil {
 			return fmt.Errorf("setup iptables: %w", err)
 		}
-		router, err := NewRouter()
+		router, err := routing.New()
 		if err != nil {
 			return fmt.Errorf("setup routing: %w", err)
 		}
