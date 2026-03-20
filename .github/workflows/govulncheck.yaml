@@ -1,0 +1,29 @@
+name: govulncheck
+on:
+  push:
+  pull_request:
+  schedule:
+    - cron: "22 10 * * *"
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  govulncheck:
+    strategy:
+      fail-fast: false
+      matrix:
+        runner:
+          - ubuntu-latest
+          - ubuntu-24.04
+          - macos-latest
+          - macos-26
+          - macos-26-intel
+          - windows-latest
+          - windows-2025
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # ratchet:actions/checkout@v6
+        with:
+          persist-credentials: false
+      - uses: jdx/mise-action@c1ecc8f748cd28cdeabf76dab3cccde4ce692fe4 # ratchet:jdx/mise-action@v4
+      - run: mise run check:govulncheck
