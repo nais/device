@@ -1,6 +1,7 @@
 name: test latest dependencies
 on:
   push:
+    branches: [main]
   pull_request:
   schedule: # daily at 10:22 UTC
     - cron: "22 10 * * *"
