@@ -34,7 +34,6 @@ type Config struct {
 	JitaOAuth2Config        oauth2.Config
 	Platform                string
 	PrivateKeyPath          string
-	WireGuardConfigPath     string // TODO(sechmann):remove this as well
 	EnrollProjectID         string
 	EnrollTopicName         string
 	LocalAPIServer          bool
@@ -46,7 +45,6 @@ func (c *Config) SetDefaults() {
 	c.Platform = Platform
 	c.Interface = "utun69"
 	c.PrivateKeyPath = filepath.Join(c.ConfigDir, "private.key")
-	c.WireGuardConfigPath = filepath.Join(c.ConfigDir, c.Interface+".conf")
 }
 
 func DefaultConfig() (*Config, error) {

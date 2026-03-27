@@ -28,7 +28,14 @@ make_user_dirs() {
 		user_accounts=$(loginctl list-users --output json | jq '[.[] | select(.uid >= 1000)]')
 	fi
 
-	if echo "$user_accounts" | jq -e 'length != 1' >/dev/null; then
+	num_accounts=$(echo "$user_accounts" | jq 'length')
+
+	if [ "$num_accounts" -eq 0 ]; then
+		echo "No logged-in user accounts found, skipping user directory setup"
+		return 0
+	fi
+
+	if [ "$num_accounts" -gt 1 ]; then
 		printf "\nMore than 1 user account logged in! naisdevice only permits _one_ user account!\n"
 		exit 1
 	fi
@@ -44,7 +51,9 @@ make_user_dirs() {
 		chmod 700 "$directory"
 	done
 
-	cp /sys/devices/virtual/dmi/id/product_serial "${config_dir}"
+	if [ -f /sys/devices/virtual/dmi/id/product_serial ]; then
+		cp /sys/devices/virtual/dmi/id/product_serial "${config_dir}"
+	fi
 
 	chown -R "${user}:" "${config_dir}"
 }
