@@ -7,14 +7,6 @@
 
 !define /ifndef VERSION "develop" ; Override when building release, MUST match '\d+.\d+.\d+.\d+'
 
-!ifndef WIREGUARD
-  !error "Specify path to the WIREGUARD MSI file using -DWIREGUARD."
-!endif
-
-!ifndef WIREGUARD_FILENAME
-  !error "Specify filename part of WIREGUARD variable using -DWIREGUARD_FILENAME."
-!endif
-
 !define APP_NAME "naisdevice"
 !define UNINSTALLER "uninstaller.exe"
 !define BIN_DIR "./bin/windows-client"
@@ -86,7 +78,7 @@ Var ProgramDataPath
 !insertmacro MUI_PAGE_WELCOME
 Page custom StopInstances
 !insertmacro MUI_PAGE_INSTFILES
-Page custom InstallWireGuard
+Page custom StartService
 
 ;; Uninstaller pages
 
@@ -121,6 +113,7 @@ Section "Install files"
     CreateDirectory $INSTDIR
     SetOutPath $INSTDIR
     File ${BIN_DIR}/naisdevice-*.exe
+    File ${BIN_DIR}/wintun.dll
     File ./assets/windows/icon/naisdevice.ico
 SectionEnd
 
@@ -212,6 +205,7 @@ Section "Uninstall"
     GetKnownFolderPath $ProgramDataPath "${FOLDERID_ProgramData}"
     RMDir /r "$ProgramDataPath\NAV\naisdevice"
     Delete $INSTDIR\naisdevice-*.exe
+    Delete $INSTDIR\wintun.dll
     Delete $INSTDIR\naisdevice.ico
     Delete $INSTDIR\${UNINSTALLER}
     RMDir $INSTDIR
@@ -220,6 +214,23 @@ Section "Uninstall"
 SectionEnd
 
 ; Functions --------------------------------
+
+Function .onInstSuccess
+    ${IfNot} ${Silent}
+        Return
+    ${EndIf}
+
+    !insertmacro _Log "Silent install: starting ${SERVICE_NAME} service"
+    SimpleSC::StartService ${SERVICE_NAME} "" 60
+    Pop $0
+    ${If} $0 != 0
+        SimpleSC::GetErrorMessage
+        Pop $0
+        !insertmacro _Log "Silent install: failed to start service: $0"
+    ${Else}
+        !insertmacro _Log "Silent install: service started successfully"
+    ${EndIf}
+FunctionEnd
 
 !macro GUIInit un
 Function ${un}GUIInit
@@ -402,31 +413,18 @@ ${ProgressPage} \
 !insertmacro StopInstances "install" ""
 !insertmacro StopInstances "uninstall" "un."
 
-; -- InstallWireGuard --------------
+; -- StartService --------------
 
 ; Function that should push 0 on the stack to skip the page, any other value to continue (required)
-Function _InstallWireGuard_Abort
+Function _StartService_Abort
     ; Never skip
     Push 1
 FunctionEnd
 
 ; Function to initialize any needed state, PP_NoOp to skip
-Function _InstallWireGuard_Init
-    Push $R9
-
-    SetOutPath $TEMP
-    File /oname=${WIREGUARD_FILENAME} "${WIREGUARD}"
-    ExecWait 'msiexec /package "$TEMP\${WIREGUARD_FILENAME}" DO_NOT_LAUNCH=true' $R9
-    ${If} ${Errors}
-        !insertmacro _Log "Error while installing WireGuard"
-        !insertmacro _Log "Exit code from wireguard installer: $R9"
-    ${EndIf}
-
-    Pop $R9
-FunctionEnd
 
 ; Function called on every step. Should push 0 to the stack to leave the page, any other value to continue (required)
-Function _InstallWireGuard_Step
+Function _StartService_Step
     Push $R9
 
     !insertmacro _Log "Attempting to start ${SERVICE_NAME} service"
@@ -447,20 +445,14 @@ Function _InstallWireGuard_Step
     Pop $R9
 FunctionEnd
 
-; Function called when successfully leaving the page, PP_NoOp to skip
-Function _InstallWireGuard_Leaving
-    Delete $TEMP\${WIREGUARD}
-FunctionEnd
-
 ${ProgressPage} \
-    "InstallWireGuard" \
+    "StartService" \
     "Installation almost complete" \
-    "Installing WireGuard and starting services" \
+    "Starting services" \
     "Installation of naisdevice is almost finished.$\n$\n\
-        The final steps are to install WireGuard, which is used by naisdevice to create the VPN tunnels, and start background services.$\n$\n\
-        The WireGuard installer finishes by launching WireGuard. You can close that window without making any changes.$\n$\n\
+        The final step is to start the background service.$\n$\n\
         Have a nais day!" \
-    _InstallWireGuard_Abort \
-    _InstallWireGuard_Init \
-    _InstallWireGuard_Step \
-    _InstallWireGuard_Leaving
+    _StartService_Abort \
+    PP_NoOp \
+    _StartService_Step \
+    PP_NoOp

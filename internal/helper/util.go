@@ -2,46 +2,42 @@ package helper
 
 import (
 	"archive/zip"
-	"context"
 	"errors"
 	"fmt"
 	"io"
+	"net/netip"
 	"os"
-	"os/exec"
 	"path/filepath"
-	"time"
 
 	"github.com/nais/device/internal/ioconvenience"
+	"github.com/nais/device/internal/iputil"
 	"github.com/sirupsen/logrus"
 )
 
 const (
-	TunnelNetworkPrefix = "10.255.24."
+	// wireguardMTU is the MTU used for WireGuard tunnel interfaces across all platforms.
+	wireguardMTU = 1360
+
+	// tunnelIPv4PrefixLen is the prefix length used for the IPv4 tunnel network.
+	tunnelIPv4PrefixLen = 21
 )
 
-func RegularFileExists(filepath string) error {
-	info, err := os.Stat(filepath)
+// TunnelNetworkFromIP derives the tunnel network prefix from the device's IPv4 address.
+func TunnelNetworkFromIP(deviceIPv4 string) (netip.Prefix, error) {
+	addr, err := netip.ParseAddr(deviceIPv4)
 	if err != nil {
-		return err
+		return netip.Prefix{}, fmt.Errorf("parse device IPv4 %q: %w", deviceIPv4, err)
 	}
-	if info.IsDir() {
-		return fmt.Errorf("%v is a directory", filepath)
-	}
-
-	return nil
+	return netip.PrefixFrom(addr, tunnelIPv4PrefixLen).Masked(), nil
 }
 
-func runCommands(ctx context.Context, commands [][]string) error {
-	for _, s := range commands {
-		cmd := exec.CommandContext(ctx, s[0], s[1:]...)
-
-		if out, err := cmd.CombinedOutput(); err != nil {
-			return fmt.Errorf("running %v: %w: %v", cmd, err, string(out))
-		}
-
-		time.Sleep(100 * time.Millisecond) // avoid serializable race conditions with kernel
+// IsTunnelRoute reports whether cidr falls within the tunnel network.
+func IsTunnelRoute(tunnelNet netip.Prefix, cidr string) bool {
+	prefix, err := iputil.ParsePrefix(cidr)
+	if err != nil {
+		return false
 	}
-	return nil
+	return tunnelNet.Contains(prefix.Addr()) && prefix.Bits() >= tunnelNet.Bits()
 }
 
 func ZipLogFiles(files []string, log logrus.FieldLogger) (string, error) {
@@ -61,7 +57,7 @@ func ZipLogFiles(files []string, log logrus.FieldLogger) (string, error) {
 		}
 		logFile, err := os.Open(filename)
 		if err != nil {
-			return "nil", fmt.Errorf("%s %v", filename, err)
+			return "nil", fmt.Errorf("%s: %w", filename, err)
 		}
 		zipEntryWiter, err := zipWriter.Create(filepath.Base(filename))
 		if err != nil {
