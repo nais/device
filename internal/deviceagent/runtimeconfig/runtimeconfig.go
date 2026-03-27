@@ -3,7 +3,6 @@ package runtimeconfig
 import (
 	"bytes"
 	"context"
-	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -27,6 +26,7 @@ import (
 	"github.com/nais/device/pkg/pb"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/oauth2"
+	"golang.zx2c4.com/wireguard/wgctrl/wgtypes"
 	"google.golang.org/api/iterator"
 	"google.golang.org/api/option"
 	"google.golang.org/grpc"
@@ -77,7 +77,7 @@ var _ RuntimeConfig = &runtimeConfig{}
 type runtimeConfig struct {
 	enrollConfig *bootstrap.Config // TODO: convert to enroll.Config
 	config       *config.Config
-	privateKey   []byte
+	privateKey   wgtypes.Key
 	tokens       *auth.Tokens
 	tenants      []*pb.Tenant
 	log          *logrus.Entry
@@ -154,7 +154,7 @@ func (rc *runtimeConfig) ConnectToAPIServer(ctx context.Context) (pb.APIServerCl
 
 func (rc *runtimeConfig) BuildHelperConfiguration(peers []*pb.Gateway) *pb.Configuration {
 	return &pb.Configuration{
-		PrivateKey: base64.StdEncoding.EncodeToString(rc.privateKey),
+		PrivateKey: rc.privateKey.String(),
 		DeviceIPv4: rc.enrollConfig.DeviceIPv4,
 		DeviceIPv6: rc.enrollConfig.DeviceIPv6,
 		Gateways:   peers,
@@ -207,7 +207,7 @@ func New(log *logrus.Entry, cfg *config.Config) (RuntimeConfig, error) {
 		return nil, fmt.Errorf("ensuring private key: %w", err)
 	}
 
-	rc.log.WithField("public_key", wireguard.PublicKey(rc.privateKey)).Info("runtime config initialized")
+	rc.log.WithField("public_key", rc.privateKey.PublicKey().String()).Info("runtime config initialized")
 
 	return rc, nil
 }
@@ -231,7 +231,7 @@ func (r *runtimeConfig) enroll(ctx context.Context, serial, token string) error 
 	req := &enroll.DeviceRequest{
 		Platform:           r.config.Platform,
 		Serial:             serial,
-		WireGuardPublicKey: wireguard.PublicKey(r.privateKey),
+		WireGuardPublicKey: r.privateKey.PublicKey().String(),
 	}
 
 	buf := &bytes.Buffer{}

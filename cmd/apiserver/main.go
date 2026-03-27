@@ -1,5 +1,3 @@
-//go:build linux
-
 package main
 
 import (
@@ -160,7 +158,7 @@ func run(log *logrus.Entry, cfg config.Config) error {
 		}
 		cfg.WireGuardPrivateKey = key
 
-		netConf, err := wg.NewConfigurer(log.WithField("component", "network-configurer"), cfg.WireGuardConfigPath, cfg.WireGuardIPv4Prefix, cfg.WireGuardIPv6Prefix, string(cfg.WireGuardPrivateKey.Private()), "wg0", 51820, nil, nil, nil)
+		netConf, err := wg.NewConfigurer(log.WithField("component", "network-configurer"), cfg.WireGuardConfigPath, cfg.WireGuardIPv4Prefix, cfg.WireGuardIPv6Prefix, cfg.WireGuardPrivateKey.String(), "wg0", 51820, nil, nil, nil)
 		if err != nil {
 			return fmt.Errorf("create WireGuard configurer: %w", err)
 		}
