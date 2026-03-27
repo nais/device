@@ -21,7 +21,6 @@ func NewHelper(t *testing.T, log *logrus.Entry, osConfigurator helper.OSConfigur
 	}
 	tempDir, err := os.MkdirTemp(testDir, "naisdevice_helper_test_*")
 	assert.NoError(t, err)
-	tempfile := filepath.Join(tempDir, "test_interface.conf")
 	t.Cleanup(func() {
 		if t.Failed() {
 			t.Logf("test failed, leaving temp dir in: %v", tempDir)
@@ -36,9 +35,8 @@ func NewHelper(t *testing.T, log *logrus.Entry, osConfigurator helper.OSConfigur
 	})
 
 	helperConfig := helper.Config{
-		Interface:           `test_interface`,
-		LogLevel:            logrus.DebugLevel.String(),
-		WireGuardConfigPath: tempfile,
+		Interface: `test_interface`,
+		LogLevel:  logrus.DebugLevel.String(),
 	}
 
 	deviceHelperServer := helper.NewDeviceHelperServer(log, helperConfig, osConfigurator)
