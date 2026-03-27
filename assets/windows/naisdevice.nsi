@@ -316,6 +316,13 @@ Function ${prefix}_StopInstances_Step
     !insertmacro _Log "Attempt to stop running processes"
     Call ${prefix}CloseRunningInstances
 
+    ; Force-kill the helper if it's still running after graceful close
+    ${nsProcess::FindProcess} "naisdevice-helper.exe" $0
+    ${If} $0 = 0
+        !insertmacro _Log "naisdevice-helper.exe still running, force killing"
+        ${nsProcess::KillProcess} "naisdevice-helper.exe" $0
+    ${EndIf}
+
     Call ${prefix}CountRunningInstances
     Pop $0
     ${If} $0 = 0
