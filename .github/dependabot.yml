@@ -1,11 +1,5 @@
 version: 2
 updates:
-  - package-ecosystem: "gomod"
-    directory: "/"
-    schedule:
-      interval: "weekly"
-    cooldown:
-      default-days: 10
   - package-ecosystem: "github-actions"
     directory: ".github/workflows"
     schedule:

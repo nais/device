@@ -1,0 +1,63 @@
+name: Scheduled checks
+on:
+  schedule: # daily at 10:22 UTC
+    - cron: "22 10 * * *"
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  test:
+    strategy:
+      fail-fast: false
+      matrix:
+        go:
+          - version: stable
+          - version-file: go.mod
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # ratchet:actions/checkout@v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # ratchet:actions/setup-go@v5
+        with:
+          go-version: ${{ matrix.go.version }}
+          go-version-file: ${{ matrix.go.version-file }}
+      - name: Resolve dependency upgrades
+        id: deps
+        run: echo "get_args=$(go run ./cmd/dependency-report -o list)" >> "$GITHUB_OUTPUT"
+      - uses: geomys/sandboxed-step@7d75eb49d17fdeeb3656b3a57d35932d205bcfb9 # ratchet:geomys/sandboxed-step@v1
+        with:
+          run: |
+            if [ -n "${{ steps.deps.outputs.get_args }}" ]; then
+              go get ${{ steps.deps.outputs.get_args }} && go mod tidy
+            fi
+            go test --race ./...
+
+  govulncheck:
+    strategy:
+      fail-fast: false
+      matrix:
+        runner:
+          - ubuntu-latest
+          - ubuntu-24.04
+          - macos-latest
+          - macos-26
+          - macos-26-intel
+          - windows-latest
+          - windows-2025
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # ratchet:actions/checkout@v6
+        with:
+          persist-credentials: false
+      - uses: jdx/mise-action@c1ecc8f748cd28cdeabf76dab3cccde4ce692fe4 # ratchet:jdx/mise-action@v4
+      - run: mise run check:govulncheck
+
+  dependency-report:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # ratchet:actions/checkout@v6
+        with:
+          persist-credentials: false
+      - uses: jdx/mise-action@c1ecc8f748cd28cdeabf76dab3cccde4ce692fe4 # ratchet:jdx/mise-action@v4
+      - run: mise run dependency-report
