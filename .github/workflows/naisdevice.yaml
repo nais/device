@@ -161,7 +161,7 @@ jobs:
           merge-multiple: true
           path: release_artifacts
       - run: mise run ci:generate-checksums ./release_artifacts/ > ./release_artifacts/checksums.txt
-      - uses: softprops/action-gh-release@a06a81a03ee405af7f2048a818ed3f03bbf83c7b # ratchet:softprops/action-gh-release@v2.5.0
+      - uses: softprops/action-gh-release@153bb8e04406b158c6c84fc1615b65b24149a1fe # ratchet:softprops/action-gh-release@v2.6.1
         id: release
         with:
           tag_name: ${{ needs.release-info.outputs.version }}
