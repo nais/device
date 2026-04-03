@@ -2,7 +2,7 @@ name: Naisdevice
 
 on:
   pull_request:
-    types: [opened, reopened, synchronize]
+    types: [opened, reopened, synchronize, labeled]
   push:
     branches: [main]
     paths:
@@ -30,8 +30,9 @@ on:
       - "pkg/pb/**"
 
 env:
+  PRE_RELEASE: ${{ github.event_name == 'pull_request' && contains(github.event.pull_request.labels.*.name, 'pre-release') && 'true' || 'false' }}
   # some mise tasks use this to determine how they package/sign stuff.
-  RELEASE: ${{ (github.ref == 'refs/heads/main' && github.actor != 'dependabot[bot]') && 'true' || 'false' }}
+  RELEASE: ${{ ((github.ref == 'refs/heads/main' && github.actor != 'dependabot[bot]') || (github.event_name == 'pull_request' && contains(github.event.pull_request.labels.*.name, 'pre-release'))) && 'true' || 'false' }}
 
 concurrency:
   group: ${{ github.ref }}
@@ -50,14 +51,18 @@ jobs:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # ratchet:actions/checkout@v6
         with:
           fetch-depth: 0
-      - uses: jdx/mise-action@6d1e696aa24c1aa1bcc1adea0212707c71ab78a8 # ratchet:jdx/mise-action@v3
+          ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+      - uses: jdx/mise-action@1648a7812b9aeae629881980618f079932869151 # ratchet:jdx/mise-action@v4
       - id: generate
         run: mise run ci:release-info
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PRE_RELEASE: ${{ env.PRE_RELEASE }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
     outputs:
       version: ${{ steps.generate.outputs.version }}
       changelog: ${{ steps.generate.outputs.changelog }}
+      pre_release: ${{ env.PRE_RELEASE }}
 
   checks:
     strategy:
@@ -76,7 +81,7 @@ jobs:
       contents: read
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # ratchet:actions/checkout@v6
-      - uses: jdx/mise-action@6d1e696aa24c1aa1bcc1adea0212707c71ab78a8 # ratchet:jdx/mise-action@v3
+      - uses: jdx/mise-action@1648a7812b9aeae629881980618f079932869151 # ratchet:jdx/mise-action@v4
       - run: mise run ${{ matrix.mise_task }}
 
   builds:
@@ -109,13 +114,13 @@ jobs:
       OUTFILE: ./release_artifacts/naisdevice${{ matrix.gotags == 'tenant' && '-tenant' || '' }}_${{ matrix.platform.os }}_${{ matrix.arch }}.${{ matrix.platform.ext }}
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # ratchet:actions/checkout@v6
-      - uses: jdx/mise-action@6d1e696aa24c1aa1bcc1adea0212707c71ab78a8 # ratchet:jdx/mise-action@v3
+      - uses: jdx/mise-action@1648a7812b9aeae629881980618f079932869151 # ratchet:jdx/mise-action@v4
       - if: matrix.platform.os == 'windows'
         run: sudo apt-get update && sudo apt-get install --yes nsis osslsigncode
       - if: matrix.platform.os == 'macos'
         run: brew install bash
       - if: matrix.platform.os == 'macos' && env.RELEASE == 'true'
-        uses: Apple-Actions/import-codesign-certs@b610f78488812c1e56b20e6df63ec42d833f2d14 # ratchet:Apple-Actions/import-codesign-certs@v6
+        uses: Apple-Actions/import-codesign-certs@fe74d46e82474f87e1ba79832ad28a4013d0e33a # ratchet:Apple-Actions/import-codesign-certs@v6
         with:
           p12-file-base64: ${{ secrets.CERTIFICATES_P12 }}
           p12-password: ${{ secrets.CERTIFICATES_P12_PASSWORD }}
@@ -129,51 +134,103 @@ jobs:
         run: |
           mkdir -p "$(dirname $OUTFILE)"
           mise run "package:${{ matrix.platform.os }}"
-      - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # ratchet:actions/upload-artifact@v5
+      - uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # ratchet:actions/upload-artifact@v7
         with:
           name: installer-${{ matrix.platform.os }}-${{ matrix.arch }}-${{ matrix.gotags || 'nav' }}
           path: ${{ env.OUTFILE }}
 
+  smoke-tests:
+    name: smoke test ${{ matrix.artifact }}
+    needs: [builds]
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: macos
+            runner: macos-latest
+            artifact: installer-macos-arm64-nav
+            installer_glob: "*.pkg"
+          - os: macos
+            runner: macos-latest
+            artifact: installer-macos-arm64-tenant
+            installer_glob: "*.pkg"
+          - os: linux
+            runner: ubuntu-latest
+            artifact: installer-linux-amd64-nav
+            installer_glob: "*.deb"
+          - os: linux
+            runner: ubuntu-latest
+            artifact: installer-linux-amd64-tenant
+            installer_glob: "*.deb"
+          - os: windows
+            runner: windows-latest
+            artifact: installer-windows-amd64-nav
+            installer_glob: "*.exe"
+          - os: windows
+            runner: windows-latest
+            artifact: installer-windows-amd64-tenant
+            installer_glob: "*.exe"
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # ratchet:actions/checkout@v6
+      - uses: jdx/mise-action@1648a7812b9aeae629881980618f079932869151 # ratchet:jdx/mise-action@v4
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # ratchet:actions/download-artifact@v8
+        with:
+          name: ${{ matrix.artifact }}
+          path: ./downloaded-artifact/
+      - name: run smoke test
+        shell: bash
+        run: mise run smoke-test:${{ matrix.os }} ./downloaded-artifact/${{ matrix.installer_glob }}
+
   # Used by GitHub to determine if all checks/builds have passed
   branch-protection-checkpoint:
-    needs: [checks, builds]
+    needs: [checks, builds, smoke-tests]
     if: ${{ always() }}
     runs-on: ubuntu-latest
     steps:
-      - if: ${{ needs.checks.result != 'success' || needs.builds.result != 'success' }}
+      - if: ${{ needs.checks.result != 'success' || needs.builds.result != 'success' || needs.smoke-tests.result != 'success' }}
         run: exit 1
-      - run: echo "All checks and builds passed."
+      - run: echo "All checks, builds, and smoke tests passed."
 
   release-github:
-    if: github.ref == 'refs/heads/main' && github.actor != 'dependabot[bot]' && needs.release-info.outputs.changelog != '' && needs.release-info.outputs.version != ''
+    if: >-
+      needs.release-info.outputs.changelog != '' && needs.release-info.outputs.version != '' &&
+      (
+        (github.ref == 'refs/heads/main' && github.actor != 'dependabot[bot]') ||
+        needs.release-info.outputs.pre_release == 'true'
+      )
     needs: [release-info, branch-protection-checkpoint]
     runs-on: ubuntu-latest
     permissions:
       contents: write
+    env:
+      RELEASE_TARGET_COMMIT: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # ratchet:actions/checkout@v6
         with:
-          fetch-depth: 0
-      - uses: jdx/mise-action@6d1e696aa24c1aa1bcc1adea0212707c71ab78a8 # ratchet:jdx/mise-action@v3
-      - run: git tag ${{ needs.release-info.outputs.version }}
-      - uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # ratchet:actions/download-artifact@v6
+          ref: ${{ env.RELEASE_TARGET_COMMIT }}
+      - uses: jdx/mise-action@1648a7812b9aeae629881980618f079932869151 # ratchet:jdx/mise-action@v4
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # ratchet:actions/download-artifact@v8
         with:
           merge-multiple: true
           path: release_artifacts
       - run: mise run ci:generate-checksums ./release_artifacts/ > ./release_artifacts/checksums.txt
-      - uses: softprops/action-gh-release@a06a81a03ee405af7f2048a818ed3f03bbf83c7b # ratchet:softprops/action-gh-release@v2.5.0
+      - uses: softprops/action-gh-release@153bb8e04406b158c6c84fc1615b65b24149a1fe # ratchet:softprops/action-gh-release@v2.6.1
         id: release
         with:
           tag_name: ${{ needs.release-info.outputs.version }}
+          target_commitish: ${{ env.RELEASE_TARGET_COMMIT }}
           body: ${{ needs.release-info.outputs.changelog }}
-          prerelease: false
+          prerelease: ${{ needs.release-info.outputs.pre_release == 'true' }}
           files: ./release_artifacts/*
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - env:
+      - if: needs.release-info.outputs.pre_release != 'true'
+        env:
           VERSION: ${{ needs.release-info.outputs.version }}
         run: mise run ci:prepare-template-vars ./release_artifacts/checksums.txt -v > template.vars
-      - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # ratchet:actions/upload-artifact@v5
+      - if: needs.release-info.outputs.pre_release != 'true'
+        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # ratchet:actions/upload-artifact@v7
         with:
           name: template-vars
           path: ./template.vars
@@ -182,12 +239,13 @@ jobs:
           echo "A new release is available over at https://github.com/${{ github.repository }}/releases/tag/${{ needs.release-info.outputs.version }}." >> $GITHUB_STEP_SUMMARY
 
   release-gar:
+    if: needs.release-info.outputs.pre_release != 'true'
     strategy:
       fail-fast: false
       matrix:
         arch: [arm64, amd64]
         suffix: [nav, tenant]
-    needs: [release-github]
+    needs: [release-info, release-github]
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -201,7 +259,7 @@ jobs:
           service_account: gh-naisdevice@nais-io.iam.gserviceaccount.com
           token_format: access_token
       - uses: google-github-actions/setup-gcloud@aa5489c8933f4cc7a4f7d45035b3b1440c9c10db # ratchet:google-github-actions/setup-gcloud@v3
-      - uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # ratchet:actions/download-artifact@v6
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # ratchet:actions/download-artifact@v8
         with:
           name: installer-linux-${{ matrix.arch }}-${{ matrix.suffix }}
           path: ./downloaded-artifact/
@@ -209,7 +267,8 @@ jobs:
           gcloud artifacts apt upload nais-ppa --project nais-io --quiet --location europe-north1 --source ./downloaded-artifact/*
 
   release-external-repos:
-    needs: [release-github]
+    if: needs.release-info.outputs.pre_release != 'true'
+    needs: [release-info, release-github]
     strategy:
       fail-fast: false
       matrix:
@@ -234,8 +293,8 @@ jobs:
           private-key: ${{ secrets.NAIS_APP_PRIVATE_KEY }}
           app-id: ${{ secrets.NAIS_APP_ID }}
           repo: ${{ matrix.target.repo }}
-      - uses: jdx/mise-action@6d1e696aa24c1aa1bcc1adea0212707c71ab78a8 # ratchet:jdx/mise-action@v3
-      - uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # ratchet:actions/download-artifact@v6
+      - uses: jdx/mise-action@1648a7812b9aeae629881980618f079932869151 # ratchet:jdx/mise-action@v4
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # ratchet:actions/download-artifact@v8
         with:
           name: template-vars
       - name: update ${{ matrix.target.repo }}

@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 #MISE description="Build windows client"
+#MISE depends=["build:windows:verify-wintun"]
 #MISE env={ GOOS = "windows" }
 
 set -o errexit
@@ -17,3 +18,5 @@ GOOS="" GOARCH="" go tool github.com/akavel/rsrc -arch "$REALGOARCH" -ico assets
 go build -o bin/windows-client/naisdevice-systray.exe --tags "$gotags" -ldflags "-s $ldflags -H=windowsgui" ./cmd/naisdevice-systray
 go build -o bin/windows-client/naisdevice-agent.exe --tags "$gotags" -ldflags "-s $ldflags -H=windowsgui" ./cmd/naisdevice-agent
 go build -o bin/windows-client/naisdevice-helper.exe --tags "$gotags" -ldflags "-s $ldflags" ./cmd/naisdevice-helper
+
+cp "${MISE_PROJECT_ROOT}/assets/windows/wintun-${REALGOARCH}.dll" ./bin/windows-client/wintun.dll
