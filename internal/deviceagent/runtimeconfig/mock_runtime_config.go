@@ -588,6 +588,50 @@ func (_c *MockRuntimeConfig_GetToken_Call) RunAndReturn(run func(context1 contex
 	return _c
 }
 
+// HasToken provides a mock function for the type MockRuntimeConfig
+func (_mock *MockRuntimeConfig) HasToken() bool {
+	ret := _mock.Called()
+
+	if len(ret) == 0 {
+		panic("no return value specified for HasToken")
+	}
+
+	var r0 bool
+	if returnFunc, ok := ret.Get(0).(func() bool); ok {
+		r0 = returnFunc()
+	} else {
+		r0 = ret.Get(0).(bool)
+	}
+	return r0
+}
+
+// MockRuntimeConfig_HasToken_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'HasToken'
+type MockRuntimeConfig_HasToken_Call struct {
+	*mock.Call
+}
+
+// HasToken is a helper method to define mock.On call
+func (_e *MockRuntimeConfig_Expecter) HasToken() *MockRuntimeConfig_HasToken_Call {
+	return &MockRuntimeConfig_HasToken_Call{Call: _e.mock.On("HasToken")}
+}
+
+func (_c *MockRuntimeConfig_HasToken_Call) Run(run func()) *MockRuntimeConfig_HasToken_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run()
+	})
+	return _c
+}
+
+func (_c *MockRuntimeConfig_HasToken_Call) Return(b bool) *MockRuntimeConfig_HasToken_Call {
+	_c.Call.Return(b)
+	return _c
+}
+
+func (_c *MockRuntimeConfig_HasToken_Call) RunAndReturn(run func() bool) *MockRuntimeConfig_HasToken_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // LoadEnrollConfig provides a mock function for the type MockRuntimeConfig
 func (_mock *MockRuntimeConfig) LoadEnrollConfig() error {
 	ret := _mock.Called()
