@@ -28,8 +28,9 @@ func TestStateMachine(t *testing.T) {
 		rc := runtimeconfig.NewMockRuntimeConfig(t)
 		rc.EXPECT().GetTenantSession().Return(&pb.Session{
 			Key:    "key",
-			Expiry: timestamppb.New(time.Now().Add(time.Hour)),
+			Expiry: timestamppb.New(time.Now().Add(2 * time.Hour)),
 		}, nil)
+		rc.EXPECT().HasToken().Return(true).Maybe()
 		rc.EXPECT().LoadEnrollConfig().Return(nil)
 		rc.EXPECT().APIServerPeer().Return(&pb.Gateway{})
 		rc.EXPECT().SetAPIServerInfo(mock.Anything, mock.Anything).Return()

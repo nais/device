@@ -249,6 +249,7 @@ func tableTest(t *testing.T, log *logrus.Entry, testDevice *pb.Device, endState 
 	rc.EXPECT().SetAPIServerInfo(mock.Anything, mock.Anything).Return()
 	rc.EXPECT().SetJitaToken(mock.Anything).Return().Maybe()
 	rc.EXPECT().SetToken(mock.Anything).Return().Maybe()
+	rc.EXPECT().HasToken().Return(true).Maybe()
 
 	initialHelperConfig := &pb.Configuration{
 		Gateways:   mapValues(initialPeers),
