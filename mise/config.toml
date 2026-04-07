@@ -10,9 +10,9 @@ go = """
 {%- endfor -%}
 """
 jq = "1.8.1"
-protoc = "29.4"
-protoc-gen-go = "1.36.6"
-protoc-gen-go-grpc = "1.5.1"
+protoc = "34.1"
+protoc-gen-go = "1.36.9"
+protoc-gen-go-grpc = "1.6.1"
 
 [settings]
 pin = true
