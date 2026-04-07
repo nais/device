@@ -50,7 +50,7 @@ jobs:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # ratchet:actions/checkout@v6
         with:
           fetch-depth: 0
-      - uses: jdx/mise-action@6d1e696aa24c1aa1bcc1adea0212707c71ab78a8 # ratchet:jdx/mise-action@v3
+      - uses: jdx/mise-action@1648a7812b9aeae629881980618f079932869151 # ratchet:jdx/mise-action@v3
       - id: generate
         run: mise run ci:release-info
         env:
@@ -76,7 +76,7 @@ jobs:
       contents: read
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # ratchet:actions/checkout@v6
-      - uses: jdx/mise-action@6d1e696aa24c1aa1bcc1adea0212707c71ab78a8 # ratchet:jdx/mise-action@v3
+      - uses: jdx/mise-action@1648a7812b9aeae629881980618f079932869151 # ratchet:jdx/mise-action@v3
       - run: mise run ${{ matrix.mise_task }}
 
   builds:
@@ -109,7 +109,7 @@ jobs:
       OUTFILE: ./release_artifacts/naisdevice${{ matrix.gotags == 'tenant' && '-tenant' || '' }}_${{ matrix.platform.os }}_${{ matrix.arch }}.${{ matrix.platform.ext }}
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # ratchet:actions/checkout@v6
-      - uses: jdx/mise-action@6d1e696aa24c1aa1bcc1adea0212707c71ab78a8 # ratchet:jdx/mise-action@v3
+      - uses: jdx/mise-action@1648a7812b9aeae629881980618f079932869151 # ratchet:jdx/mise-action@v3
       - if: matrix.platform.os == 'windows'
         run: sudo apt-get update && sudo apt-get install --yes nsis osslsigncode
       - if: matrix.platform.os == 'macos'
@@ -154,7 +154,7 @@ jobs:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # ratchet:actions/checkout@v6
         with:
           fetch-depth: 0
-      - uses: jdx/mise-action@6d1e696aa24c1aa1bcc1adea0212707c71ab78a8 # ratchet:jdx/mise-action@v3
+      - uses: jdx/mise-action@1648a7812b9aeae629881980618f079932869151 # ratchet:jdx/mise-action@v3
       - run: git tag ${{ needs.release-info.outputs.version }}
       - uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # ratchet:actions/download-artifact@v6
         with:
@@ -234,7 +234,7 @@ jobs:
           private-key: ${{ secrets.NAIS_APP_PRIVATE_KEY }}
           app-id: ${{ secrets.NAIS_APP_ID }}
           repo: ${{ matrix.target.repo }}
-      - uses: jdx/mise-action@6d1e696aa24c1aa1bcc1adea0212707c71ab78a8 # ratchet:jdx/mise-action@v3
+      - uses: jdx/mise-action@1648a7812b9aeae629881980618f079932869151 # ratchet:jdx/mise-action@v3
       - uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # ratchet:actions/download-artifact@v6
         with:
           name: template-vars
