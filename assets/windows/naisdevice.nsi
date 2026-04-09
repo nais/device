@@ -153,6 +153,9 @@ Section "Create helper service"
     SimpleSC::InstallService ${SERVICE_NAME} "naisdevice helper" ${SERVICE_WIN32_OWN_PROCESS} ${SERVICE_AUTO_START} \
         '"$INSTDIR\naisdevice-helper.exe" --interface utun69' "" "NT AUTHORITY\SYSTEM"
     SimpleSC::SetServiceDescription ${SERVICE_NAME} "Controls the WireGuard VPN connection"
+    ; SC_ACTION_NONE (0) for all three failure actions prevents SCM from auto-restarting
+    ; the service during upgrades when the installer intentionally stops it.
+    SimpleSC::SetServiceFailure ${SERVICE_NAME} "0" "" "" "0" "0" "0" "0" "0" "0"
 SectionEnd
 
 Section "-uninstaller"
@@ -182,10 +185,24 @@ Section "-add to add/remove"
 SectionEnd
 
 Section "Uninstall"
-    !insertmacro _Log "Stopping background service"
-    SimpleSC::StopService ${SERVICE_NAME} 1 60
-    !insertmacro _Log "Stopping running instances"
-    Call un.CloseRunningInstances
+    ; Phase 1: Kill user-space processes
+    !insertmacro _Log "Killing user-space processes"
+    Call un.KillUserProcesses
+
+    ; Phase 2: Stop the helper service via SCM
+    !insertmacro _Log "Stopping background service via SCM"
+    SimpleSC::StopService ${SERVICE_NAME} 1 30
+    Pop $0
+    !insertmacro _Log "StopService result: $0"
+
+    ; Phase 3: Force-kill helper if SCM stop failed
+    ${nsProcess::FindProcess} "naisdevice-helper.exe" $0
+    ${If} $0 = 0
+        !insertmacro _Log "Helper still running after SCM stop, force killing"
+        ${nsProcess::KillProcess} "naisdevice-helper.exe" $0
+        Sleep 1000
+    ${EndIf}
+
     !insertmacro _Log "Removing background service"
     SimpleSC::RemoveService ${SERVICE_NAME}
     !insertmacro _Log "Deleting shortcuts"
@@ -215,10 +232,10 @@ FunctionEnd
 !insertmacro GUIInit "un."
 
 
-; Places number of running instances on stack
-!macro CountRunningInstances un
-Function ${un}CountRunningInstances
-    !insertmacro _Log "CountRunningInstances entered."
+; Returns number of running naisdevice processes (excluding helper service) on stack
+!macro CountUserProcesses un
+Function ${un}CountUserProcesses
+    !insertmacro _Log "CountUserProcesses entered."
 
     Push $R9
     StrCpy $R9 0
@@ -232,50 +249,57 @@ Function ${un}CountRunningInstances
         !insertmacro _Log "naisdevice-systray.exe still running"
         IntOp $R9 $R9 + 1
     ${EndIf}
+    Push $R9
+    Exch
+    Pop $R9
+FunctionEnd
+!macroend
+!insertmacro CountUserProcesses ""
+!insertmacro CountUserProcesses "un."
+
+; Returns 1 if helper process is still running, 0 otherwise
+!macro IsHelperRunning un
+Function ${un}IsHelperRunning
     ${nsProcess::FindProcess} "naisdevice-helper.exe" $Result
     ${If} $Result = 0
-        !insertmacro _Log "naisdevice-helper.exe still running"
-        IntOp $R9 $R9 + 1
+        Push 1
+    ${Else}
+        Push 0
     ${EndIf}
-    Push $R9
-    Exch
-    Pop $R9
 FunctionEnd
 !macroend
-!insertmacro CountRunningInstances ""
-!insertmacro CountRunningInstances "un."
+!insertmacro IsHelperRunning ""
+!insertmacro IsHelperRunning "un."
 
-; Places number of closed processes on stack
-!macro CloseRunningInstances un
-Function ${un}CloseRunningInstances
-    !insertmacro _Log "${un}CloseRunningInstances entered."
+; Force-kill user-space processes (systray first since it parents the agent)
+!macro KillUserProcesses un
+Function ${un}KillUserProcesses
+    !insertmacro _Log "${un}KillUserProcesses entered."
 
-    Push $R9
-    StrCpy $R9 0
-    ${nsProcess::CloseProcess} "naisdevice-agent.exe" $Result
+    ; Kill systray first - it is the parent of the agent process.
+    ; Killing the parent first avoids orphaning the agent.
+    ${nsProcess::FindProcess} "naisdevice-systray.exe" $Result
     ${If} $Result = 0
-        !insertmacro _Log "naisdevice-agent.exe closed"
-        IntOp $R9 $R9 + 1
+        !insertmacro _Log "Killing naisdevice-systray.exe"
+        ${nsProcess::KillProcess} "naisdevice-systray.exe" $Result
+        !insertmacro _Log "KillProcess naisdevice-systray.exe result: $Result"
     ${EndIf}
-    ${nsProcess::CloseProcess} "naisdevice-systray.exe" $Result
+
+    ${nsProcess::FindProcess} "naisdevice-agent.exe" $Result
     ${If} $Result = 0
-        !insertmacro _Log "naisdevice-systray.exe closed"
-        IntOp $R9 $R9 + 1
+        !insertmacro _Log "Killing naisdevice-agent.exe"
+        ${nsProcess::KillProcess} "naisdevice-agent.exe" $Result
+        !insertmacro _Log "KillProcess naisdevice-agent.exe result: $Result"
     ${EndIf}
-    ${nsProcess::CloseProcess} "naisdevice-helper.exe" $Result
-    ${If} $Result = 0
-        !insertmacro _Log "naisdevice-helper.exe closed"
-        IntOp $R9 $R9 + 1
-    ${EndIf}
-    Push $R9
-    Exch
-    Pop $R9
 FunctionEnd
 !macroend
-!insertmacro CloseRunningInstances ""
-!insertmacro CloseRunningInstances "un."
+!insertmacro KillUserProcesses ""
+!insertmacro KillUserProcesses "un."
 
 ; -- StopInstances --------------
+; Strategy: deterministic phased shutdown
+;   Phase 1 (Init): Kill user processes, then send SCM stop to helper service
+;   Phase 2 (Step): Poll until helper process is gone, force-kill as last resort
 
 !macro StopInstances action prefix
 ; Function that should push 0 on the stack to skip the page, any other value to continue (required)
@@ -286,8 +310,11 @@ Function ${prefix}_StopInstances_Abort
     SimpleSC::ExistsService ${SERVICE_NAME} ; <> 0 => service exists
     Pop $0
     !insertmacro _Log "Service exists: $0 (0: true, *: false)"
-    Call ${prefix}CountRunningInstances
+    Call ${prefix}CountUserProcesses
     Pop $1
+    Call ${prefix}IsHelperRunning
+    Pop $R9
+    IntOp $1 $1 + $R9
     !insertmacro _Log "Number of running instances: $1"
     ${If} $0 <> 0
     ${AndIf} $1 = 0
@@ -302,38 +329,60 @@ Function ${prefix}_StopInstances_Abort
     Pop $1
 FunctionEnd
 
-; Function to initialize any needed state, "" to skip
+; Phase 1: Kill user processes immediately, then ask SCM to stop the service
 Function ${prefix}_StopInstances_Init
-    !insertmacro _Log "Attempting to stop ${SERVICE_NAME}"
-    SimpleSC::StopService ${SERVICE_NAME} 1 40
-    !insertmacro _Log "StopService ${SERVICE_NAME} completed"
+    ; Kill user-space processes first (systray + agent)
+    ; These are normal processes, not services - just terminate them.
+    !insertmacro _Log "Phase 1: Killing user-space processes"
+    Call ${prefix}KillUserProcesses
+
+    ; Now stop the helper service via SCM (the only correct way to stop a service)
+    !insertmacro _Log "Phase 1: Requesting SCM stop for ${SERVICE_NAME}"
+    SimpleSC::StopService ${SERVICE_NAME} 1 30
+    Pop $0
+    !insertmacro _Log "StopService result: $0 (0=success)"
+    ${If} $0 != 0
+        Push $0
+        SimpleSC::GetErrorMessage
+        Pop $0
+        !insertmacro _Log "StopService error: $0"
+    ${EndIf}
 FunctionEnd
 
-; Function called on every step. Should push 0 to the stack to leave the page, any other value to continue (required)
+; Phase 2: Verify everything is dead. Force-kill helper as last resort.
 Function ${prefix}_StopInstances_Step
     Push $0
+    Push $1
 
-    !insertmacro _Log "Attempt to stop running processes"
-    Call ${prefix}CloseRunningInstances
-
-    ; Force-kill the helper if it's still running after graceful close
-    ${nsProcess::FindProcess} "naisdevice-helper.exe" $0
-    ${If} $0 = 0
-        !insertmacro _Log "naisdevice-helper.exe still running, force killing"
-        ${nsProcess::KillProcess} "naisdevice-helper.exe" $0
-    ${EndIf}
-
-    Call ${prefix}CountRunningInstances
+    ; Ensure user processes are still dead (they shouldn't restart, but verify)
+    Call ${prefix}CountUserProcesses
     Pop $0
-    ${If} $0 = 0
-        ; No more processes, clear timeout ending loop
-        !insertmacro _Log "No more processes"
-        Push 0
-    ${Else}
-        Push 1
+    ${If} $0 > 0
+        !insertmacro _Log "User processes reappeared ($0 found), killing again"
+        Call ${prefix}KillUserProcesses
     ${EndIf}
 
-    Exch
+    ; Check if helper process is gone
+    Call ${prefix}IsHelperRunning
+    Pop $1
+    ${If} $1 = 0
+        !insertmacro _Log "All processes stopped"
+        Push 0 ; done
+    ${Else}
+        !insertmacro _Log "Helper still running, waiting for SCM stop..."
+
+        ; If we're past half the timeout, force-kill the helper process
+        ${If} $__PP__Timeout < 30000
+            !insertmacro _Log "Timeout running low, force-killing naisdevice-helper.exe"
+            ${nsProcess::KillProcess} "naisdevice-helper.exe" $0
+            !insertmacro _Log "KillProcess naisdevice-helper.exe result: $0"
+        ${EndIf}
+
+        Push 1 ; keep waiting
+    ${EndIf}
+
+    Exch 2
+    Pop $1
     Pop $0
 FunctionEnd
 

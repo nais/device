@@ -112,8 +112,11 @@ func (configurator *WindowsConfigurator) TeardownInterface(ctx context.Context) 
 	b, err := uninstallService.CombinedOutput()
 	if err != nil {
 		return fmt.Errorf("uninstalling tunnel service: %v: %v", err, string(b))
-	} else {
-		time.Sleep(3 * time.Second)
+	}
+
+	select {
+	case <-ctx.Done():
+	case <-time.After(3 * time.Second):
 	}
 
 	return nil
