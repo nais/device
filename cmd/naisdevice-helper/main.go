@@ -82,9 +82,9 @@ func main() {
 	pb.RegisterDeviceHelperServer(grpcServer, dhs)
 
 	teardown := func() {
-		ctx, cancel := context.WithTimeout(ctx, time.Second*2)
-		defer cancel()
-		_, err := dhs.Teardown(ctx, &pb.TeardownRequest{})
+		teardownCtx, teardownCancel := context.WithTimeout(context.Background(), time.Second*2)
+		defer teardownCancel()
+		_, err := dhs.Teardown(teardownCtx, &pb.TeardownRequest{})
 		if err != nil {
 			log.WithError(err).Warn("teardown failed")
 		}
@@ -113,7 +113,17 @@ func main() {
 
 	go func() {
 		<-ctx.Done()
-		grpcServer.Stop()
+		stopped := make(chan struct{})
+		go func() {
+			grpcServer.GracefulStop()
+			close(stopped)
+		}()
+		select {
+		case <-stopped:
+		case <-time.After(5 * time.Second):
+			log.Warn("gRPC graceful stop timed out, forcing stop")
+			grpcServer.Stop()
+		}
 	}()
 
 	err = grpcServer.Serve(listener)
