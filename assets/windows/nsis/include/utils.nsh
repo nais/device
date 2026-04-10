@@ -66,15 +66,42 @@ FunctionEnd
 
 Var _Log_FileHandle
 Var _Log_Timestamp
+Var _Log_Path
+Var _Log_ProgramDataPath
+Var _Log_EnvPath
 
 !macro _Log text
-    FileOpen $_Log_FileHandle "$TEMP\nsis.log" a
-    FileSeek $_Log_FileHandle 0 END
+    StrCpy $_Log_FileHandle ""
+
+    ${If} $_Log_Path == ""
+        ReadEnvStr $_Log_EnvPath "NAISDEVICE_INSTALL_LOG"
+        ${If} $_Log_EnvPath != ""
+            StrCpy $_Log_Path "$_Log_EnvPath"
+        ${Else}
+            GetKnownFolderPath $_Log_ProgramDataPath "${FOLDERID_ProgramData}"
+            CreateDirectory "$_Log_ProgramDataPath\NAV"
+            CreateDirectory "$_Log_ProgramDataPath\NAV\naisdevice"
+            CreateDirectory "$_Log_ProgramDataPath\NAV\naisdevice\logs"
+            StrCpy $_Log_Path "$_Log_ProgramDataPath\NAV\naisdevice\logs\installer.log"
+        ${EndIf}
+    ${EndIf}
+
+    FileOpen $_Log_FileHandle "$_Log_Path" a
+
+    ${If} $_Log_FileHandle == ""
+        StrCpy $_Log_Path "$TEMP\nsis.log"
+        FileOpen $_Log_FileHandle "$_Log_Path" a
+    ${EndIf}
+
+    ${If} $_Log_FileHandle != ""
+        FileSeek $_Log_FileHandle 0 END
+        ${TimeStamp} $_Log_Timestamp
+        FileWrite $_Log_FileHandle "$_Log_Timestamp: ${text}$\n"
+        FileClose $_Log_FileHandle
+    ${EndIf}
+
     ${TimeStamp} $_Log_Timestamp
-    FileWrite $_Log_FileHandle "$_Log_Timestamp: ${text}"
     DetailPrint "$_Log_Timestamp: ${text}"
-    FileWrite $_Log_FileHandle "$\n"
-    FileClose $_Log_FileHandle
 !macroend
 
 !endif
