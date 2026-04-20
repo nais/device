@@ -20,12 +20,10 @@ import (
 	"github.com/nais/device/pkg/pb"
 )
 
-var cfg = helper.Config{
-	WireGuardConfigPath: filepath.Join(config.ConfigDir, "utun69.conf"),
-}
+var cfg = helper.Config{}
 
 func init() {
-	flag.StringVar(&cfg.LogLevel, "log-level", "info", "which log level to output")
+	flag.StringVar(&cfg.LogLevel, "log-level", "debug", "which log level to output")
 	flag.StringVar(&cfg.Interface, "interface", "utun69", "interface name")
 
 	flag.Parse()
@@ -54,7 +52,7 @@ func main() {
 		log.WithError(err).Fatal("starting windows service")
 	}
 
-	osConfigurator := helper.NewTracedConfigurator(helper.New(cfg))
+	osConfigurator := helper.NewTracedConfigurator(helper.New(cfg, log))
 
 	log.WithFields(version.LogFields).WithField("cfg", cfg).Info("starting naisdevice-helper")
 

@@ -1,14 +1,7 @@
 [tools]
 buf = "1.59.0"
 git-cliff = "2.12.0"
-go = """
-{%- set gomod = read_file(path=config_root ~ "/go.mod") -%}
-{%- for line in gomod | split(pat="\n") -%}
-{%- if line is starting_with("go ") -%}
-{{- line | replace(from="go ", to="") | trim -}}
-{%- endif -%}
-{%- endfor -%}
-"""
+go = "1.26.1"
 jq = "1.8.1"
 protoc = "34.1"
 protoc-gen-go = "1.36.9"
