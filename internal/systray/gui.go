@@ -259,6 +259,7 @@ func (gui *Gui) handleAgentDisconnect() {
 	gui.applyDisconnectedIcon()
 	gui.resetGuiAgentConfig()
 	gui.MenuItems.Connect.Disable()
+	gui.MenuItems.AcceptableUse.Hide()
 	for i := range gui.MenuItems.GatewayItems {
 		gui.MenuItems.GatewayItems[i].MenuItem.Disable()
 		gui.MenuItems.GatewayItems[i].MenuItem.Hide()
