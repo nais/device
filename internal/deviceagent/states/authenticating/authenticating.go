@@ -51,8 +51,11 @@ func (a *Authenticating) Enter(ctx context.Context) state.EventWithSpan {
 
 	session, _ := a.rc.GetTenantSession()
 	if !session.Expired() {
-		span.AddEvent("session.active")
-		return state.SpanEvent(ctx, state.EventAuthenticated)
+		needsTokenRefresh := !a.rc.HasToken() && session.Expiry.AsTime().Before(time.Now().Add(time.Hour))
+		if !needsTokenRefresh {
+			span.AddEvent("session.active")
+			return state.SpanEvent(ctx, state.EventAuthenticated)
+		}
 	}
 
 	ctx, cancel := context.WithTimeout(ctx, authFlowTimeout)
