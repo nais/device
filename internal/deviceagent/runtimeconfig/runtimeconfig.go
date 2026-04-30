@@ -61,6 +61,7 @@ type RuntimeConfig interface {
 	GetDomainFromToken() string
 	GetToken(context.Context) (string, error)
 	SetToken(*auth.Tokens)
+	HasToken() bool
 	SetTenantSession(*pb.Session) error
 	GetJitaToken(context.Context) *oauth2.Token
 	SetJitaToken(*oauth2.Token)
@@ -462,6 +463,10 @@ func (rc *runtimeConfig) GetTenantSession() (*pb.Session, error) {
 
 func (rc *runtimeConfig) SetToken(token *auth.Tokens) {
 	rc.tokens = token
+}
+
+func (rc *runtimeConfig) HasToken() bool {
+	return rc.tokens != nil
 }
 
 func (rc *runtimeConfig) GetToken(ctx context.Context) (string, error) {

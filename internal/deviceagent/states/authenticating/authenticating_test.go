@@ -17,15 +17,60 @@ import (
 )
 
 func TestAuthenticating(t *testing.T) {
-	t.Run("non-expired session", func(t *testing.T) {
+	t.Run("non-expired session with tokens", func(t *testing.T) {
 		ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 		defer cancel()
 
 		rc := runtimeconfig.NewMockRuntimeConfig(t)
 		rc.EXPECT().GetTenantSession().Return(&pb.Session{
 			Key:    "key",
-			Expiry: timestamppb.New(time.Now().Add(time.Hour)),
+			Expiry: timestamppb.New(time.Now().Add(2 * time.Hour)),
 		}, nil)
+		rc.EXPECT().HasToken().Return(true)
+
+		authState := &Authenticating{
+			rc: rc,
+		}
+
+		assert.Equal(t, state.EventAuthenticated, authState.Enter(ctx).Event)
+	})
+
+	t.Run("non-expired session without tokens and expiry within one hour triggers re-auth", func(t *testing.T) {
+		ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+		defer cancel()
+
+		tokens := &auth.Tokens{IDToken: "id-token"}
+
+		rc := runtimeconfig.NewMockRuntimeConfig(t)
+		rc.EXPECT().GetTenantSession().Return(&pb.Session{
+			Key:    "key",
+			Expiry: timestamppb.New(time.Now().Add(30 * time.Minute)),
+		}, nil)
+		rc.EXPECT().HasToken().Return(false)
+		rc.EXPECT().GetActiveTenant().Return(&pb.Tenant{AuthProvider: pb.AuthProvider_Google})
+		rc.EXPECT().SetToken(tokens)
+
+		mockAuth := auth.NewMockHandler(t)
+		mockAuth.EXPECT().GetDeviceAgentToken(mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(tokens, nil)
+
+		authState := &Authenticating{
+			authHandler: mockAuth,
+			rc:          rc,
+		}
+
+		assert.Equal(t, state.EventAuthenticated, authState.Enter(ctx).Event)
+	})
+
+	t.Run("non-expired session without tokens but expiry beyond one hour skips re-auth", func(t *testing.T) {
+		ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+		defer cancel()
+
+		rc := runtimeconfig.NewMockRuntimeConfig(t)
+		rc.EXPECT().GetTenantSession().Return(&pb.Session{
+			Key:    "key",
+			Expiry: timestamppb.New(time.Now().Add(2 * time.Hour)),
+		}, nil)
+		rc.EXPECT().HasToken().Return(false)
 
 		authState := &Authenticating{
 			rc: rc,
