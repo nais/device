@@ -1,1 +1,1 @@
-file rw @{etc_rw}/naisdevice/{,**},
+/etc/naisdevice/** rw,
