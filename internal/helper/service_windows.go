@@ -61,13 +61,15 @@ loop:
 				changes <- c.CurrentStatus
 			case svc.Stop, svc.Shutdown:
 				service.log.WithField("change_request", c).Info("stop service")
+				// Tell SCM we're stopping BEFORE triggering teardown.
+				// WaitHint gives SCM a 15s window before it considers us hung.
+				changes <- svc.Status{State: svc.StopPending, WaitHint: 15000}
 				service.cancel()
 				break loop
 			default:
-				service.log.WithField("change_request", c).Error("unexpected control reques")
+				service.log.WithField("change_request", c).Error("unexpected control request")
 			}
 		}
 	}
-	changes <- svc.Status{State: svc.StopPending}
 	return ssec, errno
 }

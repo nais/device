@@ -28,3 +28,4 @@ packaging/windows/naisdevice.key
 operational/scripts/data/
 .direnv
 result
+.opencode
