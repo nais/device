@@ -95,7 +95,7 @@ func (dhs *DeviceHelperServer) Configure(
 		loopErr = dhs.osConfigurator.SyncConf(ctx, cfg)
 		if loopErr != nil {
 			backoff := time.Duration(attempt) * time.Second
-			dhs.log.WithError(err).Error("synchronize WireGuard configuration")
+			dhs.log.WithError(loopErr).Error("synchronize WireGuard configuration")
 			dhs.log.WithField("attempt", attempt+1).WithField("backoff", backoff).Info("configuring failed, sleeping before retrying")
 			time.Sleep(backoff)
 			continue
