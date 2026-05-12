@@ -111,7 +111,7 @@ jobs:
           build_args: |
             GO_VERSION=${{ steps.go-version.outputs.version }}
           cache_from: type=gha
-          cache_to: type=gha,,mode=max
+          cache_to: type=gha,mode=max
 
   build_auth_server:
     name: Build auth-server
