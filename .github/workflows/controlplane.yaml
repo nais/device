@@ -178,7 +178,7 @@ jobs:
             type=semver,pattern=v{{version}}
             type=semver,pattern=v{{major}}.{{minor}}
             type=semver,pattern=v{{major}}
-            type=sha
+            type=sha,prefix={{date 'YYYY.MM.DD-HH.mm'}}-
 
       - name: Build and push auth-server
         uses: docker/build-push-action@263435318d21b8e681c14492fe198d362a7d2c83 # ratchet:docker/build-push-action@v6
