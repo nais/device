@@ -142,7 +142,7 @@ jobs:
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # ratchet:actions/checkout@v6
 
-      - uses: nais/platform-build-push-sign@main
+      - uses: nais/platform-build-push-sign@df590279b21bc5978519685752f9eaddd546043c # ratchet:nais/platform-build-push-sign@main
         id: build-push-sign
         with:
           name: naisdevice-auth-server
