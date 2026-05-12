@@ -110,8 +110,8 @@ jobs:
           workload_identity_provider: ${{ secrets.NAIS_IO_WORKLOAD_IDENTITY_PROVIDER }}
           build_args: |
             GO_VERSION=${{ steps.go-version.outputs.version }}
-          cache_from: type=registry,ref=${{ env.cache_ref }}
-          cache_to: type=gha,ref=${{ env.cache_ref }},mode=max
+          cache_from: type=gha
+          cache_to: type=gha,,mode=max
 
   build_auth_server:
     name: Build auth-server
@@ -139,5 +139,5 @@ jobs:
           workload_identity_provider: ${{ secrets.NAIS_IO_WORKLOAD_IDENTITY_PROVIDER }}
           build_args: |
             GO_VERSION=${{ steps.go-version.outputs.version }}
-          cache_from: type=registry,ref=${{ env.cache_ref }}
-          cache_to: type=gha,ref=${{ env.cache_ref }},mode=max
+          cache_from: type=gha
+          cache_to: type=gha,mode=max
