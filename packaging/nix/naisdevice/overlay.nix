@@ -4,7 +4,7 @@ final: prev: let
     inherit goVersion;
     src = prev.fetchurl {
       url = "https://go.dev/dl/go${goVersion}.src.tar.gz";
-      hash = "sha256-LpHrtpR6lulDb7KzkmqIAu/mOm03Xf/sT4Kqnb1v1Ds=";
+      hash = "sha256-HGRoddCqh5kTMYTtV895/yS97+jIggRwYCqdPW2Rkrg=";
     };
   });
   nixpkgsVersion = prev.go_latest.version;
