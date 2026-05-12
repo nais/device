@@ -100,35 +100,18 @@ jobs:
         id: go-version
         run: echo "version=$(awk '/^go /{print $2}' go.mod)" >> "$GITHUB_OUTPUT"
 
-      - name: Docker meta enroller
-        id: metadata
-        uses: docker/metadata-action@c299e40c65443455700f0fdfc63efafe5b349051 # ratchet:docker/metadata-action@v5
+      - uses: nais/platform-build-push-sign@df590279b21bc5978519685752f9eaddd546043c # ratchet:nais/platform-build-push-sign@main
+        id: build-push-sign
         with:
-          images: ${{ env.REGISTRY }}/naisdevice-enroller
-          # Docker tags based on the following events/attributes
-          tags: |
-            type=schedule
-            type=ref,event=branch
-            type=ref,event=pr
-            type=semver,pattern=v{{version}}
-            type=semver,pattern=v{{major}}.{{minor}}
-            type=semver,pattern=v{{major}}
-            type=sha
-
-      - name: Build and push enroller
-        uses: docker/build-push-action@263435318d21b8e681c14492fe198d362a7d2c83 # ratchet:docker/build-push-action@v6
-        env:
-          cache_ref: ${{ env.REGISTRY }}/naisdevice-enroller:main
-        with:
-          context: .
-          file: cmd/enroller/Dockerfile
-          push: true
-          tags: ${{ steps.metadata.outputs.tags }}
-          labels: ${{ steps.metadata.outputs.labels }}
-          build-args: |
+          name: naisdevice-enroller
+          dockerfile: cmd/enroller/Dockerfile
+          google_service_account: gh-naisdevice
+          push: ${{ github.actor != 'dependabot[bot]' }}
+          workload_identity_provider: ${{ secrets.NAIS_IO_WORKLOAD_IDENTITY_PROVIDER }}
+          build_args: |
             GO_VERSION=${{ steps.go-version.outputs.version }}
-          cache-from: type=registry,ref=${{ env.cache_ref }}
-          cache-to: type=registry,ref=${{ env.cache_ref }},mode=max
+          cache_from: type=registry,ref=${{ env.cache_ref }}
+          cache_to: type=gha,ref=${{ env.cache_ref }},mode=max
 
   build_auth_server:
     name: Build auth-server
@@ -142,6 +125,10 @@ jobs:
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # ratchet:actions/checkout@v6
 
+      - name: Get Go version from go.mod
+        id: go-version
+        run: echo "version=$(awk '/^go /{print $2}' go.mod)" >> "$GITHUB_OUTPUT"
+
       - uses: nais/platform-build-push-sign@df590279b21bc5978519685752f9eaddd546043c # ratchet:nais/platform-build-push-sign@main
         id: build-push-sign
         with:
@@ -150,7 +137,7 @@ jobs:
           google_service_account: gh-naisdevice
           push: ${{ github.actor != 'dependabot[bot]' }}
           workload_identity_provider: ${{ secrets.NAIS_IO_WORKLOAD_IDENTITY_PROVIDER }}
-          build-args: |
-            GO_VERSION=$(awk '/^go /{print $2}' go.mod)
-          cache-from: type=registry,ref=${{ env.cache_ref }}
-          cache-to: type=gha,ref=${{ env.cache_ref }},mode=max
+          build_args: |
+            GO_VERSION=${{ steps.go-version.outputs.version }}
+          cache_from: type=registry,ref=${{ env.cache_ref }}
+          cache_to: type=gha,ref=${{ env.cache_ref }},mode=max
