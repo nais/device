@@ -288,6 +288,7 @@ const (
 	DeviceAgent_GetAgentConfiguration_FullMethodName = "/naisdevice.DeviceAgent/GetAgentConfiguration"
 	DeviceAgent_ShowAcceptableUse_FullMethodName     = "/naisdevice.DeviceAgent/ShowAcceptableUse"
 	DeviceAgent_ShowJita_FullMethodName              = "/naisdevice.DeviceAgent/ShowJita"
+	DeviceAgent_Shutdown_FullMethodName              = "/naisdevice.DeviceAgent/Shutdown"
 )
 
 // DeviceAgentClient is the client API for DeviceAgent service.
@@ -313,6 +314,8 @@ type DeviceAgentClient interface {
 	ShowAcceptableUse(ctx context.Context, in *ShowAcceptableUseRequest, opts ...grpc.CallOption) (*ShowAcceptableUseResponse, error)
 	// Show the jita page
 	ShowJita(ctx context.Context, in *ShowJitaRequest, opts ...grpc.CallOption) (*ShowJitaResponse, error)
+	// Shut down the device agent process
+	Shutdown(ctx context.Context, in *ShutdownRequest, opts ...grpc.CallOption) (*ShutdownResponse, error)
 }
 
 type deviceAgentClient struct {
@@ -422,6 +425,16 @@ func (c *deviceAgentClient) ShowJita(ctx context.Context, in *ShowJitaRequest, o
 	return out, nil
 }
 
+func (c *deviceAgentClient) Shutdown(ctx context.Context, in *ShutdownRequest, opts ...grpc.CallOption) (*ShutdownResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ShutdownResponse)
+	err := c.cc.Invoke(ctx, DeviceAgent_Shutdown_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // DeviceAgentServer is the server API for DeviceAgent service.
 // All implementations must embed UnimplementedDeviceAgentServer
 // for forward compatibility.
@@ -445,6 +458,8 @@ type DeviceAgentServer interface {
 	ShowAcceptableUse(context.Context, *ShowAcceptableUseRequest) (*ShowAcceptableUseResponse, error)
 	// Show the jita page
 	ShowJita(context.Context, *ShowJitaRequest) (*ShowJitaResponse, error)
+	// Shut down the device agent process
+	Shutdown(context.Context, *ShutdownRequest) (*ShutdownResponse, error)
 	mustEmbedUnimplementedDeviceAgentServer()
 }
 
@@ -481,6 +496,9 @@ func (UnimplementedDeviceAgentServer) ShowAcceptableUse(context.Context, *ShowAc
 }
 func (UnimplementedDeviceAgentServer) ShowJita(context.Context, *ShowJitaRequest) (*ShowJitaResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method ShowJita not implemented")
+}
+func (UnimplementedDeviceAgentServer) Shutdown(context.Context, *ShutdownRequest) (*ShutdownResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method Shutdown not implemented")
 }
 func (UnimplementedDeviceAgentServer) mustEmbedUnimplementedDeviceAgentServer() {}
 func (UnimplementedDeviceAgentServer) testEmbeddedByValue()                     {}
@@ -658,6 +676,24 @@ func _DeviceAgent_ShowJita_Handler(srv interface{}, ctx context.Context, dec fun
 	return interceptor(ctx, in, info, handler)
 }
 
+func _DeviceAgent_Shutdown_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ShutdownRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(DeviceAgentServer).Shutdown(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: DeviceAgent_Shutdown_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(DeviceAgentServer).Shutdown(ctx, req.(*ShutdownRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // DeviceAgent_ServiceDesc is the grpc.ServiceDesc for DeviceAgent service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -696,6 +732,10 @@ var DeviceAgent_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "ShowJita",
 			Handler:    _DeviceAgent_ShowJita_Handler,
+		},
+		{
+			MethodName: "Shutdown",
+			Handler:    _DeviceAgent_Shutdown_Handler,
 		},
 	},
 	Streams: []grpc.StreamDesc{
