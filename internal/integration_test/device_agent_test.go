@@ -41,7 +41,7 @@ func NewDeviceAgent(t *testing.T, wg *sync.WaitGroup, ctx context.Context, log *
 
 	authHandler := auth.NewMockHandler(t)
 
-	impl := device_agent.NewServer(ctx, log, cfg, rc, notifier, stateMachine.SendEvent, nil, nil, authHandler)
+	impl := device_agent.NewServer(ctx, log, cfg, rc, notifier, stateMachine.SendEvent, func() {}, nil, nil, authHandler)
 	server := grpc.NewServer()
 	pb.RegisterDeviceAgentServer(server, impl)
 
