@@ -5,6 +5,7 @@ import (
 	"context"
 	"fmt"
 	"sync"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/nais/device/internal/deviceagent/acceptableuse"
@@ -31,6 +32,7 @@ type DeviceAgentServer struct {
 	rc        runtimeconfig.RuntimeConfig
 	log       *logrus.Entry
 	sendEvent func(state.EventWithSpan)
+	cancel    context.CancelFunc
 
 	statusChannelsLock sync.RWMutex
 	statusChannels     map[uuid.UUID]chan *pb.AgentStatus
@@ -168,12 +170,24 @@ func (das *DeviceAgentServer) ShowJita(ctx context.Context, req *pb.ShowJitaRequ
 	return &pb.ShowJitaResponse{}, nil
 }
 
+func (das *DeviceAgentServer) Shutdown(ctx context.Context, _ *pb.ShutdownRequest) (*pb.ShutdownResponse, error) {
+	das.log.Info("shutdown requested via RPC")
+	das.sendEvent(state.SpanEvent(ctx, state.EventDisconnect))
+	go func() {
+		// Give time for the response to be sent before cancelling
+		time.Sleep(100 * time.Millisecond)
+		das.cancel()
+	}()
+	return &pb.ShutdownResponse{}, nil
+}
+
 func NewServer(ctx context.Context,
 	log *logrus.Entry,
 	cfg *config.Config,
 	rc runtimeconfig.RuntimeConfig,
 	notifier notify.Notifier,
 	sendEvent func(state.EventWithSpan),
+	cancel context.CancelFunc,
 	acceptableUse *acceptableuse.Handler,
 	jita *jita.Handler,
 	authHandler auth.Handler,
@@ -186,6 +200,7 @@ func NewServer(ctx context.Context,
 		rc:                  rc,
 		notifier:            notifier,
 		sendEvent:           sendEvent,
+		cancel:              cancel,
 		acceptaleUseHandler: acceptableUse,
 		jitaHandler:         jita,
 		authHandler:         authHandler,

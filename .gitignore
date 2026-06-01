@@ -27,5 +27,6 @@ packaging/windows/naisdevice.key
 *.db-wal
 operational/scripts/data/
 .direnv
+.vagrant/
 result
 .opencode

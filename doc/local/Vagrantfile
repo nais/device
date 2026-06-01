@@ -12,8 +12,8 @@ Vagrant.configure("2") do |config|
 
   # Every Vagrant development environment requires a box. You can search for
   # boxes at https://vagrantcloud.com/search.
-  config.vm.box = "peru/windows-10-enterprise-x64-eval"
-  config.vm.box_version = "20230801.01"
+  config.vm.box = "stromweld/windows-11"
+  config.vm.box_version = "202511.21.0"
 
   # Disable automatic box update checking. If you disable this, then
   # boxes will only be checked for updates when the user runs
