@@ -101,14 +101,26 @@ func run(ctx context.Context, log *logrus.Entry, cfg *config.Config, notifier no
 		return fmt.Errorf("missing prerequisites: %s", err)
 	}
 
-	httpListener, err := net.Listen("tcp", "127.0.0.1:0")
+	httpListenerV4, err := net.Listen("tcp4", "127.0.0.1:0")
 	if err != nil {
-		return fmt.Errorf("creating listener: %w", err)
+		return fmt.Errorf("creating IPv4 listener: %w", err)
 	}
 
-	log.WithField("addr", httpListener.Addr().String()).Info("local HTTP server")
+	port := httpListenerV4.Addr().(*net.TCPAddr).Port
+	httpListeners := []net.Listener{httpListenerV4}
+	listenerAddrs := []string{httpListenerV4.Addr().String()}
+
+	httpListenerV6, err := net.Listen("tcp6", net.JoinHostPort("::1", fmt.Sprintf("%d", port)))
+	if err != nil {
+		log.WithError(err).Warn("creating IPv6 loopback listener")
+	} else {
+		httpListeners = append(httpListeners, httpListenerV6)
+		listenerAddrs = append(listenerAddrs, httpListenerV6.Addr().String())
+	}
+
+	log.WithField("addr", fmt.Sprintf("localhost:%d", port)).WithField("listeners", listenerAddrs).Info("local HTTP server")
 	go func() {
-		if err := agenthttp.Serve(httpListener); err != nil && !errors.Is(err, http.ErrServerClosed) {
+		if err := agenthttp.Serve(httpListeners...); err != nil && !errors.Is(err, http.ErrServerClosed) {
 			log.WithError(err).Error("HTTP server")
 		}
 	}()
