@@ -49,7 +49,7 @@ func (h *handler) valid() error {
 
 func New(authServer string, log logrus.FieldLogger) *handler {
 	h := &handler{
-		authChannel: make(chan *authFlowResponse),
+		authChannel: make(chan *authFlowResponse, 1),
 		authServer:  authServer,
 		log:         log,
 	}
@@ -72,6 +72,8 @@ type Tokens struct {
 }
 
 func (h *handler) GetDeviceAgentToken(ctx context.Context, log logrus.FieldLogger, oauthConfig oauth2.Config, redirect string) (*Tokens, error) {
+	h.authChannel = make(chan *authFlowResponse, 1)
+
 	// Ignoring impossible error
 	h.codeVerifier, _ = codeverifier.CreateCodeVerifier()
 	h.state = random.RandomString(16, random.LettersAndNumbers)
@@ -114,9 +116,17 @@ func (h *handler) GetDeviceAgentToken(ctx context.Context, log logrus.FieldLogge
 	}
 }
 
-func failAuth(err error, w http.ResponseWriter, authFlowChan chan *authFlowResponse) {
+func (h *handler) failAuth(err error, w http.ResponseWriter) {
 	failureResponse(w, err.Error())
-	authFlowChan <- &authFlowResponse{Tokens: nil, err: err}
+	h.sendAuthFlowResponse(&authFlowResponse{Tokens: nil, err: err})
+}
+
+func (h *handler) sendAuthFlowResponse(response *authFlowResponse) {
+	select {
+	case h.authChannel <- response:
+	default:
+		h.log.WithField("response", response).Warn("dropping auth flow response")
+	}
 }
 
 func failureResponse(w http.ResponseWriter, msg string) {
