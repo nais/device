@@ -2,12 +2,15 @@
 package agenthttp
 
 import (
+	"errors"
 	"fmt"
 	"net"
 	"net/http"
 	"strings"
+	"sync"
 
 	"github.com/nais/device/internal/random"
+	"golang.org/x/sync/errgroup"
 )
 
 var mux = &localMux{
@@ -44,12 +47,35 @@ func (m *localMux) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	m.mux.ServeHTTP(w, req)
 }
 
-func Serve(listener net.Listener) error {
-	server := &http.Server{Handler: mux}
-	addr = listener.Addr().String()
+func Serve(listeners ...net.Listener) error {
+	if len(listeners) == 0 {
+		return errors.New("no listeners configured")
+	}
+
+	addr = listeners[0].Addr().String()
 	addr = strings.Replace(addr, "127.0.0.1", "localhost", 1)
 	addr = strings.Replace(addr, "[::1]", "localhost", 1)
-	return server.Serve(listener)
+
+	server := &http.Server{Handler: mux}
+	eg := errgroup.Group{}
+	closeOnce := sync.Once{}
+
+	for _, listener := range listeners {
+		eg.Go(func() error {
+			err := server.Serve(listener)
+			if errors.Is(err, http.ErrServerClosed) {
+				return nil
+			}
+			if err != nil {
+				closeOnce.Do(func() {
+					_ = server.Close()
+				})
+			}
+			return err
+		})
+	}
+
+	return eg.Wait()
 }
 
 func Path(path string, withSecret bool) string {

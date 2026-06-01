@@ -49,6 +49,9 @@ service DeviceAgent {
 
   // Show the jita page
   rpc ShowJita(ShowJitaRequest) returns (ShowJitaResponse) {}
+
+  // Shut down the device agent process
+  rpc Shutdown(ShutdownRequest) returns (ShutdownResponse) {}
 }
 
 service APIServer {
@@ -162,6 +165,10 @@ message ShowJitaRequest {
 }
 
 message ShowJitaResponse {}
+
+message ShutdownRequest {}
+
+message ShutdownResponse {}
 
 message GetAgentConfigurationResponse {
   AgentConfiguration config = 1;

@@ -34,13 +34,13 @@ func (h *handler) handleRedirectGoogle(w http.ResponseWriter, r *http.Request) {
 	// Catch if user has not approved terms
 	responseState := r.URL.Query().Get("state")
 	if h.state != responseState {
-		failAuth(fmt.Errorf("invalid 'state' in auth response, try again"), w, h.authChannel)
+		h.failAuth(fmt.Errorf("invalid 'state' in auth response, try again"), w)
 		return
 	}
 
 	code := r.URL.Query().Get("code")
 	if code == "" {
-		failAuth(fmt.Errorf("could not find 'code' URL query parameter"), w, h.authChannel)
+		h.failAuth(fmt.Errorf("could not find 'code' URL query parameter"), w)
 		return
 	}
 
@@ -55,19 +55,19 @@ func (h *handler) handleRedirectGoogle(w http.ResponseWriter, r *http.Request) {
 	buffer := bytes.Buffer{}
 	err := json.NewEncoder(&buffer).Encode(exchangeRequest)
 	if err != nil {
-		failAuth(err, w, h.authChannel)
+		h.failAuth(err, w)
 		return
 	}
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, h.authServer+"/exchange", &buffer)
 	if err != nil {
-		failAuth(err, w, h.authChannel)
+		h.failAuth(err, w)
 		return
 	}
 
 	res, err := http.DefaultClient.Do(req)
 	if err != nil {
-		failAuth(err, w, h.authChannel)
+		h.failAuth(err, w)
 		return
 	}
 	defer ioconvenience.CloseWithLog(res.Body, h.log)
@@ -75,7 +75,7 @@ func (h *handler) handleRedirectGoogle(w http.ResponseWriter, r *http.Request) {
 	var exchangeResponse ExchangeResponse
 	err = json.NewDecoder(res.Body).Decode(&exchangeResponse)
 	if err != nil {
-		failAuth(err, w, h.authChannel)
+		h.failAuth(err, w)
 		return
 	}
 
@@ -88,7 +88,7 @@ func (h *handler) handleRedirectGoogle(w http.ResponseWriter, r *http.Request) {
 	}
 
 	tokens := &Tokens{Token: exchangeResponse.Token, IDToken: exchangeResponse.IDToken}
-	h.authChannel <- &authFlowResponse{Tokens: tokens, err: nil}
+	h.sendAuthFlowResponse(&authFlowResponse{Tokens: tokens, err: nil})
 }
 
 func consoleURL(ctx context.Context, idToken, state string, log logrus.FieldLogger) (string, error) {
