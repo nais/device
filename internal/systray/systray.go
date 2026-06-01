@@ -2,6 +2,7 @@ package systray
 
 import (
 	"context"
+	"time"
 
 	"fyne.io/systray"
 	"github.com/nais/device/internal/ioconvenience"
@@ -48,7 +49,14 @@ func (s *trayState) onReady() {
 }
 
 func (s *trayState) onExit() {
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
+
 	if s.connection != nil {
+		client := pb.NewDeviceAgentClient(s.connection)
+		if _, err := client.Shutdown(ctx, &pb.ShutdownRequest{}); err != nil {
+			s.log.WithError(err).Warn("shutdown agent")
+		}
 		ioconvenience.CloseWithLog(s.connection, s.log)
 	}
 }
