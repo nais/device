@@ -32,6 +32,15 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
+
+	normalizedPublicKey, err := NormalizeWireGuardPublicKey(req.WireGuardPublicKey)
+	if err != nil {
+		h.log.WithError(err).Error("invalid wireguard public key")
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	req.WireGuardPublicKey = normalizedPublicKey
+
 	req.Owner = token.GetEmail(r.Context())
 
 	resp, err := h.worker.Send(r.Context(), &req)

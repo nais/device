@@ -89,11 +89,18 @@ func (l *localEnroller) getEnrollments(ctx context.Context) ([]enroll.DeviceRequ
 }
 
 func (l *localEnroller) enroll(ctx context.Context, enrollment enroll.DeviceRequest) error {
+	normalizedPublicKey, err := enroll.NormalizeWireGuardPublicKey(enrollment.WireGuardPublicKey)
+	if err != nil {
+		msg := "local enroller: invalid wireguard public key"
+		l.log.WithError(err).Error(msg)
+		return fmt.Errorf("%s: %w", msg, err)
+	}
+
 	device := &pb.Device{
 		Username:  enrollment.Owner,
 		Serial:    enrollment.Serial,
 		Platform:  enrollment.Platform,
-		PublicKey: string(enrollment.WireGuardPublicKey),
+		PublicKey: normalizedPublicKey,
 	}
 
 	if err := l.db.AddDevice(ctx, device); err != nil {
