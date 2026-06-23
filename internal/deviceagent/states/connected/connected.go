@@ -428,7 +428,7 @@ func hasKolideNotLinkedIssue(issues []*pb.DeviceIssue) bool {
 
 func hasAcceptableUseNotAcceptedIssue(issues []*pb.DeviceIssue) bool {
 	for _, issue := range issues {
-		if issue.Title == "Do's and don'ts not accepted" {
+		if issue.Title == pb.IssueTitleDosDontsNotAccepted {
 			return true
 		}
 	}
