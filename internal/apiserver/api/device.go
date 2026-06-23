@@ -139,7 +139,7 @@ func (s *grpcServer) makeDeviceConfiguration(ctx context.Context, sessionKey str
 		} else if acceptedAt == nil {
 			now := timestamppb.Now()
 			sessionIssues = append(sessionIssues, &pb.DeviceIssue{
-				Title:         "Do's and don'ts not accepted",
+				Title:         pb.IssueTitleDosDontsNotAccepted,
 				Message:       "In order to use naisdevice you have to accept our Do's and don'ts. Click on naisdevice and then the Acceptable use policy menu item to accept.",
 				Severity:      pb.Severity_Critical,
 				DetectedAt:    now,
