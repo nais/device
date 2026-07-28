@@ -4,8 +4,9 @@ git-cliff = "2.12.0"
 go = """
 {%- set gomod = read_file(path=config_root ~ "/go.mod") -%}
 {%- for line in gomod | split(pat="\n") -%}
-{%- if line is starting_with("go ") -%}
-{{- line | replace(from="go ", to="") | trim -}}
+{%- set parts = line | trim | split(pat=" ") -%}
+{%- if parts | first == "go" and parts | length == 2 -%}
+{{- parts | last | trim -}}
 {%- endif -%}
 {%- endfor -%}
 """
