@@ -1,6 +1,6 @@
 module github.com/nais/device
 
-go 1.26.5
+go 1.26.6
 
 tool (
 	github.com/akavel/rsrc

@@ -1,6 +1,6 @@
 final: prev:
 let
-  goVersion = "1.26.4";
+  goVersion = "1.26.6";
   newerGoVersion = prev.go_latest.overrideAttrs (old: {
     inherit goVersion;
     src = prev.fetchurl {
