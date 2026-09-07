@@ -1,6 +1,7 @@
 package jita
 
 import (
+	"cmp"
 	"embed"
 	"fmt"
 	"net/http"
@@ -49,6 +50,7 @@ func (h *Handler) index(w http.ResponseWriter, req *http.Request) {
 
 	var hasActiveRequest bool
 	var grants []*pb.GatewayJitaGrant
+	var apiserverError string
 	if err := h.rc.WithAPIServer(func(apiserver pb.APIServerClient, key string) error {
 		hasAccessResp, err := apiserver.UserHasAccessToPrivilegedGateway(req.Context(), &pb.UserHasAccessToPrivilegedGatewayRequest{
 			SessionKey: key,
@@ -72,8 +74,7 @@ func (h *Handler) index(w http.ResponseWriter, req *http.Request) {
 	}); err != nil {
 		h.log.WithError(err).Errorf("unable to communicate with apiserver")
 		h.verifyToken(err)
-		http.Error(w, "Unable to communicate with apiserver.", http.StatusInternalServerError)
-		return
+		apiserverError = apiserverErrorMessage(err)
 	}
 
 	type accessGrant struct {
@@ -94,6 +95,7 @@ func (h *Handler) index(w http.ResponseWriter, req *http.Request) {
 		Grants                              []accessGrant
 		ErrorMessage                        string
 		StatusMessage                       string
+		ApiserverAvailable                  bool
 	}{
 		GrantGatewayAccessRequestFormAction: agenthttp.Path("/jita/grantGatewayAccessRequest", true),
 		RevokeGatewayAccessFormAction:       agenthttp.Path("/jita/revokeGatewayAccess", true),
@@ -120,8 +122,9 @@ func (h *Handler) index(w http.ResponseWriter, req *http.Request) {
 			}
 			return ret
 		}(grants),
-		ErrorMessage:  req.URL.Query().Get("errorMessage"),
-		StatusMessage: req.URL.Query().Get("statusMessage"),
+		ErrorMessage:       cmp.Or(apiserverError, req.URL.Query().Get("errorMessage")),
+		StatusMessage:      req.URL.Query().Get("statusMessage"),
+		ApiserverAvailable: apiserverError == "",
 	}
 
 	if err := html.Render(w, template, "jita.html", data); err != nil {
@@ -134,6 +137,18 @@ func (h *Handler) index(w http.ResponseWriter, req *http.Request) {
 func (h *Handler) verifyToken(err error) {
 	if status.Convert(err).Code() == codes.Unauthenticated {
 		h.rc.SetJitaToken(nil)
+	}
+}
+
+// apiserverErrorMessage maps gRPC status codes to user-facing error messages.
+func apiserverErrorMessage(err error) string {
+	switch status.Convert(err).Code() {
+	case codes.Unauthenticated:
+		return "Your login session or JITA token is no longer valid. Please reconnect Naisdevice and try again."
+	case codes.Unavailable, codes.DeadlineExceeded:
+		return "Unable to reach the apiserver. Check that Naisdevice is connected, and try again."
+	default:
+		return "Unable to communicate with apiserver. If the problem persists, please send your logs to the Nais team."
 	}
 }
 
@@ -179,7 +194,7 @@ func (h *Handler) grant(w http.ResponseWriter, req *http.Request) {
 	}); err != nil {
 		h.log.WithError(err).Errorf("unable to communicate with apiserver")
 		h.verifyToken(err)
-		redirectToIndexWithErrorMessage("Unable to communicate with apiserver.", w, req)
+		redirectToIndexWithErrorMessage(apiserverErrorMessage(err), w, req)
 		return
 	}
 
@@ -202,7 +217,7 @@ func (h *Handler) revoke(w http.ResponseWriter, req *http.Request) {
 	}); err != nil {
 		h.log.WithError(err).Errorf("unable to communicate with apiserver")
 		h.verifyToken(err)
-		redirectToIndexWithErrorMessage("Unable to communicate with apiserver.", w, req)
+		redirectToIndexWithErrorMessage(apiserverErrorMessage(err), w, req)
 		return
 	}
 
