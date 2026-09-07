@@ -136,8 +136,8 @@ func run(log *logrus.Entry, cfg config.Config) error {
 	switch cfg.DeviceAuthenticationProvider {
 	case "azure":
 		log.Info("fetching Azure OIDC configuration...")
-		tokenParser = azure.New(ctx, cfg.Azure)
-		jitaParser = azure.New(ctx, cfg.JITA)
+		tokenParser = azure.New(ctx, log, cfg.Azure)
+		jitaParser = azure.New(ctx, log, cfg.JITA)
 
 		authenticator = apiauth.NewAuthenticator(tokenParser, jitaParser, db, sessions, log.WithField("component", "azure-authenticator"))
 		log.Info("Azure OIDC authenticator configured to authenticate device sessions")
