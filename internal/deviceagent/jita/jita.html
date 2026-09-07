@@ -2,7 +2,7 @@
 <p class="error">{{ .ErrorMessage }}</p>
 {{ else if .StatusMessage }}
 <p class="status">{{ .StatusMessage }}</p>
-{{ end }} {{ if .HasActiveAccessRequest }}
+{{ end }} {{ if .ApiserverAvailable }} {{ if .HasActiveAccessRequest }}
 <p>
   You are currently granted access to the
   <strong>{{ .Gateway }}</strong> gateway. You can revoke the grant below if you
@@ -106,13 +106,16 @@
     {{ end }}
   </tbody>
 </table>
-{{ end }}
+{{ end }} {{ end }}
 <script>
   document.documentElement.classList.remove("no-js");
-  document.getElementById("duration").addEventListener("input", (event) => {
-    const dur = event.target.value;
-    document.getElementById("duration-display").innerHTML =
-      `${dur} hour${dur === "1" ? "" : "s"}`;
-  });
+  const duration = document.getElementById("duration");
+  if (duration) {
+    duration.addEventListener("input", (event) => {
+      const dur = event.target.value;
+      document.getElementById("duration-display").innerHTML =
+        `${dur} hour${dur === "1" ? "" : "s"}`;
+    });
+  }
 </script>
 {{ end }}

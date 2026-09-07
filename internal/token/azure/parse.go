@@ -47,8 +47,9 @@ func (h *handler) tokenToUser(tok jwt.Token) (*token.User, error) {
 	groups := []string{"allUsers"}
 	tokenGroups, ok := tok.Get("groups")
 	if !ok {
-		return nil, fmt.Errorf("missing groups claim in token")
+		h.log.Error("missing groups claim in token, there is a max ")
 	}
+
 	for _, group := range tokenGroups.([]any) {
 		groups = append(groups, group.(string))
 	}

@@ -118,7 +118,7 @@ func makeWorker(cfg Config, ctx context.Context, log *logrus.Entry) (enroll.Work
 
 func makeTokenValidator(ctx context.Context, cfg Config, log *logrus.Entry) (token.Validator, error) {
 	if cfg.AzureEnabled {
-		return token.Middleware(azure.New(ctx, cfg.Azure)), nil
+		return token.Middleware(azure.New(ctx, log, cfg.Azure)), nil
 	} else if cfg.GoogleEnabled {
 		return token.Middleware(google.New(ctx, cfg.Google)), nil
 	} else {

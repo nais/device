@@ -7,15 +7,17 @@ import (
 
 	"github.com/lestrrat-go/jwx/jwt"
 	"github.com/nais/device/internal/token"
+	"github.com/sirupsen/logrus"
 )
 
 type handler struct {
+	log  *logrus.Entry
 	opts []jwt.ParseOption
 }
 
 var _ token.Parser = &handler{}
 
-func New(ctx context.Context, config token.Config) token.Parser {
+func New(ctx context.Context, log *logrus.Entry, config token.Config) token.Parser {
 	if err := config.Validate(); err != nil {
 		panic(fmt.Sprintf("azure token parser: %v", err))
 	}
@@ -26,6 +28,7 @@ func New(ctx context.Context, config token.Config) token.Parser {
 	}
 
 	return &handler{
+		log: log,
 		opts: []jwt.ParseOption{
 			jwt.WithValidate(true),
 			jwt.InferAlgorithmFromKey(true),
