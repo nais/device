@@ -143,11 +143,11 @@ func (nc *networkConfigurer) ApplyWireGuardConfig(peers []Peer) error {
 	if err != nil {
 		return fmt.Errorf("open WireGuard config file: %w", err)
 	}
-	defer ioconvenience.CloseWithLog(configFile, nc.log)
 
 	nc.config.Peers = peers
 	err = nc.config.MarshalINI(configFile)
 	if err != nil {
+		ioconvenience.CloseWithLog(configFile, nc.log)
 		return fmt.Errorf("write WireGuard config: %w", err)
 	}
 
