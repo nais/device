@@ -245,7 +245,7 @@ func (s *grpcServer) UpdateAllDevices(ctx context.Context) error {
 				"device_serial":   device.Serial,
 				"device_platform": device.Platform,
 				"device_username": device.Username,
-			}).Info("no matching kolide device found for serial+platform")
+			}).Debug("no matching kolide device found for serial+platform")
 			continue
 		}
 		kd := kolideDevices[idx]
