@@ -38,6 +38,7 @@ import (
 const (
 	healthCheckInterval  = 20 * time.Second // how often to healthcheck gateways
 	versionCheckInterval = 1 * time.Hour    // how often to check for a new version of naisdevice
+	statusFile           = "agent-status.json"
 )
 
 func main() {
@@ -217,6 +218,7 @@ func run(ctx context.Context, log *logrus.Entry, cfg *config.Config, notifier no
 			case s := <-statusChannel:
 				s.NewVersionAvailable = newVersionAvailable
 				s.Tenants = rc.Tenants()
+				writeStatusFile(filepath.Join(cfg.ConfigDir, statusFile), s.ConnectionState, rc.GetActiveTenant(), log)
 				das.UpdateAgentStatus(s)
 			case <-ctx.Done():
 			}
@@ -237,6 +239,30 @@ func run(ctx context.Context, log *logrus.Entry, cfg *config.Config, notifier no
 	log.Info("gRPC server shut down")
 
 	return nil
+}
+
+// writeStatusFile publishes the connection state and the active tenant so that
+// callers unable to reach the gRPC socket can read them. Best effort: failures
+// are logged and never stop the agent.
+func writeStatusFile(path string, state pb.AgentState, tenant *pb.Tenant, log logrus.FieldLogger) {
+	name := ""
+	if tenant != nil {
+		name = tenant.Name
+	}
+
+	out, err := json.Marshal(map[string]string{
+		"connectionState": state.String(),
+		"tenant":          name,
+		"updatedAt":       time.Now().Format(time.RFC3339),
+	})
+	if err != nil {
+		log.WithError(err).Error("encode agent status")
+		return
+	}
+
+	if err := os.WriteFile(path, out, 0o644); err != nil {
+		log.WithError(err).Error("write agent status")
+	}
 }
 
 func versionChecker(ctx context.Context, newVersionChannel chan<- bool, notifier notify.Notifier, log logrus.FieldLogger, rc runtimeconfig.RuntimeConfig) {
