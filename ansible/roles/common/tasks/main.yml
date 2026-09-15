@@ -13,9 +13,21 @@
       - debconf # used by ansible to configure deb packages
       - debconf-utils # used by ansible to configure deb packages
 
-- name: make sure unattented-upgrades is enabled
-  ansible.builtin.debconf:
-    name: unattended-upgrades
-    question: unattended-upgrades/enable_auto_updates
-    value: "true"
-    vtype: select
+- name: Enable unattended-upgrades
+  ansible.builtin.copy:
+    dest: /etc/apt/apt.conf.d/20auto-upgrades
+    content: |
+      APT::Periodic::Update-Package-Lists "1";
+      APT::Periodic::Unattended-Upgrade "1";
+    owner: root
+    group: root
+    mode: "0644"
+
+- name: Enable automatic reboot for unattended-upgrades
+  ansible.builtin.lineinfile:
+    path: /etc/apt/apt.conf.d/50unattended-upgrades
+    regexp: '^//?{{ item.key }}'
+    line: '{{ item.key }} "{{ item.value }}";'
+  loop:
+    - { key: 'Unattended-Upgrade::Automatic-Reboot', value: 'true' }
+    - { key: 'Unattended-Upgrade::Automatic-Reboot-Time', value: '02:00' }
