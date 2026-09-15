@@ -96,6 +96,28 @@ The `device-agent` is a crucial component responsible for managing device config
 - Serving status updates through its gRPC API to the CLI/systray.
 - Executing the authentication flow to obtain user tokens.
 
+### Agent status file
+
+The device-agent writes `agent-status.json` to its config directory, next to `agent-config.json`, for callers that cannot reach the gRPC socket. A sandboxed process may be allowed to read the config directory but not to open a unix socket. Everything that can use the gRPC API should use that instead.
+
+```json
+{
+  "connectionState": "Connected",
+  "tenant": "NAV",
+  "updatedAt": "2026-09-15T21:00:00+02:00",
+  "heartbeatSeconds": 30,
+  "warning": "best effort, may be missing or stale, format may change, may be removed at any time, do not depend on it"
+}
+```
+
+The file is written at startup before the first transition, on every state change, and every `heartbeatSeconds` in between. It is removed on a clean shutdown. Read it like this:
+
+- No file: the agent is not running, or it could not write.
+- `updatedAt` older than a few times `heartbeatSeconds`: the agent died without cleaning up, so `connectionState` cannot be trusted.
+- Otherwise: the state as of `updatedAt`.
+
+This is best effort and not an interface we maintain. It can be missing or stale, the format can change, and it can be removed at any time. Do not build anything you care about on it.
+
 ## Systray
 
 The `systray` component acts as a graphical user interface (GUI) for the `agent`, utilizing its gRPC API. It provides a convenient way for users to interact with and monitor the agent's status.
