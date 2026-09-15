@@ -7,7 +7,7 @@ on:
     branches: [main]
     paths:
       - "go.*"
-      - "cmd/naisdevice-*"
+      - "cmd/naisdevice-*/**"
       - "internal/deviceagent/**"
       - "internal/enroll/**"
       - "internal/systray/**"
@@ -23,6 +23,7 @@ on:
       - "internal/version/**"
       - "internal/wireguard/**"
       - ".github/workflows/build.yaml"
+      - ".github/workflows/naisdevice.yaml"
       - ".github/workflows/templates/*"
       - "mise/config.toml"
       - "mise/tasks/**"
