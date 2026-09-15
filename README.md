@@ -110,11 +110,11 @@ The device-agent writes `agent-status.json` to its config directory, next to `ag
 }
 ```
 
-The file is written at startup before the first transition, on every state change, and every `heartbeatSeconds` in between. It is removed on a clean shutdown. Read it like this:
+The file is written at startup before the first transition, on every state change, and every `heartbeatSeconds` in between. The agent removes it when it shuts down cleanly, but that is not guaranteed: a crash, a kill, or a lost race on the way out all leave it behind. Presence means the agent got this far, never that it is running now. That is what `updatedAt` and `heartbeatSeconds` are for:
 
-- No file: the agent is not running, or it could not write.
-- `updatedAt` older than a few times `heartbeatSeconds`: the agent died without cleaning up, so `connectionState` cannot be trusted.
-- Otherwise: the state as of `updatedAt`.
+- `updatedAt` within a few times `heartbeatSeconds`: the state as of `updatedAt`.
+- `updatedAt` older than that: the agent is gone or stuck, so `connectionState` cannot be trusted.
+- No file: the agent has not run, or it could not write.
 
 This is best effort and not an interface we maintain. It can be missing or stale, the format can change, and it can be removed at any time. Do not build anything you care about on it.
 

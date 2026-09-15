@@ -108,10 +108,15 @@ func (s *statusFile) run(ctx context.Context) {
 			}
 			return
 		case last = <-s.updates:
-			s.write(last)
 		case <-ticker.C:
-			s.write(last)
 		}
+
+		s.write(last)
+
+		// The heartbeat measures time since the last write, not since the last
+		// tick. Connected pushes a status update every 20 seconds of its own, so
+		// a free-running ticker would write more often than heartbeatSeconds says.
+		ticker.Reset(s.interval)
 	}
 }
 

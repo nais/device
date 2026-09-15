@@ -181,6 +181,58 @@ func TestStatusFile(t *testing.T) {
 		assert.Equal(t, 1, errors, "a failing disk fails on every heartbeat, so only the first one is an error")
 	})
 
+	t.Run("updates do not make the file write more often than the interval", func(t *testing.T) {
+		if os.Geteuid() == 0 {
+			t.Skip("root ignores directory permissions")
+		}
+
+		// Connected pushes a status update every 20 seconds while the heartbeat
+		// is 30, so updates arrive faster than the interval without ever being
+		// frequent. A ticker that is not reset after a write adds its own writes
+		// on top. Scaled down: updates every 70ms against a 100ms interval.
+		const (
+			interval   = 100 * time.Millisecond
+			updateWait = 70 * time.Millisecond
+			duration   = 2 * time.Second
+		)
+
+		// A read-only directory turns every write attempt into a log entry, which
+		// is how the test counts writes without the agent knowing it is counted.
+		dir := t.TempDir()
+		require.NoError(t, os.Chmod(dir, 0o500))
+		t.Cleanup(func() { _ = os.Chmod(dir, 0o700) })
+
+		logger, hook := logrustest.NewNullLogger()
+		logger.SetLevel(logrus.DebugLevel)
+
+		sf := newStatusFile(dir, logger)
+		sf.interval = interval
+
+		ctx, cancel := context.WithTimeout(context.Background(), duration)
+		defer cancel()
+
+		done := make(chan struct{})
+		go func() {
+			defer close(done)
+			sf.run(ctx)
+		}()
+
+		updates := 0
+		for ctx.Err() == nil {
+			time.Sleep(updateWait)
+			sf.update(pb.AgentState_Connected, &pb.Tenant{Name: "NAV"})
+			updates++
+		}
+		<-done
+
+		// One write per update, one at startup, and a little slack for a tick that
+		// lands while a write is in flight. Without the reset the ticker fires
+		// roughly duration/interval extra times on top of this.
+		writes := len(hook.AllEntries())
+		assert.LessOrEqual(t, writes, updates+5,
+			"%d writes for %d updates, the ticker is writing on top of them", writes, updates)
+	})
+
 	t.Run("a reader never sees a half-written file", func(t *testing.T) {
 		dir := t.TempDir()
 		sf := newStatusFile(dir, logrus.New())
@@ -188,8 +240,11 @@ func TestStatusFile(t *testing.T) {
 		path := filepath.Join(dir, statusFileName)
 
 		ctx, cancel := context.WithCancel(context.Background())
-		defer cancel()
-		go sf.run(ctx)
+		done := make(chan struct{})
+		go func() {
+			defer close(done)
+			sf.run(ctx)
+		}()
 
 		require.Eventually(t, exists(path), time.Second, time.Millisecond)
 
@@ -197,6 +252,11 @@ func TestStatusFile(t *testing.T) {
 		for time.Now().Before(deadline) {
 			assert.NotEmpty(t, read(t, path).ConnectionState)
 		}
+
+		// Stop the writer before the test ends, or removing the temp directory
+		// races the next write and the cleanup fails.
+		cancel()
+		<-done
 	})
 
 	t.Run("removes the file on shutdown", func(t *testing.T) {
