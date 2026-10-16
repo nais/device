@@ -176,22 +176,20 @@ func run(log *logrus.Entry, cfg config.Config) error {
 	apiserverClient := pb.NewAPIServerClient(apiserver)
 
 	for attempt := range maxReconnectAttempts {
+		// SyncFromStream only returns when the stream fails.
 		err := gateway_agent.SyncFromStream(ctx, log, cfg.Name, cfg.APIServerPassword, staticPeers, apiserverClient, netConf)
-		if err != nil {
-			code := status.Code(err)
-			if code == codes.Unauthenticated {
-				// invalid auth is probably not going to fix itself,
-				// so we terminate here to let the OS restart us.
-				return err
-			}
-			log.WithError(err).WithField("attempt", attempt).Error("failed, retrying")
-			log.WithField("backoff", grpcConnectBackoff).Debug("sleep before retry...")
-			select {
-			case <-ctx.Done(): // context cancelled
-				log.Info("context done, shutting down")
-				return nil
-			case <-time.After(grpcConnectBackoff): // timeout
-			}
+		if status.Code(err) == codes.Unauthenticated {
+			// invalid auth is probably not going to fix itself,
+			// so we terminate here to let the OS restart us.
+			return err
+		}
+		log.WithError(err).WithField("attempt", attempt).Error("failed, retrying")
+		log.WithField("backoff", grpcConnectBackoff).Debug("sleep before retry...")
+		select {
+		case <-ctx.Done(): // context cancelled
+			log.Info("context done, shutting down")
+			return nil
+		case <-time.After(grpcConnectBackoff): // timeout
 		}
 	}
 	log.Info("max reconnects reached, shutting down")
