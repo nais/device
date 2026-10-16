@@ -13,16 +13,16 @@ func apply(zones []string) error {
 		return err
 	}
 	go func() {
-		defer stdin.Close()
+		defer func() { _ = stdin.Close() }()
 		for _, zone := range []string{"nais.io", "nav.no"} {
-			fmt.Fprintf(stdin, "Get-DnsClientNrptRule | Where { $_.Namespace -match '%s' } | Remove-DnsClientNrptRule -force\n", zone)
+			_, _ = fmt.Fprintf(stdin, "Get-DnsClientNrptRule | Where { $_.Namespace -match '%s' } | Remove-DnsClientNrptRule -force\n", zone)
 		}
 		for _, zone := range zones {
 			if !strings.HasPrefix(zone, ".") {
 				zone = "." + zone
 			}
-			fmt.Fprintf(stdin, "Get-DnsClientNrptRule | Where { $_.Namespace -match '%s' } | Remove-DnsClientNrptRule -force\n", zone)
-			fmt.Fprintf(stdin, "Add-DnsClientNrptRule -Namespace '%s' -NameServers @('8.8.8.8','8.8.4.4')\n", zone)
+			_, _ = fmt.Fprintf(stdin, "Get-DnsClientNrptRule | Where { $_.Namespace -match '%s' } | Remove-DnsClientNrptRule -force\n", zone)
+			_, _ = fmt.Fprintf(stdin, "Add-DnsClientNrptRule -Namespace '%s' -NameServers @('8.8.8.8','8.8.4.4')\n", zone)
 		}
 	}()
 	out, err := cmd.CombinedOutput()
