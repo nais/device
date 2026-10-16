@@ -125,7 +125,7 @@ func DeleteGateway(c *cli.Context) error {
 	if err != nil {
 		return err
 	}
-	defer conn.Close()
+	defer func() { _ = conn.Close() }()
 
 	client := pb.NewAPIServerClient(conn)
 
