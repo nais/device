@@ -70,6 +70,18 @@ func (q *Queries) AddGatewayRoute(ctx context.Context, arg AddGatewayRouteParams
 	return err
 }
 
+const deleteGateway = `-- name: DeleteGateway :execrows
+DELETE FROM gateways WHERE name = ?1
+`
+
+func (q *Queries) DeleteGateway(ctx context.Context, name string) (int64, error) {
+	result, err := q.exec(ctx, q.deleteGatewayStmt, deleteGateway, name)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
+}
+
 const deleteGatewayAccessGroupIDs = `-- name: DeleteGatewayAccessGroupIDs :exec
 DELETE FROM gateway_access_group_ids WHERE gateway_name = ?1
 `

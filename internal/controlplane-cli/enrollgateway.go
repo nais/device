@@ -117,6 +117,34 @@ func EditGateway(c *cli.Context) error {
 	return err
 }
 
+func DeleteGateway(c *cli.Context) error {
+	conn, err := grpc.NewClient(
+		c.String(FlagAPIServer),
+		grpc.WithTransportCredentials(insecure.NewCredentials()),
+	)
+	if err != nil {
+		return err
+	}
+	defer conn.Close()
+
+	client := pb.NewAPIServerClient(conn)
+
+	name := c.String(FlagName)
+	_, err = client.DeleteGateway(c.Context, &pb.ModifyGatewayRequest{
+		Username: AdminUsername,
+		Password: c.String(FlagAdminPassword),
+		Gateway: &pb.Gateway{
+			Name: name,
+		},
+	})
+	if err != nil {
+		return err
+	}
+
+	fmt.Fprintf(os.Stderr, "Gateway %q deleted.\n", name)
+	return nil
+}
+
 func EnrollGateway(c *cli.Context) error {
 	passwordBytes, err := passwordhash.RandomBytes(32)
 	if err != nil {

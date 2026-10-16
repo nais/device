@@ -38,6 +38,93 @@ func (_m *MockAPIServerClient) EXPECT() *MockAPIServerClient_Expecter {
 	return &MockAPIServerClient_Expecter{mock: &_m.Mock}
 }
 
+// DeleteGateway provides a mock function for the type MockAPIServerClient
+func (_mock *MockAPIServerClient) DeleteGateway(ctx context.Context, in *ModifyGatewayRequest, opts ...grpc.CallOption) (*DeleteGatewayResponse, error) {
+	// grpc.CallOption
+	_va := make([]interface{}, len(opts))
+	for _i := range opts {
+		_va[_i] = opts[_i]
+	}
+	var _ca []interface{}
+	_ca = append(_ca, ctx, in)
+	_ca = append(_ca, _va...)
+	ret := _mock.Called(_ca...)
+
+	if len(ret) == 0 {
+		panic("no return value specified for DeleteGateway")
+	}
+
+	var r0 *DeleteGatewayResponse
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, *ModifyGatewayRequest, ...grpc.CallOption) (*DeleteGatewayResponse, error)); ok {
+		return returnFunc(ctx, in, opts...)
+	}
+	if returnFunc, ok := ret.Get(0).(func(context.Context, *ModifyGatewayRequest, ...grpc.CallOption) *DeleteGatewayResponse); ok {
+		r0 = returnFunc(ctx, in, opts...)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*DeleteGatewayResponse)
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func(context.Context, *ModifyGatewayRequest, ...grpc.CallOption) error); ok {
+		r1 = returnFunc(ctx, in, opts...)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// MockAPIServerClient_DeleteGateway_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'DeleteGateway'
+type MockAPIServerClient_DeleteGateway_Call struct {
+	*mock.Call
+}
+
+// DeleteGateway is a helper method to define mock.On call
+//   - ctx context.Context
+//   - in *ModifyGatewayRequest
+//   - opts ...grpc.CallOption
+func (_e *MockAPIServerClient_Expecter) DeleteGateway(ctx interface{}, in interface{}, opts ...interface{}) *MockAPIServerClient_DeleteGateway_Call {
+	return &MockAPIServerClient_DeleteGateway_Call{Call: _e.mock.On("DeleteGateway",
+		append([]interface{}{ctx, in}, opts...)...)}
+}
+
+func (_c *MockAPIServerClient_DeleteGateway_Call) Run(run func(ctx context.Context, in *ModifyGatewayRequest, opts ...grpc.CallOption)) *MockAPIServerClient_DeleteGateway_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 *ModifyGatewayRequest
+		if args[1] != nil {
+			arg1 = args[1].(*ModifyGatewayRequest)
+		}
+		var arg2 []grpc.CallOption
+		variadicArgs := make([]grpc.CallOption, len(args)-2)
+		for i, a := range args[2:] {
+			if a != nil {
+				variadicArgs[i] = a.(grpc.CallOption)
+			}
+		}
+		arg2 = variadicArgs
+		run(
+			arg0,
+			arg1,
+			arg2...,
+		)
+	})
+	return _c
+}
+
+func (_c *MockAPIServerClient_DeleteGateway_Call) Return(deleteGatewayResponse *DeleteGatewayResponse, err error) *MockAPIServerClient_DeleteGateway_Call {
+	_c.Call.Return(deleteGatewayResponse, err)
+	return _c
+}
+
+func (_c *MockAPIServerClient_DeleteGateway_Call) RunAndReturn(run func(ctx context.Context, in *ModifyGatewayRequest, opts ...grpc.CallOption) (*DeleteGatewayResponse, error)) *MockAPIServerClient_DeleteGateway_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // EnrollGateway provides a mock function for the type MockAPIServerClient
 func (_mock *MockAPIServerClient) EnrollGateway(ctx context.Context, in *ModifyGatewayRequest, opts ...grpc.CallOption) (*ModifyGatewayResponse, error) {
 	// grpc.CallOption

@@ -278,6 +278,23 @@ func (db *database) UpdateGatewayDynamicFields(ctx context.Context, gw *pb.Gatew
 	return nil
 }
 
+func (db *database) DeleteGateway(ctx context.Context, name string) error {
+	mux.Lock()
+	defer mux.Unlock()
+
+	// access group ids, routes and jita grants are removed via ON DELETE CASCADE
+	n, err := db.queries.DeleteGateway(ctx, name)
+	if err != nil {
+		return fmt.Errorf("deleting gateway: %w", err)
+	}
+
+	if n == 0 {
+		return fmt.Errorf("gateway %q: %w", name, sql.ErrNoRows)
+	}
+
+	return nil
+}
+
 func (db *database) AddGateway(ctx context.Context, gw *pb.Gateway) error {
 	mux.Lock()
 	defer mux.Unlock()

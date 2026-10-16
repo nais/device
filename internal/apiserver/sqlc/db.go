@@ -43,6 +43,9 @@ func Prepare(ctx context.Context, db DBTX) (*Queries, error) {
 	if q.addSessionAccessGroupIDStmt, err = db.PrepareContext(ctx, addSessionAccessGroupID); err != nil {
 		return nil, fmt.Errorf("error preparing query AddSessionAccessGroupID: %w", err)
 	}
+	if q.deleteGatewayStmt, err = db.PrepareContext(ctx, deleteGateway); err != nil {
+		return nil, fmt.Errorf("error preparing query DeleteGateway: %w", err)
+	}
 	if q.deleteGatewayAccessGroupIDsStmt, err = db.PrepareContext(ctx, deleteGatewayAccessGroupIDs); err != nil {
 		return nil, fmt.Errorf("error preparing query DeleteGatewayAccessGroupIDs: %w", err)
 	}
@@ -192,6 +195,11 @@ func (q *Queries) Close() error {
 	if q.addSessionAccessGroupIDStmt != nil {
 		if cerr := q.addSessionAccessGroupIDStmt.Close(); cerr != nil {
 			err = fmt.Errorf("error closing addSessionAccessGroupIDStmt: %w", cerr)
+		}
+	}
+	if q.deleteGatewayStmt != nil {
+		if cerr := q.deleteGatewayStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing deleteGatewayStmt: %w", cerr)
 		}
 	}
 	if q.deleteGatewayAccessGroupIDsStmt != nil {
@@ -425,6 +433,7 @@ type Queries struct {
 	addGatewayRouteStmt                    *sql.Stmt
 	addSessionStmt                         *sql.Stmt
 	addSessionAccessGroupIDStmt            *sql.Stmt
+	deleteGatewayStmt                      *sql.Stmt
 	deleteGatewayAccessGroupIDsStmt        *sql.Stmt
 	deleteGatewayRoutesStmt                *sql.Stmt
 	deleteKolideIssuesForDeviceStmt        *sql.Stmt
@@ -475,6 +484,7 @@ func (q *Queries) WithTx(tx *sql.Tx) *Queries {
 		addGatewayRouteStmt:                    q.addGatewayRouteStmt,
 		addSessionStmt:                         q.addSessionStmt,
 		addSessionAccessGroupIDStmt:            q.addSessionAccessGroupIDStmt,
+		deleteGatewayStmt:                      q.deleteGatewayStmt,
 		deleteGatewayAccessGroupIDsStmt:        q.deleteGatewayAccessGroupIDsStmt,
 		deleteGatewayRoutesStmt:                q.deleteGatewayRoutesStmt,
 		deleteKolideIssuesForDeviceStmt:        q.deleteKolideIssuesForDeviceStmt,

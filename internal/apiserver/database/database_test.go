@@ -2,6 +2,7 @@ package database_test
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 	"testing"
 	"time"
@@ -89,6 +90,49 @@ func TestAddGateway(t *testing.T) {
 		assert.Equal(t, existingGateway.PublicKey, updatedGateway.PublicKey)
 		assert.Equal(t, existingGateway.Endpoint, updatedGateway.Endpoint)
 		assert.Equal(t, existingGateway.PasswordHash, updatedGateway.PasswordHash)
+	})
+}
+
+func TestDeleteGateway(t *testing.T) {
+	db := testdatabase.Setup(t, false)
+
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	defer cancel()
+
+	g := &pb.Gateway{
+		Endpoint:       "1.2.3.4:56789",
+		PublicKey:      "publicKey",
+		Name:           "gateway",
+		PasswordHash:   "hunter2",
+		RoutesIPv4:     []string{"1.2.3.4/32"},
+		RoutesIPv6:     []string{"fb32::1/128"},
+		AccessGroupIDs: []string{"group"},
+	}
+	assert.NoError(t, db.AddGateway(ctx, g))
+
+	t.Run("deleting existing gateway works", func(t *testing.T) {
+		assert.NoError(t, db.DeleteGateway(ctx, g.Name))
+
+		_, err := db.ReadGateway(ctx, g.Name)
+		assert.ErrorIs(t, err, sql.ErrNoRows)
+
+		gateways, err := db.ReadGateways(ctx)
+		assert.NoError(t, err)
+		assert.Empty(t, gateways)
+	})
+
+	t.Run("re-adding deleted gateway has no stale routes or groups", func(t *testing.T) {
+		assert.NoError(t, db.AddGateway(ctx, &pb.Gateway{Name: g.Name, PublicKey: g.PublicKey}))
+
+		gateway, err := db.ReadGateway(ctx, g.Name)
+		assert.NoError(t, err)
+		assert.Empty(t, gateway.GetRoutesIPv4())
+		assert.Empty(t, gateway.GetRoutesIPv6())
+		assert.Empty(t, gateway.GetAccessGroupIDs())
+	})
+
+	t.Run("deleting unknown gateway returns ErrNoRows", func(t *testing.T) {
+		assert.ErrorIs(t, db.DeleteGateway(ctx, "does-not-exist"), sql.ErrNoRows)
 	})
 }
 

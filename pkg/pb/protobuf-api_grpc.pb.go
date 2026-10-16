@@ -756,6 +756,7 @@ const (
 	APIServer_ListGateways_FullMethodName                     = "/naisdevice.APIServer/ListGateways"
 	APIServer_EnrollGateway_FullMethodName                    = "/naisdevice.APIServer/EnrollGateway"
 	APIServer_UpdateGateway_FullMethodName                    = "/naisdevice.APIServer/UpdateGateway"
+	APIServer_DeleteGateway_FullMethodName                    = "/naisdevice.APIServer/DeleteGateway"
 	APIServer_GetSessions_FullMethodName                      = "/naisdevice.APIServer/GetSessions"
 	APIServer_GetKolideCache_FullMethodName                   = "/naisdevice.APIServer/GetKolideCache"
 	APIServer_GetAcceptableUseAcceptedAt_FullMethodName       = "/naisdevice.APIServer/GetAcceptableUseAcceptedAt"
@@ -784,6 +785,8 @@ type APIServerClient interface {
 	EnrollGateway(ctx context.Context, in *ModifyGatewayRequest, opts ...grpc.CallOption) (*ModifyGatewayResponse, error)
 	// Admin endpoint for adding gateway credentials to the database
 	UpdateGateway(ctx context.Context, in *ModifyGatewayRequest, opts ...grpc.CallOption) (*ModifyGatewayResponse, error)
+	// Admin endpoint for removing a gateway from the database
+	DeleteGateway(ctx context.Context, in *ModifyGatewayRequest, opts ...grpc.CallOption) (*DeleteGatewayResponse, error)
 	// Admin endpoint for reading sessions from the cache
 	GetSessions(ctx context.Context, in *GetSessionsRequest, opts ...grpc.CallOption) (*GetSessionsResponse, error)
 	// Admin endpoint for reading kolide cache
@@ -901,6 +904,16 @@ func (c *aPIServerClient) UpdateGateway(ctx context.Context, in *ModifyGatewayRe
 	return out, nil
 }
 
+func (c *aPIServerClient) DeleteGateway(ctx context.Context, in *ModifyGatewayRequest, opts ...grpc.CallOption) (*DeleteGatewayResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(DeleteGatewayResponse)
+	err := c.cc.Invoke(ctx, APIServer_DeleteGateway_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *aPIServerClient) GetSessions(ctx context.Context, in *GetSessionsRequest, opts ...grpc.CallOption) (*GetSessionsResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(GetSessionsResponse)
@@ -999,6 +1012,8 @@ type APIServerServer interface {
 	EnrollGateway(context.Context, *ModifyGatewayRequest) (*ModifyGatewayResponse, error)
 	// Admin endpoint for adding gateway credentials to the database
 	UpdateGateway(context.Context, *ModifyGatewayRequest) (*ModifyGatewayResponse, error)
+	// Admin endpoint for removing a gateway from the database
+	DeleteGateway(context.Context, *ModifyGatewayRequest) (*DeleteGatewayResponse, error)
 	// Admin endpoint for reading sessions from the cache
 	GetSessions(context.Context, *GetSessionsRequest) (*GetSessionsResponse, error)
 	// Admin endpoint for reading kolide cache
@@ -1039,6 +1054,9 @@ func (UnimplementedAPIServerServer) EnrollGateway(context.Context, *ModifyGatewa
 }
 func (UnimplementedAPIServerServer) UpdateGateway(context.Context, *ModifyGatewayRequest) (*ModifyGatewayResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method UpdateGateway not implemented")
+}
+func (UnimplementedAPIServerServer) DeleteGateway(context.Context, *ModifyGatewayRequest) (*DeleteGatewayResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method DeleteGateway not implemented")
 }
 func (UnimplementedAPIServerServer) GetSessions(context.Context, *GetSessionsRequest) (*GetSessionsResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method GetSessions not implemented")
@@ -1186,6 +1204,24 @@ func _APIServer_UpdateGateway_Handler(srv interface{}, ctx context.Context, dec 
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(APIServerServer).UpdateGateway(ctx, req.(*ModifyGatewayRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _APIServer_DeleteGateway_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ModifyGatewayRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(APIServerServer).DeleteGateway(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: APIServer_DeleteGateway_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(APIServerServer).DeleteGateway(ctx, req.(*ModifyGatewayRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -1356,6 +1392,10 @@ var APIServer_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "UpdateGateway",
 			Handler:    _APIServer_UpdateGateway_Handler,
+		},
+		{
+			MethodName: "DeleteGateway",
+			Handler:    _APIServer_DeleteGateway_Handler,
 		},
 		{
 			MethodName: "GetSessions",
