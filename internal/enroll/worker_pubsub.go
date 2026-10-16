@@ -8,14 +8,14 @@ import (
 	"sync"
 	"time"
 
-	"cloud.google.com/go/pubsub"
+	"cloud.google.com/go/pubsub/v2"
 	"github.com/sirupsen/logrus"
 )
 
 type worker struct {
 	log          *logrus.Entry
-	topic        *pubsub.Topic
-	subscription *pubsub.Subscription
+	topic        *pubsub.Publisher
+	subscription *pubsub.Subscriber
 
 	lock  sync.Mutex
 	queue map[string]chan *Response
@@ -32,8 +32,8 @@ func NewPubSub(ctx context.Context, log *logrus.Entry) (Worker, error) {
 
 	return &worker{
 		log:          log,
-		topic:        client.Topic(topicName),
-		subscription: client.Subscription(subscriptionName),
+		topic:        client.Publisher(topicName),
+		subscription: client.Subscriber(subscriptionName),
 		queue:        make(map[string]chan *Response),
 	}, nil
 }

@@ -10,7 +10,7 @@ import (
 	"net/http"
 	"strconv"
 
-	"cloud.google.com/go/pubsub"
+	"cloud.google.com/go/pubsub/v2"
 	"github.com/nais/device/internal/ioconvenience"
 	"github.com/sirupsen/logrus"
 )
@@ -58,8 +58,9 @@ func (c *GatewayClient) Bootstrap(ctx context.Context) (*Response, error) {
 		return nil, fmt.Errorf("create pubsub client: %w", err)
 	}
 
-	topic := client.TopicInProject(c.TopicName, c.EnrollProjectID)
-	sub := client.Subscription(c.SubscriptionName)
+	topic := client.Publisher(fmt.Sprintf("projects/%s/topics/%s", c.EnrollProjectID, c.TopicName))
+	defer topic.Stop()
+	sub := client.Subscriber(c.SubscriptionName)
 
 	c.log.WithFields(logrus.Fields{"topic": topic.String(), "subscription": sub.String()}).Info("bootstrap using pubsub")
 
@@ -111,7 +112,7 @@ func (c *GatewayClient) Bootstrap(ctx context.Context) (*Response, error) {
 	return resp, nil
 }
 
-func (c *GatewayClient) publishAndWait(ctx context.Context, topic *pubsub.Topic) error {
+func (c *GatewayClient) publishAndWait(ctx context.Context, topic *pubsub.Publisher) error {
 	enrollMsg := GatewayRequest{
 		WireGuardPublicKey: c.wireGuardPublicKey,
 		Name:               c.Name,
