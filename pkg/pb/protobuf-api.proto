@@ -76,6 +76,9 @@ service APIServer {
   // Admin endpoint for adding gateway credentials to the database
   rpc UpdateGateway(ModifyGatewayRequest) returns (ModifyGatewayResponse) {}
 
+  // Admin endpoint for removing a gateway from the database
+  rpc DeleteGateway(ModifyGatewayRequest) returns (DeleteGatewayResponse) {}
+
   // Admin endpoint for reading sessions from the cache
   rpc GetSessions(GetSessionsRequest) returns (GetSessionsResponse) {}
 
@@ -203,6 +206,8 @@ message ModifyGatewayRequest {
 message ModifyGatewayResponse {
   Gateway gateway = 1;
 }
+
+message DeleteGatewayResponse {}
 
 message Gateway {
   string name = 1;

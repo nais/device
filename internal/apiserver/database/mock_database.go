@@ -271,6 +271,63 @@ func (_c *MockDatabase_AddSessionInfo_Call) RunAndReturn(run func(ctx context.Co
 	return _c
 }
 
+// DeleteGateway provides a mock function for the type MockDatabase
+func (_mock *MockDatabase) DeleteGateway(ctx context.Context, name string) error {
+	ret := _mock.Called(ctx, name)
+
+	if len(ret) == 0 {
+		panic("no return value specified for DeleteGateway")
+	}
+
+	var r0 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string) error); ok {
+		r0 = returnFunc(ctx, name)
+	} else {
+		r0 = ret.Error(0)
+	}
+	return r0
+}
+
+// MockDatabase_DeleteGateway_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'DeleteGateway'
+type MockDatabase_DeleteGateway_Call struct {
+	*mock.Call
+}
+
+// DeleteGateway is a helper method to define mock.On call
+//   - ctx context.Context
+//   - name string
+func (_e *MockDatabase_Expecter) DeleteGateway(ctx interface{}, name interface{}) *MockDatabase_DeleteGateway_Call {
+	return &MockDatabase_DeleteGateway_Call{Call: _e.mock.On("DeleteGateway", ctx, name)}
+}
+
+func (_c *MockDatabase_DeleteGateway_Call) Run(run func(ctx context.Context, name string)) *MockDatabase_DeleteGateway_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 string
+		if args[1] != nil {
+			arg1 = args[1].(string)
+		}
+		run(
+			arg0,
+			arg1,
+		)
+	})
+	return _c
+}
+
+func (_c *MockDatabase_DeleteGateway_Call) Return(err error) *MockDatabase_DeleteGateway_Call {
+	_c.Call.Return(err)
+	return _c
+}
+
+func (_c *MockDatabase_DeleteGateway_Call) RunAndReturn(run func(ctx context.Context, name string) error) *MockDatabase_DeleteGateway_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // GetAcceptances provides a mock function for the type MockDatabase
 func (_mock *MockDatabase) GetAcceptances(ctx context.Context) (map[string]struct{}, error) {
 	ret := _mock.Called(ctx)

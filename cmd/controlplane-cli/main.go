@@ -109,6 +109,18 @@ func main() {
 						},
 						Action: controlplanecli.EditGateway,
 					},
+					{
+						Name:  "delete",
+						Usage: "delete a gateway",
+						Flags: []cli.Flag{
+							&cli.StringFlag{
+								Name:     controlplanecli.FlagName,
+								Usage:    "gateway name",
+								Required: true,
+							},
+						},
+						Action: controlplanecli.DeleteGateway,
+					},
 				},
 			},
 		},
