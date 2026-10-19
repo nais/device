@@ -23,7 +23,7 @@ import (
 var cfg = helper.Config{}
 
 func init() {
-	flag.StringVar(&cfg.LogLevel, "log-level", "debug", "which log level to output")
+	flag.StringVar(&cfg.LogLevel, "log-level", "info", "which log level to output")
 	flag.StringVar(&cfg.Interface, "interface", "utun69", "interface name")
 
 	flag.Parse()
