@@ -13,6 +13,7 @@
 !define REG_UNINSTALL "SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall"
 !define REG_ARP "${REG_UNINSTALL}\${APP_NAME}"
 !define SERVICE_NAME "NaisDeviceHelper"
+!define LEGACY_TUNNEL_SERVICE "WireGuardTunnel$$utun69" ; created by older versions via wireguard.exe
 !define PAGE_TIMEOUT 60000
 !define STEP_INTERVAL 100
 
@@ -107,6 +108,20 @@ Section "Uninstall legacy version"
       ${EndIf}
       Goto loop
     done:
+SectionEnd
+
+Section "Remove legacy WireGuard tunnel service"
+    SimpleSC::ExistsService "${LEGACY_TUNNEL_SERVICE}"
+    Pop $0
+    ${If} $0 == 0
+        !insertmacro _Log "Removing legacy WireGuard tunnel service"
+        SimpleSC::StopService "${LEGACY_TUNNEL_SERVICE}" 1 30
+        Pop $0
+        !insertmacro _Log "StopService result: $0"
+        SimpleSC::RemoveService "${LEGACY_TUNNEL_SERVICE}"
+        Pop $0
+        !insertmacro _Log "RemoveService result: $0"
+    ${EndIf}
 SectionEnd
 
 Section "Install files"
