@@ -9,6 +9,8 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
+
+	log "github.com/sirupsen/logrus"
 )
 
 const (
@@ -16,6 +18,8 @@ const (
 )
 
 func apply(zones []string) error {
+	log.WithField("config_file", configFilePath).Debug("applying DNS config for systemd-resolved")
+
 	err := os.Mkdir(filepath.Dir(configFilePath), 0o755)
 	if err != nil && !errors.Is(err, fs.ErrExist) {
 		return err
@@ -30,6 +34,7 @@ func apply(zones []string) error {
 	if err != nil {
 		return err
 	}
+	log.WithField("zones", zones).Debug("wrote DNS config file")
 
 	return reload()
 }
@@ -50,10 +55,12 @@ DNSOverTLS=opportunistic
 }
 
 func reload() error {
+	log.Debug("restarting systemd-resolved")
 	out, err := exec.Command("systemctl", "restart", "systemd-resolved.service").CombinedOutput()
 	if err != nil {
 		return fmt.Errorf("reloading systemd-resolved: %w: %s", err, string(out))
 	}
+	log.Debug("systemd-resolved restarted successfully")
 
 	return nil
 }
