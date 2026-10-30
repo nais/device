@@ -22,10 +22,6 @@ in {
     systemd.services.naisdevice-helper = {
       description = "naisdevice-helper service";
       wantedBy = ["multi-user.target"];
-      path = [
-        pkgs.wireguard-tools
-        pkgs.iproute2
-      ];
       serviceConfig.ExecStart = "${cfg.package}/bin/naisdevice-helper";
       serviceConfig.Restart = "always";
     };

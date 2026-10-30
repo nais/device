@@ -5,14 +5,17 @@ daemon_name="io.nais.device.helper"
 destination="/Library/LaunchDaemons/${daemon_name}.plist"
 launchctl list | grep -q "$daemon_name" && launchctl unload "$destination"
 
-config_dir="/Users/${user}/Library/Application Support/naisdevice"
-log_dir="${config_dir}/logs"
+if [ -n "$user" ]; then
+    config_dir="/Users/${user}/Library/Application Support/naisdevice"
+    log_dir="${config_dir}/logs"
 
-mkdir -p -m 0700 "${config_dir}"
-mkdir -p -m 0700 "${log_dir}"
+    mkdir -p -m 0700 "${config_dir}"
+    mkdir -p -m 0700 "${log_dir}"
 
-chown -R "${user}:staff" "${config_dir}"
-
+    chown -R "${user}:staff" "${config_dir}"
+else
+    echo "No console user detected, skipping user config directory setup"
+fi
 
 cat << EOF > "$destination"
 <?xml version="1.0" encoding="UTF-8"?>
@@ -49,4 +52,3 @@ launchctl load "$destination"
 echo "Installed service $daemon_name"
 
 killall -9 -m "naisdevice.*" || true
-killall -9 "wireguard-go" || true

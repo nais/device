@@ -5,8 +5,6 @@ bin
 .DS_Store
 *.pkg
 *.app
-wireguard-go-*
-wireguard-tools-*
 cmd/device-agent/main_windows.syso
 cmd/helper/main_windows.syso
 packaging/windows/obj

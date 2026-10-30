@@ -3,8 +3,7 @@ package ip
 import (
 	"fmt"
 	"net/netip"
-
-	"golang.org/x/exp/slices"
+	"slices"
 )
 
 type v6Allocator struct {

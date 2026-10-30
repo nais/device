@@ -3,5 +3,7 @@
 pkill naisdevice-systray
 pkill naisdevice-agent
 pkill naisdevice-helper
+# older versions ran a separate wireguard-go process for the tunnel
+pkill -x wireguard-go
 
 exit 0

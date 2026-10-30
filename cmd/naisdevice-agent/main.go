@@ -297,7 +297,6 @@ func checkNewVersionAvailable(ctx context.Context) (bool, error) {
 		span.RecordError(err)
 		return false, err
 	}
-
 	client := &http.Client{Transport: otelhttp.NewTransport(http.DefaultTransport)}
 	resp, err := client.Do(req)
 	if err != nil {

@@ -16,7 +16,9 @@ outfile="$OUTFILE"
 name=$(basename "$outfile" | cut -d '_' -f 1)
 
 arch="$GOARCH"
-VERSION="1:${VERSION#v}" NAME="$name" ARCH="$arch" GOARCH="" go tool github.com/goreleaser/nfpm/v2/cmd/nfpm package \
+deb_version="${VERSION#v}"
+deb_version="${deb_version//-/\~}" # convert semver pre-release '-' to debian '~' so pre-releases sort lower
+VERSION="1:${deb_version}" NAME="$name" ARCH="$arch" GOARCH="" go tool github.com/goreleaser/nfpm/v2/cmd/nfpm package \
 	--packager deb \
 	--config "./assets/linux/nfpm.yaml" \
 	--target "$outfile"

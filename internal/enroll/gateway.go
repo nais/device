@@ -16,7 +16,7 @@ import (
 )
 
 type GatewayClient struct {
-	wireGuardPublicKey []byte
+	wireGuardPublicKey string
 	port               int
 	hashedPassword     string
 	log                logrus.FieldLogger
@@ -28,7 +28,7 @@ type GatewayClient struct {
 	ExternalIP       string `json:"external_ip"`
 }
 
-func NewGatewayClient(ctx context.Context, publicKey []byte, hashedPassword string, wireguardListenPort int, log logrus.FieldLogger) (*GatewayClient, error) {
+func NewGatewayClient(ctx context.Context, publicKey string, hashedPassword string, wireguardListenPort int, log logrus.FieldLogger) (*GatewayClient, error) {
 	b, err := GetGoogleMetadata(ctx, "instance/attributes/enroll-config", log)
 	if err != nil {
 		return nil, err
