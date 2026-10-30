@@ -6,11 +6,11 @@ type DeviceRequest struct {
 	Platform           string `json:"platform"`
 	Owner              string `json:"owner"`
 	Serial             string `json:"serial"`
-	WireGuardPublicKey []byte `json:"wireguard_public_key"`
+	WireGuardPublicKey string `json:"wireguard_public_key"`
 }
 
 type GatewayRequest struct {
-	WireGuardPublicKey []byte `json:"wireguard_public_key"`
+	WireGuardPublicKey string `json:"wireguard_public_key"`
 	Name               string `json:"name"`
 	Endpoint           string `json:"endpoint"`
 	HashedPassword     string `json:"hashed_password"`
