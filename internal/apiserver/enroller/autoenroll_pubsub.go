@@ -4,7 +4,7 @@ import (
 	"context"
 	"encoding/json"
 
-	"cloud.google.com/go/pubsub"
+	"cloud.google.com/go/pubsub/v2"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sync/errgroup"
 
@@ -26,10 +26,10 @@ type autoEnroll struct {
 	peers                []*pb.Gateway
 	apiServerGRPCAddress string
 	log                  logrus.FieldLogger
-	gatewayTopic         *pubsub.Topic
-	gatewaySubscription  *pubsub.Subscription
-	deviceTopic          *pubsub.Topic
-	deviceSubscription   *pubsub.Subscription
+	gatewayTopic         *pubsub.Publisher
+	gatewaySubscription  *pubsub.Subscriber
+	deviceTopic          *pubsub.Publisher
+	deviceSubscription   *pubsub.Subscriber
 	externalIP           string
 }
 
@@ -64,10 +64,10 @@ func NewAutoEnroll(
 		db:                   db,
 		peers:                peers,
 		apiServerGRPCAddress: apiServerGRPCAddress,
-		gatewayTopic:         client.Topic(ec.GatewayTopicName),
-		gatewaySubscription:  client.Subscription(ec.GatewaySubscriptionName),
-		deviceTopic:          client.Topic(ec.DeviceTopicName),
-		deviceSubscription:   client.Subscription(ec.DeviceSubscriptionName),
+		gatewayTopic:         client.Publisher(ec.GatewayTopicName),
+		gatewaySubscription:  client.Subscriber(ec.GatewaySubscriptionName),
+		deviceTopic:          client.Publisher(ec.DeviceTopicName),
+		deviceSubscription:   client.Subscriber(ec.DeviceSubscriptionName),
 		externalIP:           ec.ExternalIP,
 		log:                  log,
 	}, nil

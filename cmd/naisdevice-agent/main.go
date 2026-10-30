@@ -97,6 +97,11 @@ func run(ctx context.Context, log *logrus.Entry, cfg *config.Config, notifier no
 		cancel()
 	}()
 
+	// Started before anything that can fail, so that a status file left behind
+	// by a previous agent is corrected as early as possible.
+	status := newStatusFile(cfg.ConfigDir, log.WithField("component", "status-file"))
+	go status.run(ctx)
+
 	if err := filesystem.EnsurePrerequisites(cfg); err != nil {
 		return fmt.Errorf("missing prerequisites: %s", err)
 	}
@@ -217,6 +222,7 @@ func run(ctx context.Context, log *logrus.Entry, cfg *config.Config, notifier no
 			case s := <-statusChannel:
 				s.NewVersionAvailable = newVersionAvailable
 				s.Tenants = rc.Tenants()
+				status.update(s.ConnectionState, rc.GetActiveTenant())
 				das.UpdateAgentStatus(s)
 			case <-ctx.Done():
 			}

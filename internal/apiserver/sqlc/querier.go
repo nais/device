@@ -15,6 +15,7 @@ type Querier interface {
 	AddGatewayRoute(ctx context.Context, arg AddGatewayRouteParams) error
 	AddSession(ctx context.Context, arg AddSessionParams) error
 	AddSessionAccessGroupID(ctx context.Context, arg AddSessionAccessGroupIDParams) error
+	DeleteGateway(ctx context.Context, name string) (int64, error)
 	DeleteGatewayAccessGroupIDs(ctx context.Context, gatewayName string) error
 	DeleteGatewayRoutes(ctx context.Context, gatewayName string) error
 	DeleteKolideIssuesForDevice(ctx context.Context, deviceID string) error

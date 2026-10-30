@@ -26,6 +26,9 @@ VALUES (@name, @endpoint, @public_key, @ipv4, @ipv6, @password_hash, @requires_p
 ON CONFLICT (name) DO
     UPDATE SET endpoint = excluded.endpoint, public_key = excluded.public_key, password_hash = excluded.password_hash, ipv6 = excluded.ipv6;
 
+-- name: DeleteGateway :execrows
+DELETE FROM gateways WHERE name = @name;
+
 -- name: DeleteGatewayAccessGroupIDs :exec
 DELETE FROM gateway_access_group_ids WHERE gateway_name = @gateway_name;
 

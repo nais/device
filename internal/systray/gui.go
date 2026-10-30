@@ -89,7 +89,6 @@ const (
 	BlackAndWhiteClicked
 	AcceptableUseClicked
 
-	maxTenants          = 10
 	maxGateways         = 30
 	slackURL            = "slack://channel?team=T5LNAMWNA&id=D011T20LDHD"
 	softwareReleasePage = "https://doc.nais.io/operate/naisdevice/how-to/update/"
@@ -131,20 +130,12 @@ func NewGUI(ctx context.Context, log *logrus.Entry, client pb.DeviceAgentClient,
 	gui.MenuItems.Connect = AddMenuItem("Connect", "")
 	systray.AddSeparator()
 	gui.MenuItems.GatewayItems = make([]*GatewayItem, maxGateways)
-	gui.MenuItems.TenantItems = make([]*TenantItem, maxTenants)
 
 	for i := range gui.MenuItems.GatewayItems {
 		gui.MenuItems.GatewayItems[i] = &GatewayItem{}
 		gui.MenuItems.GatewayItems[i].MenuItem = AddMenuItemCheckbox("", "", false)
 		gui.MenuItems.GatewayItems[i].MenuItem.Disable()
 		gui.MenuItems.GatewayItems[i].MenuItem.Hide()
-	}
-
-	for i := range gui.MenuItems.TenantItems {
-		gui.MenuItems.TenantItems[i] = &TenantItem{}
-		gui.MenuItems.TenantItems[i].MenuItem = gui.MenuItems.Tenant.AddSubMenuItemCheckbox("", "", false)
-		gui.MenuItems.TenantItems[i].MenuItem.Disable()
-		gui.MenuItems.TenantItems[i].MenuItem.Hide()
 	}
 
 	systray.AddSeparator()
@@ -186,7 +177,6 @@ func (gui *Gui) EventLoop(ctx context.Context) {
 
 func (gui *Gui) handleButtonClicks(ctx context.Context) {
 	gui.aggregateGatewayButtonClicks()
-	gui.aggregateTenantButtonClicks()
 
 	for {
 		select {
@@ -340,6 +330,9 @@ func (gui *Gui) handleAgentStatus(agentStatus *pb.AgentStatus) {
 	})
 
 	gui.MenuItems.AcceptableUse.Hide()
+	for len(gui.MenuItems.TenantItems) < len(tenants) {
+		gui.addTenantMenuItem()
+	}
 	for i, tenant := range tenants {
 		gui.MenuItems.TenantItems[i].Tenant = tenant
 
@@ -356,6 +349,27 @@ func (gui *Gui) handleAgentStatus(agentStatus *pb.AgentStatus) {
 			menuItem.Uncheck()
 		}
 	}
+	for i := len(tenants); i < len(gui.MenuItems.TenantItems); i++ {
+		gui.MenuItems.TenantItems[i].MenuItem.Hide()
+	}
+}
+
+// addTenantMenuItem appends a hidden menu item to the tenant submenu and
+// starts the goroutine forwarding its clicks to the shared tenant channel.
+// Menu items are created on demand since the number of tenants is not known
+// in advance; once created they are reused and hidden when not needed.
+func (gui *Gui) addTenantMenuItem() {
+	item := &TenantItem{}
+	item.MenuItem = gui.MenuItems.Tenant.AddSubMenuItemCheckbox("", "", false)
+	item.MenuItem.Disable()
+	item.MenuItem.Hide()
+	gui.MenuItems.TenantItems = append(gui.MenuItems.TenantItems, item)
+
+	go func() {
+		for range item.MenuItem.ClickedCh {
+			gui.TenantItemClicked <- item.Tenant.Name
+		}
+	}()
 }
 
 func (gui *Gui) setIcon(icon []byte) {
@@ -562,17 +576,6 @@ func (gui *Gui) aggregateGatewayButtonClicks() {
 				gui.PrivilegedGatewayClicked <- gw.Gateway.Name
 			}
 		}(gatewayItem)
-	}
-}
-
-func (gui *Gui) aggregateTenantButtonClicks() {
-	// Start a forwarder for each buttons click-channel and aggregates to a single channel
-	for _, tenantItem := range gui.MenuItems.TenantItems {
-		go func(item *TenantItem) {
-			for range item.MenuItem.ClickedCh {
-				gui.TenantItemClicked <- item.Tenant.Name
-			}
-		}(tenantItem)
 	}
 }
 

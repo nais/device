@@ -2,6 +2,8 @@ package api
 
 import (
 	"context"
+	"database/sql"
+	"errors"
 	"fmt"
 
 	"github.com/nais/device/pkg/pb"
@@ -41,6 +43,27 @@ func (s *grpcServer) EnrollGateway(ctx context.Context, r *pb.ModifyGatewayReque
 
 func (s *grpcServer) UpdateGateway(ctx context.Context, r *pb.ModifyGatewayRequest) (*pb.ModifyGatewayResponse, error) {
 	return s.addOrUpdateGateway(ctx, r, s.db.UpdateGateway)
+}
+
+func (s *grpcServer) DeleteGateway(ctx context.Context, r *pb.ModifyGatewayRequest) (*pb.DeleteGatewayResponse, error) {
+	err := s.adminAuth.Authenticate(ctx, r.GetUsername(), r.GetPassword())
+	if err != nil {
+		return nil, status.Errorf(codes.Unauthenticated, "authenticate: %v", err)
+	}
+
+	name := r.GetGateway().GetName()
+	if name == "" {
+		return nil, status.Error(codes.InvalidArgument, "gateway name is required")
+	}
+
+	err = s.db.DeleteGateway(ctx, name)
+	if errors.Is(err, sql.ErrNoRows) {
+		return nil, status.Errorf(codes.NotFound, "gateway %q not found", name)
+	} else if err != nil {
+		return nil, status.Errorf(codes.Internal, "delete gateway: %v", err)
+	}
+
+	return &pb.DeleteGatewayResponse{}, nil
 }
 
 func (s *grpcServer) GetGateway(ctx context.Context, r *pb.ModifyGatewayRequest) (*pb.Gateway, error) {
