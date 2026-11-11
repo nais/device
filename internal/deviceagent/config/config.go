@@ -92,6 +92,15 @@ func (c *Config) OAuth2Config(provider pb.AuthProvider) oauth2.Config {
 	return c.AzureOAuth2Config
 }
 
+// JitaOAuth2ConfigFor returns the OAuth2 config used to log in for JITA grants.
+// Google has no separate JITA client, so it uses the regular login client.
+func (c *Config) JitaOAuth2ConfigFor(provider pb.AuthProvider) oauth2.Config {
+	if provider == pb.AuthProvider_Google {
+		return c.GoogleOAuth2Config
+	}
+	return c.JitaOAuth2Config
+}
+
 func (c *Config) PersistAgentConfiguration(log *logrus.Entry) {
 	agentConfigPath := filepath.Join(c.ConfigDir, File)
 
