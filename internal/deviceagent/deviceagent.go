@@ -14,6 +14,7 @@ import (
 	"github.com/nais/device/internal/deviceagent/jita"
 	"github.com/nais/device/internal/deviceagent/open"
 	"github.com/sirupsen/logrus"
+	"golang.org/x/oauth2"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
@@ -157,17 +158,32 @@ func (das *DeviceAgentServer) ShowJita(ctx context.Context, req *pb.ShowJitaRequ
 		return &pb.ShowJitaResponse{}, nil
 	}
 
-	tokens, err := das.authHandler.GetDeviceAgentToken(ctx, das.log, das.Config.JitaOAuth2Config, url)
+	provider := das.rc.GetActiveTenant().AuthProvider
+	tokens, err := das.authHandler.GetDeviceAgentToken(ctx, das.log, das.Config.JitaOAuth2ConfigFor(provider), url)
 	if err != nil {
-		return nil, status.Errorf(codes.Internal, "unable to get JITA token from Entra: %v", err)
+		return nil, status.Errorf(codes.Internal, "unable to get JITA token: %v", err)
 	}
 
-	if !tokens.Token.Valid() {
+	jita := jitaToken(provider, tokens)
+	if !jita.Valid() {
 		return nil, fmt.Errorf("received invalid JITA token")
 	}
 
-	das.rc.SetJitaToken(tokens.Token)
+	das.rc.SetJitaToken(jita)
 	return &pb.ShowJitaResponse{}, nil
+}
+
+// jitaToken returns the token whose AccessToken the apiserver validates for JITA grants.
+func jitaToken(provider pb.AuthProvider, tokens *auth.Tokens) *oauth2.Token {
+	if provider != pb.AuthProvider_Google {
+		return tokens.Token
+	}
+
+	// Google access tokens are opaque, the apiserver validates the ID token instead.
+	return &oauth2.Token{
+		AccessToken: tokens.IDToken,
+		Expiry:      tokens.Token.Expiry,
+	}
 }
 
 func (das *DeviceAgentServer) Shutdown(ctx context.Context, _ *pb.ShutdownRequest) (*pb.ShutdownResponse, error) {
