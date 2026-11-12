@@ -51,8 +51,7 @@ func (a *Authenticating) Enter(ctx context.Context) state.EventWithSpan {
 
 	session, _ := a.rc.GetTenantSession()
 	if !session.Expired() {
-		needsTokenRefresh := !a.rc.HasToken() && session.Expiry.AsTime().Before(time.Now().Add(time.Hour))
-		if !needsTokenRefresh {
+		if !a.needsTokenRefresh(session) {
 			span.AddEvent("session.active")
 			return state.SpanEvent(ctx, state.EventAuthenticated)
 		}
@@ -72,6 +71,17 @@ func (a *Authenticating) Enter(ctx context.Context) state.EventWithSpan {
 	span.AddEvent("session.new")
 	a.rc.SetToken(token)
 	return state.SpanEvent(ctx, state.EventAuthenticated)
+}
+
+// needsTokenRefresh reports whether we must log in again despite an active session.
+// Tokens are only kept in memory, and they are needed to enroll the device.
+func (a *Authenticating) needsTokenRefresh(session *pb.Session) bool {
+	if a.rc.HasToken() {
+		return false
+	}
+
+	expiresSoon := session.Expiry.AsTime().Before(time.Now().Add(time.Hour))
+	return expiresSoon || a.rc.LoadEnrollConfig() != nil
 }
 
 func (a Authenticating) String() string {
