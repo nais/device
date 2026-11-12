@@ -6,9 +6,11 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/lestrrat-go/jwx/jwt"
+	"github.com/nais/device/internal/deviceagent/agenthttp"
 	"github.com/nais/device/internal/ioconvenience"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/oauth2"
@@ -79,8 +81,9 @@ func (h *handler) handleRedirectGoogle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	ret, err := consoleURL(ctx, exchangeResponse.IDToken, "connected", h.log)
-	if err != nil {
+	if h.redirectsToAgent() {
+		http.Redirect(w, r, h.redirect, http.StatusSeeOther)
+	} else if ret, err := consoleURL(ctx, exchangeResponse.IDToken, "connected", h.log); err != nil {
 		logrus.Println("Failed to get console	URL: " + err.Error())
 		successfulResponse(w, "Successfully authenticated 👌 Close me pls", r.Header.Get("user-agent"))
 	} else {
@@ -89,6 +92,11 @@ func (h *handler) handleRedirectGoogle(w http.ResponseWriter, r *http.Request) {
 
 	tokens := &Tokens{Token: exchangeResponse.Token, IDToken: exchangeResponse.IDToken}
 	h.sendAuthFlowResponse(&authFlowResponse{Tokens: tokens, err: nil})
+}
+
+// redirectsToAgent reports whether to land on one of the agent's own pages (e.g. JITA) instead of the tenant console.
+func (h *handler) redirectsToAgent() bool {
+	return strings.HasPrefix(h.redirect, agenthttp.Path("/", false))
 }
 
 func consoleURL(ctx context.Context, idToken, state string, log logrus.FieldLogger) (string, error) {
