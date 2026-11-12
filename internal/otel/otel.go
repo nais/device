@@ -3,6 +3,7 @@ package otel
 import (
 	"context"
 	"errors"
+	"os"
 	"runtime"
 	"time"
 
@@ -33,6 +34,11 @@ var endpointURL = "http://localhost:4317"
 // setupOTelSDK bootstraps the OpenTelemetry pipeline.
 // If it does not return an error, make sure to call shutdown for proper cleanup.
 func SetupOTelSDK(ctx context.Context, name string, log logrus.FieldLogger) (shutdown func(context.Context) error, err error) {
+	if os.Getenv("OTEL_SDK_DISABLED") == "true" {
+		log.Info("OpenTelemetry SDK disabled by OTEL_SDK_DISABLED")
+		return func(context.Context) error { return nil }, nil
+	}
+
 	log.WithField("tracer.id", id).Info("setting up OpenTelemetry SDK")
 
 	var shutdownFuncs []func(context.Context) error
