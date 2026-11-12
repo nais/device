@@ -1,5 +1,3 @@
-//go:build linux
-
 package main
 
 import (
@@ -248,6 +246,8 @@ func run(log *logrus.Entry, cfg config.Config) error {
 		log := log.WithField("component", "gatewayconfigurer").WithField("source", "metadata")
 		updater := gatewayconfigurer.NewGoogleMetadata(db, log)
 		go untilContextDone(ctx, intervalGatewayConfigSync, updater.SyncConfig, log)
+	case "none":
+		log.Info("gateway configurer disabled, gateways won't be updated")
 	default:
 		log.Warn("no valid gateway configurer set, gateways won't be updated")
 	}
