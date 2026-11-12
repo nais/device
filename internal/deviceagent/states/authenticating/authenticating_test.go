@@ -71,9 +71,36 @@ func TestAuthenticating(t *testing.T) {
 			Expiry: timestamppb.New(time.Now().Add(2 * time.Hour)),
 		}, nil)
 		rc.EXPECT().HasToken().Return(false)
+		rc.EXPECT().LoadEnrollConfig().Return(nil)
 
 		authState := &Authenticating{
 			rc: rc,
+		}
+
+		assert.Equal(t, state.EventAuthenticated, authState.Enter(ctx).Event)
+	})
+
+	t.Run("non-expired session without tokens and not enrolled triggers re-auth", func(t *testing.T) {
+		ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+		defer cancel()
+
+		tokens := &auth.Tokens{}
+		rc := runtimeconfig.NewMockRuntimeConfig(t)
+		rc.EXPECT().GetTenantSession().Return(&pb.Session{
+			Key:    "key",
+			Expiry: timestamppb.New(time.Now().Add(2 * time.Hour)),
+		}, nil)
+		rc.EXPECT().HasToken().Return(false)
+		rc.EXPECT().LoadEnrollConfig().Return(fmt.Errorf("not enrolled"))
+		rc.EXPECT().GetActiveTenant().Return(&pb.Tenant{AuthProvider: pb.AuthProvider_Google})
+		rc.EXPECT().SetToken(tokens)
+
+		mockAuth := auth.NewMockHandler(t)
+		mockAuth.EXPECT().GetDeviceAgentToken(mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(tokens, nil)
+
+		authState := &Authenticating{
+			authHandler: mockAuth,
+			rc:          rc,
 		}
 
 		assert.Equal(t, state.EventAuthenticated, authState.Enter(ctx).Event)
