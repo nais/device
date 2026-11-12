@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/lestrrat-go/jwx/jwt"
 	"github.com/nais/device/internal/deviceagent/acceptableuse"
 	"github.com/nais/device/internal/deviceagent/agenthttp"
 	"github.com/nais/device/internal/deviceagent/auth"
@@ -159,6 +160,14 @@ func (das *DeviceAgentServer) ShowJita(ctx context.Context, req *pb.ShowJitaRequ
 	}
 
 	provider := das.rc.GetActiveTenant().AuthProvider
+	if provider == pb.AuthProvider_Google {
+		if loginToken := das.reusableLoginToken(ctx); loginToken != nil {
+			das.rc.SetJitaToken(loginToken)
+			open.Open(url)
+			return &pb.ShowJitaResponse{}, nil
+		}
+	}
+
 	tokens, err := das.authHandler.GetDeviceAgentToken(ctx, das.log, das.Config.JitaOAuth2ConfigFor(provider), url)
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "unable to get JITA token: %v", err)
@@ -171,6 +180,34 @@ func (das *DeviceAgentServer) ShowJita(ctx context.Context, req *pb.ShowJitaRequ
 
 	das.rc.SetJitaToken(jita)
 	return &pb.ShowJitaResponse{}, nil
+}
+
+// jitaLoginTokenMargin is how long the login ID token must stay valid for it to be reused for JITA.
+const jitaLoginTokenMargin = 5 * time.Minute
+
+// reusableLoginToken returns the Google login ID token as a JITA token while it is still valid.
+// JITA uses the same Google client as login, so the apiserver accepts it and no new login is needed.
+func (das *DeviceAgentServer) reusableLoginToken(ctx context.Context) *oauth2.Token {
+	idToken, err := das.rc.GetToken(ctx)
+	if err != nil {
+		return nil
+	}
+
+	return loginIDTokenAsJita(idToken, time.Now())
+}
+
+func loginIDTokenAsJita(idToken string, now time.Time) *oauth2.Token {
+	parsed, err := jwt.ParseString(idToken, jwt.WithValidate(false))
+	if err != nil {
+		return nil
+	}
+
+	expiry := parsed.Expiration()
+	if expiry.IsZero() || expiry.Before(now.Add(jitaLoginTokenMargin)) {
+		return nil
+	}
+
+	return &oauth2.Token{AccessToken: idToken, Expiry: expiry}
 }
 
 // jitaToken returns the token whose AccessToken the apiserver validates for JITA grants.
