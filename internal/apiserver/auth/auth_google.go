@@ -20,7 +20,20 @@ type googleAuth struct {
 }
 
 func (g *googleAuth) ValidateJita(session *pb.Session, token string) error {
-	return fmt.Errorf("unimplemented for google auth")
+	user, err := g.tokenParser.ParseString(token)
+	if err != nil {
+		return fmt.Errorf("parse JITA token: %w", err)
+	}
+
+	if user.ID == "" {
+		return fmt.Errorf("JITA token has empty user ID")
+	}
+
+	if user.ID != session.ObjectID {
+		return fmt.Errorf("JITA token user ID (%s) does not match session user ID (%s)", user.ID, session.ObjectID)
+	}
+
+	return nil
 }
 
 func NewGoogleAuthenticator(tokenParser token.Parser, db database.Database, store SessionStore) Authenticator {

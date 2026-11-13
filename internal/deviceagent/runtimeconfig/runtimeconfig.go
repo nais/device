@@ -213,6 +213,10 @@ func New(log *logrus.Entry, cfg *config.Config) (RuntimeConfig, error) {
 }
 
 func (r *runtimeConfig) EnsureEnrolled(ctx context.Context, serial string) error {
+	if r.tokens == nil {
+		return fmt.Errorf("enroll device: not authenticated")
+	}
+
 	var err error
 	if r.GetActiveTenant().AuthProvider == pb.AuthProvider_Google {
 		err = r.enroll(ctx, serial, r.tokens.IDToken)

@@ -20,6 +20,8 @@ env=(
 	"APISERVER_AUTOENROLLENABLED=\"true\""
 	"APISERVER_AUTOENROLLMENTSURL=\"${enrollments_url}\""
 	"APISERVER_LOGLEVEL=\"debug\""
+	"APISERVER_GATEWAYCONFIGURER=\"none\""
+	"OTEL_SDK_DISABLED=\"true\""
 )
 
 if [[ $auth == "google" ]]; then
