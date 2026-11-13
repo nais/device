@@ -1,7 +1,30 @@
 #!/bin/sh
 set -o errexit
 
+# Ubuntu 26.04 confines `wg` with an AppArmor profile that denies reading the
+# WireGuard config the apiserver writes, so `wg syncconf` fails without this.
+setup_apparmor() {
+	apparmor_dir="${APPARMOR_DIR:-/etc/apparmor.d}"
+	profile="${apparmor_dir}/wg"
+	local_profile="${apparmor_dir}/local/wg"
+	rule="/run/wg0.conf r,"
+
+	if [ ! -f "$profile" ]; then
+		return 0
+	fi
+
+	if ! grep -qxF "$rule" "$local_profile" 2>/dev/null; then
+		mkdir -p "$(dirname "$local_profile")"
+		printf '# added by apiserver\n%s\n' "$rule" >>"$local_profile"
+	fi
+
+	if command -v apparmor_parser >/dev/null 2>&1; then
+		apparmor_parser -r "$profile" || echo "warning: unable to reload apparmor profile $profile" >&2
+	fi
+}
+
 setup_service() {
+	setup_apparmor
 	systemctl daemon-reload
 	systemctl unmask apiserver.service
 	systemctl preset apiserver.service
