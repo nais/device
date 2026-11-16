@@ -60,6 +60,9 @@ func New(dbPath string, v4Allocator ip.Allocator, v6Allocator ip.Allocator, koli
 	if err = runMigrations(dbPath, log); err != nil {
 		return nil, fmt.Errorf("migrating database: %w", err)
 	}
+	if err := repairRawPublicKeys(db, log); err != nil {
+		return nil, fmt.Errorf("repair WireGuard public keys: %w", err)
+	}
 
 	return &apiServerDB, nil
 }
