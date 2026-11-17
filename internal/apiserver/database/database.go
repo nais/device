@@ -5,7 +5,6 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	"strings"
 	"sync"
 	"time"
 
@@ -652,18 +651,12 @@ func (db *database) getNextAvailableIPv4(ctx context.Context) (string, error) {
 }
 
 func (db *database) getNextAvailableIPv6(ctx context.Context) (string, error) {
-	lastUsedIP, err := db.queries.GetLastUsedIPV6(ctx)
+	allocated, err := db.queries.GetAllocatedIPv6(ctx)
 	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) || strings.Contains(err.Error(), "converting NULL to string is unsupported") {
-			return db.ipv6Allocator.NextIP(nil)
-		}
-		return "", fmt.Errorf("getting last used ipv6: %w", err)
-	}
-	if lastUsedIP == "" {
-		return db.ipv6Allocator.NextIP(nil)
+		return "", fmt.Errorf("read allocated IPv6 addresses: %w", err)
 	}
 
-	return db.ipv6Allocator.NextIP([]string{lastUsedIP})
+	return db.ipv6Allocator.NextIP(allocated)
 }
 
 func (db *database) RemoveExpiredSessions(ctx context.Context) error {

@@ -21,6 +21,7 @@ type Querier interface {
 	DeleteKolideIssuesForDevice(ctx context.Context, deviceID string) error
 	GetAcceptance(ctx context.Context, userID string) (*Acceptance, error)
 	GetAcceptances(ctx context.Context) ([]*Acceptance, error)
+	GetAllocatedIPv6(ctx context.Context) ([]string, error)
 	GetDeviceByExternalID(ctx context.Context, externalID sql.NullString) (*Device, error)
 	GetDeviceByID(ctx context.Context, id int64) (*Device, error)
 	GetDeviceByPublicKey(ctx context.Context, publicKey string) (*Device, error)
@@ -35,7 +36,6 @@ type Querier interface {
 	GetKolideChecks(ctx context.Context) ([]*KolideCheck, error)
 	GetKolideIssues(ctx context.Context) ([]*GetKolideIssuesRow, error)
 	GetKolideIssuesForDevice(ctx context.Context, deviceID string) ([]*GetKolideIssuesForDeviceRow, error)
-	GetLastUsedIPV6(ctx context.Context) (string, error)
 	GetMostRecentDeviceSession(ctx context.Context, sessionDeviceID int64) (*GetMostRecentDeviceSessionRow, error)
 	GetPeers(ctx context.Context) ([]*GetPeersRow, error)
 	GetSessionByKey(ctx context.Context, sessionKey string) (*GetSessionByKeyRow, error)

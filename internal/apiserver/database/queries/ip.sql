@@ -1,3 +1,4 @@
--- name: GetLastUsedIPV6 :one
-SELECT CAST(MAX(MAX(devices.ipv6), MAX(gateways.ipv6)) AS text) AS ipv6
-FROM devices, gateways;
+-- name: GetAllocatedIPv6 :many
+SELECT ipv6 FROM devices WHERE ipv6 != ''
+UNION ALL
+SELECT ipv6 FROM gateways WHERE ipv6 != '';
