@@ -61,6 +61,9 @@ func Prepare(ctx context.Context, db DBTX) (*Queries, error) {
 	if q.getAcceptancesStmt, err = db.PrepareContext(ctx, getAcceptances); err != nil {
 		return nil, fmt.Errorf("error preparing query GetAcceptances: %w", err)
 	}
+	if q.getAllocatedIPv6Stmt, err = db.PrepareContext(ctx, getAllocatedIPv6); err != nil {
+		return nil, fmt.Errorf("error preparing query GetAllocatedIPv6: %w", err)
+	}
 	if q.getDeviceByExternalIDStmt, err = db.PrepareContext(ctx, getDeviceByExternalID); err != nil {
 		return nil, fmt.Errorf("error preparing query GetDeviceByExternalID: %w", err)
 	}
@@ -102,9 +105,6 @@ func Prepare(ctx context.Context, db DBTX) (*Queries, error) {
 	}
 	if q.getKolideIssuesForDeviceStmt, err = db.PrepareContext(ctx, getKolideIssuesForDevice); err != nil {
 		return nil, fmt.Errorf("error preparing query GetKolideIssuesForDevice: %w", err)
-	}
-	if q.getLastUsedIPV6Stmt, err = db.PrepareContext(ctx, getLastUsedIPV6); err != nil {
-		return nil, fmt.Errorf("error preparing query GetLastUsedIPV6: %w", err)
 	}
 	if q.getMostRecentDeviceSessionStmt, err = db.PrepareContext(ctx, getMostRecentDeviceSession); err != nil {
 		return nil, fmt.Errorf("error preparing query GetMostRecentDeviceSession: %w", err)
@@ -227,6 +227,11 @@ func (q *Queries) Close() error {
 			err = fmt.Errorf("error closing getAcceptancesStmt: %w", cerr)
 		}
 	}
+	if q.getAllocatedIPv6Stmt != nil {
+		if cerr := q.getAllocatedIPv6Stmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing getAllocatedIPv6Stmt: %w", cerr)
+		}
+	}
 	if q.getDeviceByExternalIDStmt != nil {
 		if cerr := q.getDeviceByExternalIDStmt.Close(); cerr != nil {
 			err = fmt.Errorf("error closing getDeviceByExternalIDStmt: %w", cerr)
@@ -295,11 +300,6 @@ func (q *Queries) Close() error {
 	if q.getKolideIssuesForDeviceStmt != nil {
 		if cerr := q.getKolideIssuesForDeviceStmt.Close(); cerr != nil {
 			err = fmt.Errorf("error closing getKolideIssuesForDeviceStmt: %w", cerr)
-		}
-	}
-	if q.getLastUsedIPV6Stmt != nil {
-		if cerr := q.getLastUsedIPV6Stmt.Close(); cerr != nil {
-			err = fmt.Errorf("error closing getLastUsedIPV6Stmt: %w", cerr)
 		}
 	}
 	if q.getMostRecentDeviceSessionStmt != nil {
@@ -439,6 +439,7 @@ type Queries struct {
 	deleteKolideIssuesForDeviceStmt        *sql.Stmt
 	getAcceptanceStmt                      *sql.Stmt
 	getAcceptancesStmt                     *sql.Stmt
+	getAllocatedIPv6Stmt                   *sql.Stmt
 	getDeviceByExternalIDStmt              *sql.Stmt
 	getDeviceByIDStmt                      *sql.Stmt
 	getDeviceByPublicKeyStmt               *sql.Stmt
@@ -453,7 +454,6 @@ type Queries struct {
 	getKolideChecksStmt                    *sql.Stmt
 	getKolideIssuesStmt                    *sql.Stmt
 	getKolideIssuesForDeviceStmt           *sql.Stmt
-	getLastUsedIPV6Stmt                    *sql.Stmt
 	getMostRecentDeviceSessionStmt         *sql.Stmt
 	getPeersStmt                           *sql.Stmt
 	getSessionByKeyStmt                    *sql.Stmt
@@ -490,6 +490,7 @@ func (q *Queries) WithTx(tx *sql.Tx) *Queries {
 		deleteKolideIssuesForDeviceStmt:        q.deleteKolideIssuesForDeviceStmt,
 		getAcceptanceStmt:                      q.getAcceptanceStmt,
 		getAcceptancesStmt:                     q.getAcceptancesStmt,
+		getAllocatedIPv6Stmt:                   q.getAllocatedIPv6Stmt,
 		getDeviceByExternalIDStmt:              q.getDeviceByExternalIDStmt,
 		getDeviceByIDStmt:                      q.getDeviceByIDStmt,
 		getDeviceByPublicKeyStmt:               q.getDeviceByPublicKeyStmt,
@@ -504,7 +505,6 @@ func (q *Queries) WithTx(tx *sql.Tx) *Queries {
 		getKolideChecksStmt:                    q.getKolideChecksStmt,
 		getKolideIssuesStmt:                    q.getKolideIssuesStmt,
 		getKolideIssuesForDeviceStmt:           q.getKolideIssuesForDeviceStmt,
-		getLastUsedIPV6Stmt:                    q.getLastUsedIPV6Stmt,
 		getMostRecentDeviceSessionStmt:         q.getMostRecentDeviceSessionStmt,
 		getPeersStmt:                           q.getPeersStmt,
 		getSessionByKeyStmt:                    q.getSessionByKeyStmt,

@@ -7,14 +7,31 @@ import (
 	"context"
 )
 
-const getLastUsedIPV6 = `-- name: GetLastUsedIPV6 :one
-SELECT CAST(MAX(MAX(devices.ipv6), MAX(gateways.ipv6)) AS text) AS ipv6
-FROM devices, gateways
+const getAllocatedIPv6 = `-- name: GetAllocatedIPv6 :many
+SELECT ipv6 FROM devices WHERE ipv6 != ''
+UNION ALL
+SELECT ipv6 FROM gateways WHERE ipv6 != ''
 `
 
-func (q *Queries) GetLastUsedIPV6(ctx context.Context) (string, error) {
-	row := q.queryRow(ctx, q.getLastUsedIPV6Stmt, getLastUsedIPV6)
-	var ipv6 string
-	err := row.Scan(&ipv6)
-	return ipv6, err
+func (q *Queries) GetAllocatedIPv6(ctx context.Context) ([]string, error) {
+	rows, err := q.query(ctx, q.getAllocatedIPv6Stmt, getAllocatedIPv6)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []string
+	for rows.Next() {
+		var ipv6 string
+		if err := rows.Scan(&ipv6); err != nil {
+			return nil, err
+		}
+		items = append(items, ipv6)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }

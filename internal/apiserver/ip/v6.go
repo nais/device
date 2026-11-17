@@ -3,7 +3,6 @@ package ip
 import (
 	"fmt"
 	"net/netip"
-	"slices"
 )
 
 type v6Allocator struct {
@@ -21,21 +20,23 @@ func (a v6Allocator) NextIP(taken []string) (string, error) {
 		return "", fmt.Errorf("no prefix specified in allocator")
 	}
 
-	if len(taken) < 1 {
-		return a.prefix.Addr().Next().StringExpanded(), nil
+	last := a.prefix.Addr()
+	for _, raw := range taken {
+		if raw == "" {
+			continue
+		}
+		addr, err := netip.ParseAddr(raw)
+		if err != nil {
+			return "", fmt.Errorf("parse allocated IPv6 address %q: %w", raw, err)
+		}
+		if a.prefix.Contains(addr) && addr.Compare(last) > 0 {
+			last = addr
+		}
 	}
 
-	slices.Sort(taken)
-	last := taken[len(taken)-1]
-
-	addr, err := netip.ParseAddr(last)
-	if err != nil {
-		return "", fmt.Errorf("invalid ip address: %s", last)
-	}
-
-	next := addr.Next()
+	next := last.Next()
 	if !a.prefix.Contains(next) {
-		return "", fmt.Errorf("ip address %s is not in prefix %s", next, a.prefix)
+		return "", fmt.Errorf("no available IPv6 addresses after %s in prefix %s", last, a.prefix)
 	}
 
 	return next.StringExpanded(), nil
