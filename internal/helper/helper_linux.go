@@ -13,7 +13,6 @@ import (
 	"github.com/vishvananda/netlink"
 
 	"github.com/nais/device/internal/iputil"
-	"github.com/nais/device/internal/wgconfig"
 	"github.com/nais/device/pkg/pb"
 )
 
@@ -46,7 +45,7 @@ func (c *LinuxConfigurator) SyncConf(ctx context.Context, cfg *pb.Configuration)
 			"allowed_ips": gw.GetAllowedIPs(),
 		}).Debug("configuring wireguard peer")
 	}
-	err := wgconfig.ApplyConfig(ctx, c.helperConfig.Interface, cfg)
+	err := applyWireGuardConfig(c.helperConfig.Interface, cfg)
 	if err != nil {
 		c.log.WithError(err).Debug("wireguard config sync failed")
 	} else {
@@ -147,10 +146,8 @@ func (c *LinuxConfigurator) SetupInterface(ctx context.Context, cfg *pb.Configur
 	}
 
 	wgLink := &netlink.Wireguard{
-		LinkAttrs: netlink.LinkAttrs{
-			Name: c.helperConfig.Interface,
-			MTU:  wireguardMTU,
-		},
+		Name: c.helperConfig.Interface,
+		MTU:  wireguardMTU,
 	}
 
 	c.log.WithFields(logrus.Fields{

@@ -1,0 +1,186 @@
+package wireguard
+
+import (
+	"errors"
+	"fmt"
+	"net"
+	"net/netip"
+
+	"github.com/google/gopacket/routing"
+	"github.com/sirupsen/logrus"
+	"github.com/vishvananda/netlink"
+	"golang.zx2c4.com/wireguard/wgctrl/wgtypes"
+)
+
+const wireguardMTU = 1360
+
+type subNetworkConfigurer struct {
+	ip       *netip.Prefix
+	iface    *net.Interface
+	src      net.IP
+	iptables IPTables
+}
+
+type networkConfigurer struct {
+	privateKey wgtypes.Key
+	listenPort int
+
+	wireguardInterface string
+
+	v4 *subNetworkConfigurer
+	v6 *subNetworkConfigurer
+
+	log *logrus.Entry
+}
+
+func detectDefaultRoute(router routing.Router, ip *netip.Prefix) (*net.Interface, net.IP, error) {
+	if ip == nil {
+		return nil, nil, fmt.Errorf("no IP address configured")
+	}
+
+	var testIP net.IP
+	if ip.Addr().Is4() {
+		testIP = net.ParseIP("1.1.1.1")
+	} else {
+		testIP = net.ParseIP("2606:4700:4700::1111")
+	}
+
+	iface, _, src, err := router.Route(testIP)
+	if err != nil {
+		return nil, nil, err
+	}
+	if iface == nil {
+		return nil, nil, fmt.Errorf("no default interface found")
+	}
+	if src == nil {
+		return nil, nil, fmt.Errorf("no default source IP found")
+	}
+
+	return iface, src, nil
+}
+
+// NewConfigurer manages the given WireGuard interface. A nil forwarding leaves iptables untouched.
+func NewConfigurer(log *logrus.Entry, iface Interface, forwarding *Forwarding) (NetworkConfigurer, error) {
+	key, err := wgtypes.ParseKey(iface.PrivateKey)
+	if err != nil {
+		return nil, fmt.Errorf("parse private key: %w", err)
+	}
+
+	nc := &networkConfigurer{
+		privateKey:         key,
+		listenPort:         iface.ListenPort,
+		wireguardInterface: iface.Name,
+		v4:                 &subNetworkConfigurer{ip: iface.IPv4},
+		v6:                 &subNetworkConfigurer{ip: iface.IPv6},
+		log:                log,
+	}
+
+	if forwarding == nil || forwarding.Router == nil {
+		return nc, nil
+	}
+
+	if forwarding.IPTablesV4 != nil {
+		defaultIface, src, err := detectDefaultRoute(forwarding.Router, iface.IPv4)
+		if err != nil {
+			return nil, fmt.Errorf("no IPv4 default route found, this is required: %w", err)
+		}
+		nc.v4.iface = defaultIface
+		nc.v4.src = src
+		nc.v4.iptables = forwarding.IPTablesV4
+	}
+	if forwarding.IPTablesV6 != nil {
+		if defaultIface, src, err := detectDefaultRoute(forwarding.Router, iface.IPv6); err != nil {
+			log.WithError(err).Warn("no IPv6 default route found, IPv6 will not be configured")
+		} else {
+			nc.v6.iface = defaultIface
+			nc.v6.src = src
+			nc.v6.iptables = forwarding.IPTablesV6
+		}
+	}
+
+	return nc, nil
+}
+
+// SetupInterface recreates the WireGuard interface with its addresses, MTU and link state.
+func (nc *networkConfigurer) SetupInterface() error {
+	addresses := make([]*netlink.Addr, 0, 2)
+	for _, prefix := range []*netip.Prefix{nc.v4.ip, nc.v6.ip} {
+		if prefix == nil {
+			continue
+		}
+		addr, err := netlink.ParseAddr(prefix.String())
+		if err != nil {
+			return fmt.Errorf("parse interface address %s: %w", prefix, err)
+		}
+		addresses = append(addresses, addr)
+	}
+	if len(addresses) == 0 {
+		return fmt.Errorf("no IP addresses (v4/v6) configured for interface")
+	}
+
+	if err := nc.deleteInterface(); err != nil {
+		return err
+	}
+
+	err := netlink.LinkAdd(&netlink.Wireguard{
+		Name: nc.wireguardInterface, MTU: wireguardMTU,
+	})
+	if err != nil {
+		return fmt.Errorf("create WireGuard interface %q: %w", nc.wireguardInterface, err)
+	}
+
+	if err := nc.configureInterface(addresses); err != nil {
+		if delErr := nc.deleteInterface(); delErr != nil {
+			return fmt.Errorf("%w (additionally, failed to delete interface: %v)", err, delErr)
+		}
+		return err
+	}
+
+	nc.log.WithField("interface", nc.wireguardInterface).Info("WireGuard interface set up")
+	return nil
+}
+
+func (nc *networkConfigurer) configureInterface(addresses []*netlink.Addr) error {
+	link, err := netlink.LinkByName(nc.wireguardInterface)
+	if err != nil {
+		return fmt.Errorf("look up WireGuard interface %q: %w", nc.wireguardInterface, err)
+	}
+
+	for _, addr := range addresses {
+		if err := netlink.AddrAdd(link, addr); err != nil {
+			return fmt.Errorf("add address %s to %q: %w", addr, nc.wireguardInterface, err)
+		}
+	}
+
+	if err := netlink.LinkSetUp(link); err != nil {
+		return fmt.Errorf("bring up %q: %w", nc.wireguardInterface, err)
+	}
+
+	return nil
+}
+
+func (nc *networkConfigurer) deleteInterface() error {
+	link, err := netlink.LinkByName(nc.wireguardInterface)
+	if errors.As(err, &netlink.LinkNotFoundError{}) {
+		return nil
+	}
+	if err != nil {
+		return fmt.Errorf("look up WireGuard interface %q: %w", nc.wireguardInterface, err)
+	}
+
+	if err := netlink.LinkDel(link); err != nil {
+		return fmt.Errorf("delete WireGuard interface %q: %w", nc.wireguardInterface, err)
+	}
+	return nil
+}
+
+// ApplyWireGuardConfig configures the interface with exactly the given peers.
+// Existing peers are updated in place, so their sessions survive the update.
+func (nc *networkConfigurer) ApplyWireGuardConfig(peers []Peer) error {
+	if err := ConfigureDevice(nc.wireguardInterface, nc.privateKey, &nc.listenPort, peers); err != nil {
+		return err
+	}
+
+	nc.log.WithField("peers", len(peers)).Debug("applied WireGuard config")
+	return nil
+}

@@ -12,7 +12,7 @@ in
     subPackages = ["cmd/${subPackage}"];
     inherit version;
     src = self;
-    vendorHash = "sha256-2iJEbCSv0q6liCBWxruLC8aOavOoiFXVrAlbczRJbyA=";
+    vendorHash = "sha256-mDVRY5YAz/lpFSJVjZCJn8bJ50uAweym9FycGlH747M=";
 
     ldflags = [
       "-X github.com/nais/device/internal/version.Revision=${rev}"

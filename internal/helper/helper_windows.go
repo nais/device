@@ -17,7 +17,6 @@ import (
 	"golang.zx2c4.com/wireguard/windows/tunnel/winipcfg"
 
 	"github.com/nais/device/internal/iputil"
-	"github.com/nais/device/internal/wgconfig"
 	"github.com/nais/device/pkg/pb"
 )
 
@@ -55,7 +54,7 @@ func (c *WindowsConfigurator) Prerequisites() error {
 }
 
 func (c *WindowsConfigurator) SyncConf(ctx context.Context, cfg *pb.Configuration) error {
-	return wgconfig.ApplyConfig(ctx, c.helperConfig.Interface, cfg)
+	return applyWireGuardConfig(c.helperConfig.Interface, cfg)
 }
 
 func (c *WindowsConfigurator) SetupRoutes(ctx context.Context, gateways []*pb.Gateway) (int, error) {
