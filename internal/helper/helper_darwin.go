@@ -21,7 +21,6 @@ import (
 	"golang.zx2c4.com/wireguard/tun"
 
 	"github.com/nais/device/internal/iputil"
-	"github.com/nais/device/internal/wgconfig"
 	"github.com/nais/device/pkg/pb"
 )
 
@@ -57,7 +56,7 @@ func (c *DarwinConfigurator) SyncConf(ctx context.Context, cfg *pb.Configuration
 	if ifaceName == "" {
 		ifaceName = c.helperConfig.Interface
 	}
-	return wgconfig.ApplyConfig(ctx, ifaceName, cfg)
+	return applyWireGuardConfig(ifaceName, cfg)
 }
 
 func (c *DarwinConfigurator) SetupRoutes(ctx context.Context, gateways []*pb.Gateway) (int, error) {

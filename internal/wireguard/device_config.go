@@ -5,12 +5,39 @@ import (
 	"net"
 	"time"
 
+	"golang.zx2c4.com/wireguard/wgctrl"
 	"golang.zx2c4.com/wireguard/wgctrl/wgtypes"
 
 	"github.com/nais/device/internal/iputil"
 )
 
 const prometheusPersistentKeepalive = 25 * time.Second
+
+// ConfigureDevice sets the private key, listen port and exactly the given peers on the named device.
+// A nil listenPort leaves the device's listen port unchanged.
+func ConfigureDevice(iface string, privateKey wgtypes.Key, listenPort *int, peers []Peer) error {
+	client, err := wgctrl.New()
+	if err != nil {
+		return fmt.Errorf("create wgctrl client: %w", err)
+	}
+	defer func() { _ = client.Close() }()
+
+	device, err := client.Device(iface)
+	if err != nil {
+		return fmt.Errorf("get WireGuard device %q: %w", iface, err)
+	}
+
+	cfg, err := DeviceConfig(privateKey, listenPort, peers, device.Peers)
+	if err != nil {
+		return fmt.Errorf("build WireGuard config: %w", err)
+	}
+
+	if err := client.ConfigureDevice(iface, *cfg); err != nil {
+		return fmt.Errorf("configure WireGuard device %q: %w", iface, err)
+	}
+
+	return nil
+}
 
 // DeviceConfig returns a config that turns the current peers into the desired ones.
 // Existing peers are updated in place, so their sessions survive the update.

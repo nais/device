@@ -1,5 +1,3 @@
-//go:build linux
-
 package wireguard
 
 import (
@@ -11,7 +9,6 @@ import (
 	"github.com/google/gopacket/routing"
 	"github.com/sirupsen/logrus"
 	"github.com/vishvananda/netlink"
-	"golang.zx2c4.com/wireguard/wgctrl"
 	"golang.zx2c4.com/wireguard/wgctrl/wgtypes"
 )
 
@@ -62,41 +59,42 @@ func detectDefaultRoute(router routing.Router, ip *netip.Prefix) (*net.Interface
 	return iface, src, nil
 }
 
-func NewConfigurer(log *logrus.Entry, ipv4 *netip.Prefix, ipv6 *netip.Prefix, privateKey, wireguardInterface string, listenPort int, iptablesV4, iptablesV6 IPTables, router routing.Router) (NetworkConfigurer, error) {
-	key, err := wgtypes.ParseKey(privateKey)
+// NewConfigurer manages the given WireGuard interface. A nil forwarding leaves iptables untouched.
+func NewConfigurer(log *logrus.Entry, iface Interface, forwarding *Forwarding) (NetworkConfigurer, error) {
+	key, err := wgtypes.ParseKey(iface.PrivateKey)
 	if err != nil {
 		return nil, fmt.Errorf("parse private key: %w", err)
 	}
 
 	nc := &networkConfigurer{
 		privateKey:         key,
-		listenPort:         listenPort,
-		wireguardInterface: wireguardInterface,
-		v4: &subNetworkConfigurer{
-			ip: ipv4,
-		},
-		v6: &subNetworkConfigurer{
-			ip: ipv6,
-		},
-		log: log,
+		listenPort:         iface.ListenPort,
+		wireguardInterface: iface.Name,
+		v4:                 &subNetworkConfigurer{ip: iface.IPv4},
+		v6:                 &subNetworkConfigurer{ip: iface.IPv6},
+		log:                log,
 	}
 
-	if iptablesV4 != nil && router != nil {
-		if iface, src, err := detectDefaultRoute(router, ipv4); err != nil {
-			return nil, fmt.Errorf("no IPv4 default route found, this is required. err: %w", err)
-		} else {
-			nc.v4.iface = iface
-			nc.v4.src = src
-			nc.v4.iptables = iptablesV4
-		}
+	if forwarding == nil || forwarding.Router == nil {
+		return nc, nil
 	}
-	if iptablesV6 != nil && router != nil {
-		if iface, src, err := detectDefaultRoute(router, ipv6); err != nil {
+
+	if forwarding.IPTablesV4 != nil {
+		defaultIface, src, err := detectDefaultRoute(forwarding.Router, iface.IPv4)
+		if err != nil {
+			return nil, fmt.Errorf("no IPv4 default route found, this is required: %w", err)
+		}
+		nc.v4.iface = defaultIface
+		nc.v4.src = src
+		nc.v4.iptables = forwarding.IPTablesV4
+	}
+	if forwarding.IPTablesV6 != nil {
+		if defaultIface, src, err := detectDefaultRoute(forwarding.Router, iface.IPv6); err != nil {
 			log.WithError(err).Warn("no IPv6 default route found, IPv6 will not be configured")
 		} else {
-			nc.v6.iface = iface
+			nc.v6.iface = defaultIface
 			nc.v6.src = src
-			nc.v6.iptables = iptablesV6
+			nc.v6.iptables = forwarding.IPTablesV6
 		}
 	}
 
@@ -179,24 +177,8 @@ func (nc *networkConfigurer) deleteInterface() error {
 // ApplyWireGuardConfig configures the interface with exactly the given peers.
 // Existing peers are updated in place, so their sessions survive the update.
 func (nc *networkConfigurer) ApplyWireGuardConfig(peers []Peer) error {
-	client, err := wgctrl.New()
-	if err != nil {
-		return fmt.Errorf("create wgctrl client: %w", err)
-	}
-	defer func() { _ = client.Close() }()
-
-	device, err := client.Device(nc.wireguardInterface)
-	if err != nil {
-		return fmt.Errorf("get WireGuard device %q: %w", nc.wireguardInterface, err)
-	}
-
-	cfg, err := DeviceConfig(nc.privateKey, &nc.listenPort, peers, device.Peers)
-	if err != nil {
-		return fmt.Errorf("build WireGuard config: %w", err)
-	}
-
-	if err := client.ConfigureDevice(nc.wireguardInterface, *cfg); err != nil {
-		return fmt.Errorf("configure WireGuard device %q: %w", nc.wireguardInterface, err)
+	if err := ConfigureDevice(nc.wireguardInterface, nc.privateKey, &nc.listenPort, peers); err != nil {
+		return err
 	}
 
 	nc.log.WithField("peers", len(peers)).Debug("applied WireGuard config")

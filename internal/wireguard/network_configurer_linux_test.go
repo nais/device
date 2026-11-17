@@ -1,15 +1,18 @@
+//go:build netlink
+
 package wireguard_test
 
 import (
 	"net"
 	"net/netip"
-	"os"
+	"runtime"
 	"testing"
 
 	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/vishvananda/netlink"
+	"github.com/vishvananda/netns"
 	"golang.zx2c4.com/wireguard/wgctrl"
 	"golang.zx2c4.com/wireguard/wgctrl/wgtypes"
 
@@ -17,26 +20,24 @@ import (
 	"github.com/nais/device/pkg/pb"
 )
 
-// Needs root and kernel WireGuard: NAISDEVICE_NETLINK_TEST=1 sudo -E go test ./internal/wireguard
+// Needs root and kernel WireGuard: go test -c -tags netlink ./internal/wireguard && sudo ./wireguard.test
 func TestNetworkConfigurer(t *testing.T) {
-	if os.Getenv("NAISDEVICE_NETLINK_TEST") == "" {
-		t.Skip("set NAISDEVICE_NETLINK_TEST=1 and run as root to create a real WireGuard interface")
-	}
+	enterNewNetworkNamespace(t)
 
-	const iface = "nd-test0"
+	const iface = "wg0"
 	const listenPort = 51999
 	v4 := netip.MustParsePrefix("10.99.0.1/24")
 	v6 := netip.MustParsePrefix("fd99::1/64")
 	privateKey, err := wgtypes.GeneratePrivateKey()
 	require.NoError(t, err)
 
-	t.Cleanup(func() {
-		if link, err := netlink.LinkByName(iface); err == nil {
-			_ = netlink.LinkDel(link)
-		}
-	})
-
-	nc, err := wireguard.NewConfigurer(logrus.NewEntry(logrus.New()), &v4, &v6, privateKey.String(), iface, listenPort, nil, nil, nil)
+	nc, err := wireguard.NewConfigurer(logrus.NewEntry(logrus.New()), wireguard.Interface{
+		Name:       iface,
+		IPv4:       &v4,
+		IPv6:       &v6,
+		PrivateKey: privateKey.String(),
+		ListenPort: listenPort,
+	}, nil)
 	require.NoError(t, err)
 
 	// Twice, as the agents recreate an interface left over from a previous run.
@@ -85,6 +86,16 @@ func TestNetworkConfigurer(t *testing.T) {
 	assert.Equal(t, kept, device.Peers[0].PublicKey)
 	assert.Equal(t, "10.99.0.2/32", device.Peers[0].AllowedIPs[0].String())
 	assert.Equal(t, "127.0.0.1:51820", device.Peers[0].Endpoint.String())
+}
+
+// enterNewNetworkNamespace moves the test goroutine's thread into a fresh network namespace.
+// The thread stays locked, so Go discards it when the test ends instead of reusing it.
+func enterNewNetworkNamespace(t *testing.T) {
+	t.Helper()
+	runtime.LockOSThread()
+	ns, err := netns.New()
+	require.NoError(t, err)
+	t.Cleanup(func() { _ = ns.Close() })
 }
 
 func peerKeys(peers []wgtypes.Peer) []wgtypes.Key {

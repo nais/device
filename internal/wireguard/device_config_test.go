@@ -20,45 +20,117 @@ func newKey(t *testing.T) wgtypes.Key {
 	return key.PublicKey()
 }
 
+func cidrs(t *testing.T, raw ...string) []net.IPNet {
+	t.Helper()
+	nets := make([]net.IPNet, len(raw))
+	for i, cidr := range raw {
+		_, ipnet, err := net.ParseCIDR(cidr)
+		require.NoError(t, err)
+		nets[i] = *ipnet
+	}
+	return nets
+}
+
+func udpAddr(t *testing.T, raw string) *net.UDPAddr {
+	t.Helper()
+	addr, err := net.ResolveUDPAddr("udp", raw)
+	require.NoError(t, err)
+	return addr
+}
+
 func TestDeviceConfig(t *testing.T) {
 	privateKey, err := wgtypes.GeneratePrivateKey()
 	require.NoError(t, err)
 	listenPort := 51820
-	kept, added, removed := newKey(t), newKey(t), newKey(t)
+	keepalive := 25 * time.Second
+	gw, prometheus, other, stale := newKey(t), newKey(t), newKey(t), newKey(t)
 
-	peers := []wireguard.Peer{
-		&pb.Gateway{Name: "kept", PublicKey: kept.String(), Ipv4: "10.255.240.2", Endpoint: "127.0.0.1:51820"},
-		&pb.Gateway{Name: wireguard.PrometheusPeerName, PublicKey: added.String(), Ipv4: "10.255.240.3"},
+	tests := []struct {
+		name       string
+		listenPort *int
+		peers      []wireguard.Peer
+		current    []wgtypes.Peer
+		want       []wgtypes.PeerConfig
+	}{
+		{
+			name: "no peers",
+			want: []wgtypes.PeerConfig{},
+		},
+		{
+			name:       "listen port is set",
+			listenPort: &listenPort,
+			want:       []wgtypes.PeerConfig{},
+		},
+		{
+			name: "gateway with routes and endpoint",
+			peers: []wireguard.Peer{&pb.Gateway{
+				Name:       "gw",
+				PublicKey:  gw.String(),
+				Endpoint:   "1.2.3.4:51820",
+				Ipv4:       "10.255.24.10",
+				Ipv6:       "fd00::10",
+				RoutesIPv4: []string{"10.0.0.0/24", "172.16.0.0/16"},
+				RoutesIPv6: []string{"fd01::/64"},
+			}},
+			want: []wgtypes.PeerConfig{{
+				PublicKey:         gw,
+				Endpoint:          udpAddr(t, "1.2.3.4:51820"),
+				ReplaceAllowedIPs: true,
+				AllowedIPs:        cidrs(t, "10.0.0.0/24", "172.16.0.0/16", "10.255.24.10/32", "fd00::10/128", "fd01::/64"),
+			}},
+		},
+		{
+			name: "bare route IPs become host routes",
+			peers: []wireguard.Peer{&pb.Gateway{
+				Name:       "gw",
+				PublicKey:  gw.String(),
+				Ipv4:       "10.255.24.10",
+				Ipv6:       "fd00::10",
+				RoutesIPv4: []string{"10.43.0.60"},
+				RoutesIPv6: []string{"fd00::1"},
+			}},
+			want: []wgtypes.PeerConfig{{
+				PublicKey:         gw,
+				ReplaceAllowedIPs: true,
+				AllowedIPs:        cidrs(t, "10.43.0.60/32", "10.255.24.10/32", "fd00::10/128", "fd00::1/128"),
+			}},
+		},
+		{
+			name:  "prometheus peer gets keepalive",
+			peers: []wireguard.Peer{&pb.Gateway{Name: wireguard.PrometheusPeerName, PublicKey: prometheus.String(), Ipv4: "10.255.24.20"}},
+			want: []wgtypes.PeerConfig{{
+				PublicKey:                   prometheus,
+				ReplaceAllowedIPs:           true,
+				AllowedIPs:                  cidrs(t, "10.255.24.20/32"),
+				PersistentKeepaliveInterval: &keepalive,
+			}},
+		},
+		{
+			name: "current peers are kept in place or removed",
+			peers: []wireguard.Peer{
+				&pb.Gateway{Name: "gw", PublicKey: gw.String(), Ipv4: "10.255.24.10"},
+				&pb.Gateway{Name: "other", PublicKey: other.String(), Ipv4: "10.255.24.11"},
+			},
+			current: []wgtypes.Peer{{PublicKey: gw}, {PublicKey: stale}},
+			want: []wgtypes.PeerConfig{
+				{PublicKey: gw, ReplaceAllowedIPs: true, AllowedIPs: cidrs(t, "10.255.24.10/32")},
+				{PublicKey: other, ReplaceAllowedIPs: true, AllowedIPs: cidrs(t, "10.255.24.11/32")},
+				{PublicKey: stale, Remove: true},
+			},
+		},
 	}
-	current := []wgtypes.Peer{{PublicKey: kept}, {PublicKey: removed}}
 
-	cfg, err := wireguard.DeviceConfig(privateKey, &listenPort, peers, current)
-	require.NoError(t, err)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			cfg, err := wireguard.DeviceConfig(privateKey, tt.listenPort, tt.peers, tt.current)
+			require.NoError(t, err)
 
-	assert.Equal(t, privateKey, *cfg.PrivateKey)
-	assert.Equal(t, 51820, *cfg.ListenPort)
-	assert.False(t, cfg.ReplacePeers, "peers must be updated in place to keep sessions")
-	require.Len(t, cfg.Peers, 3)
-
-	assert.Equal(t, kept, cfg.Peers[0].PublicKey)
-	assert.True(t, cfg.Peers[0].ReplaceAllowedIPs)
-	assert.Equal(t, []net.IPNet{{IP: net.IPv4(10, 255, 240, 2).To4(), Mask: net.CIDRMask(32, 32)}}, cfg.Peers[0].AllowedIPs)
-	assert.Equal(t, "127.0.0.1:51820", cfg.Peers[0].Endpoint.String())
-	assert.Nil(t, cfg.Peers[0].PersistentKeepaliveInterval)
-
-	assert.Equal(t, added, cfg.Peers[1].PublicKey)
-	assert.Nil(t, cfg.Peers[1].Endpoint)
-	require.NotNil(t, cfg.Peers[1].PersistentKeepaliveInterval)
-	assert.Equal(t, 25*time.Second, *cfg.Peers[1].PersistentKeepaliveInterval)
-
-	assert.Equal(t, wgtypes.PeerConfig{PublicKey: removed, Remove: true}, cfg.Peers[2])
-}
-
-func TestDeviceConfig_NilListenPortLeavesPortUnchanged(t *testing.T) {
-	cfg, err := wireguard.DeviceConfig(wgtypes.Key{}, nil, nil, nil)
-	require.NoError(t, err)
-	assert.Nil(t, cfg.ListenPort)
-	assert.Empty(t, cfg.Peers)
+			assert.Equal(t, privateKey, *cfg.PrivateKey)
+			assert.Equal(t, tt.listenPort, cfg.ListenPort)
+			assert.False(t, cfg.ReplacePeers, "peers must be updated in place to keep sessions")
+			assert.Equal(t, tt.want, cfg.Peers)
+		})
+	}
 }
 
 func TestDeviceConfig_InvalidPeers(t *testing.T) {

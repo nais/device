@@ -1,7 +1,24 @@
 #!/bin/sh
 set -o errexit
 
+# Older versions let `wg` read /run/wg0.conf. WireGuard is now configured over netlink.
+remove_wg_apparmor_rule() {
+	apparmor_dir="${APPARMOR_DIR:-/etc/apparmor.d}"
+	local_profile="${apparmor_dir}/local/wg"
+
+	if ! grep -qxF "/run/wg0.conf r," "$local_profile" 2>/dev/null; then
+		return 0
+	fi
+
+	sed -i -e '/^# added by gateway-agent$/d' -e '\|^/run/wg0.conf r,$|d' "$local_profile"
+
+	if [ -f "${apparmor_dir}/wg" ] && command -v apparmor_parser >/dev/null 2>&1; then
+		apparmor_parser -r "${apparmor_dir}/wg" || echo "warning: unable to reload apparmor profile ${apparmor_dir}/wg" >&2
+	fi
+}
+
 setup_service() {
+	remove_wg_apparmor_rule
 	systemctl daemon-reload
 	systemctl unmask gateway-agent.service
 	systemctl preset gateway-agent.service
