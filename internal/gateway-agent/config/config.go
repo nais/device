@@ -24,7 +24,6 @@ type Config struct {
 	PrometheusAddr      string
 	PrometheusPublicKey string
 	PrometheusTunnelIP  string
-	WireGuardConfigPath string
 	WireGuardIPv4       *netip.Prefix `ignored:"true"`
 	WireGuardIPv6       *netip.Prefix `ignored:"true"`
 	AutoEnroll          bool
@@ -32,12 +31,11 @@ type Config struct {
 
 func DefaultConfig() Config {
 	return Config{
-		APIServerURL:        "127.0.0.1:8099",
-		ConfigDir:           "/etc/gateway-agent/",
-		LogLevel:            "info",
-		Name:                "test01",
-		PrometheusAddr:      "127.0.0.1:3000",
-		WireGuardConfigPath: "/run/wg0.conf",
+		APIServerURL:   "127.0.0.1:8099",
+		ConfigDir:      "/etc/gateway-agent/",
+		LogLevel:       "info",
+		Name:           "test01",
+		PrometheusAddr: "127.0.0.1:3000",
 	}
 }
 

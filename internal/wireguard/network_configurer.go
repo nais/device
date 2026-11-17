@@ -3,17 +3,19 @@
 package wireguard
 
 import (
+	"errors"
 	"fmt"
 	"net"
 	"net/netip"
-	"os"
-	"os/exec"
-	"time"
 
 	"github.com/google/gopacket/routing"
-	"github.com/nais/device/internal/ioconvenience"
 	"github.com/sirupsen/logrus"
+	"github.com/vishvananda/netlink"
+	"golang.zx2c4.com/wireguard/wgctrl"
+	"golang.zx2c4.com/wireguard/wgctrl/wgtypes"
 )
+
+const wireguardMTU = 1360
 
 type subNetworkConfigurer struct {
 	ip       *netip.Prefix
@@ -23,10 +25,10 @@ type subNetworkConfigurer struct {
 }
 
 type networkConfigurer struct {
-	config *Config
+	privateKey wgtypes.Key
+	listenPort int
 
 	wireguardInterface string
-	configPath         string
 
 	v4 *subNetworkConfigurer
 	v6 *subNetworkConfigurer
@@ -60,13 +62,15 @@ func detectDefaultRoute(router routing.Router, ip *netip.Prefix) (*net.Interface
 	return iface, src, nil
 }
 
-func NewConfigurer(log *logrus.Entry, configPath string, ipv4 *netip.Prefix, ipv6 *netip.Prefix, privateKey, wireguardInterface string, listenPort int, iptablesV4, iptablesV6 IPTables, router routing.Router) (NetworkConfigurer, error) {
+func NewConfigurer(log *logrus.Entry, ipv4 *netip.Prefix, ipv6 *netip.Prefix, privateKey, wireguardInterface string, listenPort int, iptablesV4, iptablesV6 IPTables, router routing.Router) (NetworkConfigurer, error) {
+	key, err := wgtypes.ParseKey(privateKey)
+	if err != nil {
+		return nil, fmt.Errorf("parse private key: %w", err)
+	}
+
 	nc := &networkConfigurer{
-		config: &Config{
-			PrivateKey: privateKey,
-			ListenPort: listenPort,
-		},
-		configPath:         configPath,
+		privateKey:         key,
+		listenPort:         listenPort,
 		wireguardInterface: wireguardInterface,
 		v4: &subNetworkConfigurer{
 			ip: ipv4,
@@ -99,73 +103,102 @@ func NewConfigurer(log *logrus.Entry, configPath string, ipv4 *netip.Prefix, ipv
 	return nc, nil
 }
 
+// SetupInterface recreates the WireGuard interface with its addresses, MTU and link state.
 func (nc *networkConfigurer) SetupInterface() error {
-	if nc.v4 == nil && nc.v6 == nil {
+	addresses := make([]*netlink.Addr, 0, 2)
+	for _, prefix := range []*netip.Prefix{nc.v4.ip, nc.v6.ip} {
+		if prefix == nil {
+			continue
+		}
+		addr, err := netlink.ParseAddr(prefix.String())
+		if err != nil {
+			return fmt.Errorf("parse interface address %s: %w", prefix, err)
+		}
+		addresses = append(addresses, addr)
+	}
+	if len(addresses) == 0 {
 		return fmt.Errorf("no IP addresses (v4/v6) configured for interface")
 	}
 
-	if err := exec.Command("ip", "link", "del", nc.wireguardInterface).Run(); err != nil {
-		nc.log.WithError(err).Info("pre-deleting WireGuard interface (ok if this fails)")
+	if err := nc.deleteInterface(); err != nil {
+		return err
 	}
 
-	// sysctl net.ipv4.ip_forward
-	run := func(commands [][]string) error {
-		for _, s := range commands {
-			cmd := exec.Command(s[0], s[1:]...)
+	err := netlink.LinkAdd(&netlink.Wireguard{
+		Name: nc.wireguardInterface, MTU: wireguardMTU,
+	})
+	if err != nil {
+		return fmt.Errorf("create WireGuard interface %q: %w", nc.wireguardInterface, err)
+	}
 
-			if out, err := cmd.CombinedOutput(); err != nil {
-				return fmt.Errorf("running %v: %w: %v", cmd, err, string(out))
-			} else {
-				nc.log.Debugf("%v: %v\n", cmd, string(out))
-			}
+	if err := nc.configureInterface(addresses); err != nil {
+		if delErr := nc.deleteInterface(); delErr != nil {
+			return fmt.Errorf("%w (additionally, failed to delete interface: %v)", err, delErr)
 		}
-		return nil
+		return err
 	}
 
-	commands := [][]string{
-		{"ip", "link", "add", "dev", nc.wireguardInterface, "type", "wireguard"},
-		{"ip", "link", "set", nc.wireguardInterface, "mtu", "1360"},
-	}
-	if nc.v4.ip != nil {
-		commands = append(commands, []string{"ip", "address", "add", "dev", nc.wireguardInterface, nc.v4.ip.String()})
-	}
-	if nc.v6.ip != nil {
-		commands = append(commands, []string{"ip", "address", "add", "dev", nc.wireguardInterface, nc.v6.ip.String()})
-	}
-	commands = append(commands, []string{"ip", "link", "set", nc.wireguardInterface, "up"})
-
-	return run(commands)
+	nc.log.WithField("interface", nc.wireguardInterface).Info("WireGuard interface set up")
+	return nil
 }
 
-// ApplyWireGuardConfig runs syncconfig with the provided WireGuard config
+func (nc *networkConfigurer) configureInterface(addresses []*netlink.Addr) error {
+	link, err := netlink.LinkByName(nc.wireguardInterface)
+	if err != nil {
+		return fmt.Errorf("look up WireGuard interface %q: %w", nc.wireguardInterface, err)
+	}
+
+	for _, addr := range addresses {
+		if err := netlink.AddrAdd(link, addr); err != nil {
+			return fmt.Errorf("add address %s to %q: %w", addr, nc.wireguardInterface, err)
+		}
+	}
+
+	if err := netlink.LinkSetUp(link); err != nil {
+		return fmt.Errorf("bring up %q: %w", nc.wireguardInterface, err)
+	}
+
+	return nil
+}
+
+func (nc *networkConfigurer) deleteInterface() error {
+	link, err := netlink.LinkByName(nc.wireguardInterface)
+	if errors.As(err, &netlink.LinkNotFoundError{}) {
+		return nil
+	}
+	if err != nil {
+		return fmt.Errorf("look up WireGuard interface %q: %w", nc.wireguardInterface, err)
+	}
+
+	if err := netlink.LinkDel(link); err != nil {
+		return fmt.Errorf("delete WireGuard interface %q: %w", nc.wireguardInterface, err)
+	}
+	return nil
+}
+
+// ApplyWireGuardConfig configures the interface with exactly the given peers.
+// Existing peers are updated in place, so their sessions survive the update.
 func (nc *networkConfigurer) ApplyWireGuardConfig(peers []Peer) error {
-	configFile, err := os.OpenFile(nc.configPath, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0o600)
+	client, err := wgctrl.New()
 	if err != nil {
-		return fmt.Errorf("open WireGuard config file: %w", err)
+		return fmt.Errorf("create wgctrl client: %w", err)
+	}
+	defer func() { _ = client.Close() }()
+
+	device, err := client.Device(nc.wireguardInterface)
+	if err != nil {
+		return fmt.Errorf("get WireGuard device %q: %w", nc.wireguardInterface, err)
 	}
 
-	nc.config.Peers = peers
-	err = nc.config.MarshalINI(configFile)
+	cfg, err := DeviceConfig(nc.privateKey, &nc.listenPort, peers, device.Peers)
 	if err != nil {
-		ioconvenience.CloseWithLog(configFile, nc.log)
-		return fmt.Errorf("write WireGuard config: %w", err)
+		return fmt.Errorf("build WireGuard config: %w", err)
 	}
 
-	err = configFile.Close()
-	if err != nil {
-		return fmt.Errorf("close WireGuard config: %w", err)
+	if err := client.ConfigureDevice(nc.wireguardInterface, *cfg); err != nil {
+		return fmt.Errorf("configure WireGuard device %q: %w", nc.wireguardInterface, err)
 	}
 
-	time.Sleep(1 * time.Second)
-	cmd := exec.Command("wg", "syncconf", nc.wireguardInterface, nc.configPath)
-	nc.log.Debugln(cmd.String())
-
-	out, err := cmd.CombinedOutput()
-	if err != nil {
-		return fmt.Errorf("sync WireGuard config: %w: out: %v", err, string(out))
-	}
-
-	nc.log.WithField("path", nc.configPath).Debug("actuated WireGuard config")
-
+	nc.log.WithField("peers", len(peers)).Debug("applied WireGuard config")
 	return nil
 }

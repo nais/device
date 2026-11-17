@@ -81,7 +81,7 @@ func run(log logrus.FieldLogger, cfg config.Config) error {
 		}
 
 		netConf, err = wireguard.NewConfigurer(log.WithField("component", "network-configurer"),
-			cfg.WireGuardConfigPath, cfg.WireGuardIPv4, cfg.WireGuardIPv6, cfg.PrivateKey, wireguardInterface, wireguardListenPort, nil, nil, nil)
+			cfg.WireGuardIPv4, cfg.WireGuardIPv6, cfg.PrivateKey, wireguardInterface, wireguardListenPort, nil, nil, nil)
 		if err != nil {
 			return fmt.Errorf("setup wireguard configurer: %w", err)
 		}

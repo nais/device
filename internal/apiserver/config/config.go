@@ -44,7 +44,6 @@ type Config struct {
 	WireGuardEnabled                  bool
 	WireGuardIP                       string // for passing in raw string
 	WireGuardIPv6                     string // for passing in raw string
-	WireGuardConfigPath               string
 	WireGuardPrivateKey               wgtypes.Key
 	WireGuardPrivateKeyPath           string
 	WireGuardNetworkAddress           string
@@ -80,7 +79,6 @@ func DefaultConfig() Config {
 		PrometheusAddr:                "127.0.0.1:3000",
 		WireGuardNetworkAddress:       "10.255.240.0/21",
 		WireGuardIP:                   "10.255.240.1",
-		WireGuardConfigPath:           "/run/wg0.conf",
 		WireGuardPrivateKeyPath:       "/etc/apiserver/private.key",
 		GatewayConfigurer:             "bucket",
 	}

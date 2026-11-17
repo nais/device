@@ -1,7 +1,6 @@
 package database
 
 import (
-	"bytes"
 	"context"
 	"database/sql"
 	"encoding/base64"
@@ -66,13 +65,10 @@ func TestNew_RepairsRawPublicKeys(t *testing.T) {
 				assert.Equal(t, tt.want, gateway.PublicKey)
 
 				if tt.want == canonical {
-					cfg := wireguard.Config{Peers: wireguard.CastPeerList(peers)}
-					var ini bytes.Buffer
-					require.NoError(t, cfg.MarshalINI(&ini))
-					assert.Contains(t, ini.String(), "PublicKey = "+canonical+"\n")
-					parsed, err := wgtypes.ParseKey(peers[0].GetPublicKey())
+					cfg, err := wireguard.DeviceConfig(wgtypes.Key{}, nil, wireguard.CastPeerList(peers), nil)
 					require.NoError(t, err)
-					assert.Equal(t, key, parsed)
+					require.Len(t, cfg.Peers, 1)
+					assert.Equal(t, key, cfg.Peers[0].PublicKey)
 				}
 
 				var stored string
